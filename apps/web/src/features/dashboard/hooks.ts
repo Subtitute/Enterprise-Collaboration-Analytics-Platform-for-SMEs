@@ -1,0 +1,84 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useAuthStore } from '@/stores/auth.store';
+import { connectAnalyticsSocket, disconnectAnalyticsSocket } from '@/lib/socket';
+import type { DateRangeOption, RecentActivityItem } from '@/types';
+import { fetchAnalyticsSummary, fetchRecentActivity, fetchTaskStatusBreakdown, fetchTaskTrend } from './api';
+
+export function useAnalyticsSummary() {
+  return useQuery({ queryKey: ['analytics', 'summary'], queryFn: fetchAnalyticsSummary });
+}
+
+export function useTaskTrend(range: DateRangeOption = '30d') {
+  return useQuery({ queryKey: ['analytics', 'task-trend', range], queryFn: () => fetchTaskTrend(range) });
+}
+
+export function useTaskStatusBreakdown(projectId?: string) {
+  return useQuery({
+    queryKey: ['analytics', 'task-status-breakdown', projectId ?? null],
+    queryFn: () => fetchTaskStatusBreakdown(projectId),
+  });
+}
+
+const LIVE_FEED_LIMIT = 15;
+
+/**
+ * Ket hop snapshot REST (GET /analytics/recent-activity) voi cac su kien realtime tu
+ * /ws/analytics ('analytics:activity'). Socket duoc mo/dong ngay trong hook nay (chi Dashboard
+ * can toi) va tu ket noi lai neu accessToken doi (sau silent-refresh).
+ */
+export function useRecentActivityFeed(limit = LIVE_FEED_LIMIT) {
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const query = useQuery({ queryKey: ['analytics', 'recent-activity'], queryFn: fetchRecentActivity });
+  const [liveItems, setLiveItems] = useState<RecentActivityItem[]>([]);
+  const [isLive, setIsLive] = useState(false);
+
+  useEffect(() => {
+    if (!accessToken) {
+      disconnectAnalyticsSocket();
+      setIsLive(false);
+      return;
+    }
+    const socket = connectAnalyticsSocket(accessToken);
+
+    const onConnect = () => setIsLive(true);
+    const onDisconnect = () => setIsLive(false);
+    // Payload tho tu AnalyticsGateway.emitActivity(): { eventId, eventType, occurredAt, actorId }
+    // (apps/analytics-service/src/realtime/analytics.gateway.ts) - khong giong shape REST
+    // /analytics/recent-activity, nen phai doi ten field tai day truoc khi dua vao danh sach.
+    const onActivity = (raw: { eventId: string; eventType: string; occurredAt: string; actorId: string | null }) => {
+      const item: RecentActivityItem = {
+        id: raw.eventId,
+        actorId: raw.actorId,
+        action: raw.eventType,
+        createdAt: raw.occurredAt,
+      };
+      setLiveItems((prev) => [item, ...prev].slice(0, limit));
+    };
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('analytics:activity', onActivity);
+    if (socket.connected) setIsLive(true);
+
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('analytics:activity', onActivity);
+      disconnectAnalyticsSocket();
+    };
+  }, [accessToken, limit]);
+
+  const items = useMemo(() => {
+    const seen = new Set<string>();
+    const combined: RecentActivityItem[] = [];
+    for (const item of [...liveItems, ...(query.data ?? [])]) {
+      if (!item?.id || seen.has(item.id)) continue;
+      seen.add(item.id);
+      combined.push(item);
+    }
+    return combined.slice(0, limit);
+  }, [liveItems, query.data, limit]);
+
+  return { items, isLoading: query.isLoading, isError: query.isError, isLive };
+}

@@ -1,0 +1,35 @@
+{
+  "name": "enterprise-collaboration-analytics-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Enterprise Collaboration & Analytics Platform for SMEs - graduation project monorepo",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build:libs": "npm run build -w packages/common-dto -w packages/common-guard",
+    "build": "npm run build:libs && npm run build --workspaces --if-present -w apps/gateway -w apps/iam-service -w apps/project-task-service -w apps/document-service -w apps/notification-service -w apps/analytics-service -w apps/web",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "dev:iam": "npm run start:dev -w apps/iam-service",
+    "dev:gateway": "npm run start:dev -w apps/gateway",
+    "dev:project-task": "npm run start:dev -w apps/project-task-service",
+    "dev:document": "npm run start:dev -w apps/document-service",
+    "dev:notification": "npm run start:dev -w apps/notification-service",
+    "dev:analytics": "npm run start:dev -w apps/analytics-service",
+    "dev:web": "npm run dev -w apps/web",
+    "seed": "node scripts/seed.js"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.4.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

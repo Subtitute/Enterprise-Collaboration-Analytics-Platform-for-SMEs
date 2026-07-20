@@ -1,0 +1,31 @@
+# 2026-07-18: Dockerfile cho Analytics Service.
+# Sao chep tu MAU THAM CHIEU apps/iam-service/Dockerfile, chi doi ten service va port.
+#
+# Build context BAT BUOC la thu muc goc cua repo (xem infra/docker-compose.yml: context: ..)
+# vi can truy cap ca packages/common-dto va packages/common-guard (npm workspaces).
+
+FROM node:20-alpine AS builder
+WORKDIR /workspace
+
+COPY . .
+RUN npm ci
+
+RUN npm run build -w packages/common-dto
+RUN npm run build -w packages/common-guard
+RUN npm run build -w apps/analytics-service
+
+FROM node:20-alpine AS runner
+WORKDIR /workspace
+ENV NODE_ENV=production
+
+COPY --from=builder /workspace/node_modules ./node_modules
+COPY --from=builder /workspace/package.json ./package.json
+COPY --from=builder /workspace/packages/common-dto/dist ./packages/common-dto/dist
+COPY --from=builder /workspace/packages/common-dto/package.json ./packages/common-dto/package.json
+COPY --from=builder /workspace/packages/common-guard/dist ./packages/common-guard/dist
+COPY --from=builder /workspace/packages/common-guard/package.json ./packages/common-guard/package.json
+COPY --from=builder /workspace/apps/analytics-service/dist ./apps/analytics-service/dist
+COPY --from=builder /workspace/apps/analytics-service/package.json ./apps/analytics-service/package.json
+
+EXPOSE 3005
+CMD ["node", "apps/analytics-service/dist/main.js"]

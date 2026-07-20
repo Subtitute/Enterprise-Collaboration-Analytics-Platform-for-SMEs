@@ -1,0 +1,116 @@
+import { useState } from 'react';
+import { Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow } from '@/components/ui/Table';
+import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
+import { ConfirmDialog } from '@/components/ui/Modal';
+import { Badge } from '@/components/ui/Badge';
+import { DownloadIcon, FileIcon, MoreVerticalIcon, ShareIcon, ClockIcon, TrashIcon } from '@/components/ui/Icons';
+import { formatBytes, formatDateTime } from '@/lib/utils';
+import type { FileItem } from '@/types';
+import { useDeleteFile, useDownloadFile } from '../hooks';
+
+interface FileTableProps {
+  files: FileItem[];
+  folderId: string | null;
+  onShare: (file: FileItem) => void;
+  onVersionHistory: (file: FileItem) => void;
+}
+
+export function FileTable({ files, folderId, onShare, onVersionHistory }: FileTableProps) {
+  const [deleting, setDeleting] = useState<FileItem | null>(null);
+  const download = useDownloadFile();
+  const deleteFile = useDeleteFile(folderId);
+
+  return (
+    <>
+      <Table>
+        <TableHead>
+          <tr>
+            <TableHeadCell>Tên tệp</TableHeadCell>
+            <TableHeadCell>Kích thước</TableHeadCell>
+            <TableHeadCell>Phiên bản</TableHeadCell>
+            <TableHeadCell>Cập nhật</TableHeadCell>
+            <TableHeadCell className="text-right">Hành động</TableHeadCell>
+          </tr>
+        </TableHead>
+        <TableBody>
+          {files.map((file) => (
+            <TableRow key={file.id}>
+              <TableCell>
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <FileIcon className="h-4 w-4 shrink-0 text-primary-500" />
+                  <span className="truncate font-medium text-slate-800">{file.name}</span>
+                </div>
+              </TableCell>
+              <TableCell className="whitespace-nowrap text-xs text-slate-500">{formatBytes(file.size)}</TableCell>
+              <TableCell>
+                <Badge variant="outline">v{file.version ?? 1}</Badge>
+              </TableCell>
+              <TableCell className="whitespace-nowrap text-xs text-slate-500">{formatDateTime(file.updatedAt)}</TableCell>
+              <TableCell className="text-right">
+                <Dropdown
+                  align="right"
+                  trigger={({ toggle }) => (
+                    <button onClick={toggle} className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label="Tùy chọn tệp">
+                      <MoreVerticalIcon className="h-4 w-4" />
+                    </button>
+                  )}
+                >
+                  {({ close }) => (
+                    <div className="w-48 py-1.5">
+                      <DropdownItem
+                        onClick={() => {
+                          download.mutate(file.id);
+                          close();
+                        }}
+                      >
+                        <DownloadIcon className="h-4 w-4" /> Tải xuống
+                      </DropdownItem>
+                      <DropdownItem
+                        onClick={() => {
+                          onShare(file);
+                          close();
+                        }}
+                      >
+                        <ShareIcon className="h-4 w-4" /> Chia sẻ
+                      </DropdownItem>
+                      <DropdownItem
+                        onClick={() => {
+                          onVersionHistory(file);
+                          close();
+                        }}
+                      >
+                        <ClockIcon className="h-4 w-4" /> Lịch sử phiên bản
+                      </DropdownItem>
+                      <DropdownItem
+                        className="text-rose-600 hover:bg-rose-50"
+                        onClick={() => {
+                          setDeleting(file);
+                          close();
+                        }}
+                      >
+                        <TrashIcon className="h-4 w-4" /> Xoá tệp
+                      </DropdownItem>
+                    </div>
+                  )}
+                </Dropdown>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      <ConfirmDialog
+        open={Boolean(deleting)}
+        onClose={() => setDeleting(null)}
+        onConfirm={() => {
+          if (deleting) deleteFile.mutate(deleting.id);
+          setDeleting(null);
+        }}
+        title="Xoá tệp này?"
+        description={deleting ? `"${deleting.name}" sẽ bị xoá khỏi hệ thống.` : undefined}
+        confirmLabel="Xoá tệp"
+        danger
+      />
+    </>
+  );
+}

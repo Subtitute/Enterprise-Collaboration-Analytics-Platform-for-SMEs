@@ -1,0 +1,370 @@
+# 2026-07-18: Khoi tao docker-compose cho toan bo nen tang, theo Technical_Spec.md muc 8.
+# Chay tu thu muc infra/:  docker compose --env-file .env up -d --build
+name: ecap-sme
+
+networks:
+  internal-net:
+    driver: bridge
+
+volumes:
+  postgres-iam-data:
+  postgres-pt-data:
+  postgres-doc-data:
+  timescale-data:
+  mongo-data:
+  kafka-data:
+  redis-data:
+  minio-data:
+
+services:
+  # ---------------------------------------------------------------
+  # Infrastructure
+  # ---------------------------------------------------------------
+  postgres-iam:
+    image: postgres:16-alpine
+    container_name: postgres-iam
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_IAM_DB}
+      POSTGRES_USER: ${POSTGRES_IAM_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_IAM_PASSWORD}
+    volumes:
+      - postgres-iam-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks: [internal-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_IAM_USER} -d ${POSTGRES_IAM_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres-pt:
+    image: postgres:16-alpine
+    container_name: postgres-pt
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_PT_DB}
+      POSTGRES_USER: ${POSTGRES_PT_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PT_PASSWORD}
+    volumes:
+      - postgres-pt-data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    networks: [internal-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_PT_USER} -d ${POSTGRES_PT_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres-doc:
+    image: postgres:16-alpine
+    container_name: postgres-doc
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DOC_DB}
+      POSTGRES_USER: ${POSTGRES_DOC_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_DOC_PASSWORD}
+    volumes:
+      - postgres-doc-data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"
+    networks: [internal-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_DOC_USER} -d ${POSTGRES_DOC_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: timescaledb
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${TIMESCALE_DB}
+      POSTGRES_USER: ${TIMESCALE_USER}
+      POSTGRES_PASSWORD: ${TIMESCALE_PASSWORD}
+    volumes:
+      - timescale-data:/var/lib/postgresql/data
+      - ./timescale-init:/docker-entrypoint-initdb.d
+    ports:
+      - "5436:5432"
+    networks: [internal-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TIMESCALE_USER} -d ${TIMESCALE_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    networks: [internal-net]
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes:
+      - redis-data:/data
+    # Host port 6380 (khong phai 6379 mac dinh) - may host da co Redis khac dang chay o 6379
+    # (du an rieng cua nguoi dung). Giao tiep NOI BO giua cac container van dung dung cong
+    # 6379 qua ten service "redis" (khong bi anh huong boi viec doi cong host o day).
+    ports:
+      - "6380:6379"
+    networks: [internal-net]
+    healthcheck:
+      # $$ (shell-expand trong container) khong hoat dong vi container KHONG co bien moi
+      # truong REDIS_PASSWORD (chi duoc truyen qua `command:` o tren) - dung $ don de
+      # docker compose thay the truc tiep gia tri that tu .env luc parse file nay.
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep PONG"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio-data:/data
+    # Host port 9010/9011 (khong phai 9000/9001 mac dinh) - may host da co MinIO khac dang
+    # chay o do (du an rieng cua nguoi dung). Giao tiep NOI BO van dung dung cong 9000/9001.
+    ports:
+      - "9010:9000"
+      - "9011:9001"
+    command: server /data --console-address ":9001"
+    networks: [internal-net]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Tao bucket MinIO mac dinh khi khoi dong (chay 1 lan roi thoat)
+  minio-init:
+    image: minio/mc:latest
+    container_name: minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks: [internal-net]
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+      mc mb -p local/${MINIO_BUCKET};
+      mc anonymous set download local/${MINIO_BUCKET};
+      exit 0;
+      "
+
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: kafka
+    restart: unless-stopped
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks: [internal-net]
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:29092,CONTROLLER://:29093,PLAINTEXT_HOST://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+
+  # ---------------------------------------------------------------
+  # Core Platform - Microservices
+  # ---------------------------------------------------------------
+  iam-service:
+    build:
+      context: ..
+      dockerfile: apps/iam-service/Dockerfile
+    container_name: iam-service
+    restart: unless-stopped
+    depends_on:
+      postgres-iam: { condition: service_healthy }
+      kafka: { condition: service_started }
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: postgres-iam
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_IAM_DB}
+      DB_USER: ${POSTGRES_IAM_USER}
+      DB_PASSWORD: ${POSTGRES_IAM_PASSWORD}
+      KAFKA_BROKER: kafka:29092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN}
+    ports:
+      - "3001:3001"
+    networks: [internal-net]
+
+  gateway:
+    build:
+      context: ..
+      dockerfile: apps/gateway/Dockerfile
+    container_name: gateway
+    restart: unless-stopped
+    depends_on:
+      - iam-service
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      IAM_SERVICE_URL: http://iam-service:3001
+      PROJECT_TASK_SERVICE_URL: http://project-task-service:3002
+      DOCUMENT_SERVICE_URL: http://document-service:3003
+      NOTIFICATION_SERVICE_URL: http://notification-service:3004
+      ANALYTICS_SERVICE_URL: http://analytics-service:3005
+    ports:
+      - "3000:3000"
+    networks: [internal-net]
+
+  project-task-service:
+    build:
+      context: ..
+      dockerfile: apps/project-task-service/Dockerfile
+    container_name: project-task-service
+    restart: unless-stopped
+    depends_on:
+      postgres-pt: { condition: service_healthy }
+      kafka: { condition: service_started }
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DB_HOST: postgres-pt
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_PT_DB}
+      DB_USER: ${POSTGRES_PT_USER}
+      DB_PASSWORD: ${POSTGRES_PT_PASSWORD}
+      KAFKA_BROKER: kafka:29092
+    ports:
+      - "3002:3002"
+    networks: [internal-net]
+
+  document-service:
+    build:
+      context: ..
+      dockerfile: apps/document-service/Dockerfile
+    container_name: document-service
+    restart: unless-stopped
+    depends_on:
+      postgres-doc: { condition: service_healthy }
+      kafka: { condition: service_started }
+      minio: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      DB_HOST: postgres-doc
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DOC_DB}
+      DB_USER: ${POSTGRES_DOC_USER}
+      DB_PASSWORD: ${POSTGRES_DOC_PASSWORD}
+      KAFKA_BROKER: kafka:29092
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_USE_SSL: "false"
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_BUCKET}
+    ports:
+      - "3003:3003"
+    networks: [internal-net]
+
+  notification-service:
+    build:
+      context: ..
+      dockerfile: apps/notification-service/Dockerfile
+    container_name: notification-service
+    restart: unless-stopped
+    depends_on:
+      mongodb: { condition: service_healthy }
+      kafka: { condition: service_started }
+    environment:
+      NODE_ENV: production
+      PORT: 3004
+      MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGO_DATABASE}?authSource=admin
+      KAFKA_BROKER: kafka:29092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+    ports:
+      - "3004:3004"
+    networks: [internal-net]
+
+  analytics-service:
+    build:
+      context: ..
+      dockerfile: apps/analytics-service/Dockerfile
+    container_name: analytics-service
+    restart: unless-stopped
+    depends_on:
+      timescaledb: { condition: service_healthy }
+      kafka: { condition: service_started }
+    environment:
+      NODE_ENV: production
+      PORT: 3005
+      DB_HOST: timescaledb
+      DB_PORT: 5432
+      DB_NAME: ${TIMESCALE_DB}
+      DB_USER: ${TIMESCALE_USER}
+      DB_PASSWORD: ${TIMESCALE_PASSWORD}
+      KAFKA_BROKER: kafka:29092
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+    ports:
+      - "3005:3005"
+    networks: [internal-net]
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+        VITE_WS_NOTIFICATION_URL: /ws/notifications
+        VITE_WS_ANALYTICS_URL: /ws/analytics
+    container_name: web
+    restart: unless-stopped
+    depends_on:
+      - gateway
+    ports:
+      - "80:80"
+    networks: [internal-net]

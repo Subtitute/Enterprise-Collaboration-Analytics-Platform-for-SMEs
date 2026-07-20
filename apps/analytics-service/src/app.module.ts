@@ -1,0 +1,46 @@
+import { Module } from '@nestjs/common';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AllExceptionsFilter, InternalAuthGuard, PermissionsGuard } from '@app/common-guard';
+import configuration from './config/configuration';
+import { RedisModule } from './redis/redis.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { KafkaModule } from './kafka/kafka.module';
+import { HealthController } from './health/health.controller';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres' as const,
+        host: config.get<string>('db.host'),
+        port: config.get<number>('db.port'),
+        username: config.get<string>('db.user'),
+        password: config.get<string>('db.password'),
+        database: config.get<string>('db.name'),
+        // QUAN TRONG: schema (hypertable fact_task_events/fact_document_events/fact_user_activity
+        // + continuous aggregate daily_task_summary/weekly_project_progress/daily_document_activity)
+        // da duoc so huu HOAN TOAN boi infra/timescale-init/001-init.sql (chay tu dong khi container
+        // TimescaleDB khoi tao lan dau). KHONG khai bao TypeORM entity va KHONG dung synchronize cho
+        // cac bang nay - hypertable/continuous aggregate la khai niem rieng cua TimescaleDB, khong map
+        // duoc vao ORM entity model. DataSource o day CHI dong vai tro connection pool; moi truy van
+        // deu la raw SQL tham so hoa qua dataSource.query() (xem analytics/*.service.ts).
+        entities: [],
+        synchronize: false,
+      }),
+    }),
+    RedisModule,
+    AnalyticsModule,
+    KafkaModule,
+  ],
+  controllers: [HealthController],
+  providers: [
+    { provide: APP_GUARD, useClass: InternalAuthGuard },
+    { provide: APP_GUARD, useClass: PermissionsGuard },
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+  ],
+})
+export class AppModule {}
