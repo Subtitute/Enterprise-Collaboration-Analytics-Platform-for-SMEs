@@ -1,9 +1,14 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
 import { FolderKanbanIcon, CheckCircleIcon, UserIcon, FileTextIcon } from '@/components/ui/Icons';
 import { DATE_RANGE_LABEL_VI } from '@/types';
 import type { DateRangeOption } from '@/types';
+import { useAuthStore } from '@/stores/auth.store';
+import { hasAdminRole } from '@/lib/utils';
+import { useProjectsQuery } from '@/features/projects/hooks';
 import { useAnalyticsSummary, useTaskStatusBreakdown, useTaskTrend } from './hooks';
 import { KpiCard } from './components/KpiCard';
 import { TaskTrendChart } from './components/TaskTrendChart';
@@ -12,9 +17,17 @@ import { RecentActivityFeed } from './components/RecentActivityFeed';
 
 export function DashboardPage() {
   const [range, setRange] = useState<DateRangeOption>('30d');
-  const summaryQuery = useAnalyticsSummary();
+  const summaryQuery = useAnalyticsSummary(range);
   const trendQuery = useTaskTrend(range);
-  const breakdownQuery = useTaskStatusBreakdown();
+  const breakdownQuery = useTaskStatusBreakdown(range);
+
+  // Onboarding sau dang ky to chuc (Wireframe.md muc 1): to chuc moi tinh gon la "chua co du
+  // an nao" - hien banner goi y "moi thanh vien" / "tao du an dau tien" thay vi mot Dashboard
+  // rong khong co huong dan. Dung lai GET /projects (limit=1) chi de biet tong so du an.
+  const roles = useAuthStore((s) => s.user?.roles);
+  const canInviteMembers = hasAdminRole(roles);
+  const projectsProbeQuery = useProjectsQuery({ limit: 1 });
+  const showOnboarding = !projectsProbeQuery.isLoading && !projectsProbeQuery.isError && (projectsProbeQuery.data?.meta.total ?? 0) === 0;
 
   const summary = summaryQuery.data;
 
@@ -25,11 +38,33 @@ export function DashboardPage() {
         <p className="text-sm text-slate-500">Tổng quan hoạt động của tổ chức bạn.</p>
       </div>
 
+      {showOnboarding && (
+        <Card className="flex flex-col items-start gap-3 border-primary-100 bg-primary-50/40 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Chào mừng đến với ECAP for SMEs!</p>
+            <p className="mt-1 text-sm text-slate-600">
+              Tổ chức của bạn chưa có dự án nào. Mời thêm thành viên hoặc tạo dự án đầu tiên để bắt đầu.
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            {canInviteMembers && (
+              <Link to="/admin/members">
+                <Button variant="outline">Mời thành viên</Button>
+              </Link>
+            )}
+            <Link to="/projects">
+              <Button>Tạo dự án đầu tiên</Button>
+            </Link>
+          </div>
+        </Card>
+      )}
+
       {/* 4 KPI card theo dung Wireframe.md muc 3: Tong cong viec / Ty le hoan thanh /
           Tai lieu moi tuan nay / Thanh vien hoat dong - khop chinh xac voi AnalyticsSummary
           tra ve boi GET /analytics/summary (khong con "du an dang hoat dong" hay "qua han"
-          vi Analytics Service khong theo doi 2 chi so do - xem types/index.ts). */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          vi Analytics Service khong theo doi 2 chi so do - xem types/index.ts). Breakpoint 2 cot
+          o `md` (768px) theo dung Wireframe.md muc 10 (mobile giu 1 cot xuyen suot <768px). */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           label="Tổng công việc"
           value={summary?.totalTasksCreated ?? '—'}
@@ -81,7 +116,12 @@ export function DashboardPage() {
             </Select>
           </CardHeader>
           <CardContent>
-            <TaskTrendChart data={trendQuery.data ?? []} isLoading={trendQuery.isLoading} />
+            <TaskTrendChart
+              data={trendQuery.data ?? []}
+              isLoading={trendQuery.isLoading}
+              isError={trendQuery.isError}
+              onRetry={() => trendQuery.refetch()}
+            />
           </CardContent>
         </Card>
 
@@ -90,7 +130,12 @@ export function DashboardPage() {
             <CardTitle>Phân bố trạng thái công việc</CardTitle>
           </CardHeader>
           <CardContent>
-            <TaskStatusDonut data={breakdownQuery.data ?? []} isLoading={breakdownQuery.isLoading} />
+            <TaskStatusDonut
+              data={breakdownQuery.data ?? []}
+              isLoading={breakdownQuery.isLoading}
+              isError={breakdownQuery.isError}
+              onRetry={() => breakdownQuery.refetch()}
+            />
           </CardContent>
         </Card>
       </div>

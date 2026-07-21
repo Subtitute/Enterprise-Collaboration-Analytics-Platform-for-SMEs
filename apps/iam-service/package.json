@@ -9,7 +9,8 @@
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"src/**/*.ts\" --fix",
-    "test": "jest"
+    "test": "jest",
+    "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
     "@app/common-dto": "*",
@@ -25,6 +26,8 @@
     "bcryptjs": "^3.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "cookie-parser": "^1.4.7",
+    "helmet": "^8.3.0",
     "ioredis": "^5.4.1",
     "kafkajs": "^2.2.4",
     "pg": "^8.12.0",
@@ -37,12 +40,15 @@
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.0",
+    "@types/cookie-parser": "^1.4.10",
     "@types/express": "^4.17.21",
     "@types/jest": "^29.5.12",
     "@types/node": "^20.14.0",
+    "@types/supertest": "^6.0.2",
     "@types/uuid": "^9.0.8",
     "jest": "^29.7.0",
     "source-map-support": "^0.5.21",
+    "supertest": "^7.0.0",
     "ts-jest": "^29.1.4",
     "ts-loader": "^9.5.1",
     "ts-node": "^10.9.2",
@@ -50,12 +56,22 @@
     "typescript": "^5.4.0"
   },
   "jest": {
-    "moduleFileExtensions": ["js", "json", "ts"],
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
-    "transform": { "^.+\\.(t|j)s$": "ts-jest" },
-    "setupFiles": ["reflect-metadata"],
-    "collectCoverageFrom": ["**/*.(t|j)s"],
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "setupFiles": [
+      "reflect-metadata"
+    ],
+    "collectCoverageFrom": [
+      "**/*.(t|j)s"
+    ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   }

@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Input';
+import { QueryState } from '@/components/ui/QueryState';
+import { Spinner } from '@/components/ui/Spinner';
 import { useProjectNameMap } from '@/hooks/useOrgProjects';
 import { DATE_RANGE_LABEL_VI } from '@/types';
 import type { DateRangeOption } from '@/types';
@@ -12,7 +14,7 @@ import { DocumentActivityChart } from './components/DocumentActivityChart';
 export function AnalyticsPage() {
   const [range, setRange] = useState<DateRangeOption>('30d');
 
-  const progressQuery = useProjectProgressQuery();
+  const progressQuery = useProjectProgressQuery(range);
   const activityQuery = useDocumentActivityQuery(range);
   const { map: projectNames } = useProjectNameMap();
 
@@ -55,7 +57,12 @@ export function AnalyticsPage() {
             <CardTitle>So sánh tiến độ dự án</CardTitle>
           </CardHeader>
           <CardContent>
-            <ProjectProgressChart data={progressRows} />
+            <ProjectProgressChart
+              data={progressRows}
+              isLoading={progressQuery.isLoading}
+              isError={progressQuery.isError}
+              onRetry={() => progressQuery.refetch()}
+            />
           </CardContent>
         </Card>
 
@@ -64,7 +71,12 @@ export function AnalyticsPage() {
             <CardTitle>Xu hướng hoạt động tài liệu</CardTitle>
           </CardHeader>
           <CardContent>
-            <DocumentActivityChart data={activityQuery.data ?? []} />
+            <DocumentActivityChart
+              data={activityQuery.data ?? []}
+              isLoading={activityQuery.isLoading}
+              isError={activityQuery.isError}
+              onRetry={() => activityQuery.refetch()}
+            />
           </CardContent>
         </Card>
       </div>
@@ -74,7 +86,19 @@ export function AnalyticsPage() {
           <CardTitle>Bảng chỉ số theo dự án</CardTitle>
         </CardHeader>
         <CardContent>
-          <ProjectProgressTable rows={progressRows} />
+          <QueryState
+            isLoading={progressQuery.isLoading}
+            isError={progressQuery.isError}
+            onRetry={() => progressQuery.refetch()}
+            errorTitle="Không thể tải bảng chỉ số dự án"
+            loadingFallback={
+              <div className="flex justify-center py-10">
+                <Spinner />
+              </div>
+            }
+          >
+            <ProjectProgressTable rows={progressRows} />
+          </QueryState>
         </CardContent>
       </Card>
     </div>

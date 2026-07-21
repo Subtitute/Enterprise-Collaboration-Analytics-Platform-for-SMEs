@@ -1,10 +1,11 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequirePermissions } from '@app/common-guard';
-import { PaginationQueryDto, PERMISSIONS } from '@app/common-dto';
+import { PERMISSIONS } from '@app/common-dto';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { ProjectQueryDto } from './dto/project-query.dto';
 
 /** Quan ly du an - Technical_Spec.md muc 3.3, Wireframe.md muc 4. */
 @ApiTags('Projects')
@@ -14,14 +15,16 @@ export class ProjectsController {
   constructor(private readonly projectsService: ProjectsService) {}
 
   @Get()
+  @RequirePermissions(PERMISSIONS.PROJECT_VIEW)
   findAll(
     @CurrentUser('organizationId') organizationId: string,
-    @Query() query: PaginationQueryDto,
+    @Query() query: ProjectQueryDto,
   ) {
     return this.projectsService.findAll(organizationId, query);
   }
 
   @Get(':id')
+  @RequirePermissions(PERMISSIONS.PROJECT_VIEW)
   findOne(@CurrentUser('organizationId') organizationId: string, @Param('id') id: string) {
     return this.projectsService.findById(organizationId, id);
   }
@@ -58,7 +61,11 @@ export class ProjectsController {
 
   @Delete(':id')
   @RequirePermissions(PERMISSIONS.PROJECT_DELETE)
-  remove(@CurrentUser('organizationId') organizationId: string, @Param('id') id: string) {
-    return this.projectsService.remove(organizationId, id);
+  remove(
+    @CurrentUser('organizationId') organizationId: string,
+    @CurrentUser('userId') actorId: string,
+    @Param('id') id: string,
+  ) {
+    return this.projectsService.remove(organizationId, actorId, id);
   }
 }

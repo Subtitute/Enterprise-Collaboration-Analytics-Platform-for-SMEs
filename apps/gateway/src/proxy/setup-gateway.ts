@@ -21,10 +21,18 @@ interface UpgradeCapableProxy {
 
 /**
  * Lap rap toan bo pipeline cua Gateway (Technical_Spec.md muc 6, muc 8), theo dung THU TU:
- *   1) rate-limit theo IP (+ organizationId khi da biet) - som nhat, chan ca brute-force dang nhap
- *   2) xac thuc JWT + gan req.user (bo qua route cong khai va duong dan /ws/*)
+ *   1) xac thuc JWT + gan req.user (bo qua route cong khai va duong dan /ws/*)
+ *   2) rate-limit theo IP (+ organizationId khi da biet, tu req.user vua duoc gan o buoc 1)
  *   3) proxy REST toi tung downstream service, gan header noi bo tu req.user (x-org-id, x-user-id, ...)
  *   4) proxy WebSocket (Socket.IO) - KHONG gan header, downstream tu verify token tu handshake
+ *
+ * Xac thuc JWT PHAI chay TRUOC rate-limit (dieu chinh 21/07/2026 - truoc do thu tu nguoc lam
+ * req.user luon undefined luc rate-limit doc, nen khoa rate-limit tren thuc te chi bao gio la
+ * IP-only, phan organizationId khong bao gio kich hoat). Voi route cong khai (vd /auth/login),
+ * middleware xac thuc JWT bo qua HOAN TOAN (khong gan req.user) - Boi vay rate-limit cho cac
+ * route nay van chi la IP-only, DUNG NHU THIET KE: truoc khi dang nhap thanh cong thi chua co
+ * organizationId de gan vao khoa, day la gioi han von co (khong phai loi) - van du de chan
+ * brute-force theo IP.
  *
  * Tat ca middleware/proxy duoc app.use() TAI GOC (khong gan theo path) de tranh Express
  * cat bo doan prefix khoi req.url - gateway phai path-preserving vi downstream dung chung
@@ -38,8 +46,8 @@ export function setupGateway(app: INestApplication): (server: Server) => void {
   const jwtService = app.get(JwtService);
   const redisService = app.get(RedisService);
 
+  app.use(createJwtAuthMiddleware(jwtService, configService, redisService));
   app.use(createRateLimitMiddleware(redisService, configService));
-  app.use(createJwtAuthMiddleware(jwtService, configService));
 
   for (const group of REST_PROXY_ROUTES) {
     const target = configService.get<string>(group.targetConfigKey);

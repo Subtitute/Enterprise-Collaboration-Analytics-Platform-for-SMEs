@@ -11,11 +11,19 @@ export default () => ({
     broker: process.env.KAFKA_BROKER ?? 'localhost:9092',
   },
   minio: {
+    // Dung de PUT/REMOVE object server-to-server, ben trong Docker network (vd "minio").
     endpoint: process.env.MINIO_ENDPOINT ?? 'localhost',
     port: parseInt(process.env.MINIO_PORT ?? '9000', 10),
     useSsl: (process.env.MINIO_USE_SSL ?? 'false') === 'true',
     accessKey: process.env.MINIO_ACCESS_KEY,
     secretKey: process.env.MINIO_SECRET_KEY,
     bucket: process.env.MINIO_BUCKET,
+    // Dung rieng de KY presigned GET URL - phai la host:port ma TRINH DUYET cua client
+    // phan giai duoc (vd "localhost:9010" qua port mapping cua docker-compose), khac voi
+    // hostname noi bo "minio" o tren. Neu khong cau hinh, fallback ve endpoint/port noi bo
+    // (dung cho truong hop chay MinIO truc tiep tren localhost, khong qua Docker).
+    publicEndpoint: process.env.MINIO_PUBLIC_ENDPOINT ?? process.env.MINIO_ENDPOINT ?? 'localhost',
+    publicPort: parseInt(process.env.MINIO_PUBLIC_PORT ?? process.env.MINIO_PORT ?? '9000', 10),
+    publicUseSsl: (process.env.MINIO_PUBLIC_USE_SSL ?? process.env.MINIO_USE_SSL ?? 'false') === 'true',
   },
 });

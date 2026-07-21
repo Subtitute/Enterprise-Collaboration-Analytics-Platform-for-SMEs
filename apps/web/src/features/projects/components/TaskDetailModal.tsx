@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { Spinner } from '@/components/ui/Spinner';
 import { TrashIcon, XIcon } from '@/components/ui/Icons';
-import { formatRelativeTime } from '@/lib/utils';
+import { formatDateTime, formatRelativeTime } from '@/lib/utils';
 import { useUserNameMap } from '@/hooks/useOrgUsers';
 import { TASK_STATUSES, TASK_STATUS_LABEL_VI } from '@/types';
 import type { TaskStatus } from '@/types';
@@ -15,6 +15,7 @@ import {
   useCommentsQuery,
   useDeleteTask,
   useRemoveAssignee,
+  useTaskStatusHistory,
   useTasksQuery,
   useUpdateTask,
   useUpdateTaskStatus,
@@ -38,6 +39,7 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
   const removeAssignee = useRemoveAssignee(projectId, taskId ?? '');
   const commentsQuery = useCommentsQuery(taskId ?? undefined);
   const addComment = useAddComment(taskId ?? '');
+  const statusHistoryQuery = useTaskStatusHistory(taskId ?? undefined);
   const { map: userNames } = useUserNameMap();
 
   const [isEditingDesc, setIsEditingDesc] = useState(false);
@@ -190,6 +192,34 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
                   Gửi
                 </Button>
               </form>
+            </div>
+
+            <div>
+              <Label>Lịch sử thay đổi trạng thái</Label>
+              <div className="max-h-40 space-y-2 overflow-y-auto rounded-lg border border-slate-100 p-3">
+                {statusHistoryQuery.isLoading ? (
+                  <div className="flex justify-center py-3">
+                    <Spinner size="sm" />
+                  </div>
+                ) : statusHistoryQuery.isError ? (
+                  <p className="text-xs text-slate-400">Không thể tải lịch sử thay đổi trạng thái.</p>
+                ) : (statusHistoryQuery.data ?? []).length === 0 ? (
+                  <p className="text-xs text-slate-400">Chưa có lịch sử thay đổi trạng thái.</p>
+                ) : (
+                  (statusHistoryQuery.data ?? []).map((entry, index) => (
+                    <div key={`${entry.changedAt}-${index}`} className="flex items-center gap-2 text-xs text-slate-600">
+                      <span className="font-medium text-slate-700">
+                        {entry.fromStatus ? (TASK_STATUS_LABEL_VI[entry.fromStatus as TaskStatus] ?? entry.fromStatus) : '—'}
+                        {' → '}
+                        {TASK_STATUS_LABEL_VI[entry.toStatus as TaskStatus] ?? entry.toStatus}
+                      </span>
+                      <span className="text-slate-400">
+                        • {displayName(entry.actorId ?? '')} • {formatDateTime(entry.changedAt)}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         )}

@@ -13,15 +13,16 @@ import {
   fetchComments,
   fetchProject,
   fetchProjects,
+  fetchTaskStatusHistory,
   fetchTasks,
   removeAssignee,
   updateProject,
   updateTask,
   updateTaskStatus,
 } from './api';
-import type { CreateProjectPayload, CreateTaskPayload } from './api';
+import type { CreateProjectPayload, CreateTaskPayload, FetchProjectsParams } from './api';
 
-export function useProjectsQuery(params: { page?: number; limit?: number } = {}) {
+export function useProjectsQuery(params: FetchProjectsParams = {}) {
   return useQuery({ queryKey: ['projects', params], queryFn: () => fetchProjects(params) });
 }
 
@@ -178,5 +179,14 @@ export function useAddComment(taskId: string) {
     mutationFn: (content: string) => addComment(taskId, content),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['task-comments', taskId] }),
     onError: (error) => toast.error('Không thể gửi bình luận', extractErrorMessage(error)),
+  });
+}
+
+/** Lich su doi trang thai cua 1 task (Modal chi tiet Task - Wireframe.md muc 4.2). */
+export function useTaskStatusHistory(taskId: string | undefined) {
+  return useQuery({
+    queryKey: ['task-status-history', taskId],
+    queryFn: () => fetchTaskStatusHistory(taskId as string),
+    enabled: Boolean(taskId),
   });
 }

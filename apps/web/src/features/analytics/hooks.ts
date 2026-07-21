@@ -2,8 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import type { DateRangeOption } from '@/types';
 import { fetchDocumentActivity, fetchProjectProgress } from './api';
 
-export function useProjectProgressQuery() {
-  return useQuery({ queryKey: ['analytics', 'project-progress'], queryFn: fetchProjectProgress });
+export function useProjectProgressQuery(range: DateRangeOption = '30d') {
+  return useQuery({ queryKey: ['analytics', 'project-progress', range], queryFn: () => fetchProjectProgress(range) });
 }
 
 export function useDocumentActivityQuery(range: DateRangeOption) {

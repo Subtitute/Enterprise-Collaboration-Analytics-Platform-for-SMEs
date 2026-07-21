@@ -51,7 +51,10 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
         try {
           event = JSON.parse(message.value.toString()) as DomainEvent;
         } catch (error) {
-          this.logger.error(`Khong parse duoc message tu topic ${topic}`, error as Error);
+          // Loi KHONG THE PHUC HOI (malformed JSON) - retry cung message se luon that bai giong
+          // nhau, nen log o muc warn va BO QUA (khong rethrow) de kafkajs commit offset va
+          // chuyen sang message tiep theo. Khac voi loi ghi TimescaleDB o handleEvent() ben duoi.
+          this.logger.warn(`Khong parse duoc message JSON tu topic ${topic}: ${(error as Error).message}`);
           return;
         }
         await this.handleEvent(event);
@@ -89,10 +92,15 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
         actorId,
       });
     } catch (error) {
+      // Loi TAM THOI (vd TimescaleDB down/timeout khi FactWriterService.* goi DataSource.query)
+      // - log o muc error VA rethrow de kafkajs KHONG commit offset cho message nay; consumer
+      // group se retry (Technical_Spec.md muc 14 - "Kafka consumer chua co DLQ"). Khac voi loi
+      // parse JSON o eachMessage() (khong the retry thanh cong -> log warn + bo qua, xem tren).
       this.logger.error(
         `Loi khi xu ly event ${event.eventType} (eventId=${event.eventId})`,
         error as Error,
       );
+      throw error;
     }
   }
 }

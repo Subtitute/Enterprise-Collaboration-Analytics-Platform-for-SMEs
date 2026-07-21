@@ -69,11 +69,16 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     }
 
     try {
-      await this.notificationsService.createFromEvent(event.organizationId, draft);
+      await this.notificationsService.createFromEvent(event.organizationId, event.eventId, draft);
     } catch (err) {
+      // Loi ghi Mongo la loi TAM THOI (vd Mongo down/timeout) - log o muc error VA rethrow de
+      // kafkajs KHONG commit offset cho message nay; consumer group se retry (Technical_Spec.md
+      // muc 14 - "Kafka consumer chua co DLQ", loi ha tang tam thoi duoc retry o muc consumer).
+      // Khac voi loi parse JSON o tren (khong the retry thanh cong -> log warn + bo qua).
       this.logger.error(
         `Loi khi tao notification tu event ${event.eventId} (type=${event.eventType}): ${(err as Error).message}`,
       );
+      throw err;
     }
   }
 }

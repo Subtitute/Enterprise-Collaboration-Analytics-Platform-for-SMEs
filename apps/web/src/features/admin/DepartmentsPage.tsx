@@ -6,6 +6,7 @@ import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { QueryState } from '@/components/ui/QueryState';
 import { BuildingIcon, EditIcon, MoreVerticalIcon, PlusIcon, TrashIcon } from '@/components/ui/Icons';
 import { useDeleteDepartment, useDepartmentsQuery } from './hooks';
 import { DepartmentModal } from './components/DepartmentModal';
@@ -30,9 +31,14 @@ export function DepartmentsPage() {
       </div>
 
       <Card>
-        {departmentsQuery.isLoading ? (
-          <FullPageSpinner label="Đang tải phòng ban…" />
-        ) : departments.length === 0 ? (
+        <QueryState
+          isLoading={departmentsQuery.isLoading}
+          isError={departmentsQuery.isError}
+          onRetry={() => departmentsQuery.refetch()}
+          loadingFallback={<FullPageSpinner label="Đang tải phòng ban…" />}
+          errorTitle="Không thể tải danh sách phòng ban"
+        >
+        {departments.length === 0 ? (
           <div className="p-6">
             <EmptyState icon={<BuildingIcon className="h-8 w-8" />} title="Chưa có phòng ban nào" />
           </div>
@@ -49,10 +55,16 @@ export function DepartmentsPage() {
             <TableBody>
               {departments.map((d) => (
                 <TableRow key={d.id}>
-                  <TableCell className="font-medium text-slate-800">{d.name}</TableCell>
-                  <TableCell className="text-sm text-slate-500">{d.description || '—'}</TableCell>
-                  {departments.some((x) => x.memberCount !== undefined) && <TableCell>{d.memberCount ?? '—'}</TableCell>}
-                  <TableCell className="text-right">
+                  <TableCell label="Tên phòng ban" className="font-medium text-slate-800">
+                    {d.name}
+                  </TableCell>
+                  <TableCell label="Mô tả" className="text-sm text-slate-500">
+                    {d.description || '—'}
+                  </TableCell>
+                  {departments.some((x) => x.memberCount !== undefined) && (
+                    <TableCell label="Số thành viên">{d.memberCount ?? '—'}</TableCell>
+                  )}
+                  <TableCell label="Hành động" className="text-right">
                     <Dropdown
                       align="right"
                       trigger={({ toggle }) => (
@@ -89,6 +101,7 @@ export function DepartmentsPage() {
             </TableBody>
           </Table>
         )}
+        </QueryState>
       </Card>
 
       <DepartmentModal open={isCreateOpen} onClose={() => setIsCreateOpen(false)} />

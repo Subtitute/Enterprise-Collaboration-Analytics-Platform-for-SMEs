@@ -10,6 +10,14 @@ export type NotificationDocument = HydratedDocument<Notification>;
  */
 @Schema({ collection: 'notifications', timestamps: { createdAt: true, updatedAt: false } })
 export class Notification {
+  /**
+   * eventId cua DomainEvent goc (Technical_Spec.md muc 4.3). Unique index (khai bao o duoi) de
+   * chong trung khi OutboxPublisherJob phia producer publish lai cung 1 su kien sau khi worker
+   * crash giua luc publish (gioi han da biet - Technical_Spec.md muc 4.1, muc 3.5).
+   */
+  @Prop({ required: true })
+  eventId: string;
+
   @Prop({ required: true })
   organizationId: string;
 
@@ -43,3 +51,6 @@ export const NotificationSchema = SchemaFactory.createForClass(Notification);
 // Index chinh phuc vu truy van "danh sach thong bao cua 1 user, loc theo trang thai doc,
 // sap xep moi nhat truoc" - Technical_Spec.md muc 5.
 NotificationSchema.index({ organizationId: 1, userId: 1, isRead: 1, createdAt: -1 });
+
+// Unique index chong trung theo eventId - Technical_Spec.md muc 3.5, muc 4.1.
+NotificationSchema.index({ eventId: 1 }, { unique: true });

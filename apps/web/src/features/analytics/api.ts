@@ -6,8 +6,8 @@ import type { DateRangeOption, DocumentActivityPoint, ProjectProgressItem } from
 // se join voi src/hooks/useOrgProjects.ts (GET /projects) de hien thi ten thay vi id tho.
 // Backend tra ve { projectId, tasksCreated, tasksCompleted, completionRate }[] - doi ten sang
 // { projectId, totalTasks, completedTasks, progress } de khop voi ProjectProgressChart/Table hien co.
-export async function fetchProjectProgress(): Promise<ProjectProgressItem[]> {
-  const { data } = await apiClient.get('/analytics/project-progress');
+export async function fetchProjectProgress(range: DateRangeOption = '30d'): Promise<ProjectProgressItem[]> {
+  const { data } = await apiClient.get('/analytics/project-progress', { params: { range } });
   const rows = unwrapList<{
     projectId: string;
     tasksCreated: number;

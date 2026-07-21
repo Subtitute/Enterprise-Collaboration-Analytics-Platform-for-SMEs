@@ -10,8 +10,8 @@ const EMPTY_SUMMARY: AnalyticsSummary = {
   activeUsersLast7Days: 0,
 };
 
-export async function fetchAnalyticsSummary(): Promise<AnalyticsSummary> {
-  const { data } = await apiClient.get<AnalyticsSummary>('/analytics/summary');
+export async function fetchAnalyticsSummary(range: DateRangeOption = '30d'): Promise<AnalyticsSummary> {
+  const { data } = await apiClient.get<AnalyticsSummary>('/analytics/summary', { params: { range } });
   return data ?? EMPTY_SUMMARY;
 }
 
@@ -25,10 +25,13 @@ export async function fetchTaskTrend(range: DateRangeOption = '30d'): Promise<Ta
 
 // Backend tra ve 1 OBJECT { TODO, DOING, DONE } (trang thai hien tai), khong phai mang -
 // chuyen sang mang { status, count }[] de khop voi TaskStatusDonut hien co.
-export async function fetchTaskStatusBreakdown(projectId?: string): Promise<TaskStatusBreakdownItem[]> {
+export async function fetchTaskStatusBreakdown(
+  range: DateRangeOption = '30d',
+  projectId?: string,
+): Promise<TaskStatusBreakdownItem[]> {
   const { data } = await apiClient.get<{ TODO: number; DOING: number; DONE: number }>(
     '/analytics/task-status-breakdown',
-    { params: projectId ? { projectId } : {} },
+    { params: { range, ...(projectId ? { projectId } : {}) } },
   );
   const breakdown = data ?? { TODO: 0, DOING: 0, DONE: 0 };
   return (['TODO', 'DOING', 'DONE'] as const).map((status) => ({ status, count: breakdown[status] ?? 0 }));

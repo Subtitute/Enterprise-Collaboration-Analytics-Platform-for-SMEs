@@ -35,18 +35,22 @@ export function FileTable({ files, folderId, onShare, onVersionHistory }: FileTa
         <TableBody>
           {files.map((file) => (
             <TableRow key={file.id}>
-              <TableCell>
+              <TableCell label="Tên tệp">
                 <div className="flex min-w-0 items-center gap-2.5">
                   <FileIcon className="h-4 w-4 shrink-0 text-primary-500" />
                   <span className="truncate font-medium text-slate-800">{file.name}</span>
                 </div>
               </TableCell>
-              <TableCell className="whitespace-nowrap text-xs text-slate-500">{formatBytes(file.size)}</TableCell>
-              <TableCell>
+              <TableCell label="Kích thước" className="whitespace-nowrap text-xs text-slate-500">
+                {formatBytes(file.size)}
+              </TableCell>
+              <TableCell label="Phiên bản">
                 <Badge variant="outline">v{file.version ?? 1}</Badge>
               </TableCell>
-              <TableCell className="whitespace-nowrap text-xs text-slate-500">{formatDateTime(file.updatedAt)}</TableCell>
-              <TableCell className="text-right">
+              <TableCell label="Cập nhật" className="whitespace-nowrap text-xs text-slate-500">
+                {formatDateTime(file.updatedAt)}
+              </TableCell>
+              <TableCell label="Hành động" className="text-right">
                 <Dropdown
                   align="right"
                   trigger={({ toggle }) => (

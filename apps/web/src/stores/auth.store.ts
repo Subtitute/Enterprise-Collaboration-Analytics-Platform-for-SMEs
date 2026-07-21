@@ -2,16 +2,29 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AuthUser } from '@/types';
 
+/**
+ * Refresh token KHONG con di qua JSON body / localStorage - IAM Service set no qua httpOnly
+ * cookie (`ecap_refresh_token`), trinh duyet tu dong gui kem nho `withCredentials: true` tren
+ * axios instance (xem lib/api-client.ts) - Wireframe.md muc 1, Technical_Spec.md muc 6
+ * (bo sung 21/07/2026). Vi vay AuthSession (du lieu tra ve tu API) khong con truong refreshToken.
+ */
 export interface AuthSession {
   accessToken: string;
-  refreshToken: string;
   user: AuthUser;
 }
+
+/** Gia tri co dinh, KHONG phai bi mat - chi dung de bao toan hanh vi truthy-check o noi khac. */
+const COOKIE_SESSION_FLAG = 'cookie';
 
 interface AuthState {
   /** Chi luu trong bo nho (khong persist) vi ly do bao mat - xem README/backend contract. */
   accessToken: string | null;
-  /** Duoc persist vao localStorage de reload trang khong bat dang nhap lai (danh doi MVP hop ly). */
+  /**
+   * KHONG con luu refresh token that (da chuyen sang httpOnly cookie o tren) - gia tri o day
+   * chi la mot co (flag) khong nhay cam, luon la COOKIE_SESSION_FLAG khi co phien dang nhap va
+   * null khi khong, GIU LAI de tuong thich voi cac noi con dung kieu "if (refreshToken)" de biet
+   * co phien hay khong (vd goi API dang xuat). KHONG bao gio persist xuong localStorage.
+   */
   refreshToken: string | null;
   user: AuthUser | null;
   /** True cho toi khi lan thu silent-refresh dau tien (luc app khoi dong) hoan tat. */
@@ -31,7 +44,7 @@ export const useAuthStore = create<AuthState>()(
       setSession: (session) =>
         set({
           accessToken: session.accessToken,
-          refreshToken: session.refreshToken,
+          refreshToken: COOKIE_SESSION_FLAG,
           user: session.user,
         }),
       clearSession: () => set({ accessToken: null, refreshToken: null, user: null }),
@@ -39,7 +52,9 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'ecap-auth',
-      partialize: (state) => ({ refreshToken: state.refreshToken, user: state.user }),
+      // Chi persist "user" (hien thi UI khi F5) - accessToken va refreshToken KHONG con duoc
+      // ghi xuong localStorage (Technical_Spec.md muc 6, bo sung 21/07/2026).
+      partialize: (state) => ({ user: state.user }),
     },
   ),
 );

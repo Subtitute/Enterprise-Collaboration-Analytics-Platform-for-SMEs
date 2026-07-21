@@ -18,11 +18,13 @@ export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
   @Get()
+  @RequirePermissions(PERMISSIONS.TASK_VIEW)
   findAll(@CurrentUser('organizationId') organizationId: string, @Query() query: TaskQueryDto) {
     return this.tasksService.findAll(organizationId, query);
   }
 
   @Get(':id')
+  @RequirePermissions(PERMISSIONS.TASK_VIEW)
   findOne(@CurrentUser('organizationId') organizationId: string, @Param('id') id: string) {
     return this.tasksService.findById(organizationId, id);
   }
@@ -64,8 +66,23 @@ export class TasksController {
 
   @Delete(':id')
   @RequirePermissions(PERMISSIONS.TASK_DELETE)
-  remove(@CurrentUser('organizationId') organizationId: string, @Param('id') id: string) {
-    return this.tasksService.remove(organizationId, id);
+  remove(
+    @CurrentUser('organizationId') organizationId: string,
+    @CurrentUser('userId') actorId: string,
+    @Param('id') id: string,
+  ) {
+    return this.tasksService.remove(organizationId, actorId, id);
+  }
+
+  /** Lich su doi trang thai cua Task - Wireframe.md muc 4.2 (modal chi tiet Task). */
+  @Get(':id/status-history')
+  @RequirePermissions(PERMISSIONS.TASK_VIEW)
+  findStatusHistory(
+    @CurrentUser('organizationId') organizationId: string,
+    @Param('id') id: string,
+    @Query() query: PaginationQueryDto,
+  ) {
+    return this.tasksService.findStatusHistory(organizationId, id, query);
   }
 
   @Post(':id/assignees')
@@ -101,6 +118,7 @@ export class TasksController {
   }
 
   @Get(':id/comments')
+  @RequirePermissions(PERMISSIONS.TASK_VIEW)
   findComments(
     @CurrentUser('organizationId') organizationId: string,
     @Param('id') id: string,

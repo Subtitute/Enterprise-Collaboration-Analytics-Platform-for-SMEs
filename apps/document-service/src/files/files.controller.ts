@@ -16,6 +16,7 @@ import { CurrentUser, RequirePermissions } from '@app/common-guard';
 import { PaginationQueryDto, PERMISSIONS } from '@app/common-dto';
 import { FilesService } from './files.service';
 import { ShareFileDto } from './dto/share-file.dto';
+import { mimeTypeFileFilter } from './allowed-mime-types';
 
 const MAX_UPLOAD_SIZE_BYTES = 25 * 1024 * 1024;
 
@@ -27,6 +28,7 @@ export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
   @Get()
+  @RequirePermissions(PERMISSIONS.DOCUMENT_VIEW)
   findAll(
     @CurrentUser('organizationId') organizationId: string,
     @Query('folderId') folderId: string | undefined,
@@ -36,11 +38,13 @@ export class FilesController {
   }
 
   @Get(':id')
+  @RequirePermissions(PERMISSIONS.DOCUMENT_VIEW)
   findOne(@CurrentUser('organizationId') organizationId: string, @Param('id') id: string) {
     return this.filesService.findOne(organizationId, id);
   }
 
   @Get(':id/download')
+  @RequirePermissions(PERMISSIONS.DOCUMENT_VIEW)
   getDownloadUrl(@CurrentUser('organizationId') organizationId: string, @Param('id') id: string) {
     return this.filesService.getDownloadUrl(organizationId, id);
   }
@@ -48,7 +52,12 @@ export class FilesController {
   @Post('upload')
   @RequirePermissions(PERMISSIONS.DOCUMENT_UPLOAD)
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_SIZE_BYTES } }))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: MAX_UPLOAD_SIZE_BYTES },
+      fileFilter: mimeTypeFileFilter,
+    }),
+  )
   upload(
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') actorId: string,
@@ -62,7 +71,12 @@ export class FilesController {
   @Post(':id/upload')
   @RequirePermissions(PERMISSIONS.DOCUMENT_UPLOAD)
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_UPLOAD_SIZE_BYTES } }))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: MAX_UPLOAD_SIZE_BYTES },
+      fileFilter: mimeTypeFileFilter,
+    }),
+  )
   uploadNewVersion(
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') actorId: string,

@@ -92,6 +92,11 @@ export interface Project {
   description?: string | null;
   status: ProjectStatus;
   progress?: number;
+  /** % hoan thanh do Project-Task Service tinh san (Dieu chinh 21/07/2026) - uu tien dung
+   *  truong nay thay vi tu tinh tu danh sach task khi co san. */
+  completionRate?: number;
+  /** So thanh vien dang tham gia du an (Dieu chinh 21/07/2026). */
+  memberCount?: number;
   startDate?: string | null;
   dueDate?: string | null;
   createdAt: string;
@@ -123,6 +128,14 @@ export interface TaskComment {
   authorName?: string;
   content: string;
   createdAt: string;
+}
+
+/** GET /tasks/:id/status-history - lich su doi trang thai cua 1 task, sap xep tu cu -> moi. */
+export interface TaskStatusHistoryEntry {
+  fromStatus: TaskStatus | string | null;
+  toStatus: TaskStatus | string;
+  actorId: string | null;
+  changedAt: string;
 }
 
 export interface Folder {

@@ -28,11 +28,14 @@ export function KanbanBoard({ projectId, tasks, onTaskClick }: { projectId: stri
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      {/* Duoi 768px: cuon ngang theo cot (moi cot rong co dinh) thay vi xep doc - dung theo dung
+          yeu cau "bang Kanban cuon ngang theo cot" o Wireframe.md muc 10. Tu md tro len chuyen
+          sang grid 3 cot nhu cu (khong cuon). */}
+      <div className="flex gap-4 overflow-x-auto pb-1 md:grid md:grid-cols-3 md:overflow-visible md:pb-0">
         {TASK_STATUSES.map((status) => {
           const columnTasks = tasks.filter((t) => t.status === status);
           return (
-            <div key={status} className="flex flex-col rounded-xl border border-slate-200 bg-slate-50/60">
+            <div key={status} className="flex w-72 shrink-0 flex-col rounded-xl border border-slate-200 bg-slate-50/60 md:w-auto md:shrink">
               <div className="flex items-center gap-2 border-b border-slate-200 px-3.5 py-2.5">
                 <span className={cn('h-2.5 w-2.5 rounded-full', COLUMN_ACCENT[status])} />
                 <p className="text-sm font-semibold text-slate-700">{TASK_STATUS_LABEL_VI[status]}</p>

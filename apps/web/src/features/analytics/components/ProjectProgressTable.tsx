@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow } from '@/components/ui/Table';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Pagination } from '@/components/ui/Pagination';
 import { ChevronDownIcon } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import type { ProjectProgressRow } from './ProjectProgressChart';
@@ -20,9 +21,15 @@ const COLUMNS: { key: SortKey; label: string }[] = [
   { key: 'totalTasks', label: 'Tổng công việc' },
 ];
 
+// Wireframe.md muc 7 yeu cau bang KPI vua sortable vua co phan trang. Toan bo du lieu da duoc
+// tai het phia client (quy mo SME nho), nen phan trang o day chi la cat mang (slice) tren tap
+// da sap xep, khong goi lai API - dung lai component Pagination dung chung.
+const PAGE_SIZE = 10;
+
 export function ProjectProgressTable({ rows }: { rows: ProjectProgressTableRow[] }) {
   const [sortKey, setSortKey] = useState<SortKey>('progress');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [page, setPage] = useState(1);
 
   const sorted = useMemo(() => {
     const copy = [...rows];
@@ -35,6 +42,13 @@ export function ProjectProgressTable({ rows }: { rows: ProjectProgressTableRow[]
     return copy;
   }, [rows, sortKey, sortDir]);
 
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = useMemo(
+    () => sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [sorted, currentPage],
+  );
+
   function toggleSort(key: SortKey) {
     if (key === sortKey) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -42,6 +56,7 @@ export function ProjectProgressTable({ rows }: { rows: ProjectProgressTableRow[]
       setSortKey(key);
       setSortDir('desc');
     }
+    setPage(1);
   }
 
   if (rows.length === 0) {
@@ -73,18 +88,21 @@ export function ProjectProgressTable({ rows }: { rows: ProjectProgressTableRow[]
           </tr>
         </TableHead>
         <TableBody>
-          {sorted.map((row) => (
+          {paginated.map((row) => (
             <TableRow key={row.projectId}>
-              <TableCell className="font-medium text-slate-800">{row.name}</TableCell>
-              <TableCell className="w-40">
+              <TableCell label="Dự án" className="font-medium text-slate-800">
+                {row.name}
+              </TableCell>
+              <TableCell label="Tiến độ" className="md:w-40">
                 <ProgressBar value={row.progress} showLabel />
               </TableCell>
-              <TableCell>{row.completedTasks}</TableCell>
-              <TableCell>{row.totalTasks}</TableCell>
+              <TableCell label="Hoàn thành">{row.completedTasks}</TableCell>
+              <TableCell label="Tổng công việc">{row.totalTasks}</TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+      <Pagination page={currentPage} limit={PAGE_SIZE} total={sorted.length} onPageChange={setPage} />
     </div>
   );
 }

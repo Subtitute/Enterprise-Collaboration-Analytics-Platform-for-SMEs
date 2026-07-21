@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/Card';
 import { Checkbox } from '@/components/ui/Input';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { QueryState } from '@/components/ui/QueryState';
 import { ShieldIcon } from '@/components/ui/Icons';
 import { usePermissionsQuery, useRolesQuery, useUpdateRolePermissions } from './hooks';
 import type { Permission, RoleWithPermissions } from '@/types';
@@ -30,64 +31,69 @@ export function RolesPermissionsPage() {
     updatePermissions.mutate({ roleId: role.id, permissionKeys: nextKeys });
   }
 
-  if (rolesQuery.isLoading || permissionsQuery.isLoading) {
-    return <FullPageSpinner label="Đang tải ma trận phân quyền…" />;
-  }
-
-  if (roles.length === 0 || permissions.length === 0) {
-    return (
-      <Card className="p-6">
-        <EmptyState icon={<ShieldIcon className="h-8 w-8" />} title="Chưa có dữ liệu vai trò hoặc quyền" />
-      </Card>
-    );
-  }
-
   return (
-    <Card>
-      <p className="border-b border-slate-100 px-5 py-3 text-xs text-slate-400">
-        Tick vào ô tương ứng để cấp/thu hồi quyền cho từng vai trò. Thay đổi được lưu ngay lập tức.
-      </p>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] border-collapse text-sm">
-          <thead>
-            <tr className="bg-slate-50">
-              <th className="sticky left-0 z-10 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Quyền
-              </th>
-              {roles.map((r) => (
-                <th key={r.id} className="min-w-[110px] px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  {r.name}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {Object.entries(grouped).map(([group, perms]) => (
-              <Fragment key={group}>
-                <tr className="bg-slate-50/70">
-                  <td colSpan={roles.length + 1} className="px-4 py-1.5 text-xs font-semibold text-slate-500">
-                    {group}
-                  </td>
+    <QueryState
+      isLoading={rolesQuery.isLoading || permissionsQuery.isLoading}
+      isError={rolesQuery.isError || permissionsQuery.isError}
+      onRetry={() => {
+        rolesQuery.refetch();
+        permissionsQuery.refetch();
+      }}
+      loadingFallback={<FullPageSpinner label="Đang tải ma trận phân quyền…" />}
+      errorTitle="Không thể tải dữ liệu vai trò/phân quyền"
+    >
+      {roles.length === 0 || permissions.length === 0 ? (
+        <Card className="p-6">
+          <EmptyState icon={<ShieldIcon className="h-8 w-8" />} title="Chưa có dữ liệu vai trò hoặc quyền" />
+        </Card>
+      ) : (
+        <Card>
+          <p className="border-b border-slate-100 px-5 py-3 text-xs text-slate-400">
+            Tick vào ô tương ứng để cấp/thu hồi quyền cho từng vai trò. Thay đổi được lưu ngay lập tức.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] border-collapse text-sm">
+              <thead>
+                <tr className="bg-slate-50">
+                  <th className="sticky left-0 z-10 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Quyền
+                  </th>
+                  {roles.map((r) => (
+                    <th key={r.id} className="min-w-[110px] px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {r.name}
+                    </th>
+                  ))}
                 </tr>
-                {perms.map((p) => (
-                  <tr key={p.key}>
-                    <td className="sticky left-0 bg-white px-4 py-2.5 text-slate-700">{p.description ?? p.key}</td>
-                    {roles.map((r) => (
-                      <td key={r.id} className="px-4 py-2.5 text-center">
-                        <Checkbox
-                          checked={r.permissionKeys.includes(p.key)}
-                          onChange={() => togglePermission(r, p.key)}
-                          disabled={updatePermissions.isPending}
-                        />
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {Object.entries(grouped).map(([group, perms]) => (
+                  <Fragment key={group}>
+                    <tr className="bg-slate-50/70">
+                      <td colSpan={roles.length + 1} className="px-4 py-1.5 text-xs font-semibold text-slate-500">
+                        {group}
                       </td>
+                    </tr>
+                    {perms.map((p) => (
+                      <tr key={p.key}>
+                        <td className="sticky left-0 bg-white px-4 py-2.5 text-slate-700">{p.description ?? p.key}</td>
+                        {roles.map((r) => (
+                          <td key={r.id} className="px-4 py-2.5 text-center">
+                            <Checkbox
+                              checked={r.permissionKeys.includes(p.key)}
+                              onChange={() => togglePermission(r, p.key)}
+                              disabled={updatePermissions.isPending}
+                            />
+                          </td>
+                        ))}
+                      </tr>
                     ))}
-                  </tr>
+                  </Fragment>
                 ))}
-              </Fragment>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Card>
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+    </QueryState>
   );
 }

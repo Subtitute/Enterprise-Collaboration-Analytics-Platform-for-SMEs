@@ -14,11 +14,12 @@ type RequestWithUser = Request & { user?: JwtAccessPayload };
  * Rate limiting co ban theo IP (+ organizationId khi da biet) dung bo dem fixed-window
  * tren Redis (INCR + EXPIRE lan dau) - Technical_Spec.md muc 8.
  *
- * Dang ky la middleware Express SOM NHAT (truoc buoc xac thuc JWT) de cung chan duoc
- * brute-force vao /api/v1/auth/login khi con chua co JWT - Technical_Spec.md muc 9.
- * Vi vay tai thoi diem nay req.user hau nhu chua duoc gan (middleware xac thuc chay sau),
- * nen phan organizationId trong khoa chi phat huy khi co thu tu goi khac trong tuong lai;
- * ham buildRateLimitKey van nhan tham so nay de san sang mo rong.
+ * Dang ky SAU middleware xac thuc JWT (xem setup-gateway.ts, dieu chinh 21/07/2026) de
+ * req.user (neu co) da duoc gan truoc khi khoa rate-limit duoc xay, cho phep phan
+ * organizationId trong buildRateLimitKey thuc su kich hoat voi request da xac thuc.
+ * Voi route cong khai (vd /api/v1/auth/login) - middleware xac thuc JWT bo qua hoan toan nen
+ * KHONG gan req.user - rate-limit o day tu dong roi ve IP-only nhu thiet ke von co: van du
+ * de chan brute-force dang nhap theo IP truoc khi nguoi dung co JWT hop le.
  */
 export function createRateLimitMiddleware(
   redisService: RedisService,

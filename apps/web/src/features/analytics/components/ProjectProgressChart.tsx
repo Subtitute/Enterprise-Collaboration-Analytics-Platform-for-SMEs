@@ -1,6 +1,8 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { CATEGORICAL, CHART_INK } from '@/lib/chart-colors';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { QueryState } from '@/components/ui/QueryState';
+import { Spinner } from '@/components/ui/Spinner';
 
 export interface ProjectProgressRow {
   projectId: string;
@@ -21,36 +23,56 @@ function ProgressTooltip({ active, payload }: { active?: boolean; payload?: Arra
   );
 }
 
-export function ProjectProgressChart({ data }: { data: ProjectProgressRow[] }) {
-  if (data.length === 0) {
-    return <EmptyState title="Chưa có dữ liệu tiến độ dự án" />;
-  }
+interface ProjectProgressChartProps {
+  data: ProjectProgressRow[];
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
+}
 
+export function ProjectProgressChart({ data, isLoading, isError, onRetry }: ProjectProgressChartProps) {
   const height = Math.max(220, data.length * 40);
 
   return (
-    <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, left: 4, bottom: 4 }} barCategoryGap={10}>
-        <CartesianGrid stroke={CHART_INK.grid} horizontal={false} />
-        <XAxis
-          type="number"
-          domain={[0, 100]}
-          tickFormatter={(v) => `${v}%`}
-          tick={{ fill: CHART_INK.muted, fontSize: 12 }}
-          axisLine={{ stroke: CHART_INK.baseline }}
-          tickLine={false}
-        />
-        <YAxis
-          type="category"
-          dataKey="name"
-          width={150}
-          tick={{ fill: CHART_INK.secondary, fontSize: 12 }}
-          axisLine={false}
-          tickLine={false}
-        />
-        <Tooltip content={<ProgressTooltip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
-        <Bar dataKey="progress" fill={CATEGORICAL[0]} radius={[0, 4, 4, 0]} maxBarSize={22} />
-      </BarChart>
-    </ResponsiveContainer>
+    <QueryState
+      isLoading={isLoading}
+      isError={isError}
+      onRetry={onRetry}
+      loadingFallback={
+        <div className="flex h-[220px] items-center justify-center">
+          <Spinner />
+        </div>
+      }
+      errorTitle="Không thể tải tiến độ dự án"
+      errorDescription="Đã xảy ra lỗi khi tải dữ liệu biểu đồ. Vui lòng thử lại."
+    >
+      {data.length === 0 ? (
+        <EmptyState title="Chưa có dữ liệu tiến độ dự án" />
+      ) : (
+        <ResponsiveContainer width="100%" height={height}>
+          <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, left: 4, bottom: 4 }} barCategoryGap={10}>
+            <CartesianGrid stroke={CHART_INK.grid} horizontal={false} />
+            <XAxis
+              type="number"
+              domain={[0, 100]}
+              tickFormatter={(v) => `${v}%`}
+              tick={{ fill: CHART_INK.muted, fontSize: 12 }}
+              axisLine={{ stroke: CHART_INK.baseline }}
+              tickLine={false}
+            />
+            <YAxis
+              type="category"
+              dataKey="name"
+              width={150}
+              tick={{ fill: CHART_INK.secondary, fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip content={<ProgressTooltip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
+            <Bar dataKey="progress" fill={CATEGORICAL[0]} radius={[0, 4, 4, 0]} maxBarSize={22} />
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+    </QueryState>
   );
 }

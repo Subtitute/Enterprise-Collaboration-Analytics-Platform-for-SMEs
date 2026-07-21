@@ -22,6 +22,7 @@ export class FoldersController {
   }
 
   @Post()
+  @RequirePermissions(PERMISSIONS.DOCUMENT_UPLOAD)
   create(
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') actorId: string,
@@ -31,6 +32,7 @@ export class FoldersController {
   }
 
   @Patch(':id')
+  @RequirePermissions(PERMISSIONS.DOCUMENT_UPLOAD)
   update(
     @CurrentUser('organizationId') organizationId: string,
     @Param('id') id: string,
@@ -41,7 +43,11 @@ export class FoldersController {
 
   @Delete(':id')
   @RequirePermissions(PERMISSIONS.DOCUMENT_DELETE)
-  remove(@CurrentUser('organizationId') organizationId: string, @Param('id') id: string) {
-    return this.foldersService.remove(organizationId, id);
+  remove(
+    @CurrentUser('organizationId') organizationId: string,
+    @CurrentUser('userId') actorId: string,
+    @Param('id') id: string,
+  ) {
+    return this.foldersService.remove(organizationId, actorId, id);
   }
 }

@@ -61,18 +61,30 @@ export class AnalyticsService {
     private readonly redisService: RedisService,
   ) {}
 
-  /** GET /analytics/summary - KPI card tren Dashboard (Wireframe.md muc 3). Cache Redis TTL ngan. */
-  async getSummary(organizationId: string): Promise<AnalyticsSummary> {
-    const cacheKey = `analytics:summary:${organizationId}`;
+  /**
+   * GET /analytics/summary?range=7d|30d|quarter - KPI card tren Dashboard (Wireframe.md muc 3,
+   * muc 7 - "Khoang thoi gian"). Cache Redis TTL ngan, key theo ca `range` de tranh tra nham
+   * KPI da cache cua 1 khoang thoi gian khac.
+   */
+  async getSummary(organizationId: string, range: string): Promise<AnalyticsSummary> {
+    const cacheKey = `analytics:summary:${organizationId}:${range}`;
     const cached = await this.redisService.getJson<AnalyticsSummary>(cacheKey);
     if (cached) return cached;
 
-    const summary = await this.computeSummary(organizationId);
+    const summary = await this.computeSummary(organizationId, range);
     await this.redisService.setJson(cacheKey, summary, SUMMARY_CACHE_TTL_SECONDS);
     return summary;
   }
 
-  private async computeSummary(organizationId: string): Promise<AnalyticsSummary> {
+  /**
+   * Dung lai `resolveTaskTrendConfig()` (utils/range.util.ts) de gioi han sinceInterval - chi
+   * lay `sinceInterval`, bo qua `table` vi cac truy van o day quet truc tiep hypertable tho
+   * (fact_task_events/fact_document_events/fact_user_activity), khong dung continuous
+   * aggregate nhu getTaskTrend().
+   */
+  private async computeSummary(organizationId: string, range: string): Promise<AnalyticsSummary> {
+    const { sinceInterval } = resolveTaskTrendConfig(range);
+
     const [taskRow] = await this.dataSource.query(
       `
       SELECT
@@ -80,8 +92,9 @@ export class AnalyticsService {
         count(DISTINCT task_id) FILTER (WHERE event_type = 'task.status_changed' AND to_status = 'DONE')   AS total_tasks_completed
       FROM fact_task_events
       WHERE organization_id = $1
+        AND time >= now() - $2::interval
       `,
-      [organizationId],
+      [organizationId, sinceInterval],
     );
 
     const [docRow] = await this.dataSource.query(
@@ -90,9 +103,9 @@ export class AnalyticsService {
       FROM fact_document_events
       WHERE organization_id = $1
         AND event_type = 'document.uploaded'
-        AND time >= now() - interval '7 days'
+        AND time >= now() - $2::interval
       `,
-      [organizationId],
+      [organizationId, sinceInterval],
     );
 
     const [activeUsersRow] = await this.dataSource.query(
@@ -100,10 +113,10 @@ export class AnalyticsService {
       SELECT count(DISTINCT actor_id) AS active_users
       FROM fact_user_activity
       WHERE organization_id = $1
-        AND time >= now() - interval '7 days'
+        AND time >= now() - $2::interval
         AND actor_id IS NOT NULL
       `,
-      [organizationId],
+      [organizationId, sinceInterval],
     );
 
     const totalTasksCreated = toNumber(taskRow?.total_tasks_created);
@@ -154,19 +167,24 @@ export class AnalyticsService {
   }
 
   /**
-   * GET /analytics/task-status-breakdown?projectId= - trang thai HIEN TAI cua task, suy ra tu
-   * event log (khong co bang "current state" rieng). Logic:
-   *  1. `created_tasks`: moi task_id tung co event `task.created` (thuoc to chuc/du an loc).
+   * GET /analytics/task-status-breakdown?projectId=&range=7d|30d|quarter - trang thai HIEN TAI
+   * cua cac task duoc TAO trong khoang thoi gian da chon (Wireframe.md muc 3, muc 7 - "Khoang
+   * thoi gian"), suy ra tu event log (khong co bang "current state" rieng). Logic:
+   *  1. `created_tasks`: moi task_id tung co event `task.created` trong khoang `range`
+   *     (thuoc to chuc/du an loc).
    *  2. `latest_status`: trang thai `to_status` MOI NHAT cua tung task_id, lay tu event
-   *     `task.status_changed` (DISTINCT ON ... ORDER BY task_id, time DESC).
+   *     `task.status_changed` (DISTINCT ON ... ORDER BY task_id, time DESC) - KHONG gioi han
+   *     theo `range` vi trang thai hien tai co the duoc cap nhat sau thoi diem tao.
    *  3. LEFT JOIN 2 tap tren: task chua tung doi trang thai (khong co trong latest_status)
    *     mac dinh la 'TODO' (trang thai khoi tao khi task duoc tao).
    */
   async getTaskStatusBreakdown(
     organizationId: string,
+    range: string,
     projectId?: string,
   ): Promise<TaskStatusBreakdown> {
-    const params: unknown[] = [organizationId];
+    const { sinceInterval } = resolveTaskTrendConfig(range);
+    const params: unknown[] = [organizationId, sinceInterval];
     let projectFilter = '';
     if (projectId) {
       params.push(projectId);
@@ -181,6 +199,7 @@ export class AnalyticsService {
         WHERE organization_id = $1
           AND event_type = 'task.created'
           AND task_id IS NOT NULL
+          AND time >= now() - $2::interval
           ${projectFilter}
       ),
       latest_status AS (
@@ -231,11 +250,14 @@ export class AnalyticsService {
   }
 
   /**
-   * GET /analytics/project-progress - % hoan thanh tung du an, dung LAI logic suy ra trang thai
-   * hien tai giong getTaskStatusBreakdown() nhung group theo project_id thay vi tong hop chung.
-   * CHI tra ve projectId (UUID tho) - khong resolve ten du an (xem ghi chu tren interface ProjectProgress).
+   * GET /analytics/project-progress?range=7d|30d|quarter - % hoan thanh tung du an (tinh tren
+   * cac task duoc TAO trong khoang thoi gian da chon - Wireframe.md muc 3, muc 7 - "Khoang thoi
+   * gian"), dung LAI logic suy ra trang thai hien tai giong getTaskStatusBreakdown() nhung
+   * group theo project_id thay vi tong hop chung. CHI tra ve projectId (UUID tho) - khong
+   * resolve ten du an (xem ghi chu tren interface ProjectProgress).
    */
-  async getProjectProgress(organizationId: string): Promise<ProjectProgress[]> {
+  async getProjectProgress(organizationId: string, range: string): Promise<ProjectProgress[]> {
+    const { sinceInterval } = resolveTaskTrendConfig(range);
     const rows = await this.dataSource.query(
       `
       WITH created_tasks AS (
@@ -245,6 +267,7 @@ export class AnalyticsService {
           AND event_type = 'task.created'
           AND task_id IS NOT NULL
           AND project_id IS NOT NULL
+          AND time >= now() - $2::interval
       ),
       latest_status AS (
         SELECT DISTINCT ON (task_id) task_id, to_status
@@ -263,7 +286,7 @@ export class AnalyticsService {
       GROUP BY ct.project_id
       ORDER BY ct.project_id
       `,
-      [organizationId],
+      [organizationId, sinceInterval],
     );
 
     return rows.map((row: Record<string, unknown>) => {

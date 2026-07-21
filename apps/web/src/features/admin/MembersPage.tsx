@@ -10,6 +10,7 @@ import { Pagination } from '@/components/ui/Pagination';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EditIcon, MoreVerticalIcon, PlusIcon, UserIcon } from '@/components/ui/Icons';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { QueryState } from '@/components/ui/QueryState';
 import { useDeactivateUser, useDepartmentsQuery, useUsersQuery } from './hooks';
 import { InviteMemberModal } from './components/InviteMemberModal';
 import { EditMemberModal } from './components/EditMemberModal';
@@ -43,9 +44,14 @@ export function MembersPage() {
       </div>
 
       <Card>
-        {usersQuery.isLoading ? (
-          <FullPageSpinner label="Đang tải danh sách thành viên…" />
-        ) : users.length === 0 ? (
+        <QueryState
+          isLoading={usersQuery.isLoading}
+          isError={usersQuery.isError}
+          onRetry={() => usersQuery.refetch()}
+          loadingFallback={<FullPageSpinner label="Đang tải danh sách thành viên…" />}
+          errorTitle="Không thể tải danh sách thành viên"
+        >
+        {users.length === 0 ? (
           <div className="p-6">
             <EmptyState icon={<UserIcon className="h-8 w-8" />} title="Chưa có thành viên nào" />
           </div>
@@ -64,7 +70,7 @@ export function MembersPage() {
               <TableBody>
                 {users.map((u) => (
                   <TableRow key={u.id}>
-                    <TableCell>
+                    <TableCell label="Thành viên">
                       <div className="flex items-center gap-2.5">
                         <Avatar name={u.fullName} size="sm" />
                         <div className="min-w-0">
@@ -73,10 +79,10 @@ export function MembersPage() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-slate-600">
+                    <TableCell label="Phòng ban" className="text-sm text-slate-600">
                       {u.departmentId ? (departmentNameById[u.departmentId] ?? '—') : '—'}
                     </TableCell>
-                    <TableCell>
+                    <TableCell label="Vai trò">
                       <div className="flex flex-wrap gap-1">
                         {(u.roles ?? []).length === 0 ? (
                           <span className="text-xs text-slate-400">—</span>
@@ -89,12 +95,12 @@ export function MembersPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell label="Trạng thái">
                       <Badge variant={u.isActive === false ? 'danger' : 'success'}>
                         {u.isActive === false ? 'Đã vô hiệu hoá' : 'Đang hoạt động'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell label="Hành động" className="text-right">
                       <Dropdown
                         align="right"
                         trigger={({ toggle }) => (
@@ -135,6 +141,7 @@ export function MembersPage() {
             <Pagination page={meta.page} limit={meta.limit} total={meta.total} onPageChange={setPage} />
           </>
         )}
+        </QueryState>
       </Card>
 
       <InviteMemberModal open={isInviteOpen} onClose={() => setIsInviteOpen(false)} />

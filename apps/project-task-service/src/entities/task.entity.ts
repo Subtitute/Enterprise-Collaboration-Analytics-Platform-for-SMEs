@@ -4,6 +4,7 @@ import { AppBaseEntity } from '../common/base.entity';
 import { Project } from './project.entity';
 import { TaskAssignee } from './task-assignee.entity';
 import { TaskComment } from './task-comment.entity';
+import { TaskStatusHistory } from './task-status-history.entity';
 
 /** Cong viec (Kanban) - Technical_Spec.md muc 3.3, Wireframe.md muc 4.2. */
 @Entity('tasks')
@@ -41,4 +42,7 @@ export class Task extends AppBaseEntity {
 
   @OneToMany(() => TaskComment, (comment) => comment.task)
   comments: TaskComment[];
+
+  @OneToMany(() => TaskStatusHistory, (history) => history.task)
+  statusHistories: TaskStatusHistory[];
 }

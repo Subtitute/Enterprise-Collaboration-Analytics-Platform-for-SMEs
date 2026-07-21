@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { ChevronRightIcon, FileTextIcon, PlusIcon, UploadIcon } from '@/components/ui/Icons';
 import { useFilesQuery, useFoldersQuery } from './hooks';
@@ -36,6 +37,7 @@ export function DocumentsPage() {
   }, [allFolders, currentFolderId]);
 
   const isLoading = foldersQuery.isLoading || filesQuery.isLoading;
+  const isError = foldersQuery.isError || filesQuery.isError;
   const files = filesQuery.data ?? [];
   const isEmpty = !isLoading && subFolders.length === 0 && files.length === 0;
 
@@ -76,30 +78,40 @@ export function DocumentsPage() {
         ))}
       </nav>
 
-      {isLoading ? (
-        <FullPageSpinner label="Đang tải tài liệu…" />
-      ) : isEmpty ? (
-        <EmptyState
-          icon={<FileTextIcon className="h-10 w-10" />}
-          title="Thư mục trống"
-          description="Tạo thư mục con hoặc tải lên tài liệu đầu tiên."
-          action={
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setIsNewFolderOpen(true)}>
-                Thư mục mới
-              </Button>
-              <Button onClick={() => setIsUploadOpen(true)}>Tải lên tài liệu</Button>
-            </div>
-          }
-        />
-      ) : (
-        <div className="space-y-4">
-          <FolderGrid folders={subFolders} onOpen={(folder) => setCurrentFolderId(folder.id)} />
-          {files.length > 0 && (
-            <FileTable files={files} folderId={currentFolderId} onShare={setSharingFile} onVersionHistory={setHistoryFile} />
-          )}
-        </div>
-      )}
+      <QueryState
+        isLoading={isLoading}
+        isError={isError}
+        onRetry={() => {
+          foldersQuery.refetch();
+          filesQuery.refetch();
+        }}
+        loadingFallback={<FullPageSpinner label="Đang tải tài liệu…" />}
+        errorTitle="Không thể tải tài liệu"
+        errorDescription="Đã xảy ra lỗi khi tải thư mục/tệp. Vui lòng thử lại."
+      >
+        {isEmpty ? (
+          <EmptyState
+            icon={<FileTextIcon className="h-10 w-10" />}
+            title="Thư mục trống"
+            description="Tạo thư mục con hoặc tải lên tài liệu đầu tiên."
+            action={
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setIsNewFolderOpen(true)}>
+                  Thư mục mới
+                </Button>
+                <Button onClick={() => setIsUploadOpen(true)}>Tải lên tài liệu</Button>
+              </div>
+            }
+          />
+        ) : (
+          <div className="space-y-4">
+            <FolderGrid folders={subFolders} onOpen={(folder) => setCurrentFolderId(folder.id)} />
+            {files.length > 0 && (
+              <FileTable files={files} folderId={currentFolderId} onShare={setSharingFile} onVersionHistory={setHistoryFile} />
+            )}
+          </div>
+        )}
+      </QueryState>
 
       <NewFolderModal parentId={currentFolderId} open={isNewFolderOpen} onClose={() => setIsNewFolderOpen(false)} />
       <UploadModal folderId={currentFolderId} open={isUploadOpen} onClose={() => setIsUploadOpen(false)} />

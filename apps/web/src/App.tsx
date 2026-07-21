@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth.store';
-import { refreshSession } from '@/features/auth/api';
+import { silentRefresh } from '@/lib/api-client';
 import { AppShell } from '@/components/layout/AppShell';
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
 import { NotFoundPage } from '@/components/layout/NotFoundPage';
@@ -19,23 +19,20 @@ import { DepartmentsPage } from '@/features/admin/DepartmentsPage';
 import { RolesPermissionsPage } from '@/features/admin/RolesPermissionsPage';
 
 export default function App() {
-  const refreshToken = useAuthStore((s) => s.refreshToken);
-  const setSession = useAuthStore((s) => s.setSession);
-  const clearSession = useAuthStore((s) => s.clearSession);
+  const hasPersistedUser = useAuthStore((s) => Boolean(s.user));
   const setBootstrapped = useAuthStore((s) => s.setBootstrapped);
 
-  // Boot cua ung dung: neu co refreshToken da luu (localStorage), thu silent-refresh 1 lan de
-  // lay accessToken moi ma khong bat nguoi dung dang nhap lai sau khi F5. Xem stores/auth.store.ts.
+  // Boot cua ung dung: refresh token khong con doc duoc tu JS (httpOnly cookie - xem
+  // stores/auth.store.ts, lib/api-client.ts). Neu truoc do da co user duoc persist (tung dang
+  // nhap), thu silent-refresh 1 lan (goi /auth/refresh KHONG kem body, cookie tu dong gui kem
+  // nho withCredentials: true) de lay accessToken moi ma khong bat dang nhap lai sau khi F5.
+  // That bai (thieu/het han cookie) -> silentRefresh tu clearSession(), ProtectedRoute se
+  // dieu huong ve /login vi accessToken con null (giu nguyen fallback cu).
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (refreshToken) {
-        try {
-          const session = await refreshSession(refreshToken);
-          if (!cancelled) setSession(session);
-        } catch {
-          if (!cancelled) clearSession();
-        }
+      if (hasPersistedUser) {
+        await silentRefresh();
       }
       if (!cancelled) setBootstrapped();
     })();
@@ -66,7 +63,14 @@ export default function App() {
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
 
-        <Route path="/admin" element={<AdminPage />}>
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requireAdmin>
+              <AdminPage />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Navigate to="members" replace />} />
           <Route path="members" element={<MembersPage />} />
           <Route path="departments" element={<DepartmentsPage />} />

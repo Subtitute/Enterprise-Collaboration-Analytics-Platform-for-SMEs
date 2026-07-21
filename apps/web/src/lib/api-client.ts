@@ -4,11 +4,17 @@ import type { AuthSession } from '@/stores/auth.store';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
+/**
+ * withCredentials: true - bat buoc de trinh duyet gui/nhan httpOnly cookie refresh token
+ * (`ecap_refresh_token`, set boi IAM Service qua Gateway) - Technical_Spec.md muc 6, muc 9
+ * (bo sung 21/07/2026). Gateway phai cau hinh CORS voi origin cu the (khong wildcard) +
+ * credentials: true de dieu nay hoat dong (xem apps/gateway/src/main.ts).
+ */
 /** Client dung cho moi request nghiep vu - co interceptor gan token + tu dong refresh khi 401. */
-export const apiClient = axios.create({ baseURL: API_BASE_URL });
+export const apiClient = axios.create({ baseURL: API_BASE_URL, withCredentials: true });
 
 /** Client "tran" (khong interceptor) danh rieng cho cac endpoint /auth/* de tranh vong lap refresh. */
-export const authClient = axios.create({ baseURL: API_BASE_URL });
+export const authClient = axios.create({ baseURL: API_BASE_URL, withCredentials: true });
 
 apiClient.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
@@ -24,17 +30,29 @@ type RetryableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 // dedupe lai thanh MOT lan goi /auth/refresh duy nhat, cac request con lai "an theo" ket qua.
 let refreshPromise: Promise<string | null> | null = null;
 
+/**
+ * Goi /auth/refresh KHONG kem body - refresh token khong con duoc luu o phia client (localStorage
+ * hay memory), trinh duyet tu dong gui kem qua httpOnly cookie nho withCredentials: true o tren
+ * (Technical_Spec.md muc 6, bo sung 21/07/2026: refresh token chuyen tu JSON body sang httpOnly cookie).
+ */
 async function refreshAccessToken(): Promise<string | null> {
-  const { refreshToken, setSession, clearSession } = useAuthStore.getState();
-  if (!refreshToken) return null;
+  const { setSession, clearSession } = useAuthStore.getState();
   try {
-    const { data } = await authClient.post<AuthSession>('/auth/refresh', { refreshToken });
+    const { data } = await authClient.post<AuthSession>('/auth/refresh');
     setSession(data);
     return data.accessToken;
   } catch {
     clearSession();
     return null;
   }
+}
+
+/**
+ * Silent-refresh dung luc ung dung khoi dong (xem App.tsx) - cung mot co che voi interceptor
+ * 401 o duoi day, tach rieng thanh ham export de App.tsx khong can tu goi authClient truc tiep.
+ */
+export function silentRefresh(): Promise<string | null> {
+  return refreshAccessToken();
 }
 
 function redirectToLogin() {

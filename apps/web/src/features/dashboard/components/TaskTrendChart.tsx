@@ -2,6 +2,8 @@ import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, X
 import { CATEGORICAL, CHART_INK } from '@/lib/chart-colors';
 import { formatDate } from '@/lib/utils';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { QueryState } from '@/components/ui/QueryState';
+import { Spinner } from '@/components/ui/Spinner';
 import type { TaskTrendPoint } from '@/types';
 
 function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ name: string; value: number; color: string }>; label?: string }) {
@@ -19,48 +21,68 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
   );
 }
 
-export function TaskTrendChart({ data, isLoading }: { data: TaskTrendPoint[]; isLoading?: boolean }) {
+interface TaskTrendChartProps {
+  data: TaskTrendPoint[];
+  isLoading?: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
+}
+
+export function TaskTrendChart({ data, isLoading, isError, onRetry }: TaskTrendChartProps) {
   const hasCreated = data.some((d) => typeof d.created === 'number');
 
-  if (!isLoading && data.length === 0) {
-    return <EmptyState title="Chưa có dữ liệu xu hướng công việc" description="Dữ liệu sẽ xuất hiện khi có công việc được tạo hoặc hoàn thành." />;
-  }
-
   return (
-    <ResponsiveContainer width="100%" height={280}>
-      <LineChart data={data} margin={{ top: 8, right: 12, left: -16, bottom: 0 }}>
-        <CartesianGrid stroke={CHART_INK.grid} vertical={false} />
-        <XAxis
-          dataKey="date"
-          tickFormatter={(v) => formatDate(v)}
-          tick={{ fill: CHART_INK.muted, fontSize: 12 }}
-          axisLine={{ stroke: CHART_INK.baseline }}
-          tickLine={false}
-        />
-        <YAxis allowDecimals={false} tick={{ fill: CHART_INK.muted, fontSize: 12 }} axisLine={false} tickLine={false} width={32} />
-        <Tooltip content={<ChartTooltip />} />
-        {hasCreated && <Legend wrapperStyle={{ fontSize: 12, color: CHART_INK.secondary }} iconType="circle" iconSize={8} />}
-        <Line
-          type="monotone"
-          dataKey="completed"
-          name="Hoàn thành"
-          stroke={CATEGORICAL[0]}
-          strokeWidth={2}
-          dot={{ r: 3, strokeWidth: 0, fill: CATEGORICAL[0] }}
-          activeDot={{ r: 5 }}
-        />
-        {hasCreated && (
-          <Line
-            type="monotone"
-            dataKey="created"
-            name="Được tạo mới"
-            stroke={CATEGORICAL[1]}
-            strokeWidth={2}
-            dot={{ r: 3, strokeWidth: 0, fill: CATEGORICAL[1] }}
-            activeDot={{ r: 5 }}
-          />
-        )}
-      </LineChart>
-    </ResponsiveContainer>
+    <QueryState
+      isLoading={isLoading}
+      isError={isError}
+      onRetry={onRetry}
+      loadingFallback={
+        <div className="flex h-[280px] items-center justify-center">
+          <Spinner />
+        </div>
+      }
+      errorTitle="Không thể tải xu hướng công việc"
+      errorDescription="Đã xảy ra lỗi khi tải dữ liệu biểu đồ. Vui lòng thử lại."
+    >
+      {data.length === 0 ? (
+        <EmptyState title="Chưa có dữ liệu xu hướng công việc" description="Dữ liệu sẽ xuất hiện khi có công việc được tạo hoặc hoàn thành." />
+      ) : (
+        <ResponsiveContainer width="100%" height={280}>
+          <LineChart data={data} margin={{ top: 8, right: 12, left: -16, bottom: 0 }}>
+            <CartesianGrid stroke={CHART_INK.grid} vertical={false} />
+            <XAxis
+              dataKey="date"
+              tickFormatter={(v) => formatDate(v)}
+              tick={{ fill: CHART_INK.muted, fontSize: 12 }}
+              axisLine={{ stroke: CHART_INK.baseline }}
+              tickLine={false}
+            />
+            <YAxis allowDecimals={false} tick={{ fill: CHART_INK.muted, fontSize: 12 }} axisLine={false} tickLine={false} width={32} />
+            <Tooltip content={<ChartTooltip />} />
+            {hasCreated && <Legend wrapperStyle={{ fontSize: 12, color: CHART_INK.secondary }} iconType="circle" iconSize={8} />}
+            <Line
+              type="monotone"
+              dataKey="completed"
+              name="Hoàn thành"
+              stroke={CATEGORICAL[0]}
+              strokeWidth={2}
+              dot={{ r: 3, strokeWidth: 0, fill: CATEGORICAL[0] }}
+              activeDot={{ r: 5 }}
+            />
+            {hasCreated && (
+              <Line
+                type="monotone"
+                dataKey="created"
+                name="Được tạo mới"
+                stroke={CATEGORICAL[1]}
+                strokeWidth={2}
+                dot={{ r: 3, strokeWidth: 0, fill: CATEGORICAL[1] }}
+                activeDot={{ r: 5 }}
+              />
+            )}
+          </LineChart>
+        </ResponsiveContainer>
+      )}
+    </QueryState>
   );
 }

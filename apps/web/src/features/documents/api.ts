@@ -1,5 +1,40 @@
 import { apiClient } from '@/lib/api-client';
+import { formatBytes } from '@/lib/utils';
 import type { FileItem, Folder, PaginatedResponse } from '@/types';
+
+// QUAN TRONG: mang nay PHAI khop byte-for-byte voi allowlist server (Document Service -
+// apps/document-service/src/files/allowed-mime-types.ts) - dong bo thu cong theo dung danh sach
+// da thong nhat trong dot code review 21/07/2026 de FE bao loi tuc thi thay vi doi response 400.
+export const ALLOWED_UPLOAD_MIME_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'image/png',
+  'image/jpeg',
+  'image/gif',
+  'text/csv',
+  'text/plain',
+  'application/zip',
+] as const;
+
+/** Phai khop MAX_UPLOAD_SIZE_BYTES o files.controller.ts (Document Service): 25 * 1024 * 1024. */
+export const MAX_UPLOAD_SIZE_BYTES = 25 * 1024 * 1024;
+
+/** Validate file truoc khi upload (client-side, phan hoi tuc thi) - server van la noi thuc thi
+ *  that su (Technical_Spec.md muc 9). Tra ve null neu hop le, nguoc lai tra ve thong diep loi. */
+export function validateUploadFile(file: File): string | null {
+  if (!(ALLOWED_UPLOAD_MIME_TYPES as readonly string[]).includes(file.type)) {
+    return 'Loại tệp không được hỗ trợ';
+  }
+  if (file.size > MAX_UPLOAD_SIZE_BYTES) {
+    return `Tệp vượt quá kích thước cho phép (tối đa ${formatBytes(MAX_UPLOAD_SIZE_BYTES)})`;
+  }
+  return null;
+}
 
 // Ghi chu: contract chi neu "GET/POST /folders" (khong co filter parentId ro rang), trong khi
 // files thi neu ro "GET /files?folderId=". Vi vay: folders duoc lay TOAN BO 1 lan roi dung

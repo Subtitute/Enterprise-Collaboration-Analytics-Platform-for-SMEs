@@ -66,13 +66,22 @@ export function NotificationBell() {
                         close();
                       }}
                       className={cn(
-                        'block w-full px-4 py-3 text-left hover:bg-slate-50',
+                        'flex w-full items-start gap-2 px-4 py-3 text-left hover:bg-slate-50',
                         !n.isRead && 'bg-primary-50/40',
                       )}
                     >
-                      <p className="text-sm font-medium text-slate-900">{n.title}</p>
-                      <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{n.message}</p>
-                      <p className="mt-1 text-[11px] text-slate-400">{formatRelativeTime(n.createdAt)}</p>
+                      <span
+                        aria-hidden
+                        className={cn(
+                          'mt-1.5 h-2 w-2 shrink-0 rounded-full',
+                          n.isRead ? 'border border-slate-300 bg-white' : 'bg-primary-500',
+                        )}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-slate-900">{n.title}</p>
+                        <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{n.message}</p>
+                        <p className="mt-1 text-[11px] text-slate-400">{formatRelativeTime(n.createdAt)}</p>
+                      </div>
                     </button>
                   </li>
                 ))}

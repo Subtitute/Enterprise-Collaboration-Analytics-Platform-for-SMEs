@@ -49,6 +49,17 @@ export interface ProjectCompletedPayload {
   actorId: string;
 }
 
+export interface TaskDeletedPayload {
+  taskId: string;
+  projectId: string;
+  actorId: string;
+}
+
+export interface ProjectDeletedPayload {
+  projectId: string;
+  actorId: string;
+}
+
 export interface DocumentUploadedPayload {
   fileId: string;
   folderId: string | null;

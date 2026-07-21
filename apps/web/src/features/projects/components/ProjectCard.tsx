@@ -11,7 +11,15 @@ import type { Project } from '@/types';
 import { projectStatusMeta } from '../utils';
 import { useCompleteProject, useDeleteProject } from '../hooks';
 
-export function ProjectCard({ project, progress }: { project: Project; progress: number }) {
+interface ProjectCardProps {
+  project: Project;
+  progress: number;
+  /** So thanh vien dang tham gia du an (GET /projects tra ve them tu 21/07/2026) - hien
+   *  "N thành viên" canh thanh tien do theo dung mock Wireframe.md muc 4.1. */
+  memberCount?: number;
+}
+
+export function ProjectCard({ project, progress, memberCount }: ProjectCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const status = projectStatusMeta(project.status);
   const complete = useCompleteProject(project.id);
@@ -72,8 +80,13 @@ export function ProjectCard({ project, progress }: { project: Project; progress:
           )}
         </div>
 
-        <div className="mt-4">
-          <ProgressBar value={progress} showLabel />
+        <div className="mt-4 flex items-center gap-3">
+          <div className="flex-1">
+            <ProgressBar value={progress} showLabel />
+          </div>
+          {typeof memberCount === 'number' && (
+            <span className="shrink-0 text-xs text-slate-500">{memberCount} thành viên</span>
+          )}
         </div>
       </Card>
 

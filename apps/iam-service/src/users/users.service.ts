@@ -1,10 +1,13 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { ConfigService } from '@nestjs/config';
 import { DataSource, In, Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { User } from '../entities/user.entity';
 import { Role } from '../entities/role.entity';
 import { OutboxService } from '../outbox/outbox.service';
+import { RedisService } from '../redis/redis.service';
+import { parseDurationMs } from '../auth/auth.service';
 import {
   EVENT_TYPES,
   PaginatedResponse,
@@ -34,6 +37,8 @@ export class UsersService {
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     @InjectRepository(Role) private readonly roleRepo: Repository<Role>,
     private readonly outboxService: OutboxService,
+    private readonly redisService: RedisService,
+    private readonly configService: ConfigService,
   ) {}
 
   async findAll(
@@ -127,6 +132,13 @@ export class UsersService {
 
       return updated;
     });
+
+    // Thu hoi access token dang hieu luc cua tai khoan vua bi deactivate ngay lap tuc, thay vi
+    // cho token het han tu nhien (toi da 15 phut) - Technical_Spec.md muc 6 (bo sung 21/07/2026).
+    // TTL bang chinh thoi han access token de khoa blacklist tu dong het hieu luc cung luc.
+    const accessExpiresIn = this.configService.get<string>('jwt.accessExpiresIn') ?? '15m';
+    const ttlSeconds = Math.floor(parseDurationMs(accessExpiresIn) / 1000);
+    await this.redisService.blacklistUser(saved.id, ttlSeconds);
 
     return this.toPublicUser(saved);
   }

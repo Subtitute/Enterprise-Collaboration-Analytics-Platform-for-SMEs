@@ -1,8 +1,12 @@
+import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { PUBLIC_GATEWAY_ROUTES, type JwtAccessPayload } from '@app/common-dto';
+import { RedisService } from '../redis/redis.service';
 import { sendErrorResponse } from '../common/send-error-response';
+
+const logger = new Logger('JwtAuthMiddleware');
 
 /**
  * Cac duong dan KHONG thuoc REST API (/api/v1/...) - hien tai la WebSocket upgrade.
@@ -37,12 +41,17 @@ type RequestWithUser = Request & { user?: JwtAccessPayload };
  * - Route cong khai (dang ky/dang nhap/refresh/health) hoac duong dan WebSocket: bo qua.
  * - Con lai: yeu cau "Authorization: Bearer <token>" hop le, verify bang JwtService voi
  *   JWT_ACCESS_SECRET. Neu thieu/khong hop le -> tra 401 ngay (KHONG proxy tiep).
+ * - Sau khi verify chu ky thanh cong, kiem tra them Redis xem tai khoan (claim `sub`) co dang
+ *   bi blacklist hay khong (vd vua bi deactivate) - Technical_Spec.md muc 6 (bo sung 21/07/2026).
+ *   Neu Redis loi tam thoi, fail-open (cho qua, chi log canh bao) giong triet ly cua rate-limit,
+ *   de mot su co Redis khong lam sap toan bo Gateway.
  * - Neu hop le: gan req.user = payload de middleware proxy phia sau doc va gan header noi
  *   bo (x-org-id, x-user-id, x-user-email, x-roles, x-permissions).
  */
 export function createJwtAuthMiddleware(
   jwtService: JwtService,
   configService: ConfigService,
+  redisService: RedisService,
 ): RequestHandler {
   const secret = configService.get<string>('jwt.accessSecret');
 
@@ -67,8 +76,28 @@ export function createJwtAuthMiddleware(
     jwtService
       .verifyAsync<JwtAccessPayload>(token, { secret })
       .then((payload) => {
-        (req as RequestWithUser).user = payload;
-        next();
+        redisService
+          .isUserBlacklisted(payload.sub)
+          .catch((err: unknown) => {
+            logger.warn(
+              `Kiem tra blacklist that bai, cho qua yeu cau: ${err instanceof Error ? err.message : String(err)}`,
+            );
+            return false;
+          })
+          .then((blacklisted) => {
+            if (blacklisted) {
+              sendErrorResponse(
+                res,
+                401,
+                'UnauthorizedException',
+                'Tai khoan da bi vo hieu hoa, vui long dang nhap lai',
+                req.originalUrl,
+              );
+              return;
+            }
+            (req as RequestWithUser).user = payload;
+            next();
+          });
       })
       .catch(() => {
         sendErrorResponse(

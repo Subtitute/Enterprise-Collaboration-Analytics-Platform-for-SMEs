@@ -168,11 +168,13 @@ services:
       minio:
         condition: service_healthy
     networks: [internal-net]
+    # (Sua 21/07/2026) Bo lenh "mc anonymous set download" - bucket MinIO PHAI o che do private
+    # (mac dinh khi tao khong khai bao policy). Moi truy cap tai file bat buoc di qua presigned URL
+    # do Document Service cap sau khi xac thuc organizationId (xem Technical_Spec.md muc 3.4/8).
     entrypoint: >
       /bin/sh -c "
       mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
       mc mb -p local/${MINIO_BUCKET};
-      mc anonymous set download local/${MINIO_BUCKET};
       exit 0;
       "
 
@@ -197,6 +199,14 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+    healthcheck:
+      # KRaft mode (khong Zookeeper): dung CLI co san trong image apache/kafka de kiem tra
+      # broker da san sang nhan request tren listener noi bo (localhost:9092 = PLAINTEXT_HOST).
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 20s
 
   # ---------------------------------------------------------------
   # Core Platform - Microservices
@@ -209,7 +219,7 @@ services:
     restart: unless-stopped
     depends_on:
       postgres-iam: { condition: service_healthy }
-      kafka: { condition: service_started }
+      kafka: { condition: service_healthy }
     environment:
       NODE_ENV: production
       PORT: 3001
@@ -226,9 +236,17 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN}
-    ports:
-      - "3001:3001"
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+    # ports: ["3001:3001"]  # go bo 21/07/2026 - khong expose ra host, chi Gateway/noi bo moi
+    # goi duoc qua internal-net, tranh bypass Gateway/JWT/rate-limit (xem Technical_Spec.md muc 8).
     networks: [internal-net]
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
 
   gateway:
     build:
@@ -237,7 +255,11 @@ services:
     container_name: gateway
     restart: unless-stopped
     depends_on:
-      - iam-service
+      iam-service: { condition: service_healthy }
+      project-task-service: { condition: service_healthy }
+      document-service: { condition: service_healthy }
+      notification-service: { condition: service_healthy }
+      analytics-service: { condition: service_healthy }
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -245,6 +267,8 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN}
       IAM_SERVICE_URL: http://iam-service:3001
       PROJECT_TASK_SERVICE_URL: http://project-task-service:3002
       DOCUMENT_SERVICE_URL: http://document-service:3003
@@ -253,6 +277,12 @@ services:
     ports:
       - "3000:3000"
     networks: [internal-net]
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
 
   project-task-service:
     build:
@@ -262,7 +292,7 @@ services:
     restart: unless-stopped
     depends_on:
       postgres-pt: { condition: service_healthy }
-      kafka: { condition: service_started }
+      kafka: { condition: service_healthy }
     environment:
       NODE_ENV: production
       PORT: 3002
@@ -272,9 +302,16 @@ services:
       DB_USER: ${POSTGRES_PT_USER}
       DB_PASSWORD: ${POSTGRES_PT_PASSWORD}
       KAFKA_BROKER: kafka:29092
-    ports:
-      - "3002:3002"
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
+    # ports: ["3002:3002"]  # go bo 21/07/2026 - khong expose ra host, chi Gateway/noi bo moi
+    # goi duoc qua internal-net, tranh bypass Gateway/JWT/rate-limit (xem Technical_Spec.md muc 8).
     networks: [internal-net]
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
 
   document-service:
     build:
@@ -284,7 +321,7 @@ services:
     restart: unless-stopped
     depends_on:
       postgres-doc: { condition: service_healthy }
-      kafka: { condition: service_started }
+      kafka: { condition: service_healthy }
       minio: { condition: service_healthy }
     environment:
       NODE_ENV: production
@@ -301,9 +338,23 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       MINIO_BUCKET: ${MINIO_BUCKET}
-    ports:
-      - "3003:3003"
+      # 21/07/2026: rieng cho viec KY presigned download URL - phai la host:port ma trinh
+      # duyet cua client phan giai duoc (host mapping cua container minio la 9010, xem muc 8),
+      # khac voi "minio:9000" o tren (chi dung noi bo giua cac container). Neu khong tach rieng,
+      # link tai file bi hong vi trinh duyet khong resolve duoc hostname "minio".
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost}
+      MINIO_PUBLIC_PORT: ${MINIO_PUBLIC_PORT:-9010}
+      MINIO_PUBLIC_USE_SSL: "false"
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
+    # ports: ["3003:3003"]  # go bo 21/07/2026 - khong expose ra host, chi Gateway/noi bo moi
+    # goi duoc qua internal-net, tranh bypass Gateway/JWT/rate-limit (xem Technical_Spec.md muc 8).
     networks: [internal-net]
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3003/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
 
   notification-service:
     build:
@@ -313,7 +364,7 @@ services:
     restart: unless-stopped
     depends_on:
       mongodb: { condition: service_healthy }
-      kafka: { condition: service_started }
+      kafka: { condition: service_healthy }
     environment:
       NODE_ENV: production
       PORT: 3004
@@ -323,9 +374,16 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
-    ports:
-      - "3004:3004"
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
+    # ports: ["3004:3004"]  # go bo 21/07/2026 - khong expose ra host, chi Gateway/noi bo moi
+    # goi duoc qua internal-net, tranh bypass Gateway/JWT/rate-limit (xem Technical_Spec.md muc 8).
     networks: [internal-net]
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3004/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
 
   analytics-service:
     build:
@@ -335,7 +393,7 @@ services:
     restart: unless-stopped
     depends_on:
       timescaledb: { condition: service_healthy }
-      kafka: { condition: service_started }
+      kafka: { condition: service_healthy }
     environment:
       NODE_ENV: production
       PORT: 3005
@@ -349,9 +407,16 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
-    ports:
-      - "3005:3005"
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
+    # ports: ["3005:3005"]  # go bo 21/07/2026 - khong expose ra host, chi Gateway/noi bo moi
+    # goi duoc qua internal-net, tranh bypass Gateway/JWT/rate-limit (xem Technical_Spec.md muc 8).
     networks: [internal-net]
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3005/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
 
   web:
     build:
@@ -364,7 +429,16 @@ services:
     container_name: web
     restart: unless-stopped
     depends_on:
-      - gateway
+      gateway: { condition: service_healthy }
     ports:
       - "80:80"
     networks: [internal-net]
+    healthcheck:
+      # 21/07/2026: dung 127.0.0.1 thay vi "localhost" - nginx (custom nginx.conf) chi listen
+      # IPv4 (0.0.0.0:80, khong co "listen [::]:80"), trong khi wget/musl libc trong Alpine
+      # uu tien resolve "localhost" ra ::1 (IPv6) truoc, gay ECONNREFUSED du app hoan toan binh thuong.
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s

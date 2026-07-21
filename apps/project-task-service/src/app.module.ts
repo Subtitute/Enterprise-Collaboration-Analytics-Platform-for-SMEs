@@ -9,6 +9,7 @@ import { Project } from './entities/project.entity';
 import { Task } from './entities/task.entity';
 import { TaskAssignee } from './entities/task-assignee.entity';
 import { TaskComment } from './entities/task-comment.entity';
+import { TaskStatusHistory } from './entities/task-status-history.entity';
 import { OutboxEvent } from './entities/outbox-event.entity';
 import { KafkaModule } from './kafka/kafka.module';
 import { OutboxModule } from './outbox/outbox.module';
@@ -28,7 +29,7 @@ import { HealthController } from './health/health.controller';
         username: config.get<string>('db.user'),
         password: config.get<string>('db.password'),
         database: config.get<string>('db.name'),
-        entities: [Project, Task, TaskAssignee, TaskComment, OutboxEvent],
+        entities: [Project, Task, TaskAssignee, TaskComment, TaskStatusHistory, OutboxEvent],
         // MVP: dung synchronize thay vi migration thu cong - Technical_Spec.md muc 14 (gioi han da biet).
         synchronize: true,
       }),

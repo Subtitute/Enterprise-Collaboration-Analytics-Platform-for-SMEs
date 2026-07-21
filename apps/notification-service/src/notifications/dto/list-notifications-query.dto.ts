@@ -1,9 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsBoolean, IsOptional } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 import { PaginationQueryDto } from '@app/common-dto';
 
-/** Query cho `GET /notifications` - phan trang chuan + loc theo trang thai doc. */
+/**
+ * Query cho `GET /notifications` - phan trang chuan + loc theo trang thai doc + loc theo loai
+ * thong bao (`type`, khop 1 gia tri trong EVENT_TYPES cua @app/common-dto, vd 'task.assigned').
+ */
 export class ListNotificationsQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({ description: 'Loc theo trang thai da doc/chua doc' })
   @IsOptional()
@@ -14,4 +17,10 @@ export class ListNotificationsQueryDto extends PaginationQueryDto {
   })
   @IsBoolean()
   isRead?: boolean;
+
+  @ApiPropertyOptional({ description: 'Loc theo loai thong bao (vd: task.assigned, document.shared)' })
+  @IsOptional()
+  @Transform(({ value }) => (value === '' ? undefined : value))
+  @IsString()
+  type?: string;
 }

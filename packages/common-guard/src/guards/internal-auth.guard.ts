@@ -3,13 +3,23 @@ import { Reflector } from '@nestjs/core';
 import { AuthContext, INTERNAL_AUTH_HEADERS } from '@app/common-dto';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
+/** Header mang bi mat chia se giua Gateway va cac service phia sau (Technical_Spec.md muc 6, bo sung 21/07/2026). */
+export const INTERNAL_SHARED_SECRET_HEADER = 'x-internal-secret';
+
+/** Fallback dev-only - PHAI duoc ghi de bang bien moi truong INTERNAL_SHARED_SECRET o moi environment thuc. */
+const DEV_FALLBACK_SECRET = 'dev-shared-secret-change-me';
+
 /**
  * Guard dung o TAT CA service phia sau Gateway (IAM, Project-Task, Document,
  * Notification, Analytics). KHONG tu verify JWT - tin tuong header noi bo do
  * API Gateway forward sau khi da verify JWT (Technical_Spec.md muc 6).
  *
  * Bien gioi tin cay: cac service nay chi duoc dat trong internal-net, khong
- * expose truc tiep ra ngoai (xem docker-compose.yml).
+ * expose truc tiep ra ngoai (xem docker-compose.yml). De phong truong hop mot
+ * client bo qua Gateway va goi thang vao service (tu khai bao header context de
+ * gia mao danh tinh), guard bat buoc kiem tra header `x-internal-secret` khop
+ * voi bi mat chia se qua bien moi truong INTERNAL_SHARED_SECRET truoc khi tin
+ * BAT KY header context nao (bo sung 21/07/2026).
  */
 @Injectable()
 export class InternalAuthGuard implements CanActivate {
@@ -23,6 +33,15 @@ export class InternalAuthGuard implements CanActivate {
     if (isPublic) return true;
 
     const req = context.switchToHttp().getRequest();
+
+    const expectedSecret = process.env.INTERNAL_SHARED_SECRET ?? DEV_FALLBACK_SECRET;
+    const providedSecret = readHeader(req.headers[INTERNAL_SHARED_SECRET_HEADER]);
+    if (!providedSecret || providedSecret !== expectedSecret) {
+      throw new UnauthorizedException(
+        'Thieu hoac sai internal shared-secret - yeu cau phai di qua API Gateway',
+      );
+    }
+
     const userId = readHeader(req.headers[INTERNAL_AUTH_HEADERS.USER_ID]);
     const organizationId = readHeader(req.headers[INTERNAL_AUTH_HEADERS.ORG_ID]);
 

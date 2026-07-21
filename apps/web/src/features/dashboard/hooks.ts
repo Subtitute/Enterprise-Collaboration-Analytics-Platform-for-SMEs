@@ -5,18 +5,18 @@ import { connectAnalyticsSocket, disconnectAnalyticsSocket } from '@/lib/socket'
 import type { DateRangeOption, RecentActivityItem } from '@/types';
 import { fetchAnalyticsSummary, fetchRecentActivity, fetchTaskStatusBreakdown, fetchTaskTrend } from './api';
 
-export function useAnalyticsSummary() {
-  return useQuery({ queryKey: ['analytics', 'summary'], queryFn: fetchAnalyticsSummary });
+export function useAnalyticsSummary(range: DateRangeOption = '30d') {
+  return useQuery({ queryKey: ['analytics', 'summary', range], queryFn: () => fetchAnalyticsSummary(range) });
 }
 
 export function useTaskTrend(range: DateRangeOption = '30d') {
   return useQuery({ queryKey: ['analytics', 'task-trend', range], queryFn: () => fetchTaskTrend(range) });
 }
 
-export function useTaskStatusBreakdown(projectId?: string) {
+export function useTaskStatusBreakdown(range: DateRangeOption = '30d', projectId?: string) {
   return useQuery({
-    queryKey: ['analytics', 'task-status-breakdown', projectId ?? null],
-    queryFn: () => fetchTaskStatusBreakdown(projectId),
+    queryKey: ['analytics', 'task-status-breakdown', range, projectId ?? null],
+    queryFn: () => fetchTaskStatusBreakdown(range, projectId),
   });
 }
 

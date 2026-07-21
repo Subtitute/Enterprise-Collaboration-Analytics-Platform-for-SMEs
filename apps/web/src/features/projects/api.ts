@@ -1,5 +1,6 @@
 import { apiClient } from '@/lib/api-client';
-import type { PaginatedResponse, Project, Task, TaskComment, TaskStatus } from '@/types';
+import { unwrapList } from '@/lib/utils';
+import type { PaginatedResponse, Project, Task, TaskComment, TaskStatus, TaskStatusHistoryEntry } from '@/types';
 
 export interface CreateProjectPayload {
   name: string;
@@ -8,7 +9,17 @@ export interface CreateProjectPayload {
   dueDate?: string;
 }
 
-export async function fetchProjects(params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<Project>> {
+export interface FetchProjectsParams {
+  page?: number;
+  limit?: number;
+  /** Tim kiem theo ten du an (Wireframe.md muc 4.1) - server loc, khong loc client. */
+  search?: string;
+  /** Loc theo trang thai du an (ACTIVE/COMPLETED/ARCHIVED...). Khong con bo loc "Phong ban"
+   *  (Dieu chinh 21/07/2026 - xem Wireframe.md muc 4.1). */
+  status?: string;
+}
+
+export async function fetchProjects(params: FetchProjectsParams = {}): Promise<PaginatedResponse<Project>> {
   const { data } = await apiClient.get<PaginatedResponse<Project>>('/projects', { params });
   return data;
 }
@@ -90,4 +101,10 @@ export async function fetchComments(taskId: string): Promise<TaskComment[]> {
 export async function addComment(taskId: string, content: string): Promise<TaskComment> {
   const { data } = await apiClient.post<TaskComment>(`/tasks/${taskId}/comments`, { content });
   return data;
+}
+
+/** GET /tasks/:id/status-history - tra ve mang tho hoac { data: [] } tuy service, chuan hoa qua unwrapList. */
+export async function fetchTaskStatusHistory(taskId: string): Promise<TaskStatusHistoryEntry[]> {
+  const { data } = await apiClient.get(`/tasks/${taskId}/status-history`);
+  return unwrapList<TaskStatusHistoryEntry>(data);
 }

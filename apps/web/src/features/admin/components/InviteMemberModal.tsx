@@ -71,7 +71,7 @@ export function InviteMemberModal({ open, onClose }: { open: boolean; onClose: (
         >
           <Input
             id="invite-password"
-            type="text"
+            type="password"
             value={initialPassword}
             onChange={(e) => setInitialPassword(e.target.value)}
             placeholder="Tối thiểu 8 ký tự"

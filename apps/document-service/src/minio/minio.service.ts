@@ -12,18 +12,35 @@ import * as Minio from 'minio';
 export class MinioService implements OnModuleInit {
   private readonly logger = new Logger(MinioService.name);
   private client: Minio.Client;
+  /** Client rieng chi de ky presigned URL bang public endpoint (xem ghi chu o configuration.ts). */
+  private publicUrlClient: Minio.Client;
   private bucket: string;
 
   constructor(private readonly configService: ConfigService) {}
 
   onModuleInit(): void {
     this.bucket = this.configService.get<string>('minio.bucket')!;
+    const accessKey = this.configService.get<string>('minio.accessKey')!;
+    const secretKey = this.configService.get<string>('minio.secretKey')!;
+    // `region` duoc dat co dinh de tranh viec SDK tu goi mang xac dinh region cua bucket
+    // (getBucketRegion) truoc khi ky - voi publicUrlClient, cuoc goi do se that bai vi
+    // endpoint public (vd "localhost:9010") khong the ket noi duoc TU BEN TRONG container.
+    const region = 'us-east-1';
     this.client = new Minio.Client({
       endPoint: this.configService.get<string>('minio.endpoint')!,
       port: this.configService.get<number>('minio.port'),
       useSSL: this.configService.get<boolean>('minio.useSsl'),
-      accessKey: this.configService.get<string>('minio.accessKey')!,
-      secretKey: this.configService.get<string>('minio.secretKey')!,
+      region,
+      accessKey,
+      secretKey,
+    });
+    this.publicUrlClient = new Minio.Client({
+      endPoint: this.configService.get<string>('minio.publicEndpoint')!,
+      port: this.configService.get<number>('minio.publicPort'),
+      useSSL: this.configService.get<boolean>('minio.publicUseSsl'),
+      region,
+      accessKey,
+      secretKey,
     });
     this.logger.log(`Da khoi tao MinIO client (bucket: ${this.bucket})`);
   }
@@ -40,6 +57,6 @@ export class MinioService implements OnModuleInit {
 
   /** URL GET co chu ky tam thoi (mac dinh 900s = 15 phut) - client tai truc tiep tu MinIO, khong qua service nay. */
   async presignedGetObject(objectKey: string, expirySeconds = 900): Promise<string> {
-    return this.client.presignedGetObject(this.bucket, objectKey, expirySeconds);
+    return this.publicUrlClient.presignedGetObject(this.bucket, objectKey, expirySeconds);
   }
 }

@@ -63,12 +63,15 @@ export function formatBytes(bytes?: number): string {
 // Backend contract khong tra ve permissionKeys trong AuthUser (JWT context) - chi { id, name }
 // cho moi role - nen khong the kiem tra quyen chinh xac 100% o client. Day la heuristic don gian
 // (khong chan chac chan, backend van la noi thuc thi RBAC that su o tung API): an muc "Quan tri"
-// tren Sidebar neu KHONG co role nao trung ten "quan tri/admin/owner". Neu chua co du lieu vai tro
-// (vd dang tai), fail-open (van hien) de tranh an nham voi nguoi dung hop le.
+// tren Sidebar neu KHONG co role nao trung ten "quan tri/admin/owner", VA lam dieu kien cho
+// route-guard thuc su cua /admin/* (xem components/layout/ProtectedRoute.tsx, bo sung 21/07/2026).
+// Fail CLOSED khi khong/chua co du lieu vai tro (roles rong/undefined) - truoc day fail-open
+// (coi nhu la admin) la mot lo hong: bat ky user nao co roles=[] (vd du lieu dang tai dang do,
+// hoac user khong duoc gan role nao) se duoc coi la admin va vao duoc /admin/*.
 const ADMIN_ROLE_PATTERN = /admin|quản\s*trị|quan\s*tri|owner/i;
 
 export function hasAdminRole(roles?: Array<{ name: string }>): boolean {
-  if (!roles || roles.length === 0) return true;
+  if (!roles || roles.length === 0) return false;
   return roles.some((r) => ADMIN_ROLE_PATTERN.test(r.name));
 }
 
