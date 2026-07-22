@@ -1,13 +1,58 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { AuthContext, INTERNAL_AUTH_HEADERS } from '@app/common-dto';
+import {
+  AuthContext,
+  DEV_FALLBACK_INTERNAL_SHARED_SECRET,
+  INTERNAL_AUTH_HEADERS,
+  INTERNAL_SHARED_SECRET_HEADER,
+} from '@app/common-dto';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 
-/** Header mang bi mat chia se giua Gateway va cac service phia sau (Technical_Spec.md muc 6, bo sung 21/07/2026). */
-export const INTERNAL_SHARED_SECRET_HEADER = 'x-internal-secret';
+// 22/07/2026: hang so header/fallback truoc day khai bao rieng tai day (trung lap y het voi
+// apps/gateway/src/proxy/inject-auth-headers.ts) nay gop vao @app/common-dto - xem
+// packages/common-dto/src/constants/internal-shared-secret.constant.ts. Re-export lai
+// INTERNAL_SHARED_SECRET_HEADER de khong phai sua import trong internal-auth.guard.spec.ts.
+export { INTERNAL_SHARED_SECRET_HEADER };
 
-/** Fallback dev-only - PHAI duoc ghi de bang bien moi truong INTERNAL_SHARED_SECRET o moi environment thuc. */
-const DEV_FALLBACK_SECRET = 'dev-shared-secret-change-me';
+const logger = new Logger('InternalAuthGuard');
+
+// 22/07/2026: co dinh module-level de Logger.warn ben duoi chi ban ra 1 LAN duy nhat cho ca
+// vong doi process (dev/test), thay vi spam log tren MOI request toi service.
+let hasWarnedDevFallbackUsage = false;
+
+/**
+ * Xac dinh gia tri bi mat noi bo ma Guard nay se doi khop - phat hien qua code review toan du
+ * an (22/07/2026): truoc day dung `process.env.INTERNAL_SHARED_SECRET ?? DEV_FALLBACK_SECRET`
+ * ngay trong canActivate() - neu quen thiet lap bien moi truong nay o production, service VAN
+ * khoi dong binh thuong va am tham chap nhan MOI request ky bang chuoi
+ * 'dev-shared-secret-change-me' (da cong khai trong ma nguon git) - fail OPEN thay vi fail
+ * CLOSED, vo hieu hoa toan bo lop bao ve "request phai di qua Gateway" (xem class-doc ben duoi).
+ *
+ * Xu ly: production (NODE_ENV=production) ma thieu bien moi truong -> nem loi NGAY o
+ * constructor (Nest se khong khoi dong duoc service, thay vi am tham fail-open luc runtime).
+ * Ngoai production (dev/test/NODE_ENV chua dat) -> giu nguyen hanh vi fallback nhu cu de khong
+ * pha vo trai nghiem dev cuc bo, nhung Logger.warn 1 lan de dev khong vo tinh bo sot.
+ */
+function resolveExpectedInternalSecret(): string {
+  const envSecret = process.env.INTERNAL_SHARED_SECRET;
+  if (envSecret) return envSecret;
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      'INTERNAL_SHARED_SECRET chua duoc thiet lap trong moi truong production - tu choi khoi ' +
+        'dong service de tranh fail-open vao gia tri fallback dev da cong khai trong ma nguon.',
+    );
+  }
+
+  if (!hasWarnedDevFallbackUsage) {
+    logger.warn(
+      'INTERNAL_SHARED_SECRET chua duoc thiet lap - dang dung gia tri fallback CHI DANH CHO ' +
+        'DEV (khong an toan, da cong khai trong ma nguon). Tuyet doi khong dung trong production.',
+    );
+    hasWarnedDevFallbackUsage = true;
+  }
+  return DEV_FALLBACK_INTERNAL_SHARED_SECRET;
+}
 
 /**
  * Guard dung o TAT CA service phia sau Gateway (IAM, Project-Task, Document,
@@ -23,6 +68,11 @@ const DEV_FALLBACK_SECRET = 'dev-shared-secret-change-me';
  */
 @Injectable()
 export class InternalAuthGuard implements CanActivate {
+  // 22/07/2026: doi khop duoc giai quyet 1 LAN duy nhat luc Nest khoi tao Guard (thay vi doc
+  // lai process.env moi request) de loi thieu INTERNAL_SHARED_SECRET o production duoc phat
+  // hien NGAY luc khoi dong service (fail-fast), khong phai cho toi request dau tien.
+  private readonly expectedSecret: string = resolveExpectedInternalSecret();
+
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -34,7 +84,7 @@ export class InternalAuthGuard implements CanActivate {
 
     const req = context.switchToHttp().getRequest();
 
-    const expectedSecret = process.env.INTERNAL_SHARED_SECRET ?? DEV_FALLBACK_SECRET;
+    const expectedSecret = this.expectedSecret;
     const providedSecret = readHeader(req.headers[INTERNAL_SHARED_SECRET_HEADER]);
     if (!providedSecret || providedSecret !== expectedSecret) {
       throw new UnauthorizedException(

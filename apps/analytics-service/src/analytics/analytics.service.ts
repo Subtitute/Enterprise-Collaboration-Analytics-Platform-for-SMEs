@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { RedisService } from '../redis/redis.service';
@@ -56,6 +56,8 @@ const SUMMARY_CACHE_TTL_SECONDS = 8;
 
 @Injectable()
 export class AnalyticsService {
+  private readonly logger = new Logger(AnalyticsService.name);
+
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly redisService: RedisService,
@@ -65,14 +67,36 @@ export class AnalyticsService {
    * GET /analytics/summary?range=7d|30d|quarter - KPI card tren Dashboard (Wireframe.md muc 3,
    * muc 7 - "Khoang thoi gian"). Cache Redis TTL ngan, key theo ca `range` de tranh tra nham
    * KPI da cache cua 1 khoang thoi gian khac.
+   *
+   * 22/07/2026: bao ca doc va ghi cache trong try/catch rieng - cache CHI la 1 buoc toi uu hoa
+   * (giam tai TimescaleDB khi Dashboard polling), KHONG duoc phep bien thanh 1 dependency cung
+   * bat buoc. Truoc fix nay, Redis down/timeout (vd RedisService.onModuleInit mat ket noi) se
+   * lam `getJson`/`setJson` nem loi KHONG duoc bat, khien ca endpoint GET /analytics/summary
+   * tra ve 500 du TimescaleDB (nguon du lieu that) van hoat dong binh thuong.
    */
   async getSummary(organizationId: string, range: string): Promise<AnalyticsSummary> {
     const cacheKey = `analytics:summary:${organizationId}:${range}`;
-    const cached = await this.redisService.getJson<AnalyticsSummary>(cacheKey);
+
+    let cached: AnalyticsSummary | null = null;
+    try {
+      cached = await this.redisService.getJson<AnalyticsSummary>(cacheKey);
+    } catch (err) {
+      this.logger.warn(
+        `Doc cache Redis that bai (key=${cacheKey}) - coi nhu cache miss va tinh lai tu TimescaleDB: ${(err as Error).message}`,
+      );
+    }
     if (cached) return cached;
 
     const summary = await this.computeSummary(organizationId, range);
-    await this.redisService.setJson(cacheKey, summary, SUMMARY_CACHE_TTL_SECONDS);
+
+    try {
+      await this.redisService.setJson(cacheKey, summary, SUMMARY_CACHE_TTL_SECONDS);
+    } catch (err) {
+      this.logger.warn(
+        `Ghi cache Redis that bai (key=${cacheKey}) - bo qua, van tra ve ket qua da tinh cho request nay: ${(err as Error).message}`,
+      );
+    }
+
     return summary;
   }
 
@@ -85,14 +109,28 @@ export class AnalyticsService {
   private async computeSummary(organizationId: string, range: string): Promise<AnalyticsSummary> {
     const { sinceInterval } = resolveTaskTrendConfig(range);
 
+    // 22/07/2026: bo sung 2 dieu kien NOT EXISTS de loai tru task/project da bi xoa cung
+    // (event `task.deleted`/`project.deleted` - Technical_Spec.md muc 3.3, doi 21/07/2026)
+    // khoi phep dem KPI. Truoc fix nay, 2 event tren duoc FactWriterService ghi vao
+    // fact_task_events giong het moi event khac nhung khong co truy van nao loc theo no, nen
+    // 1 task/project da bi xoa cung van bi dem vinh vien trong "Tong cong viec da tao/hoan
+    // thanh" tren Dashboard.
     const [taskRow] = await this.dataSource.query(
       `
       SELECT
         count(DISTINCT task_id) FILTER (WHERE event_type = 'task.created')                                AS total_tasks_created,
         count(DISTINCT task_id) FILTER (WHERE event_type = 'task.status_changed' AND to_status = 'DONE')   AS total_tasks_completed
-      FROM fact_task_events
-      WHERE organization_id = $1
-        AND time >= now() - $2::interval
+      FROM fact_task_events t
+      WHERE t.organization_id = $1
+        AND t.time >= now() - $2::interval
+        AND NOT EXISTS (
+          SELECT 1 FROM fact_task_events d
+          WHERE d.task_id = t.task_id AND d.event_type = 'task.deleted'
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM fact_task_events pd
+          WHERE pd.project_id = t.project_id AND pd.event_type = 'project.deleted'
+        )
       `,
       [organizationId, sinceInterval],
     );
@@ -140,6 +178,23 @@ export class AnalyticsService {
    * Ghi chu an toan SQL: `table` chi co the la 1 trong 2 chuoi co dinh lay tu whitelist
    * TASK_TREND_CONFIG (khong bao gio la gia tri tho tu query-param cua client) nen noi chuoi
    * truc tiep vao SQL o day khong tao ra injection - ten bang khong the tham so hoa trong Postgres.
+   *
+   * 22/07/2026 (gioi han da biet - KHONG the fix o muc query nhu computeSummary()/
+   * getTaskStatusBreakdown()/getProjectProgress()): endpoint nay CHUA loai tru task/project
+   * da bi xoa cung (event `task.deleted`/`project.deleted`, Technical_Spec.md muc 3.3, doi
+   * 21/07/2026). 2 continuous aggregate `daily_task_summary`/`weekly_project_progress`
+   * (infra/timescale-init/001-init.sql) da GOP SAN `tasks_created`/`tasks_completed` thanh
+   * so dem theo (bucket, organization_id, project_id) tai thoi diem materialize - khong con
+   * giu task_id o muc hang de co the NOT EXISTS loai tru tung task_id bi xoa nhu cac truy van
+   * quet fact_task_events tho. Chi loai tru duoc o muc project_id (aggregate co con cot nay)
+   * nhung lam vay se cho ket qua KHONG NHAT QUAN voi getTaskStatusBreakdown()/
+   * getProjectProgress() (loai tru ca task_id lan project_id) - vi du 1 task bi xoa rieng le
+   * (project van con) van se bi dem trong bieu do xu huong nay nhung KHONG con duoc dem trong
+   * task-status-breakdown/project-progress. Vi vay co tinh de nguyen, KHONG ap dung fix mot
+   * phan. Muon fix dung can sua lai dinh nghia continuous aggregate de giu them task_id (hoac
+   * tach 1 hypertable rieng khong gop san) - la 1 DB migration, ngoai pham vi cua fix nay (yeu
+   * cau cua nhiem vu: khong sua infra/timescale-init/*.sql vi khong the re-apply cho DB dev
+   * dang chay). Endpoint con gap: GET /analytics/task-trend?range=7d|30d|quarter.
    */
   async getTaskTrend(organizationId: string, range: string): Promise<TaskTrendPoint[]> {
     const { table, sinceInterval } = resolveTaskTrendConfig(range);
@@ -191,16 +246,28 @@ export class AnalyticsService {
       projectFilter = `AND project_id = $${params.length}`;
     }
 
+    // 22/07/2026: created_tasks them 2 dieu kien NOT EXISTS de loai tru task da bi xoa cung
+    // (`task.deleted`) va task thuoc project da bi xoa cung (`project.deleted`) - cung ly do
+    // nhu computeSummary() o tren (Technical_Spec.md muc 3.3, doi 21/07/2026). Can alias `t`
+    // cho fact_task_events de tu-tham-chieu (self-correlate) trong subquery NOT EXISTS.
     const rows: { status: string; count: string | number }[] = await this.dataSource.query(
       `
       WITH created_tasks AS (
         SELECT DISTINCT task_id
-        FROM fact_task_events
+        FROM fact_task_events t
         WHERE organization_id = $1
           AND event_type = 'task.created'
           AND task_id IS NOT NULL
           AND time >= now() - $2::interval
           ${projectFilter}
+          AND NOT EXISTS (
+            SELECT 1 FROM fact_task_events d
+            WHERE d.task_id = t.task_id AND d.event_type = 'task.deleted'
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM fact_task_events pd
+            WHERE pd.project_id = t.project_id AND pd.event_type = 'project.deleted'
+          )
       ),
       latest_status AS (
         SELECT DISTINCT ON (task_id) task_id, to_status
@@ -258,16 +325,28 @@ export class AnalyticsService {
    */
   async getProjectProgress(organizationId: string, range: string): Promise<ProjectProgress[]> {
     const { sinceInterval } = resolveTaskTrendConfig(range);
+    // 22/07/2026: created_tasks them 2 dieu kien NOT EXISTS de loai tru task da bi xoa cung
+    // (`task.deleted`) va project da bi xoa cung (`project.deleted`) khoi tinh % hoan thanh -
+    // cung ly do nhu computeSummary()/getTaskStatusBreakdown() o tren (Technical_Spec.md muc
+    // 3.3, doi 21/07/2026).
     const rows = await this.dataSource.query(
       `
       WITH created_tasks AS (
         SELECT DISTINCT task_id, project_id
-        FROM fact_task_events
+        FROM fact_task_events t
         WHERE organization_id = $1
           AND event_type = 'task.created'
           AND task_id IS NOT NULL
           AND project_id IS NOT NULL
           AND time >= now() - $2::interval
+          AND NOT EXISTS (
+            SELECT 1 FROM fact_task_events d
+            WHERE d.task_id = t.task_id AND d.event_type = 'task.deleted'
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM fact_task_events pd
+            WHERE pd.project_id = t.project_id AND pd.event_type = 'project.deleted'
+          )
       ),
       latest_status AS (
         SELECT DISTINCT ON (task_id) task_id, to_status

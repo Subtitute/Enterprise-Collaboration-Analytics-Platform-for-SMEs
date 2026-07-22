@@ -1,4 +1,4 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, Index, JoinColumn, ManyToOne, Unique } from 'typeorm';
 import { AppBaseEntity } from '../common/base.entity';
 import { bigintTransformer } from '../common/bigint.transformer';
 import { FileMeta } from './file-meta.entity';
@@ -8,6 +8,15 @@ import { FileMeta } from './file-meta.entity';
  * da N ban gan nhat). Chinh sach retention (MAX_FILE_VERSIONS = 5) ap dung o FilesService.
  */
 @Entity('file_versions')
+// 22/07/2026: Fix 2 (code review, phong thu chieu sau/defense-in-depth) - rang buoc unique
+// (fileId, versionNumber) O TANG DATABASE, cung dinh dang voi @Unique(['fileId','sharedWithUserId'])
+// tren FileShare/@Unique(['taskId','userId']) tren TaskAssignee (project-task-service) da co san
+// trong repo. Khoa pessimistic_write o FilesService.uploadNewVersion() da chan duoc race condition
+// o TANG UNG DUNG, nhung rang buoc nay la lop bao ve THU 2 doc lap voi tang do: neu trong tuong
+// lai co code path khac ghi FileVersion ma KHONG di qua khoa (vd script/job noi bo), DB se TU CHOI
+// thay vi am tham chap nhan 2 phien ban trung so. Service nay dung `synchronize: true` (xem
+// app.module.ts), khong dung migration thu cong, nen decorator nay se tu ap dung vao schema.
+@Unique(['fileId', 'versionNumber'])
 export class FileVersion extends AppBaseEntity {
   @Index()
   @Column({ name: 'file_id', type: 'uuid' })

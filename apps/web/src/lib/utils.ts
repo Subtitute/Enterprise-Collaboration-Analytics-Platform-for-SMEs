@@ -14,11 +14,17 @@ export function unwrapList<T>(payload: unknown): T[] {
   return [];
 }
 
+// 22/07/2026: them timeZone: 'Asia/Ho_Chi_Minh' vao ca 2 ham render ngay/gio tuyet doi ben duoi -
+// ClaudeRule.md muc 4 va Wireframe.md muc 0 deu quy dinh gio hien thi phai la GMT+7. Truoc ban sua
+// nay, Intl.DateTimeFormat khong duoc truyen timeZone nen tu dong dung timezone cua may/trinh
+// duyet nguoi xem - vi du 1 nguoi dung xem trang tu mot may dat gio UTC hoac US se thay ngay/gio
+// SAI LECH so voi gio Viet Nam that su (co the lech ca ngay o cac moc gan nua dem), du du lieu
+// server tra ve la dung.
 export function formatDate(value?: string | null): string {
   if (!value) return '—';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '—';
-  return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(d);
+  return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }).format(d);
 }
 
 export function formatDateTime(value?: string | null): string {
@@ -31,6 +37,7 @@ export function formatDateTime(value?: string | null): string {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'Asia/Ho_Chi_Minh',
   }).format(d);
 }
 

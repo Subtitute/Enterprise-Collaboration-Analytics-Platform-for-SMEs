@@ -15,8 +15,11 @@ import {
   uploadNewVersion,
 } from './api';
 
-export function useFoldersQuery() {
-  return useQuery({ queryKey: ['folders'], queryFn: fetchFolders });
+// 22/07/2026: them tham so `options.enabled` (mac dinh khong truyen = giu nguyen hanh vi cu, luon
+// bat, vd. DocumentsPage) - can thiet de useGlobalSearch() (Topbar) co the tri hoan query nay toi
+// khi nguoi dung thuc su focus o tim kiem, thay vi goi ngay khi Topbar mount o MOI trang.
+export function useFoldersQuery(options?: { enabled?: boolean }) {
+  return useQuery({ queryKey: ['folders'], queryFn: fetchFolders, enabled: options?.enabled });
 }
 
 export function useFilesQuery(folderId: string | null) {
@@ -109,12 +112,44 @@ export function useDeleteFile(folderId: string | null) {
   });
 }
 
+// 22/07/2026: sua loi thuc te - "Xem tệp"/"Tải xuống" hau nhu luon bi trinh duyet chan khi bat
+// popup blocker. Ban goc goi window.open(url) BEN TRONG onSuccess cua mutation, tuc SAU khi
+// await getDownloadUrl() (1 network call) hoan tat - luc do code da chay NGOAI pham vi "user
+// gesture" dong bo (click) ma hau het trinh duyet doi hoi de cho phep mo tab/popup moi, nen
+// window.open bi am tham chan va khong co loi/thong bao nao hien len cho nguoi dung thay. Sua
+// bang cach tra ve ham `openFile` duoc goi TRUC TIEP, DONG BO ngay trong onClick (truoc ca khi
+// biet URL that) - mo san 1 tab trong ("about:blank") ngay trong gesture, roi khi mutation tra
+// ve URL that thi chi gan lai `tab.location.href` cua tab da mo san (khong goi window.open lan
+// 2 => khong con bi chan). Neu ngay ca tab trong cung bi chan (vd. trinh duyet khong coi click
+// nay la gesture hop le), fallback ve dung hanh vi cu (best-effort) kem toast bao cho nguoi dung.
 export function useDownloadFile() {
-  return useMutation({
-    mutationFn: (fileId: string) => getDownloadUrl(fileId),
-    onSuccess: (url) => {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    },
-    onError: (error) => toast.error('Không thể tải xuống tệp', extractErrorMessage(error)),
+  const mutation = useMutation({
+    mutationFn: ({ fileId, disposition = 'attachment' }: { fileId: string; disposition?: 'inline' | 'attachment' }) =>
+      getDownloadUrl(fileId, disposition),
   });
+
+  const openFile = (fileId: string, disposition: 'inline' | 'attachment' = 'attachment') => {
+    const tab = window.open('', '_blank', 'noopener,noreferrer');
+    if (!tab) {
+      toast.info('Cửa sổ mới có thể đã bị trình duyệt chặn', 'Vui lòng cho phép cửa sổ bật lên (pop-up) cho trang này rồi thử lại.');
+    }
+    mutation.mutate(
+      { fileId, disposition },
+      {
+        onSuccess: (url) => {
+          if (tab) {
+            tab.location.href = url;
+          } else {
+            window.open(url, '_blank', 'noopener,noreferrer');
+          }
+        },
+        onError: (error) => {
+          tab?.close();
+          toast.error(disposition === 'inline' ? 'Không thể mở tệp' : 'Không thể tải xuống tệp', extractErrorMessage(error));
+        },
+      },
+    );
+  };
+
+  return { ...mutation, openFile };
 }

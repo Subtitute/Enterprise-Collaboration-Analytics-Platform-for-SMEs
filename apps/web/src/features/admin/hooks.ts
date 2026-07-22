@@ -10,6 +10,7 @@ import {
   fetchRoles,
   fetchUsers,
   inviteUser,
+  reactivateUser,
   updateDepartment,
   updateRolePermissions,
   updateUser,
@@ -37,9 +38,15 @@ export function useUpdateUser() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpdateUserPayload }) => updateUser(id, payload),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'all'] });
+      // 22/07/2026: sua loi thuc te - onSuccess truoc day khong invalidate ['users', id], dung
+      // KHOP CHINH XAC voi queryKey cua useMyProfileQuery() (features/profile/hooks.ts). Ket qua:
+      // admin tu sua phong ban/vai tro cua CHINH MINH qua Quan tri > Thanh vien thi trang Ho so
+      // ca nhan van hien du lieu cu (stale) tu cache cho toi khi refetch tu nhien xay ra. Them
+      // dong nay de cache profile duoc lam moi ngay sau khi sua.
+      queryClient.invalidateQueries({ queryKey: ['users', variables.id] });
       toast.success('Đã cập nhật thành viên');
     },
     onError: (error) => toast.error('Không thể cập nhật thành viên', extractErrorMessage(error)),
@@ -56,6 +63,21 @@ export function useDeactivateUser() {
       toast.success('Đã vô hiệu hoá tài khoản');
     },
     onError: (error) => toast.error('Không thể vô hiệu hoá tài khoản', extractErrorMessage(error)),
+  });
+}
+
+// 22/07/2026 (review toan du an): hook moi cho PATCH /users/:id/reactivate - xem ghi chu tai
+// reactivateUser() (admin/api.ts) ve ly do bo sung.
+export function useReactivateUser() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => reactivateUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'all'] });
+      toast.success('Đã kích hoạt lại tài khoản');
+    },
+    onError: (error) => toast.error('Không thể kích hoạt lại tài khoản', extractErrorMessage(error)),
   });
 }
 

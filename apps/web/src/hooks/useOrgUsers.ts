@@ -9,8 +9,11 @@ async function fetchAllUsers(): Promise<User[]> {
   return data.data;
 }
 
-export function useOrgUsersQuery() {
-  return useQuery({ queryKey: ['users', 'all'], queryFn: fetchAllUsers, staleTime: 5 * 60_000 });
+// 22/07/2026: them tham so `options.enabled` (mac dinh khong truyen = giu nguyen hanh vi cu, luon
+// bat) - can thiet de useGlobalSearch() (Topbar) co the tri hoan query nay toi khi nguoi dung
+// thuc su focus o tim kiem, thay vi goi ngay khi Topbar mount o MOI trang (xem useGlobalSearch.ts).
+export function useOrgUsersQuery(options?: { enabled?: boolean }) {
+  return useQuery({ queryKey: ['users', 'all'], queryFn: fetchAllUsers, staleTime: 5 * 60_000, enabled: options?.enabled });
 }
 
 /** id -> ten hien thi, dung de join actorId/assigneeId... o Analytics, Kanban, Admin. */

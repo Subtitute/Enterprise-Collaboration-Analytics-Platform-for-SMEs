@@ -9,7 +9,15 @@ async function bootstrap() {
   app.use(helmet());
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  app.enableCors();
+  // 22/07/2026: bo enableCors() khong tham so (mac dinh Access-Control-Allow-Origin: '*') -
+  // service nay la NOI BO, chi duoc goi qua Gateway (xem apps/gateway/src/proxy va
+  // nginx.conf cua web), KHONG bao gio nhan request truc tiep tu trinh duyet. Gateway la
+  // noi DUY NHAT ap dung CORS whitelist + credentials: true (apps/gateway/src/main.ts).
+  // Truoc ban sua nay, wildcard '*' bi http-proxy-middleware chuyen tiep nguyen ven qua
+  // Gateway, ket hop voi Access-Control-Allow-Credentials: true cua Gateway thanh 1 to hop
+  // VI PHAM Fetch/CORS spec (khong duoc dung '*' cung credentials: true) - vo hai voi trien
+  // khai hien tai (trinh duyet goi qua nginx cung-origin nen khong ap dung kiem tra CORS),
+  // nhung se lam hong CORS thuc su khi FE chay o che do dev (Vite, khac origin that).
 
   const config = new DocumentBuilder()
     .setTitle('Document Service API')

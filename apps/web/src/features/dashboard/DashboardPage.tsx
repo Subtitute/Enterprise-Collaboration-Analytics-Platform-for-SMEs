@@ -64,6 +64,12 @@ export function DashboardPage() {
           tra ve boi GET /analytics/summary (khong con "du an dang hoat dong" hay "qua han"
           vi Analytics Service khong theo doi 2 chi so do - xem types/index.ts). Breakpoint 2 cot
           o `md` (768px) theo dung Wireframe.md muc 10 (mobile giu 1 cot xuyen suot <768px). */}
+      {/* 22/07/2026: sua loi thuc te - ca 4 the KPI truoc day chi nhan isLoading, khong nhan
+          isError/onRetry, nen khi GET /analytics/summary that bai thi ca 4 the hien '—' MAI MAI
+          khong co cach nao phan biet voi "chua co du lieu", va cung khong co nut thu lai - khac
+          han 2 bieu do ben duoi (TaskTrendChart/TaskStatusDonut) tren CUNG trang nay da lam dung.
+          Them isError={summaryQuery.isError} + onRetry={summaryQuery.refetch} cho ca 4 the de
+          nhat quan voi pattern loi/thu lai da co san. */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           label="Tổng công việc"
@@ -71,6 +77,8 @@ export function DashboardPage() {
           hint={summary ? `${summary.totalTasksCompleted} đã hoàn thành` : undefined}
           icon={<FolderKanbanIcon className="h-5 w-5" />}
           isLoading={summaryQuery.isLoading}
+          isError={summaryQuery.isError}
+          onRetry={() => summaryQuery.refetch()}
         />
         <KpiCard
           label="Tỷ lệ hoàn thành"
@@ -79,6 +87,8 @@ export function DashboardPage() {
           icon={<CheckCircleIcon className="h-5 w-5" />}
           accentClassName="bg-emerald-50 text-emerald-600"
           isLoading={summaryQuery.isLoading}
+          isError={summaryQuery.isError}
+          onRetry={() => summaryQuery.refetch()}
         />
         <KpiCard
           label="Tài liệu mới (7 ngày)"
@@ -87,6 +97,8 @@ export function DashboardPage() {
           icon={<FileTextIcon className="h-5 w-5" />}
           accentClassName="bg-violet-50 text-violet-600"
           isLoading={summaryQuery.isLoading}
+          isError={summaryQuery.isError}
+          onRetry={() => summaryQuery.refetch()}
         />
         <KpiCard
           label="Thành viên hoạt động"
@@ -95,6 +107,8 @@ export function DashboardPage() {
           icon={<UserIcon className="h-5 w-5" />}
           accentClassName="bg-amber-50 text-amber-600"
           isLoading={summaryQuery.isLoading}
+          isError={summaryQuery.isError}
+          onRetry={() => summaryQuery.refetch()}
         />
       </div>
 

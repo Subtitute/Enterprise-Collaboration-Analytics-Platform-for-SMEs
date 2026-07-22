@@ -1,6 +1,78 @@
 import { apiClient } from '@/lib/api-client';
-import { formatBytes } from '@/lib/utils';
-import type { FileItem, Folder, PaginatedResponse } from '@/types';
+import { formatBytes, unwrapList } from '@/lib/utils';
+import type { FileItem, FileVersion, Folder, PaginatedResponse } from '@/types';
+
+// 22/07/2026: sua loi thuc te phat hien qua kiem thu that - trang Tai lieu van khong hien
+// thu muc/tep du API tra ve du lieu dung (da xac minh qua curl truc tiep Gateway). Nguyen nhan:
+// contract cua Document Service dung ten field KHAC voi model FE (Folder/FileItem o @/types):
+//   Backend Folder.parentFolderId  <-> FE Folder.parentId
+//   Backend FileMeta.fileName/sizeBytes/currentVersion <-> FE FileItem.name/size/version
+// Truoc ban sua nay, FE doc thang response tho nen `folder.parentId`/`file.name`... luon la
+// undefined - thu muc con/breadcrumb khong bao giu khop (moi thu muc bi coi nhu la goc), va
+// bang tep hien ten/kich thuoc rong. Chuan hoa tai 1 lop duy nhat (api.ts) - giu nguyen cac
+// component (FolderGrid, FileTable, VersionHistoryModal...) lam viec voi model FE sach, giong
+// pattern unwrapList() da dung cho hinh dang response bao ngoai.
+interface RawFolder {
+  id: string;
+  name: string;
+  parentFolderId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+function mapFolder(raw: RawFolder): Folder {
+  return {
+    id: raw.id,
+    name: raw.name,
+    parentId: raw.parentFolderId ?? null,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+  };
+}
+
+interface RawFileVersion {
+  id: string;
+  versionNumber: number;
+  sizeBytes?: number;
+  createdAt: string;
+}
+
+function mapFileVersion(raw: RawFileVersion): FileVersion {
+  return {
+    id: raw.id,
+    version: raw.versionNumber,
+    size: raw.sizeBytes,
+    createdAt: raw.createdAt,
+  };
+}
+
+interface RawFileMeta {
+  id: string;
+  fileName: string;
+  folderId: string | null;
+  sizeBytes?: number;
+  mimeType?: string;
+  currentVersion?: number;
+  uploadedByUserId?: string;
+  versions?: RawFileVersion[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+function mapFile(raw: RawFileMeta): FileItem {
+  return {
+    id: raw.id,
+    name: raw.fileName,
+    folderId: raw.folderId,
+    size: raw.sizeBytes,
+    mimeType: raw.mimeType,
+    version: raw.currentVersion,
+    uploadedBy: raw.uploadedByUserId,
+    versions: raw.versions?.map(mapFileVersion),
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+  };
+}
 
 // QUAN TRONG: mang nay PHAI khop byte-for-byte voi allowlist server (Document Service -
 // apps/document-service/src/files/allowed-mime-types.ts) - dong bo thu cong theo dung danh sach
@@ -40,19 +112,24 @@ export function validateUploadFile(file: File): string | null {
 // files thi neu ro "GET /files?folderId=". Vi vay: folders duoc lay TOAN BO 1 lan roi dung
 // parentId de dung cay/breadcrumb phia client; files thi loc theo folderId qua query param
 // (truyen '' khi dang o thu muc goc, dung theo dung ky hieu "folderId=" trong contract).
+// 22/07/2026: sua loi thuc te - GET /folders (FoldersController.findAll) tra ve MANG THO
+// (Folder[]), KHONG boc trong { data, meta } nhu gia dinh ban dau (endpoint nay khong dung
+// PaginationQueryDto, xem apps/document-service/src/folders/folders.controller.ts). `data.data`
+// tren 1 mang thuan la `undefined`, khien cay thu muc/breadcrumb luon trong. Dung unwrapList
+// (da dung o cac api.ts khac trong repo) de chuan hoa ca 2 dang response.
 export async function fetchFolders(): Promise<Folder[]> {
-  const { data } = await apiClient.get<PaginatedResponse<Folder>>('/folders', { params: { limit: 500 } });
-  return data.data;
+  const { data } = await apiClient.get<RawFolder[] | PaginatedResponse<RawFolder>>('/folders', { params: { limit: 500 } });
+  return unwrapList<RawFolder>(data).map(mapFolder);
 }
 
 export async function createFolder(payload: { name: string; parentId?: string | null }): Promise<Folder> {
-  const { data } = await apiClient.post<Folder>('/folders', payload);
-  return data;
+  const { data } = await apiClient.post<RawFolder>('/folders', { name: payload.name, parentFolderId: payload.parentId ?? undefined });
+  return mapFolder(data);
 }
 
 export async function renameFolder(id: string, name: string): Promise<Folder> {
-  const { data } = await apiClient.patch<Folder>(`/folders/${id}`, { name });
-  return data;
+  const { data } = await apiClient.patch<RawFolder>(`/folders/${id}`, { name });
+  return mapFolder(data);
 }
 
 export async function deleteFolder(id: string): Promise<void> {
@@ -60,44 +137,47 @@ export async function deleteFolder(id: string): Promise<void> {
 }
 
 export async function fetchFiles(folderId: string | null): Promise<FileItem[]> {
-  const { data } = await apiClient.get<PaginatedResponse<FileItem>>('/files', {
+  const { data } = await apiClient.get<PaginatedResponse<RawFileMeta>>('/files', {
     params: { folderId: folderId ?? '', limit: 200 },
   });
-  return data.data;
+  return data.data.map(mapFile);
 }
 
 export async function fetchFile(id: string): Promise<FileItem> {
-  const { data } = await apiClient.get<FileItem>(`/files/${id}`);
-  return data;
+  const { data } = await apiClient.get<RawFileMeta>(`/files/${id}`);
+  return mapFile(data);
 }
 
 export async function uploadFile(folderId: string | null, file: File, onProgress?: (pct: number) => void): Promise<FileItem> {
   const form = new FormData();
   form.append('file', file);
   if (folderId) form.append('folderId', folderId);
-  const { data } = await apiClient.post<FileItem>('/files/upload', form, {
+  const { data } = await apiClient.post<RawFileMeta>('/files/upload', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
     onUploadProgress: (evt) => {
       if (onProgress && evt.total) onProgress(Math.round((evt.loaded / evt.total) * 100));
     },
   });
-  return data;
+  return mapFile(data);
 }
 
 export async function uploadNewVersion(fileId: string, file: File, onProgress?: (pct: number) => void): Promise<FileItem> {
   const form = new FormData();
   form.append('file', file);
-  const { data } = await apiClient.post<FileItem>(`/files/${fileId}/upload`, form, {
+  const { data } = await apiClient.post<RawFileMeta>(`/files/${fileId}/upload`, form, {
     headers: { 'Content-Type': 'multipart/form-data' },
     onUploadProgress: (evt) => {
       if (onProgress && evt.total) onProgress(Math.round((evt.loaded / evt.total) * 100));
     },
   });
-  return data;
+  return mapFile(data);
 }
 
-export async function getDownloadUrl(fileId: string): Promise<string> {
-  const { data } = await apiClient.get<{ downloadUrl: string }>(`/files/${fileId}/download`);
+// 22/07/2026: them tham so disposition - 'inline' de mo/xem truc tiep tren trinh duyet (PDF,
+// anh, text render duoc ngay trong tab moi), 'attachment' (mac dinh) de luon ep hop thoai Luu
+// tap tin - khop voi 2 hanh dong rieng biet o FileTable ("Xem tệp" vs "Tải xuống").
+export async function getDownloadUrl(fileId: string, disposition: 'inline' | 'attachment' = 'attachment'): Promise<string> {
+  const { data } = await apiClient.get<{ downloadUrl: string }>(`/files/${fileId}/download`, { params: { disposition } });
   return data.downloadUrl;
 }
 

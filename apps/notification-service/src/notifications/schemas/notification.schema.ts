@@ -8,7 +8,16 @@ export type NotificationDocument = HydratedDocument<Notification>;
  * Du lieu ban cau truc, ghi nhanh, tra cuu don gian theo (organizationId, userId) ->
  * dung MongoDB thay vi Postgres, minh hoa polyglot persistence (Technical_Spec.md muc 2).
  */
-@Schema({ collection: 'notifications', timestamps: { createdAt: true, updatedAt: false } })
+// 22/07/2026: bat `toJSON.virtuals` de response JSON co field `id` (string, tu virtual getter
+// co san cua Mongoose tren `_id`) thay vi chi co `_id` (ObjectId) - Frontend (AppNotification.id)
+// doc field `id`; thieu no khien PATCH /notifications/:id/read luon goi voi id="undefined" ->
+// 404 ("Khong tim thay thong bao"), trong khi PATCH /notifications/read-all khong can id nen
+// van hoat dong binh thuong (dung voi trieu chung: "mark all" duoc, "mark 1 cai" thi khong).
+@Schema({
+  collection: 'notifications',
+  timestamps: { createdAt: true, updatedAt: false },
+  toJSON: { virtuals: true },
+})
 export class Notification {
   /**
    * eventId cua DomainEvent goc (Technical_Spec.md muc 4.3). Unique index (khai bao o duoi) de

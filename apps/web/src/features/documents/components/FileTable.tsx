@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow } from 
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { Badge } from '@/components/ui/Badge';
-import { DownloadIcon, FileIcon, MoreVerticalIcon, ShareIcon, ClockIcon, TrashIcon } from '@/components/ui/Icons';
+import { DownloadIcon, EyeIcon, FileIcon, MoreVerticalIcon, ShareIcon, ClockIcon, TrashIcon } from '@/components/ui/Icons';
 import { formatBytes, formatDateTime } from '@/lib/utils';
 import type { FileItem } from '@/types';
 import { useDeleteFile, useDownloadFile } from '../hooks';
@@ -36,10 +36,18 @@ export function FileTable({ files, folderId, onShare, onVersionHistory }: FileTa
           {files.map((file) => (
             <TableRow key={file.id}>
               <TableCell label="Tên tệp">
-                <div className="flex min-w-0 items-center gap-2.5">
+                <button
+                  type="button"
+                  // 22/07/2026: goi download.openFile() (khong phai .mutate() truc tiep) - ham nay
+                  // tu mo tab trong DONG BO ngay trong onClick truoc khi goi API, xem giai thich
+                  // day du tai dinh nghia useDownloadFile() o documents/hooks.ts.
+                  onClick={() => download.openFile(file.id, 'inline')}
+                  title="Mở và xem tệp trong tab mới"
+                  className="flex min-w-0 items-center gap-2.5 text-left hover:underline"
+                >
                   <FileIcon className="h-4 w-4 shrink-0 text-primary-500" />
                   <span className="truncate font-medium text-slate-800">{file.name}</span>
-                </div>
+                </button>
               </TableCell>
               <TableCell label="Kích thước" className="whitespace-nowrap text-xs text-slate-500">
                 {formatBytes(file.size)}
@@ -62,8 +70,22 @@ export function FileTable({ files, folderId, onShare, onVersionHistory }: FileTa
                   {({ close }) => (
                     <div className="w-48 py-1.5">
                       <DropdownItem
+                        // 22/07/2026: dung openFile() thay vi mutate() de window.open() chay dong
+                        // bo trong chinh onClick nay (xem chu thich tai useDownloadFile()) - goi
+                        // close() sau do khong lam mat tinh dong bo vi close() chi setState, khong
+                        // await gi ca.
                         onClick={() => {
-                          download.mutate(file.id);
+                          download.openFile(file.id, 'inline');
+                          close();
+                        }}
+                      >
+                        <EyeIcon className="h-4 w-4" /> Xem tệp
+                      </DropdownItem>
+                      <DropdownItem
+                        // 22/07/2026: tuong tu nut "Xem tệp" - dung openFile() de tab tai xuong
+                        // duoc mo dong bo trong gesture, tranh bi popup blocker chan am tham.
+                        onClick={() => {
+                          download.openFile(file.id, 'attachment');
                           close();
                         }}
                       >

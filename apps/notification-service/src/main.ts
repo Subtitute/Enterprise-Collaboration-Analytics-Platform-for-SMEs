@@ -10,7 +10,8 @@ async function bootstrap() {
   app.use(helmet());
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  app.enableCors();
+  // 22/07/2026: bo enableCors() khong tham so - service noi bo, chi Gateway moi ap dung CORS
+  // whitelist (xem giai thich day du tai apps/document-service/src/main.ts).
 
   // Socket.IO server tren duong dan mac dinh (/socket.io) - KHONG doi `path`, vi
   // API Gateway rewrite `/ws/notifications/**` -> `/socket.io/**` truoc khi proxy toi day

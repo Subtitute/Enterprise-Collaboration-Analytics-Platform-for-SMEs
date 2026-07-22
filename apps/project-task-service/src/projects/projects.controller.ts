@@ -59,6 +59,18 @@ export class ProjectsController {
     return this.projectsService.complete(organizationId, id, actorId);
   }
 
+  /** 22/07/2026 (fix code review, loi MINOR - Fix 7): bo sung endpoint luu tru du an - truoc do
+   *  ProjectStatus.ARCHIVED khong bao gio duoc gan boi bat ky endpoint nao (dead code). */
+  @Post(':id/archive')
+  @RequirePermissions(PERMISSIONS.PROJECT_UPDATE)
+  archive(
+    @CurrentUser('organizationId') organizationId: string,
+    @CurrentUser('userId') actorId: string,
+    @Param('id') id: string,
+  ) {
+    return this.projectsService.archive(organizationId, id, actorId);
+  }
+
   @Delete(':id')
   @RequirePermissions(PERMISSIONS.PROJECT_DELETE)
   remove(

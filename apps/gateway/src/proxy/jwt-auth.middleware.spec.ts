@@ -8,6 +8,11 @@ describe('isPublicRoute', () => {
     '/api/v1/auth/register-organization',
     '/api/v1/auth/login',
     '/api/v1/auth/refresh',
+    // 22/07/2026 (review toan du an): logout dung refresh token (cookie httpOnly) lam credential
+    // that su, khong phai access token - nguoi dung rat co the muon dang xuat dung luc access
+    // token (15 phut) da het han. Gateway phai cho request nay qua ma khong doi Authorization
+    // header hop le, giong het refresh - xem packages/common-dto/src/constants/public-routes.ts.
+    '/api/v1/auth/logout',
     '/api/v1/health',
   ])('coi %s la route cong khai', (path) => {
     expect(isPublicRoute(path)).toBe(true);
@@ -19,7 +24,6 @@ describe('isPublicRoute', () => {
 
   it('coi cac route con lai la can xac thuc', () => {
     expect(isPublicRoute('/api/v1/users')).toBe(false);
-    expect(isPublicRoute('/api/v1/auth/logout')).toBe(false);
   });
 });
 

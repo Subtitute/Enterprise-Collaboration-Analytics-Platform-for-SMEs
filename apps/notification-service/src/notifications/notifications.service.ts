@@ -48,6 +48,18 @@ export class NotificationsService {
         );
         return null;
       }
+      // 22/07/2026: bo sung nhanh loi DU LIEU vinh vien (Mongoose ValidationError/CastError -
+      // vd thieu truong bat buoc hoac sai kieu du lieu tren `draft`) - Technical_Spec.md muc 14
+      // ("loi payload khong hop le bi bo qua va chi log lai"). Truoc fix nay CHI co nhanh
+      // duplicate-key o tren duoc xu ly rieng, moi loi khac (ke ca loi khong the phuc hoi nay)
+      // deu bi rethrow GIONG loi ha tang tam thoi, khien KafkaConsumerService.handleMessage()
+      // rethrow tiep va kafkajs redeliver MAI MAI cung 1 message hong, wedge ca partition.
+      if (isPermanentValidationError(err)) {
+        this.logger.error(
+          `Bo qua notification LOI DU LIEU vinh vien (eventId=${eventId}, loai loi=${(err as Error).name}): ${(err as Error).message}`,
+        );
+        return null;
+      }
       throw err;
     }
 
@@ -124,4 +136,18 @@ export class NotificationsService {
 /** Mongo/MongoDB driver bao loi trung khoa (unique index vi pham) qua ma loi `11000`. */
 function isDuplicateKeyError(err: unknown): boolean {
   return typeof err === 'object' && err !== null && (err as { code?: number }).code === 11000;
+}
+
+/**
+ * 22/07/2026: nhan dien loi Mongoose THUOC VE DU LIEU (khong the phuc hoi bang retry) qua
+ * thuoc tinh `name` - `ValidationError` (thieu truong bat buoc/sai schema) va `CastError`
+ * (sai kieu du lieu, vd 1 truong ObjectId nhan gia tri khong phai ObjectId hop le). Kiem tra
+ * qua `name` (duck typing) thay vi `instanceof mongoose.Error.ValidationError` de nhat quan
+ * voi cach `isDuplicateKeyError()` o tren da kiem tra loi Mongo - khong phu thuoc viec loi co
+ * dung 1 instance mongoose voi module nay hay khong.
+ */
+function isPermanentValidationError(err: unknown): boolean {
+  if (typeof err !== 'object' || err === null) return false;
+  const name = (err as { name?: string }).name;
+  return name === 'ValidationError' || name === 'CastError';
 }

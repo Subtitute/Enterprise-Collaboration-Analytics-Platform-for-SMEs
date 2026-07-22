@@ -8,10 +8,10 @@ import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { Pagination } from '@/components/ui/Pagination';
 import { FullPageSpinner } from '@/components/ui/Spinner';
-import { EditIcon, MoreVerticalIcon, PlusIcon, UserIcon } from '@/components/ui/Icons';
+import { EditIcon, MoreVerticalIcon, PlusIcon, RefreshIcon, UserIcon } from '@/components/ui/Icons';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
-import { useDeactivateUser, useDepartmentsQuery, useUsersQuery } from './hooks';
+import { useDeactivateUser, useDepartmentsQuery, useReactivateUser, useUsersQuery } from './hooks';
 import { InviteMemberModal } from './components/InviteMemberModal';
 import { EditMemberModal } from './components/EditMemberModal';
 import type { User } from '@/types';
@@ -27,6 +27,7 @@ export function MembersPage() {
   const usersQuery = useUsersQuery({ page, limit: LIMIT });
   const departmentsQuery = useDepartmentsQuery();
   const deactivateUser = useDeactivateUser();
+  const reactivateUser = useReactivateUser();
 
   const departmentNameById: Record<string, string> = {};
   for (const d of departmentsQuery.data ?? []) departmentNameById[d.id] = d.name;
@@ -119,7 +120,7 @@ export function MembersPage() {
                             >
                               <EditIcon className="h-4 w-4" /> Đổi phòng ban / vai trò
                             </DropdownItem>
-                            {u.isActive !== false && (
+                            {u.isActive !== false ? (
                               <DropdownItem
                                 className="text-rose-600 hover:bg-rose-50"
                                 onClick={() => {
@@ -128,6 +129,19 @@ export function MembersPage() {
                                 }}
                               >
                                 <UserIcon className="h-4 w-4" /> Vô hiệu hoá
+                              </DropdownItem>
+                            ) : (
+                              // 22/07/2026 (review toan du an): truoc day KHONG co cach nao kich
+                              // hoat lai 1 tai khoan da vo hieu hoa tu giao dien - backend da bo
+                              // sung PATCH /users/:id/reactivate (fix loi Major) nhung thieu diem
+                              // vao tu UI. Chi hien khi tai khoan dang bi vo hieu hoa.
+                              <DropdownItem
+                                onClick={() => {
+                                  reactivateUser.mutate(u.id);
+                                  close();
+                                }}
+                              >
+                                <RefreshIcon className="h-4 w-4" /> Kích hoạt lại
                               </DropdownItem>
                             )}
                           </div>

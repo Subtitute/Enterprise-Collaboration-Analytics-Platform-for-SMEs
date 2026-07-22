@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/Button';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
+// 22/07/2026: them QueryState de xu ly nhanh isError cho tasksQuery ben duoi (xem chu thich tai
+// vi tri dung).
+import { QueryState } from '@/components/ui/QueryState';
 import { ChevronLeftIcon, PlusIcon, CheckCircleIcon, CalendarIcon } from '@/components/ui/Icons';
 import { formatDate } from '@/lib/utils';
 import { useProjectQuery, useTasksQuery, useCompleteProject } from './hooks';
@@ -68,17 +71,30 @@ export function ProjectDetailPage() {
         </div>
       </div>
 
-      {tasksQuery.isLoading ? (
-        <FullPageSpinner label="Đang tải công việc…" />
-      ) : tasks.length === 0 ? (
-        <EmptyState
-          title="Chưa có công việc nào"
-          description="Thêm công việc đầu tiên để bắt đầu theo dõi tiến độ dự án."
-          action={<Button onClick={() => setIsNewTaskOpen(true)}>Tạo công việc mới</Button>}
-        />
-      ) : (
-        <KanbanBoard projectId={projectId} tasks={tasks} onTaskClick={(task) => setSelectedTaskId(task.id)} />
-      )}
+      {/* 22/07/2026: sua loi thuc te - nhanh render ben duoi truoc day chi kiem tra isLoading va
+          tasks.length === 0, KHONG kiem tra tasksQuery.isError, nen khi GET /tasks that bai thi
+          UI hien y het truong hop "du an chua co cong viec nao" (kem nut "Tao cong viec moi") -
+          nguoi dung bi danh lua rang du an trong trong khi thuc ra la loi mang/server, va khong
+          co cach nao de thu lai ngoai reload ca trang. Boc bang QueryState (cung pattern da dung
+          o DocumentsPage.tsx) de tach rieng nhanh loi + nut "Thu lai" khoi nhanh empty-state that su. */}
+      <QueryState
+        isLoading={tasksQuery.isLoading}
+        isError={tasksQuery.isError}
+        onRetry={() => tasksQuery.refetch()}
+        loadingFallback={<FullPageSpinner label="Đang tải công việc…" />}
+        errorTitle="Không thể tải công việc"
+        errorDescription="Đã xảy ra lỗi khi tải danh sách công việc của dự án. Vui lòng thử lại."
+      >
+        {tasks.length === 0 ? (
+          <EmptyState
+            title="Chưa có công việc nào"
+            description="Thêm công việc đầu tiên để bắt đầu theo dõi tiến độ dự án."
+            action={<Button onClick={() => setIsNewTaskOpen(true)}>Tạo công việc mới</Button>}
+          />
+        ) : (
+          <KanbanBoard projectId={projectId} tasks={tasks} onTaskClick={(task) => setSelectedTaskId(task.id)} />
+        )}
+      </QueryState>
 
       <NewTaskModal projectId={projectId} open={isNewTaskOpen} onClose={() => setIsNewTaskOpen(false)} />
       <TaskDetailModal projectId={projectId} taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />

@@ -13,10 +13,12 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequirePermissions } from '@app/common-guard';
-import { PaginationQueryDto, PERMISSIONS } from '@app/common-dto';
+import { PERMISSIONS } from '@app/common-dto';
 import { FilesService } from './files.service';
 import { ShareFileDto } from './dto/share-file.dto';
 import { mimeTypeFileFilter } from './allowed-mime-types';
+// 22/07/2026: Fix 5 (code review) - DTO validate UUID cho query `folderId`.
+import { FindFilesQueryDto } from './dto/find-files-query.dto';
 
 const MAX_UPLOAD_SIZE_BYTES = 25 * 1024 * 1024;
 
@@ -31,10 +33,12 @@ export class FilesController {
   @RequirePermissions(PERMISSIONS.DOCUMENT_VIEW)
   findAll(
     @CurrentUser('organizationId') organizationId: string,
-    @Query('folderId') folderId: string | undefined,
-    @Query() query: PaginationQueryDto,
+    // 22/07/2026: Fix 5 (code review) - gop `folderId` + phan trang vao 1 DTO co validate UUID
+    // (xem giai thich day du o dto/find-files-query.dto.ts), thay vi doc tho
+    // `@Query('folderId') folderId: string | undefined`.
+    @Query() query: FindFilesQueryDto,
   ) {
-    return this.filesService.findAll(organizationId, folderId, query);
+    return this.filesService.findAll(organizationId, query.folderId, query);
   }
 
   @Get(':id')
@@ -43,10 +47,18 @@ export class FilesController {
     return this.filesService.findOne(organizationId, id);
   }
 
+  // 22/07/2026: bo sung query `disposition` de FE phan biet "Xem" (inline - trinh duyet tu
+  // render truc tiep neu ho tro, vd PDF/anh/text) va "Tai xuong" (attachment - luon mo hop
+  // thoai Luu tap tin) - truoc do URL luon khong dat Content-Disposition nen hanh vi mo/tai
+  // phu thuoc "tinh co" vao Content-Type, khong the chu dong tach 2 hanh dong ro rang o FE.
   @Get(':id/download')
   @RequirePermissions(PERMISSIONS.DOCUMENT_VIEW)
-  getDownloadUrl(@CurrentUser('organizationId') organizationId: string, @Param('id') id: string) {
-    return this.filesService.getDownloadUrl(organizationId, id);
+  getDownloadUrl(
+    @CurrentUser('organizationId') organizationId: string,
+    @Param('id') id: string,
+    @Query('disposition') disposition?: string,
+  ) {
+    return this.filesService.getDownloadUrl(organizationId, id, disposition === 'inline' ? 'inline' : 'attachment');
   }
 
   @Post('upload')

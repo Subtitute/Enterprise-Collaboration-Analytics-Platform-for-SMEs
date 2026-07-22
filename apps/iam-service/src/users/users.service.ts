@@ -1,13 +1,15 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, In, Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { User } from '../entities/user.entity';
 import { Role } from '../entities/role.entity';
+import { Department } from '../entities/department.entity';
 import { OutboxService } from '../outbox/outbox.service';
 import { RedisService } from '../redis/redis.service';
 import { parseDurationMs } from '../auth/auth.service';
+import { isPostgresUniqueViolation } from '../common/db-errors.util';
 import {
   EVENT_TYPES,
   PaginatedResponse,
@@ -36,6 +38,10 @@ export class UsersService {
     @InjectDataSource() private readonly dataSource: DataSource,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     @InjectRepository(Role) private readonly roleRepo: Repository<Role>,
+    // 22/07/2026: bo sung inject Department repo - can de xac thuc departmentId thuoc dung to
+    // chuc cua nguoi goi truoc khi gan cho user (xem invite()/update() ben duoi), giong het cach
+    // roleIds da duoc kiem tra qua roleRepo.find({ where: { id: In(...), organizationId } }).
+    @InjectRepository(Department) private readonly departmentRepo: Repository<Department>,
     private readonly outboxService: OutboxService,
     private readonly redisService: RedisService,
     private readonly configService: ConfigService,
@@ -64,40 +70,64 @@ export class UsersService {
     const existing = await this.userRepo.findOne({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Email da duoc su dung');
 
-    const saved = await this.dataSource.transaction(async (manager) => {
-      const roles = dto.roleIds?.length
-        ? await manager.find(Role, { where: { id: In(dto.roleIds), organizationId } })
-        : [];
-      const passwordHash = await bcrypt.hash(dto.initialPassword, 10);
+    // 22/07/2026: xac thuc departmentId thuoc DUNG to chuc cua nguoi goi truoc khi gan cho user
+    // moi - truoc day gan thang `dto.departmentId ?? null` khong kiem tra gi (khac voi roleIds
+    // ngay ben duoi, von DA duoc loc dung cach qua `{ id: In(dto.roleIds), organizationId }`).
+    // Vi departmentId chi la 1 UUID bat ky do client gui len, 1 Org Admin cua to chuc A co the
+    // truyen id phong ban thuoc to chuc B va vo tinh/co y lien ket sai user cua to chuc A vao
+    // phong ban to chuc B - ro ri quan he du lieu xuyen to chuc (loi MAJOR, review 22/07/2026).
+    if (dto.departmentId) {
+      const department = await this.departmentRepo.findOne({
+        where: { id: dto.departmentId, organizationId },
+      });
+      if (!department) throw new NotFoundException('Khong tim thay phong ban');
+    }
 
-      const user = await manager.save(
-        manager.create(User, {
+    // 22/07/2026: pre-check findOne() o tren khong nguyen tu voi insert ben duoi - boc them
+    // try/catch de bat truong hop hiem gap 2 request moi thanh vien cung email gan nhu dong thoi
+    // cung vuot qua pre-check roi 1 ben vi pham unique index `email` khi insert (Postgres error
+    // code 23505) - xem chu thich isPostgresUniqueViolation trong db-errors.util.ts.
+    try {
+      const saved = await this.dataSource.transaction(async (manager) => {
+        const roles = dto.roleIds?.length
+          ? await manager.find(Role, { where: { id: In(dto.roleIds), organizationId } })
+          : [];
+        const passwordHash = await bcrypt.hash(dto.initialPassword, 10);
+
+        const user = await manager.save(
+          manager.create(User, {
+            organizationId,
+            email: dto.email,
+            fullName: dto.fullName,
+            departmentId: dto.departmentId ?? null,
+            passwordHash,
+            roles,
+            isActive: true,
+          }),
+        );
+
+        const payload: UserRegisteredPayload = {
+          userId: user.id,
+          email: user.email,
+          departmentId: user.departmentId ?? null,
+        };
+        await this.outboxService.record(manager, {
+          eventType: EVENT_TYPES.USER_REGISTERED,
           organizationId,
-          email: dto.email,
-          fullName: dto.fullName,
-          departmentId: dto.departmentId ?? null,
-          passwordHash,
-          roles,
-          isActive: true,
-        }),
-      );
+          producer: 'iam-service',
+          payload: payload as unknown as Record<string, unknown>,
+        });
 
-      const payload: UserRegisteredPayload = {
-        userId: user.id,
-        email: user.email,
-        departmentId: user.departmentId ?? null,
-      };
-      await this.outboxService.record(manager, {
-        eventType: EVENT_TYPES.USER_REGISTERED,
-        organizationId,
-        producer: 'iam-service',
-        payload: payload as unknown as Record<string, unknown>,
+        return user;
       });
 
-      return user;
-    });
-
-    return this.toPublicUser(saved);
+      return this.toPublicUser(saved);
+    } catch (error) {
+      if (isPostgresUniqueViolation(error)) {
+        throw new ConflictException('Email da duoc su dung');
+      }
+      throw error;
+    }
   }
 
   async update(organizationId: string, id: string, dto: UpdateUserDto): Promise<PublicUser> {
@@ -105,7 +135,17 @@ export class UsersService {
     if (!user) throw new NotFoundException('Khong tim thay nguoi dung');
 
     if (dto.fullName !== undefined) user.fullName = dto.fullName;
-    if (dto.departmentId !== undefined) user.departmentId = dto.departmentId;
+    if (dto.departmentId !== undefined) {
+      // 22/07/2026: xac thuc departmentId thuoc dung to chuc truoc khi gan - cung 1 lo hong nhu
+      // invite() o tren (xem chu thich chi tiet tai do). `null` (bo phong ban) khong can tra cuu.
+      if (dto.departmentId !== null) {
+        const department = await this.departmentRepo.findOne({
+          where: { id: dto.departmentId, organizationId },
+        });
+        if (!department) throw new NotFoundException('Khong tim thay phong ban');
+      }
+      user.departmentId = dto.departmentId;
+    }
     if (dto.roleIds) {
       user.roles = await this.roleRepo.find({ where: { id: In(dto.roleIds), organizationId } });
     }
@@ -114,6 +154,18 @@ export class UsersService {
   }
 
   async deactivate(organizationId: string, id: string, actorId: string): Promise<PublicUser> {
+    // 22/07/2026: chan tu vo hieu hoa chinh minh - truoc day khong co kiem tra nao, bat ky nguoi
+    // dung nao co quyen user:manage (ke ca Org Admin DUY NHAT con lai cua to chuc) deu co the tu
+    // bam "Vo hieu hoa" len chinh tai khoan dang dung de dang nhap, tu khoa minh khoi he thong ma
+    // khong con ai kip dang nhap lai de kich hoat lai (last-admin lockout) - loi MAJOR, review
+    // 22/07/2026. Chi kiem tra dung pham vi "tu vo hieu hoa chinh minh" (id === actorId) theo yeu
+    // cau fix; CHUA dem so luong user:manage con active khac trong to chuc (vd admin A vo hieu
+    // hoa admin B la nguoi co quyen quan tri cuoi cung khac van chua bi chan o day) - xem bao cao
+    // cuoi cung ve gioi han da biet nay va endpoint reactivate() moi bo sung ben duoi.
+    if (id === actorId) {
+      throw new BadRequestException('Khong the tu vo hieu hoa chinh tai khoan cua minh');
+    }
+
     const existing = await this.userRepo.findOne({ where: { id, organizationId } });
     if (!existing) throw new NotFoundException('Khong tim thay nguoi dung');
 
@@ -140,6 +192,23 @@ export class UsersService {
     const ttlSeconds = Math.floor(parseDurationMs(accessExpiresIn) / 1000);
     await this.redisService.blacklistUser(saved.id, ttlSeconds);
 
+    return this.toPublicUser(saved);
+  }
+
+  /**
+   * 22/07/2026: endpoint kich hoat lai 1 tai khoan da bi deactivate() - truoc day KHONG ton tai
+   * (deactivate la thao tac 1 chieu, ca nhan bi vo hieu hoa nham hoac can kich hoat lai deu phai
+   * sua tay truc tiep tren DB). Khong phat outbox event: packages/common-dto EVENT_TYPES chua co
+   * entry USER_REACTIVATED tuong ung, va them event type moi + cap nhat 3 service tieu thu
+   * (Notification/Analytics/...) nam ngoai pham vi apps/iam-service/src/** cua fix nay - xem bao
+   * cao cuoi cung.
+   */
+  async reactivate(organizationId: string, id: string): Promise<PublicUser> {
+    const user = await this.userRepo.findOne({ where: { id, organizationId } });
+    if (!user) throw new NotFoundException('Khong tim thay nguoi dung');
+
+    user.isActive = true;
+    const saved = await this.userRepo.save(user);
     return this.toPublicUser(saved);
   }
 

@@ -107,6 +107,13 @@ export const UserIcon = (p: IconProps) => (
   </svg>
 );
 
+export const MailIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="m3 7 9 6 9-6" />
+  </svg>
+);
+
 export const PlusIcon = (p: IconProps) => (
   <svg {...base(p)}>
     <path d="M12 5v14M5 12h14" />
@@ -132,6 +139,13 @@ export const DownloadIcon = (p: IconProps) => (
   <svg {...base(p)}>
     <path d="M12 4v12M6 12l6 6 6-6" />
     <path d="M4 20h16" />
+  </svg>
+);
+
+export const EyeIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M2 12s3.8-7 10-7 10 7 10 7-3.8 7-10 7-10-7-10-7Z" />
+    <circle cx="12" cy="12" r="3" />
   </svg>
 );
 

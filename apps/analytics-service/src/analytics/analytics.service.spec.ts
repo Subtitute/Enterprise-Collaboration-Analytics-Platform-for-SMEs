@@ -183,6 +183,49 @@ describe('AnalyticsService', () => {
         activeUsersLast7Days: 0,
       });
     });
+
+    it('cau truy van dem task loai tru task_id co event task.deleted (NOT EXISTS) - Fix 1 22/07/2026', async () => {
+      mockThreeQueries(
+        { total_tasks_created: '1', total_tasks_completed: '0' },
+        { new_documents: '0' },
+        { active_users: '0' },
+      );
+
+      await service.getSummary('org-1', '7d');
+
+      const [taskSql] = queryMock.mock.calls[0];
+      expect(taskSql).toContain("d.event_type = 'task.deleted'");
+      expect(taskSql).toContain("pd.event_type = 'project.deleted'");
+    });
+  });
+
+  // 22/07/2026: bo sung - Fix 4 (cache Redis khong duoc phep la 1 dependency cung bat buoc).
+  describe('getSummary - Redis loi khong lam sap request (Fix 4)', () => {
+    function mockThreeQueriesRaw() {
+      queryMock
+        .mockResolvedValueOnce([{ total_tasks_created: '2', total_tasks_completed: '1' }])
+        .mockResolvedValueOnce([{ new_documents: '0' }])
+        .mockResolvedValueOnce([{ active_users: '0' }]);
+    }
+
+    it('doc cache Redis loi (vd mat ket noi) -> coi nhu cache miss, van tra ve KPI tinh tu TimescaleDB', async () => {
+      redisServiceMock.getJson.mockRejectedValueOnce(new Error('Redis connection timeout'));
+      mockThreeQueriesRaw();
+
+      const result = await service.getSummary('org-1', '7d');
+
+      expect(result.totalTasksCreated).toBe(2);
+      expect(queryMock).toHaveBeenCalledTimes(3);
+    });
+
+    it('ghi cache Redis loi -> khong throw, van tra ve ket qua da tinh cho request nay', async () => {
+      mockThreeQueriesRaw();
+      redisServiceMock.setJson.mockRejectedValueOnce(new Error('Redis connection timeout'));
+
+      const result = await service.getSummary('org-1', '7d');
+
+      expect(result.totalTasksCreated).toBe(2);
+    });
   });
 
   describe('getTaskStatusBreakdown', () => {
@@ -235,6 +278,16 @@ describe('AnalyticsService', () => {
       const result = await service.getTaskStatusBreakdown('org-1', '7d');
 
       expect(result).toEqual({ TODO: 0, DOING: 0, DONE: 0 });
+    });
+
+    it('loai tru task_id co event task.deleted va project_id co event project.deleted (NOT EXISTS) - Fix 1 22/07/2026', async () => {
+      queryMock.mockResolvedValue([]);
+
+      await service.getTaskStatusBreakdown('org-1', '7d');
+
+      const [sql] = queryMock.mock.calls[0];
+      expect(sql).toContain("d.event_type = 'task.deleted'");
+      expect(sql).toContain("pd.event_type = 'project.deleted'");
     });
   });
 
@@ -290,6 +343,16 @@ describe('AnalyticsService', () => {
       const result = await service.getProjectProgress('org-1', '30d');
 
       expect(result[0].completionRate).toBe(100);
+    });
+
+    it('loai tru task_id co event task.deleted va project_id co event project.deleted (NOT EXISTS) - Fix 1 22/07/2026', async () => {
+      queryMock.mockResolvedValue([]);
+
+      await service.getProjectProgress('org-1', '7d');
+
+      const [sql] = queryMock.mock.calls[0];
+      expect(sql).toContain("d.event_type = 'task.deleted'");
+      expect(sql).toContain("pd.event_type = 'project.deleted'");
     });
   });
 

@@ -10,8 +10,11 @@ async function fetchAllProjects(): Promise<Project[]> {
   return data.data;
 }
 
-export function useAllProjectsQuery() {
-  return useQuery({ queryKey: ['projects', 'all'], queryFn: fetchAllProjects, staleTime: 60_000 });
+// 22/07/2026: them tham so `options.enabled` (mac dinh khong truyen = giu nguyen hanh vi cu, luon
+// bat) - can thiet de useGlobalSearch() (Topbar) co the tri hoan query nay toi khi nguoi dung
+// thuc su focus o tim kiem, thay vi goi ngay khi Topbar mount o MOI trang (xem useGlobalSearch.ts).
+export function useAllProjectsQuery(options?: { enabled?: boolean }) {
+  return useQuery({ queryKey: ['projects', 'all'], queryFn: fetchAllProjects, staleTime: 60_000, enabled: options?.enabled });
 }
 
 export function useProjectNameMap() {

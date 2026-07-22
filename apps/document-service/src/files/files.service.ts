@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, IsNull, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
@@ -10,7 +10,15 @@ import { OutboxService } from '../outbox/outbox.service';
 import { MinioService } from '../minio/minio.service';
 import { ShareFileDto } from './dto/share-file.dto';
 import { buildObjectKey } from './utils/object-key.util';
+import { buildContentDisposition } from './utils/content-disposition.util';
 import { MAX_FILE_VERSIONS, pruneOldVersions } from './utils/version-retention.util';
+// 22/07/2026: Fix 1 (code review) - lam sach ten file client cung cap truoc khi dua vao object
+// key MinIO/luu DB. Xem giai thich day du o sanitize-filename.util.ts.
+import { MAX_FILE_NAME_LENGTH, sanitizeFileName } from './utils/sanitize-filename.util';
+// 22/07/2026: Fix 4 (code review) - doi chieu magic-byte cua noi dung THAT SU voi mimetype
+// client khai bao, boi vi mimeTypeFileFilter (tang multer) chi kiem tra duoc Content-Type do
+// CLIENT tu khai bao. Xem giai thich day du o allowed-mime-types.ts.
+import { verifyFileContentMatchesMimeType } from './allowed-mime-types';
 import {
   DocumentDeletedPayload,
   DocumentSharedPayload,
@@ -68,10 +76,16 @@ export class FilesService {
     return { ...fileMeta, versions };
   }
 
-  async getDownloadUrl(organizationId: string, id: string): Promise<{ downloadUrl: string }> {
+  async getDownloadUrl(
+    organizationId: string,
+    id: string,
+    disposition: 'inline' | 'attachment' = 'attachment',
+  ): Promise<{ downloadUrl: string }> {
     const fileMeta = await this.fileMetaRepo.findOne({ where: { id, organizationId } });
     if (!fileMeta) throw new NotFoundException('Khong tim thay file');
-    const downloadUrl = await this.minioService.presignedGetObject(fileMeta.objectKey, 900);
+    const downloadUrl = await this.minioService.presignedGetObject(fileMeta.objectKey, 900, {
+      'response-content-disposition': buildContentDisposition(disposition, fileMeta.fileName),
+    });
     return { downloadUrl };
   }
 
@@ -81,6 +95,19 @@ export class FilesService {
     folderId: string | null,
     file: Express.Multer.File,
   ): Promise<FileMeta> {
+    // 22/07/2026: Fix 1 (code review) - kiem tra do dai TEN FILE GOC va lam sach NGAY TU DAU
+    // ham, TRUOC KHI dung no de tinh object key hay goi MinIO. Tu choi som (400) thay vi de loi
+    // phat sinh sau khi da buffer/tai xong toan bo noi dung nhi phan len MinIO (lang phi bang
+    // thong + I/O cho 1 request cuoi cung van bi tu choi).
+    if (file.originalname.length > MAX_FILE_NAME_LENGTH) {
+      throw new BadRequestException(`Ten file qua dai (toi da ${MAX_FILE_NAME_LENGTH} ky tu)`);
+    }
+    const sanitizedFileName = sanitizeFileName(file.originalname);
+
+    // 22/07/2026: Fix 4 (code review) - xem giai thich day du o allowed-mime-types.ts. Phai chay
+    // SAU KHI buffer san sang (file.buffer) va TRUOC khi goi MinioService.putObject ben duoi.
+    verifyFileContentMatchesMimeType(file);
+
     if (folderId) {
       const folder = await this.folderRepo.findOne({ where: { id: folderId, organizationId } });
       if (!folder) throw new NotFoundException('Khong tim thay thu muc');
@@ -88,7 +115,8 @@ export class FilesService {
 
     const fileId = uuidv4();
     const versionNumber = 1;
-    const objectKey = buildObjectKey(organizationId, fileId, versionNumber, file.originalname);
+    // 22/07/2026: Fix 1 - dung TEN DA LAM SACH (khong phai file.originalname goc) de tinh object key.
+    const objectKey = buildObjectKey(organizationId, fileId, versionNumber, sanitizedFileName);
 
     // Ghi noi dung nhi phan len MinIO TRUOC khi commit metadata: neu that bai giua chung,
     // ket qua xau nhat la 1 object "mo coi" tren MinIO (chap nhan duoc trong MVP), khong
@@ -101,7 +129,11 @@ export class FilesService {
           id: fileId,
           organizationId,
           folderId,
-          fileName: file.originalname,
+          // 22/07/2026: Fix 1 - luu TEN DA LAM SACH: day la ten se duoc hien thi lai o FE va dua
+          // vao Content-Disposition luc tai file ve sau nay (buildContentDisposition doc truc
+          // tiep tu FileMeta.fileName, khong phai tu object key) - lam sach rieng cho object key
+          // roi van luu ten goc vao DB se khong bao ve duoc duong Content-Disposition nay.
+          fileName: sanitizedFileName,
           mimeType: file.mimetype,
           sizeBytes: file.size,
           objectKey,
@@ -144,15 +176,53 @@ export class FilesService {
     fileId: string,
     file: Express.Multer.File,
   ): Promise<FileMeta> {
-    const fileMeta = await this.fileMetaRepo.findOne({ where: { id: fileId, organizationId } });
-    if (!fileMeta) throw new NotFoundException('Khong tim thay file');
+    // 22/07/2026: Fix 1 (code review) - xem giai thich day du o upload() ben tren, ap dung dong
+    // nhat cho duong tai phien ban moi.
+    if (file.originalname.length > MAX_FILE_NAME_LENGTH) {
+      throw new BadRequestException(`Ten file qua dai (toi da ${MAX_FILE_NAME_LENGTH} ky tu)`);
+    }
+    const sanitizedFileName = sanitizeFileName(file.originalname);
 
-    const versionNumber = fileMeta.currentVersion + 1;
-    const objectKey = buildObjectKey(organizationId, fileId, versionNumber, file.originalname);
+    // 22/07/2026: Fix 4 (code review) - ap dung dong nhat voi upload(): endpoint nay cung nhan 1
+    // buffer file MOI va goi putObject nen mang chinh xac cung rui ro gia mao Content-Type (yeu
+    // cau ban dau chi neu ro upload(), nhung bo qua o day se de lai 1 lo tuong tu chua duoc va).
+    verifyFileContentMatchesMimeType(file);
 
-    await this.minioService.putObject(objectKey, file.buffer, file.size, file.mimetype);
-
+    // 22/07/2026: Fix 2 (code review) - TOAN BO doc + tinh versionNumber + ghi FileVersion/cap
+    // nhat FileMeta.currentVersion duoc dua vao 1 transaction DUY NHAT, khoa dong FileMeta bang
+    // `lock: { mode: 'pessimistic_write' }` (cung pattern voi TasksService.updateStatus() cua
+    // project-task-service). Truoc ban sua nay, `versionNumber` duoc doc tu 1 `findOne` KHONG
+    // khoa - vi `buildObjectKey` la ham thuan/tat dinh tu (orgId, fileId, versionNumber, ten
+    // file), 2 request tai phien ban moi CUNG LUC cho CUNG 1 file se doc duoc CUNG mot
+    // currentVersion, tinh ra CUNG versionNumber va CUNG object key MinIO - request thu 2 goi
+    // `putObject` se GHI DE THAM LANG len byte cua request thu nhat (khong loi, khong canh bao),
+    // VA DB con co 2 dong FileVersion trung versionNumber (khong bi chan truoc ban sua nay). Khoa
+    // pessimistic_write dam bao request thu 2 phai DOI request thu nhat commit xong (luc do
+    // currentVersion da tang) roi moi doc duoc gia tri MOI NHAT - object key vi vay LUON duoc
+    // tinh tu ban ghi VUA KHOA, khong bao gio tu 1 lan doc cu (stale) nhu truoc day.
+    //
+    // Danh doi co y thuc: `minioService.putObject` VAN nam TRONG pham vi giu khoa (khac de xuat
+    // "co the de putObject ngoai khoa" trong yeu cau review) de giu nguyen bat bien da co san
+    // trong file nay (xem comment o upload() o tren): "khong bao gio commit 1 dong FileMeta/
+    // FileVersion tro toi object MinIO CHUA TON TAI". Neu tach putObject ra ngoai khoa (mo 1
+    // transaction ngan hon chi de "dat cho" versionNumber roi nha khoa TRUOC khi goi MinIO), 1
+    // loi MinIO tam thoi xay ra SAU khi da nha khoa se de lai FileMeta.currentVersion da tang
+    // nhung khong co FileVersion/object noi dung tuong ung - te hon truong hop dang sua o day.
+    // Thoi gian giu khoa bi chan tren boi MAX_UPLOAD_SIZE_BYTES (25MB - files.controller.ts) nen
+    // chap nhan duoc voi quy mo SME cua he thong nay.
     const { updated, versionsToDelete } = await this.dataSource.transaction(async (manager) => {
+      const fileMeta = await manager.findOne(FileMeta, {
+        where: { id: fileId, organizationId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!fileMeta) throw new NotFoundException('Khong tim thay file');
+
+      const versionNumber = fileMeta.currentVersion + 1;
+      // 22/07/2026: Fix 1 - dung TEN DA LAM SACH; Fix 2 - versionNumber tinh tu ban ghi VUA KHOA.
+      const objectKey = buildObjectKey(organizationId, fileId, versionNumber, sanitizedFileName);
+
+      await this.minioService.putObject(objectKey, file.buffer, file.size, file.mimetype);
+
       await manager.save(
         manager.create(FileVersion, {
           fileId,
@@ -163,7 +233,8 @@ export class FilesService {
         }),
       );
 
-      fileMeta.fileName = file.originalname;
+      // 22/07/2026: Fix 1 - luu TEN DA LAM SACH, giong upload() o tren.
+      fileMeta.fileName = sanitizedFileName;
       fileMeta.mimeType = file.mimetype;
       fileMeta.sizeBytes = file.size;
       fileMeta.objectKey = objectKey;

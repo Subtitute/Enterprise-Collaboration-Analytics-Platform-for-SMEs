@@ -11,6 +11,7 @@ import { DashboardPage } from '@/features/dashboard/DashboardPage';
 import { ProjectsListPage } from '@/features/projects/ProjectsListPage';
 import { ProjectDetailPage } from '@/features/projects/ProjectDetailPage';
 import { DocumentsPage } from '@/features/documents/DocumentsPage';
+import { ProfilePage } from '@/features/profile/ProfilePage';
 import { NotificationsPage } from '@/features/notifications/NotificationsPage';
 import { AnalyticsPage } from '@/features/analytics/AnalyticsPage';
 import { AdminPage } from '@/features/admin/AdminPage';
@@ -60,6 +61,7 @@ export default function App() {
         <Route path="/projects" element={<ProjectsListPage />} />
         <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
         <Route path="/documents" element={<DocumentsPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/analytics" element={<AnalyticsPage />} />
 

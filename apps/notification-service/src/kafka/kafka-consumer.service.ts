@@ -62,6 +62,20 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    // 22/07/2026: bo sung kiem tra "envelope" ngay sau JSON.parse - Technical_Spec.md muc 14
+    // ("loi payload khong hop le bi bo qua va chi log lai"). Truoc fix nay, 1 message JSON hop
+    // le VE CU PHAP nhung THIEU truong bat buoc (vd eventId/organizationId rong do bug o
+    // producer) se lot qua buoc parse, roi lam NotificationsService.createFromEvent() nem loi
+    // (vd Mongoose ValidationError do thieu organizationId) - loi nay bi rethrow GIONG HET loi
+    // ha tang tam thoi ben duoi, khien kafkajs redeliver MAI MAI cung 1 "poison pill" va wedge
+    // ca partition. Log kem noi dung message goc de debug, roi BO QUA (khong throw).
+    if (!isValidDomainEventEnvelope(event)) {
+      this.logger.error(
+        `Bo qua message KHONG HOP LE tu topic ${topic} (thieu truong bat buoc eventId/eventType/organizationId/payload): ${message.value.toString()}`,
+      );
+      return;
+    }
+
     const draft = buildNotificationFromEvent(event);
     if (!draft) {
       this.logger.debug(`Bo qua eventType khong sinh thong bao: ${event.eventType} (topic=${topic})`);
@@ -81,4 +95,26 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       throw err;
     }
   }
+}
+
+/**
+ * 22/07/2026: kiem tra 1 message JSON da parse thanh cong co du 4 truong bat buoc cua
+ * DomainEvent (packages/common-dto/src/events/event-envelope.ts) hay khong - eventId,
+ * eventType, organizationId, payload. Dung "duck typing" (kiem tra kieu du lieu tung truong)
+ * thay vi import class/schema tu common-dto de giu dung nguyen tac service nay chi phu thuoc
+ * vao KIEU (type-only) cua @app/common-dto, khong phu thuoc runtime logic ngoai pham vi.
+ */
+function isValidDomainEventEnvelope(value: unknown): value is DomainEvent {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.eventId === 'string' &&
+    v.eventId.length > 0 &&
+    typeof v.eventType === 'string' &&
+    v.eventType.length > 0 &&
+    typeof v.organizationId === 'string' &&
+    v.organizationId.length > 0 &&
+    typeof v.payload === 'object' &&
+    v.payload !== null
+  );
 }

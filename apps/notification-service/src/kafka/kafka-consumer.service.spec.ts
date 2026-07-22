@@ -11,6 +11,11 @@ import { NotificationsService } from '../notifications/notifications.service';
  *    throw, de kafkajs commit offset (retry vo ich).
  *  - TAM THOI (Mongo ghi that bai qua NotificationsService.createFromEvent) -> RETHROW de
  *    kafkajs KHONG commit offset, message duoc consumer group retry.
+ *
+ * 22/07/2026 - bo sung diem review moi (Fix 2 - poison pill): message JSON hop le VE CU PHAP
+ * nhung THIEU truong bat buoc cua DomainEvent (eventId/eventType/organizationId/payload) cung
+ * phai duoc log + bo qua (KHONG throw), khong duoc de lot xuong NotificationsService roi bi
+ * rethrow nhu loi tam thoi.
  */
 describe('KafkaConsumerService (Notification Service)', () => {
   let service: KafkaConsumerService;
@@ -92,5 +97,39 @@ describe('KafkaConsumerService (Notification Service)', () => {
     await expect(service['handleMessage'](makePayload(JSON.stringify(event)))).rejects.toThrow(
       'Mongo connection timeout',
     );
+  });
+
+  // 22/07/2026: bo sung - Fix 2 (poison-pill: envelope thieu truong bat buoc bi bo qua, khong throw).
+  it('bo qua (khong throw) khi message JSON hop le nhung thieu organizationId (envelope khong hop le)', async () => {
+    const malformedEvent = {
+      eventId: 'evt-4',
+      eventType: EVENT_TYPES.TASK_ASSIGNED,
+      occurredAt: '2026-07-18T09:30:00.000Z',
+      organizationId: '',
+      producer: 'project-task-service',
+      payload: { taskId: 'task-1', projectId: 'project-1', assigneeId: 'user-1', actorId: 'user-2' },
+    };
+
+    await expect(
+      service['handleMessage'](makePayload(JSON.stringify(malformedEvent))),
+    ).resolves.toBeUndefined();
+
+    expect(notificationsServiceMock.createFromEvent).not.toHaveBeenCalled();
+  });
+
+  it('bo qua (khong throw) khi message JSON hop le nhung thieu han truong eventId', async () => {
+    const malformedEvent = {
+      eventType: EVENT_TYPES.TASK_ASSIGNED,
+      occurredAt: '2026-07-18T09:30:00.000Z',
+      organizationId: 'org-1',
+      producer: 'project-task-service',
+      payload: { taskId: 'task-1', projectId: 'project-1', assigneeId: 'user-1', actorId: 'user-2' },
+    };
+
+    await expect(
+      service['handleMessage'](makePayload(JSON.stringify(malformedEvent))),
+    ).resolves.toBeUndefined();
+
+    expect(notificationsServiceMock.createFromEvent).not.toHaveBeenCalled();
   });
 });

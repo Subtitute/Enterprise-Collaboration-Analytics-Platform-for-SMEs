@@ -6,7 +6,6 @@ import { AuthContext } from '@app/common-dto';
 import { AuthService } from './auth.service';
 import { RegisterOrganizationDto } from './dto/register-organization.dto';
 import { LoginDto } from './dto/login.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 /**
  * Refresh token khong con tra ve trong JSON body - duoc set qua httpOnly cookie de chong
@@ -22,7 +21,11 @@ function setRefreshTokenCookie(res: Response, refreshToken: string): void {
   res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: false,
+    // 22/07/2026: truoc day hardcode `secure: false` nen cookie van duoc trinh duyet gui qua ca
+    // ket noi HTTP thuong o production - suy dien tu NODE_ENV thay vi hang so cung, giong cach
+    // Technical_Spec.md muc 9 yeu cau cookie nhay cam phai `Secure` khi chay that (HTTPS qua Gateway).
+    // Dev/test (NODE_ENV != 'production') van chay duoc qua HTTP thuong tren localhost.
+    secure: process.env.NODE_ENV === 'production',
     path: REFRESH_TOKEN_COOKIE_PATH,
     maxAge: REFRESH_TOKEN_MAX_AGE_MS,
   });
@@ -66,11 +69,22 @@ export class AuthController {
     return rest;
   }
 
+  // 22/07/2026: truoc day doc refresh token tu @Body() RefreshTokenDto, nhung tu khi refresh token
+  // chuyen sang httpOnly cookie (21/07/2026, xem chu thich dau file) frontend KHONG con nam giu
+  // token that de gui trong body - no gui 1 chuoi placeholder khong bi mat, verifyAsync() trong
+  // authService.logout() luon that bai voi chuoi do, bi catch nuot loi va coi nhu "da dang xuat"
+  // MA KHONG BAO GIO goi toi revokeRefreshToken() -> phien dang nhap khong bao gio thuc su bi thu
+  // hoi, ke ca khi nguoi dung chu dong bam "Dang xuat" (loi CRITICAL, review 22/07/2026). Doc dung
+  // tu httpOnly cookie giong het refresh() o tren. Neu khong co cookie (da dang xuat/het cookie tu
+  // truoc) thi coi nhu da dang xuat, van xoa cookie va tra 204 nhu binh thuong, khong goi service.
   @Public()
   @HttpCode(HttpStatus.NO_CONTENT)
   @Post('logout')
-  async logout(@Body() dto: RefreshTokenDto, @Res({ passthrough: true }) res: Response): Promise<void> {
-    await this.authService.logout(dto.refreshToken);
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
+    const refreshTokenValue = req.cookies?.[REFRESH_TOKEN_COOKIE] as string | undefined;
+    if (refreshTokenValue) {
+      await this.authService.logout(refreshTokenValue);
+    }
     res.clearCookie(REFRESH_TOKEN_COOKIE, { path: REFRESH_TOKEN_COOKIE_PATH });
   }
 

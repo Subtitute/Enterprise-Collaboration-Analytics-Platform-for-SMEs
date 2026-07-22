@@ -27,9 +27,12 @@ export function useProjectsQuery(params: FetchProjectsParams = {}) {
 }
 
 /** Toan bo cong viec cua to chuc (khong loc projectId) - dung de tinh tien do tren danh sach du
- *  an ma khong phai goi API rieng cho tung du an (tranh N+1). */
-export function useAllTasksQuery() {
-  return useQuery({ queryKey: ['tasks', 'all'], queryFn: () => fetchTasks({}), staleTime: 60_000 });
+ *  an ma khong phai goi API rieng cho tung du an (tranh N+1).
+ *  22/07/2026: them tham so `options.enabled` (mac dinh khong truyen = giu nguyen hanh vi cu, luon
+ *  bat, vd. ProjectsListPage) - can thiet de useGlobalSearch() (Topbar) co the tri hoan query
+ *  nay toi khi nguoi dung thuc su focus o tim kiem, thay vi goi ngay khi Topbar mount o MOI trang. */
+export function useAllTasksQuery(options?: { enabled?: boolean }) {
+  return useQuery({ queryKey: ['tasks', 'all'], queryFn: () => fetchTasks({}), staleTime: 60_000, enabled: options?.enabled });
 }
 
 export function useProjectQuery(id: string | undefined) {

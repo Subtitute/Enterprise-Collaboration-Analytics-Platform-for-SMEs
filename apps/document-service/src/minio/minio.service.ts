@@ -55,8 +55,16 @@ export class MinioService implements OnModuleInit {
     await this.client.removeObject(this.bucket, objectKey);
   }
 
-  /** URL GET co chu ky tam thoi (mac dinh 900s = 15 phut) - client tai truc tiep tu MinIO, khong qua service nay. */
-  async presignedGetObject(objectKey: string, expirySeconds = 900): Promise<string> {
-    return this.publicUrlClient.presignedGetObject(this.bucket, objectKey, expirySeconds);
+  /**
+   * URL GET co chu ky tam thoi (mac dinh 900s = 15 phut) - client tai truc tiep tu MinIO, khong
+   * qua service nay. `respHeaders` (vd `response-content-disposition`) la tham so override chuan
+   * cua S3 GetObject - duoc MinIO SDK dua vao chu ky nen khong the bi gia mao phia client.
+   */
+  async presignedGetObject(
+    objectKey: string,
+    expirySeconds = 900,
+    respHeaders?: Record<string, string>,
+  ): Promise<string> {
+    return this.publicUrlClient.presignedGetObject(this.bucket, objectKey, expirySeconds, respHeaders);
   }
 }

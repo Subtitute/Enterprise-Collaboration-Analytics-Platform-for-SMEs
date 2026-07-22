@@ -207,4 +207,60 @@ describe('IAM Service - dang ky to chuc & dang nhap (e2e)', () => {
       .send({ organizationName: 'Thieu cac truong khac' })
       .expect(400);
   });
+
+  // 22/07/2026 (Fix 1, CRITICAL, review 22/07/2026): dang nhap -> dang xuat -> replay LAI DUNG
+  // cookie refresh token cu vao /auth/refresh -> ky vong 401. Day la bai kiem chung "logout() thuc
+  // su thu hoi session" ma truoc do KHONG co test nao bao ve - loi goc la logout() doc token tu
+  // request body (1 chuoi placeholder do frontend gui, vi frontend khong nam giu refresh token
+  // that) thay vi tu httpOnly cookie nhu refresh() nen authService.logout() luon nhan 1 token gia,
+  // verifyAsync() luon that bai, bi catch nuot loi va coi nhu "da dang xuat" MA KHONG BAO GIO goi
+  // toi revokeRefreshToken() - session khong bao gio thuc su bi thu hoi. Test nay dung dung
+  // luong that qua HTTP (khong mock JwtService/DB) nen se BAT DUOC ca loi o tang controller (Fix 1)
+  // lan loi rotation khong nguyen tu o tang service (Fix 3, xem ghi chu duoi).
+  it('dang nhap roi dang xuat -> refresh token cu bi thu hoi that su (401 khi replay) - Fix 1', async () => {
+    const suffix = `${Date.now()}-${Math.floor(Math.random() * 10_000)}`;
+    const adminEmail = `e2e-logout-${suffix}@demo-sme.vn`;
+    const adminPassword = 'Password123!';
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/register-organization')
+      .send({
+        organizationName: `E2E Logout Org ${suffix}`,
+        adminFullName: 'E2E Logout Admin',
+        adminEmail,
+        adminPassword,
+      })
+      .expect(201);
+
+    const loginRes = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: adminEmail, password: adminPassword })
+      .expect(200);
+
+    const setCookieHeader = findCookie(loginRes.headers['set-cookie'], REFRESH_TOKEN_COOKIE);
+    expect(setCookieHeader).toBeDefined();
+    // Set-Cookie tra ve ca thuoc tinh (Path=..., HttpOnly, SameSite=...) - chi lay dung phan
+    // "ten=gia-tri" dau tien de gui lai dung dinh dang header Cookie cua request.
+    const refreshCookiePair = (setCookieHeader as string).split(';')[0];
+
+    // Dang xuat: gui KEM cookie httpOnly that (khong gui refreshToken qua body nhu client that
+    // khong con nam giu token that - xem chu thich logout() trong auth.controller.ts) - phai tra
+    // 204 va cookie response phai la lenh xoa cookie (Max-Age=0 hoac Expires trong qua khu).
+    const logoutRes = await request(app.getHttpServer())
+      .post('/api/v1/auth/logout')
+      .set('Cookie', refreshCookiePair)
+      .expect(204);
+    expect(findCookie(logoutRes.headers['set-cookie'], REFRESH_TOKEN_COOKIE)).toMatch(
+      new RegExp(`${REFRESH_TOKEN_COOKIE}=;`),
+    );
+
+    // Replay: dung LAI DUNG cookie refresh token da bi dang xuat -> phai bi tu choi 401 (session
+    // da thuc su bi thu hoi trong Postgres + Redis blacklist, khong con "song sot" duoc nua). Truoc
+    // Fix 1, buoc nay se sai vi logout() chua bao gio thu hoi token that su (van tra 200 + cap
+    // token moi thay vi 401).
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .set('Cookie', refreshCookiePair)
+      .expect(401);
+  });
 });

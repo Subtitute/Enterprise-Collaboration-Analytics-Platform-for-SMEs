@@ -71,9 +71,29 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async handleEvent(event: DomainEvent): Promise<void> {
+    // 22/07/2026: kiem tra "envelope" ngay khi vao ham (chay ngay sau JSON.parse thanh cong o
+    // eachMessage() ben tren, khong co buoc nao xen giua) - Technical_Spec.md muc 14 ("loi
+    // payload khong hop le bi bo qua va chi log lai"). Dat kiem tra o day (thay vi ngay trong
+    // callback eachMessage()) de co the unit-test doc lap qua handleEvent(), giong cac nhanh
+    // loi khac cua ham nay (xem kafka-consumer.service.spec.ts). Truoc fix nay, 1 message JSON
+    // hop le VE CU PHAP nhung THIEU truong bat buoc se lam FactWriterService.* nem loi (vd
+    // Postgres 23502 not-null violation), bi rethrow GIONG loi ha tang tam thoi va khien
+    // kafkajs redeliver MAI MAI cung 1 "poison pill".
+    if (!isValidDomainEventEnvelope(event)) {
+      this.logger.error(
+        `Bo qua event KHONG HOP LE (thieu truong bat buoc eventId/eventType/organizationId/payload): ${JSON.stringify(event)}`,
+      );
+      return;
+    }
+
     try {
       // 1. Luon ghi vao fact_user_activity - phuc vu feed "Hoat dong gan day" (moi event).
-      await this.factWriter.recordUserActivity(event);
+      // 22/07/2026: bat lai gia tri tra ve (co phai dong MOI hay khong) - `ON CONFLICT DO
+      // NOTHING` khien INSERT nay co the la no-op neu eventId da duoc ghi truoc do
+      // (OutboxPublisherJob phia producer publish trung, Technical_Spec.md muc 4.1). Truoc fix
+      // nay gia tri nay bi bo qua nen emitActivity() van bi goi lan 2 cho cung 1 event du fact
+      // table khong bi ghi trung - lam real-time push mat idempotent (xem fact-writer.service.ts).
+      const isNewEvent = await this.factWriter.recordUserActivity(event);
 
       // 2. Ghi bo sung theo loai su kien.
       if (event.eventType.startsWith('task.') || event.eventType.startsWith('project.')) {
@@ -82,7 +102,16 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
         await this.factWriter.recordDocumentEvent(event);
       }
 
-      // 3. Day cap nhat real-time cho Dashboard cua dung to chuc.
+      // 3. Day cap nhat real-time cho Dashboard cua dung to chuc - 22/07/2026: CHI day khi day
+      // la lan xu ly DAU TIEN cua eventId nay (isNewEvent = true), khong day lai cho ban ghi
+      // trung de dong bo voi tinh idempotent da co cua du lieu persist.
+      if (!isNewEvent) {
+        this.logger.debug(
+          `Bo qua emitActivity cho event trung (eventId=${event.eventId}) - fact_user_activity da co ban ghi nay tu lan xu ly truoc.`,
+        );
+        return;
+      }
+
       const payload = (event.payload ?? {}) as Record<string, unknown>;
       const actorId = typeof payload.actorId === 'string' ? payload.actorId : null;
       this.gateway.emitActivity(event.organizationId, {
@@ -92,6 +121,20 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
         actorId,
       });
     } catch (error) {
+      // 22/07/2026: bo sung nhanh loi DU LIEU vinh vien (Postgres SQLSTATE 22P02/23502/23503 -
+      // vd 1 truong trong payload khong phai UUID hop le, hoac thieu truong bat buoc) - retry
+      // lai CUNG message se LUON that bai giong nhau (khac loi ha tang tam thoi o duoi), nen
+      // log muc error kem noi dung message goc de debug VA BO QUA (khong rethrow) de kafkajs
+      // commit offset, tranh wedge vinh vien 1 partition boi 1 "poison pill" (Technical_Spec.md
+      // muc 14). Rieng loi trung khoa (eventId) da duoc `ON CONFLICT DO NOTHING` xu ly o muc SQL
+      // ngay trong FactWriterService, KHONG roi toi day.
+      if (isPermanentDataError(error)) {
+        this.logger.error(
+          `Bo qua event LOI DU LIEU vinh vien tu Postgres (eventType=${event.eventType}, eventId=${event.eventId}, ma loi=${(error as { code?: string }).code}): ${(error as Error).message} - noi dung event: ${JSON.stringify(event)}`,
+        );
+        return;
+      }
+
       // Loi TAM THOI (vd TimescaleDB down/timeout khi FactWriterService.* goi DataSource.query)
       // - log o muc error VA rethrow de kafkajs KHONG commit offset cho message nay; consumer
       // group se retry (Technical_Spec.md muc 14 - "Kafka consumer chua co DLQ"). Khac voi loi
@@ -103,4 +146,40 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       throw error;
     }
   }
+}
+
+/**
+ * 22/07/2026: kiem tra 1 DomainEvent (da JSON.parse thanh cong) co du 4 truong bat buoc hay
+ * khong - eventId, eventType, organizationId, payload (packages/common-dto/src/events/
+ * event-envelope.ts). Dung "duck typing" thay vi import class/schema tu common-dto de giu
+ * dung nguyen tac service nay chi phu thuoc vao KIEU (type-only) cua @app/common-dto.
+ */
+function isValidDomainEventEnvelope(value: unknown): value is DomainEvent {
+  if (typeof value !== 'object' || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.eventId === 'string' &&
+    v.eventId.length > 0 &&
+    typeof v.eventType === 'string' &&
+    v.eventType.length > 0 &&
+    typeof v.organizationId === 'string' &&
+    v.organizationId.length > 0 &&
+    typeof v.payload === 'object' &&
+    v.payload !== null
+  );
+}
+
+/**
+ * 22/07/2026: nhan dien loi Postgres THUOC VE DU LIEU (khong the phuc hoi bang retry) qua ma
+ * loi SQLSTATE ma pg/TypeORM dua vao thuoc tinh `code` cua Error: `22P02` (invalid text
+ * representation - vd 1 truong khong phai UUID hop le duoc gan cho cot kieu UUID), `23502`
+ * (not-null violation - thieu truong bat buoc), `23503` (foreign-key violation). KHAC voi loi
+ * ha tang tam thoi (connection refused, timeout,...) - nhung loi do van phai rethrow de kafkajs
+ * retry (xem handleEvent() o tren).
+ */
+const PERMANENT_POSTGRES_ERROR_CODES = new Set(['22P02', '23502', '23503']);
+function isPermanentDataError(err: unknown): boolean {
+  if (typeof err !== 'object' || err === null) return false;
+  const code = (err as { code?: string }).code;
+  return typeof code === 'string' && PERMANENT_POSTGRES_ERROR_CODES.has(code);
 }

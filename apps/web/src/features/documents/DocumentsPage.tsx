@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
@@ -14,7 +15,25 @@ import { VersionHistoryModal } from './components/VersionHistoryModal';
 import type { FileItem, Folder } from '@/types';
 
 export function DocumentsPage() {
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  // 22/07/2026: chuyen currentFolderId tu useState noi bo sang query param ?folderId= tren URL
+  // (setSearchParams mac dinh PUSH 1 history entry moi, giong navigate thong thuong) - truoc do
+  // moi lan bam vao 1 thu muc chi doi state React, KHONG tao history entry nao, nen nut Back
+  // cua trinh duyet bo qua toan bo qua trinh "di sau vao thu muc" va thoat thang ra trang truoc
+  // do nguoi dung da vao Documents, dung nhu bao cao cua nguoi dung. Dua vao URL giup Back/Forward
+  // lui/toi dung tung cap thu muc, dong thoi cho phep chia se link truc tiep toi 1 thu muc.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentFolderId = searchParams.get('folderId');
+  const setCurrentFolderId = useCallback(
+    (folderId: string | null) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        if (folderId) next.set('folderId', folderId);
+        else next.delete('folderId');
+        return next;
+      });
+    },
+    [setSearchParams],
+  );
   const [isNewFolderOpen, setIsNewFolderOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [sharingFile, setSharingFile] = useState<FileItem | null>(null);

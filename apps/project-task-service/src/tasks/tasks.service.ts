@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, FindOptionsWhere, QueryFailedError, Repository } from 'typeorm';
+// 22/07/2026: them `In` - can cho truy van gop (GROUP BY... WHERE taskId IN (...)) khi nap
+// assignees cho ca 1 trang Task trong findAll() (fix code review 22/07/2026, xem findAll() ben duoi).
+import { DataSource, FindOptionsWhere, In, QueryFailedError, Repository } from 'typeorm';
 import {
   EVENT_TYPES,
   PaginatedResponse,
@@ -29,9 +31,37 @@ const PRODUCER = 'project-task-service';
 /** Ma loi Postgres cho vi pham rang buoc unique (vd @Unique(['taskId','userId']) tren TaskAssignee). */
 const POSTGRES_UNIQUE_VIOLATION = '23505';
 
-export interface TaskDetail extends Task {
-  assigneeIds: string[];
+/**
+ * 22/07/2026 (fix code review, loi CRITICAL): shape THONG NHAT cho "nguoi phu trach" tra ve boi
+ * CA HAI findAll() va findById() - khop dung field `assignees: { userId }[]` ma frontend da doc san
+ * (apps/web/src/types/index.ts TaskAssignee { userId, fullName?, email? }, dung trong TaskCard.tsx
+ * va TaskDetailModal.tsx) nen khong can sua frontend. Truoc ban sua nay: findAll() khong tra assignees
+ * (Task.assignees la quan he lazy, khong eager: true tren entity), con findById() tra ve duoi ten
+ * KHAC `assigneeIds: string[]` - ca 2 khien Kanban board (dung findAll qua useTasksQuery) va modal
+ * chi tiet Task (doc lai tu cung danh sach do, xem TaskDetailModal.tsx) luon hien "Chua co ai duoc
+ * phan cong" du DB co du lieu that. fullName/email luon undefined o day vi User song o DB rieng cua
+ * IAM Service (khong the JOIN xuyen service) - frontend da tu fallback qua useUserNameMap().
+ */
+export interface TaskAssigneeRef {
+  userId: string;
+}
+
+export type TaskWithAssignees = Omit<Task, 'assignees'> & { assignees: TaskAssigneeRef[] };
+
+export interface TaskDetail extends TaskWithAssignees {
   commentCount: number;
+}
+
+/**
+ * 22/07/2026 (fix code review, loi CRITICAL): entity TaskComment.authorUserId khong doi ten (van
+ * khop cot DB va code noi bo khac) - chi tang response HTTP them alias `authorId` (giong het
+ * `authorUserId`) vi frontend (apps/web/src/types/index.ts TaskComment.authorId,
+ * TaskDetailModal.tsx dong ~165/168) doc field `authorId` chu khong phai `authorUserId`, khien
+ * moi binh luan hien ten chung chung "Thanh vien" bat ke ai viet. Giu ca 2 field trong response
+ * (khong bo authorUserId) de khong pha vo consumer noi bo khac dang doc field cu.
+ */
+export interface TaskCommentWithAuthorId extends TaskComment {
+  authorId: string;
 }
 
 @Injectable()
@@ -46,7 +76,19 @@ export class TasksService {
     private readonly outboxService: OutboxService,
   ) {}
 
-  async findAll(organizationId: string, query: TaskQueryDto): Promise<PaginatedResponse<Task>> {
+  /**
+   * 22/07/2026 (fix code review, loi CRITICAL): truoc ban sua nay ham nay chi `findAndCount` Task
+   * KHONG kem quan he `assignees` (khong eager tren entity) -> Kanban board va modal chi tiet Task
+   * (ca 2 deu dung `GET /tasks` qua useTasksQuery, xem TaskCard.tsx/TaskDetailModal.tsx) luon nhan
+   * `task.assignees === undefined`, hien "Chua co ai duoc phan cong" du DB co du lieu that. Sua bang
+   * 1 truy van GOP DUY NHAT `TaskAssignee WHERE taskId IN (...)` sau khi da co danh sach id cua CA
+   * TRANG (giong ky thuat batch GROUP BY... WHERE id IN (...) cua
+   * ProjectsService.computeProjectStats()), tranh N+1 (moi Task 1 query rieng).
+   */
+  async findAll(
+    organizationId: string,
+    query: TaskQueryDto,
+  ): Promise<PaginatedResponse<TaskWithAssignees>> {
     const where: FindOptionsWhere<Task> = { organizationId };
     if (query.projectId) where.projectId = query.projectId;
     if (query.status) where.status = query.status;
@@ -57,7 +99,14 @@ export class TasksService {
       skip: (query.page - 1) * query.limit,
       take: query.limit,
     });
-    return paginate(data, total, query.page, query.limit);
+
+    const assigneesByTask = await this.loadAssigneesByTaskIds(data.map((task) => task.id));
+    const enriched: TaskWithAssignees[] = data.map((task) => ({
+      ...task,
+      assignees: assigneesByTask.get(task.id) ?? [],
+    }));
+
+    return paginate(enriched, total, query.page, query.limit);
   }
 
   async findById(organizationId: string, id: string): Promise<TaskDetail> {
@@ -68,7 +117,23 @@ export class TasksService {
       this.commentRepo.count({ where: { taskId: id } }),
     ]);
 
-    return { ...task, assigneeIds: assignees.map((a) => a.userId), commentCount };
+    // 22/07/2026: doi ten field `assigneeIds: string[]` -> `assignees: { userId }[]` de khop CHINH
+    // XAC shape cua findAll() o tren (fix code review, loi CRITICAL - xem ghi chu tai TaskWithAssignees).
+    return { ...task, assignees: assignees.map((a) => ({ userId: a.userId })), commentCount };
+  }
+
+  /** 22/07/2026: truy van gop assignees cho 1 tap taskId (trang hien tai), tranh N+1 - dung boi findAll(). */
+  private async loadAssigneesByTaskIds(taskIds: string[]): Promise<Map<string, TaskAssigneeRef[]>> {
+    const map = new Map<string, TaskAssigneeRef[]>();
+    if (taskIds.length === 0) return map;
+
+    const rows = await this.assigneeRepo.find({ where: { taskId: In(taskIds) } });
+    for (const row of rows) {
+      const list = map.get(row.taskId) ?? [];
+      list.push({ userId: row.userId });
+      map.set(row.taskId, list);
+    }
+    return map;
   }
 
   /**
@@ -216,11 +281,27 @@ export class TasksService {
   /**
    * Fix code review 21/07/2026: xoa cung phai phat Outbox event (task.deleted) trong CUNG
    * transaction voi thao tac xoa, neu khong Analytics se dem nham cong viec da bi xoa cung.
+   *
+   * 22/07/2026 (fix code review, loi MAJOR - race condition xoa dong thoi): ban truoc do doc
+   * `findTaskOrFail` KHONG khoa roi `manager.remove(task)` vo dieu kien ben trong transaction -
+   * `manager.remove()` cua TypeORM khong bao affected-row-count va KHONG nem loi neu row da bi
+   * 1 request dong thoi khac xoa mat truoc do, nen 2 request cung xoa 1 Task se cung ghi outbox
+   * TASK_DELETED -> Analytics dem trung 1 lan xoa thanh 2 event. Sua bang cach doc LAI ben trong
+   * transaction voi pessimistic write lock (dung EXACT pattern cua updateStatus() o tren); neu
+   * khong con thay row (da bi xoa giua luc pre-check va luc khoa) thi return som, KHONG xoa lai
+   * va KHONG ghi outbox lai - dung la ngu nghia DELETE idempotent chuan REST. Van giu pre-check
+   * khong khoa o dau ham (findTaskOrFail) de tra 404 nhanh cho id chua tung ton tai/sai to chuc.
    */
   async remove(organizationId: string, actorId: string, id: string): Promise<void> {
-    const task = await this.findTaskOrFail(organizationId, id);
+    await this.findTaskOrFail(organizationId, id);
 
     await this.dataSource.transaction(async (manager) => {
+      const task = await manager.findOne(Task, {
+        where: { id, organizationId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!task) return;
+
       // Cascade xoa TaskAssignee/TaskComment/TaskStatusHistory cua task nay qua FK onDelete: CASCADE.
       await manager.remove(task);
 
@@ -297,23 +378,26 @@ export class TasksService {
     if (assignee) await this.assigneeRepo.remove(assignee);
   }
 
+  /** 22/07/2026: response them alias `authorId` (xem TaskCommentWithAuthorId) - fix loi CRITICAL "khong hien ten nguoi viet binh luan". */
   async addComment(
     organizationId: string,
     id: string,
     authorUserId: string,
     dto: CreateCommentDto,
-  ): Promise<TaskComment> {
+  ): Promise<TaskCommentWithAuthorId> {
     await this.findTaskOrFail(organizationId, id);
-    return this.commentRepo.save(
+    const saved = await this.commentRepo.save(
       this.commentRepo.create({ taskId: id, authorUserId, content: dto.content }),
     );
+    return { ...saved, authorId: saved.authorUserId };
   }
 
+  /** 22/07/2026: response them alias `authorId` (xem TaskCommentWithAuthorId) - fix loi CRITICAL "khong hien ten nguoi viet binh luan". */
   async findComments(
     organizationId: string,
     id: string,
     query: PaginationQueryDto,
-  ): Promise<PaginatedResponse<TaskComment>> {
+  ): Promise<PaginatedResponse<TaskCommentWithAuthorId>> {
     await this.findTaskOrFail(organizationId, id);
 
     const [data, total] = await this.commentRepo.findAndCount({
@@ -322,7 +406,8 @@ export class TasksService {
       skip: (query.page - 1) * query.limit,
       take: query.limit,
     });
-    return paginate(data, total, query.page, query.limit);
+    const enriched = data.map((c) => ({ ...c, authorId: c.authorUserId }));
+    return paginate(enriched, total, query.page, query.limit);
   }
 
   private async findTaskOrFail(organizationId: string, id: string): Promise<Task> {

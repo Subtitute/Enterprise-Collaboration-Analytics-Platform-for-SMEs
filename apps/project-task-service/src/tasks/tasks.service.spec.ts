@@ -15,6 +15,96 @@ describe('TasksService', () => {
   const taskId = 'task-1';
   const actorId = 'actor-1';
 
+  /**
+   * 22/07/2026: test bo sung cho fix code review loi CRITICAL - findAll() truoc day khong nap
+   * quan he `assignees` (khong eager tren entity Task) nen Kanban board va modal chi tiet Task
+   * luon nhan `task.assignees === undefined`. Xem TasksService.findAll()/loadAssigneesByTaskIds().
+   */
+  describe('findAll - fix code review 22/07/2026 (assignees luon bi thieu)', () => {
+    it('gan dung assignees cho tung task qua 1 truy van gop TaskAssignee WHERE taskId IN (...), khong con undefined', async () => {
+      const tasks = [
+        { id: 'task-1', organizationId, projectId: 'p1', title: 'A', status: TaskStatus.TODO },
+        { id: 'task-2', organizationId, projectId: 'p1', title: 'B', status: TaskStatus.TODO },
+      ];
+      const taskRepoMock = {
+        findAndCount: jest.fn().mockResolvedValue([tasks, 2]),
+      };
+      // task-1 co 2 nguoi phu trach, task-2 khong ai ca - mo phong ket qua 1 truy van gop duy nhat.
+      const assigneeRows = [
+        { taskId: 'task-1', userId: 'user-1' },
+        { taskId: 'task-1', userId: 'user-2' },
+      ];
+      const assigneeRepoMock = { find: jest.fn().mockResolvedValue(assigneeRows) };
+
+      const service = new TasksService(
+        {} as any,
+        taskRepoMock as any,
+        assigneeRepoMock as any,
+        {} as any,
+        {} as any,
+        {} as any,
+      );
+
+      const result = await service.findAll(organizationId, { page: 1, limit: 20 } as any);
+
+      expect(result.data[0].assignees).toEqual([{ userId: 'user-1' }, { userId: 'user-2' }]);
+      expect(result.data[1].assignees).toEqual([]);
+      // Chi 1 lan goi assigneeRepo.find cho CA TRANG (batch), khong phai N+1 (1 lan/task).
+      expect(assigneeRepoMock.find).toHaveBeenCalledTimes(1);
+    });
+
+    it('khong goi assigneeRepo.find neu trang khong co task nao (tranh IN () rong gay loi SQL)', async () => {
+      const taskRepoMock = { findAndCount: jest.fn().mockResolvedValue([[], 0]) };
+      const assigneeRepoMock = { find: jest.fn() };
+
+      const service = new TasksService(
+        {} as any,
+        taskRepoMock as any,
+        assigneeRepoMock as any,
+        {} as any,
+        {} as any,
+        {} as any,
+      );
+
+      const result = await service.findAll(organizationId, { page: 1, limit: 20 } as any);
+
+      expect(result.data).toEqual([]);
+      expect(assigneeRepoMock.find).not.toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * 22/07/2026: truoc ban sua, findById() tra ve field `assigneeIds: string[]` trong khi findAll()
+   * (sau fix o tren) tra `assignees: { userId }[]` - 2 endpoint lech shape dan den frontend (dung
+   * chung 1 kieu Task) khong the doc dung ca 2 noi. Test nay khoa lai field name + shape dung.
+   */
+  describe('findById - fix code review 22/07/2026 (dong bo shape assignees voi findAll)', () => {
+    it('tra ve field `assignees: { userId }[]`, khong con `assigneeIds: string[]`', async () => {
+      const taskRepoMock = {
+        findOne: jest.fn().mockResolvedValue({ id: taskId, organizationId, projectId: 'p1', status: TaskStatus.TODO }),
+      };
+      const assigneeRepoMock = {
+        find: jest.fn().mockResolvedValue([{ taskId, userId: 'user-1' }]),
+      };
+      const commentRepoMock = { count: jest.fn().mockResolvedValue(3) };
+
+      const service = new TasksService(
+        {} as any,
+        taskRepoMock as any,
+        assigneeRepoMock as any,
+        commentRepoMock as any,
+        {} as any,
+        {} as any,
+      );
+
+      const result = await service.findById(organizationId, taskId);
+
+      expect(result.assignees).toEqual([{ userId: 'user-1' }]);
+      expect((result as any).assigneeIds).toBeUndefined();
+      expect(result.commentCount).toBe(3);
+    });
+  });
+
   describe('updateStatus - fix race condition keo-tha dong thoi', () => {
     function createService(preCheckStatus: TaskStatus, lockedStatus: TaskStatus) {
       const lockedTask = { id: taskId, organizationId, status: lockedStatus, projectId: 'p1' };

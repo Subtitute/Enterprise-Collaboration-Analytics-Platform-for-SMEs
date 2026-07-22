@@ -79,3 +79,33 @@ describe('InternalAuthGuard', () => {
     expect(guard.canActivate(ctx)).toBe(true);
   });
 });
+
+// 22/07/2026: bo sung nhom test cho fix fail-open cua INTERNAL_SHARED_SECRET (xem
+// resolveExpectedInternalSecret trong internal-auth.guard.ts) - phat hien qua code review
+// toan du an: truoc day thieu bien moi truong nay se am tham fallback ve chuoi da cong khai
+// trong ma nguon o MOI environment, ke ca production.
+describe('InternalAuthGuard - fail-open fix cho INTERNAL_SHARED_SECRET', () => {
+  const ORIGINAL_SECRET = process.env.INTERNAL_SHARED_SECRET;
+  const ORIGINAL_NODE_ENV = process.env.NODE_ENV;
+
+  afterEach(() => {
+    process.env.INTERNAL_SHARED_SECRET = ORIGINAL_SECRET;
+    process.env.NODE_ENV = ORIGINAL_NODE_ENV;
+  });
+
+  it('nem loi luc khoi tao Guard khi NODE_ENV=production ma thieu INTERNAL_SHARED_SECRET', () => {
+    delete process.env.INTERNAL_SHARED_SECRET;
+    process.env.NODE_ENV = 'production';
+
+    expect(() => new InternalAuthGuard(reflectorReturning(false))).toThrow(
+      /INTERNAL_SHARED_SECRET/,
+    );
+  });
+
+  it('khong nem loi ngoai production khi thieu INTERNAL_SHARED_SECRET (van fallback dev-only)', () => {
+    delete process.env.INTERNAL_SHARED_SECRET;
+    process.env.NODE_ENV = 'development';
+
+    expect(() => new InternalAuthGuard(reflectorReturning(false))).not.toThrow();
+  });
+});

@@ -12,6 +12,17 @@ import { UpdateDepartmentDto } from './dto/update-department.dto';
 export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
 
+  // 22/07/2026: CO CHU DICH KHONG gan @RequirePermissions(DEPARTMENT_MANAGE) o day (khac voi
+  // create/update/remove ben duoi). Da kiem tra frontend (grep apps/web/src/features/**): trang
+  // Ho so ca nhan (apps/web/src/features/profile/ProfilePage.tsx, moi thanh vien da xac thuc deu
+  // xem duoc - xem Technical_Spec.md muc changelog "Trang Ho so ca nhan") goi GET /departments
+  // (qua useDepartmentsQuery() dung chung o apps/web/src/features/admin/hooks.ts) chi de doi
+  // departmentId -> ten phong ban hien thi. Neu gan DEPARTMENT_MANAGE, moi nhan vien thuong (role
+  // Employee, khong co quyen quan tri phong ban) se bi 403 ngay khi mo trang Ho so ca nhan cua
+  // chinh minh. Du lieu tra ve chi la {id, name} - metadata to chuc it nhay cam, khong phai danh
+  // sach nhan su hay thong tin quan tri - nen de mo cho moi nguoi dung da xac thuc trong to chuc
+  // thay vi gan sai guard chi-quan-tri roi lam vo hieu 1 tinh nang khac (loi MAJOR, review
+  // 22/07/2026, nhung fix la "khong doi" co chu dich sau khi xac minh, khong phai bo sot).
   @Get()
   findAll(@CurrentUser('organizationId') organizationId: string) {
     return this.departmentsService.findAll(organizationId);

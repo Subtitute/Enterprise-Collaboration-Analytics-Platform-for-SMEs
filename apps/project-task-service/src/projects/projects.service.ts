@@ -8,6 +8,7 @@ import {
   ProjectCreatedPayload,
   ProjectDeletedPayload,
   ProjectStatus,
+  TaskDeletedPayload,
   TaskStatus,
   paginate,
 } from '@app/common-dto';
@@ -75,10 +76,21 @@ export class ProjectsService {
     return paginate(enriched, total, query.page, query.limit);
   }
 
-  async findById(organizationId: string, id: string): Promise<Project> {
+  /**
+   * 22/07/2026 (fix code review, loi MAJOR): truoc ban sua nay ham nay tra ve entity Project "tho",
+   * thieu ca completionRate lan memberCount ma findAll() da tinh san cho moi Project trong danh sach -
+   * khien trang chi tiet 1 du an (GET /projects/:id) hien % hoan thanh/so thanh vien SAI (undefined,
+   * frontend fallback ve 0%) trong khi trang danh sach cung du an do lai hien dung. Goi lai
+   * computeProjectStats() (chi truyen 1 phan tu [id], ham nay von thiet ke cho batch nen nhan mang)
+   * de tra ve DUNG shape ProjectListItem ma findAll() da tra, khong con lech giua 2 endpoint.
+   */
+  async findById(organizationId: string, id: string): Promise<ProjectListItem> {
     const project = await this.projectRepo.findOne({ where: { id, organizationId } });
     if (!project) throw new NotFoundException('Khong tim thay du an');
-    return project;
+
+    const stats = await this.computeProjectStats([id]);
+    const stat = stats.get(id) ?? { completionRate: 0, memberCount: 0 };
+    return { ...project, ...stat };
   }
 
   async create(organizationId: string, actorId: string, dto: CreateProjectDto): Promise<Project> {
@@ -88,6 +100,9 @@ export class ProjectsService {
           organizationId,
           name: dto.name,
           description: dto.description ?? null,
+          // 22/07/2026 (fix code review, loi MINOR - Fix 8): wire dueDate tu DTO vao entity (truoc do
+          // khong co cot nay nen khong the gan gi ca - xem project.entity.ts/create-project.dto.ts).
+          dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
           status: ProjectStatus.ACTIVE,
           createdByUserId: actorId,
         }),
@@ -115,9 +130,22 @@ export class ProjectsService {
 
     if (dto.name !== undefined) project.name = dto.name;
     if (dto.description !== undefined) project.description = dto.description;
+    // 22/07/2026 (fix code review, loi MINOR - Fix 8): wire dueDate tu DTO vao entity (cung ly do voi create()).
+    if (dto.dueDate !== undefined) project.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
     return this.projectRepo.save(project);
   }
 
+  /**
+   * 22/07/2026 (fix code review, loi MAJOR - race condition doi trang thai dong thoi): ban truoc
+   * do doc pre-check KHONG khoa, roi doc LAI ben trong transaction bang `findOneOrFail` cung KHONG
+   * khoa - neu 2 request `complete()` cung 1 Project chay dong thoi, ca 2 co the deu doc duoc
+   * status ACTIVE (truoc khi request kia commit) roi CA HAI cung set COMPLETED va cung ghi outbox
+   * PROJECT_COMPLETED (double-emit, Analytics dem trung). Sua bang EXACT pattern cua
+   * TasksService.updateStatus(): doc lai ben trong transaction voi pessimistic write lock, roi
+   * re-check `status !== COMPLETED` MOT LAN NUA sau khi da khoa truoc khi apply - request thua
+   * cuoc (row da bi request thang cuoc doi thanh COMPLETED giua luc pre-check va luc khoa) nhan
+   * lai dung loi "da hoan thanh" (400) thay vi am tham ghi de/double-emit.
+   */
   async complete(organizationId: string, id: string, actorId: string): Promise<Project> {
     const existing = await this.projectRepo.findOne({ where: { id, organizationId } });
     if (!existing) throw new NotFoundException('Khong tim thay du an');
@@ -126,7 +154,16 @@ export class ProjectsService {
     }
 
     return this.dataSource.transaction(async (manager) => {
-      const project = await manager.findOneOrFail(Project, { where: { id, organizationId } });
+      const project = await manager.findOne(Project, {
+        where: { id, organizationId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!project) throw new NotFoundException('Khong tim thay du an');
+      // Re-check dua tren trang thai vua duoc khoa (khong dung bien `existing` da co the stale).
+      if (project.status === ProjectStatus.COMPLETED) {
+        throw new BadRequestException('Du an nay da o trang thai hoan thanh');
+      }
+
       project.status = ProjectStatus.COMPLETED;
       const updated = await manager.save(project);
 
@@ -143,14 +180,77 @@ export class ProjectsService {
   }
 
   /**
+   * 22/07/2026 (fix code review, loi MINOR, hoan thien tinh nang): ProjectStatus.ARCHIVED da khai
+   * bao san trong packages/common-dto (enums/task-status.enum.ts) va frontend da co san bo loc theo
+   * trang thai nay (xem ProjectQueryDto.status), nhung KHONG co endpoint/service method nao tung gan
+   * trang thai do cho Project - dead code, khong ai tao duoc du lieu de loc thu. Bo sung endpoint luu
+   * tru, mirror CHINH XAC pattern khoa pessimistic_write + re-check cua complete() o tren (tranh dung
+   * lai loi race condition da sua o do). KHONG ghi Outbox event: EVENT_TYPES (packages/common-dto,
+   * ngoai pham vi sua trong batch nay) chua co PROJECT_ARCHIVED hay 1 event dang PROJECT_UPDATED
+   * chung nao phu hop - phat nham PROJECT_COMPLETED se sai ngu nghia cho Analytics, nen bo qua buoc
+   * ghi Outbox thay vi phat sai.
+   */
+  // 22/07/2026: actorId hien khong dung ben trong ham (khong co outbox event de ghi actor, xem
+  // ghi chu tren) - giu tham so de dong bo chu ky voi complete()/remove() va san sang cho audit
+  // log/outbox trong tuong lai neu EVENT_TYPES bo sung PROJECT_ARCHIVED.
+  async archive(organizationId: string, id: string, actorId: string): Promise<Project> {
+    const existing = await this.projectRepo.findOne({ where: { id, organizationId } });
+    if (!existing) throw new NotFoundException('Khong tim thay du an');
+    if (existing.status === ProjectStatus.ARCHIVED) {
+      throw new BadRequestException('Du an nay da duoc luu tru');
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const project = await manager.findOne(Project, {
+        where: { id, organizationId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!project) throw new NotFoundException('Khong tim thay du an');
+      if (project.status === ProjectStatus.ARCHIVED) {
+        throw new BadRequestException('Du an nay da duoc luu tru');
+      }
+
+      project.status = ProjectStatus.ARCHIVED;
+      return manager.save(project);
+    });
+  }
+
+  /**
    * Fix code review 21/07/2026: xoa cung phai phat Outbox event (project.deleted) trong CUNG
    * transaction voi thao tac xoa, neu khong Analytics se dem nham du an da bi xoa cung.
+   *
+   * 22/07/2026 (fix code review, loi MAJOR - race condition xoa dong thoi, CUNG file voi Fix 3 tren):
+   * ban truoc do doc pre-check KHONG khoa roi `manager.remove(project)` vo dieu kien - neu 2 request
+   * `remove()` cung 1 Project chay dong thoi, ca 2 deu "thay" project roi cung xoa va cung ghi outbox
+   * PROJECT_DELETED (double-emit). Sua bang doc lai ben trong transaction voi pessimistic write lock;
+   * neu khong con thay row (da bi 1 request khac xoa mat giua luc pre-check va luc khoa) thi return
+   * som, KHONG xoa lai va KHONG ghi outbox lai - dung ngu nghia DELETE idempotent chuan REST.
+   *
+   * 22/07/2026 (fix code review, loi MAJOR - Fix 4, thieu event task.deleted khi cascade): Task co
+   * `onDelete: CASCADE` tren FK ve Project (task.entity.ts) nen xoa Project se HARD-DELETE toan bo
+   * Task cua no o tang DB, nhung truoc ban sua nay chi 1 event PROJECT_DELETED duy nhat duoc ghi ->
+   * Analytics khong bao gio biet cac Task con da bi xoa cung (dem sai so Task con "song"). Sua bang
+   * cach, TRUOC khi xoa Project, truy van danh sach id Task thuoc du an (ben trong CUNG transaction,
+   * SAU khi da khoa Project - dam bao doc dung tap Task tai thoi diem sap xoa), roi SAU khi xoa xong
+   * ghi THEM 1 outbox event TASK_DELETED cho MOI Task do - cung pattern FoldersService.remove() cua
+   * Document Service da dung cho truong hop cascade tuong tu (xoa thu muc cascade xoa file con, ghi
+   * 1 DOCUMENT_DELETED / file).
    */
   async remove(organizationId: string, actorId: string, id: string): Promise<void> {
-    const project = await this.projectRepo.findOne({ where: { id, organizationId } });
-    if (!project) throw new NotFoundException('Khong tim thay du an');
+    const existing = await this.projectRepo.findOne({ where: { id, organizationId } });
+    if (!existing) throw new NotFoundException('Khong tim thay du an');
 
     await this.dataSource.transaction(async (manager) => {
+      const project = await manager.findOne(Project, {
+        where: { id, organizationId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!project) return;
+
+      const orphanedTaskIds = (
+        await manager.find(Task, { where: { projectId: id }, select: ['id'] })
+      ).map((task) => task.id);
+
       // Cascade xoa toan bo Task/TaskAssignee/TaskComment/TaskStatusHistory cua du an nay qua FK onDelete: CASCADE.
       await manager.remove(project);
 
@@ -161,6 +261,16 @@ export class ProjectsService {
         producer: PRODUCER,
         payload: payload as unknown as Record<string, unknown>,
       });
+
+      for (const taskId of orphanedTaskIds) {
+        const taskPayload: TaskDeletedPayload = { taskId, projectId: id, actorId };
+        await this.outboxService.record(manager, {
+          eventType: EVENT_TYPES.TASK_DELETED,
+          organizationId,
+          producer: PRODUCER,
+          payload: taskPayload as unknown as Record<string, unknown>,
+        });
+      }
     });
   }
 

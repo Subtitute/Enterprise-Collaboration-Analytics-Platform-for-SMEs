@@ -34,6 +34,14 @@ export async function deactivateUser(id: string): Promise<void> {
   await apiClient.patch(`/users/${id}/deactivate`);
 }
 
+// 22/07/2026 (review toan du an): backend bo sung PATCH /users/:id/reactivate (fix loi Major -
+// truoc do 1 tai khoan bi vo hieu hoa khong co duong nao quay lai qua API, ke ca do bam nham),
+// nhung FE chua co cach nao goi toi - thieu ham nay thi fix backend khong the su dung duoc tu
+// giao dien. Bo sung de khep kin luong Quan tri > Thanh vien.
+export async function reactivateUser(id: string): Promise<void> {
+  await apiClient.patch(`/users/${id}/reactivate`);
+}
+
 export async function fetchDepartments(): Promise<Department[]> {
   const { data } = await apiClient.get<PaginatedResponse<Department> | Department[]>('/departments', { params: { limit: 200 } });
   return Array.isArray(data) ? data : data.data;

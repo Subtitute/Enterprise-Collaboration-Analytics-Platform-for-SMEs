@@ -89,6 +89,30 @@ describe('NotificationsService', () => {
       );
       expect(gatewayMock.emitNewNotification).not.toHaveBeenCalled();
     });
+
+    // 22/07/2026: bo sung - Fix 2 (poison-pill: loi du lieu vinh vien tu Mongoose bi log-and-skip).
+    it('coi la no-op THANH CONG (khong rethrow) khi Mongoose bao ValidationError - khong day WS', async () => {
+      const validationError = Object.assign(new Error('Path `userId` is required.'), {
+        name: 'ValidationError',
+      });
+      modelMock.create.mockRejectedValue(validationError);
+
+      const result = await service.createFromEvent('org-1', 'evt-1', draft);
+
+      expect(result).toBeNull();
+      expect(gatewayMock.emitNewNotification).not.toHaveBeenCalled();
+      expect(gatewayMock.emitUnreadCount).not.toHaveBeenCalled();
+    });
+
+    it('coi la no-op THANH CONG (khong rethrow) khi Mongoose bao CastError - khong day WS', async () => {
+      const castError = Object.assign(new Error('Cast to ObjectId failed'), { name: 'CastError' });
+      modelMock.create.mockRejectedValue(castError);
+
+      const result = await service.createFromEvent('org-1', 'evt-1', draft);
+
+      expect(result).toBeNull();
+      expect(gatewayMock.emitNewNotification).not.toHaveBeenCalled();
+    });
   });
 
   describe('findForUser', () => {
