@@ -52,8 +52,23 @@ export function UploadModal({ folderId, open, onClose }: { folderId: string | nu
             onDragLeave={() => setIsDragOver(false)}
             onDrop={handleDrop}
             onClick={() => inputRef.current?.click()}
+            // 25/07/2026: them role="button" + tabIndex + onKeyDown (Enter/Space) - truoc ban sua
+            // nay vung tha tep chi co onClick tren 1 the <div> thuong nen KHONG the tab-toi hay
+            // kich hoat bang ban phim (khong nam trong luong tab tu nhien, trinh doc man hinh cung
+            // khong bao day la 1 nut co the bam). Gan role="button" de bao dung ngu nghia, tabIndex
+            // ={0} de dua vao luong Tab, onKeyDown de Enter/Space kich hoat giong hanh vi <button>
+            // that (can preventDefault cho Space de trang khong bi cuon xuong).
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                inputRef.current?.click();
+              }
+            }}
             className={cn(
               'flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors',
+              'focus:outline-none focus:ring-2 focus:ring-primary-200',
               isDragOver ? 'border-primary-400 bg-primary-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50',
             )}
           >

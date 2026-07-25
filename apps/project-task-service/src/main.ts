@@ -2,13 +2,18 @@ import { NestFactory } from '@nestjs/core';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import { vietnameseValidationExceptionFactory } from '@app/common-guard';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(helmet());
   app.setGlobalPrefix('api/v1');
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  // 25/07/2026: bo sung exceptionFactory - fix audit "ValidationPipe tra loi 400 bang tieng Anh"
+  // (vd "email must be an email"), xem packages/common-guard/src/pipes/vietnamese-validation.pipe.ts.
+  app.useGlobalPipes(
+    new ValidationPipe({ whitelist: true, transform: true, exceptionFactory: vietnameseValidationExceptionFactory }),
+  );
   // 22/07/2026: bo enableCors() khong tham so - service noi bo, chi Gateway moi ap dung CORS
   // whitelist (xem giai thich day du tai apps/document-service/src/main.ts).
 

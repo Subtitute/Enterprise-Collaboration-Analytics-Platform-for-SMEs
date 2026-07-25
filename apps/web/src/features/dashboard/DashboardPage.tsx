@@ -116,9 +116,12 @@ export function DashboardPage() {
         <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle>Xu hướng hoàn thành công việc</CardTitle>
+            {/* 25/07/2026: them aria-label - Select nay khong co <Label> hien thi kem theo (chi
+                dat canh CardTitle) nen truoc do khong co ten hop le cho trinh doc man hinh. */}
             <Select
               value={range}
               onChange={(e) => setRange(e.target.value as DateRangeOption)}
+              aria-label="Khoảng thời gian"
               className="text-xs"
               style={{ width: 'auto' }}
             >

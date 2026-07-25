@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { QueryFailedError } from 'typeorm';
-import { TaskStatus } from '@app/common-dto';
+// 25/07/2026: them EVENT_TYPES - can cho assertion outbox trong test remove() bo sung ben duoi.
+import { EVENT_TYPES, TaskStatus } from '@app/common-dto';
 import { TasksService } from './tasks.service';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 
@@ -166,6 +167,74 @@ describe('TasksService', () => {
       // 1 lan save Task + 1 lan save TaskStatusHistory.
       expect(managerMock.save).toHaveBeenCalledTimes(2);
       expect(outboxServiceMock.record).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  // 25/07/2026: bo sung test con thieu cho remove() - ham nay dung pattern pessimistic-write-lock
+  // + xoa idempotent (fix code review 22/07/2026, xem chu thich tai TasksService.remove()) nhung
+  // truoc ban sua nay CHUA co unit test nao, mirror cach ProjectsService.remove() da duoc test.
+  describe('remove - pessimistic write lock + xoa idempotent (mirror ProjectsService.remove())', () => {
+    it('xoa thanh cong: khoa row bang pessimistic_write, remove() + ghi dung 1 event TASK_DELETED trong cung transaction', async () => {
+      const task = { id: taskId, organizationId, projectId: 'p1' };
+      const managerMock = {
+        findOne: jest.fn().mockResolvedValue(task),
+        remove: jest.fn().mockResolvedValue(undefined),
+      };
+      const dataSourceMock = { transaction: jest.fn((cb: any) => cb(managerMock)) };
+      const taskRepoMock = { findOne: jest.fn().mockResolvedValue(task) };
+      const outboxServiceMock = { record: jest.fn().mockResolvedValue(undefined) };
+
+      const service = new TasksService(
+        dataSourceMock as any,
+        taskRepoMock as any,
+        {} as any,
+        {} as any,
+        {} as any,
+        outboxServiceMock as any,
+      );
+
+      await expect(service.remove(organizationId, actorId, taskId)).resolves.toBeUndefined();
+
+      expect(managerMock.findOne).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ lock: { mode: 'pessimistic_write' } }),
+      );
+      expect(managerMock.remove).toHaveBeenCalledTimes(1);
+      expect(outboxServiceMock.record).toHaveBeenCalledTimes(1);
+      expect(outboxServiceMock.record).toHaveBeenCalledWith(
+        managerMock,
+        expect.objectContaining({
+          eventType: EVENT_TYPES.TASK_DELETED,
+          payload: expect.objectContaining({ taskId, projectId: 'p1', actorId }),
+        }),
+      );
+    });
+
+    it('goi remove() tren id da bi xoa truoc do khong nem loi (idempotent) - khong remove() lai, khong ghi outbox lai', async () => {
+      const task = { id: taskId, organizationId, projectId: 'p1' };
+      const managerMock = {
+        // Row da bi 1 request dong thoi khac xoa mat giua luc pre-check va luc khoa.
+        findOne: jest.fn().mockResolvedValue(null),
+        remove: jest.fn(),
+      };
+      const dataSourceMock = { transaction: jest.fn((cb: any) => cb(managerMock)) };
+      // Pre-check (khong khoa, dau ham) van thay task ton tai tai thoi diem do.
+      const taskRepoMock = { findOne: jest.fn().mockResolvedValue(task) };
+      const outboxServiceMock = { record: jest.fn().mockResolvedValue(undefined) };
+
+      const service = new TasksService(
+        dataSourceMock as any,
+        taskRepoMock as any,
+        {} as any,
+        {} as any,
+        {} as any,
+        outboxServiceMock as any,
+      );
+
+      await expect(service.remove(organizationId, actorId, taskId)).resolves.toBeUndefined();
+
+      expect(managerMock.remove).not.toHaveBeenCalled();
+      expect(outboxServiceMock.record).not.toHaveBeenCalled();
     });
   });
 

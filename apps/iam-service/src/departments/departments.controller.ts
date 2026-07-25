@@ -5,6 +5,9 @@ import { PERMISSIONS } from '@app/common-dto';
 import { DepartmentsService } from './departments.service';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
+// 25/07/2026: pipe dung chung validate :id la UUID hop le truoc khi cham toi DB - xem chu thich
+// chi tiet trong common/uuid-param.pipe.ts (loi MINOR, review 25/07/2026).
+import { uuidParamPipe } from '../common/uuid-param.pipe';
 
 @ApiTags('Departments')
 @ApiBearerAuth()
@@ -38,7 +41,7 @@ export class DepartmentsController {
   @RequirePermissions(PERMISSIONS.DEPARTMENT_MANAGE)
   update(
     @CurrentUser('organizationId') organizationId: string,
-    @Param('id') id: string,
+    @Param('id', uuidParamPipe()) id: string,
     @Body() dto: UpdateDepartmentDto,
   ) {
     return this.departmentsService.update(organizationId, id, dto);
@@ -46,7 +49,10 @@ export class DepartmentsController {
 
   @Delete(':id')
   @RequirePermissions(PERMISSIONS.DEPARTMENT_MANAGE)
-  remove(@CurrentUser('organizationId') organizationId: string, @Param('id') id: string) {
+  remove(
+    @CurrentUser('organizationId') organizationId: string,
+    @Param('id', uuidParamPipe()) id: string,
+  ) {
     return this.departmentsService.remove(organizationId, id);
   }
 }

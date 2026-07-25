@@ -16,7 +16,10 @@ export interface RegisterOrganizationPayload {
 
 export interface AuthResponse {
   accessToken: string;
-  refreshToken: string;
+  // 25/07/2026: xoa truong refreshToken (khong con duoc backend tra ve trong body tu khi refresh
+  // token chuyen sang httpOnly cookie - xem AuthSession trong stores/auth.store.ts, da khong con
+  // truong nay tu 21/07/2026). Xac nhan qua grep: khong con noi nao trong src doc AuthResponse
+  // .refreshToken ca - day la truong con sot lai tu truoc khi migrate sang httpOnly cookie.
   user: AuthUser;
 }
 
@@ -35,13 +38,16 @@ export async function registerOrganization(payload: RegisterOrganizationPayload)
   return data;
 }
 
-export async function refreshSession(refreshToken: string): Promise<AuthResponse> {
-  const { data } = await authClient.post<AuthResponse>('/auth/refresh', { refreshToken });
-  return data;
-}
+// 25/07/2026: xoa ham refreshSession(refreshToken) - day la ham chet tu truoc khi migrate refresh
+// token sang httpOnly cookie, xac nhan qua grep khong con call site nao. Luong refresh session
+// THAT SU dang dung la refreshAccessToken() trong lib/api-client.ts, goi authClient.post
+// ('/auth/refresh') KHONG kem body (trinh duyet tu gui kem cookie ecap_refresh_token).
 
-export async function logout(refreshToken: string): Promise<void> {
-  await apiClient.post('/auth/logout', { refreshToken });
+// 25/07/2026: bo tham so refreshToken (khong con y nghia - server doc token that tu httpOnly
+// cookie, moi gia tri client gui trong body deu bi bo qua). Cap nhat call site duy nhat trong
+// features/auth/hooks.ts (useLogout) theo cho khop chu ky moi.
+export async function logout(): Promise<void> {
+  await apiClient.post('/auth/logout');
 }
 
 export async function fetchMe(): Promise<AuthUser> {

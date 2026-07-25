@@ -155,6 +155,20 @@ export function isBufferContentConsistentWithMimeType(buffer: Buffer, mimeType: 
   return check(buffer);
 }
 
+// 25/07/2026: MAJOR fix (audit round) - export them 1 ham rieng de FilesService.getDownloadUrl()
+// biet duoc 1 mimeType co nam trong nhom "khong the doi chieu magic-byte" hay khong (hien tai chi
+// gom 'text/plain'/'text/csv' - xem ghi chu ngay tren MAGIC_BYTE_CHECKS). Ly do can bo sung: nhom
+// nay CHI duoc bao ve boi Content-Type client tu khai bao luc upload (mimeTypeFileFilter), nen 1
+// file thuc chat la HTML/JS van co the duoc luu voi mimeType = 'text/plain'. Ket hop voi duong tai
+// `?disposition=inline` (content-disposition.util.ts) va viec MinIO presigned URL phuc vu file tu
+// 1 origin khac KHONG dat duoc header `X-Content-Type-Options: nosniff` (presigned URL chi override
+// duoc `response-content-type`/`response-content-disposition`, khong phai header tuy y), file loai
+// nay co nguy co bi trinh duyet "sniff" noi dung roi RENDER/CHAY nhu HTML/JS that khi nguoi dung bam
+// "Xem" - xem xu ly cu the o FilesService.getDownloadUrl().
+export function hasReliableMagicByteCheck(mimeType: string): boolean {
+  return mimeType in MAGIC_BYTE_CHECKS;
+}
+
 /**
  * Wrapper nem `BadRequestException` (cung dinh dang loi chuan `VALIDATION_ERROR` nhu
  * `mimeTypeFileFilter`) - goi tu `FilesService.upload()`/`uploadNewVersion()` SAU KHI buffer file

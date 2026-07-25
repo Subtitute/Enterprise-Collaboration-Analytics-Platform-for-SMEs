@@ -197,6 +197,58 @@ describe('AnalyticsService', () => {
       expect(taskSql).toContain("d.event_type = 'task.deleted'");
       expect(taskSql).toContain("pd.event_type = 'project.deleted'");
     });
+
+    // 25/07/2026 (Fix 1 - Major, audit): cau truy van dem task PHAI dung 1 cohort DUY NHAT
+    // (created_tasks JOIN latest_status), giong HET pattern cua getTaskStatusBreakdown()/
+    // getProjectProgress() o duoi trong file nay - thay vi 2 count(...) FILTER doc lap tren
+    // 2 event_type khac nhau cua CUNG 1 tap hang loc theo `time`. Harness hien tai chi mock
+    // ket qua DataSource.query() (khong co Postgres/TimescaleDB that de chay SQL that), nen
+    // khong the "chay" cohort join va tu no kiem chung ket qua - test ben duoi kiem tra
+    // HINH DANG SQL (cau truc CTE/JOIN) de dam bao khong quay lai kieu 2-FILTER-doc-lap cu, va
+    // 1 test rieng kiem tra bat bien completionRate <= 100% tren gia tri hang tra ve dung hinh
+    // dang cohort (total_tasks_completed la tap con cua total_tasks_created). KHONG chay duoc
+    // integration test that voi Postgres/Timescale that trong moi truong nay (khong co ket noi
+    // DB dev dang chay san cho task nay) - can luu y truoc khi coi day la kiem chung day du.
+    it('dung cohort created_tasks JOIN latest_status (giong getTaskStatusBreakdown/getProjectProgress) thay vi 2 FILTER doc lap - Fix 1 (Major) 25/07/2026', async () => {
+      mockThreeQueries(
+        { total_tasks_created: '5', total_tasks_completed: '5' },
+        { new_documents: '0' },
+        { active_users: '0' },
+      );
+
+      await service.getSummary('org-1', '7d');
+
+      const [taskSql] = queryMock.mock.calls[0];
+      expect(taskSql).toContain('WITH created_tasks AS');
+      expect(taskSql).toContain("t.event_type = 'task.created'");
+      expect(taskSql).toContain('latest_status AS');
+      expect(taskSql).toContain("event_type = 'task.status_changed'");
+      expect(taskSql).toContain('LEFT JOIN latest_status ls ON ls.task_id = ct.task_id');
+      // total_tasks_completed phai duoc tinh BANG FILTER tren KET QUA JOIN cua chinh cohort
+      // created_tasks (bien ct/ls), khong phai FILTER doc lap tren fact_task_events tho nhu SQL cu.
+      expect(taskSql).toContain("FILTER (WHERE COALESCE(ls.to_status, 'TODO') = 'DONE')");
+      expect(taskSql).not.toMatch(/count\(DISTINCT task_id\) FILTER \(WHERE event_type = 'task\.created'\)/);
+    });
+
+    it('task duoc TAO TRUOC khoang thoi gian roi mo lai/hoan thanh lai BEN TRONG khoang khong duoc dem (khong thuoc cohort) - completionRate khong the vuot 100% - Fix 1 (Major) 25/07/2026', async () => {
+      // Mo phong ket qua truy van cohort: to chuc co 2 task duoc TAO trong khoang (cohort size=2),
+      // ca 2 hien dang DONE -> total_tasks_completed toi da BANG total_tasks_created (2), khong
+      // the vuot qua du co bao nhieu task CU (tao truoc khoang) duoc "mo lai roi hoan thanh lai"
+      // NGAY TRONG khoang di nua - vi cac task CU do khong nam trong created_tasks (dieu kien
+      // t.time >= now() - interval AND event_type = 'task.created' khong khop) nen KHONG duoc
+      // JOIN vao ket qua, dung nhu thiet ke cohort.
+      mockThreeQueries(
+        { total_tasks_created: '2', total_tasks_completed: '2' },
+        { new_documents: '0' },
+        { active_users: '0' },
+      );
+
+      const result = await service.getSummary('org-1', '7d');
+
+      expect(result.totalTasksCompleted).toBeLessThanOrEqual(result.totalTasksCreated);
+      expect(result.completionRate).toBeLessThanOrEqual(100);
+      expect(result.completionRate).toBe(100);
+    });
   });
 
   // 22/07/2026: bo sung - Fix 4 (cache Redis khong duoc phep la 1 dependency cung bat buoc).

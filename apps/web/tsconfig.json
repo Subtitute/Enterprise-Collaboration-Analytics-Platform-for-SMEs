@@ -26,7 +26,10 @@
       "@/*": ["src/*"]
     },
 
-    "types": ["vite/client"]
+    // 25/07/2026: them "vitest/globals" (describe/it/expect toan cuc, khop voi test.globals:
+    // true trong vite.config.ts) va "@testing-library/jest-dom" (matcher nhu toBeInTheDocument())
+    // de tsc --noEmit (npm run typecheck) khong bao loi tren cac file *.test.ts(x) moi them.
+    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"]
   },
   "include": ["src", "vite.config.ts"]
 }

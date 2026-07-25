@@ -26,8 +26,11 @@ export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: 
   return (
     <Modal open={Boolean(file)} onClose={handleClose} title={`Chia sẻ "${file?.name ?? ''}"`} size="sm">
       <div className="space-y-4">
-        <FormField label="Chia sẻ với" required>
-          <Select value={userId} onChange={(e) => setUserId(e.target.value)}>
+        {/* 25/07/2026: them htmlFor/id (share-user, share-permission) - <Label> truoc do khong gan
+            duoc voi control tuong ung, cung loi nhu TaskDetailModal.tsx, sua theo dung pattern
+            NewTaskModal.tsx/InviteMemberModal.tsx dang dung. */}
+        <FormField label="Chia sẻ với" htmlFor="share-user" required>
+          <Select id="share-user" value={userId} onChange={(e) => setUserId(e.target.value)}>
             <option value="">Chọn thành viên…</option>
             {(users ?? []).map((u) => (
               <option key={u.id} value={u.id}>
@@ -36,8 +39,8 @@ export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: 
             ))}
           </Select>
         </FormField>
-        <FormField label="Quyền truy cập">
-          <Select value={permission} onChange={(e) => setPermission(e.target.value)}>
+        <FormField label="Quyền truy cập" htmlFor="share-permission">
+          <Select id="share-permission" value={permission} onChange={(e) => setPermission(e.target.value)}>
             {PERMISSIONS.map((p) => (
               <option key={p.value} value={p.value}>
                 {p.label}

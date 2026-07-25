@@ -5,6 +5,9 @@ import { PaginationQueryDto, PERMISSIONS } from '@app/common-dto';
 import { UsersService } from './users.service';
 import { InviteUserDto } from './dto/invite-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+// 25/07/2026: pipe dung chung validate :id la UUID hop le truoc khi cham toi DB - xem chu thich
+// chi tiet trong common/uuid-param.pipe.ts (loi MINOR, review 25/07/2026).
+import { uuidParamPipe } from '../common/uuid-param.pipe';
 
 /** Quan tri > Thanh vien - Wireframe.md muc 8. */
 @ApiTags('Users')
@@ -53,7 +56,10 @@ export class UsersController {
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') callerId: string,
     @CurrentUser('permissions') callerPermissions: string[],
-    @Param('id') id: string,
+    // 25/07/2026: them uuidParamPipe() de tra 400 Vietnamese ro rang khi :id sai dinh dang, thay
+    // vi de QueryFailedError tho tu Postgres roi xuong 500 chung chung (loi MINOR, review
+    // 25/07/2026) - xem chu thich chi tiet trong common/uuid-param.pipe.ts.
+    @Param('id', uuidParamPipe()) id: string,
   ) {
     const isSelf = id === callerId;
     const canManageUsers = (callerPermissions ?? []).includes(PERMISSIONS.USER_MANAGE);
@@ -65,18 +71,28 @@ export class UsersController {
 
   @Post('invite')
   @RequirePermissions(PERMISSIONS.USER_INVITE)
-  invite(@CurrentUser('organizationId') organizationId: string, @Body() dto: InviteUserDto) {
-    return this.usersService.invite(organizationId, dto);
+  invite(
+    @CurrentUser('organizationId') organizationId: string,
+    // 25/07/2026: RBAC bypass CRITICAL - can permissions cua nguoi goi de UsersService.invite()
+    // tu quyet dinh co cho phep dto.roleIds duoc ap dung hay khong (chi user:manage moi duoc cap
+    // vai tro cho thanh vien moi) - xem chu thich chi tiet trong users.service.ts invite().
+    @CurrentUser('permissions') callerPermissions: string[],
+    @Body() dto: InviteUserDto,
+  ) {
+    return this.usersService.invite(organizationId, dto, callerPermissions ?? []);
   }
 
   @Patch(':id')
   @RequirePermissions(PERMISSIONS.USER_MANAGE)
   update(
     @CurrentUser('organizationId') organizationId: string,
-    @Param('id') id: string,
+    // 25/07/2026: cung ly do voi invite() o tren - truyen tiep permissions cho lop chan phong thu
+    // chieu sau trong UsersService.update() (dto.roleIds).
+    @CurrentUser('permissions') callerPermissions: string[],
+    @Param('id', uuidParamPipe()) id: string,
     @Body() dto: UpdateUserDto,
   ) {
-    return this.usersService.update(organizationId, id, dto);
+    return this.usersService.update(organizationId, id, dto, callerPermissions ?? []);
   }
 
   @Patch(':id/deactivate')
@@ -84,7 +100,7 @@ export class UsersController {
   deactivate(
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') actorId: string,
-    @Param('id') id: string,
+    @Param('id', uuidParamPipe()) id: string,
   ) {
     return this.usersService.deactivate(organizationId, id, actorId);
   }
@@ -97,7 +113,10 @@ export class UsersController {
   // apps/iam-service/src/** cua fix nay (xem bao cao cuoi cung).
   @Patch(':id/reactivate')
   @RequirePermissions(PERMISSIONS.USER_MANAGE)
-  reactivate(@CurrentUser('organizationId') organizationId: string, @Param('id') id: string) {
+  reactivate(
+    @CurrentUser('organizationId') organizationId: string,
+    @Param('id', uuidParamPipe()) id: string,
+  ) {
     return this.usersService.reactivate(organizationId, id);
   }
 }

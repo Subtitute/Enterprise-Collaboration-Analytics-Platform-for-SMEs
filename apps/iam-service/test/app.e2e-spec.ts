@@ -183,6 +183,54 @@ describe('IAM Service - dang ky to chuc & dang nhap (e2e)', () => {
     expect(res.body.error).toBeDefined();
   });
 
+  // 25/07/2026: bai bad-login truoc do (ngay tren) chi test nhanh "email TON TAI nhung sai mat
+  // khau" cua login() - chua bao gio goi toi nhanh "email KHONG TON TAI" (`!user`), tuc la chua
+  // bao gio thuc su chay qua nhanh DUMMY_PASSWORD_HASH (timing-normalization, xem chu thich dau
+  // auth.service.ts). Bai nay xac nhan ca 2 dieu kien cung luc: (1) email khong ton tai van tra ve
+  // CUNG 1 status code (401) va CUNG 1 thong diep loi chung chung "Email hoac mat khau khong dung"
+  // nhu nhanh sai-mat-khau o tren - KHONG duoc phep lo ra 1 status/message khac (vd 404 "khong tim
+  // thay nguoi dung") vi dieu do se cho ke tan cong biet ngay email nao TON TAI trong he thong ma
+  // khong can do timing; (2) request van hoan tat binh thuong (khong throw/crash) du user = null,
+  // xac nhan nhanh `await bcrypt.compare(dto.password, DUMMY_PASSWORD_HASH)` thuc su duoc thuc thi
+  // thay vi bi bo qua truoc khi tra loi.
+  it('dang nhap that bai (401) voi CUNG thong diep loi chung chung khi email KHONG TON TAI (nhanh DUMMY_PASSWORD_HASH) - review 25/07/2026', async () => {
+    const suffix = `${Date.now()}-${Math.floor(Math.random() * 10_000)}`;
+    const nonexistentEmail = `e2e-nonexistent-${suffix}@demo-sme.vn`;
+    const realEmail = `e2e-badlogin-cmp-${suffix}@demo-sme.vn`;
+
+    // Dang ky 1 tai khoan THAT de lam doi chung cho nhanh "email TON TAI nhung sai mat khau" -
+    // phai la 1 user THAT trong DB (khong phai 1 email nguoc doi khac) de phep so sanh nay co y
+    // nghia: xac nhan nhanh "khong ton tai" (test chinh ben duoi) tra ve HET SUC giong nhanh "ton
+    // tai nhung sai mat khau" (da test o bai ngay tren, lap lai o day de doi chieu status/message
+    // truc tiep trong CUNG 1 bai).
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/register-organization')
+      .send({
+        organizationName: `E2E Badlogin Cmp Org ${suffix}`,
+        adminFullName: 'E2E Badlogin Cmp Admin',
+        adminEmail: realEmail,
+        adminPassword: 'Password123!',
+      })
+      .expect(201);
+
+    const wrongPasswordRes = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: realEmail, password: 'Sai-Mat-Khau-Khac-123' })
+      .expect(401);
+
+    const nonexistentRes = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ email: nonexistentEmail, password: 'Password123!' })
+      .expect(401);
+
+    expect(nonexistentRes.body.error).toBeDefined();
+    // Cung 1 status code (401) va CUNG 1 message chung chung cho ca 2 nhanh "email khong ton tai"
+    // va "email ton tai nhung sai mat khau" - khong duoc phep phan biet duoc email nao ton tai.
+    expect(nonexistentRes.status).toBe(wrongPasswordRes.status);
+    expect(nonexistentRes.body.message).toEqual(wrongPasswordRes.body.message);
+    expect(nonexistentRes.body.message).toEqual('Email hoac mat khau khong dung');
+  });
+
   it('dang ky that bai (409) khi email da duoc dung boi 1 to chuc khac', async () => {
     const suffix = `${Date.now()}-${Math.floor(Math.random() * 10_000)}`;
     const adminEmail = `e2e-duplicate-${suffix}@demo-sme.vn`;

@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -60,6 +60,8 @@ export function parseDurationMs(duration: string): number {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
@@ -169,7 +171,26 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token khong hop le hoac da het han');
     }
 
-    const isBlacklisted = await this.redisService.isTokenBlacklisted(payload.tokenId);
+    // 25/07/2026: MAJOR (review 25/07/2026) - truoc day goi thang isTokenBlacklisted() khong co
+    // try/catch: 1 su co Redis tam thoi (mat ket noi, timeout...) se nem loi thang len, lam ca
+    // luong refresh() 500 chung chung thay vi chi bo qua kiem tra blacklist - khac voi triet ly
+    // "fail-open" da ap dung o Gateway (jwt-auth.middleware.ts) va cac Redis-call khac tuong tu o
+    // Analytics-service: mat Redis tam thoi KHONG duoc phep lam sap ca luong dang nhap/refresh cua
+    // toan he thong. Danh doi co chu dich: neu Redis dang loi, coi nhu "chua bi thu hoi" (fail
+    // open) - ban ghi RefreshToken trong Postgres (kiem tra ben duoi qua revokeRefreshToken() sau
+    // nay va userRepo.findOne()) van la co che xac thuc/thu hoi CHINH, Redis blacklist chi la lop
+    // phong thu chieu sau (defense in depth) danh cho truong hop token da bi revoke NHUNG chua het
+    // han JWT - uu tien tinh san sang (availability) hon do nghiem ngat tuyet doi o day.
+    let isBlacklisted = false;
+    try {
+      isBlacklisted = await this.redisService.isTokenBlacklisted(payload.tokenId);
+    } catch (err) {
+      this.logger.warn(
+        `Kiem tra Redis blacklist that bai, coi nhu token CHUA bi thu hoi (fail-open): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
     if (isBlacklisted) {
       throw new UnauthorizedException('Refresh token da bi thu hoi');
     }
@@ -222,7 +243,23 @@ export class AuthService {
     const ttlSeconds = expUnixSeconds
       ? Math.max(0, expUnixSeconds - Math.floor(Date.now() / 1000))
       : 0;
-    await this.redisService.blacklistToken(tokenId, ttlSeconds);
+    // 25/07/2026: MAJOR (review 25/07/2026) - cung tinh than fail-open voi isTokenBlacklisted()
+    // o refresh() phia tren, nhung o chieu nguoc lai (ghi thay vi doc): neu Redis dang loi luc
+    // ghi blacklist, KHONG duoc phep lam that bai ca logout()/rotation cua refresh() - ban ghi
+    // RefreshToken vua bi delete() ngay phia tren (result.affected > 0, da xac nhan truoc khi toi
+    // day) MOI la co che thu hoi CHINH va da du hieu luc (JWT verifyAsync() cua lan refresh/logout
+    // sau se khong con tim thay ban ghi tuong ung); ghi blacklist Redis o day chi la lop phong thu
+    // chieu sau bo sung, log-and-swallow neu that bai thay vi nem loi len lam nguoi dung "dang
+    // xuat khong thanh cong" hay "refresh() 500" chi vi Redis tam thoi gian doan.
+    try {
+      await this.redisService.blacklistToken(tokenId, ttlSeconds);
+    } catch (err) {
+      this.logger.warn(
+        `Ghi Redis blacklist that bai (bo qua, RefreshToken trong DB da bi thu hoi la co che chinh): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
   }
 
   private async issueTokenPair(user: User): Promise<TokenPair> {

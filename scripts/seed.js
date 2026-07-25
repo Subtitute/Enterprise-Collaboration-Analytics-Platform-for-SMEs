@@ -55,6 +55,17 @@ const TASK_TITLES = [
   'Dao tao nhan vien moi',
 ];
 
+// 25/07/2026: to chuc demo CO DINH (khong con hau to timestamp trong ten/email admin) - xem main()
+// de biet cach script PHAT HIEN to chuc nay da ton tai tu lan chay truoc (API tra ve 409 Conflict
+// tren adminEmail) va TAI SU DUNG (dang nhap lai) thay vi luon tao to chuc moi. Truoc day moi lan
+// `npm run seed` deu tao 1 to chuc rieng voi ten/email co hau to Date.now() - neu script that bai
+// giua chung (vi du fetchWithRetry() het luot thu lai do 429), to chuc partial do bi "mo coi" vinh
+// vien (khong co duong phuc hoi) va lan chay lai ke tiep chi tao THEM 1 to chuc moi khac thay vi
+// tiep tuc/thay the to chuc loi (loi MAJOR, audit 25/07/2026).
+const DEMO_ORG_NAME = 'Demo SME (Seed Script)';
+const DEMO_ADMIN_EMAIL = 'admin@demo-sme.vn';
+const DEMO_ADMIN_PASSWORD = 'Password123!';
+
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -88,7 +99,12 @@ async function apiCall(path, options = {}) {
   const text = await res.text();
   const body = text ? JSON.parse(text) : null;
   if (!res.ok) {
-    throw new Error(`${options.method || 'GET'} ${path} -> ${res.status}: ${JSON.stringify(body)}`);
+    // 25/07/2026: dinh kem res.status vao Error (thay vi chi nhet vao chuoi message) - de noi goi
+    // (vd main() khi dang ky to chuc demo) co the phan biet ro rang 409 Conflict (to chuc/email da
+    // ton tai - can tai su dung) voi cac loi khac (can nem lai nguyen ven), khong phai parse chuoi.
+    const err = new Error(`${options.method || 'GET'} ${path} -> ${res.status}: ${JSON.stringify(body)}`);
+    err.status = res.status;
+    throw err;
   }
   return body;
 }
@@ -153,23 +169,55 @@ function buildSampleDocuments(project) {
 async function main() {
   console.log(`Seeding vao ${API_BASE_URL} ...`);
 
+  // 25/07/2026: suffix chi con dung cho EMAIL NHAN VIEN ben duoi (De script van chay lai duoc
+  // nhieu lan tren CUNG 1 to chuc ma khong trung email nhan vien voi lan chay truoc) - KHONG con
+  // dung cho ten to chuc/email admin (xem khoi try/catch ben duoi va hang so DEMO_ORG_NAME/
+  // DEMO_ADMIN_EMAIL dau file).
   const suffix = Date.now().toString().slice(-6);
-  const adminEmail = `admin+${suffix}@demo-sme.vn`;
-  const adminPassword = 'Password123!';
+  const adminEmail = DEMO_ADMIN_EMAIL;
+  const adminPassword = DEMO_ADMIN_PASSWORD;
 
-  const registerRes = await apiCall('/auth/register-organization', {
-    method: 'POST',
-    body: JSON.stringify({
-      organizationName: `Demo SME ${suffix}`,
-      adminFullName: 'Quan Tri Vien Demo',
-      adminEmail,
-      adminPassword,
-    }),
-  });
+  // 25/07/2026: dang ky to chuc demo CO DINH (ten/email khong con hau to timestamp). Neu to chuc
+  // nay da ton tai tu lan chay truoc (API tra ve 409 Conflict do adminEmail da duoc dung), TAI SU
+  // DUNG bang cach dang nhap lai thay vi de loi lam hong script hoac (nhu truoc day) tao them 1 to
+  // chuc "mo coi" moi - dam bao mot lan chay giua chung that bai KHONG lam ro ri to chuc partial
+  // khong co duong phuc hoi, va script THAT SU idempotent o cap to chuc/admin (xem chu thich
+  // DEMO_ORG_NAME dau file).
+  let registerRes;
+  try {
+    registerRes = await apiCall('/auth/register-organization', {
+      method: 'POST',
+      body: JSON.stringify({
+        organizationName: DEMO_ORG_NAME,
+        adminFullName: 'Quan Tri Vien Demo',
+        adminEmail,
+        adminPassword,
+      }),
+    });
+    console.log(`Da tao to chuc moi "${registerRes.organization.name}" - Org Admin: ${adminEmail}`);
+  } catch (err) {
+    if (err.status !== 409) throw err;
+    console.log(
+      `To chuc demo "${DEMO_ORG_NAME}" da ton tai tu lan chay truoc (adminEmail trung) - dang nhap ` +
+        'lai de tai su dung thay vi tao to chuc moi...',
+    );
+    const loginRes = await apiCall('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email: adminEmail, password: adminPassword }),
+    });
+    // 25/07/2026: /auth/login khong tra ve ten to chuc (chi tra { accessToken, user }, user.organizationId
+    // - xem AuthService.login()/toPublicUser() apps/iam-service) nen dung lai DEMO_ORG_NAME hang so o
+    // day cho phan hien thi/log; organizationId that su van lay dung tu user.organizationId da dang nhap.
+    registerRes = {
+      accessToken: loginRes.accessToken,
+      user: loginRes.user,
+      organization: { id: loginRes.user.organizationId, name: DEMO_ORG_NAME },
+    };
+    console.log(`Da dang nhap lai to chuc demo hien co - Org Admin: ${adminEmail}`);
+  }
   const { accessToken } = registerRes;
   const organizationId = registerRes.organization.id;
   const authHeaders = { Authorization: `Bearer ${accessToken}` };
-  console.log(`Da tao to chuc "${registerRes.organization.name}" - Org Admin: ${adminEmail}`);
 
   const departments = [];
   for (const name of DEPARTMENTS) {
@@ -334,6 +382,14 @@ function randomTimestampInRange(startMs, endMs) {
  * Moi hang deu dung eventId la UUID that su ngau nhien (crypto.randomUUID()) nen khong trung
  * voi eventId cua bat ky su kien that nao tung/se di qua Kafka (chong dung idempotency key that).
  * organizationId luon la to chuc vua duoc seed o tren (khong "ro ri" sang to chuc khac).
+ *
+ * 25/07/2026: vi eventId la UUID NGAU NHIEN moi lan chay, `ON CONFLICT (time, event_id) DO NOTHING`
+ * (xem insertTaskEvent/insertDocumentEvent/insertUserActivity ben duoi) khong bao gio tu kich hoat
+ * duoc giua cac lan chay khac nhau -> chay `npm run seed` nhieu lan tren CUNG 1 to chuc demo (nay
+ * da CO DINH, xem DEMO_ORG_NAME/main()) truoc day se cong don du lieu synthetic trung lap vo han.
+ * Thay vi ep timestamp/eventId tat dinh (mau thuan voi thiet ke "cua so 8 tuan tinh den hien tai"
+ * + jitter ngau nhien de bieu do xu huong trong that hon), ham nay XOA cac hang synthetic CU cua
+ * CHINH to chuc nay (time < now - 7 ngay) truoc khi chen lai - xem doan xoa dau khoi try{} ben duoi.
  */
 async function seedHistoricalAnalyticsData({ organizationId, projectIds, folderIds, userIds }) {
   console.log('\n--- [DEMO-ONLY] Bat dau chen du lieu lich su tong hop (~8 tuan) vao TimescaleDB ---');
@@ -373,7 +429,35 @@ async function seedHistoricalAnalyticsData({ organizationId, projectIds, folderI
     let documentEventCount = 0;
     let activityEventCount = 0;
 
-    for (let weeksAgo = WEEKS_OF_HISTORY; weeksAgo >= 1; weeksAgo -= 1) {
+    // 25/07/2026: XOA cac hang backfill synthetic CU cua CHINH to chuc demo nay (neu co tu lan
+    // chay `npm run seed` truoc do) TRUOC khi chen lai - xem ly do chi tiet o docstring ham nay o
+    // tren. CHI xoa nhung hang co time < (now - 7 ngay): du lieu THAT vua duoc seed qua API o cac
+    // buoc tren (task/document, luon mang timestamp ~ "now" cua LAN CHAY NAY) khong bao gio roi
+    // vao dieu kien nay nen khong bi anh huong; vong lap backfill ben duoi cung duoc gioi han chi
+    // sinh du lieu synthetic tu 2 tuan truoc tro ve truoc (xem "weeksAgo >= 2" ben duoi), tranh
+    // chong lan khoang thoi gian voi du lieu that noi tren.
+    const historicalCutoffIso = new Date(now - 7 * MS_PER_DAY).toISOString();
+    const delTaskEvents = await client.query(
+      'DELETE FROM fact_task_events WHERE organization_id = $1 AND time < $2::timestamptz',
+      [organizationId, historicalCutoffIso],
+    );
+    const delDocEvents = await client.query(
+      'DELETE FROM fact_document_events WHERE organization_id = $1 AND time < $2::timestamptz',
+      [organizationId, historicalCutoffIso],
+    );
+    const delActivity = await client.query(
+      'DELETE FROM fact_user_activity WHERE organization_id = $1 AND time < $2::timestamptz',
+      [organizationId, historicalCutoffIso],
+    );
+    const deletedTotal = (delTaskEvents.rowCount || 0) + (delDocEvents.rowCount || 0) + (delActivity.rowCount || 0);
+    if (deletedTotal > 0) {
+      console.log(`Da xoa ${deletedTotal} hang synthetic cu (backfill tu lan chay truoc) truoc khi chen lai.`);
+    }
+
+    // 25/07/2026: dung lai o "weeksAgo >= 2" (bo qua tuan gan nhat, weeksAgo = 1) - tuan gan nhat
+    // da duoc du lieu THAT (task/document vua tao qua API o tren) bao phu, dong thoi tranh chong
+    // lan thoi gian voi nguong xoa historicalCutoffIso o tren (xem giai thich chi tiet o docstring).
+    for (let weeksAgo = WEEKS_OF_HISTORY; weeksAgo >= 2; weeksAgo -= 1) {
       const weekEndMs = now - (weeksAgo - 1) * 7 * MS_PER_DAY;
       const weekStartMs = weekEndMs - 7 * MS_PER_DAY;
       // recency: 0 (8 tuan truoc) -> 1 (tuan gan nhat) - dung de tao xu huong "cai thien dan
@@ -555,7 +639,10 @@ async function seedHistoricalAnalyticsData({ organizationId, projectIds, folderI
 
     console.log(
       `Da chen ${taskEventCount} hang fact_task_events, ${documentEventCount} hang fact_document_events, ` +
-        `${activityEventCount} hang fact_user_activity (trai dai ${WEEKS_OF_HISTORY} tuan gan nhat).`,
+        // 25/07/2026: chi con ${WEEKS_OF_HISTORY - 1} tuan la synthetic (tuan gan nhat da duoc du
+        // lieu THAT o buoc seed qua API bao phu - xem "weeksAgo >= 2" o tren).
+        `${activityEventCount} hang fact_user_activity (trai dai ${WEEKS_OF_HISTORY - 1} tuan truoc, ` +
+        'cong voi du lieu that cua tuan gan nhat da seed qua API o tren).',
     );
 
     // Cac continuous aggregate (daily_task_summary/weekly_project_progress/daily_document_activity)

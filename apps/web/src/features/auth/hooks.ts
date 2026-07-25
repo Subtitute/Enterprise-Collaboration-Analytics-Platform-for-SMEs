@@ -47,8 +47,11 @@ export function useLogout() {
 
   return useMutation({
     mutationFn: async () => {
+      // 25/07/2026: logoutApi() khong con nhan tham so - backend doc refresh token that tu httpOnly
+      // cookie, gia tri "refreshToken" o day chi la co (flag) client-side (xem auth.store.ts) nen
+      // van giu dieu kien if() de tranh goi API dang xuat khi ro rang chua co phien dang nhap nao.
       if (refreshToken) {
-        await logoutApi(refreshToken).catch(() => undefined);
+        await logoutApi().catch(() => undefined);
       }
     },
     onSettled: () => {

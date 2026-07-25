@@ -62,6 +62,15 @@ export function setupGateway(app: INestApplication): (server: Server) => void {
   });
 
   return (server: Server) => {
+    // 25/07/2026: ghi chu ro rang (phat hien qua code review toan du an) - KHAC voi viec bo qua
+    // xac thuc JWT cho /ws/* (co chu dich, da giai thich o dau file), handler 'upgrade' nay hoan
+    // toan KHONG di qua createRateLimitMiddleware() (chi app.use() duoc - middleware Express
+    // thuong khong bao gio chay tren su kien 'upgrade' cua http.Server, vi Express router chi xu
+    // ly request/response HTTP thong thuong). Nghia la traffic nang cap WebSocket
+    // (/ws/notifications, /ws/analytics) hien KHONG bi rate-limit o tang Gateway. Day la GIOI HAN
+    // DA BIET va CHAP NHAN duoc trong pham vi lan sua nay (khong trien khai rate-limit cho WS
+    // upgrade o day) - KHONG phai thieu sot vo tinh; can theo doi rieng neu sau nay can chan
+    // spam ket noi WS.
     server.on('upgrade', (req, socket, head) => {
       const pathname = (req.url ?? '').split('?')[0];
       const match = wsProxies.find(({ prefix }) => matchesPrefix(pathname, [prefix]));

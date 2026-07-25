@@ -11,7 +11,8 @@
     "test": "jest"
   },
   "dependencies": {
-    "@app/common-dto": "*"
+    "@app/common-dto": "*",
+    "class-validator": "^0.14.1"
   },
   "peerDependencies": {
     "@nestjs/common": "^10.0.0 || ^11.0.0",

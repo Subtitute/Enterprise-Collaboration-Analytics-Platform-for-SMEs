@@ -20,6 +20,17 @@ export function TaskCard({ task, index, onClick }: { task: Task; index: number; 
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           onClick={onClick}
+          // 25/07/2026: them onKeyDown (Enter) de nguoi dung dung ban phim mo duoc Modal chi tiet
+          // cong viec - truoc ban sua nay the chi co onClick, khong the "kich hoat" bang ban phim.
+          // An toan de them rieng: kieu DraggableProvidedDragHandleProps cua @hello-pangea/dnd
+          // KHONG co san onKeyDown (chi co data-rfd-*, role, tabIndex, draggable, onDragStart) -
+          // thao tac "nhac" (lift)/di chuyen bang phim Space/mui ten cua thu vien duoc gan qua
+          // addEventListener native rieng, khong di qua prop React nay, nen khong co xung dot ghi
+          // de can xu ly. Chi bat Enter (khong dung Space) de tranh dung tram len nghia Space cua
+          // thu vien du hai co che nay doc lap voi nhau.
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') onClick();
+          }}
           className={cn(
             'cursor-pointer select-none p-3 shadow-none hover:border-primary-300 hover:shadow-card',
             snapshot.isDragging && 'rotate-1 shadow-xl',

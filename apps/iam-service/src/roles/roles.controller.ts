@@ -4,6 +4,9 @@ import { CurrentUser, RequirePermissions } from '@app/common-guard';
 import { PERMISSIONS } from '@app/common-dto';
 import { RolesService } from './roles.service';
 import { UpdateRolePermissionsDto } from './dto/update-role-permissions.dto';
+// 25/07/2026: pipe dung chung validate :id la UUID hop le truoc khi cham toi DB - xem chu thich
+// chi tiet trong common/uuid-param.pipe.ts (loi MINOR, review 25/07/2026).
+import { uuidParamPipe } from '../common/uuid-param.pipe';
 
 /** Quan tri > Vai tro & Phan quyen - Wireframe.md muc 8. */
 @ApiTags('Roles')
@@ -46,7 +49,7 @@ export class RolesController {
   @RequirePermissions(PERMISSIONS.ROLE_MANAGE)
   updatePermissions(
     @CurrentUser('organizationId') organizationId: string,
-    @Param('id') roleId: string,
+    @Param('id', uuidParamPipe()) roleId: string,
     @Body() dto: UpdateRolePermissionsDto,
   ) {
     return this.rolesService.updateRolePermissions(organizationId, roleId, dto.permissionKeys);

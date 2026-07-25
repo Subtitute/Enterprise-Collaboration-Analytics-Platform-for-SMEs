@@ -1,5 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { Consumer, Kafka } from 'kafkajs';
 import { DomainEvent, KAFKA_CONSUMER_GROUPS, KAFKA_TOPICS } from '@app/common-dto';
 import { FactWriterService } from '../analytics/fact-writer.service';
@@ -27,6 +29,9 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
     private readonly factWriter: FactWriterService,
     private readonly gateway: AnalyticsGateway,
+    // 25/07/2026 (Fix 2 - Major, audit): can DataSource truc tiep de mo 1 transaction Postgres
+    // boc quanh toan bo cac lenh ghi fact table cua CUNG 1 event (xem handleEvent() ben duoi).
+    @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -87,24 +92,40 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     }
 
     try {
-      // 1. Luon ghi vao fact_user_activity - phuc vu feed "Hoat dong gan day" (moi event).
-      // 22/07/2026: bat lai gia tri tra ve (co phai dong MOI hay khong) - `ON CONFLICT DO
-      // NOTHING` khien INSERT nay co the la no-op neu eventId da duoc ghi truoc do
-      // (OutboxPublisherJob phia producer publish trung, Technical_Spec.md muc 4.1). Truoc fix
-      // nay gia tri nay bi bo qua nen emitActivity() van bi goi lan 2 cho cung 1 event du fact
-      // table khong bi ghi trung - lam real-time push mat idempotent (xem fact-writer.service.ts).
-      const isNewEvent = await this.factWriter.recordUserActivity(event);
+      // 25/07/2026 (Fix 2 - Major, audit): boc buoc 1 (ghi fact_user_activity) + buoc 2 (ghi bo
+      // sung fact_task_events/fact_document_events) cua CUNG 1 event trong 1 transaction Postgres
+      // DUY NHAT (khong con la 2 lenh INSERT doc lap). Truoc fix nay, neu recordUserActivity()
+      // ghi thanh cong (isNewEvent=true, ban ghi MOI) nhung buoc ghi SAU do
+      // (recordTaskEvent()/recordDocumentEvent()) that bai TAM THOI (vd TimescaleDB blip) khien
+      // toan bo handleEvent() rethrow va Kafka redeliver message: o lan redeliver,
+      // recordUserActivity() gio dung ON CONFLICT DO NOTHING (ban ghi da co tu lan truoc) va tra
+      // ve isNewEvent=false -> nhanh "if (!isNewEvent) return" ben duoi bo qua emitActivity() VINH
+      // VIEN, MAC DU buoc ghi con lai luc nay da thanh cong va fact table cuoi cung day du/dung.
+      // Nay ca 2 buoc cung commit/rollback nhu 1 don vi nguyen tu: neu 1 trong 2 that bai, ca 2
+      // ROLLBACK cung nhau, lan redeliver sau ghi lai TU DAU va recordUserActivity() se lai tra
+      // ve isNewEvent=true dung nhu ban chat "lan xu ly dau tien" cua no.
+      let isNewEvent = false;
+      await this.dataSource.transaction(async (manager) => {
+        // 1. Luon ghi vao fact_user_activity - phuc vu feed "Hoat dong gan day" (moi event).
+        // 22/07/2026: bat lai gia tri tra ve (co phai dong MOI hay khong) - `ON CONFLICT DO
+        // NOTHING` khien INSERT nay co the la no-op neu eventId da duoc ghi truoc do
+        // (OutboxPublisherJob phia producer publish trung, Technical_Spec.md muc 4.1). Truoc fix
+        // nay gia tri nay bi bo qua nen emitActivity() van bi goi lan 2 cho cung 1 event du fact
+        // table khong bi ghi trung - lam real-time push mat idempotent (xem fact-writer.service.ts).
+        isNewEvent = await this.factWriter.recordUserActivity(event, manager);
 
-      // 2. Ghi bo sung theo loai su kien.
-      if (event.eventType.startsWith('task.') || event.eventType.startsWith('project.')) {
-        await this.factWriter.recordTaskEvent(event);
-      } else if (event.eventType.startsWith('document.')) {
-        await this.factWriter.recordDocumentEvent(event);
-      }
+        // 2. Ghi bo sung theo loai su kien - CUNG transaction voi buoc 1 (xem ghi chu Fix 2 o tren).
+        if (event.eventType.startsWith('task.') || event.eventType.startsWith('project.')) {
+          await this.factWriter.recordTaskEvent(event, manager);
+        } else if (event.eventType.startsWith('document.')) {
+          await this.factWriter.recordDocumentEvent(event, manager);
+        }
+      });
 
-      // 3. Day cap nhat real-time cho Dashboard cua dung to chuc - 22/07/2026: CHI day khi day
-      // la lan xu ly DAU TIEN cua eventId nay (isNewEvent = true), khong day lai cho ban ghi
-      // trung de dong bo voi tinh idempotent da co cua du lieu persist.
+      // 3. Day cap nhat real-time cho Dashboard cua dung to chuc - CHI sau khi transaction o
+      // tren COMMIT thanh cong. 22/07/2026: CHI day khi day la lan xu ly DAU TIEN cua eventId
+      // nay (isNewEvent = true), khong day lai cho ban ghi trung de dong bo voi tinh idempotent
+      // da co cua du lieu persist.
       if (!isNewEvent) {
         this.logger.debug(
           `Bo qua emitActivity cho event trung (eventId=${event.eventId}) - fact_user_activity da co ban ghi nay tu lan xu ly truoc.`,

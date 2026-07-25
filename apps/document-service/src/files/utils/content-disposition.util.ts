@@ -15,12 +15,18 @@ export function buildContentDisposition(type: 'inline' | 'attachment', fileName:
   return `${type}; filename="${asciiFallback}"; filename*=UTF-8''${encoded}`;
 }
 
-// 22/07/2026: Fix 6 (code review) - `encodeURIComponent` KHONG ma hoa 5 ky tu `! * ' ( )`, trong
-// khi grammar `attr-char` cua RFC 5987 (dung cho gia tri `filename*=UTF-8''...`) LOAI TRU ca 5
-// ky tu nay khoi tap duoc phep dung KHONG ma hoa o vi tri nay: attr-char = token TRU `* ' %`, va
-// ban than "token" (RFC 7230 muc 3.2.6) von di KHONG bao gom `(` `)`. De sot cac ky tu nay co the
-// khien 1 so trinh duyet/thu vien phan tich header sai (vd `'` bi hieu nham la ranh gioi trong
-// cac parser long leo hon voi tham so co dau nhay don).
+// 22/07/2026: Fix 6 (code review) - `encodeURIComponent` KHONG ma hoa 5 ky tu `! * ' ( )`, nen ham
+// duoi day ma hoa bo sung ca 5 ky tu do cho gia tri dat sau `filename*=UTF-8''` (RFC 5987).
+// 25/07/2026: MINOR fix (audit round) - sua lai LY DO cho DUNG RFC 5987 (comment ban dau ghi sai,
+// hanh vi CODE khong doi): grammar `attr-char` = token (RFC 7230 muc 3.2.6) TRU `* ' %` - tuc CHI
+// 3 ky tu nay bi loai tru khoi attr-char, KHONG phai ca 5 nhu comment cu tung ghi. `(` va `)`
+// khong hop le don gian vi ban than "token" von di KHONG bao gom 2 ky tu nay tu dau (chung la
+// delimiter cua RFC 7230, chua bao gio thuoc token) - khong lien quan gi den dinh nghia rieng cua
+// attr-char. RIENG `!` THUC RA LA attr-char HOP LE theo dung liet ke cua RFC 5987 (KHONG bi loai
+// tru), tuc KHONG bat buoc phai ma hoa - ham nay van ma hoa no theo kieu "phong thu them"
+// (defense-in-depth, phong truong hop 1 so parser khong tuan thu chuan nghiem ngat). Dieu nay VAN
+// AN TOAN (ma hoa 1 ky tu von khong bat buoc ma hoa khong gay hai gi), chi la ly do giai thich cu
+// bi sai.
 function encodeRfc5987ValueChars(value: string): string {
   return encodeURIComponent(value)
     .replace(/!/g, '%21')

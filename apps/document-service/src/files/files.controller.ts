@@ -12,6 +12,10 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
+// 25/07/2026: MAJOR fix (audit round) - dung ham thuan `isUUID` (khong phai decorator) de tu
+// validate `folderId` doc tho tu multipart form-data (xem giai thich day du tai noi dung dung ham
+// nay trong upload() ben duoi).
+import { isUUID } from 'class-validator';
 import { CurrentUser, RequirePermissions } from '@app/common-guard';
 import { PERMISSIONS } from '@app/common-dto';
 import { FilesService } from './files.service';
@@ -77,6 +81,19 @@ export class FilesController {
     @Body('folderId') folderId?: string,
   ) {
     if (!file) throw new BadRequestException('Thieu file can tai len');
+    // 25/07/2026: MAJOR fix (audit round) - `folderId` o day duoc doc THO qua `@Body('folderId')`
+    // (mot truong ke ben file nhi phan trong multipart/form-data), KHONG phai 1 DTO co kieu class
+    // - ValidationPipe toan cuc CHI validate `@Body()` khi tham so nhan 1 DTO dang class (xem
+    // giai thich tuong tu o dto/find-files-query.dto.ts cho query param `folderId` cua GET
+    // /files), nen gia tri kieu nay hoan toan KHONG di qua buoc validate nao. Truoc ban sua nay,
+    // 1 gia tri rac (vd "abc") di thang xuong FilesService.upload() -> truy van Postgres tren cot
+    // uuid `Folder.id` -> nem QueryFailedError THO, bi AllExceptionsFilter bien thanh 1 loi 500
+    // chung chung thay vi 1 loi 400 sach. Validate tuong minh o day: bo qua khi khong co gia tri
+    // (`folderId` rong/undefined = tai len thu muc goc, quy uoc hop le - xem
+    // `folderId || null` ben duoi), chi kiem tra hinh dang UUID khi CO gia tri.
+    if (folderId && !isUUID(folderId, '4')) {
+      throw new BadRequestException('folderId phai la UUID hop le');
+    }
     return this.filesService.upload(organizationId, actorId, folderId || null, file);
   }
 

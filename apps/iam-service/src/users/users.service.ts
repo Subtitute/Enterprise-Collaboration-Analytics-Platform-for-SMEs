@@ -1,4 +1,10 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, In, Repository } from 'typeorm';
@@ -14,6 +20,7 @@ import {
   EVENT_TYPES,
   PaginatedResponse,
   PaginationQueryDto,
+  PERMISSIONS,
   UserDeactivatedPayload,
   UserRegisteredPayload,
   paginate,
@@ -66,9 +73,34 @@ export class UsersService {
     return this.toPublicUser(user);
   }
 
-  async invite(organizationId: string, dto: InviteUserDto): Promise<PublicUser> {
+  async invite(
+    organizationId: string,
+    dto: InviteUserDto,
+    callerPermissions: string[],
+  ): Promise<PublicUser> {
     const existing = await this.userRepo.findOne({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Email da duoc su dung');
+
+    // 25/07/2026: RBAC bypass CRITICAL (review 25/07/2026) - truoc day dto.roleIds duoc gan THANG
+    // cho user moi ma KHONG kiem tra nguoi goi co duoc phep cap NHUNG vai tro do hay khong.
+    // Endpoint POST /users/invite chi doi hoi quyen user:invite (Manager mac dinh CO quyen nay -
+    // xem DEFAULT_ROLE_PERMISSIONS trong packages/common-dto), trong khi user:manage (quyen thuc
+    // su dai dien cho "duoc quan tri vai tro/nguoi dung", dung de gate PATCH /users/:id ngay ben
+    // duoi) chi Org Admin moi co. Kich ban khai thac: 1 Manager goi GET /users (co chu dich khong
+    // co guard - xem chu thich users.controller.ts) de doc roles:[{id,name}] cua 1 Org Admin co
+    // san, roi goi POST /users/invite voi chinh roleId do trong body -> tu tao 1 tai khoan Org
+    // Admin moi hoan toan hop le ve mat DB, tu leo thang tu Manager len Admin toan quyen. Chan
+    // ngay tai day: neu client GUI kem roleIds (khac rong), nguoi goi BAT BUOC phai co quyen
+    // user:manage, neu khong tu choi 403 ro rang thay vi am tham bo qua/gan rong (de loi nay bi
+    // phat hien ngay trong test thay vi "thanh cong" sai lech voi y dinh cua client). Da kiem tra
+    // frontend (InviteMemberModal.tsx): danh sach vai tro de tick chi tai duoc qua GET /roles, ban
+    // than endpoint do da doi hoi role:manage (chi Org Admin) nen 1 Manager dung UI that KHONG BAO
+    // GIO gui duoc roleIds khac rong - 403 o day chi chan duong client tu tao request thu cong.
+    if (dto.roleIds?.length && !callerPermissions.includes(PERMISSIONS.USER_MANAGE)) {
+      throw new ForbiddenException(
+        'Ban khong co quyen gan vai tro khi moi thanh vien moi (can quyen user:manage)',
+      );
+    }
 
     // 22/07/2026: xac thuc departmentId thuoc DUNG to chuc cua nguoi goi truoc khi gan cho user
     // moi - truoc day gan thang `dto.departmentId ?? null` khong kiem tra gi (khac voi roleIds
@@ -130,9 +162,27 @@ export class UsersService {
     }
   }
 
-  async update(organizationId: string, id: string, dto: UpdateUserDto): Promise<PublicUser> {
+  async update(
+    organizationId: string,
+    id: string,
+    dto: UpdateUserDto,
+    callerPermissions: string[],
+  ): Promise<PublicUser> {
     const user = await this.userRepo.findOne({ where: { id, organizationId } });
     if (!user) throw new NotFoundException('Khong tim thay nguoi dung');
+
+    // 25/07/2026: cung 1 lo hong RBAC nhu invite() o tren, ap dung cho "canh cua" thu 2 - PATCH
+    // /users/:id doi vai tro cua 1 tai khoan DA TON TAI. Controller hien tai da gate ca endpoint
+    // bang @RequirePermissions(USER_MANAGE) nen o tang HTTP khong ai thieu quyen goi toi day duoc,
+    // NHUNG kiem tra lai o tang service (thay vi chi tin tuong 1 minh guard tren controller) la
+    // phong thu chieu sau bat buoc: service co the duoc goi truc tiep tu noi khac trong tuong lai
+    // (vd 1 job noi bo, 1 endpoint moi tai su dung lai update()) ma quen ap lai dung guard, luc do
+    // day se la lop chan cuoi cung ngan chan leo thang quyen qua roleIds - xem chu thich invite().
+    if (dto.roleIds && !callerPermissions.includes(PERMISSIONS.USER_MANAGE)) {
+      throw new ForbiddenException(
+        'Ban khong co quyen thay doi vai tro cua nguoi dung (can quyen user:manage)',
+      );
+    }
 
     if (dto.fullName !== undefined) user.fullName = dto.fullName;
     if (dto.departmentId !== undefined) {

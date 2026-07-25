@@ -40,8 +40,5 @@ export const TASK_STATUS_COLOR: Record<string, string> = {
   DONE: STATUS.good,
 };
 
-export const TASK_STATUS_BADGE_VARIANT: Record<string, 'default' | 'info' | 'success'> = {
-  TODO: 'default',
-  DOING: 'info',
-  DONE: 'success',
-};
+// 25/07/2026: xoa TASK_STATUS_BADGE_VARIANT - export chet, xac nhan qua grep khong co noi nao
+// trong src import ten nay ca.

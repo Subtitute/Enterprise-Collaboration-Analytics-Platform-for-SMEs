@@ -42,7 +42,14 @@ export function AnalyticsPage() {
           <h1 className="text-xl font-semibold text-slate-900">Báo cáo &amp; Phân tích</h1>
           <p className="text-sm text-slate-500">Số liệu tổng hợp toàn tổ chức theo khoảng thời gian đã chọn.</p>
         </div>
-        <Select value={range} onChange={(e) => setRange(e.target.value as DateRangeOption)} style={{ width: 'auto' }}>
+        {/* 25/07/2026: them aria-label - cung ly do nhu Select tuong tu o DashboardPage.tsx (khong
+            co <Label> hien thi kem theo de trinh doc man hinh doc ten). */}
+        <Select
+          value={range}
+          onChange={(e) => setRange(e.target.value as DateRangeOption)}
+          aria-label="Khoảng thời gian"
+          style={{ width: 'auto' }}
+        >
           {(Object.keys(DATE_RANGE_LABEL_VI) as DateRangeOption[]).map((key) => (
             <option key={key} value={key}>
               {DATE_RANGE_LABEL_VI[key]}

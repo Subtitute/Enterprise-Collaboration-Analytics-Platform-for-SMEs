@@ -55,7 +55,16 @@ export function createJwtAuthMiddleware(
 ): RequestHandler {
   const secret = configService.get<string>('jwt.accessSecret');
 
-  return (req: Request, res: Response, next: NextFunction): void => {
+  // 25/07/2026: chuyen tu promise chain (.then/.catch long nhau) sang async/await + try/catch -
+  // phat hien qua code review toan du an: nhanh xu ly SAU KHI verify JWT thanh cong (kiem tra
+  // blacklist Redis + goi next()) truoc day nam trong MOT promise chain long ben trong .then()
+  // nhung KHONG duoc return ra ngoai, nen no bi "roi" (detached) khoi .catch() ngoai cung. Neu
+  // sendErrorResponse() hoac next() (vd mot middleware/proxy phia sau nem loi dong bo) nem loi
+  // bat ky luc nao trong nhanh do, loi se tro thanh "unhandled promise rejection" - mac dinh cua
+  // Node.js (tu ban 15) la LAM SAP TOAN BO TIEN TRINH (moi nguoi dung dang ket noi) chi vi MOT
+  // request loi. Voi async/await, MOI buoc bat dong bo deu duoc "await" ben trong try/catch bao
+  // quanh no nen khong con doan promise nao co the "roi" ra ngoai duoc nua.
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     if (isNonApiPath(req.path) || isPublicRoute(req.path)) {
       next();
       return;
@@ -73,40 +82,60 @@ export function createJwtAuthMiddleware(
       return;
     }
 
-    jwtService
-      .verifyAsync<JwtAccessPayload>(token, { secret })
-      .then((payload) => {
-        redisService
-          .isUserBlacklisted(payload.sub)
-          .catch((err: unknown) => {
-            logger.warn(
-              `Kiem tra blacklist that bai, cho qua yeu cau: ${err instanceof Error ? err.message : String(err)}`,
-            );
-            return false;
-          })
-          .then((blacklisted) => {
-            if (blacklisted) {
-              sendErrorResponse(
-                res,
-                401,
-                'UnauthorizedException',
-                'Tai khoan da bi vo hieu hoa, vui long dang nhap lai',
-                req.originalUrl,
-              );
-              return;
-            }
-            (req as RequestWithUser).user = payload;
-            next();
-          });
-      })
-      .catch(() => {
+    let payload: JwtAccessPayload;
+    try {
+      payload = await jwtService.verifyAsync<JwtAccessPayload>(token, { secret });
+    } catch {
+      sendErrorResponse(
+        res,
+        401,
+        'UnauthorizedException',
+        'Token khong hop le hoac da het han, vui long dang nhap lai',
+        req.originalUrl,
+      );
+      return;
+    }
+
+    // 25/07/2026: try/catch rieng cho toan bo nhanh SAU KHI verify JWT thanh cong - day chinh la
+    // pham vi truoc day bi "roi" khoi promise chain (xem giai thich o comment tren ham). Bat ca
+    // loi tu Redis (da co fail-open rieng ben duoi) LAN loi dong bo bat ngo tu sendErrorResponse()
+    // hoac next(), tranh lam sap tien trinh vi mot loi khong luong truoc duoc o day.
+    try {
+      let blacklisted: boolean;
+      try {
+        blacklisted = await redisService.isUserBlacklisted(payload.sub);
+      } catch (err) {
+        logger.warn(
+          `Kiem tra blacklist that bai, cho qua yeu cau: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        blacklisted = false;
+      }
+
+      if (blacklisted) {
         sendErrorResponse(
           res,
           401,
           'UnauthorizedException',
-          'Token khong hop le hoac da het han, vui long dang nhap lai',
+          'Tai khoan da bi vo hieu hoa, vui long dang nhap lai',
           req.originalUrl,
         );
-      });
+        return;
+      }
+      (req as RequestWithUser).user = payload;
+      next();
+    } catch (err) {
+      logger.error(
+        `Loi khong mong doi sau khi xac thuc JWT thanh cong: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      if (!res.headersSent) {
+        sendErrorResponse(
+          res,
+          500,
+          'INTERNAL_SERVER_ERROR',
+          'Da xay ra loi khong xac dinh, vui long thu lai sau',
+          req.originalUrl,
+        );
+      }
+    }
   };
 }

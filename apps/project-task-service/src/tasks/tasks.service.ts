@@ -326,6 +326,17 @@ export class TasksService {
    * INSERT, va ban ghi thua se vi pham @Unique(['taskId','userId']) tren TaskAssignee. Thay vi
    * de loi 500 chung chung bubble len, bat QueryFailedError ma Postgres code 23505 va coi day
    * la truong hop idempotent hop le - tra ve ban ghi da duoc tao boi request thang cuoc.
+   *
+   * 25/07/2026 (audit - han che da biet, CHAP NHAN, khong sua trong dot nay): ham nay KHONG xac
+   * minh `userId` truyen vao thuc su thuoc `organizationId` cua nguoi goi truoc khi tao
+   * TaskAssignee - Project-Task Service khong co cach nao tra cuu du lieu user/org cua mot
+   * service KHAC (IAM Service) vi hien repo nay chua co co che goi HTTP noi bo giua cac service
+   * (da grep toan repo: khong co HttpService/internal API client nao giua cac service - can them
+   * ha tang cross-service moi, ngoai pham vi dot sua nay). Muc do NGHIEM TRONG THAP: khong lam lo
+   * du lieu cua to chuc khac (khong doc/ghi gi ngoai Task cua chinh organizationId nay), chi cho
+   * phep gan mot Task cho 1 userId khong thuc su thuoc to chuc - userId "ao" do se khong bao gio
+   * hien len "cong viec cua toi" cho bat ky nguoi dung that nao. Xem han che tuong tu (cung ly do)
+   * tai FilesService.share() (apps/document-service/src/files/files.service.ts).
    */
   async assign(
     organizationId: string,

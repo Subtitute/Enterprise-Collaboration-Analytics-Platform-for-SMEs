@@ -220,6 +220,10 @@ services:
     depends_on:
       postgres-iam: { condition: service_healthy }
       kafka: { condition: service_healthy }
+      # 25/07/2026: khai bao phu thuoc Redis (dung cho token-blacklist) - truoc day thieu, gay
+      # race luc khoi dong lanh khi iam-service goi Redis truoc khi Redis healthy. Bo sung de
+      # phong thu theo lop (defense-in-depth) du code da co try/catch fail-open cho Redis.
+      redis: { condition: service_healthy }
     environment:
       NODE_ENV: production
       PORT: 3001
@@ -260,6 +264,10 @@ services:
       document-service: { condition: service_healthy }
       notification-service: { condition: service_healthy }
       analytics-service: { condition: service_healthy }
+      # 25/07/2026: kiem tra vong 2 phat hien - gateway dung REDIS_HOST/PORT ben duoi (rate-limit,
+      # blacklist token) nhung truoc day khong khai bao phu thuoc "redis" nen co the khoi dong
+      # truoc khi Redis san sang, gay loi tam thoi luc "docker compose up" lan dau.
+      redis: { condition: service_healthy }
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -323,6 +331,10 @@ services:
       postgres-doc: { condition: service_healthy }
       kafka: { condition: service_healthy }
       minio: { condition: service_healthy }
+      # 25/07/2026: cho minio-init chay xong (tao bucket) truoc khi Document Service khoi dong -
+      # minio "healthy" chi nghia la server MinIO da san sang, KHONG dam bao bucket da ton tai,
+      # tranh loi NoSuchBucket khi upload file dau tien luc "docker compose up" lan dau.
+      minio-init: { condition: service_completed_successfully }
     environment:
       NODE_ENV: production
       PORT: 3003
@@ -394,6 +406,10 @@ services:
     depends_on:
       timescaledb: { condition: service_healthy }
       kafka: { condition: service_healthy }
+      # 25/07/2026: kiem tra vong 2 phat hien - cung mot lo hong nhu gateway (xem chu thich tren
+      # gateway), analytics-service cung dung REDIS_HOST/PORT (cache tong hop analytics) nhung
+      # khong khai bao phu thuoc "redis".
+      redis: { condition: service_healthy }
     environment:
       NODE_ENV: production
       PORT: 3005

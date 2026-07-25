@@ -18,7 +18,10 @@ import { MAX_FILE_NAME_LENGTH, sanitizeFileName } from './utils/sanitize-filenam
 // 22/07/2026: Fix 4 (code review) - doi chieu magic-byte cua noi dung THAT SU voi mimetype
 // client khai bao, boi vi mimeTypeFileFilter (tang multer) chi kiem tra duoc Content-Type do
 // CLIENT tu khai bao. Xem giai thich day du o allowed-mime-types.ts.
-import { verifyFileContentMatchesMimeType } from './allowed-mime-types';
+// 25/07/2026: MAJOR fix (audit round) - them `hasReliableMagicByteCheck` de biet mimeType nao
+// KHONG the doi chieu magic-byte (xem giai thich day du o allowed-mime-types.ts va o
+// getDownloadUrl() ben duoi).
+import { hasReliableMagicByteCheck, verifyFileContentMatchesMimeType } from './allowed-mime-types';
 import {
   DocumentDeletedPayload,
   DocumentSharedPayload,
@@ -83,8 +86,22 @@ export class FilesService {
   ): Promise<{ downloadUrl: string }> {
     const fileMeta = await this.fileMetaRepo.findOne({ where: { id, organizationId } });
     if (!fileMeta) throw new NotFoundException('Khong tim thay file');
+
+    // 25/07/2026: MAJOR fix (audit round) - stored content-sniffing XSS. `fileMeta.mimeType` la
+    // Content-Type do CLIENT tu khai bao luc upload; voi 'text/plain'/'text/csv' khong ton tai
+    // chu ky nhi phan dang tin cay de doi chieu (xem MAGIC_BYTE_CHECKS/hasReliableMagicByteCheck o
+    // allowed-mime-types.ts) nen 1 file thuc chat la HTML/JS van co the "lot" qua voi mimeType gia
+    // mao = 'text/plain'. Neu cho phep disposition=inline voi cac loai nay, MinIO presigned URL
+    // (mien khac origin, KHONG dat duoc header X-Content-Type-Options: nosniff - presigned URL chi
+    // override duoc response-content-type/response-content-disposition) se phuc vu lai dung
+    // Content-Type gia mao do, va trinh duyet co the "sniff" noi dung roi RENDER/CHAY no nhu 1
+    // trang HTML/script that ngay khi nguoi dung bam "Xem" (stored XSS qua file do nguoi dung khac
+    // tai len). Vi vay: BAT BUOC ep disposition ve 'attachment' cho nhom mimeType khong the doi
+    // chieu magic-byte, BAT KE FE yeu cau gi qua tham so `disposition` dau vao - file van tai
+    // xuong (download) binh thuong, chi khong con duong "render truc tiep trong trinh duyet" nua.
+    const effectiveDisposition = hasReliableMagicByteCheck(fileMeta.mimeType) ? disposition : 'attachment';
     const downloadUrl = await this.minioService.presignedGetObject(fileMeta.objectKey, 900, {
-      'response-content-disposition': buildContentDisposition(disposition, fileMeta.fileName),
+      'response-content-disposition': buildContentDisposition(effectiveDisposition, fileMeta.fileName),
     });
     return { downloadUrl };
   }
@@ -263,6 +280,22 @@ export class FilesService {
     return updated;
   }
 
+  /**
+   * 25/07/2026: MAJOR fix (audit round) - ghi chu chap nhan gioi han, KHONG sua trong ban nay:
+   * `dto.sharedWithUserId` KHONG duoc doi chieu xem co thuc su thuoc CUNG to chuc voi
+   * `organizationId` cua actor hay khong (khac voi moi duong DOC file khac trong service nay -
+   * findOne/findAll/getDownloadUrl/remove... deu loc truc tiep tren `organizationId` cua
+   * FileMeta). Hau qua: 1 user co the "share" 1 file cho 1 `sharedWithUserId` TUY Y (khong nhat
+   * thiet thuoc cung to chuc), kich hoat event `document.shared` (Notification Service) nham vao userId
+   * do - cho phep DO TIM (enumerate) xem 1 UUID co ton tai hop le trong he thong hay khong qua
+   * viec quan sat co nhan duoc thong bao hay khong. KHONG cap them quyen truy cap DU LIEU trai
+   * phep nao (moi duong doc file van tu doi chieu `organizationId` doc lap nhu tren) - day la 1
+   * gioi han MUC DO THAP. Khong sua trong ban nay vi service nay KHONG co san co che goi HTTP sang
+   * iam-service de tra cuu to chuc cua 1 userId (da xac nhan qua grep toan bo repo - chua ton tai
+   * co che goi cheo service nao nhu vay o bat ky dau trong codebase nay) - xay dung co che do vuot
+   * pham vi 1 ban sua loi cuc bo. Cung tinh than voi trade-off tuong tu duoc ghi nhan trong CUNG
+   * dot audit nay o `TasksService.assign()` (apps/project-task-service/src/tasks/tasks.service.ts).
+   */
   async share(
     organizationId: string,
     actorId: string,

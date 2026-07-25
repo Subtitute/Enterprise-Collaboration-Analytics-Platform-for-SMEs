@@ -109,28 +109,54 @@ export class AnalyticsService {
   private async computeSummary(organizationId: string, range: string): Promise<AnalyticsSummary> {
     const { sinceInterval } = resolveTaskTrendConfig(range);
 
-    // 22/07/2026: bo sung 2 dieu kien NOT EXISTS de loai tru task/project da bi xoa cung
-    // (event `task.deleted`/`project.deleted` - Technical_Spec.md muc 3.3, doi 21/07/2026)
-    // khoi phep dem KPI. Truoc fix nay, 2 event tren duoc FactWriterService ghi vao
-    // fact_task_events giong het moi event khac nhung khong co truy van nao loc theo no, nen
-    // 1 task/project da bi xoa cung van bi dem vinh vien trong "Tong cong viec da tao/hoan
-    // thanh" tren Dashboard.
+    // 25/07/2026 (Fix 1 - Major, audit): thay 2 count(DISTINCT task_id) FILTER doc lap (1 loc
+    // theo event_type='task.created', 1 loc theo event_type='task.status_changed AND
+    // to_status=DONE') tren CUNG 1 tap hang da loc theo `t.time >= now() - interval` bang 1
+    // cohort DUY NHAT - dung LAI HET pattern created_tasks/latest_status cua
+    // getTaskStatusBreakdown()/getProjectProgress() o duoi. Truoc fix nay, 1 task duoc TAO
+    // TRUOC khoang thoi gian nhung duoc "mo lai" (DONE -> DOING, logic status-transition cua
+    // chinh service nay cho phep) roi hoan thanh LAI BEN TRONG khoang se co event
+    // task.status_changed (to_status=DONE) NAM TRONG khoang nhung KHONG co event task.created
+    // nao nam trong khoang -> bi dem vao total_tasks_completed ma KHONG dem vao
+    // total_tasks_created, khien completionRate co the VUOT QUA 100% va lech voi
+    // getTaskStatusBreakdown()/getProjectProgress() (2 endpoint nay tinh dung tu truoc vi da
+    // dung cohort). Nay total_tasks_created = kich thuoc cohort (so task_id duoc TAO trong
+    // khoang, sau khi loai task/project xoa cung), total_tasks_completed = so thanh vien CUA
+    // CHINH cohort do co trang thai HIEN TAI (latest_status, KHONG gioi han theo khoang thoi
+    // gian) la DONE - la tap con cua cohort nen ve mat toan hoc KHONG THE lon hon
+    // total_tasks_created, dam bao completionRate <= 100% va nhat quan voi 2 endpoint kia cho
+    // cung 1 `range`.
     const [taskRow] = await this.dataSource.query(
       `
+      WITH created_tasks AS (
+        SELECT DISTINCT task_id
+        FROM fact_task_events t
+        WHERE t.organization_id = $1
+          AND t.event_type = 'task.created'
+          AND t.task_id IS NOT NULL
+          AND t.time >= now() - $2::interval
+          AND NOT EXISTS (
+            SELECT 1 FROM fact_task_events d
+            WHERE d.task_id = t.task_id AND d.event_type = 'task.deleted'
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM fact_task_events pd
+            WHERE pd.project_id = t.project_id AND pd.event_type = 'project.deleted'
+          )
+      ),
+      latest_status AS (
+        SELECT DISTINCT ON (task_id) task_id, to_status
+        FROM fact_task_events
+        WHERE organization_id = $1
+          AND event_type = 'task.status_changed'
+          AND task_id IS NOT NULL
+        ORDER BY task_id, time DESC
+      )
       SELECT
-        count(DISTINCT task_id) FILTER (WHERE event_type = 'task.created')                                AS total_tasks_created,
-        count(DISTINCT task_id) FILTER (WHERE event_type = 'task.status_changed' AND to_status = 'DONE')   AS total_tasks_completed
-      FROM fact_task_events t
-      WHERE t.organization_id = $1
-        AND t.time >= now() - $2::interval
-        AND NOT EXISTS (
-          SELECT 1 FROM fact_task_events d
-          WHERE d.task_id = t.task_id AND d.event_type = 'task.deleted'
-        )
-        AND NOT EXISTS (
-          SELECT 1 FROM fact_task_events pd
-          WHERE pd.project_id = t.project_id AND pd.event_type = 'project.deleted'
-        )
+        count(*)::int                                                          AS total_tasks_created,
+        count(*) FILTER (WHERE COALESCE(ls.to_status, 'TODO') = 'DONE')::int   AS total_tasks_completed
+      FROM created_tasks ct
+      LEFT JOIN latest_status ls ON ls.task_id = ct.task_id
       `,
       [organizationId, sinceInterval],
     );

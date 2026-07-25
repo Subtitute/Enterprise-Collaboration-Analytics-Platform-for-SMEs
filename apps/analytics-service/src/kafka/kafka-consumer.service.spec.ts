@@ -1,4 +1,5 @@
 import { ConfigService } from '@nestjs/config';
+import { DataSource } from 'typeorm';
 import { DomainEvent, EVENT_TYPES } from '@app/common-dto';
 import { KafkaConsumerService } from './kafka-consumer.service';
 import { FactWriterService } from '../analytics/fact-writer.service';
@@ -22,6 +23,13 @@ import { AnalyticsGateway } from '../realtime/analytics.gateway';
  *  2. `handleEvent` phai bo qua (khong throw) khi event thieu truong bat buoc (envelope khong
  *     hop le) VA khi FactWriterService nem loi DU LIEU vinh vien (Postgres 22P02/23502/23503),
  *     thay vi rethrow giong loi ha tang tam thoi.
+ *
+ * 25/07/2026 (Fix 2 - Major, audit): `handleEvent` gio can them 1 DataSource (mock qua
+ * `dataSourceMock` ben duoi) de mo transaction boc quanh cac loi goi FactWriterService.* -
+ * `dataSourceMock.transaction` duoc mock de CHAY THAT callback truyen vao (gia lap transaction
+ * luon "thanh cong" tru khi callback tu nem loi), truyen vao 1 `managerStub` gia lap
+ * EntityManager de cac assertion ben duoi kiem tra dung FactWriterService.* duoc goi VOI tham so
+ * thu 2 la manager cua transaction (khong con la DataSource nhu truoc fix nay).
  */
 describe('KafkaConsumerService (Analytics Service) - handleEvent', () => {
   let service: KafkaConsumerService;
@@ -31,6 +39,8 @@ describe('KafkaConsumerService (Analytics Service) - handleEvent', () => {
     recordDocumentEvent: jest.Mock;
   };
   let gatewayMock: { emitActivity: jest.Mock };
+  let dataSourceMock: { transaction: jest.Mock };
+  const managerStub = { query: jest.fn() };
 
   const baseEvent: DomainEvent = {
     eventId: 'evt-1',
@@ -48,20 +58,28 @@ describe('KafkaConsumerService (Analytics Service) - handleEvent', () => {
       recordDocumentEvent: jest.fn().mockResolvedValue(true),
     };
     gatewayMock = { emitActivity: jest.fn() };
+    // 25/07/2026: mo phong dataSource.transaction() CHAY THAT callback (giong hanh vi that cua
+    // TypeORM khi transaction thanh cong) - propagate loi neu callback nem loi, giong ROLLBACK
+    // that.
+    dataSourceMock = {
+      transaction: jest.fn(async (cb: (manager: unknown) => Promise<void>) => cb(managerStub)),
+    };
 
     const configServiceMock = { get: jest.fn() } as unknown as ConfigService;
     service = new KafkaConsumerService(
       configServiceMock,
       factWriterMock as unknown as FactWriterService,
       gatewayMock as unknown as AnalyticsGateway,
+      dataSourceMock as unknown as DataSource,
     );
   });
 
-  it('ghi fact_user_activity + fact_task_events va day WS khi khong co loi', async () => {
+  it('ghi fact_user_activity + fact_task_events (trong CUNG 1 transaction) va day WS khi khong co loi', async () => {
     await service['handleEvent'](baseEvent);
 
-    expect(factWriterMock.recordUserActivity).toHaveBeenCalledWith(baseEvent);
-    expect(factWriterMock.recordTaskEvent).toHaveBeenCalledWith(baseEvent);
+    expect(dataSourceMock.transaction).toHaveBeenCalledTimes(1);
+    expect(factWriterMock.recordUserActivity).toHaveBeenCalledWith(baseEvent, managerStub);
+    expect(factWriterMock.recordTaskEvent).toHaveBeenCalledWith(baseEvent, managerStub);
     expect(factWriterMock.recordDocumentEvent).not.toHaveBeenCalled();
     expect(gatewayMock.emitActivity).toHaveBeenCalledWith(
       'org-1',
@@ -87,6 +105,30 @@ describe('KafkaConsumerService (Analytics Service) - handleEvent', () => {
     expect(gatewayMock.emitActivity).not.toHaveBeenCalled();
   });
 
+  // 25/07/2026 (Fix 2 - Major, audit): chung minh hanh vi atomic - ca recordUserActivity()
+  // (ghi thanh cong) VA recordTaskEvent() (that bai TAM THOI) deu nam trong 1 dataSource.transaction()
+  // DUY NHAT, nen khi callback nem loi, TypeORM ROLLBACK CA HAI (khong con truong hop
+  // recordUserActivity() "sot lai" 1 minh nhu loi truoc fix nay). Kafka redeliver cung eventId
+  // o lan sau se coi day la lan xu ly DAU TIEN (isNewEvent=true) dung nhu ban chat, thay vi bi
+  // "ket" o false vinh vien (mat WS push) du fact table cuoi cung day du/dung.
+  it('sau khi transaction ROLLBACK vi loi TAM THOI, lan Kafka redeliver TIEP THEO van duoc coi la event MOI (isNewEvent=true) va day WS binh thuong', async () => {
+    const dbError = new Error('TimescaleDB connection timeout');
+    factWriterMock.recordTaskEvent.mockRejectedValueOnce(dbError);
+
+    await expect(service['handleEvent'](baseEvent)).rejects.toThrow('TimescaleDB connection timeout');
+    expect(gatewayMock.emitActivity).not.toHaveBeenCalled();
+
+    // Lan redeliver: khong con dbError, recordUserActivity() (mac dinh mock resolve true trong
+    // beforeEach) lai tra ve isNewEvent=true dung nhu that (vi lan truoc da ROLLBACK, KHONG co
+    // ban ghi nao ton tai truoc do de recordUserActivity() dung ON CONFLICT DO NOTHING).
+    await service['handleEvent'](baseEvent);
+
+    expect(gatewayMock.emitActivity).toHaveBeenCalledWith(
+      'org-1',
+      expect.objectContaining({ eventId: 'evt-1' }),
+    );
+  });
+
   it('ghi fact_document_events (khong phai fact_task_events) cho eventType bat dau bang "document."', async () => {
     const documentEvent: DomainEvent = {
       ...baseEvent,
@@ -96,7 +138,9 @@ describe('KafkaConsumerService (Analytics Service) - handleEvent', () => {
 
     await service['handleEvent'](documentEvent);
 
-    expect(factWriterMock.recordDocumentEvent).toHaveBeenCalledWith(documentEvent);
+    // 25/07/2026: tham so thu 2 gio la manager cua transaction (xem Fix 2), khong con la
+    // undefined/tham so mac dinh nhu truoc.
+    expect(factWriterMock.recordDocumentEvent).toHaveBeenCalledWith(documentEvent, managerStub);
     expect(factWriterMock.recordTaskEvent).not.toHaveBeenCalled();
   });
 
@@ -108,7 +152,7 @@ describe('KafkaConsumerService (Analytics Service) - handleEvent', () => {
 
     // Van ghi bo sung fact_task_events binh thuong (idempotent rieng o muc SQL, ON CONFLICT DO
     // NOTHING) - chi rieng emitActivity la khong duoc goi lai.
-    expect(factWriterMock.recordTaskEvent).toHaveBeenCalledWith(baseEvent);
+    expect(factWriterMock.recordTaskEvent).toHaveBeenCalledWith(baseEvent, managerStub);
     expect(gatewayMock.emitActivity).not.toHaveBeenCalled();
   });
 

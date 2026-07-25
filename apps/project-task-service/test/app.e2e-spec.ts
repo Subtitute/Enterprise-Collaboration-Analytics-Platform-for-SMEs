@@ -137,7 +137,9 @@ describe('Project & Task Service - tao du an & tao task (e2e)', () => {
       .get(`/api/v1/tasks/${taskId}`)
       .set(internalHeaders(organizationId, userId, ALL_PERMISSIONS))
       .expect(200);
-    expect(afterAssign.body.assigneeIds).toContain(assigneeId);
+    // 25/07/2026: findAll()/enrich doi ten truong assigneeIds -> assignees ({ userId }[]) trong
+    // mot ban sua truoc do; cap nhat assertion e2e cho khop, tranh test sai voi field da xoa.
+    expect(afterAssign.body.assignees).toContainEqual({ userId: assigneeId });
 
     // Doi trang thai Kanban TODO -> DOING (endpoint quan trong nhat cua pipeline outbox -> Kafka,
     // xem ghi chu trong tasks.controller.ts).

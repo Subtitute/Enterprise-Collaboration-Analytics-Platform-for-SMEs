@@ -66,8 +66,13 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
         ) : (
           <div className="space-y-5">
             <div className="flex flex-wrap items-end gap-3">
-              <FormField label="Trạng thái" className="w-40">
+              {/* 25/07/2026: them htmlFor/id (task-status-select, task-due-date) - truoc ban sua
+                  nay FormField co san prop htmlFor nhung khong duoc truyen o day nen <Label> khong
+                  gan duoc voi control tuong ung (trinh doc man hinh/bam vao label khong focus vao
+                  input), khac voi pattern chuan da dung o NewTaskModal.tsx/NewProjectModal.tsx. */}
+              <FormField label="Trạng thái" htmlFor="task-status-select" className="w-40">
                 <Select
+                  id="task-status-select"
                   value={task.status}
                   onChange={(e) => updateStatus.mutate({ taskId: task.id, status: e.target.value as TaskStatus })}
                 >
@@ -78,8 +83,9 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
                   ))}
                 </Select>
               </FormField>
-              <FormField label="Hạn hoàn thành" className="w-40">
+              <FormField label="Hạn hoàn thành" htmlFor="task-due-date" className="w-40">
                 <Input
+                  id="task-due-date"
                   type="date"
                   defaultValue={task.dueDate ? task.dueDate.slice(0, 10) : ''}
                   onBlur={(e) => updateTask.mutate({ dueDate: e.target.value || undefined })}

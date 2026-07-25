@@ -11,6 +11,22 @@ import { ConfigService } from '@nestjs/config';
 import { JwtAccessPayload } from '@app/common-dto';
 
 /**
+ * 25/07/2026 (audit - MINOR): doc danh sach origin duoc phep mo WebSocket handshake tu bien moi
+ * truong CORS_ORIGIN, cung 1 cach lam voi apps/gateway/src/main.ts:resolveCorsOrigins() - fallback
+ * ve cong dev mac dinh cua Vite (apps/web/vite.config.ts) khi bien nay chua duoc thiet lap.
+ * Doc truc tiep tu process.env (khong qua ConfigService) vi day la tham so cua decorator
+ * @WebSocketGateway, duoc danh gia luc MODULE duoc load - truoc khi Nest dung DI de tao instance
+ * ConfigService.
+ */
+function resolveWebSocketCorsOrigins(): string[] {
+  const raw = process.env.CORS_ORIGIN ?? 'http://localhost:5173';
+  return raw
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+/**
  * WebSocket Gateway - day cap nhat KPI/hoat dong real-time toi Dashboard
  * (Wireframe.md muc 3 - "Hoat dong gan day (real-time)").
  *
@@ -21,8 +37,15 @@ import { JwtAccessPayload } from '@app/common-dto';
  * duoc Gateway forward kem header noi bo x-org-id/x-user-id). Vi vay Gateway nay PHAI tu
  * verify JWT bang JWT_ACCESS_SECRET (Technical_Spec.md muc 6, muc 1 - "GW forward WebSocket
  * handshake toi Notification/Analytics Service").
+ *
+ * 25/07/2026 (audit - MINOR): thay wildcard `cors.origin: '*'` bang danh sach origin doc tu
+ * CORS_ORIGIN (dong bo cach apps/gateway/src/main.ts:resolveCorsOrigins() lam cho chinh HTTP
+ * CORS cua API Gateway). Hang phong thu THAT SU van la buoc verify JWT trong handleConnection()
+ * ben duoi - '*' truoc day khong phai lo hong bao mat (khong co credentials nhay cam trong
+ * handshake WS ngoai token da duoc verify), nhung sieu chat che hon va NHAT QUAN voi chinh sach
+ * CORS cua Gateway thi tot hon la wildcard tuy tien.
  */
-@WebSocketGateway({ cors: { origin: '*' } })
+@WebSocketGateway({ cors: { origin: resolveWebSocketCorsOrigins() } })
 export class AnalyticsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(AnalyticsGateway.name);
 
