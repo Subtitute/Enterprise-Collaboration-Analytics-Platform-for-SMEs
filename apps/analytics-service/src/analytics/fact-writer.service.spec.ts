@@ -109,6 +109,36 @@ describe('FactWriterService', () => {
         null, // fromStatus - task.created khong co truong nay
         null, // toStatus - task.created khong co truong nay
         'user-1',
+        null, // 28/07/2026: assigneeId - task.created khong co truong nay (chi task.assigned moi co)
+      ]);
+    });
+
+    // 28/07/2026: bo sung - cot assignee_id MOI, chi co gia tri thuc su o event task.assigned
+    // (TaskAssignedPayload.assigneeId) - kiem tra rieng vi baseEvent (task.created) o test tren
+    // luon tra ve null cho truong nay.
+    it('ghi dung gia tri assignee_id tu payload cho event task.assigned', async () => {
+      const assignedEvent: DomainEvent = {
+        ...baseEvent,
+        eventType: EVENT_TYPES.TASK_ASSIGNED,
+        payload: { taskId: 'task-1', projectId: 'project-1', assigneeId: 'user-2', actorId: 'user-1' },
+      };
+      queryMock.mockResolvedValueOnce([{ event_id: 'evt-1' }]);
+
+      await service.recordTaskEvent(assignedEvent);
+
+      const [sql, params] = queryMock.mock.calls[0];
+      expect(sql).toContain('assignee_id');
+      expect(params).toEqual([
+        assignedEvent.occurredAt,
+        assignedEvent.eventId,
+        assignedEvent.organizationId,
+        assignedEvent.eventType,
+        'project-1',
+        'task-1',
+        null,
+        null,
+        'user-1',
+        'user-2', // assigneeId
       ]);
     });
 
@@ -172,6 +202,57 @@ describe('FactWriterService', () => {
       const managerStub = { query: managerQueryMock };
 
       await service.recordDocumentEvent(documentEvent, managerStub as unknown as DataSource);
+
+      expect(managerQueryMock).toHaveBeenCalledTimes(1);
+      expect(queryMock).not.toHaveBeenCalled();
+    });
+  });
+
+  // 28/07/2026: unit test MOI cho upsertUserDepartment() - ghi vao dim_user (bang lookup phong
+  // ban, KHONG phai hypertable) tu event USER_REGISTERED/USER_DEPARTMENT_CHANGED.
+  describe('upsertUserDepartment', () => {
+    const registeredEvent: DomainEvent = {
+      ...baseEvent,
+      eventType: EVENT_TYPES.USER_REGISTERED,
+      payload: { userId: 'user-1', email: 'a@example.com', departmentId: 'dept-1' },
+    };
+
+    it('INSERT ... ON CONFLICT (user_id) DO UPDATE dung tham so tu payload USER_REGISTERED', async () => {
+      queryMock.mockResolvedValueOnce([]);
+
+      await service.upsertUserDepartment(registeredEvent);
+
+      const [sql, params] = queryMock.mock.calls[0];
+      expect(sql).toContain('INSERT INTO dim_user');
+      expect(sql).toContain('ON CONFLICT (user_id) DO UPDATE SET department_id = EXCLUDED.department_id');
+      expect(params).toEqual(['user-1', registeredEvent.organizationId, 'dept-1']);
+    });
+
+    it('dung dung tham so tu payload USER_DEPARTMENT_CHANGED (departmentId co the la null khi user bi go khoi phong ban)', async () => {
+      const departmentChangedEvent: DomainEvent = {
+        ...baseEvent,
+        eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,
+        payload: { userId: 'user-1', departmentId: null },
+      };
+      queryMock.mockResolvedValueOnce([]);
+
+      await service.upsertUserDepartment(departmentChangedEvent);
+
+      const [, params] = queryMock.mock.calls[0];
+      expect(params).toEqual(['user-1', departmentChangedEvent.organizationId, null]);
+    });
+
+    it('mac dinh dung this.dataSource khi khong truyen runner', async () => {
+      await service.upsertUserDepartment(registeredEvent);
+
+      expect(queryMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('dung runner.query() (vd EntityManager cua 1 transaction) thay vi this.dataSource.query() khi duoc truyen vao', async () => {
+      const managerQueryMock = jest.fn().mockResolvedValue([]);
+      const managerStub = { query: managerQueryMock };
+
+      await service.upsertUserDepartment(registeredEvent, managerStub as unknown as DataSource);
 
       expect(managerQueryMock).toHaveBeenCalledTimes(1);
       expect(queryMock).not.toHaveBeenCalled();

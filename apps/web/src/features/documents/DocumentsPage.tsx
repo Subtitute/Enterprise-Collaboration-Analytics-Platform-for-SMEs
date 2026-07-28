@@ -11,6 +11,9 @@ import { FileTable } from './components/FileTable';
 import { NewFolderModal } from './components/NewFolderModal';
 import { UploadModal } from './components/UploadModal';
 import { ShareModal } from './components/ShareModal';
+// 28/07/2026: modal quan ly chia se thu muc (tinh nang kiem soat truy cap thu muc theo cap do) -
+// wire vao trang nay theo dung pattern sharingFile/ShareModal ngay ben duoi.
+import { FolderShareModal } from './components/FolderShareModal';
 import { VersionHistoryModal } from './components/VersionHistoryModal';
 import type { FileItem, Folder } from '@/types';
 
@@ -38,6 +41,9 @@ export function DocumentsPage() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [sharingFile, setSharingFile] = useState<FileItem | null>(null);
   const [historyFile, setHistoryFile] = useState<FileItem | null>(null);
+  // 28/07/2026: sharingFolder - dieu khien FolderShareModal, mirror y het sharingFile/ShareModal o
+  // tren (tinh nang kiem soat truy cap thu muc theo cap do).
+  const [sharingFolder, setSharingFolder] = useState<Folder | null>(null);
 
   const foldersQuery = useFoldersQuery();
   const filesQuery = useFilesQuery(currentFolderId);
@@ -124,7 +130,9 @@ export function DocumentsPage() {
           />
         ) : (
           <div className="space-y-4">
-            <FolderGrid folders={subFolders} onOpen={(folder) => setCurrentFolderId(folder.id)} />
+            {/* 28/07/2026: them onShare={setSharingFolder} - mo FolderShareModal tu dropdown cua
+                tung thu muc restricted (tinh nang kiem soat truy cap thu muc theo cap do). */}
+            <FolderGrid folders={subFolders} onOpen={(folder) => setCurrentFolderId(folder.id)} onShare={setSharingFolder} />
             {files.length > 0 && (
               <FileTable files={files} folderId={currentFolderId} onShare={setSharingFile} onVersionHistory={setHistoryFile} />
             )}
@@ -135,6 +143,8 @@ export function DocumentsPage() {
       <NewFolderModal parentId={currentFolderId} open={isNewFolderOpen} onClose={() => setIsNewFolderOpen(false)} />
       <UploadModal folderId={currentFolderId} open={isUploadOpen} onClose={() => setIsUploadOpen(false)} />
       <ShareModal file={sharingFile} onClose={() => setSharingFile(null)} />
+      {/* 28/07/2026: render FolderShareModal, mirror vi tri/pattern cua ShareModal (tep) ngay tren. */}
+      <FolderShareModal folder={sharingFolder} onClose={() => setSharingFolder(null)} />
       <VersionHistoryModal file={historyFile} folderId={currentFolderId} onClose={() => setHistoryFile(null)} />
     </div>
   );

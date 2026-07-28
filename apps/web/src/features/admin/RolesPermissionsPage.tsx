@@ -82,6 +82,11 @@ export function RolesPermissionsPage() {
                               checked={r.permissionKeys.includes(p.key)}
                               onChange={() => togglePermission(r, p.key)}
                               disabled={updatePermissions.isPending}
+                              // 28/07/2026: them aria-label ket hop ten vai tro + quyen (phat hien qua ra soat kha
+                              // nang tiep can) - truoc do trinh doc man hinh chi doc duoc "checkbox, chua chon",
+                              // khong biet o nay dai dien cho vai tro/quyen nao, khien ca ma tran phan quyen khong
+                              // the su dung neu khong nhin thay man hinh.
+                              aria-label={`${r.name} - ${p.description ?? p.key}`}
                             />
                           </td>
                         ))}

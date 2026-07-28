@@ -5,15 +5,23 @@
 // con thieu do, cong voi test cho 2 fix MOI trong dot audit nay: MAJOR 1 (ep disposition=attachment
 // cho mimeType khong the doi chieu magic-byte trong getDownloadUrl()) va MAJOR 2 (validate folderId
 // o FilesController.upload() truoc khi xuong service).
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { FilesController } from './files.controller';
+import { AccessContext } from '../folders/folder-access.service';
+import { FolderVisibility } from '../entities/folder.entity';
 import * as sanitizeUtil from './utils/sanitize-filename.util';
 import * as mimeUtil from './allowed-mime-types';
 
 afterEach(() => {
   jest.restoreAllMocks();
 });
+
+// 28/07/2026: ngu canh dung chung cho cac test KHONG lien quan truc tiep den kiem soat truy cap
+// thu muc (upload()/uploadNewVersion() phan Fix cu, getDownloadUrl() phan MAJOR fix 1 cu) - cac
+// file duoc dung trong nhung test do deu o cap ROOT (khong co `folderId`) nen LUON duoc phep bat
+// ke noi dung CTX nay la gi.
+const CTX: AccessContext = { userId: 'actor-1', departmentId: null, isOrgAdmin: false };
 
 function buildMulterFile(overrides: Partial<Express.Multer.File> = {}): Express.Multer.File {
   return {
@@ -38,14 +46,21 @@ describe('FilesService.upload - fix code review 22/07/2026 (Fix 1 sanitizeFileNa
     const folderRepoMock = { findOne: jest.fn() };
     const outboxServiceMock = { record: jest.fn().mockResolvedValue(undefined) };
     const minioServiceMock = { putObject: jest.fn().mockResolvedValue(undefined) };
+    // 28/07/2026: repo/service moi cho kiem soat truy cap thu muc (opt-in) - khong dung toi trong
+    // cac test o describe nay (upload() CO CHU DICH khong kiem tra canAccessFolder, xem comment
+    // tai FilesService.upload()), nhung constructor gio can du 8 tham so.
+    const fileShareRepoMock = {} as never;
+    const folderAccessServiceMock = { canAccessFolder: jest.fn().mockResolvedValue(true) };
 
     const service = new FilesService(
       dataSourceMock as never,
       {} as never,
       {} as never,
+      fileShareRepoMock,
       folderRepoMock as never,
       outboxServiceMock as never,
       minioServiceMock as never,
+      folderAccessServiceMock as never,
     );
     return { service, managerMock, minioServiceMock, folderRepoMock };
   }
@@ -98,16 +113,24 @@ describe('FilesService.uploadNewVersion - fix code review 22/07/2026 (Fix 1/Fix 
       removeObject: jest.fn().mockResolvedValue(undefined),
     };
     const outboxServiceMock = { record: jest.fn().mockResolvedValue(undefined) };
+    // 28/07/2026: uploadNewVersion() gio doc `fileMetaRepo.findOne` 1 lan (KHONG khoa) TRUOC khi mo
+    // transaction, chi de kiem tra quyen truy cap (kiem soat truy cap thu muc, opt-in) - tra ve
+    // CUNG `existingFileMeta` (khong co `folderId` -> cap ROOT -> luon duoc phep, khong can goi
+    // toi folderRepo/folderAccessService).
+    const fileMetaRepoMock = { findOne: jest.fn().mockResolvedValue(existingFileMeta) };
+    const folderAccessServiceMock = { canAccessFolder: jest.fn().mockResolvedValue(true) };
 
     const service = new FilesService(
       dataSourceMock as never,
+      fileMetaRepoMock as never,
       {} as never,
       {} as never,
       {} as never,
       outboxServiceMock as never,
       minioServiceMock as never,
+      folderAccessServiceMock as never,
     );
-    return { service, managerMock, minioServiceMock };
+    return { service, managerMock, minioServiceMock, fileMetaRepoMock };
   }
 
   it('goi CA sanitizeFileName LAN verifyFileContentMatchesMimeType, VA khoa row bang pessimistic_write TRUOC khi tinh versionNumber', async () => {
@@ -123,7 +146,7 @@ describe('FilesService.uploadNewVersion - fix code review 22/07/2026 (Fix 1/Fix 
     const { service, managerMock, minioServiceMock } = buildService(existingFileMeta);
     const file = buildMulterFile({ originalname: 'bao-cao-v2.pdf' });
 
-    const result = await service.uploadNewVersion(organizationId, actorId, fileId, file);
+    const result = await service.uploadNewVersion(organizationId, actorId, fileId, file, CTX);
 
     expect(sanitizeSpy).toHaveBeenCalledWith(file.originalname);
     expect(verifySpy).toHaveBeenCalledWith(file);
@@ -157,7 +180,7 @@ describe('FilesService.uploadNewVersion - fix code review 22/07/2026 (Fix 1/Fix 
     const { service, managerMock, minioServiceMock } = buildService(existingFileMeta);
     const file = buildMulterFile({ buffer: Buffer.from('gia mao') });
 
-    await expect(service.uploadNewVersion(organizationId, actorId, fileId, file)).rejects.toThrow(
+    await expect(service.uploadNewVersion(organizationId, actorId, fileId, file, CTX)).rejects.toThrow(
       BadRequestException,
     );
     expect(minioServiceMock.putObject).not.toHaveBeenCalled();
@@ -174,13 +197,17 @@ describe('FilesService.getDownloadUrl - MAJOR fix 1 (audit round 25/07/2026): ep
     const minioServiceMock = {
       presignedGetObject: jest.fn().mockResolvedValue('https://minio.local/signed-url'),
     };
+    // 28/07/2026: repo/service moi cho kiem soat truy cap thu muc (opt-in) - khong dung toi trong
+    // cac test o describe nay (`fileMeta` khong co `folderId` -> cap ROOT -> luon duoc phep).
     const service = new FilesService(
       {} as never,
       fileMetaRepoMock as never,
       {} as never,
       {} as never,
       {} as never,
+      {} as never,
       minioServiceMock as never,
+      { canAccessFolder: jest.fn().mockResolvedValue(true) } as never,
     );
     return { service, minioServiceMock };
   }
@@ -195,7 +222,7 @@ describe('FilesService.getDownloadUrl - MAJOR fix 1 (audit round 25/07/2026): ep
     };
     const { service, minioServiceMock } = buildService(fileMeta);
 
-    await service.getDownloadUrl(organizationId, fileId, 'inline');
+    await service.getDownloadUrl(organizationId, fileId, 'inline', CTX);
 
     const respHeaders = minioServiceMock.presignedGetObject.mock.calls[0][2];
     expect(respHeaders['response-content-disposition']).toMatch(/^attachment;/);
@@ -211,7 +238,7 @@ describe('FilesService.getDownloadUrl - MAJOR fix 1 (audit round 25/07/2026): ep
     };
     const { service, minioServiceMock } = buildService(fileMeta);
 
-    await service.getDownloadUrl(organizationId, fileId, 'inline');
+    await service.getDownloadUrl(organizationId, fileId, 'inline', CTX);
 
     const respHeaders = minioServiceMock.presignedGetObject.mock.calls[0][2];
     expect(respHeaders['response-content-disposition']).toMatch(/^attachment;/);
@@ -227,7 +254,7 @@ describe('FilesService.getDownloadUrl - MAJOR fix 1 (audit round 25/07/2026): ep
     };
     const { service, minioServiceMock } = buildService(fileMeta);
 
-    await service.getDownloadUrl(organizationId, fileId, 'inline');
+    await service.getDownloadUrl(organizationId, fileId, 'inline', CTX);
 
     const respHeaders = minioServiceMock.presignedGetObject.mock.calls[0][2];
     expect(respHeaders['response-content-disposition']).toMatch(/^inline;/);
@@ -243,10 +270,251 @@ describe('FilesService.getDownloadUrl - MAJOR fix 1 (audit round 25/07/2026): ep
     };
     const { service, minioServiceMock } = buildService(fileMeta);
 
-    await service.getDownloadUrl(organizationId, fileId);
+    await service.getDownloadUrl(organizationId, fileId, undefined, CTX);
 
     const respHeaders = minioServiceMock.presignedGetObject.mock.calls[0][2];
     expect(respHeaders['response-content-disposition']).toMatch(/^attachment;/);
+  });
+});
+
+// 28/07/2026: describe block moi - kiem soat truy cap thu muc (opt-in) o tang FilesService. Bao
+// phu: (a) file cap ROOT (`folderId` null/undefined) LUON duoc phep, bat ke ctx la gi; (b) "duong
+// link rieng" - 1 FileShare TRUC TIEP tren file van cho phep truy cap du thu muc cha RESTRICTED va
+// khong co FolderShare o cap thu muc; (c) tu choi khi khong khop dieu kien nao; (d) findAll() tu
+// choi TOAN BO (khong loc tung file) khi folderId tro toi 1 thu muc RESTRICTED khong xem duoc.
+describe('FilesService - kiem soat truy cap file/thu muc (opt-in, 28/07/2026)', () => {
+  const organizationId = 'org-1';
+  const fileId = 'file-1';
+  const restrictedFolder = {
+    id: 'folder-1',
+    organizationId,
+    visibility: FolderVisibility.RESTRICTED,
+    createdByUserId: 'owner-1',
+  };
+  const strangerCtx: AccessContext = { userId: 'stranger-1', departmentId: null, isOrgAdmin: false };
+
+  function buildService(overrides: {
+    fileMeta?: Record<string, unknown> | null;
+    folder?: Record<string, unknown> | null;
+    canAccessFolder?: boolean;
+    fileShare?: Record<string, unknown> | null;
+  }) {
+    const fileMetaRepoMock = {
+      findOne: jest.fn().mockResolvedValue(overrides.fileMeta ?? null),
+      findAndCount: jest.fn().mockResolvedValue([[], 0]),
+    };
+    const fileVersionRepoMock = { find: jest.fn().mockResolvedValue([]) };
+    const fileShareRepoMock = { findOne: jest.fn().mockResolvedValue(overrides.fileShare ?? null) };
+    const folderRepoMock = { findOne: jest.fn().mockResolvedValue(overrides.folder ?? null) };
+    const folderAccessServiceMock = { canAccessFolder: jest.fn().mockResolvedValue(overrides.canAccessFolder ?? true) };
+
+    const service = new FilesService(
+      {} as never,
+      fileMetaRepoMock as never,
+      fileVersionRepoMock as never,
+      fileShareRepoMock as never,
+      folderRepoMock as never,
+      {} as never,
+      {} as never,
+      folderAccessServiceMock as never,
+    );
+    return { service, fileMetaRepoMock, fileShareRepoMock, folderRepoMock, folderAccessServiceMock };
+  }
+
+  it('findOne(): file cap ROOT (folderId undefined) LUON duoc phep, khong can tra cuu folderRepo', async () => {
+    const { service, folderRepoMock } = buildService({
+      fileMeta: { id: fileId, organizationId, fileName: 'a.pdf' },
+    });
+
+    await expect(service.findOne(organizationId, fileId, strangerCtx)).resolves.toEqual(
+      expect.objectContaining({ id: fileId }),
+    );
+    expect(folderRepoMock.findOne).not.toHaveBeenCalled();
+  });
+
+  it('findOne(): "duong link rieng" - cho phep khi file co 1 FileShare TRUC TIEP khop userId, du thu muc cha RESTRICTED va khong co FolderShare', async () => {
+    const { service } = buildService({
+      fileMeta: { id: fileId, organizationId, folderId: 'folder-1', fileName: 'hop-dong.pdf' },
+      folder: restrictedFolder,
+      canAccessFolder: false,
+      fileShare: { id: 'share-1', fileId, sharedWithUserId: 'stranger-1' },
+    });
+
+    await expect(service.findOne(organizationId, fileId, strangerCtx)).resolves.toEqual(
+      expect.objectContaining({ id: fileId }),
+    );
+  });
+
+  it('findOne(): tu choi (ForbiddenException) khi thu muc RESTRICTED khong xem duoc VA khong co FileShare truc tiep tren file', async () => {
+    const { service } = buildService({
+      fileMeta: { id: fileId, organizationId, folderId: 'folder-1', fileName: 'hop-dong.pdf' },
+      folder: restrictedFolder,
+      canAccessFolder: false,
+      fileShare: null,
+    });
+
+    await expect(service.findOne(organizationId, fileId, strangerCtx)).rejects.toThrow(ForbiddenException);
+  });
+
+  it('findOne(): cho phep truc tiep (khong can tra FileShare) khi canAccessFolder tra ve true', async () => {
+    const { service, fileShareRepoMock } = buildService({
+      fileMeta: { id: fileId, organizationId, folderId: 'folder-1', fileName: 'a.pdf' },
+      folder: restrictedFolder,
+      canAccessFolder: true,
+    });
+
+    await service.findOne(organizationId, fileId, strangerCtx);
+
+    expect(fileShareRepoMock.findOne).not.toHaveBeenCalled();
+  });
+
+  it('findAll(): tu choi TOAN BO viec liet ke khi folderId tro toi 1 thu muc RESTRICTED khong xem duoc', async () => {
+    const { service } = buildService({ folder: restrictedFolder, canAccessFolder: false });
+
+    await expect(
+      service.findAll(organizationId, 'folder-1', { page: 1, limit: 20 } as never, strangerCtx),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('findAll(): khong kiem tra quyen thu muc khi folderId khong duoc truyen (danh sach o cap ROOT)', async () => {
+    const { service, folderRepoMock } = buildService({});
+
+    await service.findAll(organizationId, undefined, { page: 1, limit: 20 } as never, strangerCtx);
+
+    expect(folderRepoMock.findOne).not.toHaveBeenCalled();
+  });
+});
+
+// 28/07/2026: describe block moi - FilesService.share() sau khi bo sung chia se theo PHONG BAN
+// (`sharedWithDepartmentId`) va kiem tra quyen truy cap file truoc khi cho chia se.
+describe('FilesService.share - chia se theo phong ban + kiem soat truy cap (28/07/2026)', () => {
+  const organizationId = 'org-1';
+  const actorId = 'actor-1';
+  const fileId = 'file-1';
+  const ctx: AccessContext = { userId: actorId, departmentId: null, isOrgAdmin: false };
+
+  function buildService(existingShare: Record<string, unknown> | null = null) {
+    const fileMetaRepoMock = {
+      findOne: jest.fn().mockResolvedValue({ id: fileId, organizationId, fileName: 'a.pdf' }), // cap ROOT - luon truy cap duoc
+    };
+    const managerMock = {
+      findOne: jest.fn().mockResolvedValue(existingShare),
+      save: jest.fn().mockImplementation((entity) => Promise.resolve({ id: 'share-1', ...entity })),
+      create: jest.fn().mockImplementation((_entityClass: unknown, data: unknown) => data),
+    };
+    const dataSourceMock = { transaction: jest.fn((cb: (m: typeof managerMock) => unknown) => cb(managerMock)) };
+    const outboxServiceMock = { record: jest.fn().mockResolvedValue(undefined) };
+    const folderAccessServiceMock = { canAccessFolder: jest.fn().mockResolvedValue(true) };
+
+    const service = new FilesService(
+      dataSourceMock as never,
+      fileMetaRepoMock as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      outboxServiceMock as never,
+      {} as never,
+      folderAccessServiceMock as never,
+    );
+    return { service, managerMock, outboxServiceMock };
+  }
+
+  it('tu choi (BadRequestException) khi cung cap CA sharedWithUserId LAN sharedWithDepartmentId', async () => {
+    const { service } = buildService();
+
+    await expect(
+      service.share(organizationId, actorId, fileId, { sharedWithUserId: 'u1', sharedWithDepartmentId: 'd1', permission: 'VIEW' } as never, ctx),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('tu choi (BadRequestException) khi KHONG cung cap sharedWithUserId LAN sharedWithDepartmentId', async () => {
+    const { service } = buildService();
+
+    await expect(
+      service.share(organizationId, actorId, fileId, { permission: 'VIEW' } as never, ctx),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('tao chia se theo PHONG BAN thanh cong: luu dung sharedWithDepartmentId, sharedWithUserId = null, VA KHONG phat outbox event (gioi han da biet, xem comment tai share())', async () => {
+    const { service, managerMock, outboxServiceMock } = buildService();
+
+    const result = await service.share(
+      organizationId,
+      actorId,
+      fileId,
+      { sharedWithDepartmentId: 'dept-1', permission: 'VIEW' } as never,
+      ctx,
+    );
+
+    expect(managerMock.create).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ sharedWithUserId: null, sharedWithDepartmentId: 'dept-1' }),
+    );
+    expect(outboxServiceMock.record).not.toHaveBeenCalled();
+    expect(result).toEqual(expect.objectContaining({ sharedWithDepartmentId: 'dept-1' }));
+  });
+
+  it('tao chia se theo USER thanh cong (hanh vi cu): luu dung sharedWithUserId VA phat outbox event document.shared', async () => {
+    const { service, managerMock, outboxServiceMock } = buildService();
+
+    await service.share(organizationId, actorId, fileId, { sharedWithUserId: 'member-1', permission: 'VIEW' } as never, ctx);
+
+    expect(managerMock.create).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ sharedWithUserId: 'member-1', sharedWithDepartmentId: null }),
+    );
+    expect(outboxServiceMock.record).toHaveBeenCalledTimes(1);
+  });
+
+  it('tu choi (ForbiddenException) khi nguoi chia se khong co quyen truy cap chinh file do', async () => {
+    const fileMetaRepoMock = {
+      findOne: jest.fn().mockResolvedValue({ id: fileId, organizationId, folderId: 'folder-1', fileName: 'a.pdf' }),
+    };
+    const folderRepoMock = { findOne: jest.fn().mockResolvedValue({ id: 'folder-1', visibility: FolderVisibility.RESTRICTED, createdByUserId: 'owner-1' }) };
+    const fileShareRepoMock = { findOne: jest.fn().mockResolvedValue(null) };
+    const folderAccessServiceMock = { canAccessFolder: jest.fn().mockResolvedValue(false) };
+    const service = new FilesService(
+      {} as never,
+      fileMetaRepoMock as never,
+      {} as never,
+      fileShareRepoMock as never,
+      folderRepoMock as never,
+      {} as never,
+      {} as never,
+      folderAccessServiceMock as never,
+    );
+
+    await expect(
+      service.share(organizationId, actorId, fileId, { sharedWithUserId: 'member-1', permission: 'VIEW' } as never, ctx),
+    ).rejects.toThrow(ForbiddenException);
+  });
+});
+
+// 28/07/2026: FilesService.remove() gio can kiem tra quyen truy cap truoc khi cho xoa.
+describe('FilesService.remove - kiem soat truy cap (28/07/2026)', () => {
+  it('tu choi (ForbiddenException) khi nguoi goi khong co quyen truy cap file (thu muc RESTRICTED, khong FileShare truc tiep)', async () => {
+    const fileMetaRepoMock = {
+      findOne: jest.fn().mockResolvedValue({ id: 'file-1', organizationId: 'org-1', folderId: 'folder-1' }),
+    };
+    const fileVersionRepoMock = { find: jest.fn().mockResolvedValue([]) };
+    const fileShareRepoMock = { findOne: jest.fn().mockResolvedValue(null) };
+    const folderRepoMock = {
+      findOne: jest.fn().mockResolvedValue({ id: 'folder-1', visibility: FolderVisibility.RESTRICTED, createdByUserId: 'owner-1' }),
+    };
+    const folderAccessServiceMock = { canAccessFolder: jest.fn().mockResolvedValue(false) };
+    const service = new FilesService(
+      {} as never,
+      fileMetaRepoMock as never,
+      fileVersionRepoMock as never,
+      fileShareRepoMock as never,
+      folderRepoMock as never,
+      {} as never,
+      {} as never,
+      folderAccessServiceMock as never,
+    );
+    const ctx: AccessContext = { userId: 'stranger-1', departmentId: null, isOrgAdmin: false };
+
+    await expect(service.remove('org-1', 'stranger-1', 'file-1', ctx)).rejects.toThrow(ForbiddenException);
   });
 });
 

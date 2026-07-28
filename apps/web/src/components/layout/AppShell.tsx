@@ -1,6 +1,8 @@
-import { Outlet } from 'react-router-dom';
+import { Suspense, useEffect, useRef } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar, MobileSidebar } from './Sidebar';
 import { Topbar } from './Topbar';
+import { FullPageSpinner } from '@/components/ui/Spinner';
 import { useNotificationSocket } from '@/features/notifications/hooks';
 // 25/07/2026: them useSidebarAutoCollapse - xem hooks/useSidebarAutoCollapse.ts. Goi o day (goc
 // layout, mount dung 1 lan cho toan bo cac trang da dang nhap) de Sidebar tu thu gon o do rong
@@ -14,14 +16,39 @@ export function AppShell() {
   useNotificationSocket();
   useSidebarAutoCollapse(); // 25/07/2026: xem ghi chu import o tren.
 
+  // 28/07/2026: bo sung "skip to content" + chuyen focus khi doi trang (phat hien qua ra soat kha
+  // nang tiep can) - SPA dieu huong phia client KHONG reload trang nhu web truyen thong, nen focus
+  // ban phim tu nhien VAN nam o lien ket vua bam (thuong o Sidebar/Topbar); nguoi dung dung ban
+  // phim phai Tab lai TU DAU qua toan bo Sidebar + Topbar (tim kiem, thong bao, menu tai khoan) o
+  // MOI lan chuyen trang moi toi duoc noi dung. Focus vao <main> ngay sau khi doi route vua dua
+  // nguoi dung ban phim toi dung noi dung moi, vua la tin hieu (du gian tiep) de trinh doc man hinh
+  // biet trang da doi. Lien ket "bo qua" (an, chi hien khi nhan Tab toi) phuc vu truong hop nguoi
+  // dung ban phim bat dau tu Topbar/URL bar, chua tung dieu huong qua route nao trong phien nay.
+  const location = useLocation();
+  const mainRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    mainRef.current?.focus();
+  }, [location.pathname]);
+
   return (
     <div className="flex min-h-screen bg-slate-50">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-700 focus:shadow-lg focus:ring-2 focus:ring-primary-400"
+      >
+        Bỏ qua tới nội dung chính
+      </a>
       <Sidebar />
       <MobileSidebar />
       <div className="flex min-h-screen flex-1 flex-col">
         <Topbar />
-        <main className="flex-1 p-4 sm:p-6">
-          <Outlet />
+        <main id="main-content" ref={mainRef} tabIndex={-1} className="flex-1 p-4 sm:p-6 focus:outline-none">
+          {/* 28/07/2026: Suspense rieng cho Outlet (khac voi Suspense goc o App.tsx) - de Sidebar/
+              Topbar (component o TREN, ngoai boundary nay) khong bi thay bang fallback moi lan
+              chuyen trang, chi vung noi dung chinh hien spinner trong luc tai chunk cua trang moi. */}
+          <Suspense fallback={<FullPageSpinner label="Đang tải trang…" />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>

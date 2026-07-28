@@ -69,6 +69,10 @@ export function ProjectsListPage() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Tìm kiếm dự án…"
+            // 28/07/2026: them aria-label khop voi placeholder (phat hien qua ra soat kha nang tiep
+            // can) - placeholder bien mat ngay khi go chu va khong phai luon duoc trinh doc man hinh
+            // dung lam ten truy cap, nen can aria-label rieng.
+            aria-label="Tìm kiếm dự án…"
             className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100"
           />
         </div>

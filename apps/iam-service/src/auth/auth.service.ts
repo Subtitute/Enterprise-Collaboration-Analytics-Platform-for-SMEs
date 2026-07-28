@@ -275,6 +275,9 @@ export class AuthService {
       email: user.email,
       roles: roleNames,
       permissions: permissionKeys,
+      // 28/07/2026: xem ghi chu departmentId tai JwtAccessPayload (@app/common-dto) - nang cap
+      // access-control tai lieu theo phong ban (Document Service, FolderShare).
+      departmentId: user.departmentId ?? null,
     };
     const accessToken = await this.jwtService.signAsync(accessPayload, {
       secret: this.configService.get<string>('jwt.accessSecret'),

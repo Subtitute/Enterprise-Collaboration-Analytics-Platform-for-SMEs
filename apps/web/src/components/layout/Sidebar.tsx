@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn, hasAdminRole } from '@/lib/utils';
 import { NAV_ITEMS } from './nav-items';
@@ -23,6 +24,11 @@ function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
           to={item.to}
           onClick={onNavigate}
           title={collapsed ? item.label : undefined}
+          // 28/07/2026: them aria-label = ten muc dieu huong (phat hien qua ra soat kha nang tiep
+          // can) - truoc do khi thu gon Sidebar, ten muc chi duoc gan qua title (tooltip khi ru
+          // chuot), khong dam bao duoc trinh doc man hinh dung lam ten truy cap; giu title de hien
+          // tooltip cho chuot, bo sung aria-label de luon co ten truy cap on dinh du thu gon hay khong.
+          aria-label={item.label}
           className={({ isActive }) =>
             cn(
               'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
@@ -70,6 +76,10 @@ export function Sidebar() {
         type="button"
         onClick={toggle}
         title={collapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
+        // 28/07/2026: them aria-label giong title (phat hien qua ra soat kha nang tiep can) - nut
+        // nay chi co icon, khong co text hien thi, truoc do khong co ten truy cap ro rang cho trinh
+        // doc man hinh vi title khong dam bao duoc dung lam ten truy cap.
+        aria-label={collapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
         className="flex h-11 shrink-0 items-center justify-center gap-2 border-t border-slate-100 text-slate-400 hover:bg-slate-50 hover:text-slate-600"
       >
         {collapsed ? <ChevronRightIcon className="h-4 w-4" /> : <ChevronLeftIcon className="h-4 w-4" />}
@@ -82,13 +92,34 @@ export function Sidebar() {
 export function MobileSidebar() {
   const open = useUIStore((s) => s.mobileSidebarOpen);
   const setOpen = useUIStore((s) => s.setMobileSidebarOpen);
+  const drawerRef = useRef<HTMLDivElement>(null); // 28/07/2026: xem ghi chu useEffect ben duoi.
+
+  // 28/07/2026: bo sung dong bang phim Escape + chuyen focus vao drawer khi mo (phat hien qua ra
+  // soat kha nang tiep can) - truoc do drawer nay CHI dong duoc bang cach bam vao lop nen (chuot),
+  // nguoi dung ban phim khong co cach nao dong lai; ngoai ra khi mo, focus ban phim van nam o nut
+  // hamburger tren Topbar (da bi drawer che khuat ve mat thi giac) thay vi chuyen vao trong drawer
+  // dang hien thi. Sua bang: lang nghe keydown Escape (chi khi dang mo) de dong drawer, va focus
+  // vao chinh container cua drawer ngay sau khi mo.
+  useEffect(() => {
+    if (!open) return;
+    drawerRef.current?.focus();
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [open, setOpen]);
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex md:hidden">
       <div className="absolute inset-0 animate-fade-in bg-slate-900/40" onClick={() => setOpen(false)} aria-hidden />
-      <div className="relative z-10 flex h-full w-72 max-w-[80vw] animate-slide-up flex-col bg-white shadow-xl">
+      <div
+        ref={drawerRef}
+        tabIndex={-1}
+        className="relative z-10 flex h-full w-72 max-w-[80vw] animate-slide-up flex-col bg-white shadow-xl focus:outline-none"
+      >
         <Logo collapsed={false} />
         <SidebarLinks collapsed={false} onNavigate={() => setOpen(false)} />
       </div>

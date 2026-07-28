@@ -3,27 +3,55 @@ import { ConfigService } from '@nestjs/config';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { Consumer, Kafka } from 'kafkajs';
-import { DomainEvent, KAFKA_CONSUMER_GROUPS, KAFKA_TOPICS } from '@app/common-dto';
+import {
+  DeadLetterEnvelope,
+  DeadLetterErrorType,
+  DomainEvent,
+  EVENT_TYPES,
+  KAFKA_CONSUMER_GROUPS,
+  KAFKA_TOPICS,
+  // 28/07/2026: DeadLetterEnvelope/DeadLetterErrorType - schema chuan de day message loi vao
+  // KAFKA_TOPICS.DLQ (xem publishToDlq() ben duoi va Technical_Spec.md muc 14).
+  // EVENT_TYPES.USER_REGISTERED/USER_DEPARTMENT_CHANGED - nhan dien nhanh cap nhat dim_user
+  // (KPI theo phong ban) ben duoi trong handleEvent().
+} from '@app/common-dto';
 import { FactWriterService } from '../analytics/fact-writer.service';
 import { AnalyticsGateway } from '../realtime/analytics.gateway';
+// 28/07/2026: producer moi cua service nay - dung DUY NHAT de tu phat message vao DLQ.
+import { KafkaProducerService } from './kafka-producer.service';
 
 /**
  * Consumer duy nhat cua Analytics Service - lang nghe ca 3 topic (iam/project-task/document)
  * bang 1 consumer group `analytics-service-group` (Technical_Spec.md muc 4.2, muc 3.6).
  *
  * Moi message deu duoc ghi vao fact_user_activity (idempotent theo eventId - xem
- * FactWriterService), sau do tuy eventType ma ghi bo sung vao fact_task_events hoac
- * fact_document_events, roi day cap nhat real-time qua AnalyticsGateway.
+ * FactWriterService), sau do tuy eventType ma ghi bo sung vao fact_task_events, fact_document_events
+ * hoac dim_user (28/07/2026: bang lookup phong ban cua user, phuc vu KPI theo phong ban), roi day
+ * cap nhat real-time qua AnalyticsGateway.
  *
  * QUAN TRONG (Technical_Spec.md muc 4.1 - gioi han da biet): OutboxPublisherJob phia producer
  * co the phat trung 1 event neu crash giua luc publish -> service nay PHAI dung idempotent
  * (ON CONFLICT DO NOTHING theo eventId), KHONG duoc gia dinh Kafka giao dung 1 lan.
+ *
+ * 28/07/2026: bo sung Dead Letter Queue (Technical_Spec.md muc 14, truoc day "chua co DLQ") - ca
+ * 4 nhanh loi (JSON khong hop le, envelope thieu truong, loi du lieu Postgres vinh vien, va loi ha
+ * tang KEO DAI vuot qua nguong retry) gio day day message loi sang KAFKA_TOPICS.DLQ (xem
+ * publishToDlq()) thay vi CHI log-and-skip nhu truoc, tranh mat trang du lieu loi.
  */
 @Injectable()
 export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(KafkaConsumerService.name);
   private kafka: Kafka;
   private consumer: Consumer;
+  // 28/07/2026: dem so lan retry LIEN TIEP cho tung eventId (dung o nhanh loi TAM THOI trong
+  // handleEvent() ben duoi) - key la eventId, value la so lan da thu. GIOI HAN DA BIET (chap nhan
+  // duoc trong pham vi do an, khong persist Redis/DB): Map nay o trong bo nho tien trinh, MAT het
+  // khi service restart -> 1 message dang "ket" giua chung se duoc cap lai NGUYEN VEN
+  // `maxRetryAttempts` luot moi sau restart (khong cong don voi so lan da thu truoc do).
+  private readonly retryAttempts = new Map<string, number>();
+  // 28/07/2026: nguong so lan retry toi da cho 1 eventId truoc khi bi coi la RETRY_EXHAUSTED va
+  // day sang DLQ thay vi tiep tuc rethrow cho kafkajs redeliver vo han.
+  private readonly maxRetryAttempts = 5;
 
   constructor(
     private readonly configService: ConfigService,
@@ -32,6 +60,9 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     // 25/07/2026 (Fix 2 - Major, audit): can DataSource truc tiep de mo 1 transaction Postgres
     // boc quanh toan bo cac lenh ghi fact table cua CUNG 1 event (xem handleEvent() ben duoi).
     @InjectDataSource() private readonly dataSource: DataSource,
+    // 28/07/2026: can KafkaProducerService de tu phat message vao KAFKA_TOPICS.DLQ khi 1 trong 4
+    // nhanh loi cua service nay xay ra (xem publishToDlq() ben duoi).
+    private readonly kafkaProducer: KafkaProducerService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -50,20 +81,11 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     });
 
     await this.consumer.run({
-      eachMessage: async ({ topic, message }) => {
-        if (!message.value) return;
-        let event: DomainEvent;
-        try {
-          event = JSON.parse(message.value.toString()) as DomainEvent;
-        } catch (error) {
-          // Loi KHONG THE PHUC HOI (malformed JSON) - retry cung message se luon that bai giong
-          // nhau, nen log o muc warn va BO QUA (khong rethrow) de kafkajs commit offset va
-          // chuyen sang message tiep theo. Khac voi loi ghi TimescaleDB o handleEvent() ben duoi.
-          this.logger.warn(`Khong parse duoc message JSON tu topic ${topic}: ${(error as Error).message}`);
-          return;
-        }
-        await this.handleEvent(event);
-      },
+      // 28/07/2026: chuyen toan bo noi dung callback nay sang processMessage() (private method)
+      // de co the unit-test doc lap nhanh loi MALFORMED_JSON (day sang DLQ) ma khong can 1 ket
+      // noi Kafka that - giong ly do handleEvent() da duoc tach truoc do (xem
+      // kafka-consumer.service.spec.ts).
+      eachMessage: async ({ topic, message }) => this.processMessage(topic, message.value),
     });
 
     this.logger.log(
@@ -75,7 +97,39 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     await this.consumer?.disconnect();
   }
 
-  private async handleEvent(event: DomainEvent): Promise<void> {
+  // 28/07/2026: tach tu callback eachMessage() cua consumer.run() o onModuleInit() ben tren -
+  // giu nguyen logic goc (parse JSON roi goi handleEvent()), chi khac la gio co the goi truc
+  // tiep tu unit test (xem kafka-consumer.service.spec.ts) vi khong con phu thuoc Kafka that.
+  private async processMessage(topic: string, rawValue: Buffer | null): Promise<void> {
+    if (!rawValue) return;
+    let event: DomainEvent;
+    try {
+      event = JSON.parse(rawValue.toString()) as DomainEvent;
+    } catch (error) {
+      // Loi KHONG THE PHUC HOI (malformed JSON) - retry cung message se luon that bai giong
+      // nhau, nen log o muc warn va BO QUA (khong rethrow) de kafkajs commit offset va
+      // chuyen sang message tiep theo. Khac voi loi ghi TimescaleDB o handleEvent() ben duoi.
+      this.logger.warn(`Khong parse duoc message JSON tu topic ${topic}: ${(error as Error).message}`);
+      // 28/07/2026: day sang DLQ (errorType MALFORMED_JSON) truoc khi bo qua - Technical_Spec.md
+      // muc 14 (nay da co DLQ), tranh mat han noi dung message loi (truoc day chi con trong log).
+      await this.publishToDlq({
+        eventId: null,
+        eventType: null,
+        organizationId: null,
+        sourceTopic: topic,
+        errorType: 'MALFORMED_JSON',
+        errorMessage: (error as Error).message,
+        attempts: 1,
+        rawPayload: rawValue.toString(),
+      });
+      return;
+    }
+    // 28/07/2026: truyen them `topic` (topic Kafka GOC) de cac nhanh loi trong handleEvent() ghi
+    // dung sourceTopic khi day sang DLQ (truoc day handleEvent chi nhan event).
+    await this.handleEvent(event, topic);
+  }
+
+  private async handleEvent(event: DomainEvent, topic: string): Promise<void> {
     // 22/07/2026: kiem tra "envelope" ngay khi vao ham (chay ngay sau JSON.parse thanh cong o
     // eachMessage() ben tren, khong co buoc nao xen giua) - Technical_Spec.md muc 14 ("loi
     // payload khong hop le bi bo qua va chi log lai"). Dat kiem tra o day (thay vi ngay trong
@@ -88,6 +142,20 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(
         `Bo qua event KHONG HOP LE (thieu truong bat buoc eventId/eventType/organizationId/payload): ${JSON.stringify(event)}`,
       );
+      // 28/07/2026: day sang DLQ truoc khi bo qua - best-effort lay eventId/eventType/organizationId
+      // tu object GOC (event luc nay CHUA qua duoc isValidDomainEventEnvelope() nen cac truong nay
+      // co the thieu/sai kieu, khong the tin tuong kieu DomainEvent da khai bao tren tham so ham).
+      const raw = event as unknown as Record<string, unknown>;
+      await this.publishToDlq({
+        eventId: typeof raw.eventId === 'string' ? raw.eventId : null,
+        eventType: typeof raw.eventType === 'string' ? raw.eventType : null,
+        organizationId: typeof raw.organizationId === 'string' ? raw.organizationId : null,
+        sourceTopic: topic,
+        errorType: 'INVALID_ENVELOPE',
+        errorMessage: 'Thieu truong bat buoc eventId/eventType/organizationId/payload',
+        attempts: 1,
+        rawPayload: JSON.stringify(event),
+      });
       return;
     }
 
@@ -119,6 +187,17 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
           await this.factWriter.recordTaskEvent(event, manager);
         } else if (event.eventType.startsWith('document.')) {
           await this.factWriter.recordDocumentEvent(event, manager);
+        } else if (
+          event.eventType === EVENT_TYPES.USER_REGISTERED ||
+          event.eventType === EVENT_TYPES.USER_DEPARTMENT_CHANGED
+        ) {
+          // 28/07/2026: cap nhat dim_user (bang lookup phong ban HIEN TAI cua user) tu ca 2
+          // nguon: user MOI dang ky (USER_REGISTERED, mang san departmentId ban dau) VA user da
+          // ton tai doi phong ban qua PATCH /users/:id hoac ban resync dinh ky luc IAM Service
+          // khoi dong lai (USER_DEPARTMENT_CHANGED, an toan replay - xem event-types.ts). Phuc vu
+          // KPI theo phong ban (AnalyticsService.computeSummary()/getTaskStatusBreakdown()/
+          // getProjectProgress(), tham so departmentId).
+          await this.factWriter.upsertUserDepartment(event, manager);
         }
       });
 
@@ -153,18 +232,84 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
         this.logger.error(
           `Bo qua event LOI DU LIEU vinh vien tu Postgres (eventType=${event.eventType}, eventId=${event.eventId}, ma loi=${(error as { code?: string }).code}): ${(error as Error).message} - noi dung event: ${JSON.stringify(event)}`,
         );
+        // 28/07/2026: day sang DLQ truoc khi bo qua - luu lai payload loi de co the kiem tra/replay
+        // thu cong sau nay thay vi CHI nam trong log (Technical_Spec.md muc 14).
+        await this.publishToDlq({
+          eventId: event.eventId,
+          eventType: event.eventType,
+          organizationId: event.organizationId,
+          sourceTopic: topic,
+          errorType: 'PERMANENT_DATA_ERROR',
+          errorMessage: (error as Error).message,
+          attempts: 1,
+          rawPayload: JSON.stringify(event),
+        });
         return;
       }
 
       // Loi TAM THOI (vd TimescaleDB down/timeout khi FactWriterService.* goi DataSource.query)
       // - log o muc error VA rethrow de kafkajs KHONG commit offset cho message nay; consumer
-      // group se retry (Technical_Spec.md muc 14 - "Kafka consumer chua co DLQ"). Khac voi loi
-      // parse JSON o eachMessage() (khong the retry thanh cong -> log warn + bo qua, xem tren).
+      // group se retry. Khac voi loi parse JSON o eachMessage()/processMessage() (khong the retry
+      // thanh cong -> log warn + bo qua, xem tren).
       this.logger.error(
         `Loi khi xu ly event ${event.eventType} (eventId=${event.eventId})`,
         error as Error,
       );
+
+      // 28/07/2026: gioi han so lan retry (Technical_Spec.md muc 14, nay da co DLQ) - neu CUNG 1
+      // eventId da rethrow lien tiep du `maxRetryAttempts` lan, KHONG rethrow nua ma day sang DLQ
+      // (errorType RETRY_EXHAUSTED) roi return de kafkajs commit offset va thoat khoi vong lap
+      // redeliver vo han (vd TimescaleDB down keo dai nhieu gio). Neu chua toi nguong, giu nguyen
+      // hanh vi rethrow cu ben duoi.
+      const attemptCount = (this.retryAttempts.get(event.eventId) ?? 0) + 1;
+      if (attemptCount >= this.maxRetryAttempts) {
+        this.retryAttempts.delete(event.eventId);
+        await this.publishToDlq({
+          eventId: event.eventId,
+          eventType: event.eventType,
+          organizationId: event.organizationId,
+          sourceTopic: topic,
+          errorType: 'RETRY_EXHAUSTED',
+          errorMessage: (error as Error).message,
+          attempts: attemptCount,
+          rawPayload: JSON.stringify(event),
+        });
+        return;
+      }
+      this.retryAttempts.set(event.eventId, attemptCount);
       throw error;
+    }
+  }
+
+  /**
+   * 28/07/2026: goi chung cho ca 4 nhanh loi (MALFORMED_JSON o processMessage(), INVALID_ENVELOPE/
+   * PERMANENT_DATA_ERROR/RETRY_EXHAUSTED o handleEvent()) - chuan hoa thanh 1 DeadLetterEnvelope
+   * (@app/common-dto) roi day sang KAFKA_TOPICS.DLQ, thay vi CHI log-and-skip nhu truoc
+   * (Technical_Spec.md muc 14). Boc try/catch RIENG quanh buoc publish: neu chinh Kafka (hoac
+   * broker cua topic DLQ) dang gap su co, CHI log loi va KHONG duoc de loi nay lam sap/rethrow
+   * lam hong nhanh xu ly loi GOC dang chay (tranh loi chong loi).
+   */
+  private async publishToDlq(params: {
+    eventId: string | null;
+    eventType: string | null;
+    organizationId: string | null;
+    sourceTopic: string;
+    errorType: DeadLetterErrorType;
+    errorMessage: string;
+    attempts: number;
+    rawPayload: string;
+  }): Promise<void> {
+    const envelope: DeadLetterEnvelope = {
+      ...params,
+      sourceService: 'analytics-service',
+      failedAt: new Date().toISOString(),
+    };
+    try {
+      // 28/07/2026: ep kieu Record<string, unknown> - xem ghi chu tai kafka-producer.service.ts
+      // (publish() cua service nay nhan kieu noi long, khac DomainEvent cua ban goc iam-service).
+      await this.kafkaProducer.publish(KAFKA_TOPICS.DLQ, envelope as unknown as Record<string, unknown>);
+    } catch (err) {
+      this.logger.error(`Khong the day event vao DLQ (eventId=${params.eventId}): ${(err as Error).message}`);
     }
   }
 }

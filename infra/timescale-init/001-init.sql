@@ -18,11 +18,40 @@ CREATE TABLE IF NOT EXISTS fact_task_events (
   from_status      TEXT,
   to_status        TEXT,
   actor_id         UUID,
+  -- 28/07/2026: nguoi duoc GAN (assignee) cho task - chi co gia tri o event `task.assigned`
+  -- (TaskAssignedPayload.assigneeId), NULL o cac event khac (vd task.created/task.status_changed
+  -- khong co truong nay). KHAC voi actor_id (nguoi THUC HIEN hanh dong). Phuc vu KPI theo phong
+  -- ban: JOIN voi dim_user ben duoi de biet 1 task duoc gan cho user thuoc phong ban nao.
+  assignee_id      UUID,
   PRIMARY KEY (time, event_id)
 );
 SELECT create_hypertable('fact_task_events', by_range('time'), if_not_exists => TRUE);
 CREATE INDEX IF NOT EXISTS idx_fact_task_events_org ON fact_task_events (organization_id, time DESC);
 CREATE INDEX IF NOT EXISTS idx_fact_task_events_project ON fact_task_events (project_id, time DESC);
+
+-- ============================================================
+-- 28/07/2026: Bang lookup: phong ban HIEN TAI cua tung user (nguon: iam.events, event
+-- USER_REGISTERED/USER_DEPARTMENT_CHANGED - xem packages/common-dto/src/events/event-types.ts).
+-- KHONG phai hypertable (khong co chieu thoi gian, khong goi create_hypertable) - day la bang
+-- "dimension" thuan, chi giu TRANG THAI HIEN TAI (khong phai lich su) nen 1 dong/user, cap nhat
+-- bang UPSERT (xem FactWriterService.upsertUserDepartment()). Phuc vu KPI theo phong ban:
+-- AnalyticsService.computeSummary()/getTaskStatusBreakdown()/getProjectProgress() JOIN
+-- fact_task_events.assignee_id -> dim_user.user_id -> dim_user.department_id.
+--
+-- QUAN TRONG: script nay CHI chay 1 lan luc container TimescaleDB khoi tao TREN VOLUME MOI (xem
+-- ghi chu dau file) nen KHONG tu ap dung cho database dev/staging DANG CHAY san co du lieu.
+-- apps/analytics-service/src/database/schema-bootstrap.ts chay LAI dung DDL nay (CREATE TABLE/
+-- INDEX IF NOT EXISTS, an toan idempotent) ngay luc ung dung khoi dong de tu "cham" schema nay
+-- vao database dang chay ma khong can 1 buoc migration thu cong - giu 2 noi nay LUON dong bo khi
+-- sua doi.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS dim_user (
+  user_id          UUID             PRIMARY KEY,
+  organization_id  UUID             NOT NULL,
+  department_id    UUID,
+  updated_at       TIMESTAMPTZ      NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_dim_user_org ON dim_user (organization_id);
 
 -- ============================================================
 -- Fact table: su kien Document (nguon: document.events)

@@ -5,6 +5,9 @@ const TABS = [
   { to: '/admin/members', label: 'Thành viên' },
   { to: '/admin/departments', label: 'Phòng ban' },
   { to: '/admin/roles', label: 'Vai trò & Quyền' },
+  // 28/07/2026: tab moi cho man hinh chan doan Dead Letter Queue (GET /failed-events) - xem
+  // FailedEventsPage.tsx.
+  { to: '/admin/failed-events', label: 'Sự kiện lỗi hệ thống' },
 ];
 
 export function AdminPage() {

@@ -29,6 +29,13 @@ export const PERMISSIONS = {
 
   // Analytics
   ANALYTICS_VIEW: 'analytics:view',
+
+  // 28/07/2026: quyen van hanh/he thong (nang cap Dead Letter Queue) - xem chi tiet tai
+  // notification-service/src/failed-events (danh sach event xu ly loi vinh vien). Chi Org Admin
+  // duoc cap (qua DEFAULT_ROLE_PERMISSIONS.ORG_ADMIN = Object.values(PERMISSIONS) ben duoi, tu
+  // dong bao gom quyen moi nay) - day la moi quan tam van hanh/ha tang, khong phai nghiep vu, nen
+  // KHONG dua vao danh sach Manager/Employee.
+  SYSTEM_MANAGE: 'system:manage',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

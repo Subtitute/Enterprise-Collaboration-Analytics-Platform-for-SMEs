@@ -1,6 +1,8 @@
 import { apiClient } from '@/lib/api-client';
 import { formatBytes, unwrapList } from '@/lib/utils';
-import type { FileItem, FileVersion, Folder, PaginatedResponse } from '@/types';
+// 28/07/2026: them FolderShare - kieu du lieu cho cac ham fetchFolderShares/createFolderShare
+// moi them ben duoi (tinh nang kiem soat truy cap thu muc theo cap do).
+import type { FileItem, FileVersion, Folder, FolderShare, PaginatedResponse } from '@/types';
 
 // 22/07/2026: sua loi thuc te phat hien qua kiem thu that - trang Tai lieu van khong hien
 // thu muc/tep du API tra ve du lieu dung (da xac minh qua curl truc tiep Gateway). Nguyen nhan:
@@ -16,6 +18,11 @@ interface RawFolder {
   id: string;
   name: string;
   parentFolderId?: string | null;
+  // 28/07/2026: 2 truong moi tu backend (tinh nang kiem soat truy cap thu muc theo cap do) - khai
+  // bao optional theo dung quy uoc phong thu cua file nay (xem ghi chu dau file) de FE khong vo
+  // neu ban dau trien khai backend con thieu/lech ten truong; mapFolder() ben duoi co fallback.
+  visibility?: 'organization' | 'restricted';
+  createdByUserId?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -25,6 +32,10 @@ function mapFolder(raw: RawFolder): Folder {
     id: raw.id,
     name: raw.name,
     parentId: raw.parentFolderId ?? null,
+    // 28/07/2026: fallback 'organization'/'' neu backend chua/khong tra ve (xem ghi chu tai
+    // RawFolder) - mac dinh coi la thu muc mo cho ca to chuc (hanh vi cu truoc tinh nang nay).
+    visibility: raw.visibility ?? 'organization',
+    createdByUserId: raw.createdByUserId ?? '',
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
   };
@@ -136,6 +147,40 @@ export async function deleteFolder(id: string): Promise<void> {
   await apiClient.delete(`/folders/${id}`);
 }
 
+// 28/07/2026: PATCH /folders/:id gio nhan them "visibility" (tinh nang kiem soat truy cap thu
+// muc theo cap do) - tach rieng ham nay voi renameFolder() de goi API ro rang tung muc dich, phuc
+// vu muc "Han che truy cap"/"Mo cho ca to chuc" tren dropdown cua FolderGrid.tsx.
+export async function updateFolderVisibility(id: string, visibility: 'organization' | 'restricted'): Promise<Folder> {
+  const { data } = await apiClient.patch<RawFolder>(`/folders/${id}`, { visibility });
+  return mapFolder(data);
+}
+
+// 28/07/2026: POST /folders/:id/shares - luon gui dung 1 trong 2 truong sharedWithUserId HOAC
+// sharedWithDepartmentId theo dung contract; FolderShareModal.tsx la noi quyet dinh gui truong
+// nao tuy theo lua chon "Người dùng"/"Phòng ban" cua nguoi dung.
+export async function createFolderShare(
+  folderId: string,
+  payload: { sharedWithUserId?: string } | { sharedWithDepartmentId?: string },
+): Promise<FolderShare> {
+  const { data } = await apiClient.post<FolderShare>(`/folders/${folderId}/shares`, payload);
+  return data;
+}
+
+// 28/07/2026: GET /folders/:id/shares - dung unwrapList() (cung ly do phong thu nhu fetchFolders()
+// o tren) phong truong hop response bi boc trong { data, meta } thay vi mang tho.
+export async function fetchFolderShares(folderId: string): Promise<FolderShare[]> {
+  const { data } = await apiClient.get<FolderShare[] | PaginatedResponse<FolderShare>>(`/folders/${folderId}/shares`, {
+    params: { limit: 200 },
+  });
+  return unwrapList<FolderShare>(data);
+}
+
+// 28/07/2026: DELETE /folders/:id/shares/:shareId - go 1 chia se khoi thu muc restricted, dung
+// cho nut "Xoá" tren tung dong trong FolderShareModal.tsx.
+export async function deleteFolderShare(folderId: string, shareId: string): Promise<void> {
+  await apiClient.delete(`/folders/${folderId}/shares/${shareId}`);
+}
+
 export async function fetchFiles(folderId: string | null): Promise<FileItem[]> {
   const { data } = await apiClient.get<PaginatedResponse<RawFileMeta>>('/files', {
     params: { folderId: folderId ?? '', limit: 200 },
@@ -181,7 +226,13 @@ export async function getDownloadUrl(fileId: string, disposition: 'inline' | 'at
   return data.downloadUrl;
 }
 
-export async function shareFile(fileId: string, payload: { sharedWithUserId: string; permission: string }): Promise<void> {
+// 28/07/2026: POST /files/:id/share gio nhan THEM sharedWithDepartmentId (thay the cho
+// sharedWithUserId, dung 1 trong 2) - mo rong chu ky ham de ShareModal.tsx chia se tep duoc ca
+// cho phong ban, khong chi tung ca nhan nhu truoc.
+export async function shareFile(
+  fileId: string,
+  payload: { sharedWithUserId?: string; sharedWithDepartmentId?: string; permission: string },
+): Promise<void> {
   await apiClient.post(`/files/${fileId}/share`, payload);
 }
 

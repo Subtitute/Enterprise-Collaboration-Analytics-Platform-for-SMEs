@@ -1,0 +1,24 @@
+import type { Page } from '@playwright/test';
+
+// 28/07/2026: tai khoan Org Admin demo co san sau `npm run seed` (xem scripts/seed.js,
+// DEMO_ADMIN_EMAIL/DEMO_ADMIN_PASSWORD) - dung lai thay vi tu dang ky to chuc moi trong moi
+// lan chay E2E, giu cac test don gian va nhanh.
+export const ADMIN_EMAIL = 'admin@demo-sme.vn';
+export const ADMIN_PASSWORD = 'Password123!';
+
+export async function loginAsAdmin(page: Page) {
+  await page.goto('/login');
+  await page.getByLabel('Email').fill(ADMIN_EMAIL);
+  await page.getByLabel('Mật khẩu').fill(ADMIN_PASSWORD);
+  await page.getByRole('button', { name: 'Đăng nhập' }).click();
+  await page.waitForURL('**/dashboard');
+}
+
+/** Ten/email duy nhat theo lan chay - tranh trung du lieu giua nhieu lan chay E2E lien tiep. */
+export function uniqueName(prefix: string) {
+  return `${prefix} ${Date.now()}`;
+}
+
+export function uniqueEmail(prefix: string) {
+  return `${prefix}-${Date.now()}@demo-sme.vn`;
+}

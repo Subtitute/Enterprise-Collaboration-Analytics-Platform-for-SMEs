@@ -1,7 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
+
+// 28/07/2026: danh sach the co the nhan focus, dung chung cho focus-trap ben duoi (bo qua phan tu
+// dang bi disabled hoac tabindex=-1 - khong the/khong nen nhan focus qua Tab).
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 interface ModalProps {
   open: boolean;
@@ -21,10 +26,44 @@ const sizeClasses = {
 };
 
 export function Modal({ open, onClose, title, description, children, footer, size = 'md' }: ModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+
+  // 28/07/2026: bo sung quan ly focus (phat hien qua ra soat kha nang tiep can) - truoc do Modal
+  // KHONG chuyen focus vao trong dialog khi mo (nguoi dung ban phim van dang o phan tu vua bam mo
+  // modal, Tab tiep theo di THANG qua noi dung trang PHIA SAU lop overlay, du lop do dang chan
+  // chuot ve mat thi giac) va KHONG tra focus ve nut da mo modal khi dong (mat "vi tri" dieu huong
+  // ban phim). Sua bang: (a) luu lai phan tu dang focus truoc khi mo, tra ve khi dong; (b) focus
+  // phan tu co the nhan focus DAU TIEN trong dialog ngay khi mo (hoac chinh dialog neu khong co);
+  // (c) "nhot" Tab/Shift+Tab trong pham vi dialog (focus trap) - Tab tai phan tu cuoi vong ve dau,
+  // Shift+Tab tai phan tu dau vong ve cuoi, khong cho thoat ra ngoai qua ban phim.
   useEffect(() => {
     if (!open) return;
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+
+    const firstFocusable = dialogRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+    (firstFocusable ?? dialogRef.current)?.focus();
+
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key !== 'Tab' || !dialogRef.current) return;
+      const focusables = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+      if (focusables.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     document.addEventListener('keydown', onKeyDown);
     const prevOverflow = document.body.style.overflow;
@@ -32,6 +71,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
     return () => {
       document.removeEventListener('keydown', onKeyDown);
       document.body.style.overflow = prevOverflow;
+      previouslyFocusedRef.current?.focus?.();
     };
   }, [open, onClose]);
 
@@ -41,9 +81,11 @@ export function Modal({ open, onClose, title, description, children, footer, siz
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 animate-fade-in bg-slate-900/40" onClick={onClose} aria-hidden />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
+        tabIndex={-1}
         className={cn(
           'relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl bg-white shadow-xl animate-slide-up',
           sizeClasses[size],

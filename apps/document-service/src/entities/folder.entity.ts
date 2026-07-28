@@ -1,6 +1,15 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { AppBaseEntity } from '../common/base.entity';
 
+// 28/07/2026: enum moi - kiem soat truy cap thu muc opt-in (yeu cau nhiem vu). Mac dinh
+// ORGANIZATION giu nguyen hanh vi cu (moi thanh vien to chuc deu xem duoc) cho MOI thu muc da
+// ton tai LAN thu muc moi tao - chi ai do CHU DONG doi sang RESTRICTED (qua PATCH /folders/:id)
+// moi kich hoat han che, dung tinh chat "opt-in" nhu yeu cau.
+export enum FolderVisibility {
+  ORGANIZATION = 'organization',
+  RESTRICTED = 'restricted',
+}
+
 /**
  * Cay thu muc tai lieu - Technical_Spec.md muc 3.4, muc 5 ("Folder 1-N Folder (cay thu muc)").
  * `parentFolderId` null = thu muc goc cua to chuc.
@@ -26,4 +35,12 @@ export class Folder extends AppBaseEntity {
 
   @Column({ name: 'created_by_user_id', type: 'uuid' })
   createdByUserId: string;
+
+  // 28/07/2026: cot moi - kiem soat truy cap thu muc opt-in (xem FolderVisibility o tren va
+  // FolderAccessService.canAccessFolder trong folders/folder-access.service.ts). `default:
+  // ORGANIZATION` la yeu to lam cho tinh nang nay "opt-in" o tang DB: voi `synchronize: true`,
+  // Postgres se tu dien gia tri nay cho MOI dong Folder DA TON TAI khi cot duoc them vao, nen
+  // khong co thu muc cu nao bi "am tham" chuyen sang han che truy cap.
+  @Column({ type: 'enum', enum: FolderVisibility, default: FolderVisibility.ORGANIZATION })
+  visibility: FolderVisibility;
 }

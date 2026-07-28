@@ -107,6 +107,9 @@ export class InternalAuthGuard implements CanActivate {
       email: readHeader(req.headers[INTERNAL_AUTH_HEADERS.EMAIL]) ?? '',
       roles: parseListHeader(req.headers[INTERNAL_AUTH_HEADERS.ROLES]),
       permissions: parseListHeader(req.headers[INTERNAL_AUTH_HEADERS.PERMISSIONS]),
+      // 28/07/2026: xem ghi chu departmentId tai AuthContext (@app/common-dto) - `undefined`
+      // (header vang mat, vd nguoi dung chua duoc gan phong ban) duoc chuan hoa ve `null`.
+      departmentId: readHeader(req.headers[INTERNAL_AUTH_HEADERS.DEPARTMENT_ID]) ?? null,
     };
     req.user = authContext;
     return true;

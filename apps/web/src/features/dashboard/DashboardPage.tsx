@@ -9,6 +9,9 @@ import type { DateRangeOption } from '@/types';
 import { useAuthStore } from '@/stores/auth.store';
 import { hasAdminRole } from '@/lib/utils';
 import { useProjectsQuery } from '@/features/projects/hooks';
+// 28/07/2026: tai su dung useDepartmentsQuery da co san (dung chung o MembersPage/InviteMemberModal)
+// cho bo loc "Phong ban" moi tren Dashboard, khong tao hook fetch phong ban rieng.
+import { useDepartmentsQuery } from '@/features/admin/hooks';
 import { useAnalyticsSummary, useTaskStatusBreakdown, useTaskTrend } from './hooks';
 import { KpiCard } from './components/KpiCard';
 import { TaskTrendChart } from './components/TaskTrendChart';
@@ -17,9 +20,14 @@ import { RecentActivityFeed } from './components/RecentActivityFeed';
 
 export function DashboardPage() {
   const [range, setRange] = useState<DateRangeOption>('30d');
-  const summaryQuery = useAnalyticsSummary(range);
+  // 28/07/2026: state cho bo loc "Phong ban" moi - '' nghia la khong loc (hanh vi toan to chuc
+  // nhu truoc day). Chi truyen vao useAnalyticsSummary/useTaskStatusBreakdown; useTaskTrend
+  // (GET /analytics/task-trend) khong nhan departmentId vi backend chua ho tro tham so nay.
+  const [departmentId, setDepartmentId] = useState('');
+  const departmentsQuery = useDepartmentsQuery();
+  const summaryQuery = useAnalyticsSummary(range, departmentId || undefined);
   const trendQuery = useTaskTrend(range);
-  const breakdownQuery = useTaskStatusBreakdown(range);
+  const breakdownQuery = useTaskStatusBreakdown(range, undefined, departmentId || undefined);
 
   // Onboarding sau dang ky to chuc (Wireframe.md muc 1): to chuc moi tinh gon la "chua co du
   // an nao" - hien banner goi y "moi thanh vien" / "tao du an dau tien" thay vi mot Dashboard
@@ -118,19 +126,39 @@ export function DashboardPage() {
             <CardTitle>Xu hướng hoàn thành công việc</CardTitle>
             {/* 25/07/2026: them aria-label - Select nay khong co <Label> hien thi kem theo (chi
                 dat canh CardTitle) nen truoc do khong co ten hop le cho trinh doc man hinh. */}
-            <Select
-              value={range}
-              onChange={(e) => setRange(e.target.value as DateRangeOption)}
-              aria-label="Khoảng thời gian"
-              className="text-xs"
-              style={{ width: 'auto' }}
-            >
-              {(Object.keys(DATE_RANGE_LABEL_VI) as DateRangeOption[]).map((key) => (
-                <option key={key} value={key}>
-                  {DATE_RANGE_LABEL_VI[key]}
-                </option>
-              ))}
-            </Select>
+            <div className="flex items-center gap-2">
+              <Select
+                value={range}
+                onChange={(e) => setRange(e.target.value as DateRangeOption)}
+                aria-label="Khoảng thời gian"
+                className="text-xs"
+                style={{ width: 'auto' }}
+              >
+                {(Object.keys(DATE_RANGE_LABEL_VI) as DateRangeOption[]).map((key) => (
+                  <option key={key} value={key}>
+                    {DATE_RANGE_LABEL_VI[key]}
+                  </option>
+                ))}
+              </Select>
+              {/* 28/07/2026: bo loc "Phong ban" moi cho khoi KPI cua Dashboard (KHONG anh huong
+                  bieu do "Xu hướng hoàn thành công việc" ben duoi - GET /analytics/task-trend
+                  chua ho tro departmentId, xem Technical_Spec.md). Dat canh Select khoang thoi
+                  gian de dung chung mot vi tri quen thuoc tren trang. */}
+              <Select
+                value={departmentId}
+                onChange={(e) => setDepartmentId(e.target.value)}
+                aria-label="Phòng ban"
+                className="text-xs"
+                style={{ width: 'auto' }}
+              >
+                <option value="">Tất cả phòng ban</option>
+                {(departmentsQuery.data ?? []).map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
           </CardHeader>
           <CardContent>
             <TaskTrendChart

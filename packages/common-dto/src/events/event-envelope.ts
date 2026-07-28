@@ -94,3 +94,10 @@ export interface UserDeactivatedPayload {
   userId: string;
   actorId: string;
 }
+
+// 28/07/2026: payload cho EVENT_TYPES.USER_DEPARTMENT_CHANGED - xem ghi chu tai event-types.ts.
+// `departmentId: null` nghia la user vua bi GO khoi phong ban (khong con thuoc phong ban nao).
+export interface UserDepartmentChangedPayload {
+  userId: string;
+  departmentId: string | null;
+}

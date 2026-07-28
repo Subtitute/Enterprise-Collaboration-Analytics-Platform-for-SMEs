@@ -243,3 +243,13 @@ export const CheckCircleIcon = (p: IconProps) => (
     <path d="m9 12 2 2 4-4" />
   </svg>
 );
+
+// 28/07/2026: icon moi (kieu o khoa) - dung danh dau thu muc "restricted" (tinh nang kiem soat
+// truy cap thu muc theo cap do) tren FolderGrid.tsx; khong co icon nao san co trong file nay phu
+// hop ngu nghia "han che truy cap" (ShieldIcon da mang nghia "quan tri/bao mat" o Sidebar/Ho so).
+export const LockIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <rect x="5" y="11" width="14" height="10" rx="2" />
+    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+  </svg>
+);

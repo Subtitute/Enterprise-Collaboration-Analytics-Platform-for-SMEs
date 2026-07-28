@@ -22,6 +22,7 @@ import {
   PaginationQueryDto,
   PERMISSIONS,
   UserDeactivatedPayload,
+  UserDepartmentChangedPayload,
   UserRegisteredPayload,
   paginate,
 } from '@app/common-dto';
@@ -185,6 +186,15 @@ export class UsersService {
     }
 
     if (dto.fullName !== undefined) user.fullName = dto.fullName;
+    // 28/07/2026: ghi nho TRUOC khi gan vao `user` xem request nay co thuc su dong truong
+    // departmentId hay khong (`dto.departmentId !== undefined`) - dung de quyet dinh co phat outbox
+    // event USER_DEPARTMENT_CHANGED o cuoi ham hay khong (xem transaction ben duoi). Phai chup lai
+    // thanh bien rieng ngay tai day: sau khoi if() ke tiep, `user.departmentId` co the da bi doi
+    // (hoac giu nguyen neu request khong dong truong nay) - khong the phan biet nguoc lai truong
+    // hop "request gui departmentId=null" (CAN phat event, gia tri moi la null) voi truong hop
+    // "request khong dong truong departmentId" (KHONG phat event) chi bang cach doc lai
+    // `user.departmentId` sau do.
+    const departmentIdInRequest = dto.departmentId !== undefined;
     if (dto.departmentId !== undefined) {
       // 22/07/2026: xac thuc departmentId thuoc dung to chuc truoc khi gan - cung 1 lo hong nhu
       // invite() o tren (xem chu thich chi tiet tai do). `null` (bo phong ban) khong can tra cuu.
@@ -199,7 +209,32 @@ export class UsersService {
     if (dto.roleIds) {
       user.roles = await this.roleRepo.find({ where: { id: In(dto.roleIds), organizationId } });
     }
-    const saved = await this.userRepo.save(user);
+
+    // 28/07/2026: boc save() vao 1 transaction va phat outbox event USER_DEPARTMENT_CHANGED CUNG
+    // luc khi request co thay doi departmentId (ke ca truong hop go phong ban ve null) - truoc day
+    // update() chi goi thang `this.userRepo.save(user)` NGOAI transaction, khong co event nao bao
+    // cho Analytics Service biet phong ban cua user vua doi de gop KPI theo phong ban (tinh nang
+    // moi - xem UserDepartmentChangedPayload trong packages/common-dto). Mau
+    // outbox-emission-trong-transaction nay lay dung theo deactivate()/invite() o tren: ghi
+    // outbox_events CUNG transaction voi thay doi nghiep vu de tranh outbox record va DB update bi
+    // lech nhau khi 1 trong 2 thao tac that bai giua chung.
+    const saved = await this.dataSource.transaction(async (manager) => {
+      const updated = await manager.save(user);
+      if (departmentIdInRequest) {
+        const payload: UserDepartmentChangedPayload = {
+          userId: updated.id,
+          departmentId: updated.departmentId ?? null,
+        };
+        await this.outboxService.record(manager, {
+          eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,
+          organizationId,
+          producer: 'iam-service',
+          payload: payload as unknown as Record<string, unknown>,
+        });
+      }
+      return updated;
+    });
+
     return this.toPublicUser(saved);
   }
 

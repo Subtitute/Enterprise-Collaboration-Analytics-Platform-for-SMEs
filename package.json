@@ -5,7 +5,8 @@
   "description": "Enterprise Collaboration & Analytics Platform for SMEs - graduation project monorepo",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "e2e"
   ],
   "scripts": {
     "build:libs": "npm run build -w packages/common-dto -w packages/common-guard",
@@ -13,6 +14,7 @@
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run build:libs && tsc --noEmit -p apps/gateway/tsconfig.json && tsc --noEmit -p apps/iam-service/tsconfig.json && tsc --noEmit -p apps/project-task-service/tsconfig.json && tsc --noEmit -p apps/document-service/tsconfig.json && tsc --noEmit -p apps/notification-service/tsconfig.json && tsc --noEmit -p apps/analytics-service/tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json",
     "test": "npm run test --workspaces --if-present",
+    "test:e2e": "npm run test:e2e -w e2e",
     "dev:iam": "npm run start:dev -w apps/iam-service",
     "dev:gateway": "npm run start:dev -w apps/gateway",
     "dev:project-task": "npm run start:dev -w apps/project-task-service",

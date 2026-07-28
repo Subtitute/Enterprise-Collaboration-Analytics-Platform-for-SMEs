@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
-import { PERMISSIONS } from '@app/common-dto';
+import { EVENT_TYPES, PERMISSIONS } from '@app/common-dto';
 import { UsersService } from './users.service';
 
 /**
@@ -163,9 +163,9 @@ describe('UsersService', () => {
       userRepo.findOne.mockResolvedValue(existingUser);
       const newRoles = [{ id: 'role-manager', name: 'Manager' }];
       roleRepo.find.mockResolvedValue(newRoles);
-      const savedUser = { ...existingUser, roles: newRoles };
-      const saveSpy = jest.fn().mockResolvedValue(savedUser);
-      (service as any).userRepo.save = saveSpy;
+      // 28/07/2026: update() gio boc save() vao dataSource.transaction() (xem users.service.ts) -
+      // save() thuc te chay qua managerMock.save (khong con qua userRepo.save nhu truoc).
+      managerMock.save.mockImplementation(async (u: any) => u);
 
       const result = await service.update(ORG_ID, 'user-1', { roleIds: ['role-manager'] } as any, [
         PERMISSIONS.USER_MANAGE,
@@ -175,6 +175,75 @@ describe('UsersService', () => {
         where: { id: expect.anything(), organizationId: ORG_ID },
       });
       expect(result.roles).toEqual([{ id: 'role-manager', name: 'Manager' }]);
+      // 28/07/2026: request nay khong dong truong departmentId -> khong duoc phat
+      // USER_DEPARTMENT_CHANGED (xem 3 test rieng ben duoi cho hanh vi phat/khong phat event nay).
+      expect(outboxService.record).not.toHaveBeenCalled();
+    });
+
+    // 28/07/2026: nhom test moi - update() gio phat outbox event USER_DEPARTMENT_CHANGED khi va chi
+    // khi request co dong truong departmentId (ke ca gia tri null), phuc vu KPI theo phong ban cua
+    // Analytics Service (xem UserDepartmentChangedPayload, packages/common-dto va
+    // user-department-sync.service.spec.ts cho buoc resync luc khoi dong).
+    it('phat outbox event USER_DEPARTMENT_CHANGED voi departmentId MOI khi request doi phong ban', async () => {
+      const existingUser = {
+        id: 'user-1',
+        organizationId: ORG_ID,
+        departmentId: 'dept-old',
+        roles: [],
+      };
+      userRepo.findOne.mockResolvedValue(existingUser);
+      departmentRepo.findOne.mockResolvedValue({ id: 'dept-new', organizationId: ORG_ID });
+      managerMock.save.mockImplementation(async (u: any) => u);
+
+      const result = await service.update(ORG_ID, 'user-1', { departmentId: 'dept-new' } as any, []);
+
+      expect(outboxService.record).toHaveBeenCalledTimes(1);
+      expect(outboxService.record).toHaveBeenCalledWith(managerMock, {
+        eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,
+        organizationId: ORG_ID,
+        producer: 'iam-service',
+        payload: { userId: 'user-1', departmentId: 'dept-new' },
+      });
+      expect(result.departmentId).toBe('dept-new');
+    });
+
+    it('phat outbox event USER_DEPARTMENT_CHANGED voi departmentId=null khi go user khoi phong ban', async () => {
+      const existingUser = {
+        id: 'user-1',
+        organizationId: ORG_ID,
+        departmentId: 'dept-old',
+        roles: [],
+      };
+      userRepo.findOne.mockResolvedValue(existingUser);
+      managerMock.save.mockImplementation(async (u: any) => u);
+
+      const result = await service.update(ORG_ID, 'user-1', { departmentId: null } as any, []);
+
+      // `null` khong can tra cuu Department (xem comment 22/07/2026 trong users.service.ts).
+      expect(departmentRepo.findOne).not.toHaveBeenCalled();
+      expect(outboxService.record).toHaveBeenCalledTimes(1);
+      expect(outboxService.record).toHaveBeenCalledWith(managerMock, {
+        eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,
+        organizationId: ORG_ID,
+        producer: 'iam-service',
+        payload: { userId: 'user-1', departmentId: null },
+      });
+      expect(result.departmentId).toBeNull();
+    });
+
+    it('KHONG phat outbox event USER_DEPARTMENT_CHANGED neu request khong dong truong departmentId', async () => {
+      const existingUser = {
+        id: 'user-1',
+        organizationId: ORG_ID,
+        departmentId: 'dept-old',
+        roles: [],
+      };
+      userRepo.findOne.mockResolvedValue(existingUser);
+      managerMock.save.mockImplementation(async (u: any) => u);
+
+      await service.update(ORG_ID, 'user-1', { fullName: 'Ten Moi' } as any, []);
+
+      expect(outboxService.record).not.toHaveBeenCalled();
     });
   });
 

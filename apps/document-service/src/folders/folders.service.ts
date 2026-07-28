@@ -1,13 +1,18 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, IsNull, Repository } from 'typeorm';
 import { Folder } from '../entities/folder.entity';
 import { FileMeta } from '../entities/file-meta.entity';
 import { FileVersion } from '../entities/file-version.entity';
+// 28/07/2026: entity + service moi - kiem soat truy cap thu muc (opt-in). Xem chu thich chi tiet
+// tai folder-access.service.ts.
+import { FolderShare } from '../entities/folder-share.entity';
+import { AccessContext, FolderAccessService } from './folder-access.service';
 import { MinioService } from '../minio/minio.service';
 import { OutboxService } from '../outbox/outbox.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
+import { CreateFolderShareDto } from './dto/create-folder-share.dto';
 import { DocumentDeletedPayload, EVENT_TYPES } from '@app/common-dto';
 
 const PRODUCER = 'document-service';
@@ -22,15 +27,24 @@ export class FoldersService {
     @InjectRepository(Folder) private readonly folderRepo: Repository<Folder>,
     @InjectRepository(FileMeta) private readonly fileMetaRepo: Repository<FileMeta>,
     @InjectRepository(FileVersion) private readonly fileVersionRepo: Repository<FileVersion>,
+    // 28/07/2026: repo moi - CRUD cho endpoint /folders/:id/shares ben duoi.
+    @InjectRepository(FolderShare) private readonly folderShareRepo: Repository<FolderShare>,
     private readonly minioService: MinioService,
     private readonly outboxService: OutboxService,
+    // 28/07/2026: dung chung logic canAccessFolder voi FilesService - xem folder-access.service.ts.
+    private readonly folderAccessService: FolderAccessService,
   ) {}
 
-  findAll(organizationId: string, parentFolderId?: string): Promise<Folder[]> {
-    return this.folderRepo.find({
+  // 28/07/2026: bo sung tham so `ctx` (kiem soat truy cap thu muc, opt-in) - loc BO LANG (khong
+  // nem loi) cac thu muc `ctx` khong xem duoc ra khoi danh sach tra ve, dung voi yeu cau nhiem vu
+  // "day la 1 danh sach, khong phai truong hop loi - im lang bo qua nhung gi khong xem duoc".
+  async findAll(organizationId: string, parentFolderId: string | undefined, ctx: AccessContext): Promise<Folder[]> {
+    const folders = await this.folderRepo.find({
       where: { organizationId, parentFolderId: parentFolderId ? parentFolderId : IsNull() },
       order: { name: 'ASC' },
     });
+    const accessFlags = await Promise.all(folders.map((folder) => this.folderAccessService.canAccessFolder(folder, ctx)));
+    return folders.filter((_folder, index) => accessFlags[index]);
   }
 
   async create(organizationId: string, actorId: string, dto: CreateFolderDto): Promise<Folder> {
@@ -49,11 +63,103 @@ export class FoldersService {
     return this.folderRepo.save(folder);
   }
 
-  async update(organizationId: string, id: string, dto: UpdateFolderDto): Promise<Folder> {
+  // 28/07/2026: bo sung tham so `ctx` va 2 lop kiem tra quyen MOI (kiem soat truy cap thu muc,
+  // opt-in): (1) nguoi goi PHAI xem duoc thu muc (canAccessFolder) - khac voi findAll() (loc bo
+  // lang), o day la thao tac SUA TRUC TIEP 1 thu muc CU THE nen 403 ro rang la phan hoi dung/huu
+  // ich hon (thu muc THUC SU ton tai trong to chuc ho, chi la ho khong duoc phep dong vao, khac
+  // voi NotFoundException dung cho truong hop khac to chuc/khong ton tai); (2) rieng viec DOI
+  // `visibility` con bi han che chat hon nua - CHI nguoi tao thu muc hoac Org Admin, tranh 1 thanh
+  // vien BAT KY co quyen xem thu muc (vi du qua 1 FolderShare) tu y bat/tat che do han che cua thu
+  // muc nguoi khac tao.
+  async update(organizationId: string, id: string, dto: UpdateFolderDto, ctx: AccessContext): Promise<Folder> {
     const folder = await this.folderRepo.findOne({ where: { id, organizationId } });
     if (!folder) throw new NotFoundException('Khong tim thay thu muc');
-    folder.name = dto.name;
+
+    if (!(await this.folderAccessService.canAccessFolder(folder, ctx))) {
+      throw new ForbiddenException('Ban khong co quyen truy cap thu muc nay');
+    }
+
+    // 28/07/2026: chi gan lai `name` khi THUC SU duoc truyen - xem ghi chu tai UpdateFolderDto.name
+    // (truoc day gan vo dieu kien `folder.name = dto.name`, luc `name` con la truong bat buoc duy
+    // nhat cua DTO nay; nay `name` la optional nen gan vo dieu kien se ghi `undefined` len ten thu
+    // muc neu client chi gui `{ visibility }`).
+    if (dto.name !== undefined) {
+      folder.name = dto.name;
+    }
+
+    if (dto.visibility !== undefined) {
+      this.assertFolderOwnerOrOrgAdmin(folder, ctx);
+      folder.visibility = dto.visibility;
+    }
+
     return this.folderRepo.save(folder);
+  }
+
+  // 28/07/2026: ham dung chung - chi nguoi TAO thu muc hoac Org Admin duoc doi visibility/quan ly
+  // danh sach chia se (createShare/listShares/removeShare ben duoi) cua 1 thu muc.
+  private assertFolderOwnerOrOrgAdmin(folder: Folder, ctx: AccessContext): void {
+    if (folder.createdByUserId !== ctx.userId && !ctx.isOrgAdmin) {
+      throw new ForbiddenException('Chi nguoi tao thu muc hoac Quan tri vien to chuc moi duoc thuc hien thao tac nay');
+    }
+  }
+
+  /**
+   * 28/07/2026: endpoint moi `POST /folders/:id/shares` - chia se 1 thu muc RESTRICTED cho 1
+   * nguoi dung hoac 1 phong ban CU THE. Chi nguoi tao thu muc/Org Admin duoc tao chia se (giong
+   * han che ap dung cho doi visibility o update() tren). Tu choi neu thu muc DA duoc chia se voi
+   * dung nguoi dung/phong ban do (tranh cac dong FolderShare trung lap vo nghia).
+   */
+  async createShare(organizationId: string, folderId: string, ctx: AccessContext, dto: CreateFolderShareDto): Promise<FolderShare> {
+    const folder = await this.folderRepo.findOne({ where: { id: folderId, organizationId } });
+    if (!folder) throw new NotFoundException('Khong tim thay thu muc');
+    this.assertFolderOwnerOrOrgAdmin(folder, ctx);
+
+    const hasUser = !!dto.sharedWithUserId;
+    const hasDepartment = !!dto.sharedWithDepartmentId;
+    if (hasUser === hasDepartment) {
+      throw new BadRequestException('Phai cung cap chinh xac mot trong hai: sharedWithUserId hoac sharedWithDepartmentId');
+    }
+
+    const existing = await this.folderShareRepo.findOne({
+      where: hasUser
+        ? { folderId, sharedWithUserId: dto.sharedWithUserId }
+        : { folderId, sharedWithDepartmentId: dto.sharedWithDepartmentId },
+    });
+    if (existing) {
+      throw new BadRequestException('Thu muc nay da duoc chia se voi nguoi dung/phong ban nay');
+    }
+
+    const share = this.folderShareRepo.create({
+      folderId,
+      sharedWithUserId: dto.sharedWithUserId ?? null,
+      sharedWithDepartmentId: dto.sharedWithDepartmentId ?? null,
+      sharedByUserId: ctx.userId,
+    });
+    return this.folderShareRepo.save(share);
+  }
+
+  /**
+   * 28/07/2026: endpoint moi `GET /folders/:id/shares` - liet ke chia se hien tai cua 1 thu muc
+   * (de FE hien thi "da chia se voi X, Y"). Cung han che voi createShare() - CHI nguoi tao thu
+   * muc/Org Admin duoc xem danh sach nay (khong lo danh sach chia se cho 1 nguoi chi DUOC chia se
+   * quyen xem thu muc qua 1 FolderShare khac).
+   */
+  async listShares(organizationId: string, folderId: string, ctx: AccessContext): Promise<FolderShare[]> {
+    const folder = await this.folderRepo.findOne({ where: { id: folderId, organizationId } });
+    if (!folder) throw new NotFoundException('Khong tim thay thu muc');
+    this.assertFolderOwnerOrOrgAdmin(folder, ctx);
+    return this.folderShareRepo.find({ where: { folderId }, order: { createdAt: 'DESC' } });
+  }
+
+  /** 28/07/2026: endpoint moi `DELETE /folders/:id/shares/:shareId` - go 1 chia se. Cung han che voi createShare()/listShares(). */
+  async removeShare(organizationId: string, folderId: string, shareId: string, ctx: AccessContext): Promise<void> {
+    const folder = await this.folderRepo.findOne({ where: { id: folderId, organizationId } });
+    if (!folder) throw new NotFoundException('Khong tim thay thu muc');
+    this.assertFolderOwnerOrOrgAdmin(folder, ctx);
+
+    const share = await this.folderShareRepo.findOne({ where: { id: shareId, folderId } });
+    if (!share) throw new NotFoundException('Khong tim thay chia se');
+    await this.folderShareRepo.remove(share);
   }
 
   /**
@@ -93,9 +199,15 @@ export class FoldersService {
    * muc "cheap fix" hop ly cho pham vi ban sua nay - nhung da loai bo hoan toan khoang ho "rong"
    * truoc-transaction la phan lon rui ro thuc te.
    */
-  async remove(organizationId: string, actorId: string, id: string): Promise<void> {
+  // 28/07/2026: bo sung tham so `ctx` - nguoi goi phai xem duoc thu muc (canAccessFolder) moi
+  // duoc xoa no, cung logic/thong diep loi voi update() o tren (403, khong phai 404 - thu muc
+  // THUC SU ton tai trong to chuc ho).
+  async remove(organizationId: string, actorId: string, id: string, ctx: AccessContext): Promise<void> {
     const folder = await this.folderRepo.findOne({ where: { id, organizationId } });
     if (!folder) throw new NotFoundException('Khong tim thay thu muc');
+    if (!(await this.folderAccessService.canAccessFolder(folder, ctx))) {
+      throw new ForbiddenException('Ban khong co quyen truy cap thu muc nay');
+    }
 
     const folderIds = await this.collectFolderTreeIds(organizationId, id);
 

@@ -8,6 +8,11 @@ export const KAFKA_TOPICS = {
   IAM: 'iam.events',
   PROJECT_TASK: 'project-task.events',
   DOCUMENT: 'document.events',
+  // 28/07/2026: topic Dead Letter Queue (nang cap sau MVP - xem Technical_Spec.md muc 14 "Kafka
+  // consumer chua co DLQ", nay da co) - noi analytics-service/notification-service tu phat lai
+  // (khong phai OutboxPublisherJob cua producer goc) message ma chinh no xu ly that bai vinh vien
+  // (loi du lieu) hoac het luot retry (loi ha tang lap lai qua nhieu lan) - xem DeadLetterEnvelope.
+  DLQ: 'domain-events.dlq',
 } as const;
 
 export type KafkaTopic = (typeof KAFKA_TOPICS)[keyof typeof KAFKA_TOPICS];
@@ -17,6 +22,11 @@ export const EVENT_TYPES = {
   ORGANIZATION_REGISTERED: 'iam.organization.registered',
   USER_REGISTERED: 'iam.user.registered',
   USER_DEACTIVATED: 'iam.user.deactivated',
+  // 28/07/2026: nang cap KPI theo phong ban - Analytics Service can biet phong ban HIEN TAI cua
+  // moi user de gop KPI theo phong ban (xem UserDepartmentChangedPayload, event-envelope.ts).
+  // USER_REGISTERED da mang san departmentId luc tao moi (UserRegisteredPayload), nhung truoc day
+  // KHONG co event nao phat khi departmentId cua 1 user ĐÃ TỒN TẠI thay doi qua PATCH /users/:id.
+  USER_DEPARTMENT_CHANGED: 'iam.user.department_changed',
 
   // Project & Task Service (Technical_Spec.md muc 3.3)
   TASK_CREATED: 'task.created',
@@ -40,6 +50,7 @@ export const EVENT_TYPE_TOPIC_MAP: Record<EventType, KafkaTopic> = {
   [EVENT_TYPES.ORGANIZATION_REGISTERED]: KAFKA_TOPICS.IAM,
   [EVENT_TYPES.USER_REGISTERED]: KAFKA_TOPICS.IAM,
   [EVENT_TYPES.USER_DEACTIVATED]: KAFKA_TOPICS.IAM,
+  [EVENT_TYPES.USER_DEPARTMENT_CHANGED]: KAFKA_TOPICS.IAM,
 
   [EVENT_TYPES.TASK_CREATED]: KAFKA_TOPICS.PROJECT_TASK,
   [EVENT_TYPES.TASK_STATUS_CHANGED]: KAFKA_TOPICS.PROJECT_TASK,
@@ -58,4 +69,9 @@ export const EVENT_TYPE_TOPIC_MAP: Record<EventType, KafkaTopic> = {
 export const KAFKA_CONSUMER_GROUPS = {
   NOTIFICATION_SERVICE: 'notification-service-group',
   ANALYTICS_SERVICE: 'analytics-service-group',
+  // 28/07/2026: group RIENG cho consumer doc topic DLQ (KAFKA_TOPICS.DLQ) trong notification-service
+  // - khac voi NOTIFICATION_SERVICE o tren (doc 3 topic domain event goc) vi day la 1 Consumer
+  // instance khac, doc 1 topic khac, voi hinh dang message khac (DeadLetterEnvelope, khong phai
+  // DomainEvent) - gop chung 1 group/consumer se lam 2 luong xu ly khac nhau tranh nhau partition.
+  NOTIFICATION_SERVICE_DLQ: 'notification-service-dlq-group',
 } as const;

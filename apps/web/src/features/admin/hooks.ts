@@ -6,6 +6,7 @@ import {
   deactivateUser,
   deleteDepartment,
   fetchDepartments,
+  fetchFailedEvents,
   fetchPermissions,
   fetchRoles,
   fetchUsers,
@@ -136,4 +137,10 @@ export function useUpdateRolePermissions() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['roles'] }),
     onError: (error) => toast.error('Không thể cập nhật quyền', extractErrorMessage(error)),
   });
+}
+
+// 28/07/2026: hook cho GET /failed-events (Dead Letter Queue) - xem ghi chu tai fetchFailedEvents
+// (admin/api.ts). Chi doc, khong co mutation di kem (khong co hanh dong "thu lai/replay").
+export function useFailedEventsQuery(params: { page?: number; limit?: number } = {}) {
+  return useQuery({ queryKey: ['admin', 'failed-events', params], queryFn: () => fetchFailedEvents(params) });
 }

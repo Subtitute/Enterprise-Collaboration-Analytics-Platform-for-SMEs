@@ -22,7 +22,11 @@ export const REST_PROXY_ROUTES: RestProxyRouteGroup[] = [
     targetConfigKey: 'services.document',
   },
   {
-    prefixes: ['/api/v1/notifications'],
+    // 28/07/2026: them '/api/v1/failed-events' (nang cap Dead Letter Queue) - endpoint quan tri
+    // moi (chi Org Admin, PERMISSIONS.SYSTEM_MANAGE) xem danh sach event xu ly loi vinh vien,
+    // dat trong Notification Service (noi da co MongoDB + la service "cac trang quan tri xem
+    // thong tin he thong" - xem failed-events module).
+    prefixes: ['/api/v1/notifications', '/api/v1/failed-events'],
     targetConfigKey: 'services.notification',
   },
   {

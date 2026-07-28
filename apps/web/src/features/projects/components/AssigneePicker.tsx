@@ -25,7 +25,16 @@ export function AssigneePicker({
 
   return (
     <div className="flex items-center gap-2">
-      <Select value={selected} onChange={(e) => setSelected(e.target.value)} className="flex-1">
+      <Select
+        value={selected}
+        onChange={(e) => setSelected(e.target.value)}
+        className="flex-1"
+        // 28/07/2026: them aria-label (phat hien qua ra soat kha nang tiep can) - Select nay khong
+        // co Label/FormField nao gan voi no (Label "Người phụ trách" o component cha chi mo ta danh
+        // sach chip da phan cong ben tren, khong co htmlFor tro toi Select nay), truoc do trinh doc
+        // man hinh khong co ten truy cap nao cho no.
+        aria-label="Chọn thành viên để thêm"
+      >
         <option value="">Chọn thành viên để thêm…</option>
         {candidates.map((u) => (
           <option key={u.id} value={u.id}>

@@ -198,6 +198,58 @@ describe('AnalyticsService', () => {
       expect(taskSql).toContain("pd.event_type = 'project.deleted'");
     });
 
+    // 28/07/2026: KPI theo phong ban - filter chi duoc them vao truy van dem task (taskRow, call
+    // dau tien) khi departmentId duoc truyen, va PHAI vang mat khi khong truyen (mac dinh).
+    it('them filter dim_user.department_id vao truy van dem task khi departmentId duoc truyen', async () => {
+      mockThreeQueries(
+        { total_tasks_created: '1', total_tasks_completed: '0' },
+        { new_documents: '0' },
+        { active_users: '0' },
+      );
+
+      await service.getSummary('org-1', '7d', 'dept-1');
+
+      const [taskSql, taskParams] = queryMock.mock.calls[0];
+      expect(taskSql).toContain("fte.event_type = 'task.assigned'");
+      expect(taskSql).toContain('JOIN dim_user du ON du.user_id = fte.assignee_id');
+      expect(taskSql).toContain('du.department_id = $3');
+      expect(taskParams).toEqual(['org-1', '7 days', 'dept-1']);
+
+      // 2 truy van con lai (document/active-users) KHONG bi anh huong boi departmentId.
+      const [, docParams] = queryMock.mock.calls[1];
+      const [, activeParams] = queryMock.mock.calls[2];
+      expect(docParams).toEqual(['org-1', '7 days']);
+      expect(activeParams).toEqual(['org-1', '7 days']);
+    });
+
+    it('KHONG co filter dim_user khi khong truyen departmentId', async () => {
+      mockThreeQueries(
+        { total_tasks_created: '1', total_tasks_completed: '0' },
+        { new_documents: '0' },
+        { active_users: '0' },
+      );
+
+      await service.getSummary('org-1', '7d');
+
+      const [taskSql, taskParams] = queryMock.mock.calls[0];
+      expect(taskSql).not.toContain('dim_user');
+      expect(taskParams).toEqual(['org-1', '7 days']);
+    });
+
+    // 28/07/2026: cacheKey Redis phai phan biet theo departmentId de tranh tra nham KPI cua 1
+    // phong ban khac (hoac cua truy van khong loc) tu cache.
+    it('cacheKey Redis rieng cho tung departmentId, khong trung voi cacheKey khong loc phong ban', async () => {
+      queryMock.mockResolvedValue([{}]);
+
+      await service.getSummary('org-1', '7d', 'dept-1');
+      await service.getSummary('org-1', '7d', 'dept-2');
+      await service.getSummary('org-1', '7d');
+
+      expect(redisServiceMock.getJson).toHaveBeenNthCalledWith(1, 'analytics:summary:org-1:7d:dept:dept-1');
+      expect(redisServiceMock.getJson).toHaveBeenNthCalledWith(2, 'analytics:summary:org-1:7d:dept:dept-2');
+      expect(redisServiceMock.getJson).toHaveBeenNthCalledWith(3, 'analytics:summary:org-1:7d');
+    });
+
     // 25/07/2026 (Fix 1 - Major, audit): cau truy van dem task PHAI dung 1 cohort DUY NHAT
     // (created_tasks JOIN latest_status), giong HET pattern cua getTaskStatusBreakdown()/
     // getProjectProgress() o duoi trong file nay - thay vi 2 count(...) FILTER doc lap tren
@@ -302,6 +354,39 @@ describe('AnalyticsService', () => {
     it('nem BadRequestException voi range khong hop le', async () => {
       await expect(service.getTaskStatusBreakdown('org-1', '1y')).rejects.toThrow(BadRequestException);
     });
+
+    // 28/07/2026: KPI theo phong ban - departmentId la tham so THU 4 (sau projectId), phai la
+    // tham so SQL cuoi cung ke ca khi ca projectId lan departmentId cung duoc truyen.
+    it('them filter dim_user.department_id lam tham so SQL cuoi khi departmentId duoc truyen (ca khi co ca projectId)', async () => {
+      queryMock.mockResolvedValue([]);
+
+      await service.getTaskStatusBreakdown('org-1', '30d', 'project-1', 'dept-1');
+
+      const [sql, params] = queryMock.mock.calls[0];
+      expect(sql).toContain("fte.event_type = 'task.assigned'");
+      expect(sql).toContain('JOIN dim_user du ON du.user_id = fte.assignee_id');
+      expect(sql).toContain('du.department_id = $4');
+      expect(params).toEqual(['org-1', '30 days', 'project-1', 'dept-1']);
+    });
+
+    it('them filter dim_user.department_id lam tham so $3 khi CHI truyen departmentId (khong co projectId)', async () => {
+      queryMock.mockResolvedValue([]);
+
+      await service.getTaskStatusBreakdown('org-1', '7d', undefined, 'dept-1');
+
+      const [sql, params] = queryMock.mock.calls[0];
+      expect(sql).toContain('du.department_id = $3');
+      expect(params).toEqual(['org-1', '7 days', 'dept-1']);
+    });
+
+    it('KHONG co filter dim_user khi khong truyen departmentId', async () => {
+      queryMock.mockResolvedValue([]);
+
+      await service.getTaskStatusBreakdown('org-1', '7d');
+
+      const [sql] = queryMock.mock.calls[0];
+      expect(sql).not.toContain('dim_user');
+    });
   });
 
   describe('getTaskStatusBreakdown - gop nhom trang thai HIEN TAI va edge case', () => {
@@ -355,6 +440,29 @@ describe('AnalyticsService', () => {
 
     it('nem BadRequestException voi range khong hop le', async () => {
       await expect(service.getProjectProgress('org-1', 'nope')).rejects.toThrow(BadRequestException);
+    });
+
+    // 28/07/2026: KPI theo phong ban - departmentId la tham so $3 khi duoc truyen.
+    it('them filter dim_user.department_id lam tham so $3 khi departmentId duoc truyen', async () => {
+      queryMock.mockResolvedValue([]);
+
+      await service.getProjectProgress('org-1', '7d', 'dept-1');
+
+      const [sql, params] = queryMock.mock.calls[0];
+      expect(sql).toContain("fte.event_type = 'task.assigned'");
+      expect(sql).toContain('JOIN dim_user du ON du.user_id = fte.assignee_id');
+      expect(sql).toContain('du.department_id = $3');
+      expect(params).toEqual(['org-1', '7 days', 'dept-1']);
+    });
+
+    it('KHONG co filter dim_user khi khong truyen departmentId', async () => {
+      queryMock.mockResolvedValue([]);
+
+      await service.getProjectProgress('org-1', '7d');
+
+      const [sql, params] = queryMock.mock.calls[0];
+      expect(sql).not.toContain('dim_user');
+      expect(params).toEqual(['org-1', '7 days']);
     });
   });
 

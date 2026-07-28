@@ -16,6 +16,11 @@ export function Avatar({ name, size = 'md', className }: AvatarProps) {
   return (
     <span
       title={name}
+      // 28/07/2026: them aria-label={name} (phat hien qua ra soat kha nang tiep can) - truoc do
+      // danh tinh nguoi dung chi duoc the hien qua title (tooltip khi ru chuot, khong the tiep can
+      // bang ban phim) va noi dung duy nhat trinh doc man hinh doc duoc la 1-2 chu cai viet tat; vi
+      // du tren the Kanban (TaskCard qua AvatarStack), ten nguoi phu trach khong xuat hien o dau khac.
+      aria-label={name}
       className={cn(
         'inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white',
         sizeClasses[size],

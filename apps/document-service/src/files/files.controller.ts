@@ -23,6 +23,8 @@ import { ShareFileDto } from './dto/share-file.dto';
 import { mimeTypeFileFilter } from './allowed-mime-types';
 // 22/07/2026: Fix 5 (code review) - DTO validate UUID cho query `folderId`.
 import { FindFilesQueryDto } from './dto/find-files-query.dto';
+// 28/07/2026: kieu ngu canh dung chung (kiem soat truy cap thu muc, opt-in) - xem folder-access.service.ts.
+import { AccessContext } from '../folders/folder-access.service';
 
 const MAX_UPLOAD_SIZE_BYTES = 25 * 1024 * 1024;
 
@@ -33,22 +35,46 @@ const MAX_UPLOAD_SIZE_BYTES = 25 * 1024 * 1024;
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
+  // 28/07/2026: dung chung, mirror pattern `canManageUsers` cua UsersController (iam-service) -
+  // xem chu thich tuong tu o folders.controller.ts.
+  private buildAccessContext(userId: string, departmentId: string | null, permissions: string[]): AccessContext {
+    return { userId, departmentId, isOrgAdmin: (permissions ?? []).includes(PERMISSIONS.ORG_MANAGE) };
+  }
+
   @Get()
   @RequirePermissions(PERMISSIONS.DOCUMENT_VIEW)
   findAll(
     @CurrentUser('organizationId') organizationId: string,
+    // 28/07/2026: bo sung userId/departmentId/permissions - can de tu choi liet ke neu `folderId`
+    // tro toi 1 thu muc RESTRICTED nguoi goi khong xem duoc (kiem soat truy cap thu muc, opt-in).
+    @CurrentUser('userId') userId: string,
+    @CurrentUser('departmentId') departmentId: string | null,
+    @CurrentUser('permissions') permissions: string[],
     // 22/07/2026: Fix 5 (code review) - gop `folderId` + phan trang vao 1 DTO co validate UUID
     // (xem giai thich day du o dto/find-files-query.dto.ts), thay vi doc tho
     // `@Query('folderId') folderId: string | undefined`.
     @Query() query: FindFilesQueryDto,
   ) {
-    return this.filesService.findAll(organizationId, query.folderId, query);
+    return this.filesService.findAll(
+      organizationId,
+      query.folderId,
+      query,
+      this.buildAccessContext(userId, departmentId, permissions),
+    );
   }
 
   @Get(':id')
   @RequirePermissions(PERMISSIONS.DOCUMENT_VIEW)
-  findOne(@CurrentUser('organizationId') organizationId: string, @Param('id') id: string) {
-    return this.filesService.findOne(organizationId, id);
+  findOne(
+    @CurrentUser('organizationId') organizationId: string,
+    // 28/07/2026: bo sung userId/departmentId/permissions - kiem tra quyen truy cap file (kiem
+    // soat truy cap thu muc, opt-in).
+    @CurrentUser('userId') userId: string,
+    @CurrentUser('departmentId') departmentId: string | null,
+    @CurrentUser('permissions') permissions: string[],
+    @Param('id') id: string,
+  ) {
+    return this.filesService.findOne(organizationId, id, this.buildAccessContext(userId, departmentId, permissions));
   }
 
   // 22/07/2026: bo sung query `disposition` de FE phan biet "Xem" (inline - trinh duyet tu
@@ -59,10 +85,20 @@ export class FilesController {
   @RequirePermissions(PERMISSIONS.DOCUMENT_VIEW)
   getDownloadUrl(
     @CurrentUser('organizationId') organizationId: string,
+    // 28/07/2026: bo sung userId/departmentId/permissions - kiem tra quyen truy cap file (kiem
+    // soat truy cap thu muc, opt-in).
+    @CurrentUser('userId') userId: string,
+    @CurrentUser('departmentId') departmentId: string | null,
+    @CurrentUser('permissions') permissions: string[],
     @Param('id') id: string,
     @Query('disposition') disposition?: string,
   ) {
-    return this.filesService.getDownloadUrl(organizationId, id, disposition === 'inline' ? 'inline' : 'attachment');
+    return this.filesService.getDownloadUrl(
+      organizationId,
+      id,
+      disposition === 'inline' ? 'inline' : 'attachment',
+      this.buildAccessContext(userId, departmentId, permissions),
+    );
   }
 
   @Post('upload')
@@ -109,11 +145,21 @@ export class FilesController {
   uploadNewVersion(
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') actorId: string,
+    // 28/07/2026: bo sung departmentId/permissions - kiem tra quyen truy cap file (kiem soat truy
+    // cap thu muc, opt-in).
+    @CurrentUser('departmentId') departmentId: string | null,
+    @CurrentUser('permissions') permissions: string[],
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) throw new BadRequestException('Thieu file can tai len');
-    return this.filesService.uploadNewVersion(organizationId, actorId, id, file);
+    return this.filesService.uploadNewVersion(
+      organizationId,
+      actorId,
+      id,
+      file,
+      this.buildAccessContext(actorId, departmentId, permissions),
+    );
   }
 
   @Post(':id/share')
@@ -121,10 +167,20 @@ export class FilesController {
   share(
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') actorId: string,
+    // 28/07/2026: bo sung departmentId/permissions - nguoi chia se cung phai tu minh xem duoc
+    // file do (kiem soat truy cap thu muc, opt-in).
+    @CurrentUser('departmentId') departmentId: string | null,
+    @CurrentUser('permissions') permissions: string[],
     @Param('id') id: string,
     @Body() dto: ShareFileDto,
   ) {
-    return this.filesService.share(organizationId, actorId, id, dto);
+    return this.filesService.share(
+      organizationId,
+      actorId,
+      id,
+      dto,
+      this.buildAccessContext(actorId, departmentId, permissions),
+    );
   }
 
   @Delete(':id')
@@ -132,8 +188,17 @@ export class FilesController {
   remove(
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') actorId: string,
+    // 28/07/2026: bo sung departmentId/permissions - kiem tra quyen truy cap file truoc khi cho
+    // xoa (kiem soat truy cap thu muc, opt-in).
+    @CurrentUser('departmentId') departmentId: string | null,
+    @CurrentUser('permissions') permissions: string[],
     @Param('id') id: string,
   ) {
-    return this.filesService.remove(organizationId, actorId, id);
+    return this.filesService.remove(
+      organizationId,
+      actorId,
+      id,
+      this.buildAccessContext(actorId, departmentId, permissions),
+    );
   }
 }

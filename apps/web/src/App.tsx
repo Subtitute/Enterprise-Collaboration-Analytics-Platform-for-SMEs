@@ -1,23 +1,34 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth.store';
 import { silentRefresh } from '@/lib/api-client';
 import { AppShell } from '@/components/layout/AppShell';
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
 import { NotFoundPage } from '@/components/layout/NotFoundPage';
-import { LoginPage } from '@/features/auth/LoginPage';
-import { RegisterPage } from '@/features/auth/RegisterPage';
-import { DashboardPage } from '@/features/dashboard/DashboardPage';
-import { ProjectsListPage } from '@/features/projects/ProjectsListPage';
-import { ProjectDetailPage } from '@/features/projects/ProjectDetailPage';
-import { DocumentsPage } from '@/features/documents/DocumentsPage';
-import { ProfilePage } from '@/features/profile/ProfilePage';
-import { NotificationsPage } from '@/features/notifications/NotificationsPage';
-import { AnalyticsPage } from '@/features/analytics/AnalyticsPage';
-import { AdminPage } from '@/features/admin/AdminPage';
-import { MembersPage } from '@/features/admin/MembersPage';
-import { DepartmentsPage } from '@/features/admin/DepartmentsPage';
-import { RolesPermissionsPage } from '@/features/admin/RolesPermissionsPage';
+import { FullPageSpinner } from '@/components/ui/Spinner';
+
+// 28/07/2026: chuyen toan bo trang cap route sang React.lazy() - phat hien qua de xuat nang cap
+// (khong phai loi) rang bundle production truoc day gom TOAN BO 13 trang vao 1 chunk duy nhat
+// (~954KB, vuot canh bao 500KB cua Vite) du nguoi dung chi can tai vi du trang Dang nhap luc dau.
+// Voi dong bo dung dynamic import(), Vite tu tach moi trang thanh 1 chunk rieng - trinh duyet chi
+// tai code cua trang dang xem, cac trang con lai tai ngam khi dieu huong toi. AppShell/
+// ProtectedRoute/NotFoundPage giu nguyen import tinh (nho, dung ngay tu dau, khong dang tach).
+const LoginPage = lazy(() => import('@/features/auth/LoginPage').then((m) => ({ default: m.LoginPage })));
+const RegisterPage = lazy(() => import('@/features/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })));
+const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })));
+const ProjectsListPage = lazy(() => import('@/features/projects/ProjectsListPage').then((m) => ({ default: m.ProjectsListPage })));
+const ProjectDetailPage = lazy(() => import('@/features/projects/ProjectDetailPage').then((m) => ({ default: m.ProjectDetailPage })));
+const DocumentsPage = lazy(() => import('@/features/documents/DocumentsPage').then((m) => ({ default: m.DocumentsPage })));
+const ProfilePage = lazy(() => import('@/features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })));
+const NotificationsPage = lazy(() => import('@/features/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })));
+const AnalyticsPage = lazy(() => import('@/features/analytics/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })));
+const AdminPage = lazy(() => import('@/features/admin/AdminPage').then((m) => ({ default: m.AdminPage })));
+const MembersPage = lazy(() => import('@/features/admin/MembersPage').then((m) => ({ default: m.MembersPage })));
+const DepartmentsPage = lazy(() => import('@/features/admin/DepartmentsPage').then((m) => ({ default: m.DepartmentsPage })));
+const RolesPermissionsPage = lazy(() => import('@/features/admin/RolesPermissionsPage').then((m) => ({ default: m.RolesPermissionsPage })));
+// 28/07/2026: trang moi "Sự kiện lỗi hệ thống" (Dead Letter Queue, GET /failed-events) - theo
+// dung khuon mau lazy() cua cac trang /admin/* con lai o tren.
+const FailedEventsPage = lazy(() => import('@/features/admin/FailedEventsPage').then((m) => ({ default: m.FailedEventsPage })));
 
 export default function App() {
   const hasPersistedUser = useAuthStore((s) => Boolean(s.user));
@@ -45,42 +56,51 @@ export default function App() {
   }, []);
 
   return (
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-
-      <Route
-        element={
-          <ProtectedRoute>
-            <AppShell />
-          </ProtectedRoute>
-        }
-      >
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/projects" element={<ProjectsListPage />} />
-        <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
-        <Route path="/documents" element={<DocumentsPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/analytics" element={<AnalyticsPage />} />
+    // 28/07/2026: Suspense bao ngoai cung - can thiet cho lan chuyen route DAU TIEN (vd tai thang
+    // /login truoc khi AppShell/ProtectedRoute duoc mount) khi chunk cua trang do chua tai xong.
+    // Suspense rieng, gan hon, cho phan Outlet ben trong AppShell (xem AppShell.tsx) moi la noi xu
+    // ly da so truong hop dieu huong giua cac trang da dang nhap - de Sidebar/Topbar khong bi go
+    // mount/tai lai moi lan chuyen trang.
+    <Suspense fallback={<FullPageSpinner label="Đang tải…" />}>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
 
         <Route
-          path="/admin"
           element={
-            <ProtectedRoute requireAdmin>
-              <AdminPage />
+            <ProtectedRoute>
+              <AppShell />
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="members" replace />} />
-          <Route path="members" element={<MembersPage />} />
-          <Route path="departments" element={<DepartmentsPage />} />
-          <Route path="roles" element={<RolesPermissionsPage />} />
-        </Route>
-      </Route>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/projects" element={<ProjectsListPage />} />
+          <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
+          <Route path="/documents" element={<DocumentsPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
 
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute requireAdmin>
+                <AdminPage />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="members" replace />} />
+            <Route path="members" element={<MembersPage />} />
+            <Route path="departments" element={<DepartmentsPage />} />
+            <Route path="roles" element={<RolesPermissionsPage />} />
+            {/* 28/07/2026: route cho tab moi "Sự kiện lỗi hệ thống" (xem TABS trong AdminPage.tsx). */}
+            <Route path="failed-events" element={<FailedEventsPage />} />
+          </Route>
+        </Route>
+
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </Suspense>
   );
 }

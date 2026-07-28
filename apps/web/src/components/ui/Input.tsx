@@ -1,5 +1,5 @@
-import { forwardRef } from 'react';
-import type { InputHTMLAttributes, LabelHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes, ReactNode } from 'react';
+import { cloneElement, forwardRef, isValidElement, useId } from 'react';
+import type { InputHTMLAttributes, LabelHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes, ReactElement, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 const fieldBase =
@@ -37,7 +37,24 @@ interface FormFieldProps {
   className?: string;
 }
 
+// 28/07/2026: gan aria-describedby/aria-invalid cho control con + role="alert" cho dong loi (phat
+// hien qua ra soat kha nang tiep can) - truoc do thong bao loi chi la 1 <p> hien thi truc quan,
+// khong co lien ket ky thuat nao voi control cua no va khong duoc cong bo boi trinh doc man hinh
+// khi xuat hien; nguoi dung submit form loi se KHONG nghe thay gi ca. Sua tap trung tai day (thay
+// vi sua tung noi dang dung FormField) bang cach clone phan tu con (Input/Select/Textarea) de gan
+// them 2 thuoc tinh ARIA, chi khi children la 1 phan tu hop le (dung 100% cac cach dung hien co).
 export function FormField({ label, htmlFor, error, hint, required, children, className }: FormFieldProps) {
+  const generatedId = useId();
+  const messageId = htmlFor ? `${htmlFor}-message` : generatedId;
+  const hasMessage = Boolean(error || hint);
+
+  const control = isValidElement(children)
+    ? cloneElement(children as ReactElement<Record<string, unknown>>, {
+        'aria-invalid': error ? true : undefined,
+        'aria-describedby': hasMessage ? messageId : undefined,
+      })
+    : children;
+
   return (
     <div className={cn('w-full', className)}>
       {label && (
@@ -46,8 +63,16 @@ export function FormField({ label, htmlFor, error, hint, required, children, cla
           {required && <span className="ml-0.5 text-rose-500">*</span>}
         </Label>
       )}
-      {children}
-      {error ? <p className="mt-1 text-xs text-rose-600">{error}</p> : hint ? <p className="mt-1 text-xs text-slate-400">{hint}</p> : null}
+      {control}
+      {error ? (
+        <p id={messageId} role="alert" className="mt-1 text-xs text-rose-600">
+          {error}
+        </p>
+      ) : hint ? (
+        <p id={messageId} className="mt-1 text-xs text-slate-400">
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }

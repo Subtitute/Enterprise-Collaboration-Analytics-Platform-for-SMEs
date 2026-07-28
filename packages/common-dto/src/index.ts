@@ -1,5 +1,7 @@
 export * from './events/event-types';
 export * from './events/event-envelope';
+// 28/07/2026: export schema DLQ dung chung (xem events/dead-letter-envelope.ts)
+export * from './events/dead-letter-envelope';
 export * from './dto/pagination.dto';
 export * from './dto/error-response.dto';
 export * from './enums/task-status.enum';

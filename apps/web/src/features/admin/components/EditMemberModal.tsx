@@ -21,8 +21,11 @@ export function EditMemberModal({ user, onClose }: { user: User | null; onClose:
   return (
     <Modal open={Boolean(user)} onClose={onClose} title={`Chỉnh sửa — ${user?.fullName ?? ''}`}>
       <div className="space-y-4">
-        <FormField label="Phòng ban">
-          <Select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
+        {/* 28/07/2026: them htmlFor/id "edit-member-department" (phat hien qua ra soat kha nang tiep
+            can) - Label truoc do khong tro toi Select nao ca, giong loi da sua o TaskDetailModal/
+            ShareModal/NewTaskModal nhung bi sot trong modal nay; khop dung quy uoc id "<modal>-<truong>". */}
+        <FormField label="Phòng ban" htmlFor="edit-member-department">
+          <Select id="edit-member-department" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
             <option value="">— Không thuộc phòng ban —</option>
             {(departmentsQuery.data ?? []).map((d) => (
               <option key={d.id} value={d.id}>

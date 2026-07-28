@@ -71,4 +71,10 @@ export function injectAuthHeaders(proxyReq: ClientRequest, req: IncomingMessage)
   proxyReq.setHeader(INTERNAL_AUTH_HEADERS.EMAIL, user.email);
   proxyReq.setHeader(INTERNAL_AUTH_HEADERS.ROLES, (user.roles ?? []).join(','));
   proxyReq.setHeader(INTERNAL_AUTH_HEADERS.PERMISSIONS, (user.permissions ?? []).join(','));
+  // 28/07/2026: forward departmentId (xem ghi chu tai AuthContext, @app/common-dto) - chi dat
+  // header khi co gia tri (khac null/undefined), tranh gui header rong vo nghia cho nguoi dung
+  // chua duoc gan phong ban.
+  if (user.departmentId) {
+    proxyReq.setHeader(INTERNAL_AUTH_HEADERS.DEPARTMENT_ID, user.departmentId);
+  }
 }

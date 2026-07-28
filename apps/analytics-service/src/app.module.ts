@@ -2,6 +2,11 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { DataSource, DataSourceOptions } from 'typeorm';
+// 28/07/2026: DDL tu-cham schema KPI theo phong ban (dim_user, fact_task_events.assignee_id) -
+// xem giai thich day du va ly do can ca 2 noi (o day VA infra/timescale-init/001-init.sql) trong
+// database/schema-bootstrap.ts.
+import { bootstrapDepartmentKpiSchema } from './database/schema-bootstrap';
 import { AllExceptionsFilter, InternalAuthGuard, PermissionsGuard } from '@app/common-guard';
 import configuration from './config/configuration';
 import { RedisModule } from './redis/redis.module';
@@ -31,6 +36,21 @@ import { HealthController } from './health/health.controller';
         entities: [],
         synchronize: false,
       }),
+      // 28/07/2026: `dataSourceFactory` tuy chon cua TypeOrmModule.forRootAsync - tu khoi tao
+      // DataSource (thay vi de @nestjs/typeorm tu lam) de chay bootstrapDepartmentKpiSchema()
+      // NGAY SAU KHI ket noi thanh cong nhung TRUOC KHI DataSource duoc tra ve cho Nest DI
+      // container. Viec nay xay ra trong giai doan KHOI TAO PROVIDER (truoc khi bat ky
+      // onModuleInit nao chay), nen dam bao DDL nay LUON hoan tat truoc khi
+      // KafkaConsumerService.onModuleInit() bat dau consume va co the ghi vao dim_user/
+      // fact_task_events.assignee_id (xem kafka-consumer.service.ts) - khong phu thuoc vao thu
+      // tu khoi tao module cua Nest (thu tu do KHONG duoc dam bao ro rang giua cac module anh
+      // em nhu AnalyticsModule/KafkaModule).
+      dataSourceFactory: async (options?: DataSourceOptions) => {
+        const dataSource = new DataSource(options!);
+        await dataSource.initialize();
+        await bootstrapDepartmentKpiSchema(dataSource);
+        return dataSource;
+      },
     }),
     RedisModule,
     AnalyticsModule,

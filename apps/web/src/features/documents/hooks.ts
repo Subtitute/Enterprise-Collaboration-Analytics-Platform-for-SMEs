@@ -3,14 +3,20 @@ import { toast } from '@/stores/toast.store';
 import { extractErrorMessage } from '@/lib/api-client';
 import {
   createFolder,
+  // 28/07/2026: cac ham API moi cho tinh nang kiem soat truy cap thu muc theo cap do (visibility +
+  // quan ly chia se) - xem ghi chu chi tiet tung ham tai api.ts.
+  createFolderShare,
   deleteFile,
   deleteFolder,
+  deleteFolderShare,
   fetchFile,
   fetchFiles,
   fetchFolders,
+  fetchFolderShares,
   getDownloadUrl,
   renameFolder,
   shareFile,
+  updateFolderVisibility,
   uploadFile,
   uploadNewVersion,
 } from './api';
@@ -66,6 +72,67 @@ export function useDeleteFolder() {
   });
 }
 
+// 28/07/2026: hook cho PATCH /folders/:id { visibility } - tach rieng voi useRenameFolder() de
+// FolderGrid.tsx goi ro rang tung muc dich; giu nguyen quy uoc invalidate ['folders'] + toast nhu
+// cac mutation thu muc khac o tren.
+export function useUpdateFolderVisibility() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, visibility }: { id: string; visibility: 'organization' | 'restricted' }) => updateFolderVisibility(id, visibility),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+      toast.success('Đã cập nhật quyền truy cập thư mục');
+    },
+    onError: (error) => toast.error('Không thể cập nhật quyền truy cập thư mục', extractErrorMessage(error)),
+  });
+}
+
+// 28/07/2026: hook cho GET /folders/:id/shares - dung trong FolderShareModal.tsx de hien danh sach
+// da chia se; `enabled: Boolean(folderId)` giong quy uoc useFileQuery() o tren (chi goi khi da co
+// id, tranh goi voi id rong luc modal chua mo/folder=null).
+export function useFolderSharesQuery(folderId: string | undefined) {
+  return useQuery({
+    queryKey: ['folder-shares', folderId],
+    queryFn: () => fetchFolderShares(folderId as string),
+    enabled: Boolean(folderId),
+  });
+}
+
+// 28/07/2026: hook cho POST /folders/:id/shares - invalidate dung ['folder-shares', folderId]
+// (khoa query cua useFolderSharesQuery() ngay tren) de danh sach trong modal cap nhat ngay sau
+// khi them 1 chia se moi.
+export function useCreateFolderShare() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      folderId,
+      payload,
+    }: {
+      folderId: string;
+      payload: { sharedWithUserId?: string } | { sharedWithDepartmentId?: string };
+    }) => createFolderShare(folderId, payload),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['folder-shares', variables.folderId] });
+      toast.success('Đã chia sẻ thư mục');
+    },
+    onError: (error) => toast.error('Không thể chia sẻ thư mục', extractErrorMessage(error)),
+  });
+}
+
+// 28/07/2026: hook cho DELETE /folders/:id/shares/:shareId - dung cho nut "Xoá" tren tung dong
+// chia se trong FolderShareModal.tsx.
+export function useDeleteFolderShare() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ folderId, shareId }: { folderId: string; shareId: string }) => deleteFolderShare(folderId, shareId),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['folder-shares', variables.folderId] });
+      toast.success('Đã xoá chia sẻ');
+    },
+    onError: (error) => toast.error('Không thể xoá chia sẻ', extractErrorMessage(error)),
+  });
+}
+
 export function useUploadFile(folderId: string | null) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -91,10 +158,22 @@ export function useUploadNewVersion(fileId: string, folderId: string | null) {
   });
 }
 
+// 28/07/2026: mo rong tham so - nhan THEM sharedWithDepartmentId (song song sharedWithUserId, chi
+// truyen 1 trong 2) de ShareModal.tsx chia se tep duoc ca cho phong ban, khop voi chu ky moi cua
+// shareFile() (api.ts).
 export function useShareFile() {
   return useMutation({
-    mutationFn: ({ fileId, sharedWithUserId, permission }: { fileId: string; sharedWithUserId: string; permission: string }) =>
-      shareFile(fileId, { sharedWithUserId, permission }),
+    mutationFn: ({
+      fileId,
+      sharedWithUserId,
+      sharedWithDepartmentId,
+      permission,
+    }: {
+      fileId: string;
+      sharedWithUserId?: string;
+      sharedWithDepartmentId?: string;
+      permission: string;
+    }) => shareFile(fileId, { sharedWithUserId, sharedWithDepartmentId, permission }),
     onSuccess: () => toast.success('Đã chia sẻ tệp'),
     onError: (error) => toast.error('Không thể chia sẻ tệp', extractErrorMessage(error)),
   });
@@ -129,8 +208,23 @@ export function useDownloadFile() {
   });
 
   const openFile = (fileId: string, disposition: 'inline' | 'attachment' = 'attachment') => {
-    const tab = window.open('', '_blank', 'noopener,noreferrer');
-    if (!tab) {
+    // 28/07/2026: sua loi thuc te phat hien qua E2E test (Playwright, trinh duyet That) - lan sua
+    // 22/07/2026 truyen "noopener" ngay o LAN GOI window.open() DAU TIEN (mo tab trong). Theo dung
+    // dac ta WHATWG HTML, khi co "noopener" (hoac "noreferrer", von ke ham "noopener"), trinh duyet
+    // KHONG bao gio tra ve tham chieu toi cua so moi - ham window.open() luon tra ve `null` trong
+    // truong hop nay (day la hanh vi DUNG dac ta, khong phai loi trinh duyet/moi truong kiem thu).
+    // Ket qua: bien `tab` luon la null, nhanh `if (!tab)` luon dung (hien nham toast "co the da bi
+    // chan" ke ca khi tab mo thanh cong), va code luon roi vao nhanh else goi window.open(url,...)
+    // lan 2 SAU KHI mutation bat dong bo hoan tat - dung LA loi "mo tab ngoai pham vi user gesture"
+    // ma ban sua 22/07/2026 dinh loai bo tu dau, khien toan bo ban sua do vo hieu tu luc viet ra.
+    // Sua dung cach: mo tab KHONG kem "noopener/noreferrer" de nhan duoc tham chieu that, roi tu
+    // gan `tab.opener = null` ngay sau do - dat duoc CUNG muc tieu chong "reverse tabnabbing" (tab
+    // moi khong the dung window.opener de thao tung tab goc) ma khong lam mat tham chieu can thiet
+    // de dieu huong tab do sau khi co URL that.
+    const tab = window.open('', '_blank');
+    if (tab) {
+      tab.opener = null;
+    } else {
       toast.info('Cửa sổ mới có thể đã bị trình duyệt chặn', 'Vui lòng cho phép cửa sổ bật lên (pop-up) cho trang này rồi thử lại.');
     }
     mutation.mutate(

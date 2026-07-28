@@ -8,6 +8,9 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { KafkaModule } from './kafka/kafka.module';
 import { HealthController } from './health/health.controller';
+// 28/07/2026: module moi - man hinh quan tri "Danh sach su kien loi" (Technical_Spec.md muc 14 -
+// nang cap Dead Letter Queue). Xem failed-events/failed-events.module.ts.
+import { FailedEventsModule } from './failed-events/failed-events.module';
 
 @Module({
   imports: [
@@ -21,6 +24,7 @@ import { HealthController } from './health/health.controller';
     RealtimeModule,
     NotificationsModule,
     KafkaModule,
+    FailedEventsModule,
   ],
   controllers: [HealthController],
   providers: [

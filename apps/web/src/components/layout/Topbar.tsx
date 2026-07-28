@@ -82,10 +82,30 @@ function GlobalSearchBox() {
           setHasInteracted(true);
         }}
         placeholder="Tìm kiếm dự án, tài liệu, công việc…"
+        // 28/07/2026: them aria-label khop voi placeholder + cac thuoc tinh ARIA combobox/listbox
+        // (phat hien qua ra soat kha nang tiep can) - placeholder bien mat khi go chu va khong dam
+        // bao duoc dung lam ten truy cap; o nhap nay con dieu khien 1 hop ket qua dang mo/dong nhung
+        // truoc do khong co ngu nghia combobox nao de trinh doc man hinh biet co danh sach lien quan.
+        // Chi bo sung ngu nghia ARIA, KHONG doi hanh vi/dieu huong ban phim hien co (dieu huong bang
+        // mui ten trong danh sach ket qua nam ngoai pham vi lan sua nay).
+        aria-label="Tìm kiếm dự án, tài liệu, công việc…"
+        role="combobox"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        aria-controls="global-search-listbox"
         className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm text-slate-600 placeholder:text-slate-400 focus:border-primary-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-100"
       />
       {open && (
-        <div className="absolute left-0 right-0 z-40 mt-2 max-h-96 animate-slide-up overflow-y-auto rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl">
+        // 28/07/2026: them role="listbox" + id (khop aria-controls tren input) + aria-live="polite"
+        // (phat hien qua ra soat kha nang tiep can) - bo sung ngu nghia listbox cho vung ket qua nay
+        // va bao trinh doc man hinh khi noi dung ben trong thay doi (dang tai, "khong tim thay ket
+        // qua", hoac danh sach ket qua moi xuat hien) ma khong can nguoi dung phai tu di tim lai.
+        <div
+          id="global-search-listbox"
+          role="listbox"
+          aria-live="polite"
+          className="absolute left-0 right-0 z-40 mt-2 max-h-96 animate-slide-up overflow-y-auto rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl"
+        >
           {isLoading && query.length > 0 && (
             <div className="flex items-center justify-center py-6">
               <Spinner size="sm" />
@@ -108,6 +128,7 @@ function GlobalSearchBox() {
                     <button
                       key={`${r.category}-${r.id}`}
                       type="button"
+                      role="option"
                       onClick={() => goTo(r)}
                       className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm hover:bg-slate-50"
                     >
@@ -153,7 +174,11 @@ export function Topbar() {
           align="right"
           panelClassName="w-56"
           trigger={({ toggle }) => (
-            <button type="button" onClick={toggle} className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 hover:bg-slate-100">
+            // 28/07/2026: them aria-label "Menu tài khoản" - nut nay truoc do khong co nhan truy
+            // cap tuong minh (chi dua vao text ten nguoi dung hien thi, an tren mobile va co the
+            // doi theo tung tai khoan), gay kho khan cho ca trinh doc man hinh lan E2E test can
+            // dinh vi nut on dinh khong phu thuoc du lieu dang nhap.
+            <button type="button" onClick={toggle} aria-label="Menu tài khoản" className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 hover:bg-slate-100">
               <Avatar name={user?.fullName} size="sm" />
               <span className="hidden max-w-[9rem] truncate text-sm font-medium text-slate-700 md:inline">{user?.fullName}</span>
               <ChevronDownIcon className="hidden h-3.5 w-3.5 text-slate-400 md:inline" />

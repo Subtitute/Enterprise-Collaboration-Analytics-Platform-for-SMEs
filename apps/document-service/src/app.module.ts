@@ -9,6 +9,8 @@ import { Folder } from './entities/folder.entity';
 import { FileMeta } from './entities/file-meta.entity';
 import { FileVersion } from './entities/file-version.entity';
 import { FileShare } from './entities/file-share.entity';
+// 28/07/2026: entity moi - kiem soat truy cap thu muc (opt-in). Xem folder-share.entity.ts.
+import { FolderShare } from './entities/folder-share.entity';
 import { OutboxEvent } from './entities/outbox-event.entity';
 import { KafkaModule } from './kafka/kafka.module';
 import { MinioModule } from './minio/minio.module';
@@ -29,7 +31,9 @@ import { HealthController } from './health/health.controller';
         username: config.get<string>('db.user'),
         password: config.get<string>('db.password'),
         database: config.get<string>('db.name'),
-        entities: [Folder, FileMeta, FileVersion, FileShare, OutboxEvent],
+        // 28/07/2026: bo sung FolderShare vao danh sach entity - synchronize: true se tu tao bang
+        // `folder_shares` (va cot `visibility` moi tren `folders`) khi service khoi dong.
+        entities: [Folder, FileMeta, FileVersion, FileShare, FolderShare, OutboxEvent],
         // MVP: dung synchronize thay vi migration thu cong - Technical_Spec.md muc 14 (gioi han da biet).
         synchronize: true,
       }),

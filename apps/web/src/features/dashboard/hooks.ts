@@ -5,18 +5,27 @@ import { connectAnalyticsSocket, disconnectAnalyticsSocket } from '@/lib/socket'
 import type { DateRangeOption, RecentActivityItem } from '@/types';
 import { fetchAnalyticsSummary, fetchRecentActivity, fetchTaskStatusBreakdown, fetchTaskTrend } from './api';
 
-export function useAnalyticsSummary(range: DateRangeOption = '30d') {
-  return useQuery({ queryKey: ['analytics', 'summary', range], queryFn: () => fetchAnalyticsSummary(range) });
+// 28/07/2026: them tham so departmentId (tuy chon) cho bo loc "Phong ban" tren Dashboard - dua
+// vao queryKey de moi lua chon phong ban duoc cache rieng, giong het cach projectId da lam ben duoi.
+export function useAnalyticsSummary(range: DateRangeOption = '30d', departmentId?: string) {
+  return useQuery({
+    queryKey: ['analytics', 'summary', range, departmentId ?? null],
+    queryFn: () => fetchAnalyticsSummary(range, departmentId),
+  });
 }
 
+// 28/07/2026: GET /analytics/task-trend KHONG ho tro departmentId (gioi han da biet cua backend -
+// xem Technical_Spec.md) nen hook nay co tinh KHONG nhan them tham so departmentId.
 export function useTaskTrend(range: DateRangeOption = '30d') {
   return useQuery({ queryKey: ['analytics', 'task-trend', range], queryFn: () => fetchTaskTrend(range) });
 }
 
-export function useTaskStatusBreakdown(range: DateRangeOption = '30d', projectId?: string) {
+// 28/07/2026: them tham so departmentId (tuy chon), theo dung cach projectId da duoc thread vao
+// queryKey/fetch* ben duoi.
+export function useTaskStatusBreakdown(range: DateRangeOption = '30d', projectId?: string, departmentId?: string) {
   return useQuery({
-    queryKey: ['analytics', 'task-status-breakdown', range, projectId ?? null],
-    queryFn: () => fetchTaskStatusBreakdown(range, projectId),
+    queryKey: ['analytics', 'task-status-breakdown', range, projectId ?? null, departmentId ?? null],
+    queryFn: () => fetchTaskStatusBreakdown(range, projectId, departmentId),
   });
 }
 

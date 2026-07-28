@@ -17,6 +17,10 @@ type QueryExecutor = Pick<DataSource, 'query'>;
  * Dung raw SQL tham so hoa qua DataSource.query - KHONG dung TypeORM entity/repository vi hypertable
  * khong map duoc vao ORM entity model (xem ghi chu trong app.module.ts).
  *
+ * 28/07/2026: bo sung upsertUserDepartment() - ghi vao dim_user, 1 bang LOOKUP THUAN (khong phai
+ * hypertable) cho tinh nang KPI theo phong ban. Xem ghi chu rieng tren chinh ham do ve ly do bang
+ * nay KHONG theo pattern idempotent "ON CONFLICT (time, event_id)" nhu 3 ham hypertable duoi day.
+ *
  * Moi INSERT deu dung `ON CONFLICT (time, event_id) DO NOTHING` de idempotent theo eventId: neu
  * OutboxPublisherJob phia producer publish trung 1 message (Technical_Spec.md muc 4.1 - gioi han
  * da biet), ban ghi thu 2 se bi bo qua thay vi tao du lieu trung lap trong bao cao KPI.
@@ -78,12 +82,15 @@ export class FactWriterService {
    * eventType bat dau bang "task." hoac "project." - Technical_Spec.md muc 4.3 (payload cac loai event).
    * 22/07/2026: tra ve boolean (co ghi duoc dong MOI hay khong) cung ly do nhu recordUserActivity() o tren.
    * 25/07/2026 (Fix 2 - Major, audit): them tham so `runner` tuy chon, cung ly do nhu recordUserActivity() o tren.
+   * 28/07/2026: them cot assignee_id (nguoi duoc GAN task, chi co gia tri o event `task.assigned`
+   * theo TaskAssignedPayload - null o cac event khac) - phuc vu KPI theo phong ban (JOIN voi
+   * dim_user.user_id de biet task duoc gan cho user thuoc phong ban nao, xem AnalyticsService).
    */
   async recordTaskEvent(event: DomainEvent, runner: QueryExecutor = this.dataSource): Promise<boolean> {
     const rows = await runner.query(
       `
-      INSERT INTO fact_task_events (time, event_id, organization_id, event_type, project_id, task_id, from_status, to_status, actor_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      INSERT INTO fact_task_events (time, event_id, organization_id, event_type, project_id, task_id, from_status, to_status, actor_id, assignee_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       ON CONFLICT (time, event_id) DO NOTHING
       RETURNING event_id
       `,
@@ -97,6 +104,7 @@ export class FactWriterService {
         extractString(event, 'fromStatus'),
         extractString(event, 'toStatus'),
         extractString(event, 'actorId'),
+        extractString(event, 'assigneeId'),
       ],
     );
     return rows.length > 0;
@@ -126,6 +134,30 @@ export class FactWriterService {
       ],
     );
     return rows.length > 0;
+  }
+
+  /**
+   * 28/07/2026: upsert dim_user tu event `iam.user.registered` (UserRegisteredPayload, mang san
+   * departmentId ban dau) hoac `iam.user.department_changed` (UserDepartmentChangedPayload, phat
+   * khi PATCH /users/:id doi phong ban CUA USER DA TON TAI, HOAC ban resync dinh ky luc IAM
+   * Service khoi dong lai - xem KafkaConsumerService.handleEvent()).
+   *
+   * dim_user KHONG co cot time/event_id nen KHONG tham gia duoc pattern idempotent
+   * "ON CONFLICT (time, event_id) DO NOTHING" nhu 3 ham hypertable o tren - thay vao do dung
+   * chinh "ON CONFLICT (user_id) DO UPDATE" lam co che idempotent RIENG cua bang nay: du day la
+   * lan phat DAU TIEN hay 1 ban RE-SYNC lap lai (an toan replay theo thiet ke cua IAM Service),
+   * ket qua cuoi cung LUON la trang thai HIEN TAI cua user (last-write-wins) - dung y do, vi bang
+   * nay chi luu SNAPSHOT hien tai chu khong phai 1 log lich su nhu cac fact table kia.
+   */
+  async upsertUserDepartment(event: DomainEvent, runner: QueryExecutor = this.dataSource): Promise<void> {
+    await runner.query(
+      `
+      INSERT INTO dim_user (user_id, organization_id, department_id, updated_at)
+      VALUES ($1, $2, $3, now())
+      ON CONFLICT (user_id) DO UPDATE SET department_id = EXCLUDED.department_id, updated_at = now()
+      `,
+      [extractString(event, 'userId'), event.organizationId, extractString(event, 'departmentId')],
+    );
   }
 }
 

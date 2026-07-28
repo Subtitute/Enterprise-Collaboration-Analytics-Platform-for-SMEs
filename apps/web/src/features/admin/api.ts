@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api-client';
-import type { Department, PaginatedResponse, Permission, RoleWithPermissions, User } from '@/types';
+import type { Department, FailedEvent, PaginatedResponse, Permission, RoleWithPermissions, User } from '@/types';
 
 export interface InviteUserPayload {
   email: string;
@@ -75,5 +75,14 @@ export async function fetchPermissions(): Promise<Permission[]> {
 
 export async function updateRolePermissions(roleId: string, permissionKeys: string[]): Promise<RoleWithPermissions> {
   const { data } = await apiClient.patch<RoleWithPermissions>(`/roles/${roleId}/permissions`, { permissionKeys });
+  return data;
+}
+
+// 28/07/2026: GET /failed-events (Dead Letter Queue) - danh sach chi doc cac su kien xu ly noi
+// bo (Kafka) that bai vinh vien/het luot thu lai, phuc vu man hinh chan doan cho Org Admin
+// (features/admin/FailedEventsPage.tsx). Theo dung quy uoc phan trang chung cua ca du an
+// (xem fetchUsers o tren).
+export async function fetchFailedEvents(params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<FailedEvent>> {
+  const { data } = await apiClient.get<PaginatedResponse<FailedEvent>>('/failed-events', { params });
   return data;
 }

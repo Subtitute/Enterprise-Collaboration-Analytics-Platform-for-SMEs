@@ -138,10 +138,16 @@ export interface TaskStatusHistoryEntry {
   changedAt: string;
 }
 
+// 28/07/2026: bo sung visibility/createdByUserId - Folder tra ve tu GET /folders gio da co 2
+// truong nay (tinh nang kiem soat truy cap thu muc theo cap do to chuc/han che), dung de: (a)
+// FolderGrid hien icon khoa cho thu muc 'restricted', (b) so sanh createdByUserId voi id nguoi
+// dung dang dang nhap (useAuthStore) de quyet dinh ai duoc doi visibility/quan ly chia se thu muc.
 export interface Folder {
   id: string;
   name: string;
   parentId?: string | null;
+  visibility: 'organization' | 'restricted';
+  createdByUserId: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -165,6 +171,19 @@ export interface FileShare {
   fileId: string;
   sharedWithUserId: string;
   permission: 'VIEW' | 'EDIT' | string;
+}
+
+// 28/07/2026: kieu du lieu cho FolderShare - khop CHINH XAC voi response cua GET/POST
+// /folders/:id/shares (backend contract tinh nang kiem soat truy cap thu muc theo cap do). Chi 1
+// trong 2 truong sharedWithUserId/sharedWithDepartmentId co gia tri (truong con lai la null) -
+// khac FileShare o tren (chi ho tro chia se theo tung nguoi dung).
+export interface FolderShare {
+  id: string;
+  folderId: string;
+  sharedWithUserId: string | null;
+  sharedWithDepartmentId: string | null;
+  sharedByUserId: string;
+  createdAt: string;
 }
 
 export interface FileVersion {
@@ -236,3 +255,26 @@ export const DATE_RANGE_LABEL_VI: Record<DateRangeOption, string> = {
   '30d': '30 ngày qua',
   quarter: 'Quý này',
 };
+
+// 28/07/2026: kieu du lieu cho GET /failed-events (Dead Letter Queue) - Sự kiện xử lý nội bộ
+// (Kafka) that bai vinh vien hoac het luot thu lai tu dong, phuc vu man hinh chan doan cho Org
+// Admin (features/admin/FailedEventsPage.tsx). CHUA CHAC CHAN backend tra ve "_id" hay "id" cho
+// khoa chinh - khai bao ca hai (deu optional) de FE khong vo neu lech, xem ghi chu tai
+// features/admin/api.ts (fetchFailedEvents) va FailedEventsPage.tsx ve cach chon truong nao dung.
+export type FailedEventErrorType = 'MALFORMED_JSON' | 'INVALID_ENVELOPE' | 'PERMANENT_DATA_ERROR' | 'RETRY_EXHAUSTED';
+
+export interface FailedEvent {
+  _id?: string;
+  id?: string;
+  eventId: string | null;
+  eventType: string | null;
+  organizationId: string | null;
+  sourceService: string;
+  sourceTopic: string;
+  errorType: FailedEventErrorType;
+  errorMessage: string;
+  attempts: number;
+  rawPayload: string;
+  failedAt: string;
+  createdAt: string;
+}
