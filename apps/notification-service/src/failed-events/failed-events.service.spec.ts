@@ -70,12 +70,14 @@ describe('FailedEventsService', () => {
       return { sortMock, skipMock, limitMock, execMock };
     }
 
-    it('loc THEO DUNG organizationId duoc truyen vao (org-scoping)', async () => {
+    it('loc THEO DUNG organizationId duoc truyen vao, CONG THEM cac ban ghi organizationId = null (khong xac dinh duoc to chuc - xem ghi chu tai findForOrganization)', async () => {
       mockFindChain([]);
 
       await service.findForOrganization('org-1', { page: 1, limit: 20 } as ListFailedEventsQueryDto);
 
-      expect(modelMock.find).toHaveBeenCalledWith({ organizationId: 'org-1' });
+      expect(modelMock.find).toHaveBeenCalledWith({
+        $or: [{ organizationId: 'org-1' }, { organizationId: null }],
+      });
     });
 
     it('sap xep theo failedAt GIAM DAN (moi nhat truoc)', async () => {
@@ -107,13 +109,17 @@ describe('FailedEventsService', () => {
       expect(result).toEqual({ data: [{ id: 'fe-1' }], meta: { page: 1, limit: 20, total: 1 } });
     });
 
-    it('to chuc khac nhau tao filter khac nhau - khong tra ve du lieu cheo to chuc', async () => {
+    it('to chuc khac nhau tao filter khac nhau - khong tra ve du lieu nghiep vu cheo to chuc', async () => {
       mockFindChain([]);
 
       await service.findForOrganization('org-2', { page: 1, limit: 20 } as ListFailedEventsQueryDto);
 
-      expect(modelMock.find).toHaveBeenCalledWith({ organizationId: 'org-2' });
-      expect(modelMock.find).not.toHaveBeenCalledWith({ organizationId: 'org-1' });
+      expect(modelMock.find).toHaveBeenCalledWith({
+        $or: [{ organizationId: 'org-2' }, { organizationId: null }],
+      });
+      expect(modelMock.find).not.toHaveBeenCalledWith({
+        $or: [{ organizationId: 'org-1' }, { organizationId: null }],
+      });
     });
   });
 });

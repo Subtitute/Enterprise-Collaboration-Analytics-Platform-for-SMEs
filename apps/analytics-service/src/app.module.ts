@@ -13,6 +13,9 @@ import { RedisModule } from './redis/redis.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { KafkaModule } from './kafka/kafka.module';
 import { HealthController } from './health/health.controller';
+// 28/07/2026: tinh nang "Nhan xet AI" (GET /analytics/ai-insights) - hang muc dau tien trong
+// loat nang cap AI, xem ai-insights/ai-insights.service.ts.
+import { AiInsightsModule } from './ai-insights/ai-insights.module';
 
 @Module({
   imports: [
@@ -55,6 +58,7 @@ import { HealthController } from './health/health.controller';
     RedisModule,
     AnalyticsModule,
     KafkaModule,
+    AiInsightsModule,
   ],
   controllers: [HealthController],
   providers: [

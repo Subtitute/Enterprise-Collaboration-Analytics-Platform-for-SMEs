@@ -48,6 +48,12 @@ export function FailedEventsPage() {
       <p className="text-sm text-slate-500">
         Danh sách các sự kiện xử lý nội bộ (Kafka) đã thất bại vĩnh viễn hoặc hết lượt thử lại tự động - đây không phải lỗi do người
         dùng gây ra, mà là dữ liệu phục vụ chẩn đoán sự cố hệ thống. Danh sách chỉ để xem, không có thao tác thử lại từ giao diện này.
+        {/* 28/07/2026: bo sung ghi chu ve cac ban ghi "Khong xac dinh to chuc" (xem
+            failed-events.service.ts findForOrganization) - can giai thich vi sao Org Admin thay
+            duoc du lieu KHONG thuoc rieng to chuc minh, neu khong se gay hieu nham ro ri du lieu. */}
+        {' '}Riêng các sự kiện đánh dấu “Không xác định tổ chức” là lỗi xảy ra ngay từ khâu đọc dữ liệu (trước khi xác định được tổ
+        chức nào phát sinh) nên hiển thị cho mọi Org Admin - đây là dữ liệu chẩn đoán hạ tầng dùng chung, không phải dữ liệu nghiệp vụ
+        riêng của tổ chức nào.
       </p>
 
       <Card>
@@ -73,6 +79,7 @@ export function FailedEventsPage() {
                   <tr>
                     <TableHeadCell>Thời điểm</TableHeadCell>
                     <TableHeadCell>Loại lỗi</TableHeadCell>
+                    <TableHeadCell>Phạm vi</TableHeadCell>
                     <TableHeadCell>Nguồn</TableHeadCell>
                     <TableHeadCell>Loại sự kiện</TableHeadCell>
                     <TableHeadCell>Thông báo lỗi</TableHeadCell>
@@ -88,6 +95,13 @@ export function FailedEventsPage() {
                         </TableCell>
                         <TableCell label="Loại lỗi">
                           <Badge variant={errorMeta.variant}>{errorMeta.label}</Badge>
+                        </TableCell>
+                        <TableCell label="Phạm vi">
+                          {e.organizationId === null ? (
+                            <Badge variant="default">Không xác định tổ chức</Badge>
+                          ) : (
+                            <Badge variant="success">Tổ chức của bạn</Badge>
+                          )}
                         </TableCell>
                         <TableCell label="Nguồn" className="text-sm text-slate-600">
                           {e.sourceService} · {e.sourceTopic}

@@ -68,6 +68,9 @@ describe('createJwtAuthMiddleware', () => {
   const PAYLOAD: JwtAccessPayload = {
     sub: 'user-1',
     organizationId: 'org-1',
+    // 28/07/2026: bo sung departmentId - truong bat buoc tu JwtAccessPayload sau nang cap ACL/KPI
+    // theo phong ban (xem auth-context.interface.ts), thieu truong nay lam tsc --noEmit that bai.
+    departmentId: null,
     email: 'user@example.com',
     roles: ['member'],
     permissions: [],

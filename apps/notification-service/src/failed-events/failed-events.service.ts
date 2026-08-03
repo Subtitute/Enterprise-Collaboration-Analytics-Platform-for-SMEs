@@ -32,12 +32,27 @@ export class FailedEventsService {
     );
   }
 
-  /** Danh sach loi cua 1 to chuc, phan trang, moi nhat truoc - dung cho GET /failed-events. */
+  /**
+   * Danh sach loi cua 1 to chuc, phan trang, moi nhat truoc - dung cho GET /failed-events.
+   *
+   * 28/07/2026 (fix qua "ultimate check" toan he thong): bao gom CA cac ban ghi organizationId
+   * = null - day la truong hop message loi ngay TU KHAU DOC JSON (vd MALFORMED_JSON), truoc khi
+   * he thong kip doc duoc organizationId tu message goc, nen KHONG THE gan cho bat ky to chuc
+   * nao. Truoc day filter chi lay dung { organizationId }, khien nhom loi nghiem trong nhat (loi
+   * ha tang - message khong parse duoc) VINH VIEN vo hinh voi moi Org Admin (chi xem duoc qua
+   * truy van thang vao MongoDB). Vi he thong nay khong co khai niem "System Admin" toan nen tang
+   * (moi Org Admin chi thuoc 1 to chuc), danh doi duoc chap nhan: cho MOI Org Admin thay duoc cac
+   * ban ghi khong xac dinh duoc to chuc (FE gan nhan "Khong xac dinh to chuc") - day la du lieu
+   * CHAN DOAN ha tang dung luong thap (khong phai du lieu nghiep vu cua rieng to chuc nao), nen
+   * khong vi pham ranh gioi cach ly du lieu giua cac to chuc (tenant isolation) theo nghia thuc chat.
+   */
   async findForOrganization(
     organizationId: string,
     query: ListFailedEventsQueryDto,
   ): Promise<PaginatedResponse<FailedEventDocument>> {
-    const filter: FilterQuery<FailedEventDocument> = { organizationId };
+    const filter: FilterQuery<FailedEventDocument> = {
+      $or: [{ organizationId }, { organizationId: null }],
+    };
 
     const skip = (query.page - 1) * query.limit;
     const [data, total] = await Promise.all([

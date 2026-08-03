@@ -256,6 +256,12 @@ export const DATE_RANGE_LABEL_VI: Record<DateRangeOption, string> = {
   quarter: 'Quý này',
 };
 
+// 28/07/2026: kieu du lieu cho GET /analytics/ai-insights (tinh nang "Nhan xet AI").
+export interface AiInsight {
+  insight: string;
+  generatedAt: string;
+}
+
 // 28/07/2026: kieu du lieu cho GET /failed-events (Dead Letter Queue) - Sự kiện xử lý nội bộ
 // (Kafka) that bai vinh vien hoac het luot thu lai tu dong, phuc vu man hinh chan doan cho Org
 // Admin (features/admin/FailedEventsPage.tsx). CHUA CHAC CHAN backend tra ve "_id" hay "id" cho

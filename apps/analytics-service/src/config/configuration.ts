@@ -20,4 +20,13 @@ export default () => ({
     // token do IAM Service ky khi client mo ket noi WebSocket (xem realtime/analytics.gateway.ts).
     accessSecret: process.env.JWT_ACCESS_SECRET,
   },
+  // 28/07/2026: cau hinh cho tinh nang "Nhan xet AI" (GET /analytics/ai-insights, xem
+  // ai-insights/ai-insights.service.ts) - goi Google Gemini API (free tier, khong yeu cau ha
+  // tang GPU/local model, phu hop dieu kien tai nguyen han che). apiKey RONG (chua cau hinh) la
+  // trang thai HOP LE (dich vu con lai van hoat dong binh thuong) - AiInsightsService tu kiem tra
+  // va tra loi ro rang thay vi de fetch() that bai kho hieu.
+  gemini: {
+    apiKey: process.env.GEMINI_API_KEY,
+    model: process.env.GEMINI_MODEL ?? 'gemini-2.5-flash',
+  },
 });

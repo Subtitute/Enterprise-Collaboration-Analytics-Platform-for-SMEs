@@ -1,15 +1,17 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Input';
 import { QueryState } from '@/components/ui/QueryState';
 import { Spinner } from '@/components/ui/Spinner';
+import { SparklesIcon } from '@/components/ui/Icons';
 import { useProjectNameMap } from '@/hooks/useOrgProjects';
 import { DATE_RANGE_LABEL_VI } from '@/types';
 import type { DateRangeOption } from '@/types';
 // 28/07/2026: tai su dung useDepartmentsQuery da co san (dung chung o MembersPage/InviteMemberModal)
 // cho bo loc "Phong ban" moi tren trang Bao cao & Phan tich, khong tao hook fetch phong ban rieng.
 import { useDepartmentsQuery } from '@/features/admin/hooks';
-import { useDocumentActivityQuery, useProjectProgressQuery } from './hooks';
+import { useAiInsightMutation, useDocumentActivityQuery, useProjectProgressQuery } from './hooks';
 import { ProjectProgressChart } from './components/ProjectProgressChart';
 import { ProjectProgressTable } from './components/ProjectProgressTable';
 import { DocumentActivityChart } from './components/DocumentActivityChart';
@@ -26,6 +28,13 @@ export function AnalyticsPage() {
   const progressQuery = useProjectProgressQuery(range, departmentId || undefined);
   const activityQuery = useDocumentActivityQuery(range);
   const { map: projectNames } = useProjectNameMap();
+
+  // 28/07/2026: tinh nang "Nhan xet AI" - departmentName CHI de hien thi trong doan van AI sinh
+  // ra (xem fetchAiInsight()), lay tu du lieu departmentsQuery da co san cho dropdown ben tren.
+  const aiInsightMutation = useAiInsightMutation();
+  const selectedDepartmentName = departmentId
+    ? (departmentsQuery.data ?? []).find((d) => d.id === departmentId)?.name
+    : undefined;
 
   const progressRows = useMemo(
     () =>
@@ -84,6 +93,41 @@ export function AnalyticsPage() {
           </Select>
         </div>
       </div>
+
+      {/* 28/07/2026: tinh nang "Nhan xet AI" - theo yeu cau (nut bam), KHONG tu dong goi khi vao
+          trang/doi bo loc, vi day la tinh nang goi Google Gemini API (co han ngach mien phi) -
+          xem ly do day du tai hooks.ts (useAiInsightMutation). */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Nhận xét AI</CardTitle>
+          <Button
+            size="sm"
+            variant="outline"
+            isLoading={aiInsightMutation.isPending}
+            onClick={() =>
+              aiInsightMutation.mutate({ range, departmentId: departmentId || undefined, departmentName: selectedDepartmentName })
+            }
+          >
+            <SparklesIcon className="h-4 w-4" />
+            Tạo nhận xét AI
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {aiInsightMutation.data ? (
+            <div className="space-y-1">
+              <p className="text-sm text-slate-700">{aiInsightMutation.data.insight}</p>
+              <p className="text-xs text-slate-400">
+                Dựa trên số liệu {DATE_RANGE_LABEL_VI[aiInsightMutation.variables?.range ?? range].toLowerCase()}
+                {aiInsightMutation.variables?.departmentName ? ` · Phòng ban ${aiInsightMutation.variables.departmentName}` : ' · Toàn tổ chức'}
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">
+              Bấm “Tạo nhận xét AI” để nhận một đoạn nhận xét ngắn gọn về số liệu đang hiển thị, do AI tổng hợp.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
