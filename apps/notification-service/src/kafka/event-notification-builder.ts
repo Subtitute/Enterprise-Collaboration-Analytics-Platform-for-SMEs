@@ -1,7 +1,11 @@
 import {
+  DealStage,
+  DealStageChangedPayload,
   DocumentSharedPayload,
   DomainEvent,
   EVENT_TYPES,
+  LeaveRequestApprovedPayload,
+  LeaveRequestRejectedPayload,
   TaskAssignedPayload,
 } from '@app/common-dto';
 import { NotificationDraft } from '../notifications/interfaces/notification-draft.interface';
@@ -49,6 +53,63 @@ export function buildNotificationFromEvent(event: DomainEvent): NotificationDraf
         message: `Một tài liệu vừa được chia sẻ với bạn (mã tài liệu: ${payload.fileId}).`,
         payload: {
           fileId: payload.fileId,
+          actorId: payload.actorId,
+        },
+      };
+    }
+
+    // 04/08/2026: CRM-lite (Technical_Spec.md muc 16) - chi sinh thong bao khi deal CHOT THANH
+    // CONG (chuyen sang WON), khong sinh thong bao cho moi lan doi giai doan (qua nhieu, khong
+    // huu ich). Thong bao cho chinh nguoi thuc hien thao tac (actorId) thay vi mo rong payload
+    // them ownerUserId rieng - dua tren gia dinh hop ly: nguoi co quyen doi giai doan deal
+    // (PERMISSIONS.DEAL_UPDATE) chinh la nguoi phu trach ban hang cho deal do.
+    case EVENT_TYPES.DEAL_STAGE_CHANGED: {
+      const payload = event.payload as unknown as DealStageChangedPayload;
+      if (payload?.toStage !== DealStage.WON || !payload.actorId) return null;
+      return {
+        userId: payload.actorId,
+        type: EVENT_TYPES.DEAL_STAGE_CHANGED,
+        title: 'Deal đã chốt thành công',
+        message: `Chúc mừng! Một cơ hội bán hàng vừa được đánh dấu thắng (mã deal: ${payload.dealId}).`,
+        payload: {
+          dealId: payload.dealId,
+          customerId: payload.customerId,
+          actorId: payload.actorId,
+        },
+      };
+    }
+
+    // 05/08/2026: HRM-lite (Technical_Spec.md muc 17) - chi sinh thong bao cho 2 su kien QUYET
+    // DINH cua nghi phep (nguoi nhan ro rang: nguoi xin nghi), mirror ly do bo qua DEAL_CREATED o
+    // CRM-lite (LEAVE_REQUEST_CREATED khong co "nguoi duyet" cu the ngay luc tao - moi Manager/Org
+    // Admin deu duyet duoc - Notification Service khong co cach tra cuu "tat ca Manager cua to
+    // chuc nay" ma khong goi HTTP noi bo, hien chua ton tai ha tang do). Khong sinh thong bao cho
+    // ATTENDANCE_CHECKED_IN/OUT - hanh dong tu than, nguoi dung da biet minh vua lam gi.
+    case EVENT_TYPES.LEAVE_REQUEST_APPROVED: {
+      const payload = event.payload as unknown as LeaveRequestApprovedPayload;
+      if (!payload?.userId) return null;
+      return {
+        userId: payload.userId,
+        type: EVENT_TYPES.LEAVE_REQUEST_APPROVED,
+        title: 'Yêu cầu nghỉ phép đã được duyệt',
+        message: `Yêu cầu nghỉ phép của bạn đã được duyệt (mã yêu cầu: ${payload.leaveRequestId}).`,
+        payload: {
+          leaveRequestId: payload.leaveRequestId,
+          actorId: payload.actorId,
+        },
+      };
+    }
+
+    case EVENT_TYPES.LEAVE_REQUEST_REJECTED: {
+      const payload = event.payload as unknown as LeaveRequestRejectedPayload;
+      if (!payload?.userId) return null;
+      return {
+        userId: payload.userId,
+        type: EVENT_TYPES.LEAVE_REQUEST_REJECTED,
+        title: 'Yêu cầu nghỉ phép đã bị từ chối',
+        message: `Yêu cầu nghỉ phép của bạn đã bị từ chối (mã yêu cầu: ${payload.leaveRequestId}).`,
+        payload: {
+          leaveRequestId: payload.leaveRequestId,
           actorId: payload.actorId,
         },
       };

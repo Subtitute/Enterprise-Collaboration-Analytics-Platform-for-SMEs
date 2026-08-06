@@ -10,11 +10,15 @@ volumes:
   postgres-iam-data:
   postgres-pt-data:
   postgres-doc-data:
+  postgres-crm-data:
+  postgres-hrm-data:
   timescale-data:
   mongo-data:
   kafka-data:
   redis-data:
   minio-data:
+  prometheus-data:
+  grafana-data:
 
 services:
   # ---------------------------------------------------------------
@@ -73,6 +77,48 @@ services:
     networks: [internal-net]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_DOC_USER} -d ${POSTGRES_DOC_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # 04/08/2026: Postgres rieng cho CRM-lite Service (Technical_Spec.md muc 16) - dung quy uoc
+  # database-per-service nhu 3 Postgres nghiep vu hien co.
+  postgres-crm:
+    image: postgres:16-alpine
+    container_name: postgres-crm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_CRM_DB}
+      POSTGRES_USER: ${POSTGRES_CRM_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_CRM_PASSWORD}
+    volumes:
+      - postgres-crm-data:/var/lib/postgresql/data
+    ports:
+      - "5438:5432"
+    networks: [internal-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_CRM_USER} -d ${POSTGRES_CRM_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # 05/08/2026: Postgres rieng cho HRM-lite Service (Technical_Spec.md muc 17) - dung quy uoc
+  # database-per-service nhu cac Postgres nghiep vu hien co.
+  postgres-hrm:
+    image: postgres:16-alpine
+    container_name: postgres-hrm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_HRM_DB}
+      POSTGRES_USER: ${POSTGRES_HRM_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_HRM_PASSWORD}
+    volumes:
+      - postgres-hrm-data:/var/lib/postgresql/data
+    ports:
+      - "5439:5432"
+    networks: [internal-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_HRM_USER} -d ${POSTGRES_HRM_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -175,6 +221,7 @@ services:
       /bin/sh -c "
       mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
       mc mb -p local/${MINIO_BUCKET};
+      mc mb -p local/${MINIO_HRM_BUCKET};
       exit 0;
       "
 
@@ -264,6 +311,8 @@ services:
       document-service: { condition: service_healthy }
       notification-service: { condition: service_healthy }
       analytics-service: { condition: service_healthy }
+      crm-service: { condition: service_healthy }
+      hrm-service: { condition: service_healthy }
       # 25/07/2026: kiem tra vong 2 phat hien - gateway dung REDIS_HOST/PORT ben duoi (rate-limit,
       # blacklist token) nhung truoc day khong khai bao phu thuoc "redis" nen co the khoi dong
       # truoc khi Redis san sang, gay loi tam thoi luc "docker compose up" lan dau.
@@ -282,6 +331,8 @@ services:
       DOCUMENT_SERVICE_URL: http://document-service:3003
       NOTIFICATION_SERVICE_URL: http://notification-service:3004
       ANALYTICS_SERVICE_URL: http://analytics-service:3005
+      CRM_SERVICE_URL: http://crm-service:3007
+      HRM_SERVICE_URL: http://hrm-service:3006
     ports:
       - "3000:3000"
     networks: [internal-net]
@@ -428,12 +479,83 @@ services:
       # de biet cach lay GEMINI_API_KEY mien phi. De trong van chay duoc, chi tinh nang nay tra loi
       # loi ro rang (503) thay vi lam sap ca service.
       GEMINI_API_KEY: ${GEMINI_API_KEY}
-      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-flash-latest}
     # ports: ["3005:3005"]  # go bo 21/07/2026 - khong expose ra host, chi Gateway/noi bo moi
     # goi duoc qua internal-net, tranh bypass Gateway/JWT/rate-limit (xem Technical_Spec.md muc 8).
     networks: [internal-net]
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3005/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  crm-service:
+    build:
+      context: ..
+      dockerfile: apps/crm-service/Dockerfile
+    container_name: crm-service
+    restart: unless-stopped
+    depends_on:
+      postgres-crm: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      PORT: 3007
+      DB_HOST: postgres-crm
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_CRM_DB}
+      DB_USER: ${POSTGRES_CRM_USER}
+      DB_PASSWORD: ${POSTGRES_CRM_PASSWORD}
+      KAFKA_BROKER: kafka:29092
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
+    # Khong map port ra host, chi Gateway/noi bo moi goi duoc qua internal-net - cung quy uoc
+    # voi 5 service nghiep vu con lai (Technical_Spec.md muc 8).
+    networks: [internal-net]
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3007/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  hrm-service:
+    build:
+      context: ..
+      dockerfile: apps/hrm-service/Dockerfile
+    container_name: hrm-service
+    restart: unless-stopped
+    depends_on:
+      postgres-hrm: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      minio: { condition: service_healthy }
+      # 05/08/2026: cho minio-init chay xong (tao bucket hrm-attendance) truoc khi HRM-lite Service
+      # khoi dong - mirror document-service (tranh loi NoSuchBucket khi check-in lan dau).
+      minio-init: { condition: service_completed_successfully }
+    environment:
+      NODE_ENV: production
+      PORT: 3006
+      DB_HOST: postgres-hrm
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_HRM_DB}
+      DB_USER: ${POSTGRES_HRM_USER}
+      DB_PASSWORD: ${POSTGRES_HRM_PASSWORD}
+      KAFKA_BROKER: kafka:29092
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_USE_SSL: "false"
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_HRM_BUCKET}
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost}
+      MINIO_PUBLIC_PORT: ${MINIO_PUBLIC_PORT:-9010}
+      MINIO_PUBLIC_USE_SSL: "false"
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
+    # Khong map port ra host, chi Gateway/noi bo moi goi duoc qua internal-net - cung quy uoc
+    # voi cac service nghiep vu con lai (Technical_Spec.md muc 8).
+    networks: [internal-net]
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3006/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -463,3 +585,68 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+
+  # ---------------------------------------------------------------
+  # Observability (bo sung 04/08/2026, Technical_Spec.md muc 15) - hoan toan tach biet khoi
+  # Analytics Dashboard nghiep vu (React) o tren: cac container duoi day chi phuc vu so lieu
+  # HA TANG/VAN HANH (latency, ty le loi HTTP, Kafka consumer lag), khong dung chung du lieu/
+  # muc dich voi KPI nghiep vu. Khong service nao trong Core Platform phu thuoc (depends_on)
+  # nhom nay - mat Prometheus/Grafana khong lam gian doan he thong nghiep vu.
+  # ---------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    # Map ra host de xem truc tiep http://localhost:9090 (debug/demo cuc bo) - khong phai
+    # thiet ke cho moi truong co the truy cap tu ben ngoai (giong cac container ha tang khac).
+    ports:
+      - "9090:9090"
+    networks: [internal-net]
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  # Xuat metric Kafka (lag theo consumer group/topic) de Prometheus scrape - tu dong hoa lai
+  # phan "kiem tra lag Kafka" truoc day phai lam thu cong o dot "ultimate check" (Technical_Spec.md,
+  # muc 2026-07-28). Image build tu scratch (khong co shell/wget ben trong) nen KHONG khai bao
+  # healthcheck - Prometheus tu retry scrape, khong service nao khac phu thuoc container nay.
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    container_name: kafka-exporter
+    restart: unless-stopped
+    command: ["--kafka.server=kafka:29092"]
+    depends_on:
+      kafka: { condition: service_healthy }
+    networks: [internal-net]
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    depends_on:
+      prometheus: { condition: service_healthy }
+    environment:
+      # Dev only - doi gia tri that qua GRAFANA_ADMIN_PASSWORD trong infra/.env truoc khi dung
+      # ngoai moi truong dev (cung quy uoc voi JWT_ACCESS_SECRET/INTERNAL_SHARED_SECRET).
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      # Tat tinh nang dang ky/anonymous - chi 1 tai khoan admin duy nhat cho muc dich demo do an.
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3010:3000"
+    networks: [internal-net]
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s

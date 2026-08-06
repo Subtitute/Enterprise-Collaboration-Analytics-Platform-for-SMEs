@@ -1,98 +1,104 @@
 # Enterprise Collaboration & Analytics Platform for SMEs
 
-Nen tang Cong tac Doanh nghiep & Phan tich Du lieu cho Doanh nghiep Vua va Nho — do an tot nghiep,
-Khoa Cong nghe Thong tin. Xem dac ta day du tai [`Doc/General_idea.md`](../Doc/General_idea.md),
+Nền tảng Cộng tác Doanh nghiệp & Phân tích Dữ liệu cho Doanh nghiệp Vừa và Nhỏ — đồ án tốt nghiệp,
+Khoa Công nghệ Thông tin. Xem đặc tả đầy đủ tại [`Doc/General_idea.md`](../Doc/General_idea.md),
 [`Doc/Technical_Spec.md`](../Doc/Technical_Spec.md), [`Doc/Wireframe.md`](../Doc/Wireframe.md).
 
-## Kien truc tong quan
+## Kiến trúc tổng quan
 
-Monorepo npm workspaces gom **Core Platform** (6 microservice NestJS + React SPA) va
-**Analytics Pipeline** (Kafka + TimescaleDB), toan bo dong goi bang Docker Compose.
+Monorepo npm workspaces gồm **Core Platform** (8 microservice NestJS + React SPA) và
+**Analytics Pipeline** (Kafka + TimescaleDB), toàn bộ đóng gói bằng Docker Compose.
 
-| Thanh phan | Cong (local) | Mo ta |
+| Thành phần | Cổng (local) | Mô tả |
 |---|---|---|
 | `web` | 80 | React SPA (Nginx) |
-| `gateway` | 3000 | API Gateway - diem vao duy nhat |
-| `iam-service` | chi noi bo (internal-net), khong map ra host | Dang ky to chuc, user, department, role/permission |
-| `project-task-service` | chi noi bo (internal-net), khong map ra host | Du an, cong viec (Kanban) |
-| `document-service` | chi noi bo (internal-net), khong map ra host | Quan ly tai lieu (MinIO) |
-| `notification-service` | chi noi bo (internal-net), khong map ra host | Thong bao real-time (MongoDB) |
-| `analytics-service` | chi noi bo (internal-net), khong map ra host | Kafka consumer + KPI/dashboard (TimescaleDB) |
+| `gateway` | 3000 | API Gateway - điểm vào duy nhất |
+| `iam-service` | chỉ nội bộ (internal-net), không map ra host | Đăng ký tổ chức, user, department, role/permission |
+| `project-task-service` | chỉ nội bộ (internal-net), không map ra host | Dự án, công việc (Kanban) |
+| `document-service` | chỉ nội bộ (internal-net), không map ra host | Quản lý tài liệu (MinIO) |
+| `notification-service` | chỉ nội bộ (internal-net), không map ra host | Thông báo real-time (MongoDB) |
+| `analytics-service` | chỉ nội bộ (internal-net), không map ra host | Kafka consumer + KPI/dashboard (TimescaleDB) |
+| `crm-service` | chỉ nội bộ (internal-net), không map ra host | Khách hàng, cơ hội bán hàng (bổ sung 04/08/2026) |
+| `hrm-service` | chỉ nội bộ (internal-net), không map ra host | Chấm công (photo-proof), nghỉ phép (bổ sung 05/08/2026) |
 
-**(Cap nhat 21/07/2026)** Day la finding nghiem trong nhat cua dot review ha tang: 5 service nghiep
-vu tren truoc day map port thang ra host, cho phep goi truc tiep bo qua Gateway (bo qua luon JWT
-verify + rate limiting), ket hop voi header noi bo co the gia mao thi day la mot loi bypass xac
-thuc hoan chinh. Ca 5 service gio chi con truy cap duoc qua mang noi bo `internal-net` (tu Gateway
-hoac tu service khac trong cung mang) - **khong con truy cap truc tiep tu may host duoc nua**, du
-`docker compose ps` van hien thi container dang chay. Xem `infra/docker-compose.yml` va
-`Doc/Technical_Spec.md` muc 6/8.
+**(Cập nhật 21/07/2026)** Đây là finding nghiêm trọng nhất của đợt review hạ tầng: 5 service nghiệp
+vụ trên trước đây map port thẳng ra host, cho phép gọi trực tiếp bỏ qua Gateway (bỏ qua luôn JWT
+verify + rate limiting), kết hợp với header nội bộ có thể giả mạo thì đây là một lỗi bypass xác
+thực hoàn chỉnh. Cả 5 service giờ chỉ còn truy cập được qua mạng nội bộ `internal-net` (từ Gateway
+hoặc từ service khác trong cùng mạng) - **không còn truy cập trực tiếp từ máy host được nữa**, dù
+`docker compose ps` vẫn hiển thị container đang chạy. Xem `infra/docker-compose.yml` và
+`Doc/Technical_Spec.md` mục 6/8.
 
-Cac container ha tang/CSDL van map port ra host **chi de phuc vu debug cuc bo** (khong dung cho moi
-truong co the truy cap tu ben ngoai):
+Các container hạ tầng/CSDL vẫn map port ra host **chỉ để phục vụ debug cục bộ** (không dùng cho môi
+trường có thể truy cập từ bên ngoài):
 
-| Container | Cong host | Cong mac dinh cua image | Ghi chu |
+| Container | Cổng host | Cổng mặc định của image | Ghi chú |
 |---|---|---|---|
 | `postgres-iam` | 5433 | 5432 | |
 | `postgres-pt` | 5434 | 5432 | |
 | `postgres-doc` | 5435 | 5432 | |
 | `timescaledb` | 5436 | 5432 | |
+| `postgres-crm` | 5438 | 5432 | Bổ sung 04/08/2026 (CRM-lite) |
+| `postgres-hrm` | 5439 | 5432 | Bổ sung 05/08/2026 (HRM-lite) |
 | `mongodb` | 27017 | 27017 | |
 | `kafka` | 9092 | 9092 | |
-| `redis` | **6380** | 6379 | **Da doi cong** - may host co the da chay Redis khac o 6379; giao tiep noi bo giua cac container van dung dung 6379 qua ten service `redis`, khong bi anh huong. |
-| `minio` | **9010** (API), **9011** (console) | 9000 (API), 9001 (console) | **Da doi cong** - may host co the da chay MinIO khac o 9000/9001; giao tiep noi bo van dung 9000/9001 qua ten service `minio`. |
+| `redis` | **6380** | 6379 | **Đã đổi cổng** - máy host có thể đã chạy Redis khác ở 6379; giao tiếp nội bộ giữa các container vẫn dùng đúng 6379 qua tên service `redis`, không bị ảnh hưởng. |
+| `minio` | **9010** (API), **9011** (console) | 9000 (API), 9001 (console) | **Đã đổi cổng** - máy host có thể đã chạy MinIO khác ở 9000/9001; giao tiếp nội bộ vẫn dùng 9000/9001 qua tên service `minio`. |
 
-> Neu ket noi truc tiep tu cong cu ben ngoai (psql, MongoDB Compass, redis-cli, mc/AWS CLI...) vao
-> Redis hoac MinIO tu may host, **nho dung cong da doi o tren** (6380 va 9010/9011) thay vi cong
-> mac dinh - day la loi thuong gap neu chi doc `docker-compose.yml` luot qua ma bo qua comment.
+> Nếu kết nối trực tiếp từ công cụ bên ngoài (psql, MongoDB Compass, redis-cli, mc/AWS CLI...) vào
+> Redis hoặc MinIO từ máy host, **nhớ dùng cổng đã đổi ở trên** (6380 và 9010/9011) thay vì cổng
+> mặc định - đây là lỗi thường gặp nếu chỉ đọc `docker-compose.yml` lướt qua mà bỏ qua comment.
 
-Chi tiet kien truc, so do luong su kien, quy uoc API: xem `Doc/Technical_Spec.md`.
+Chi tiết kiến trúc, sơ đồ luồng sự kiện, quy ước API: xem `Doc/Technical_Spec.md`.
 
-## Chay bang Docker (khuyen nghi)
+## Chạy bằng Docker (khuyến nghị)
 
 ```powershell
 cd infra
-Copy-Item .env.example .env    # chinh sua secret truoc khi dung that
+Copy-Item .env.example .env    # chỉnh sửa secret trước khi dùng thật
 docker compose --env-file .env up -d --build
 ```
 
-**(Cap nhat 21/07/2026)** File `.env` co 2 bien moi bat buoc phai co gia tri (da co san trong
-`.env.example`, chi can doi gia tri that khi trien khai ngoai moi truong dev):
-- `INTERNAL_SHARED_SECRET` - bi mat dung chung giua Gateway va 5 service noi bo, dung de xac thuc
-  request noi bo (chong gia mao header `x-org-id`/`x-user-id`/`x-roles` neu ai do co goi thang vao
-  service bo qua Gateway). Phai giong het nhau o ca 6 service.
-- `CORS_ORIGIN` - origin duy nhat duoc Gateway/IAM Service whitelist cho CORS (thay wildcard `*`).
-  Mac dinh tro toi dev-server cua `apps/web` (`http://localhost:5173`).
+**(Cập nhật 21/07/2026)** File `.env` có 2 biến mới bắt buộc phải có giá trị (đã có sẵn trong
+`.env.example`, chỉ cần đổi giá trị thật khi triển khai ngoài môi trường dev):
+- `INTERNAL_SHARED_SECRET` - bí mật dùng chung giữa Gateway và 7 service nội bộ, dùng để xác thực
+  request nội bộ (chống giả mạo header `x-org-id`/`x-user-id`/`x-roles` nếu ai đó cố gọi thẳng vào
+  service bỏ qua Gateway). Phải giống hệt nhau ở cả 8 service.
+- `CORS_ORIGIN` - origin duy nhất được Gateway/IAM Service whitelist cho CORS (thay wildcard `*`).
+  Mặc định trỏ tới dev-server của `apps/web` (`http://localhost:5173`).
 
-Sau khi toan bo container o trang thai healthy (`docker compose ps`), truy cap
-`http://localhost` de mo giao dien web. API Gateway (diem vao duy nhat) o cong 3000
-(`http://localhost:3000/api/docs` cho Swagger tong hop). 5 service nghiep vu con lai
+Sau khi toàn bộ container ở trạng thái healthy (`docker compose ps`), truy cập
+`http://localhost` để mở giao diện web. API Gateway (điểm vào duy nhất) ở cổng 3000
+(`http://localhost:3000/api/v1/health` để kiểm tra nhanh). Gateway **không** có trang Swagger
+tổng hợp - mọi đường dẫn không khớp route proxy nào (kể cả `/api/docs`) bị middleware xác thực
+JWT của Gateway từ chối với `401` trước khi tới được bất kỳ service nào. 7 service nghiệp vụ
 (`iam-service`, `project-task-service`, `document-service`, `notification-service`,
-`analytics-service`) khong con map port ra host - Swagger rieng cua tung service chi xem duoc
-tu ben trong `internal-net` (vi du `docker compose exec gateway wget -qO- http://iam-service:3001/api/docs-json`),
-khong truy cap truc tiep tu trinh duyet tren may host duoc nua.
+`analytics-service`, `crm-service`, `hrm-service`) không map port ra host - Swagger riêng của
+từng service chỉ xem được từ bên trong `internal-net` (ví dụ `docker compose exec gateway wget -qO- http://iam-service:3001/api/docs-json`),
+không truy cập trực tiếp từ trình duyệt trên máy host được nữa.
 
-Seed du lieu demo (dang ky 1 to chuc mau, phong ban, nhan vien, du an, cong viec):
+Seed dữ liệu demo (đăng ký 1 tổ chức mẫu, phòng ban, nhân viên, dự án, công việc):
 
 ```powershell
 cd ..
 npm run seed
 ```
 
-Dung toan bo he thong: `docker compose -f infra/docker-compose.yml down` (them `-v` neu muon
-xoa luon volume du lieu).
+Dừng toàn bộ hệ thống: `docker compose -f infra/docker-compose.yml down` (thêm `-v` nếu muốn
+xoá luôn volume dữ liệu).
 
-## Chay cho phat trien cuc bo (khong Docker)
+## Chạy cho phát triển cục bộ (không Docker)
 
-Yeu cau Node.js >= 20. Cai dependency mot lan duy nhat o thu muc goc (npm workspaces):
+Yêu cầu Node.js >= 20. Cài dependency một lần duy nhất ở thư mục gốc (npm workspaces):
 
 ```powershell
 npm install
-npm run build:libs   # bat buoc build packages/common-dto va packages/common-guard truoc
+npm run build:libs   # bắt buộc build packages/common-dto, common-guard, common-metrics trước
 ```
 
-Hạ tang (Postgres x3, TimescaleDB, MongoDB, Kafka, Redis, MinIO) van nen chay qua Docker Compose
-(`docker compose -f infra/docker-compose.yml up -d postgres-iam postgres-pt postgres-doc timescaledb mongodb redis minio kafka minio-init`),
-sau do chay tung service bang lenh workspace tuong ung, moi service 1 terminal:
+Hạ tầng (Postgres x5, TimescaleDB, MongoDB, Kafka, Redis, MinIO) vẫn nên chạy qua Docker Compose
+(`docker compose -f infra/docker-compose.yml up -d postgres-iam postgres-pt postgres-doc postgres-crm postgres-hrm timescaledb mongodb redis minio kafka minio-init`),
+sau đó chạy từng service bằng lệnh workspace tương ứng, mỗi service 1 terminal:
 
 ```powershell
 npm run dev:iam
@@ -101,26 +107,42 @@ npm run dev:project-task
 npm run dev:document
 npm run dev:notification
 npm run dev:analytics
+npm run dev:crm
+npm run dev:hrm
 npm run dev:web
 ```
 
-Moi service doc cau hinh tu file `.env` rieng trong thu muc `apps/<service>/` (xem
-`apps/<service>/.env.example` de biet cac bien can thiet).
+Mỗi service đọc cấu hình từ file `.env` riêng trong thư mục `apps/<service>/` (xem
+`apps/<service>/.env.example` để biết các biến cần thiết).
 
-## Cau truc repo
+## Cấu trúc repo
 
 ```
-apps/            6 NestJS service + web (React SPA)
-packages/        Thu vien dung chung (common-dto, common-guard)
-infra/           docker-compose.yml, script khoi tao Postgres/TimescaleDB
-scripts/         Script seed du lieu demo
-Doc/             Tai lieu dac ta (General_idea, Technical_Spec, Wireframe, ClaudeRule)
+apps/            8 NestJS service + web (React SPA)
+packages/        Thư viện dùng chung (common-dto, common-guard, common-metrics)
+infra/           docker-compose.yml, script khởi tạo Postgres/TimescaleDB, cấu hình Prometheus/Grafana
+scripts/         Script seed dữ liệu demo
+Doc/             Tài liệu đặc tả (General_idea, Technical_Spec, Wireframe, ClaudeRule)
 ```
 
-## Ghi chu
+## Observability (Prometheus + Grafana)
 
-- MVP tap trung vao 6 service o bang tren; HRM-lite, CRM-lite, Kubernetes, Prometheus/Grafana,
-  Debezium CDC la cac huong mo rong khong bat buoc (xem `Doc/General_idea.md` muc 3 va
-  `Doc/Technical_Spec.md` muc 14).
-- `synchronize: true` duoc dung cho TypeORM thay vi migration thu cong - phu hop pham vi 1 hoc ky
-  (xem gioi han da biet trong `Doc/Technical_Spec.md`).
+Sau khi toàn bộ container healthy, giám sát hạ tầng/vận hành (latency, tỷ lệ lỗi HTTP, tài nguyên,
+Kafka consumer lag) có sẵn tại:
+
+- Grafana: `http://localhost:3010` (tài khoản `admin` / giá trị `GRAFANA_ADMIN_PASSWORD` trong
+  `.env`, mặc định dev là `admin`) - dashboard "ECAP - Tổng quan hạ tầng" được tự động cấu hình sẵn.
+- Prometheus: `http://localhost:9090` (chỉ phục vụ debug cục bộ, cùng quy ước với các cổng debug
+  hạ tầng khác ở bảng trên).
+
+Tách biệt hoàn toàn khỏi Analytics Dashboard nghiệp vụ (KPI công việc/dự án/tài liệu, xem trong
+web app) - xem `Doc/Technical_Spec.md` mục 15.
+
+## Ghi chú
+
+- MVP bắt buộc gồm 6 service đầu tiên ở bảng trên; `crm-service`/`hrm-service` là 2 hạng mục mở
+  rộng đã triển khai thêm (04-05/08/2026). Kubernetes, Debezium CDC, dự báo xu hướng ML/thống kê
+  vẫn là hướng mở rộng chưa triển khai (xem `Doc/General_idea.md` mục 3 và `Doc/Technical_Spec.md`
+  mục 14).
+- `synchronize: true` được dùng cho TypeORM thay vì migration thủ công - phù hợp phạm vi 1 học kỳ
+  (xem giới hạn đã biết trong `Doc/Technical_Spec.md`).

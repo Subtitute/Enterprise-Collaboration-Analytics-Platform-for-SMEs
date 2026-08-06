@@ -1,9 +1,12 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AllExceptionsFilter, InternalAuthGuard, PermissionsGuard } from '@app/common-guard';
+// 04/08/2026: metric Prometheus dung chung (Technical_Spec.md muc 15) - xem
+// packages/common-metrics/src/index.ts.
+import { HttpMetricsInterceptor, MetricsController, MetricsService } from '@app/common-metrics';
 import configuration from './config/configuration';
 import { Folder } from './entities/folder.entity';
 import { FileMeta } from './entities/file-meta.entity';
@@ -45,11 +48,13 @@ import { HealthController } from './health/health.controller';
     FoldersModule,
     FilesModule,
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, MetricsController],
   providers: [
     { provide: APP_GUARD, useClass: InternalAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    MetricsService,
+    { provide: APP_INTERCEPTOR, useClass: HttpMetricsInterceptor },
   ],
 })
 export class AppModule {}

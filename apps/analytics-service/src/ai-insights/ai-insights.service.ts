@@ -22,7 +22,12 @@ export interface AiInsightResult {
 const INSIGHT_CACHE_TTL_SECONDS = 1800;
 const TOP_PROJECTS_LIMIT = 5;
 const GEMINI_TIMEOUT_MS = 15000;
-const GEMINI_MAX_OUTPUT_TOKENS = 400;
+// 04/08/2026: nang tu 400 len 2048 sau khi xac minh song - cac model Gemini hien tai (vd
+// gemini-flash-latest) tinh ca "thinking token" (suy luan noi bo, khong hien thi) vao chung
+// maxOutputTokens. Muc 400 truoc day bi thinking chiem gan het, cat cut doan van tra ve giua
+// chung (finishReason=MAX_TOKENS). Can du choi cho thinking (~250-500 token quan sat duoc) +
+// doan van 3-5 cau thuc te.
+const GEMINI_MAX_OUTPUT_TOKENS = 2048;
 
 const RANGE_LABELS: Record<string, string> = {
   '7d': '7 ngày gần nhất',

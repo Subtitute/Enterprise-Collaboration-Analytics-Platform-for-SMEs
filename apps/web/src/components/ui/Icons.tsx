@@ -261,3 +261,21 @@ export const SparklesIcon = (p: IconProps) => (
     <path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8" />
   </svg>
 );
+
+// 04/08/2026: icon moi (kieu cap tai lieu/briefcase) - dung cho nav item "Khách hàng" (CRM-lite).
+export const BriefcaseIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <rect x="3" y="7" width="18" height="13" rx="2" />
+    <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    <path d="M3 12h18" />
+  </svg>
+);
+
+// 05/08/2026: icon moi (kieu may anh) - dung cho nav item "Chấm công" va nut chup anh check-in/out
+// (HRM-lite, CheckInCamera.tsx).
+export const CameraIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M4 8a2 2 0 0 1 2-2h1.5l1-2h7l1 2H18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" />
+    <circle cx="12" cy="13" r="3.5" />
+  </svg>
+);

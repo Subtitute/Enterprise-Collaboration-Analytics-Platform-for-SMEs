@@ -19,6 +19,7 @@ RUN npm ci
 # roi (dua vao cache) va bo qua emit chung, du dist/ that ra dang rong trong container.
 RUN npm run build -w packages/common-dto
 RUN npm run build -w packages/common-guard
+RUN npm run build -w packages/common-metrics
 RUN npm run build -w apps/iam-service
 
 # Prune devDependencies now that the TypeScript build is done (tsc/@nestjs/cli/ts-jest/
@@ -41,6 +42,8 @@ COPY --from=builder --chown=node:node /workspace/packages/common-dto/dist ./pack
 COPY --from=builder --chown=node:node /workspace/packages/common-dto/package.json ./packages/common-dto/package.json
 COPY --from=builder --chown=node:node /workspace/packages/common-guard/dist ./packages/common-guard/dist
 COPY --from=builder --chown=node:node /workspace/packages/common-guard/package.json ./packages/common-guard/package.json
+COPY --from=builder --chown=node:node /workspace/packages/common-metrics/dist ./packages/common-metrics/dist
+COPY --from=builder --chown=node:node /workspace/packages/common-metrics/package.json ./packages/common-metrics/package.json
 COPY --from=builder --chown=node:node /workspace/apps/iam-service/dist ./apps/iam-service/dist
 COPY --from=builder --chown=node:node /workspace/apps/iam-service/package.json ./apps/iam-service/package.json
 

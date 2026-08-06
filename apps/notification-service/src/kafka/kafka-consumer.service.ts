@@ -57,7 +57,16 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     // roi day NGUOC lai DLQ - tao vong lap vo han lam phinh to topic DLQ. Topic DLQ CHI duoc doc
     // boi FailedEventsConsumerService rieng (group KAFKA_CONSUMER_GROUPS.NOTIFICATION_SERVICE_DLQ)
     // - xem failed-events/failed-events-consumer.service.ts.
-    const domainEventTopics = [KAFKA_TOPICS.IAM, KAFKA_TOPICS.PROJECT_TASK, KAFKA_TOPICS.DOCUMENT];
+    // 04/08/2026: them KAFKA_TOPICS.CRM (CRM-lite - Technical_Spec.md muc 16) vao danh sach
+    // topic domain event duoc subscribe - xem event-notification-builder.ts (case DEAL_STAGE_CHANGED).
+    // 05/08/2026: them KAFKA_TOPICS.HRM (HRM-lite - Technical_Spec.md muc 17), cung ly do.
+    const domainEventTopics = [
+      KAFKA_TOPICS.IAM,
+      KAFKA_TOPICS.PROJECT_TASK,
+      KAFKA_TOPICS.DOCUMENT,
+      KAFKA_TOPICS.CRM,
+      KAFKA_TOPICS.HRM,
+    ];
     await this.consumer.subscribe({
       topics: domainEventTopics,
       fromBeginning: false,

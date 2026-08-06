@@ -101,3 +101,75 @@ export interface UserDepartmentChangedPayload {
   userId: string;
   departmentId: string | null;
 }
+
+// 04/08/2026: CRM-lite Service (Technical_Spec.md muc 16).
+export interface CustomerCreatedPayload {
+  customerId: string;
+  name: string;
+  actorId: string;
+}
+
+export interface CustomerDeletedPayload {
+  customerId: string;
+  actorId: string;
+}
+
+export interface DealCreatedPayload {
+  dealId: string;
+  customerId: string;
+  title: string;
+  actorId: string;
+}
+
+/**
+ * Notification Service phan ung dac biet khi `toStage === DealStage.WON` (thong bao thang deal) -
+ * khong tach thanh event rieng DEAL_WON de tranh phinh to danh sach event type cho 1 truong hop cu
+ * the cua stage-change chung (dung cach doc payload thay vi them event type moi, mirror tinh than
+ * toi gian - ClaudeRule.md muc 8).
+ */
+export interface DealStageChangedPayload {
+  dealId: string;
+  customerId: string;
+  fromStage: string;
+  toStage: string;
+  actorId: string;
+}
+
+export interface DealDeletedPayload {
+  dealId: string;
+  customerId: string;
+  actorId: string;
+}
+
+// 05/08/2026: HRM-lite Service (Technical_Spec.md muc 17).
+export interface AttendanceCheckedInPayload {
+  attendanceId: string;
+  userId: string;
+  workDate: string;
+}
+
+export interface AttendanceCheckedOutPayload {
+  attendanceId: string;
+  userId: string;
+  workDate: string;
+}
+
+export interface LeaveRequestCreatedPayload {
+  leaveRequestId: string;
+  userId: string;
+  startDate: string;
+  endDate: string;
+}
+
+/** `actorId` la nguoi DUYET (approver), khac `userId` (nguoi xin nghi) - Notification Service can ca 2. */
+export interface LeaveRequestApprovedPayload {
+  leaveRequestId: string;
+  userId: string;
+  actorId: string;
+}
+
+export interface LeaveRequestRejectedPayload {
+  leaveRequestId: string;
+  userId: string;
+  actorId: string;
+}

@@ -33,6 +33,16 @@ export const REST_PROXY_ROUTES: RestProxyRouteGroup[] = [
     prefixes: ['/api/v1/analytics'],
     targetConfigKey: 'services.analytics',
   },
+  {
+    // 04/08/2026: CRM-lite Service (Technical_Spec.md muc 16).
+    prefixes: ['/api/v1/customers', '/api/v1/deals'],
+    targetConfigKey: 'services.crm',
+  },
+  {
+    // 05/08/2026: HRM-lite Service (Technical_Spec.md muc 17).
+    prefixes: ['/api/v1/attendance', '/api/v1/leave-requests'],
+    targetConfigKey: 'services.hrm',
+  },
 ];
 
 export interface WsProxyRoute {

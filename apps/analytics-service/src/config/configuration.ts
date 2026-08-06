@@ -27,6 +27,6 @@ export default () => ({
   // va tra loi ro rang thay vi de fetch() that bai kho hieu.
   gemini: {
     apiKey: process.env.GEMINI_API_KEY,
-    model: process.env.GEMINI_MODEL ?? 'gemini-2.5-flash',
+    model: process.env.GEMINI_MODEL ?? 'gemini-flash-latest',
   },
 });

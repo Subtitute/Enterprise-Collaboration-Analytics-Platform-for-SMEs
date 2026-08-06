@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AllExceptionsFilter, InternalAuthGuard, PermissionsGuard } from '@app/common-guard';
+// 04/08/2026: metric Prometheus dung chung (Technical_Spec.md muc 15) - xem
+// packages/common-metrics/src/index.ts.
+import { HttpMetricsInterceptor, MetricsController, MetricsService } from '@app/common-metrics';
 import configuration from './config/configuration';
 import { NotificationsModule } from './notifications/notifications.module';
 import { RealtimeModule } from './realtime/realtime.module';
@@ -26,7 +29,7 @@ import { FailedEventsModule } from './failed-events/failed-events.module';
     KafkaModule,
     FailedEventsModule,
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, MetricsController],
   providers: [
     // Endpoint REST cua service nay dung InternalAuthGuard giong IAM (header noi bo do
     // Gateway forward). Rieng WebSocket handshake tu verify JWT truc tiep (xem realtime/).
@@ -38,6 +41,8 @@ import { FailedEventsModule } from './failed-events/failed-events.module';
     // tra quyen thay vi chan request - giu dong bo voi cac service con lai de phong ngua truoc.
     { provide: APP_GUARD, useClass: PermissionsGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    MetricsService,
+    { provide: APP_INTERCEPTOR, useClass: HttpMetricsInterceptor },
   ],
 })
 export class AppModule {}

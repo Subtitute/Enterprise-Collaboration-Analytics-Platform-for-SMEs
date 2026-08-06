@@ -19,6 +19,12 @@ const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage').th
 const ProjectsListPage = lazy(() => import('@/features/projects/ProjectsListPage').then((m) => ({ default: m.ProjectsListPage })));
 const ProjectDetailPage = lazy(() => import('@/features/projects/ProjectDetailPage').then((m) => ({ default: m.ProjectDetailPage })));
 const DocumentsPage = lazy(() => import('@/features/documents/DocumentsPage').then((m) => ({ default: m.DocumentsPage })));
+// 04/08/2026: CRM-lite (Technical_Spec.md muc 16) - khach hang + pipeline ban hang.
+const CustomersListPage = lazy(() => import('@/features/crm/CustomersListPage').then((m) => ({ default: m.CustomersListPage })));
+const CustomerDetailPage = lazy(() => import('@/features/crm/CustomerDetailPage').then((m) => ({ default: m.CustomerDetailPage })));
+// 05/08/2026: HRM-lite (Technical_Spec.md muc 17) - cham cong (photo-proof) + nghi phep.
+const AttendancePage = lazy(() => import('@/features/hrm/AttendancePage').then((m) => ({ default: m.AttendancePage })));
+const LeaveRequestsPage = lazy(() => import('@/features/hrm/LeaveRequestsPage').then((m) => ({ default: m.LeaveRequestsPage })));
 const ProfilePage = lazy(() => import('@/features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })));
 const NotificationsPage = lazy(() => import('@/features/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })));
 const AnalyticsPage = lazy(() => import('@/features/analytics/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })));
@@ -78,6 +84,10 @@ export default function App() {
           <Route path="/projects" element={<ProjectsListPage />} />
           <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
           <Route path="/documents" element={<DocumentsPage />} />
+          <Route path="/customers" element={<CustomersListPage />} />
+          <Route path="/customers/:customerId" element={<CustomerDetailPage />} />
+          <Route path="/attendance" element={<AttendancePage />} />
+          <Route path="/leave-requests" element={<LeaveRequestsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />

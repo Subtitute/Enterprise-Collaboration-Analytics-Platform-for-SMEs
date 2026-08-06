@@ -284,3 +284,78 @@ export interface FailedEvent {
   failedAt: string;
   createdAt: string;
 }
+
+// 04/08/2026: CRM-lite (khach hang, co hoi ban hang) - Technical_Spec.md muc 16.
+export interface Customer {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  company?: string | null;
+  notes?: string | null;
+  ownerUserId: string;
+  /** So deal DANG hoat dong (chua WON/LOST) - GET /customers tra ve tinh gop san. */
+  openDealCount?: number;
+  openDealValue?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type DealStage = 'NEW' | 'CONTACTED' | 'PROPOSAL' | 'NEGOTIATION' | 'WON' | 'LOST';
+
+export const DEAL_STAGES: DealStage[] = ['NEW', 'CONTACTED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST'];
+
+export const DEAL_STAGE_LABEL_VI: Record<DealStage, string> = {
+  NEW: 'Mới',
+  CONTACTED: 'Đã liên hệ',
+  PROPOSAL: 'Đề xuất',
+  NEGOTIATION: 'Đàm phán',
+  WON: 'Thắng',
+  LOST: 'Thua',
+};
+
+export interface Deal {
+  id: string;
+  customerId: string;
+  title: string;
+  value: number;
+  stage: DealStage;
+  expectedCloseDate?: string | null;
+  closedAt?: string | null;
+  ownerUserId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 05/08/2026: HRM-lite (cham cong photo-proof, nghi phep) - Technical_Spec.md muc 17.
+export interface Attendance {
+  id: string;
+  userId: string;
+  workDate: string;
+  checkInAt: string;
+  checkOutAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type LeaveRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export const LEAVE_REQUEST_STATUS_LABEL_VI: Record<LeaveRequestStatus, string> = {
+  PENDING: 'Chờ duyệt',
+  APPROVED: 'Đã duyệt',
+  REJECTED: 'Từ chối',
+};
+
+export interface LeaveRequest {
+  id: string;
+  userId: string;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  status: LeaveRequestStatus;
+  approverId?: string | null;
+  decisionNote?: string | null;
+  decidedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

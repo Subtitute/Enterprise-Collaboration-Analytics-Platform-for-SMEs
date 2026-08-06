@@ -14,4 +14,7 @@ export const PUBLIC_GATEWAY_ROUTES: string[] = [
   // 401 ngay tai Gateway va refresh token/DB row khong bao gio bi thu hoi qua duong nay.
   '/api/v1/auth/logout',
   '/api/v1/health',
+  // 04/08/2026: endpoint /metrics de Prometheus scrape (Technical_Spec.md muc 15) - Prometheus
+  // khong co JWT nen phai nam trong danh sach public giong /health.
+  '/api/v1/metrics',
 ];

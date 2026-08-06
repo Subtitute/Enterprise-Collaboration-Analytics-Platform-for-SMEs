@@ -1,0 +1,13 @@
+# 04/08/2026: tu dong nap dashboard tu file JSON trong cung thu muc luc Grafana khoi dong -
+# Technical_Spec.md muc 15.
+apiVersion: 1
+
+providers:
+  - name: default
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards

@@ -12,6 +12,7 @@ RUN npm ci
 
 RUN npm run build -w packages/common-dto
 RUN npm run build -w packages/common-guard
+RUN npm run build -w packages/common-metrics
 RUN npm run build -w apps/project-task-service
 
 # Prune devDependencies now that the TypeScript build is done (tsc/@nestjs/cli/ts-jest/
@@ -34,6 +35,8 @@ COPY --from=builder --chown=node:node /workspace/packages/common-dto/dist ./pack
 COPY --from=builder --chown=node:node /workspace/packages/common-dto/package.json ./packages/common-dto/package.json
 COPY --from=builder --chown=node:node /workspace/packages/common-guard/dist ./packages/common-guard/dist
 COPY --from=builder --chown=node:node /workspace/packages/common-guard/package.json ./packages/common-guard/package.json
+COPY --from=builder --chown=node:node /workspace/packages/common-metrics/dist ./packages/common-metrics/dist
+COPY --from=builder --chown=node:node /workspace/packages/common-metrics/package.json ./packages/common-metrics/package.json
 COPY --from=builder --chown=node:node /workspace/apps/project-task-service/dist ./apps/project-task-service/dist
 COPY --from=builder --chown=node:node /workspace/apps/project-task-service/package.json ./apps/project-task-service/package.json
 

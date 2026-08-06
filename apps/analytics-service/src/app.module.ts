@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource, DataSourceOptions } from 'typeorm';
+// 04/08/2026: metric Prometheus dung chung (Technical_Spec.md muc 15) - xem
+// packages/common-metrics/src/index.ts.
+import { HttpMetricsInterceptor, MetricsController, MetricsService } from '@app/common-metrics';
 // 28/07/2026: DDL tu-cham schema KPI theo phong ban (dim_user, fact_task_events.assignee_id) -
 // xem giai thich day du va ly do can ca 2 noi (o day VA infra/timescale-init/001-init.sql) trong
 // database/schema-bootstrap.ts.
@@ -60,11 +63,13 @@ import { AiInsightsModule } from './ai-insights/ai-insights.module';
     KafkaModule,
     AiInsightsModule,
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, MetricsController],
   providers: [
     { provide: APP_GUARD, useClass: InternalAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    MetricsService,
+    { provide: APP_INTERCEPTOR, useClass: HttpMetricsInterceptor },
   ],
 })
 export class AppModule {}

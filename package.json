@@ -9,10 +9,10 @@
     "e2e"
   ],
   "scripts": {
-    "build:libs": "npm run build -w packages/common-dto -w packages/common-guard",
-    "build": "npm run build:libs && npm run build --workspaces --if-present -w apps/gateway -w apps/iam-service -w apps/project-task-service -w apps/document-service -w apps/notification-service -w apps/analytics-service -w apps/web",
+    "build:libs": "npm run build -w packages/common-dto -w packages/common-guard -w packages/common-metrics",
+    "build": "npm run build:libs && npm run build --workspaces --if-present -w apps/gateway -w apps/iam-service -w apps/project-task-service -w apps/document-service -w apps/notification-service -w apps/analytics-service -w apps/crm-service -w apps/hrm-service -w apps/web",
     "lint": "npm run lint --workspaces --if-present",
-    "typecheck": "npm run build:libs && tsc --noEmit -p apps/gateway/tsconfig.json && tsc --noEmit -p apps/iam-service/tsconfig.json && tsc --noEmit -p apps/project-task-service/tsconfig.json && tsc --noEmit -p apps/document-service/tsconfig.json && tsc --noEmit -p apps/notification-service/tsconfig.json && tsc --noEmit -p apps/analytics-service/tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json",
+    "typecheck": "npm run build:libs && tsc --noEmit -p apps/gateway/tsconfig.json && tsc --noEmit -p apps/iam-service/tsconfig.json && tsc --noEmit -p apps/project-task-service/tsconfig.json && tsc --noEmit -p apps/document-service/tsconfig.json && tsc --noEmit -p apps/notification-service/tsconfig.json && tsc --noEmit -p apps/analytics-service/tsconfig.json && tsc --noEmit -p apps/crm-service/tsconfig.json && tsc --noEmit -p apps/hrm-service/tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json",
     "test": "npm run test --workspaces --if-present",
     "test:e2e": "npm run test:e2e -w e2e",
     "dev:iam": "npm run start:dev -w apps/iam-service",
@@ -21,6 +21,8 @@
     "dev:document": "npm run start:dev -w apps/document-service",
     "dev:notification": "npm run start:dev -w apps/notification-service",
     "dev:analytics": "npm run start:dev -w apps/analytics-service",
+    "dev:crm": "npm run start:dev -w apps/crm-service",
+    "dev:hrm": "npm run start:dev -w apps/hrm-service",
     "dev:web": "npm run dev -w apps/web",
     "seed": "node scripts/seed.js"
   },

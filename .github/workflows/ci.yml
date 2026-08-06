@@ -69,6 +69,8 @@ jobs:
           - document-service
           - notification-service
           - analytics-service
+          - crm-service
+          - hrm-service
           - web
     steps:
       - name: Checkout

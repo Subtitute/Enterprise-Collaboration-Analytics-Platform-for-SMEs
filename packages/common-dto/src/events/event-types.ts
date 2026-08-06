@@ -13,6 +13,10 @@ export const KAFKA_TOPICS = {
   // (khong phai OutboxPublisherJob cua producer goc) message ma chinh no xu ly that bai vinh vien
   // (loi du lieu) hoac het luot retry (loi ha tang lap lai qua nhieu lan) - xem DeadLetterEnvelope.
   DLQ: 'domain-events.dlq',
+  // 04/08/2026: CRM-lite Service (Technical_Spec.md muc 16).
+  CRM: 'crm.events',
+  // 05/08/2026: HRM-lite Service (Technical_Spec.md muc 17).
+  HRM: 'hrm.events',
 } as const;
 
 export type KafkaTopic = (typeof KAFKA_TOPICS)[keyof typeof KAFKA_TOPICS];
@@ -41,6 +45,20 @@ export const EVENT_TYPES = {
   DOCUMENT_UPLOADED: 'document.uploaded',
   DOCUMENT_SHARED: 'document.shared',
   DOCUMENT_DELETED: 'document.deleted',
+
+  // CRM-lite Service (bo sung 04/08/2026, Technical_Spec.md muc 16)
+  CUSTOMER_CREATED: 'customer.created',
+  CUSTOMER_DELETED: 'customer.deleted',
+  DEAL_CREATED: 'deal.created',
+  DEAL_STAGE_CHANGED: 'deal.stage_changed',
+  DEAL_DELETED: 'deal.deleted',
+
+  // HRM-lite Service (bo sung 05/08/2026, Technical_Spec.md muc 17)
+  ATTENDANCE_CHECKED_IN: 'attendance.checked_in',
+  ATTENDANCE_CHECKED_OUT: 'attendance.checked_out',
+  LEAVE_REQUEST_CREATED: 'leave_request.created',
+  LEAVE_REQUEST_APPROVED: 'leave_request.approved',
+  LEAVE_REQUEST_REJECTED: 'leave_request.rejected',
 } as const;
 
 export type EventType = (typeof EVENT_TYPES)[keyof typeof EVENT_TYPES];
@@ -63,6 +81,18 @@ export const EVENT_TYPE_TOPIC_MAP: Record<EventType, KafkaTopic> = {
   [EVENT_TYPES.DOCUMENT_UPLOADED]: KAFKA_TOPICS.DOCUMENT,
   [EVENT_TYPES.DOCUMENT_SHARED]: KAFKA_TOPICS.DOCUMENT,
   [EVENT_TYPES.DOCUMENT_DELETED]: KAFKA_TOPICS.DOCUMENT,
+
+  [EVENT_TYPES.CUSTOMER_CREATED]: KAFKA_TOPICS.CRM,
+  [EVENT_TYPES.CUSTOMER_DELETED]: KAFKA_TOPICS.CRM,
+  [EVENT_TYPES.DEAL_CREATED]: KAFKA_TOPICS.CRM,
+  [EVENT_TYPES.DEAL_STAGE_CHANGED]: KAFKA_TOPICS.CRM,
+  [EVENT_TYPES.DEAL_DELETED]: KAFKA_TOPICS.CRM,
+
+  [EVENT_TYPES.ATTENDANCE_CHECKED_IN]: KAFKA_TOPICS.HRM,
+  [EVENT_TYPES.ATTENDANCE_CHECKED_OUT]: KAFKA_TOPICS.HRM,
+  [EVENT_TYPES.LEAVE_REQUEST_CREATED]: KAFKA_TOPICS.HRM,
+  [EVENT_TYPES.LEAVE_REQUEST_APPROVED]: KAFKA_TOPICS.HRM,
+  [EVENT_TYPES.LEAVE_REQUEST_REJECTED]: KAFKA_TOPICS.HRM,
 };
 
 /** Consumer group id chuan - moi service subscribe dung 1 group rieng de nhan du 3 topic. */

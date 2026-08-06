@@ -16,6 +16,10 @@ export default () => ({
     document: process.env.DOCUMENT_SERVICE_URL ?? 'http://localhost:3003',
     notification: process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004',
     analytics: process.env.ANALYTICS_SERVICE_URL ?? 'http://localhost:3005',
+    // 04/08/2026: CRM-lite Service (Technical_Spec.md muc 16).
+    crm: process.env.CRM_SERVICE_URL ?? 'http://localhost:3007',
+    // 05/08/2026: HRM-lite Service (Technical_Spec.md muc 17).
+    hrm: process.env.HRM_SERVICE_URL ?? 'http://localhost:3006',
   },
   rateLimit: {
     max: parseInt(process.env.RATE_LIMIT_MAX ?? '100', 10),

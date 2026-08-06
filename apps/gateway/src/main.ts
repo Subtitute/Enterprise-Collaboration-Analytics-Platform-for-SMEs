@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
+import { createHttpMetricsMiddleware, MetricsService } from '@app/common-metrics';
 import { AppModule } from './app.module';
 import { setupGateway } from './proxy/setup-gateway';
 
@@ -35,6 +36,15 @@ async function bootstrap() {
   // credentials: true (vi pham Fetch/CORS spec). Gateway la origin duy nhat trinh duyet
   // giao tiep truc tiep, Set-Cookie tu IAM se proxy nguyen ven qua day (xem proxy/rest-proxy.factory.ts).
   app.enableCors({ origin: resolveCorsOrigins(), credentials: true });
+
+  // 04/08/2026: cac route nghiep vu proxy qua http-proxy-middleware (setupGateway ben duoi)
+  // KHONG di qua pipeline Nest nen HttpMetricsInterceptor (dang ky trong app.module.ts) khong
+  // bat duoc luu luong nay - gan them middleware Express thuan de do dac luu luong proxy that
+  // su cua Gateway (Technical_Spec.md muc 15). Loai tru /health, /metrics vi 2 route do la
+  // controller Nest thuc su, da duoc HttpMetricsInterceptor ghi nhan roi.
+  app.use(
+    createHttpMetricsMiddleware(app.get(MetricsService), ['/api/v1/health', '/api/v1/metrics']),
+  );
 
   const attachWebSocketUpgrade = setupGateway(app);
 

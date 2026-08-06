@@ -1,0 +1,57 @@
+# 04/08/2026: cau hinh scrape Prometheus - Technical_Spec.md muc 15. Moi target la 1 trong 7
+# service Node (endpoint /metrics, danh dau @Public() - xem packages/common-metrics) hoac
+# kafka-exporter (metric lag consumer group). Tat ca deu nam trong internal-net nen Prometheus
+# goi thang qua ten service, khong can qua Gateway.
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: gateway
+    metrics_path: /api/v1/metrics
+    static_configs:
+      - targets: ['gateway:3000']
+
+  - job_name: iam-service
+    metrics_path: /api/v1/metrics
+    static_configs:
+      - targets: ['iam-service:3001']
+
+  - job_name: project-task-service
+    metrics_path: /api/v1/metrics
+    static_configs:
+      - targets: ['project-task-service:3002']
+
+  - job_name: document-service
+    metrics_path: /api/v1/metrics
+    static_configs:
+      - targets: ['document-service:3003']
+
+  - job_name: notification-service
+    metrics_path: /api/v1/metrics
+    static_configs:
+      - targets: ['notification-service:3004']
+
+  - job_name: analytics-service
+    metrics_path: /api/v1/metrics
+    static_configs:
+      - targets: ['analytics-service:3005']
+
+  # 04/08/2026: CRM-lite Service (them sau khi service duoc tao o Phase 2 - Technical_Spec.md muc 16).
+  - job_name: crm-service
+    metrics_path: /api/v1/metrics
+    static_configs:
+      - targets: ['crm-service:3007']
+
+  # 05/08/2026: HRM-lite Service (them sau khi service duoc tao o Phase 3 - Technical_Spec.md muc 17).
+  - job_name: hrm-service
+    metrics_path: /api/v1/metrics
+    static_configs:
+      - targets: ['hrm-service:3006']
+
+  - job_name: kafka
+    static_configs:
+      - targets: ['kafka-exporter:9308']
