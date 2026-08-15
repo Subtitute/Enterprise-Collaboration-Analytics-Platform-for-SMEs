@@ -1,12 +1,42 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/api_client.dart';
 import '../../core/date_format.dart';
 import '../../models/attendance.dart';
 import '../../models/paginated_response.dart';
+
+/// 13/08/2026 (Technical_Spec.md muc 17): lay vi tri GPS hien tai - CO Y KHONG chan/khong nem
+/// loi neu that bai (dich vu vi tri tat, quyen bi tu choi, timeout): tra ve `null`, noi goi
+/// KHONG bao gio can bat exception. Day chi la tin hieu THEM danh cho Manager doi chieu voi
+/// anh, khong phai dieu kien bat buoc de cham cong.
+Future<Position?> _getCurrentLocationSoft() async {
+  try {
+    if (!await Geolocator.isLocationServiceEnabled()) return null;
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      return null;
+    }
+    return await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium, timeLimit: Duration(seconds: 5)),
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
+/// null/undefined = chua co du lieu de danh gia (KHAC voi false) - khong hien gi ca, mirror
+/// OnSiteBadge cua web (apps/web/src/features/hrm/AttendancePage.tsx).
+String? _onSiteLabel(bool? isOnSite) {
+  if (isOnSite == null) return null;
+  return isOnSite ? 'Tại văn phòng' : 'Ngoài văn phòng';
+}
 
 /// Cham cong photo-proof - chup 1 anh lam bang chung dinh kem (KHONG nhan dien khuon mat,
 /// danh tinh xac dinh qua JWT da dang nhap), dung camera THAT cua dien thoai thay vi webcam
@@ -66,7 +96,13 @@ class _AttendancePageState extends State<AttendancePage> {
       final XFile? photo = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 85);
       if (photo == null) return; // Nguoi dung huy chup anh - khong coi la loi.
 
-      await widget.apiClient.postPhoto('/attendance/$action', File(photo.path));
+      final position = await _getCurrentLocationSoft();
+      await widget.apiClient.postPhoto(
+        '/attendance/$action',
+        File(photo.path),
+        latitude: position?.latitude,
+        longitude: position?.longitude,
+      );
       await _loadHistory();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -107,11 +143,13 @@ class _AttendancePageState extends State<AttendancePage> {
                     else if (_today == null)
                       const Text('Chưa chấm công hôm nay')
                     else ...[
-                      Text('Vào làm lúc: ${formatDateTimeVi(_today!.checkInAt)}'),
+                      Text('Vào làm lúc: ${formatDateTimeVi(_today!.checkInAt)}'
+                          '${_onSiteLabel(_today!.checkInIsOnSite) != null ? ' (${_onSiteLabel(_today!.checkInIsOnSite)})' : ''}'),
                       Text(
                         _today!.checkOutAt == null
                             ? 'Chưa chấm công ra về'
-                            : 'Ra về lúc: ${formatDateTimeVi(_today!.checkOutAt!)}',
+                            : 'Ra về lúc: ${formatDateTimeVi(_today!.checkOutAt!)}'
+                                '${_onSiteLabel(_today!.checkOutIsOnSite) != null ? ' (${_onSiteLabel(_today!.checkOutIsOnSite)})' : ''}',
                       ),
                     ],
                     if (_errorMessage != null) ...[
@@ -152,7 +190,9 @@ class _AttendancePageState extends State<AttendancePage> {
                 title: Text(formatDateVi(a.workDate)),
                 subtitle: Text(
                   'Vào: ${formatDateTimeVi(a.checkInAt)}'
-                  '${a.checkOutAt != null ? ' · Ra: ${formatDateTimeVi(a.checkOutAt!)}' : ''}',
+                  '${_onSiteLabel(a.checkInIsOnSite) != null ? ' (${_onSiteLabel(a.checkInIsOnSite)})' : ''}'
+                  '${a.checkOutAt != null ? ' · Ra: ${formatDateTimeVi(a.checkOutAt!)}' : ''}'
+                  '${a.checkOutAt != null && _onSiteLabel(a.checkOutIsOnSite) != null ? ' (${_onSiteLabel(a.checkOutIsOnSite)})' : ''}',
                 ),
               ),
             ),

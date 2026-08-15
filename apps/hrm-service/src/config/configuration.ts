@@ -25,4 +25,12 @@ export default () => ({
     publicPort: parseInt(process.env.MINIO_PUBLIC_PORT ?? process.env.MINIO_PORT ?? '9000', 10),
     publicUseSsl: (process.env.MINIO_PUBLIC_USE_SSL ?? process.env.MINIO_USE_SSL ?? 'false') === 'true',
   },
+  // 13/08/2026: toa do van phong - dung de gan co "on-site"/"off-site" (KHONG chan check-in/out,
+  // chi la 1 co gan kem de Manager doi chieu voi anh, xem AttendanceService.computeIsOnSite()).
+  // Con thieu latitude/longitude (chua cau hinh) -> bo qua tinh toan hoan toan, khong loi.
+  office: {
+    latitude: process.env.OFFICE_LATITUDE ? parseFloat(process.env.OFFICE_LATITUDE) : undefined,
+    longitude: process.env.OFFICE_LONGITUDE ? parseFloat(process.env.OFFICE_LONGITUDE) : undefined,
+    geofenceRadiusMeters: parseInt(process.env.OFFICE_GEOFENCE_RADIUS_METERS ?? '200', 10),
+  },
 });

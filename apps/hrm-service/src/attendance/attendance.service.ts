@@ -1,4 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import {
@@ -16,6 +17,7 @@ import { AttendanceQueryDto } from './dto/attendance-query.dto';
 import { toGmt7DateString } from './attendance-date.util';
 import { buildAttendancePhotoObjectKey } from './object-key.util';
 import { verifyPhotoContentMatchesMimeType } from './allowed-photo-mime-types';
+import { haversineDistanceMeters } from './geo-distance.util';
 
 const PRODUCER = 'hrm-service';
 /** Ma loi Postgres cho vi pham rang buoc unique (@Unique(['organizationId','userId','workDate'])). */
@@ -28,15 +30,41 @@ export class AttendanceService {
     @InjectRepository(Attendance) private readonly attendanceRepo: Repository<Attendance>,
     private readonly outboxService: OutboxService,
     private readonly minioService: MinioService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
+   * Gan co "on-site"/"off-site" - CHI la 1 tin hieu THEM hien canh anh cham cong de Manager tu
+   * doi chieu (Technical_Spec.md muc 17), KHONG dung de chan check-in/out. Ly do khong chan:
+   * GPS trong nha co the lech vai chuc met, va vi tri tren Android co the gia mao qua ung dung
+   * gia lap khi bat Tuy chon nha phat trien - chan cung dua tren tin hieu khong dang tin cay
+   * nay se tao ra 2 loai sai: chan nham nhan vien that dang o van phong (GPS lech), va khong
+   * chan duoc nguoi co chu dinh gia mao (biet cach bypass). Tra ve `null` (khac `false`) khi
+   * thieu toa do van phong (chua cau hinh) hoac thieu toa do thiet bi (nguoi dung tu choi quyen) -
+   * ca 2 truong hop nay co nghia "khong co du lieu de danh gia", khac han "da xac nhan la off-site".
+   */
+  private computeIsOnSite(latitude?: number, longitude?: number): boolean | null {
+    if (latitude === undefined || longitude === undefined) return null;
+    const officeLat = this.configService.get<number>('office.latitude');
+    const officeLng = this.configService.get<number>('office.longitude');
+    if (officeLat === undefined || officeLng === undefined) return null;
+    const radiusMeters = this.configService.get<number>('office.geofenceRadiusMeters')!;
+    return haversineDistanceMeters(latitude, longitude, officeLat, officeLng) <= radiusMeters;
+  }
+
+  /**
    * Photo-proof check-in - nguoi dung da dang nhap (danh tinh xac dinh qua JWT nhu moi endpoint
-   * khac), camera CHI chup 1 anh lam bang chung dinh kem, KHONG nhan dien khuon mat (quyet dinh
-   * da thong nhat voi nguoi dung - Technical_Spec.md muc 17). 1 ban ghi/nguoi/ngay lam viec theo
+   * khac), camera CHI chup 1 anh lam bang chung dinh kem, KHONG nhan dien khuon mat (xem
+   * Technical_Spec.md muc 17). 1 ban ghi/nguoi/ngay lam viec theo
    * lich GMT+7.
    */
-  async checkIn(organizationId: string, userId: string, file: Express.Multer.File): Promise<Attendance> {
+  async checkIn(
+    organizationId: string,
+    userId: string,
+    file: Express.Multer.File,
+    latitude?: number,
+    longitude?: number,
+  ): Promise<Attendance> {
     verifyPhotoContentMatchesMimeType(file);
     const workDate = toGmt7DateString(new Date());
 
@@ -47,6 +75,7 @@ export class AttendanceService {
 
     const objectKey = buildAttendancePhotoObjectKey(organizationId, userId, workDate, 'checkin', file.mimetype);
     await this.minioService.putObject(objectKey, file.buffer, file.size, file.mimetype);
+    const isOnSite = this.computeIsOnSite(latitude, longitude);
 
     try {
       return await this.dataSource.transaction(async (manager) => {
@@ -57,6 +86,9 @@ export class AttendanceService {
             workDate,
             checkInAt: new Date(),
             checkInPhotoObjectKey: objectKey,
+            checkInLatitude: latitude ?? null,
+            checkInLongitude: longitude ?? null,
+            checkInIsOnSite: isOnSite,
           }),
         );
 
@@ -89,7 +121,13 @@ export class AttendanceService {
     }
   }
 
-  async checkOut(organizationId: string, userId: string, file: Express.Multer.File): Promise<Attendance> {
+  async checkOut(
+    organizationId: string,
+    userId: string,
+    file: Express.Multer.File,
+    latitude?: number,
+    longitude?: number,
+  ): Promise<Attendance> {
     verifyPhotoContentMatchesMimeType(file);
     const workDate = toGmt7DateString(new Date());
 
@@ -103,10 +141,14 @@ export class AttendanceService {
 
     const objectKey = buildAttendancePhotoObjectKey(organizationId, userId, workDate, 'checkout', file.mimetype);
     await this.minioService.putObject(objectKey, file.buffer, file.size, file.mimetype);
+    const isOnSite = this.computeIsOnSite(latitude, longitude);
 
     return this.dataSource.transaction(async (manager) => {
       attendance.checkOutAt = new Date();
       attendance.checkOutPhotoObjectKey = objectKey;
+      attendance.checkOutLatitude = latitude ?? null;
+      attendance.checkOutLongitude = longitude ?? null;
+      attendance.checkOutIsOnSite = isOnSite;
       const updated = await manager.save(attendance);
 
       const payload: AttendanceCheckedOutPayload = { attendanceId: updated.id, userId, workDate };

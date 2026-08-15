@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'core/api_client.dart';
 import 'core/auth_session.dart';
+import 'core/gateway_config.dart';
 import 'features/auth/login_page.dart';
 import 'features/home_shell.dart';
 
@@ -27,7 +28,10 @@ class _EcapMobileAppState extends State<EcapMobileApp> {
   }
 
   Future<void> _bootstrap() async {
-    final client = await ApiClient.create(_session);
+    // 13/08/2026: giai quyet dia chi Gateway HIEN TAI truoc (co the doi neu tunnel Cloudflare
+    // vua khoi dong lai) - xem gateway_config.dart.
+    final baseUrl = await GatewayConfig.resolveBaseUrl();
+    final client = await ApiClient.create(_session, baseUrl: baseUrl);
     // Neu con cookie ecap_refresh_token con han (vd mo lai app sau khi tat) thi tu dang nhap
     // lai - khong bat nguoi dung go lai mat khau moi lan mo app, giong hanh vi web da co.
     await client.tryAutoLogin();

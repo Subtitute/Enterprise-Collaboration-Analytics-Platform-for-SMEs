@@ -6,15 +6,45 @@ import { CameraIcon, RefreshIcon } from '@/components/ui/Icons';
 
 type CameraStatus = 'requesting' | 'ready' | 'denied' | 'unavailable';
 
+export interface CheckInLocation {
+  latitude: number;
+  longitude: number;
+}
+
+/**
+ * Lay vi tri GPS hien tai (Technical_Spec.md muc 17) - CO Y KHONG chan/khong hien loi neu that
+ * bai (tu choi quyen, khong ho tro, timeout): tra ve `undefined`, view goi ham nay khong bao gio
+ * throw. Day chi la 1 tin hieu THEM danh cho Manager doi chieu, khong phai dieu kien bat buoc de
+ * cham cong (xem quyet dinh thiet ke o AttendanceService.computeIsOnSite(), apps/hrm-service).
+ */
+function getCurrentLocationSoft(): Promise<CheckInLocation | undefined> {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve(undefined);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
+      () => resolve(undefined),
+      { timeout: 5000, maximumAge: 60000 },
+    );
+  });
+}
+
 /**
  * Component camera cham cong (photo-proof check-in/out) - Technical_Spec.md muc 17. LAN DAU
  * TIEN dung navigator.mediaDevices.getUserMedia()/<video>/<canvas> trong repo nay (da xac nhan
  * qua grep toan bo apps/web/src: khong co tien le nao truoc do).
  *
- * QUYET DINH DA THONG NHAT VOI NGUOI DUNG: chi chup 1 anh lam BANG CHUNG dinh kem (danh tinh xac
+ * QUYET DINH THIET KE: chi chup 1 anh lam BANG CHUNG dinh kem (danh tinh xac
  * dinh qua tai khoan da dang nhap, giong moi endpoint khac), KHONG nhan dien khuon mat bang ML -
  * giu tinh nang don gian, khong co rui ro sai so nhan dien luc demo truc tiep, khong phat sinh du
  * lieu sinh trac hoc can xu ly rieng.
+ *
+ * 13/08/2026: bo sung lay vi tri GPS (navigator.geolocation) song song voi camera - CHI la 1 tin
+ * hieu THEM (co "on-site"/"off-site") de Manager doi chieu voi anh, KHONG chan xac nhan neu
+ * thieu/tu choi quyen vi tri (xem getCurrentLocationSoft() ben duoi va
+ * AttendanceService.computeIsOnSite() o backend).
  */
 export function CheckInCamera({
   open,
@@ -24,12 +54,16 @@ export function CheckInCamera({
 }: {
   open: boolean;
   onClose: () => void;
-  onConfirm: (photo: Blob) => void;
+  onConfirm: (photo: Blob, location?: CheckInLocation) => void;
   isSubmitting?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  // Xin vi tri SONG SONG voi camera ngay khi mo modal (khong doi den luc bam Xac nhan) de khong
+  // lam cham luc gui - ket qua (co the la undefined, xem getCurrentLocationSoft()) duoc doc lai
+  // trong handleConfirm().
+  const locationRef = useRef<Promise<CheckInLocation | undefined>>(Promise.resolve(undefined));
   const [status, setStatus] = useState<CameraStatus>('requesting');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
@@ -71,6 +105,7 @@ export function CheckInCamera({
       return;
     }
     startCamera();
+    locationRef.current = getCurrentLocationSoft();
     return () => stopStream();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -105,8 +140,10 @@ export function CheckInCamera({
     startCamera();
   }
 
-  function handleConfirm() {
-    if (previewBlob) onConfirm(previewBlob);
+  async function handleConfirm() {
+    if (!previewBlob) return;
+    const location = await locationRef.current;
+    onConfirm(previewBlob, location);
   }
 
   return (

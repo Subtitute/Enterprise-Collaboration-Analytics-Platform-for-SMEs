@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   Param,
@@ -15,6 +16,7 @@ import { PERMISSIONS } from '@app/common-dto';
 import { AttendanceService } from './attendance.service';
 import { AttendanceQueryDto } from './dto/attendance-query.dto';
 import { photoMimeTypeFileFilter } from './allowed-photo-mime-types';
+import { parseOptionalCoordinate } from './coordinate.util';
 
 const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024;
 
@@ -25,6 +27,9 @@ const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024;
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
 
+  // 13/08/2026: `latitude`/`longitude` (Doc/ECAP_Mobile.md muc 13) - CO Y KHONG bat buoc, xem
+  // coordinate.util.ts va Attendance entity cho ly do day du (co "on-site" chi de Manager doi
+  // chieu, khong phai co che chan cham cong).
   @Post('check-in')
   @RequirePermissions(PERMISSIONS.ATTENDANCE_CHECKIN)
   @ApiConsumes('multipart/form-data')
@@ -33,9 +38,13 @@ export class AttendanceController {
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') userId: string,
     @UploadedFile() photo: Express.Multer.File,
+    @Body('latitude') latitudeRaw?: string,
+    @Body('longitude') longitudeRaw?: string,
   ) {
     if (!photo) throw new BadRequestException('Thiếu ảnh chấm công');
-    return this.attendanceService.checkIn(organizationId, userId, photo);
+    const latitude = parseOptionalCoordinate(latitudeRaw, 'Vĩ độ', -90, 90);
+    const longitude = parseOptionalCoordinate(longitudeRaw, 'Kinh độ', -180, 180);
+    return this.attendanceService.checkIn(organizationId, userId, photo, latitude, longitude);
   }
 
   @Post('check-out')
@@ -46,9 +55,13 @@ export class AttendanceController {
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') userId: string,
     @UploadedFile() photo: Express.Multer.File,
+    @Body('latitude') latitudeRaw?: string,
+    @Body('longitude') longitudeRaw?: string,
   ) {
     if (!photo) throw new BadRequestException('Thiếu ảnh chấm công');
-    return this.attendanceService.checkOut(organizationId, userId, photo);
+    const latitude = parseOptionalCoordinate(latitudeRaw, 'Vĩ độ', -90, 90);
+    const longitude = parseOptionalCoordinate(longitudeRaw, 'Kinh độ', -180, 180);
+    return this.attendanceService.checkOut(organizationId, userId, photo, latitude, longitude);
   }
 
   /** Lich su cham cong cua chinh nguoi goi - khong yeu cau permission dac biet, mirror trang Ho so ca nhan. */

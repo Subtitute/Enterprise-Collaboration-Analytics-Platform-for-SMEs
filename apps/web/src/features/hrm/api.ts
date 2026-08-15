@@ -1,18 +1,28 @@
 import { apiClient } from '@/lib/api-client';
 import type { Attendance, LeaveRequest, LeaveRequestStatus, PaginatedResponse } from '@/types';
+import type { CheckInLocation } from './components/CheckInCamera';
 
-export async function checkIn(photo: Blob): Promise<Attendance> {
+/** 13/08/2026: `location` la tuy chon - khong gui field neu khong co (xem CheckInCamera.tsx). */
+function appendLocation(form: FormData, location?: CheckInLocation) {
+  if (!location) return;
+  form.append('latitude', String(location.latitude));
+  form.append('longitude', String(location.longitude));
+}
+
+export async function checkIn(photo: Blob, location?: CheckInLocation): Promise<Attendance> {
   const form = new FormData();
   form.append('photo', photo, 'checkin.jpg');
+  appendLocation(form, location);
   const { data } = await apiClient.post<Attendance>('/attendance/check-in', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return data;
 }
 
-export async function checkOut(photo: Blob): Promise<Attendance> {
+export async function checkOut(photo: Blob, location?: CheckInLocation): Promise<Attendance> {
   const form = new FormData();
   form.append('photo', photo, 'checkout.jpg');
+  appendLocation(form, location);
   const { data } = await apiClient.post<Attendance>('/attendance/check-out', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
@@ -21,6 +31,16 @@ export async function checkOut(photo: Blob): Promise<Attendance> {
 
 export async function fetchMyAttendance(params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<Attendance>> {
   const { data } = await apiClient.get<PaginatedResponse<Attendance>>('/attendance/me', { params });
+  return data;
+}
+
+/**
+ * Danh sach cham cong TOAN TO CHUC - CHI Manager/Org Admin (PERMISSIONS.ATTENDANCE_VIEW) goi
+ * duoc, tra 403 voi Employee thuong - component goi ham nay PHAI tu xu ly 403 nhu "khong ap
+ * dung" (mirror fetchPendingLeaveRequests() o duoi, xem AttendancePage.tsx).
+ */
+export async function fetchAllAttendance(params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<Attendance>> {
+  const { data } = await apiClient.get<PaginatedResponse<Attendance>>('/attendance', { params });
   return data;
 }
 

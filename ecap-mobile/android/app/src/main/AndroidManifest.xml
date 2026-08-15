@@ -4,6 +4,9 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Chup anh cham cong photo-proof bang camera that (image_picker). -->
     <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- 13/08/2026: vi tri GPS luc cham cong (geolocator) - CHI dung ACCESS_FINE_LOCATION (khong
+         ACCESS_BACKGROUND_LOCATION - chi doc vi tri luc app dang mo, khong theo doi nen). -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
 
     <application
         android:label="CollabNAnalytic"

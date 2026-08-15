@@ -6,7 +6,6 @@ import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:path_provider/path_provider.dart';
 
-import 'app_config.dart';
 import 'auth_session.dart';
 import '../models/user.dart';
 
@@ -32,8 +31,11 @@ class ApiClient {
 
   ApiClient._(this._dio, this.session);
 
-  static Future<ApiClient> create(AuthSession session) async {
-    final dio = Dio(BaseOptions(baseUrl: AppConfig.gatewayBaseUrl, connectTimeout: const Duration(seconds: 10)));
+  /// 13/08/2026: [baseUrl] gio duoc truyen vao TU BEN NGOAI (giai quyet qua
+  /// GatewayConfig.resolveBaseUrl() truoc khi goi ham nay), khong con doc hang cung
+  /// AppConfig.gatewayBaseUrl - xem gateway_config.dart.
+  static Future<ApiClient> create(AuthSession session, {required String baseUrl}) async {
+    final dio = Dio(BaseOptions(baseUrl: baseUrl, connectTimeout: const Duration(seconds: 10)));
 
     final appDir = await getApplicationDocumentsDirectory();
     final cookieJar = PersistCookieJar(storage: FileStorage('${appDir.path}/.cookies'));
@@ -175,11 +177,19 @@ class ApiClient {
   }
 
   /// Dung cho check-in/check-out (multipart/form-data, field "photo" - khop
-  /// AttendanceController cua apps/hrm-service).
-  Future<Map<String, dynamic>> postPhoto(String path, File photoFile) async {
+  /// AttendanceController cua apps/hrm-service). [latitude]/[longitude] la TUY CHON (13/08/2026,
+  /// Technical_Spec.md muc 17) - chi la tin hieu THEM cho Manager doi chieu, khong bat buoc.
+  Future<Map<String, dynamic>> postPhoto(
+    String path,
+    File photoFile, {
+    double? latitude,
+    double? longitude,
+  }) async {
     try {
       final formData = FormData.fromMap({
         'photo': await MultipartFile.fromFile(photoFile.path, filename: 'checkin.jpg'),
+        if (latitude != null) 'latitude': latitude.toString(),
+        if (longitude != null) 'longitude': longitude.toString(),
       });
       final response = await _dio.post(path, data: formData);
       return response.data as Map<String, dynamic>;

@@ -8,8 +8,8 @@ import '../../models/task.dart';
 
 /// Cong viec cua toi (Doc/ECAP_Mobile.md muc 12) - CHI xem cong viec da duoc giao cho chinh
 /// minh o TAT CA du an + doi trang thai theo dung TASK_STATUS_TRANSITIONS. Khong co bang Kanban
-/// keo-tha, khong tao/xoa cong viec tren dien thoai - pham vi da thong nhat voi nguoi dung, giu
-/// dung nhung gi tu nhien tren man hinh nho.
+/// keo-tha, khong tao/xoa cong viec tren dien thoai - dung pham vi da chon, giu dung nhung gi tu
+/// nhien tren man hinh nho.
 class TasksPage extends StatefulWidget {
   final ApiClient apiClient;
   final AuthSession session;

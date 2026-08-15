@@ -1,10 +1,12 @@
 # CollabNAnalytic (CNA)
 
 Ứng dụng đồng hành trên Android cho `Enterprise Collaboration and Analytics Platform for
-SMEs` (đồ án tốt nghiệp, Khoa Công nghệ Thông tin). Đây là **repo Flutter/Dart hoàn toàn tách
-biệt** — không dùng chung mã nguồn, không dùng chung build pipeline với repo chính, chỉ gọi
-REST API có sẵn của Gateway. Đặc tả kỹ thuật đầy đủ (kiến trúc, lý do tách repo, cơ chế xác
-thực, danh sách endpoint, giới hạn đã biết): [`Doc/ECAP_Mobile.md`](../Doc/ECAP_Mobile.md).
+SMEs` (đồ án tốt nghiệp, Khoa Công nghệ Thông tin). Đây là **dự án Flutter/Dart tách biệt ở
+tầng mã nguồn/build** — không dùng chung mã nguồn, không dùng chung build pipeline với phần
+còn lại của nền tảng, chỉ gọi REST API có sẵn của Gateway (từ 12/08/2026 nằm trong cùng repo Git
+với nền tảng, thuần vì lịch sử commit chung — không ảnh hưởng ranh giới mã nguồn/build nói trên).
+Đặc tả kỹ thuật đầy đủ (kiến trúc, cơ chế xác thực, danh sách endpoint, giới hạn đã biết):
+[`Doc/ECAP_Mobile.md`](../Doc/ECAP_Mobile.md).
 
 ## Phạm vi
 
@@ -28,18 +30,22 @@ mục 2, 12.
 
 ## Cấu hình kết nối tới backend
 
-Sửa hằng số `gatewayBaseUrl` tại [`lib/core/app_config.dart`](lib/core/app_config.dart):
+Từ 13/08/2026, APK KHÔNG cần build lại mỗi khi địa chỉ Gateway đổi — `GatewayConfig` đọc địa chỉ
+hiện tại từ 1 file JSON công khai (`AppConfig.remoteConfigUrl`) lúc khởi động app. Xem hướng dẫn
+thiết lập đầy đủ (tạo Gist, cập nhật URL khi tunnel đổi) tại `Doc/ECAP_Mobile.md` mục 13.1.
+
+Vẫn cần sửa code + build lại APK **1 lần duy nhất** cho 2 trường hợp: (a) lần đầu thiết lập
+`remoteConfigUrl`, hoặc (b) không dùng cơ chế trên, chỉ đổi thẳng hằng số fallback tại
+[`lib/core/app_config.dart`](lib/core/app_config.dart):
 
 ```dart
-// Wi-Fi/LAN (mac dinh khi khong dung tunnel):
-static const String gatewayBaseUrl = 'http://<IP-LAN-cua-may>:3000/api/v1';
-// Hoac qua Cloudflare Tunnel (khong can cung mang, URL doi moi lan tunnel khoi dong lai):
-static const String gatewayBaseUrl = 'https://<ten-ngau-nhien>.trycloudflare.com/api/v1';
+// Wi-Fi/LAN (khong can tunnel, doi khi ket noi lai Wi-Fi):
+static const String fallbackGatewayBaseUrl = 'http://<IP-LAN-cua-may>:3000/api/v1';
+// Hoac qua Cloudflare Tunnel (khong can cung mang):
+static const String fallbackGatewayBaseUrl = 'https://<ten-ngau-nhien>.trycloudflare.com/api/v1';
 ```
 
-Lấy IP LAN trên Windows bằng `ipconfig` (mục "Wireless LAN adapter Wi-Fi" → IPv4 Address). Địa
-chỉ này có thể đổi mỗi lần kết nối lại Wi-Fi. Sau khi đổi giá trị này, phải build lại APK
-(`flutter build apk --debug`) rồi cài lại - URL cũ không tự cập nhật trên máy đã cài trước đó.
+Lấy IP LAN trên Windows bằng `ipconfig` (mục "Wireless LAN adapter Wi-Fi" → IPv4 Address).
 
 ## Chạy thử / Build APK
 
@@ -59,7 +65,8 @@ nếu cần phân phối thật thay vì chỉ demo/cài thử.
 lib/
   main.dart                            # Diem vao - dieu huong Login/Home dua tren trang thai dang nhap
   core/
-    app_config.dart                    # Dia chi Gateway (sua khi doi mang)
+    app_config.dart                    # Hang so fallback + URL cau hinh Gateway tu xa
+    gateway_config.dart                # Giai quyet dia chi Gateway hien tai luc khoi dong app
     api_client.dart                    # Dio + cookie jar (mo phong refresh token httpOnly cookie cua web)
     auth_session.dart                  # Trang thai dang nhap trong bo nho
     date_format.dart                   # Quy doi hien thi gio ve GMT+7
@@ -78,8 +85,10 @@ test/                                  # Test don vi cho ham thuan tuy
 
 ## Ghi chú
 
-- Không sửa bất kỳ dòng nào ở repo chính - toàn bộ tính năng ở đây gọi API REST đã tồn tại sẵn
-  và đã được xác minh sống (xem `Technical_Spec.md` mục 16, 17 ở repo chính).
-- Chưa khởi tạo Git repository cho thư mục này (máy phát triển ban đầu chưa cài Git).
-- Giới hạn đã biết và hướng mở rộng: xem mục 13 của `Doc/ECAP_Mobile.md`.
+- Không sửa bất kỳ dòng nào ở phần còn lại của nền tảng - toàn bộ tính năng ở đây gọi API REST
+  đã tồn tại sẵn và đã được xác minh sống (xem `Technical_Spec.md` mục 16, 17).
+- Chấm công gửi kèm toạ độ GPS tuỳ chọn (gói `geolocator`, quyền `ACCESS_FINE_LOCATION`) - chỉ
+  là tín hiệu "on-site"/"off-site" THÊM cho Manager đối chiếu, KHÔNG chặn check-in/out nếu thiếu
+  quyền vị trí. Chi tiết: `Doc/ECAP_Mobile.md` mục 13.2.
+- Giới hạn đã biết và hướng mở rộng: xem mục 14 của `Doc/ECAP_Mobile.md`.
 - Tài khoản demo (Org Admin + Employee) để đăng nhập thử: xem mục 11 của `Doc/ECAP_Mobile.md`.

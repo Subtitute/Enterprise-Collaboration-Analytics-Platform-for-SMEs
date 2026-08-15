@@ -33,9 +33,33 @@ export class Attendance extends AppBaseEntity {
   @Column({ name: 'check_in_photo_object_key', type: 'varchar' })
   checkInPhotoObjectKey: string;
 
+  // 13/08/2026: vi tri GPS luc check-in (Doc/ECAP_Mobile.md muc 13, Technical_Spec.md muc 17) -
+  // CO Y KHONG bat buoc (nullable) va KHONG chan check-in khi thieu/tu choi quyen vi tri - chi la
+  // 1 tin hieu THEM de Manager doi chieu voi anh, khong phai co che thuc thi cung. Xem
+  // AttendanceService.computeIsOnSite() cho ly do day du (do lech GPS trong nha, kha nang gia mao
+  // vi tri tren Android roi) khong dung de CHAN cham cong.
+  @Column({ name: 'check_in_latitude', type: 'double precision', nullable: true })
+  checkInLatitude?: number | null;
+
+  @Column({ name: 'check_in_longitude', type: 'double precision', nullable: true })
+  checkInLongitude?: number | null;
+
+  /** null = khong co toa do (thieu quyen vi tri/toa do van phong chua cau hinh) - KHAC voi false. */
+  @Column({ name: 'check_in_is_on_site', type: 'boolean', nullable: true })
+  checkInIsOnSite?: boolean | null;
+
   @Column({ name: 'check_out_at', type: 'timestamptz', nullable: true })
   checkOutAt?: Date | null;
 
   @Column({ name: 'check_out_photo_object_key', type: 'varchar', nullable: true })
   checkOutPhotoObjectKey?: string | null;
+
+  @Column({ name: 'check_out_latitude', type: 'double precision', nullable: true })
+  checkOutLatitude?: number | null;
+
+  @Column({ name: 'check_out_longitude', type: 'double precision', nullable: true })
+  checkOutLongitude?: number | null;
+
+  @Column({ name: 'check_out_is_on_site', type: 'boolean', nullable: true })
+  checkOutIsOnSite?: boolean | null;
 }

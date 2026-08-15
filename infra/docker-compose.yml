@@ -551,6 +551,12 @@ services:
       MINIO_PUBLIC_PORT: ${MINIO_PUBLIC_PORT:-9010}
       MINIO_PUBLIC_USE_SSL: "false"
       INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
+      # 13/08/2026: toa do van phong cho co "on-site"/"off-site" (Technical_Spec.md muc 17) - de
+      # trong (khong dat OFFICE_LATITUDE/OFFICE_LONGITUDE trong .env) nghia la TAT tinh nang nay
+      # hoan toan (khong tinh toan, khong loi) - dien toa do that vao .env khi co van phong that.
+      OFFICE_LATITUDE: ${OFFICE_LATITUDE:-}
+      OFFICE_LONGITUDE: ${OFFICE_LONGITUDE:-}
+      OFFICE_GEOFENCE_RADIUS_METERS: ${OFFICE_GEOFENCE_RADIUS_METERS:-200}
     # Khong map port ra host, chi Gateway/noi bo moi goi duoc qua internal-net - cung quy uoc
     # voi cac service nghiep vu con lai (Technical_Spec.md muc 8).
     networks: [internal-net]

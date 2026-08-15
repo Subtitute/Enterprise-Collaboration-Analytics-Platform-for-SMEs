@@ -6,21 +6,32 @@ import {
   checkIn,
   checkOut,
   createLeaveRequest,
+  fetchAllAttendance,
   fetchMyAttendance,
   fetchMyLeaveRequests,
   fetchPendingLeaveRequests,
   rejectLeaveRequest,
 } from './api';
 import type { CreateLeaveRequestPayload } from './api';
+import type { CheckInLocation } from './components/CheckInCamera';
 
 export function useMyAttendanceQuery(params: { page?: number; limit?: number } = {}) {
   return useQuery({ queryKey: ['attendance', 'me', params], queryFn: () => fetchMyAttendance(params) });
 }
 
+/** 403 (khong co PERMISSIONS.ATTENDANCE_VIEW) la ket qua BINH THUONG cho Employee - khong retry, mirror usePendingLeaveRequestsQuery(). */
+export function useAllAttendanceQuery() {
+  return useQuery({
+    queryKey: ['attendance', 'all'],
+    queryFn: () => fetchAllAttendance({ limit: 100 }),
+    retry: false,
+  });
+}
+
 export function useCheckIn() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (photo: Blob) => checkIn(photo),
+    mutationFn: ({ photo, location }: { photo: Blob; location?: CheckInLocation }) => checkIn(photo, location),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
       toast.success('Đã chấm công vào làm');
@@ -32,7 +43,7 @@ export function useCheckIn() {
 export function useCheckOut() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (photo: Blob) => checkOut(photo),
+    mutationFn: ({ photo, location }: { photo: Blob; location?: CheckInLocation }) => checkOut(photo, location),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
       toast.success('Đã chấm công ra về');

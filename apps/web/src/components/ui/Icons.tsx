@@ -279,3 +279,11 @@ export const CameraIcon = (p: IconProps) => (
     <circle cx="12" cy="13" r="3.5" />
   </svg>
 );
+
+/** 13/08/2026: danh dau vi tri cham cong (tren/ngoai van phong) - xem AttendancePage.tsx. */
+export const MapPinIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M21 10c0 6.5-9 12-9 12s-9-5.5-9-12a9 9 0 0 1 18 0Z" />
+    <circle cx="12" cy="10" r="3" />
+  </svg>
+);

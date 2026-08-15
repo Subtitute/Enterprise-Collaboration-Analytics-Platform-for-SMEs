@@ -333,7 +333,13 @@ export interface Attendance {
   userId: string;
   workDate: string;
   checkInAt: string;
+  // 13/08/2026: co "on-site"/"off-site" - null = khong co du lieu de danh gia (thieu quyen vi
+  // tri hoac toa do van phong chua cau hinh), KHAC voi false (co toa do, ngoai ban kinh van
+  // phong). Chi la tin hieu THEM cho Manager doi chieu, khong phai co che chan cham cong - xem
+  // Technical_Spec.md muc 17.
+  checkInIsOnSite?: boolean | null;
   checkOutAt?: string | null;
+  checkOutIsOnSite?: boolean | null;
   createdAt: string;
   updatedAt: string;
 }

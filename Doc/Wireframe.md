@@ -217,18 +217,23 @@ Bản mô tả này thay thế khung sườn phác thảo trước đó (ghi tr�
 │ Chấm công                                                     │
 ├──────────────────────────────────────────────────────────────┤
 │ Hôm nay (05/08/2026)                                          │
-│  Đã vào làm lúc 08:15                        [ Check-out 📷 ] │
+│  Đã vào làm lúc 08:15 (Tại văn phòng)        [ Check-out 📷 ] │
 ├──────────────────────────────────────────────────────────────┤
 │ Lịch sử chấm công                                             │
-│ Ngày        Vào làm      Ra về                                │
-│ 05/08/2026  08:15        —                                    │
-│ 04/08/2026  08:20        17:05                                │
+│ Ngày        Vào làm                Ra về                      │
+│ 05/08/2026  08:15 (Tại văn phòng)  —                          │
+│ 04/08/2026  08:20 (Ngoài văn phòng) 17:05 (Tại văn phòng)     │
+├──────────────────────────────────────────────────────────────┤
+│ Chấm công toàn tổ chức          ← CHỈ hiện với Manager/Org Admin │
+│ Nhân viên   Ngày        Vào làm            Ra về               │
+│ An Nguyễn   05/08/2026  08:15 (Văn phòng)  —                   │
 └──────────────────────────────────────────────────────────────┘
 ```
 
 - Bấm "Check-in"/"Check-out" mở **modal camera** (`CheckInCamera.tsx`, mục 9.3) thay vì đi thẳng vào API — bắt buộc chụp 1 ảnh trước khi xác nhận.
 - **Không** hiển thị dạng lịch tháng đánh dấu đi trễ/nghỉ như bản phác thảo ban đầu — đơn giản hoá thành bảng danh sách theo ngày (đủ dùng cho phạm vi đồ án, tránh xây thêm logic tính "đi trễ" chưa có yêu cầu rõ ràng).
 - 1 ngày chỉ check-in/check-out được 1 lần — nút tương ứng biến mất/đổi trạng thái sau khi đã thực hiện, không cho bấm lại (máy chủ cũng từ chối nếu cố gọi API trực tiếp).
+- **(Bổ sung 13/08/2026, Technical_Spec.md §17):** nhãn "Tại văn phòng"/"Ngoài văn phòng" là cờ mềm dựa trên GPS — CHỈ hiện khi có dữ liệu để đánh giá (thiếu quyền vị trí/toạ độ văn phòng chưa cấu hình thì không hiện gì, không phải lỗi), KHÔNG chặn check-in/out. Khối "Chấm công toàn tổ chức" là bảng MỚI, cho Manager/Org Admin đối chiếu cờ này của cả tổ chức (ẩn hoàn toàn với Employee thường, cùng cơ chế 403-tự-ẩn với mục "Chờ duyệt" ở 9.2).
 
 ### 9.2 Trang Nghỉ phép
 
@@ -266,7 +271,7 @@ Bản mô tả này thay thế khung sườn phác thảo trước đó (ghi tr�
 - Xin quyền camera ngay khi mở modal; nếu bị từ chối/không có camera, hiện thông báo rõ ràng kèm nút "Thử lại" thay vì màn hình trắng khó hiểu.
 - Sau khi chụp, hiện lại ảnh vừa chụp với 2 lựa chọn "Chụp lại" hoặc "Xác nhận" — xác nhận mới thực sự gửi lên máy chủ.
 - Camera tự tắt (dừng toàn bộ track) ngay khi đóng modal ở bất kỳ bước nào — không để đèn báo camera bật treo.
-- **Chỉ chụp ảnh làm bằng chứng, KHÔNG nhận diện khuôn mặt** — quyết định đã thống nhất với người dùng, xem lý do đầy đủ tại Technical_Spec.md §17.
+- **Chỉ chụp ảnh làm bằng chứng, KHÔNG nhận diện khuôn mặt** — xem lý do đầy đủ tại Technical_Spec.md §17.
 
 ## 10. Ghi chú Responsive
 
@@ -355,11 +360,12 @@ Toàn bộ bảng dữ liệu (danh sách dự án, tài liệu, thành viên) c
   - **Mục 10 (Ghi chú Responsive):** hành vi "Sidebar thu gọn còn icon" ở breakpoint tablet (`768px–1023px`) đã có trong đặc tả từ 18/07/2026 nhưng CHƯA từng được lập trình (hạ tầng state đã có sẵn nhưng không nơi nào gọi tới) — phát hiện qua đợt review này, nay đã lập trình đúng đặc tả: tự thu gọn khi vào khoảng tablet, tự mở lại khi ra khỏi khoảng đó, TRỪ khi người dùng đã tự tay bật/tắt sidebar thủ công (giữ nguyên lựa chọn của người dùng, không tự ý ghi đè).
   - Thông báo lỗi validate dữ liệu đầu vào (vd nhập sai định dạng email, mật khẩu quá ngắn ở form Mời thành viên/Đăng ký tổ chức) trước đó hiện bằng tiếng Anh — nay hiện bằng tiếng Việt, đúng ClaudeRule.md mục 1 (không phát sinh màn hình/luồng mới, chỉ đổi nội dung thông báo lỗi đã có).
   - Không có màn hình/luồng UI mới nào khác — phần lớn phát hiện của đợt này (leo thang đặc quyền RBAC, nguy cơ sập tiến trình Gateway, sai lệch KPI, hạ tầng Docker/seed script) đều thuộc tầng backend, không đổi giao diện.
-- **2026-07-28 (nâng cấp chất lượng Frontend)** — Đợt nâng cấp đầu tiên trong loạt nâng cấp đã thống nhất với người dùng (chi tiết kỹ thuật đầy đủ ở Technical_Spec.md, mục 2026-07-28). Không có màn hình/bố cục mới nào — thay đổi chủ yếu là chia nhỏ bundle theo route (không ảnh hưởng giao diện), bộ kiểm thử E2E mới, và khả năng tiếp cận (a11y): mọi modal/dialog trong ứng dụng giờ quản lý focus đúng chuẩn (focus vào bên trong khi mở, "nhốt" Tab trong dialog, trả focus khi đóng — không thấy được bằng mắt nhưng thay đổi hành vi thao tác bằng bàn phím), thêm liên kết "Bỏ qua tới nội dung chính" (ẩn, chỉ hiện khi Tab tới), và một loạt `aria-label` cho các control trước đó chỉ nhận diện được bằng mắt (ma trận phân quyền, tìm kiếm, avatar người phụ trách...).
+- **2026-07-28 (nâng cấp chất lượng Frontend)** — Đợt nâng cấp đầu tiên trong loạt nâng cấp đã lên kế hoạch (chi tiết kỹ thuật đầy đủ ở Technical_Spec.md, mục 2026-07-28). Không có màn hình/bố cục mới nào — thay đổi chủ yếu là chia nhỏ bundle theo route (không ảnh hưởng giao diện), bộ kiểm thử E2E mới, và khả năng tiếp cận (a11y): mọi modal/dialog trong ứng dụng giờ quản lý focus đúng chuẩn (focus vào bên trong khi mở, "nhốt" Tab trong dialog, trả focus khi đóng — không thấy được bằng mắt nhưng thay đổi hành vi thao tác bằng bàn phím), thêm liên kết "Bỏ qua tới nội dung chính" (ẩn, chỉ hiện khi Tab tới), và một loạt `aria-label` cho các control trước đó chỉ nhận diện được bằng mắt (ma trận phân quyền, tìm kiếm, avatar người phụ trách...).
 - **2026-07-28 (Dead Letter Queue)** — Hạng mục thứ 2 trong loạt nâng cấp (chi tiết kỹ thuật ở Technical_Spec.md mục 4.5). Duy nhất 1 thay đổi UI-visible: mục 8 (Quản trị hệ thống) có thêm tab "Sự kiện lỗi hệ thống".
 - **2026-07-28 (Access-control tài liệu theo thư mục)** — Hạng mục thứ 3 (chi tiết kỹ thuật ở Technical_Spec.md, mục cùng tên). Mục 5 (Tài liệu) cập nhật: biểu tượng khoá cho thư mục "Hạn chế truy cập", menu `⋮` của thư mục có thêm "Hạn chế truy cập"/"Mở cho cả tổ chức" và "Quản lý chia sẻ" (chỉ hiện với người tạo thư mục/Org Admin), modal chia sẻ (cả thư mục lẫn tệp) có thêm lựa chọn chia sẻ theo Phòng ban bên cạnh Người dùng.
 - **2026-07-28 (KPI theo phòng ban)** — Hạng mục thứ 4 và cuối cùng trước tính năng AI (chi tiết kỹ thuật ở Technical_Spec.md §4.6). Mục 3 (Dashboard) và mục 7 (Báo cáo & Phân tích) đều có lại bộ lọc "Phòng ban" (từng bị gỡ 21/07/2026) — không áp dụng cho biểu đồ xu hướng theo tuần (giới hạn kỹ thuật). Nhân tiện sửa lại mô tả sai lệch ở mục 7 (nguồn dữ liệu thực tế là `fact_task_events`, không phải continuous aggregate như bản mô tả cũ).
 - **2026-07-28 (Kiểm tra tổng thể hệ thống — "ultimate check")** — Trước khi bắt đầu tính năng AI, thực hiện kiểm tra toàn diện toàn hệ thống (chi tiết kỹ thuật đầy đủ ở Technical_Spec.md, mục cùng ngày). Duy nhất 1 thay đổi UI-visible: mục 8 (Quản trị hệ thống) — tab "Sự kiện lỗi hệ thống" có thêm cột "Phạm vi" (xem mục 8 ở trên) sau khi phát hiện một nhóm lỗi DLQ trước đó vô hình hoàn toàn với giao diện.
 - **2026-07-28 (Nhận xét AI)** — Hạng mục đầu tiên của loạt nâng cấp tính năng AI (chi tiết kỹ thuật ở Technical_Spec.md §4.7). Mục 7 (Báo cáo & Phân tích) có thêm thẻ "Nhận xét AI" với nút bấm theo yêu cầu (không tự động) — xem mục 7 ở trên. Không có màn hình/luồng UI mới nào khác.
 - **2026-08-05 (CRM-lite)** — Hạng mục thứ hai trong 2 hạng mục mở rộng còn lại sau khi dự án chuyển sang mô hình 3 người (chi tiết kỹ thuật ở Technical_Spec.md §16). Mục 12 (mới): danh sách khách hàng + Kanban pipeline bán hàng 6 giai đoạn cho từng khách hàng — khác Kanban Công việc (mục 4.2) ở chỗ 4 giai đoạn đầu di chuyển tự do qua lại lẫn nhau, chỉ "Thắng"/"Thua" là trạng thái cuối.
-- **2026-08-05 (HRM-lite, tiếp)** — Hạng mục cuối cùng trong danh sách mở rộng đã thống nhất ban đầu (chi tiết kỹ thuật ở Technical_Spec.md §17). Mục 9 viết lại hoàn toàn (thay thế khung sườn phác thảo từ 18/07/2026) để khớp đúng những gì đã lập trình: bỏ dạng lịch tháng đánh dấu đi trễ/nghỉ (đơn giản hoá thành bảng danh sách), thêm mục 9.3 mô tả modal camera chấm công — component camera đầu tiên của dự án, chỉ chụp ảnh làm bằng chứng, không nhận diện khuôn mặt (quyết định đã thống nhất với người dùng).
+- **2026-08-05 (HRM-lite, tiếp)** — Hạng mục cuối cùng trong danh sách mở rộng đã thống nhất ban đầu (chi tiết kỹ thuật ở Technical_Spec.md §17). Mục 9 viết lại hoàn toàn (thay thế khung sườn phác thảo từ 18/07/2026) để khớp đúng những gì đã lập trình: bỏ dạng lịch tháng đánh dấu đi trễ/nghỉ (đơn giản hoá thành bảng danh sách), thêm mục 9.3 mô tả modal camera chấm công — component camera đầu tiên của dự án, chỉ chụp ảnh làm bằng chứng, không nhận diện khuôn mặt (xem Technical_Spec.md §17).
+- **2026-08-13 (cờ vị trí chấm công)** — Mục 9.1 cập nhật: nhãn "Tại văn phòng"/"Ngoài văn phòng" (cờ mềm dựa trên GPS, không chặn check-in/out) trên khối "Hôm nay"/"Lịch sử chấm công", cộng thêm khối bảng mới "Chấm công toàn tổ chức" chỉ hiện với Manager/Org Admin (cùng cơ chế 403-tự-ẩn với "Chờ duyệt" ở mục 9.2). Chi tiết kỹ thuật đầy đủ ở Technical_Spec.md §17 (mục bổ sung 13/08/2026).

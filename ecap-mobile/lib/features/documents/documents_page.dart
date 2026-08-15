@@ -12,8 +12,7 @@ import '../../models/paginated_response.dart';
 /// Tai lieu (Doc/ECAP_Mobile.md muc 12) - duyet cay thu muc, xem file NGAY tren dien
 /// thoai/trinh duyet (dung HET co che "Xem tep" disposition=inline ma web da co, khong render
 /// PDF rieng trong app) va tai file moi len. KHONG tao/xoa/doi ten thu muc, khong quan ly chia
-/// se - cac thao tac quan tri tai lieu do van tu nhien hon tren web, giu dung pham vi da thong
-/// nhat voi nguoi dung.
+/// se - cac thao tac quan tri tai lieu do van tu nhien hon tren web, giu dung pham vi da chon.
 class DocumentsPage extends StatefulWidget {
   final ApiClient apiClient;
   final String? folderId;

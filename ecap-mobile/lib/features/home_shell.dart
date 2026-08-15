@@ -9,8 +9,8 @@ import 'notifications/notifications_page.dart';
 import 'tasks/tasks_page.dart';
 
 /// Khung dieu huong chinh - 6 tab: cham cong, nghi phep, cong viec, tai lieu, thong bao, ho so.
-/// 12/08/2026 (Doc/ECAP_Mobile.md muc 12): them Cong viec/Tai lieu sau khi ra soat lai pham vi
-/// voi nguoi dung - Employee von da co quyen xem/cap nhat task va xem/tai tai lieu tren web
+/// 12/08/2026 (Doc/ECAP_Mobile.md muc 12): them Cong viec/Tai lieu sau khi ra soat lai pham vi -
+/// Employee von da co quyen xem/cap nhat task va xem/tai tai lieu tren web
 /// (packages/common-dto/src/enums/permission.enum.ts), pham vi "focused companion app" ban dau
 /// bo sot 2 tinh nang nay du khong lien quan admin/bieu do. CRM (Deal) CO Y bi loai khoi app -
 /// quan ly pipeline ban hang khong phai thao tac tu nhien tren dien thoai, xem tranh luan trong

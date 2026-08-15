@@ -112,7 +112,8 @@ ecap-mobile/
   lib/
     main.dart                      # Diem vao - quyet dinh Login hay Home dua tren AuthSession
     core/
-      app_config.dart              # Hang so URL Gateway (LAN)
+      app_config.dart              # Hang so fallback + URL cau hinh Gateway tu xa (muc 13.1)
+      gateway_config.dart          # Giai quyet dia chi Gateway hien tai luc khoi dong app (muc 13.1)
       api_client.dart              # Dio + cookie jar + refresh-on-401 + upload anh multipart
       auth_session.dart            # Trang thai dang nhap trong bo nho (ChangeNotifier)
       date_format.dart             # Quy doi GMT+7 (ClaudeRule.md muc 4), khong dung thu vien timezone
@@ -127,7 +128,7 @@ ecap-mobile/
       notifications/notifications_page.dart
       home_shell.dart              # Bottom navigation 6 tab + tab Ho so/dang xuat
   android/                         # Du an Android sinh boi `flutter create --platforms=android`
-  test/widget_test.dart            # Test don vi cho ham thuan tuy (date/label) - xem muc 13
+  test/widget_test.dart            # Test don vi cho ham thuan tuy (date/label) - xem muc 14
 ```
 
 Không sinh các thư mục nền tảng khác (`ios/`, `web/`, `windows/`...) — `flutter create` chạy
@@ -140,8 +141,8 @@ với `--platforms=android`, đúng phạm vi "không có ngân sách iOS" đã 
 | POST | `/api/v1/auth/login` | `LoginPage` |
 | POST | `/api/v1/auth/refresh` | `ApiClient.tryAutoLogin()`, tự động khi gặp `401` |
 | POST | `/api/v1/auth/logout` | Tab Hồ sơ |
-| POST | `/api/v1/attendance/check-in` (multipart, field `photo`) | `AttendancePage` |
-| POST | `/api/v1/attendance/check-out` (multipart, field `photo`) | `AttendancePage` |
+| POST | `/api/v1/attendance/check-in` (multipart, field `photo` + field text tuỳ chọn `latitude`/`longitude`) | `AttendancePage` |
+| POST | `/api/v1/attendance/check-out` (multipart, field `photo` + field text tuỳ chọn `latitude`/`longitude`) | `AttendancePage` |
 | GET | `/api/v1/attendance/me` | `AttendancePage` |
 | POST | `/api/v1/leave-requests` | `LeaveRequestsPage` (dialog tạo mới) |
 | GET | `/api/v1/leave-requests/me` | `LeaveRequestsPage` |
@@ -248,7 +249,7 @@ Bổ sung 08/08/2026: đặt tên hiển thị chính thức và icon cho ứng 
   `android/app/src/main/res/`. Lệnh sinh icon: `flutter pub run flutter_launcher_icons` — lưu ý
   dùng `flutter pub run` chứ KHÔNG phải `dart run flutter_launcher_icons`, vì `dart run` (khác
   với các lệnh con của `flutter`) gọi một bước kiểm tra phiên bản engine cần `git`, và máy phát
-  triển hiện chưa cài Git (xem mục 13).
+  triển hiện chưa cài Git (xem mục 14).
 
 **Xác minh:** rebuild `flutter build apk --debug` thành công; dùng `aapt dump badging` trên APK
 đã build xác nhận đúng `application: label='CollabNAnalytic'` và
@@ -260,8 +261,8 @@ Bối cảnh: cộng tác viên Nguyễn Lê Tiến thử đăng nhập bằng C
 với máy chạy Docker Compose — theo đúng thiết kế ở mục 4, trường hợp này KHÔNG kết nối được
 (`192.168.1.40` là địa chỉ LAN riêng, không định tuyến được từ bên ngoài mạng đó; đây không phải
 lỗi, xác nhận qua `ApiClient._toApiException()` rơi đúng vào nhánh "không có response" khi test).
-Theo yêu cầu người dùng, giải pháp được chọn là mở một tunnel công khai thay vì VPN hay triển
-khai lên máy chủ thật (nằm ngoài phạm vi/thời gian hiện có).
+Giải pháp được chọn là mở một tunnel công khai thay vì VPN hay triển khai lên máy chủ thật (nằm
+ngoài phạm vi/thời gian hiện có).
 
 - **Công cụ:** `cloudflared` (Cloudflare Tunnel), tải trực tiếp binary Windows từ GitHub release
   (`C:\D\cloudflared\cloudflared.exe`) — không cần cài đặt qua trình cài đặt, không cần tài
@@ -341,10 +342,10 @@ ngay từ đầu, không gặp lại vấn đề này.
 
 ## 12. Mở rộng phạm vi — Công việc & Tài liệu (12/08/2026)
 
-**Bối cảnh:** sau khi dùng thử CNA, người dùng đặt câu hỏi vì sao ứng dụng không có đầy đủ chức
-năng như web (không yêu cầu biểu đồ, nhưng muốn "ít nhất có đủ chức năng"), và lưu ý tài khoản
-Employee trên web có nhiều hơn 4 tính năng đã đưa vào CNA. Trước khi sửa code, hai bên tranh
-luận về phạm vi (không triển khai ngay) — kết luận rút ra từ tra cứu trực tiếp
+**Bối cảnh:** sau khi dùng thử CNA, nảy sinh câu hỏi vì sao ứng dụng không có đầy đủ chức năng
+như web (không cần biểu đồ, nhưng ít nhất cần đủ chức năng), và nhận thấy tài khoản
+Employee trên web có nhiều hơn 4 tính năng đã đưa vào CNA. Trước khi sửa code, cân nhắc lại
+phạm vi (không triển khai ngay) — kết luận rút ra từ tra cứu trực tiếp
 `packages/common-dto/src/enums/permission.enum.ts` thay vì suy đoán:
 
 - Giả định ban đầu khi scaffold CNA (mục 2) — coi Dự án/Công việc và Tài liệu là "việc bàn giấy,
@@ -398,7 +399,7 @@ tảng — endpoint đều đã tồn tại sẵn và được `apps/web` dùng 
   từ chối build (cảnh báo rõ trong log, chưa phải lỗi) và thực tế build thất bại thật trên máy
   này (thiếu class `FilePickerPlugin` lúc biên dịch) — hạ xuống bản `10.3.10` (bản `10.3.11` mới
   hơn đã bị chính nhà phát triển gói rút lại - "retracted" trên pub.dev) build thành công, chỉ
-  còn cảnh báo (không phải lỗi) về Kotlin Gradle Plugin, xem thêm mục 13.
+  còn cảnh báo (không phải lỗi) về Kotlin Gradle Plugin, xem thêm mục 14.
 
 **Xác minh:** `flutter analyze` (0 lỗi), `flutter test` (2/2 qua, không đổi so với trước),
 `flutter build apk --debug` build thành công (~164 MB, chưa tối ưu/minify — tăng so với bản
@@ -408,7 +409,7 @@ trước do 2 phụ thuộc mới). Chưa thử trên thiết bị Android thậ
 mới) — bước tiếp theo hợp lý trước khi dùng để trình bày, giống lưu ý đã có ở mục 7 cho bản đầu
 tiên.
 
-**Rà soát ngay sau đó (cùng ngày 12/08/2026), theo yêu cầu người dùng:** đọc lại toàn bộ mã
+**Rà soát ngay sau đó (cùng ngày 12/08/2026):** đọc lại toàn bộ mã
 nguồn (không chỉ dựa vào `flutter analyze`, vốn không bắt được lỗi logic) để xác nhận "chạy ổn
 hay không", phát hiện và sửa 2 vấn đề thật:
 
@@ -423,11 +424,64 @@ hay không", phát hiện và sửa 2 vấn đề thật:
 Xác minh lại sau khi sửa: `flutter analyze` (0 lỗi), `flutter test` (2/2 qua), `flutter build apk
 --debug` build lại thành công.
 
-## 13. Giới hạn đã biết & hướng mở rộng
+## 13. Kết nối bền vững & cờ vị trí chấm công (13/08/2026)
 
-- Địa chỉ Gateway trong `app_config.dart` hiện là URL tunnel Cloudflare tạm thời (mục 10) —
-  KHÔNG cố định, đổi mỗi khi tiến trình `cloudflared` khởi động lại, đòi hỏi build lại APK mỗi
-  lần đổi. Không có màn hình cài đặt để nhập địa chỉ Gateway từ giao diện (phải sửa code).
+Hai hạng mục riêng, cùng ngày.
+
+### 13.1. Địa chỉ Gateway không cần build lại APK mỗi khi tunnel đổi URL
+
+Vấn đề còn tồn đọng từ mục 10: Cloudflare Tunnel loại "quick tunnel" đổi URL mỗi khi khởi động
+lại — trước đây mỗi lần đổi phải sửa `AppConfig.gatewayBaseUrl`, build lại APK, cài lại cho từng
+người dùng. Giải pháp: `GatewayConfig.resolveBaseUrl()` (`lib/core/gateway_config.dart`) đọc địa
+chỉ Gateway từ 1 file JSON công khai nhỏ lúc khởi động app, theo thứ tự ưu tiên:
+
+1. Fetch `AppConfig.remoteConfigUrl` thật (timeout 5 giây, không chặn khởi động app quá lâu nếu
+   mạng chậm/không có mạng).
+2. Nếu fetch thất bại: dùng giá trị đã cache cục bộ từ lần fetch thành công gần nhất (file
+   `.gateway_base_url` trong thư mục tài liệu ứng dụng).
+3. Nếu cả 2 bước trên đều không có giá trị (cài app lần đầu, chưa từng fetch thành công, và
+   không có mạng ngay lúc đó): dùng `AppConfig.fallbackGatewayBaseUrl` (hằng số, giống cơ chế cũ).
+
+**Cách thiết lập** (làm 1 lần duy nhất):
+
+1. Tạo 1 Gist công khai trên `gist.github.com` (cần tài khoản GitHub — không thể tự động hoá
+   bước này, cần con người xác nhận danh tính), tên file bất kỳ (vd `ecap-gateway-config.json`),
+   nội dung:
+   ```json
+   { "gatewayBaseUrl": "https://ten-tunnel-hien-tai.trycloudflare.com/api/v1" }
+   ```
+2. Lấy URL "Raw" của Gist (dạng `https://gist.githubusercontent.com/<user>/<id>/raw/<filename>`
+   — KHÔNG kèm mã hash phiên bản trong đường dẫn, để URL này luôn trỏ tới bản MỚI NHẤT thay vì
+   đóng băng ở bản lúc tạo).
+3. Điền URL đó vào `AppConfig.remoteConfigUrl` (`lib/core/app_config.dart`), build lại APK **1
+   LẦN DUY NHẤT** để kích hoạt cơ chế này.
+4. Từ đó về sau, mỗi khi tunnel Cloudflare khởi động lại (URL đổi): chỉ cần sửa lại nội dung
+   Gist (trực tiếp trên `gist.github.com`, kể cả từ trình duyệt điện thoại — không cần máy tính,
+   không cần Git) — APK đã cài trên máy mọi người tự nhận địa chỉ mới ở lần mở app tiếp theo,
+   **không cần build lại/cài lại**.
+
+Vẫn cần Docker Compose + tunnel đang chạy trên máy phát triển để app thực sự kết nối được — cơ
+chế này chỉ giải quyết "APK biết địa chỉ nào để gọi", KHÔNG giải quyết "địa chỉ đó có đang hoạt
+động hay không" (vẫn phụ thuộc máy phát triển bật, giống mục 10).
+
+### 13.2. Cờ "on-site"/"off-site" cho chấm công (soft flag, không chặn check-in/out)
+
+Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §17 (mục bổ sung 13/08/2026). Tóm tắt riêng phần
+liên quan `ecap-mobile`: `AttendancePage` gửi kèm toạ độ GPS (gói `geolocator`, quyền Android
+`ACCESS_FINE_LOCATION`) cùng lúc chụp ảnh check-in/out — HOÀN TOÀN TUỲ CHỌN, không chặn cham
+công nếu thiếu quyền/dịch vụ vị trí tắt/timeout (xem `_getCurrentLocationSoft()`). Kết quả
+("Tại văn phòng"/"Ngoài văn phòng", hoặc không hiện gì nếu chưa có dữ liệu để đánh giá) hiển thị
+ngay trên màn hình "Hôm nay" và lịch sử chấm công cá nhân — không phải điều kiện chặn, chỉ là
+tín hiệu thêm cùng cấp với ảnh, để Manager tự đối chiếu trên web (bảng "Chấm công toàn tổ chức"
+mới ở `AttendancePage.tsx`, `apps/web`). Áp dụng CẢ web lẫn mobile — cố ý, nếu chỉ mobile có cờ
+này thì ai cũng có thể né bằng cách luôn chấm công qua web.
+
+## 14. Giới hạn đã biết & hướng mở rộng
+
+- Địa chỉ Gateway gốc (tunnel Cloudflare, mục 10) vẫn đổi mỗi khi `cloudflared` khởi động lại —
+  mục 13.1 đã bỏ được bước "build lại APK" mỗi lần đổi, nhưng vẫn cần 1 bước thủ công (sửa Gist)
+  và không có màn hình cài đặt để nhập địa chỉ Gateway ngay trong app (phải sửa qua
+  `gist.github.com`, ngoài ứng dụng).
 - Không có test widget cho các màn hình gọi mạng thật (`LoginPage`, `AttendancePage`,
   `LeaveRequestsPage`, `NotificationsPage`) — cần mock `Dio`/`path_provider` để test cô lập,
   chưa thực hiện trong bản đầu.
@@ -435,8 +489,14 @@ Xác minh lại sau khi sửa: `flutter analyze` (0 lỗi), `flutter test` (2/2 
 - Duyệt/từ chối nghỉ phép (phía Manager) không có trên mobile — xem mục 2.
 - Không có phiên bản `--release` đã ký (signing key) — bản `debug` đủ dùng để cài thử/trình bày
   qua `adb install`, nhưng không phù hợp phân phối thật.
-- Không có git repository được khởi tạo cho `ecap-mobile` tại thời điểm viết tài liệu này (máy
-  phát triển hiện chưa cài Git) — sẽ do người phụ trách dự án tự khởi tạo khi cần.
+- Cờ "on-site"/"off-site" (mục 13.2) dựa vào GPS của thiết bị — có thể bị giả mạo qua ứng dụng
+  giả lập vị trí khi bật Tuỳ chọn nhà phát triển trên Android, và độ chính xác GPS trong nhà có
+  thể lệch vài chục mét. Đây là lý do thiết kế CỐ Ý không dùng để chặn check-in/out (xem
+  `Technical_Spec.md` §17) — chấp nhận được vì chỉ là tín hiệu tham khảo, không phải kiểm soát an
+  ninh. Web/mobile cũng chưa có màn hình xem lại ảnh chấm công của người khác (endpoint
+  `GET /attendance/:id/photo` đã có sẵn từ trước nhưng chưa được gọi ở bảng "Chấm công toàn tổ
+  chức" mới) — Manager hiện chỉ đối chiếu được cờ vị trí, chưa xem trực tiếp ảnh trên cùng màn
+  hình.
 - Vai trò Manager/Employee của các tổ chức khác (nếu có, đăng ký trước 04-05/08/2026) có thể
   gặp đúng lỗi thiếu quyền mô tả ở mục 11 — cần rà soát/cập nhật tương tự nếu phát hiện.
 - **Công việc** (mục 12): chỉ xem/đổi trạng thái Task đã được giao — không tạo Task mới dù
@@ -456,17 +516,17 @@ Xác minh lại sau khi sửa: `flutter analyze` (0 lỗi), `flutter test` (2/2 
   cơ chế xác thực cookie hiện có qua `dio` + `cookie_jar` (không sửa backend), gọi trực tiếp
   Gateway qua Wi-Fi/LAN (không cần cáp USB/`adb reverse`), phạm vi giới hạn ở chấm công/nghỉ
   phép/thông báo. Xác minh: `flutter analyze`/`flutter test` sạch, build APK debug thành công.
-- **2026-08-07 (rà soát lỗi)** — Rà soát toàn bộ mã nguồn theo yêu cầu người dùng, phát hiện và
+- **2026-08-07 (rà soát lỗi)** — Rà soát toàn bộ mã nguồn, phát hiện và
   sửa 4 lỗi thật (1 lỗi khiến app vỡ trên mọi lỗi validate dữ liệu, 1 lỗi có thể lặp vô hạn khi
   refresh token, 2 lỗi UX). Chi tiết đầy đủ ở mục 8 (mới). Bổ sung `README.md` cho `ecap-mobile`
   (trước đó vẫn là README mặc định do `flutter create` sinh ra).
 - **2026-08-08 (thương hiệu)** — Đặt tên chính thức "CollabNAnalytic" (viết tắt "CNA") và icon
-  (từ `Pic/Icon.png` của repo chính) cho ứng dụng, theo yêu cầu người dùng. Chi tiết đầy đủ ở
+  (từ `Pic/Icon.png` của repo chính) cho ứng dụng. Chi tiết đầy đủ ở
   mục 9 (mới, các mục sau dịch xuống 1 số). Xác minh bằng `aapt dump badging` trên APK debug đã
   build lại.
 - **2026-08-10 (Cloudflare Tunnel + sửa lỗi RBAC)** — Cộng tác viên Nguyễn Lê Tiến không kết nối
   được bằng CNA vì không cùng Wi-Fi/LAN với máy chạy Docker Compose (đúng thiết kế ban đầu, xem
-  mục 4). Theo yêu cầu người dùng, mở Cloudflare Tunnel (quick tunnel, không cần tài khoản) trỏ
+  mục 4). Mở Cloudflare Tunnel (quick tunnel, không cần tài khoản) trỏ
   vào Gateway để CNA kết nối được qua Internet — chi tiết đầy đủ, gồm cảnh báo về tính tạm thời
   của URL và đánh đổi bảo mật, ở mục 11 (mới). Trong lúc xác minh, phát hiện và sửa 1 vấn đề dữ
   liệu thật (không phải lỗi code): vai trò Manager/Employee của tổ chức demo cố định thiếu toàn
@@ -474,8 +534,8 @@ Xác minh lại sau khi sửa: `flutter analyze` (0 lỗi), `flutter test` (2/2 
   tiết đầy đủ, gồm danh sách tài khoản demo, ở mục 12 (mới). Các mục giới hạn/lịch sử dịch số
   tương ứng. Xác minh: đăng nhập + chấm công thật thành công đầu-cuối qua tunnel bằng tài khoản
   Employee sau khi sửa quyền.
-- **2026-08-12 (mở rộng phạm vi — Công việc & Tài liệu)** — Sau khi dùng thử CNA, người dùng đặt
-  câu hỏi vì sao ứng dụng thiếu nhiều chức năng so với web; tranh luận về phạm vi trước khi sửa
+- **2026-08-12 (mở rộng phạm vi — Công việc & Tài liệu)** — Sau khi dùng thử CNA, nảy sinh
+  câu hỏi vì sao ứng dụng thiếu nhiều chức năng so với web; cân nhắc lại phạm vi trước khi sửa
   code, đối chiếu trực tiếp `DEFAULT_ROLE_PERMISSIONS` của vai trò Employee thay vì suy đoán —
   phát hiện phạm vi ban đầu (mục 2) hẹp hơn mức Employee thực sự được phép làm trên web (có
   quyền Task/Document nhưng CNA chưa có màn hình tương ứng). Quyết định: thêm `TasksPage` (xem +
@@ -487,9 +547,9 @@ Xác minh lại sau khi sửa: `flutter analyze` (0 lỗi), `flutter test` (2/2 
   Internet (11→10) và Tài khoản demo & RBAC (12→11) dịch số tương ứng. Xác minh: `flutter
   analyze`/`flutter test` sạch, `flutter build apk --debug` thành công.
 - **2026-08-12 (rà soát mã nguồn + chuyển `ecap-mobile/` và `Doc/` vào repo Git chính)** — Hai
-  yêu cầu riêng trong cùng ngày. (1) Theo yêu cầu người dùng, rà soát lại toàn bộ mã nguồn
+  việc riêng trong cùng ngày. (1) Rà soát lại toàn bộ mã nguồn
   `ecap-mobile` (không chỉ dựa vào `flutter analyze`) ngay sau khi thêm Công việc/Tài liệu ở
-  trên — phát hiện và sửa 2 vấn đề, chi tiết ở cuối mục 12. (2) Theo yêu cầu người dùng, đưa cả
+  trên — phát hiện và sửa 2 vấn đề, chi tiết ở cuối mục 12. (2) Đưa cả
   `ecap-mobile/` và `Doc/` (trừ `ClaudeRule.md` — chỉ dẫn nội bộ cho trợ lý AI, không phải tài
   liệu dự án, thêm vào `.gitignore`) vào lịch sử Git của repo `Enterprise Collaboration and
   Analytics Platform for SMEs` — máy phát triển không có `git` cài đặt độc lập, dùng bản `git`
@@ -499,10 +559,18 @@ Xác minh lại sau khi sửa: `flutter analyze` (0 lỗi), `flutter test` (2/2 
   con ở gốc repo. Đây là lý do đoạn mở đầu tài liệu và mục 1 được viết lại: ranh giới "tách
   biệt" của `ecap-mobile` luôn nằm ở TẦNG MÃ NGUỒN/BUILD (không import, không chung dependency,
   không chung Docker image) — quyết định ban đầu (06/08/2026) đặt nó cùng cấp vật lý với repo là
-  một lựa chọn KHÁC, độc lập với ranh giới đó, và nay đã đổi theo đúng yêu cầu người dùng
-  ("commit vào repo hiện tại của dự án") mà không ảnh hưởng gì tới ranh giới mã nguồn/build nói
+  một lựa chọn KHÁC, độc lập với ranh giới đó, và nay đã đổi để đưa vào cùng lịch sử Git của repo
+  chính mà không ảnh hưởng gì tới ranh giới mã nguồn/build nói
   trên. `ecap-mobile/.gitignore` (do `flutter create` sinh sẵn) tiếp tục loại trừ đúng
   `build/`/`.dart_tool/`/`.idea/`/... như trước, không cần sửa gì thêm vì Git áp dụng file
   `.gitignore` lồng nhau theo đúng thư mục chứa nó. Xác minh: `git status` sau khi di chuyển +
   trước khi commit xác nhận đúng tập file dự kiến (không có `ClaudeRule.md`, không có artifact
   build của Flutter/Android).
+- **2026-08-13 (kết nối bền vững + cờ vị trí chấm công)** — Hai hạng mục riêng, cùng ngày. (1)
+  `GatewayConfig.resolveBaseUrl()` (mới) — địa chỉ Gateway đọc từ 1 file JSON công khai lúc khởi
+  động app thay vì hardcode, giải quyết dứt điểm việc phải build lại APK mỗi khi tunnel
+  Cloudflare đổi URL. (2) Cờ "on-site"/"off-site" (soft flag) cho chấm công — gửi kèm toạ độ GPS
+  tuỳ chọn cùng ảnh check-in/out, không chặn cham công nếu thiếu. Chi tiết đầy đủ, gồm hướng dẫn
+  thiết lập Gist và lý do thiết kế soft flag, ở mục 13 (mới). Xác minh: `flutter analyze`/
+  `flutter test`/`flutter build apk --debug` đều sạch; build+test toàn workspace của nền tảng
+  cũng sạch (backend + `apps/web` cùng áp dụng cờ vị trí, xem `Technical_Spec.md` mục cùng ngày).

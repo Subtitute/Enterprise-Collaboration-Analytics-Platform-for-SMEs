@@ -44,8 +44,13 @@ dependencies:
   path_provider: ^2.1.4
 
   # Chup anh cham cong bang camera that cua dien thoai (photo-proof, khong nhan dien khuon mat -
-  # cung 1 quyet dinh da thong nhat khi xay CheckInCamera.tsx o web).
+  # xem CheckInCamera.tsx o web).
   image_picker: ^1.1.2
+
+  # 13/08/2026: lay vi tri GPS luc cham cong (Technical_Spec.md muc 17) - CHI la tin hieu THEM
+  # cho Manager doi chieu, khong bat buoc/khong chan cham cong neu thieu quyen - xem
+  # attendance_page.dart va AttendanceService.computeIsOnSite() o backend.
+  geolocator: ^13.0.2
 
   intl: ^0.19.0
 
