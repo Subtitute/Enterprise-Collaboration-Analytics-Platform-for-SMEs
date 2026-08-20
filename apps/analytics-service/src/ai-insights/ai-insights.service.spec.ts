@@ -150,4 +150,64 @@ describe('AiInsightsService', () => {
 
     expect(result.insight).toBe('Nhan xet gia lap.');
   });
+
+  // 20/08/2026: nhom test cho phuong an du phong Groq (xem AiInsightsService.generateText()) -
+  // Gemini that bai/qua tai, tu dong chuyen sang Groq neu da cau hinh GROQ_API_KEY.
+  describe('phuong an du phong Groq', () => {
+    beforeEach(() => {
+      configServiceMock.get.mockImplementation((key: string) => {
+        if (key === 'gemini.apiKey') return 'fake-gemini-key';
+        if (key === 'gemini.model') return 'gemini-2.5-flash';
+        if (key === 'groq.apiKey') return 'fake-groq-key';
+        if (key === 'groq.model') return 'openai/gpt-oss-120b';
+        return undefined;
+      });
+    });
+
+    it('chuyen sang Groq va van tra ve ket qua khi Gemini that bai (vd 503 qua tai)', async () => {
+      fetchMock
+        .mockResolvedValueOnce({ ok: false, status: 503, text: async () => 'Gemini qua tai' })
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ choices: [{ message: { content: 'Nhan xet tu Groq.' } }] }),
+        });
+
+      const result = await service.generateInsight('org-1', '7d');
+
+      expect(result.insight).toBe('Nhan xet tu Groq.');
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      const [groqUrl, groqOptions] = fetchMock.mock.calls[1];
+      expect(groqUrl).toBe('https://api.groq.com/openai/v1/chat/completions');
+      expect((groqOptions as RequestInit).headers).toMatchObject({ Authorization: 'Bearer fake-groq-key' });
+      const body = JSON.parse((groqOptions as RequestInit).body as string);
+      expect(body.model).toBe('openai/gpt-oss-120b');
+      expect(body.reasoning_effort).toBe('low');
+    });
+
+    it('nem ServiceUnavailableException khi CA Gemini lan Groq du phong deu that bai', async () => {
+      fetchMock
+        .mockResolvedValueOnce({ ok: false, status: 503, text: async () => 'Gemini qua tai' })
+        .mockResolvedValueOnce({ ok: false, status: 503, text: async () => 'Groq cung qua tai' });
+
+      await expect(service.generateInsight('org-1', '7d')).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('goi thang Groq, KHONG goi Gemini, khi chi cau hinh GROQ_API_KEY', async () => {
+      configServiceMock.get.mockImplementation((key: string) => {
+        if (key === 'groq.apiKey') return 'fake-groq-key';
+        if (key === 'groq.model') return 'openai/gpt-oss-120b';
+        return undefined;
+      });
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: 'Chi Groq.' } }] }),
+      });
+
+      const result = await service.generateInsight('org-1', '7d');
+
+      expect(result.insight).toBe('Chi Groq.');
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+  });
 });

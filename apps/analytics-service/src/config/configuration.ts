@@ -29,4 +29,12 @@ export default () => ({
     apiKey: process.env.GEMINI_API_KEY,
     model: process.env.GEMINI_MODEL ?? 'gemini-flash-latest',
   },
+  // 20/08/2026: phuong an du phong TU DONG cho "Nhan xet AI" khi Gemini loi/qua tai (xem
+  // AiInsightsService.generateText()) - Groq (console.groq.com) dung phan cung suy luan chuyen
+  // dung, free tier it bi loi 503 "qua tai" hon Gemini. apiKey RONG cung la trang thai HOP LE,
+  // cung quy uoc voi gemini o tren.
+  groq: {
+    apiKey: process.env.GROQ_API_KEY,
+    model: process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b',
+  },
 });

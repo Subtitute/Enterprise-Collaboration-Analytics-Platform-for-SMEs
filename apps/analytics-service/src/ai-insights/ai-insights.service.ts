@@ -21,13 +21,17 @@ export interface AiInsightResult {
 // nut nhieu lan lien tiep (vd de xem lai) khong ton them 1 lan goi API nao.
 const INSIGHT_CACHE_TTL_SECONDS = 1800;
 const TOP_PROJECTS_LIMIT = 5;
-const GEMINI_TIMEOUT_MS = 15000;
+const AI_PROVIDER_TIMEOUT_MS = 15000;
 // 04/08/2026: nang tu 400 len 2048 sau khi xac minh song - cac model Gemini hien tai (vd
 // gemini-flash-latest) tinh ca "thinking token" (suy luan noi bo, khong hien thi) vao chung
 // maxOutputTokens. Muc 400 truoc day bi thinking chiem gan het, cat cut doan van tra ve giua
 // chung (finishReason=MAX_TOKENS). Can du choi cho thinking (~250-500 token quan sat duoc) +
 // doan van 3-5 cau thuc te.
 const GEMINI_MAX_OUTPUT_TOKENS = 2048;
+// 20/08/2026: cung muc voi Gemini o tren, cung ly do - openai/gpt-oss-120b (Groq) cung la model
+// suy luan, tinh "reasoning token" vao chung max_tokens. Dat reasoning_effort: 'low' luc goi (xem
+// callGroq) de giam bot phan nay, nhung van giu ngan sach rong de an toan.
+const GROQ_MAX_OUTPUT_TOKENS = 2048;
 
 const RANGE_LABELS: Record<string, string> = {
   '7d': '7 ngày gần nhất',
@@ -71,10 +75,11 @@ export class AiInsightsService {
       );
     }
 
-    const apiKey = this.configService.get<string>('gemini.apiKey');
-    if (!apiKey) {
+    const geminiApiKey = this.configService.get<string>('gemini.apiKey');
+    const groqApiKey = this.configService.get<string>('groq.apiKey');
+    if (!geminiApiKey && !groqApiKey) {
       throw new ServiceUnavailableException(
-        'Tinh nang Nhan xet AI chua duoc cau hinh (thieu GEMINI_API_KEY) - lien he quan tri he thong.',
+        'Tinh nang Nhan xet AI chua duoc cau hinh (thieu ca GEMINI_API_KEY lan GROQ_API_KEY) - lien he quan tri he thong.',
       );
     }
 
@@ -85,7 +90,7 @@ export class AiInsightsService {
     ]);
 
     const prompt = buildPrompt(range, summary, breakdown, projects, departmentName);
-    const insightText = await this.callGemini(apiKey, prompt);
+    const insightText = await this.generateText(prompt, geminiApiKey, groqApiKey);
     const result: AiInsightResult = { insight: insightText, generatedAt: new Date().toISOString() };
 
     try {
@@ -100,17 +105,47 @@ export class AiInsightsService {
   }
 
   /**
+   * 20/08/2026: Gemini free tier thinh thoang tra ve 503 "qua tai" khi Google gap spike nhu cau
+   * toan cuc (anh huong moi tier, khong rieng free - da xac minh qua log thuc te) - them Groq
+   * (phan cung suy luan chuyen dung LPU, free tier it bi nghen hon vi khong dung chung GPU pool)
+   * lam phuong an du phong TU DONG thay vi bat nguoi dung phai bam thu lai. Uu tien Gemini truoc
+   * (van phong tieng Viet tot hon, model doc quyen lon hon), chi rot xuong Groq khi Gemini
+   * loi/chua cau hinh. Chi khi CA HAI deu that bai/chua cau hinh moi thuc su bao loi.
+   */
+  private async generateText(prompt: string, geminiApiKey?: string, groqApiKey?: string): Promise<string> {
+    if (geminiApiKey) {
+      try {
+        return await this.callGemini(geminiApiKey, prompt);
+      } catch (err) {
+        this.logger.warn(`Gemini that bai, thu Groq du phong (neu co cau hinh): ${(err as Error).message}`);
+      }
+    }
+    if (groqApiKey) {
+      try {
+        return await this.callGroq(groqApiKey, prompt);
+      } catch (err) {
+        this.logger.error(`Groq (du phong) cung that bai: ${(err as Error).message}`);
+      }
+    }
+    throw new ServiceUnavailableException('Khong the tao nhan xet AI luc nay, vui long thu lai sau.');
+  }
+
+  /**
    * Goi truc tiep REST API cua Gemini qua `fetch` co san cua Node 20 (xem package.json
    * "engines") thay vi them SDK `@google/genai` - endpoint nay chi la 1 lan POST/JSON don gian,
    * them SDK cho 1 lan goi duy nhat la khong can thiet (dung dinh huong "toi gian" cua du an -
    * ClaudeRule.md muc 8).
+   *
+   * 20/08/2026: nem Error thuong (khong phai ServiceUnavailableException) - loi o day duoc
+   * generateText() bat va co the rot xuong Groq du phong, nem thang HTTP exception o day se lam
+   * loi vuot qua ca bau du phong.
    */
   private async callGemini(apiKey: string, prompt: string): Promise<string> {
     const model = this.configService.get<string>('gemini.model');
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT_MS);
+    const timeout = setTimeout(() => controller.abort(), AI_PROVIDER_TIMEOUT_MS);
 
     let response: Response;
     try {
@@ -124,16 +159,14 @@ export class AiInsightsService {
         signal: controller.signal,
       });
     } catch (err) {
-      this.logger.error(`Goi Gemini API that bai (mang/timeout): ${(err as Error).message}`);
-      throw new ServiceUnavailableException('Khong the tao nhan xet AI luc nay, vui long thu lai sau.');
+      throw new Error(`Goi Gemini API that bai (mang/timeout): ${(err as Error).message}`);
     } finally {
       clearTimeout(timeout);
     }
 
     if (!response.ok) {
       const body = await response.text().catch(() => '');
-      this.logger.error(`Gemini API tra ve loi HTTP ${response.status}: ${body}`);
-      throw new ServiceUnavailableException('Khong the tao nhan xet AI luc nay, vui long thu lai sau.');
+      throw new Error(`Gemini API tra ve loi HTTP ${response.status}: ${body}`);
     }
 
     const data = (await response.json()) as {
@@ -141,8 +174,56 @@ export class AiInsightsService {
     };
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     if (!text) {
-      this.logger.error(`Gemini API tra ve phan hoi khong co noi dung: ${JSON.stringify(data)}`);
-      throw new ServiceUnavailableException('Khong the tao nhan xet AI luc nay, vui long thu lai sau.');
+      throw new Error(`Gemini API tra ve phan hoi khong co noi dung: ${JSON.stringify(data)}`);
+    }
+    return text;
+  }
+
+  /**
+   * Groq dung dinh dang REST tuong thich OpenAI chat-completions (khac hoan toan Gemini) -
+   * https://api.groq.com/openai/v1/chat/completions, header Authorization: Bearer <key>. Model
+   * mac dinh openai/gpt-oss-120b (xem groq.model o configuration.ts) la model suy luan (giong
+   * Gemini co "thinking token"), dat reasoning_effort: 'low' vi tac vu nay chi can 1 doan van
+   * ngan, khong can suy luan nhieu buoc.
+   */
+  private async callGroq(apiKey: string, prompt: string): Promise<string> {
+    const model = this.configService.get<string>('groq.model');
+    const url = 'https://api.groq.com/openai/v1/chat/completions';
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), AI_PROVIDER_TIMEOUT_MS);
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.4,
+          max_tokens: GROQ_MAX_OUTPUT_TOKENS,
+          reasoning_effort: 'low',
+        }),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      throw new Error(`Goi Groq API that bai (mang/timeout): ${(err as Error).message}`);
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(`Groq API tra ve loi HTTP ${response.status}: ${body}`);
+    }
+
+    const data = (await response.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    const text = data.choices?.[0]?.message?.content?.trim();
+    if (!text) {
+      throw new Error(`Groq API tra ve phan hoi khong co noi dung: ${JSON.stringify(data)}`);
     }
     return text;
   }

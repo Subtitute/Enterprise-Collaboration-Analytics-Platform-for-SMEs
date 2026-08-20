@@ -17,11 +17,22 @@ class AppConfig {
   /// Con `null`/rong nghia la CHUA thiet lap - app se luon dung [fallbackGatewayBaseUrl] ben
   /// duoi cho toi khi gia tri nay duoc dien (sua 1 dong roi build lai APK 1 LAN DUY NHAT; sau do
   /// moi lan doi dia chi Gateway chi can sua file JSON, khong build lai nua).
-  static const String? remoteConfigUrl = null;
+  ///
+  /// 17/08/2026: da thiet lap that. QUAN TRONG - day la dang URL "raw" KHONG kem hash commit
+  /// (`.../raw/<filename>`, khac voi dang `.../raw/<hash>/<filename>` GitHub hien mac dinh khi
+  /// bam "Raw" - dang co hash bi GHIM vao 1 revision cu the, sua Gist sau do se KHONG duoc phan
+  /// anh o day) - dang khong hash nay luon tra ve noi dung MOI NHAT cua Gist.
+  static const String? remoteConfigUrl =
+      'https://gist.githubusercontent.com/Subtitute/05841268fddf5eb53eb66a9d969bb395/raw/gateway-config.json';
 
   /// Dung khi [remoteConfigUrl] chua thiet lap, HOAC khi fetch remote that bai VA chua co gia
-  /// tri cache tu lan chay truoc (vd cai app lan dau, khong co mang luc do) - gia tri tunnel
-  /// Cloudflare tai thoi diem viet code nay (doi khi tunnel khoi dong lai, xem Doc/ECAP_Mobile.md
-  /// muc 10).
-  static const String fallbackGatewayBaseUrl = 'https://repairs-age-wish-evanescence.trycloudflare.com/api/v1';
+  /// tri cache tu lan chay truoc (vd cai app lan dau, khong co mang luc do).
+  ///
+  /// 15/08/2026: doi tam ve dia chi LAN cua may chay Docker Compose (URL Cloudflare Tunnel cu da
+  /// chet vi khong con tien trinh cloudflared nao dang chay) - CHI ket noi duoc khi dien thoai o
+  /// CUNG mang Wi-Fi voi may nay. IP nay do DHCP cap, co the doi neu router khoi dong lai - kiem
+  /// tra lai bang `ipconfig` (muc "Wireless LAN adapter Wi-Fi") neu mat ket noi. Xem
+  /// Doc/ECAP_Mobile.md muc 10 cho phuong an Cloudflare Tunnel khi can ket noi qua Internet
+  /// (ngoai mang LAN nay).
+  static const String fallbackGatewayBaseUrl = 'http://192.168.1.20:3000/api/v1';
 }

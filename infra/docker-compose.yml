@@ -480,6 +480,10 @@ services:
       # loi ro rang (503) thay vi lam sap ca service.
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-flash-latest}
+      # 20/08/2026: phuong an du phong TU DONG khi Gemini loi/qua tai (Technical_Spec.md muc cung
+      # ngay) - de trong nghia la KHONG co du phong (van chay binh thuong, chi mat lop du phong).
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
     # ports: ["3005:3005"]  # go bo 21/07/2026 - khong expose ra host, chi Gateway/noi bo moi
     # goi duoc qua internal-net, tranh bypass Gateway/JWT/rate-limit (xem Technical_Spec.md muc 8).
     networks: [internal-net]
