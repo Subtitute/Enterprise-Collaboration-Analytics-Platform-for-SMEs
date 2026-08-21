@@ -8,7 +8,7 @@
 
 ## 0. Quy ước chung
 
-- **Ngôn ngữ giao diện:** Tiếng Việt mặc định; thuật ngữ kỹ thuật/tên riêng (Dashboard, Kanban, Task, Upload...) giữ nguyên tiếng Anh khi đã quen dùng trong ngành.
+- **Ngôn ngữ giao diện:** Tiếng Việt mặc định; thuật ngữ kỹ thuật/tên riêng (Dashboard, Kanban, Task, Upload...) giữ nguyên tiếng Anh khi đã quen dùng trong ngành. **(Bổ sung 20-21/08/2026)** Người dùng có thể đổi sang English/日本語 bất kỳ lúc nào qua nút chọn ngôn ngữ (icon địa cầu 🌐) — góc trên-phải màn Đăng nhập/Đăng ký (mục 1), cạnh chuông thông báo trên Topbar ở mọi trang đã đăng nhập (mục 2). Lựa chọn được ghi nhớ cho lần mở lại sau. Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §18.
 - **Component base:** shadcn/ui (dựa trên Radix + TailwindCSS) — dùng chung bộ Button/Input/Modal/Table/Toast xuyên suốt để đảm bảo nhất quán.
 - **Bố cục khung (shell):** Sidebar trái cố định + Topbar trên + vùng nội dung chính — áp dụng cho mọi trang sau khi đăng nhập.
 - **Thời gian hiển thị:** toàn bộ mốc thời gian hiển thị theo GMT+7, định dạng `dd/MM/yyyy HH:mm`.
@@ -40,12 +40,14 @@
 
 - **Đăng ký tổ chức mới** (multi-step): (1) Thông tin tổ chức (tên, mã số thuế tùy chọn) → (2) Tài khoản Org Admin đầu tiên (email, mật khẩu) → (3) Hoàn tất, chuyển vào Dashboard rỗng kèm gợi ý "mời thành viên" / "tạo dự án đầu tiên".
 - Sau đăng nhập thành công, JWT lưu ở memory + refresh token ở httpOnly cookie (không lưu access token ở `localStorage` để giảm rủi ro XSS).
+- **(Bổ sung 20/08/2026)** Ô mật khẩu có nút hiện/ẩn riêng của ứng dụng (icon con mắt) — tự vẽ bằng React thay vì dựa vào nút "reveal password" có sẵn của trình duyệt (từng mất đồng bộ với state, xem `Technical_Spec.md` mục 2026-08-20). Nếu phát hiện dấu tiếng Việt trong mật khẩu đang gõ (thường do bộ gõ tự động ghép dấu ngoài ý muốn), hiện 1 dòng cảnh báo nhỏ ngay dưới ô — chỉ cảnh báo, không chặn ký tự.
+- **(Bổ sung 20-21/08/2026)** Nút chọn ngôn ngữ (🌐) cố định ở góc trên-phải màn hình này — xem mục 0.
 
 ## 2. Khung bố cục tổng thể (App Shell)
 
 ```
 ┌──────────┬──────────────────────────────────────────────────┐
-│          │  Topbar: [🔍 Tìm kiếm]      [🔔 3] [Tên user ▾]   │
+│          │  Topbar: [🔍 Tìm kiếm]  [🌐] [🔔 3] [Tên user ▾]  │
 │ Sidebar  ├──────────────────────────────────────────────────┤
 │          │                                                  │
 │ ▣ Dashboard                                                 │
@@ -63,6 +65,7 @@
 - Sidebar có thể thu gọn (collapse) chỉ còn icon trên tablet.
 - Chuông thông báo (🔔) hiển thị badge số lượng chưa đọc, cập nhật real-time qua WebSocket không cần reload.
 - **[Tên user ▾]** mở menu: **Hồ sơ cá nhân** (mục 11) và **Đăng xuất**.
+- **(Bổ sung 20-21/08/2026)** Icon **[🌐]** mở nút chọn ngôn ngữ (Tiếng Việt/English/日本語) — xem mục 0.
 - **(Bổ sung 22/07/2026)** Ô **[🔍 Tìm kiếm]**: tìm kiếm tổng hợp, gõ tối thiểu 1 ký tự (debounce 300ms) → hiển thị kết quả nhóm theo loại (Dự án / Công việc / Thành viên / Tài liệu — tên thư mục cấp gốc), so khớp chuỗi con không phân biệt hoa/thường, hoàn toàn phía client trên dữ liệu đã tải sẵn (không gọi endpoint tìm kiếm riêng, phù hợp quy mô SME — xem Technical_Spec.md §14 về giới hạn: chưa tìm theo nội dung/tên tệp bên trong thư mục con). Click 1 kết quả điều hướng thẳng tới trang tương ứng.
 
 ## 3. Dashboard tổng quan
@@ -369,3 +372,5 @@ Toàn bộ bảng dữ liệu (danh sách dự án, tài liệu, thành viên) c
 - **2026-08-05 (CRM-lite)** — Hạng mục thứ hai trong 2 hạng mục mở rộng còn lại sau khi dự án chuyển sang mô hình 3 người (chi tiết kỹ thuật ở Technical_Spec.md §16). Mục 12 (mới): danh sách khách hàng + Kanban pipeline bán hàng 6 giai đoạn cho từng khách hàng — khác Kanban Công việc (mục 4.2) ở chỗ 4 giai đoạn đầu di chuyển tự do qua lại lẫn nhau, chỉ "Thắng"/"Thua" là trạng thái cuối.
 - **2026-08-05 (HRM-lite, tiếp)** — Hạng mục cuối cùng trong danh sách mở rộng đã thống nhất ban đầu (chi tiết kỹ thuật ở Technical_Spec.md §17). Mục 9 viết lại hoàn toàn (thay thế khung sườn phác thảo từ 18/07/2026) để khớp đúng những gì đã lập trình: bỏ dạng lịch tháng đánh dấu đi trễ/nghỉ (đơn giản hoá thành bảng danh sách), thêm mục 9.3 mô tả modal camera chấm công — component camera đầu tiên của dự án, chỉ chụp ảnh làm bằng chứng, không nhận diện khuôn mặt (xem Technical_Spec.md §17).
 - **2026-08-13 (cờ vị trí chấm công)** — Mục 9.1 cập nhật: nhãn "Tại văn phòng"/"Ngoài văn phòng" (cờ mềm dựa trên GPS, không chặn check-in/out) trên khối "Hôm nay"/"Lịch sử chấm công", cộng thêm khối bảng mới "Chấm công toàn tổ chức" chỉ hiện với Manager/Org Admin (cùng cơ chế 403-tự-ẩn với "Chờ duyệt" ở mục 9.2). Chi tiết kỹ thuật đầy đủ ở Technical_Spec.md §17 (mục bổ sung 13/08/2026).
+- **2026-08-20 (sửa 4 báo cáo lỗi thủ công)** — Mục 1 cập nhật: ô mật khẩu có nút hiện/ẩn tự vẽ (thay cho nút có sẵn của trình duyệt, từng mất đồng bộ) và cảnh báo (không chặn) khi phát hiện dấu tiếng Việt gõ nhầm vào mật khẩu. Không có màn hình/luồng UI mới nào khác — 2 báo cáo còn lại đã sửa (dữ liệu thành viên/tài liệu của tổ chức cũ còn sót lại sau khi đổi tài khoản, modal mất focus khi gõ) là lỗi hành vi/cache, không đổi bố cục hay thêm phần tử giao diện nào. Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md`, mục cùng ngày.
+- **2026-08-20 → 21 (Đa ngôn ngữ Việt/Anh/Nhật)** — Mục 0 và mục 2 cập nhật: nút chọn ngôn ngữ (🌐) mới ở góc trên-phải màn Đăng nhập/Đăng ký (mục 1) và trên Topbar mọi trang đã đăng nhập (mục 2), đổi được giữa Tiếng Việt (mặc định)/English/日本語, lựa chọn được ghi nhớ. Áp dụng cho TOÀN BỘ màn hình đã mô tả trong tài liệu này — không liệt kê lại từng mục vì không đổi bố cục/thêm phần tử nào khác ngoài việc mọi nhãn/nút/thông báo đều có bản dịch. Chi tiết kỹ thuật đầy đủ (kiến trúc i18next, danh mục mã lỗi backend, 2 lỗi thật phát hiện qua xác minh trực tiếp) ở `Technical_Spec.md` §18.

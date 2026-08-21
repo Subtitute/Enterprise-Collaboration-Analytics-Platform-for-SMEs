@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 // 22/07/2026: them AlertCircleIcon/RefreshIcon de hien nhanh loi + nut "Thu lai" ngay trong the -
 // dung lai cung 2 icon ma QueryState.tsx da dung cho pattern loi o cac noi khac trong repo.
@@ -21,6 +22,7 @@ interface KpiCardProps {
 }
 
 export function KpiCard({ label, value, hint, icon, accentClassName, isLoading, isError, onRetry }: KpiCardProps) {
+  const { t } = useTranslation();
   return (
     <Card className="flex items-start justify-between gap-3 p-5">
       <div className="min-w-0">
@@ -28,12 +30,12 @@ export function KpiCard({ label, value, hint, icon, accentClassName, isLoading, 
         {isError ? (
           <div className="mt-1.5 flex items-center gap-1.5">
             <AlertCircleIcon className="h-4 w-4 shrink-0 text-rose-500" />
-            <span className="text-sm text-rose-500">Lỗi tải dữ liệu</span>
+            <span className="text-sm text-rose-500">{t('dashboard:kpiCard.errorLabel')}</span>
             {onRetry && (
               <button
                 type="button"
                 onClick={onRetry}
-                aria-label={`Thử lại tải ${label}`}
+                aria-label={t('dashboard:kpiCard.retryAriaLabel', { label })}
                 className="rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
               >
                 <RefreshIcon className="h-3.5 w-3.5" />

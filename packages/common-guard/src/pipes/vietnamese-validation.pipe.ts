@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { ValidationError } from 'class-validator';
+import { ERROR_CODES, ErrorDetail } from '@app/common-dto';
 
 // 25/07/2026: bo sung file nay - phat hien qua audit toan du an: ca 6 main.ts (Gateway khong co
 // vi la reverse-proxy thuan khong doc body, IAM/Project-Task/Document/Analytics/Notification)
@@ -113,6 +114,43 @@ function buildMessageForConstraint(property: string, constraintKey: string, defa
   return `${property}: gia tri khong hop le`;
 }
 
+// 20/08/2026: anh xa constraint-key -> ma loi may doc duoc, khop 1:1 voi CONSTRAINT_MESSAGE_BUILDERS
+// o tren (xem packages/common-dto/src/constants/error-codes.constant.ts). Constraint-key khong co
+// trong bang nay roi ve ERROR_CODES.VALIDATION_INVALID (cung fallback voi buildMessageForConstraint).
+const CONSTRAINT_ERROR_CODES: Record<string, string> = {
+  isEmail: ERROR_CODES.VALIDATION_INVALID_EMAIL,
+  isString: ERROR_CODES.VALIDATION_INVALID_STRING,
+  isNotEmpty: ERROR_CODES.VALIDATION_REQUIRED,
+  isUuid: ERROR_CODES.VALIDATION_INVALID_UUID,
+  isArray: ERROR_CODES.VALIDATION_INVALID_ARRAY,
+  isInt: ERROR_CODES.VALIDATION_INVALID_INT,
+  isNumber: ERROR_CODES.VALIDATION_INVALID_NUMBER,
+  isBoolean: ERROR_CODES.VALIDATION_INVALID_BOOLEAN,
+  isEnum: ERROR_CODES.VALIDATION_INVALID_ENUM,
+  isIn: ERROR_CODES.VALIDATION_INVALID_OPTION,
+  isDateString: ERROR_CODES.VALIDATION_INVALID_DATE,
+  arrayNotEmpty: ERROR_CODES.VALIDATION_ARRAY_REQUIRED,
+  minLength: ERROR_CODES.VALIDATION_MIN_LENGTH,
+  maxLength: ERROR_CODES.VALIDATION_MAX_LENGTH,
+  min: ERROR_CODES.VALIDATION_MIN_VALUE,
+  max: ERROR_CODES.VALIDATION_MAX_VALUE,
+  arrayMinSize: ERROR_CODES.VALIDATION_ARRAY_MIN_SIZE,
+  arrayMaxSize: ERROR_CODES.VALIDATION_ARRAY_MAX_SIZE,
+};
+
+/** 6 constraint co so gioi han - can them `params.n` de i18next noi lai duoc con so trong ban dich. */
+const NUMERIC_CONSTRAINTS = new Set(['minLength', 'maxLength', 'min', 'max', 'arrayMinSize', 'arrayMaxSize']);
+
+function buildErrorDetail(property: string, constraintKey: string, defaultMessage: string): ErrorDetail {
+  const code = CONSTRAINT_ERROR_CODES[constraintKey] ?? ERROR_CODES.VALIDATION_INVALID;
+  const params: Record<string, string | number> = { field: property };
+  if (NUMERIC_CONSTRAINTS.has(constraintKey)) {
+    const n = extractFirstNumber(defaultMessage);
+    if (n !== undefined) params.n = n;
+  }
+  return { code, params };
+}
+
 /**
  * exceptionFactory dung chung cho `ValidationPipe` cua TOAN BO service (Gateway khong ap dung -
  * la reverse-proxy thuan, khong doc/validate body). Thay the message mac dinh tieng Anh cua
@@ -132,18 +170,24 @@ export function vietnameseValidationExceptionFactory(errors: ValidationError[]):
   const flatErrors = flattenValidationErrors(errors);
 
   const messages: string[] = [];
+  const details: ErrorDetail[] = [];
   for (const flatError of flatErrors) {
     for (const [constraintKey, defaultMessage] of Object.entries(flatError.constraints)) {
       messages.push(buildMessageForConstraint(flatError.property, constraintKey, defaultMessage));
+      details.push(buildErrorDetail(flatError.property, constraintKey, defaultMessage));
     }
   }
 
   // 25/07/2026: truong hop hiem (vd custom validator khong sinh `constraints`) van phai tra ve
   // mot message tieng Viet ro rang, khong duoc de mang rong khien client khong biet loi gi.
   const finalMessages = messages.length > 0 ? messages : ['Du lieu gui len khong hop le'];
+  // 20/08/2026: `details` chi dinh kem khi co it nhat 1 phan tu, giu dung do dai voi finalMessages
+  // (AllExceptionsFilter/extractErrorMessage ben web doi index cua 2 mang nay khop nhau).
+  const finalDetails = details.length > 0 ? details : undefined;
 
   return new BadRequestException({
     error: 'VALIDATION_ERROR',
     message: finalMessages,
+    ...(finalDetails && { details: finalDetails }),
   });
 }

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
@@ -10,18 +11,19 @@ import { ProjectCard } from './components/ProjectCard';
 import { NewProjectModal } from './components/NewProjectModal';
 import { computeProgressFromTasks } from './utils';
 
-const STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: '', label: 'Tất cả trạng thái' },
-  { value: 'ACTIVE', label: 'Đang hoạt động' },
-  { value: 'COMPLETED', label: 'Hoàn thành' },
-  { value: 'ARCHIVED', label: 'Lưu trữ' },
-];
-
 export function ProjectsListPage() {
+  const { t } = useTranslation();
   const [isNewOpen, setIsNewOpen] = useState(false);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+
+  const STATUS_OPTIONS: { value: string; label: string }[] = [
+    { value: '', label: t('projects:list.statusFilter.all') },
+    { value: 'ACTIVE', label: t('projects:enums.projectStatus.ACTIVE') },
+    { value: 'COMPLETED', label: t('projects:enums.projectStatus.COMPLETED') },
+    { value: 'ARCHIVED', label: t('projects:enums.projectStatus.ARCHIVED') },
+  ];
 
   // Debounce 400ms de khong goi API lien tuc theo tung ky tu go (Wireframe.md muc 4.1:
   // "[Tim kiem du an___] [Trang thai v]", khong con bo loc "Phong ban" - xem ghi chu 21/07/2026).
@@ -37,8 +39,8 @@ export function ProjectsListPage() {
     const map: Record<string, number> = {};
     const tasks = tasksQuery.data ?? [];
     const byProject: Record<string, typeof tasks> = {};
-    for (const t of tasks) {
-      (byProject[t.projectId] ??= []).push(t);
+    for (const task of tasks) {
+      (byProject[task.projectId] ??= []).push(task);
     }
     for (const [projectId, list] of Object.entries(byProject)) {
       map[projectId] = computeProgressFromTasks(list);
@@ -53,11 +55,11 @@ export function ProjectsListPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Dự án &amp; Công việc</h1>
-          <p className="text-sm text-slate-500">Quản lý dự án và theo dõi tiến độ công việc dạng Kanban.</p>
+          <h1 className="text-xl font-semibold text-slate-900">{t('projects:list.title')}</h1>
+          <p className="text-sm text-slate-500">{t('projects:list.subtitle')}</p>
         </div>
         <Button onClick={() => setIsNewOpen(true)}>
-          <PlusIcon className="h-4 w-4" /> Dự án mới
+          <PlusIcon className="h-4 w-4" /> {t('projects:list.newProject')}
         </Button>
       </div>
 
@@ -68,11 +70,11 @@ export function ProjectsListPage() {
             type="search"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Tìm kiếm dự án…"
+            placeholder={t('projects:list.searchPlaceholder')}
             // 28/07/2026: them aria-label khop voi placeholder (phat hien qua ra soat kha nang tiep
             // can) - placeholder bien mat ngay khi go chu va khong phai luon duoc trinh doc man hinh
             // dung lam ten truy cap, nen can aria-label rieng.
-            aria-label="Tìm kiếm dự án…"
+            aria-label={t('projects:list.searchPlaceholder')}
             className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100"
           />
         </div>
@@ -89,20 +91,20 @@ export function ProjectsListPage() {
         isLoading={projectsQuery.isLoading}
         isError={projectsQuery.isError}
         onRetry={() => projectsQuery.refetch()}
-        loadingFallback={<FullPageSpinner label="Đang tải danh sách dự án…" />}
-        errorTitle="Không thể tải danh sách dự án"
-        errorDescription="Đã xảy ra lỗi khi tải danh sách dự án. Vui lòng thử lại."
+        loadingFallback={<FullPageSpinner label={t('projects:list.loading')} />}
+        errorTitle={t('projects:list.errorTitle')}
+        errorDescription={t('projects:list.errorDescription')}
       >
         {projects.length === 0 ? (
           <EmptyState
             icon={<FolderKanbanIcon className="h-10 w-10" />}
-            title={hasFilters ? 'Không tìm thấy dự án phù hợp' : 'Chưa có dự án nào'}
+            title={hasFilters ? t('projects:list.emptyFilteredTitle') : t('projects:list.emptyTitle')}
             description={
               hasFilters
-                ? 'Thử điều chỉnh từ khóa tìm kiếm hoặc trạng thái đã chọn.'
-                : 'Tạo dự án đầu tiên để bắt đầu phân chia công việc cho nhóm của bạn.'
+                ? t('projects:list.emptyFilteredDescription')
+                : t('projects:list.emptyDescription')
             }
-            action={!hasFilters && <Button onClick={() => setIsNewOpen(true)}>Tạo dự án mới</Button>}
+            action={!hasFilters && <Button onClick={() => setIsNewOpen(true)}>{t('projects:list.createFirst')}</Button>}
           />
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">

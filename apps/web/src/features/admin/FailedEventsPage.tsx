@@ -3,6 +3,7 @@
 // sat MembersPage.tsx/DepartmentsPage.tsx (Card + QueryState + EmptyState + Table + Pagination)
 // de dong bo voi cac trang Quan tri khac.
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import type { BadgeVariant } from '@/components/ui/Badge';
@@ -21,11 +22,11 @@ const LIMIT = 15;
 // 28/07/2026: nhan + mau Badge tieng Viet cho tung errorType do backend dinh nghia (contract Dead
 // Letter Queue) - MALFORMED_JSON/INVALID_ENVELOPE la loi du lieu dau vao (warning/amber),
 // PERMANENT_DATA_ERROR/RETRY_EXHAUSTED la loi nghiem trong hon, khong the tu phuc hoi (danger/rose).
-const ERROR_TYPE_META: Record<FailedEventErrorType, { label: string; variant: BadgeVariant }> = {
-  MALFORMED_JSON: { label: 'Dữ liệu không hợp lệ', variant: 'warning' },
-  INVALID_ENVELOPE: { label: 'Dữ liệu không hợp lệ', variant: 'warning' },
-  PERMANENT_DATA_ERROR: { label: 'Lỗi dữ liệu', variant: 'danger' },
-  RETRY_EXHAUSTED: { label: 'Hết lượt thử lại', variant: 'danger' },
+const ERROR_TYPE_META: Record<FailedEventErrorType, { labelKey: string; variant: BadgeVariant }> = {
+  MALFORMED_JSON: { labelKey: 'admin:failedEventsPage.errorTypeLabels.malformedJson', variant: 'warning' },
+  INVALID_ENVELOPE: { labelKey: 'admin:failedEventsPage.errorTypeLabels.invalidEnvelope', variant: 'warning' },
+  PERMANENT_DATA_ERROR: { labelKey: 'admin:failedEventsPage.errorTypeLabels.permanentDataError', variant: 'danger' },
+  RETRY_EXHAUSTED: { labelKey: 'admin:failedEventsPage.errorTypeLabels.retryExhausted', variant: 'danger' },
 };
 
 // 28/07/2026: backend CHUA XAC NHAN tra ve "_id" hay "id" cho khoa chinh - uu tien _id (quy uoc
@@ -37,6 +38,7 @@ function getRowKey(event: FailedEvent, index: number): string {
 }
 
 export function FailedEventsPage() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
 
   const failedEventsQuery = useFailedEventsQuery({ page, limit: LIMIT });
@@ -46,14 +48,11 @@ export function FailedEventsPage() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-slate-500">
-        Danh sách các sự kiện xử lý nội bộ (Kafka) đã thất bại vĩnh viễn hoặc hết lượt thử lại tự động - đây không phải lỗi do người
-        dùng gây ra, mà là dữ liệu phục vụ chẩn đoán sự cố hệ thống. Danh sách chỉ để xem, không có thao tác thử lại từ giao diện này.
+        {t('admin:failedEventsPage.description')}
         {/* 28/07/2026: bo sung ghi chu ve cac ban ghi "Khong xac dinh to chuc" (xem
             failed-events.service.ts findForOrganization) - can giai thich vi sao Org Admin thay
             duoc du lieu KHONG thuoc rieng to chuc minh, neu khong se gay hieu nham ro ri du lieu. */}
-        {' '}Riêng các sự kiện đánh dấu “Không xác định tổ chức” là lỗi xảy ra ngay từ khâu đọc dữ liệu (trước khi xác định được tổ
-        chức nào phát sinh) nên hiển thị cho mọi Org Admin - đây là dữ liệu chẩn đoán hạ tầng dùng chung, không phải dữ liệu nghiệp vụ
-        riêng của tổ chức nào.
+        {' '}{t('admin:failedEventsPage.descriptionOrgNote')}
       </p>
 
       <Card>
@@ -61,15 +60,15 @@ export function FailedEventsPage() {
           isLoading={failedEventsQuery.isLoading}
           isError={failedEventsQuery.isError}
           onRetry={() => failedEventsQuery.refetch()}
-          loadingFallback={<FullPageSpinner label="Đang tải danh sách sự kiện lỗi…" />}
-          errorTitle="Không thể tải danh sách sự kiện lỗi"
+          loadingFallback={<FullPageSpinner label={t('admin:failedEventsPage.loading')} />}
+          errorTitle={t('admin:failedEventsPage.errorTitle')}
         >
           {events.length === 0 ? (
             <div className="p-6">
               <EmptyState
                 icon={<AlertCircleIcon className="h-8 w-8" />}
-                title="Chưa có sự kiện lỗi nào"
-                description="Hiện chưa ghi nhận sự kiện xử lý nội bộ nào thất bại."
+                title={t('admin:failedEventsPage.emptyTitle')}
+                description={t('admin:failedEventsPage.emptyDescription')}
               />
             </div>
           ) : (
@@ -77,39 +76,45 @@ export function FailedEventsPage() {
               <Table>
                 <TableHead>
                   <tr>
-                    <TableHeadCell>Thời điểm</TableHeadCell>
-                    <TableHeadCell>Loại lỗi</TableHeadCell>
-                    <TableHeadCell>Phạm vi</TableHeadCell>
-                    <TableHeadCell>Nguồn</TableHeadCell>
-                    <TableHeadCell>Loại sự kiện</TableHeadCell>
-                    <TableHeadCell>Thông báo lỗi</TableHeadCell>
+                    <TableHeadCell>{t('admin:failedEventsPage.columns.time')}</TableHeadCell>
+                    <TableHeadCell>{t('admin:failedEventsPage.columns.errorType')}</TableHeadCell>
+                    <TableHeadCell>{t('admin:failedEventsPage.columns.scope')}</TableHeadCell>
+                    <TableHeadCell>{t('admin:failedEventsPage.columns.source')}</TableHeadCell>
+                    <TableHeadCell>{t('admin:failedEventsPage.columns.eventType')}</TableHeadCell>
+                    <TableHeadCell>{t('admin:failedEventsPage.columns.errorMessage')}</TableHeadCell>
                   </tr>
                 </TableHead>
                 <TableBody>
                   {events.map((e, index) => {
-                    const errorMeta = ERROR_TYPE_META[e.errorType] ?? { label: e.errorType, variant: 'default' as BadgeVariant };
+                    const errorMeta = ERROR_TYPE_META[e.errorType];
+                    const errorLabel = errorMeta ? t(errorMeta.labelKey) : e.errorType;
+                    const errorVariant = errorMeta?.variant ?? ('default' as BadgeVariant);
                     return (
                       <TableRow key={getRowKey(e, index)}>
-                        <TableCell label="Thời điểm" className="text-sm text-slate-600 whitespace-nowrap">
+                        <TableCell label={t('admin:failedEventsPage.columns.time')} className="text-sm text-slate-600 whitespace-nowrap">
                           {formatDateTime(e.failedAt)}
                         </TableCell>
-                        <TableCell label="Loại lỗi">
-                          <Badge variant={errorMeta.variant}>{errorMeta.label}</Badge>
+                        <TableCell label={t('admin:failedEventsPage.columns.errorType')}>
+                          <Badge variant={errorVariant}>{errorLabel}</Badge>
                         </TableCell>
-                        <TableCell label="Phạm vi">
+                        <TableCell label={t('admin:failedEventsPage.columns.scope')}>
                           {e.organizationId === null ? (
-                            <Badge variant="default">Không xác định tổ chức</Badge>
+                            <Badge variant="default">{t('admin:failedEventsPage.scopeUnknownOrg')}</Badge>
                           ) : (
-                            <Badge variant="success">Tổ chức của bạn</Badge>
+                            <Badge variant="success">{t('admin:failedEventsPage.scopeOwnOrg')}</Badge>
                           )}
                         </TableCell>
-                        <TableCell label="Nguồn" className="text-sm text-slate-600">
+                        <TableCell label={t('admin:failedEventsPage.columns.source')} className="text-sm text-slate-600">
                           {e.sourceService} · {e.sourceTopic}
                         </TableCell>
-                        <TableCell label="Loại sự kiện" className="text-sm text-slate-600">
+                        <TableCell label={t('admin:failedEventsPage.columns.eventType')} className="text-sm text-slate-600">
                           {e.eventType ?? '—'}
                         </TableCell>
-                        <TableCell label="Thông báo lỗi" className="max-w-xs truncate text-sm text-slate-600" title={e.errorMessage}>
+                        <TableCell
+                          label={t('admin:failedEventsPage.columns.errorMessage')}
+                          className="max-w-xs truncate text-sm text-slate-600"
+                          title={e.errorMessage}
+                        >
                           {e.errorMessage}
                         </TableCell>
                       </TableRow>

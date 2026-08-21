@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { toast } from '@/stores/toast.store';
 import { extractErrorMessage } from '@/lib/api-client';
 import {
@@ -23,19 +24,21 @@ export function useUsersQuery(params: { page?: number; limit?: number } = {}) {
 }
 
 export function useInviteUser() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: InviteUserPayload) => inviteUser(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'all'] });
-      toast.success('Đã mời thành viên mới');
+      toast.success(t('admin:toast.memberInvited'));
     },
-    onError: (error) => toast.error('Không thể mời thành viên', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('admin:toast.memberInviteFailed'), extractErrorMessage(error)),
   });
 }
 
 export function useUpdateUser() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: UpdateUserPayload }) => updateUser(id, payload),
@@ -48,37 +51,39 @@ export function useUpdateUser() {
       // ca nhan van hien du lieu cu (stale) tu cache cho toi khi refetch tu nhien xay ra. Them
       // dong nay de cache profile duoc lam moi ngay sau khi sua.
       queryClient.invalidateQueries({ queryKey: ['users', variables.id] });
-      toast.success('Đã cập nhật thành viên');
+      toast.success(t('admin:toast.memberUpdated'));
     },
-    onError: (error) => toast.error('Không thể cập nhật thành viên', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('admin:toast.memberUpdateFailed'), extractErrorMessage(error)),
   });
 }
 
 export function useDeactivateUser() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deactivateUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'all'] });
-      toast.success('Đã vô hiệu hoá tài khoản');
+      toast.success(t('admin:toast.memberDeactivated'));
     },
-    onError: (error) => toast.error('Không thể vô hiệu hoá tài khoản', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('admin:toast.memberDeactivateFailed'), extractErrorMessage(error)),
   });
 }
 
 // 22/07/2026 (review toan du an): hook moi cho PATCH /users/:id/reactivate - xem ghi chu tai
 // reactivateUser() (admin/api.ts) ve ly do bo sung.
 export function useReactivateUser() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => reactivateUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'all'] });
-      toast.success('Đã kích hoạt lại tài khoản');
+      toast.success(t('admin:toast.memberReactivated'));
     },
-    onError: (error) => toast.error('Không thể kích hoạt lại tài khoản', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('admin:toast.memberReactivateFailed'), extractErrorMessage(error)),
   });
 }
 
@@ -87,38 +92,41 @@ export function useDepartmentsQuery() {
 }
 
 export function useCreateDepartment() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: { name: string; description?: string }) => createDepartment(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
-      toast.success('Đã tạo phòng ban mới');
+      toast.success(t('admin:toast.departmentCreated'));
     },
-    onError: (error) => toast.error('Không thể tạo phòng ban', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('admin:toast.departmentCreateFailed'), extractErrorMessage(error)),
   });
 }
 
 export function useUpdateDepartment() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: { name?: string; description?: string } }) => updateDepartment(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
-      toast.success('Đã cập nhật phòng ban');
+      toast.success(t('admin:toast.departmentUpdated'));
     },
-    onError: (error) => toast.error('Không thể cập nhật phòng ban', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('admin:toast.departmentUpdateFailed'), extractErrorMessage(error)),
   });
 }
 
 export function useDeleteDepartment() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteDepartment(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
-      toast.success('Đã xoá phòng ban');
+      toast.success(t('admin:toast.departmentDeleted'));
     },
-    onError: (error) => toast.error('Không thể xoá phòng ban', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('admin:toast.departmentDeleteFailed'), extractErrorMessage(error)),
   });
 }
 
@@ -131,11 +139,12 @@ export function usePermissionsQuery() {
 }
 
 export function useUpdateRolePermissions() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ roleId, permissionKeys }: { roleId: string; permissionKeys: string[] }) => updateRolePermissions(roleId, permissionKeys),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['roles'] }),
-    onError: (error) => toast.error('Không thể cập nhật quyền', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('admin:toast.permissionsUpdateFailed'), extractErrorMessage(error)),
   });
 }
 

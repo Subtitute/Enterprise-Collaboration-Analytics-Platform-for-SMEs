@@ -1,13 +1,18 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { useTranslation } from 'react-i18next';
 import { TASK_STATUS_COLOR } from '@/lib/chart-colors';
-import { TASK_STATUS_LABEL_VI } from '@/types';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
 import { Spinner } from '@/components/ui/Spinner';
 import type { TaskStatusBreakdownItem } from '@/types';
+// 20/08/2026: `statusLabel` la ham NGOAI component (module-level) - khong the goi
+// useTranslation() (vi pham Rules of Hooks). Dung tham chieu `t` khong-qua-hook tu i18n/index.ts.
+// Van tu dong doi ngon ngu dung vi component cha (DashboardPage) da dung useTranslation() nen
+// re-render moi khi doi ngon ngu, keo theo TaskStatusDonut re-render lai theo.
+import { t } from '@/i18n';
 
 function statusLabel(status: string) {
-  return TASK_STATUS_LABEL_VI[status as keyof typeof TASK_STATUS_LABEL_VI] ?? status;
+  return t(`projects:enums.taskStatus.${status}`, { defaultValue: status });
 }
 
 function DonutTooltip({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; payload: { fill: string } }> }) {
@@ -31,6 +36,7 @@ interface TaskStatusDonutProps {
 }
 
 export function TaskStatusDonut({ data, isLoading, isError, onRetry }: TaskStatusDonutProps) {
+  const { t } = useTranslation();
   const total = data.reduce((sum, d) => sum + (d.count || 0), 0);
   const chartData = data.map((d) => ({ ...d, fill: TASK_STATUS_COLOR[d.status] ?? '#94a3b8' }));
 
@@ -44,11 +50,11 @@ export function TaskStatusDonut({ data, isLoading, isError, onRetry }: TaskStatu
           <Spinner />
         </div>
       }
-      errorTitle="Không thể tải trạng thái công việc"
-      errorDescription="Đã xảy ra lỗi khi tải dữ liệu biểu đồ. Vui lòng thử lại."
+      errorTitle={t('dashboard:taskStatusDonut.errorTitle')}
+      errorDescription={t('dashboard:taskStatusDonut.errorDescription')}
     >
       {total === 0 ? (
-        <EmptyState title="Chưa có công việc nào" description="Biểu đồ trạng thái sẽ hiển thị khi có công việc trong hệ thống." />
+        <EmptyState title={t('dashboard:taskStatusDonut.emptyTitle')} description={t('dashboard:taskStatusDonut.emptyDescription')} />
       ) : (
         <div className="flex flex-col items-center gap-4 sm:flex-row">
           <div className="relative h-56 w-56 shrink-0">
@@ -64,7 +70,7 @@ export function TaskStatusDonut({ data, isLoading, isError, onRetry }: TaskStatu
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
               <span className="text-2xl font-semibold tabular-nums text-slate-900">{total}</span>
-              <span className="text-xs text-slate-400">công việc</span>
+              <span className="text-xs text-slate-400">{t('dashboard:taskStatusDonut.unit')}</span>
             </div>
           </div>
           <ul className="w-full space-y-2">

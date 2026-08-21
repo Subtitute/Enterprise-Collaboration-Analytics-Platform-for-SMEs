@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -17,6 +18,7 @@ import { NewTaskModal } from './components/NewTaskModal';
 import { TaskDetailModal } from './components/TaskDetailModal';
 
 export function ProjectDetailPage() {
+  const { t } = useTranslation();
   const { projectId = '' } = useParams<{ projectId: string }>();
   const projectQuery = useProjectQuery(projectId);
   const tasksQuery = useTasksQuery(projectId);
@@ -25,9 +27,9 @@ export function ProjectDetailPage() {
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
-  if (projectQuery.isLoading) return <FullPageSpinner label="Đang tải dự án…" />;
+  if (projectQuery.isLoading) return <FullPageSpinner label={t('projects:detail.loading')} />;
   if (projectQuery.isError || !projectQuery.data) {
-    return <EmptyState title="Không tìm thấy dự án" description="Dự án có thể đã bị xoá hoặc bạn không có quyền truy cập." />;
+    return <EmptyState title={t('projects:detail.notFoundTitle')} description={t('projects:detail.notFoundDescription')} />;
   }
 
   const project = projectQuery.data;
@@ -38,7 +40,7 @@ export function ProjectDetailPage() {
   return (
     <div className="space-y-5">
       <Link to="/projects" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700">
-        <ChevronLeftIcon className="h-4 w-4" /> Quay lại danh sách dự án
+        <ChevronLeftIcon className="h-4 w-4" /> {t('projects:detail.backToList')}
       </Link>
 
       <div className="flex flex-col justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center">
@@ -51,7 +53,7 @@ export function ProjectDetailPage() {
           <div className="mt-2 flex flex-wrap items-center gap-4">
             {project.dueDate && (
               <span className="flex items-center gap-1 text-xs text-slate-400">
-                <CalendarIcon className="h-3.5 w-3.5" /> Hạn: {formatDate(project.dueDate)}
+                <CalendarIcon className="h-3.5 w-3.5" /> {t('projects:detail.dueDate', { date: formatDate(project.dueDate) })}
               </span>
             )}
             <div className="w-40">
@@ -62,11 +64,11 @@ export function ProjectDetailPage() {
         <div className="flex shrink-0 items-center gap-2">
           {project.status !== 'COMPLETED' && (
             <Button variant="outline" onClick={() => completeProject.mutate()} isLoading={completeProject.isPending}>
-              <CheckCircleIcon className="h-4 w-4" /> Hoàn thành dự án
+              <CheckCircleIcon className="h-4 w-4" /> {t('projects:detail.completeProject')}
             </Button>
           )}
           <Button onClick={() => setIsNewTaskOpen(true)}>
-            <PlusIcon className="h-4 w-4" /> Công việc mới
+            <PlusIcon className="h-4 w-4" /> {t('projects:detail.newTask')}
           </Button>
         </div>
       </div>
@@ -81,15 +83,15 @@ export function ProjectDetailPage() {
         isLoading={tasksQuery.isLoading}
         isError={tasksQuery.isError}
         onRetry={() => tasksQuery.refetch()}
-        loadingFallback={<FullPageSpinner label="Đang tải công việc…" />}
-        errorTitle="Không thể tải công việc"
-        errorDescription="Đã xảy ra lỗi khi tải danh sách công việc của dự án. Vui lòng thử lại."
+        loadingFallback={<FullPageSpinner label={t('projects:detail.tasksLoading')} />}
+        errorTitle={t('projects:detail.tasksErrorTitle')}
+        errorDescription={t('projects:detail.tasksErrorDescription')}
       >
         {tasks.length === 0 ? (
           <EmptyState
-            title="Chưa có công việc nào"
-            description="Thêm công việc đầu tiên để bắt đầu theo dõi tiến độ dự án."
-            action={<Button onClick={() => setIsNewTaskOpen(true)}>Tạo công việc mới</Button>}
+            title={t('projects:detail.emptyTasksTitle')}
+            description={t('projects:detail.emptyTasksDescription')}
+            action={<Button onClick={() => setIsNewTaskOpen(true)}>{t('projects:detail.createFirstTask')}</Button>}
           />
         ) : (
           <KanbanBoard projectId={projectId} tasks={tasks} onTaskClick={(task) => setSelectedTaskId(task.id)} />

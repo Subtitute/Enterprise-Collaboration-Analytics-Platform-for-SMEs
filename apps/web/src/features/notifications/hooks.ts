@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth.store';
 import { connectNotificationSocket, disconnectNotificationSocket } from '@/lib/socket';
 import { toast } from '@/stores/toast.store';
@@ -20,20 +21,22 @@ export function useUnreadNotificationsPreview() {
 }
 
 export function useMarkNotificationRead() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: markNotificationRead,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
-    onError: (error) => toast.error('Không thể cập nhật thông báo', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('notifications:toast.updateError'), extractErrorMessage(error)),
   });
 }
 
 export function useMarkAllNotificationsRead() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: markAllNotificationsRead,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
-    onError: (error) => toast.error('Không thể cập nhật thông báo', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('notifications:toast.updateError'), extractErrorMessage(error)),
   });
 }
 

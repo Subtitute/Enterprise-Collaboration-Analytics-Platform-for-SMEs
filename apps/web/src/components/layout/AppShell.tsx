@@ -1,5 +1,6 @@
 import { Suspense, useEffect, useRef } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Sidebar, MobileSidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -10,6 +11,7 @@ import { useNotificationSocket } from '@/features/notifications/hooks';
 import { useSidebarAutoCollapse } from '@/hooks/useSidebarAutoCollapse';
 
 export function AppShell() {
+  const { t } = useTranslation();
   // Thong bao can ket noi xuyen suot (badge o Topbar hien dien tren moi trang).
   // Socket /ws/analytics chi can thiet o Dashboard nen duoc quan ly rieng trong
   // features/dashboard/hooks.ts (useRecentActivityFeed) de tranh ket noi thua khi khong dung toi.
@@ -36,17 +38,23 @@ export function AppShell() {
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-700 focus:shadow-lg focus:ring-2 focus:ring-primary-400"
       >
-        Bỏ qua tới nội dung chính
+        {t('common:skipToContent')}
       </a>
       <Sidebar />
       <MobileSidebar />
-      <div className="flex min-h-screen flex-1 flex-col">
+      {/* 20/08/2026: them min-w-0 - phat hien qua bao loi thuc te: div nay la flex item trong hang
+          flex ben ngoai (chung voi Sidebar) nhung khong co min-w-0 nen mac dinh min-width: auto,
+          tu choi thu nho hon do rong noi dung ben trong (bang co md:min-w-[560px], luoi KPI
+          grid-cols-4, cot Kanban co do rong co dinh...). Ket qua: khi thu hep vien trinh duyet
+          (vd mo DevTools/F12), CA COT NOI DUNG tran ra ngoai vien man hinh thay vi noi dung ben
+          trong tu cuon ngang trong bien cua no. */}
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <Topbar />
-        <main id="main-content" ref={mainRef} tabIndex={-1} className="flex-1 p-4 sm:p-6 focus:outline-none">
+        <main id="main-content" ref={mainRef} tabIndex={-1} className="min-w-0 flex-1 p-4 sm:p-6 focus:outline-none">
           {/* 28/07/2026: Suspense rieng cho Outlet (khac voi Suspense goc o App.tsx) - de Sidebar/
               Topbar (component o TREN, ngoai boundary nay) khong bi thay bang fallback moi lan
               chuyen trang, chi vung noi dung chinh hien spinner trong luc tai chunk cua trang moi. */}
-          <Suspense fallback={<FullPageSpinner label="Đang tải trang…" />}>
+          <Suspense fallback={<FullPageSpinner label={t('common:loadingPage')} />}>
             <Outlet />
           </Suspense>
         </main>

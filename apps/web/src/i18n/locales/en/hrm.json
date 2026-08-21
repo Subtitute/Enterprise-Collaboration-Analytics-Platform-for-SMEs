@@ -1,0 +1,107 @@
+{
+  "enums": {
+    "leaveRequestStatus": {
+      "PENDING": "Pending",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected"
+    }
+  },
+  "attendancePage": {
+    "title": "Attendance",
+    "subtitle": "Check in and out with a photo as proof.",
+    "onSiteBadge": {
+      "onSiteTitle": "GPS location is within the office radius",
+      "offSiteTitle": "GPS location is outside the office radius",
+      "onSite": "On-site",
+      "offSite": "Off-site"
+    },
+    "today": {
+      "cardTitle": "Today ({{date}})",
+      "notCheckedIn": "You haven't checked in today.",
+      "checkedInPrefix": "Checked in at",
+      "checkInLabel": "Check in",
+      "checkOutLabel": "· Check out",
+      "checkInButton": "Check in",
+      "checkOutButton": "Check out",
+      "doneToday": "Done for today"
+    },
+    "history": {
+      "cardTitle": "Attendance history",
+      "loading": "Loading attendance history…",
+      "errorTitle": "Couldn't load attendance history",
+      "errorDescription": "Something went wrong loading the data. Please try again.",
+      "emptyTitle": "No attendance history yet",
+      "emptyDescription": "Your data will appear after your first check-in.",
+      "columns": {
+        "date": "Date",
+        "checkIn": "Check in",
+        "checkOut": "Check out"
+      }
+    },
+    "allAttendance": {
+      "cardTitle": "Organization-wide attendance",
+      "columns": {
+        "employee": "Employee",
+        "date": "Date",
+        "checkIn": "Check in",
+        "checkOut": "Check out"
+      }
+    }
+  },
+  "leaveRequestsPage": {
+    "title": "Leave Requests",
+    "subtitle": "Create and track your leave requests.",
+    "newRequestButton": "New request",
+    "pending": {
+      "cardTitle": "Pending ({{count}})",
+      "reject": "Reject",
+      "approve": "Approve"
+    },
+    "myRequests": {
+      "cardTitle": "My requests",
+      "loading": "Loading leave requests…",
+      "errorTitle": "Couldn't load leave requests",
+      "errorDescription": "Something went wrong loading the data. Please try again.",
+      "emptyTitle": "No leave requests yet",
+      "emptyDescription": "Create your first request when you need time off.",
+      "createFirstButton": "Create new request",
+      "decisionNote": "Note: {{note}}"
+    }
+  },
+  "newLeaveRequestModal": {
+    "title": "Create leave request",
+    "startDateLabel": "Start date",
+    "endDateLabel": "End date",
+    "reasonLabel": "Reason",
+    "reasonPlaceholder": "Reason for the leave request…",
+    "cancelButton": "Cancel",
+    "submitButton": "Submit request",
+    "errors": {
+      "missingDates": "Please select a start and end date",
+      "missingReason": "Please enter a reason for the leave"
+    }
+  },
+  "checkInCamera": {
+    "modalTitle": "Take attendance photo",
+    "cameraDenied": "Couldn't access the camera. Please grant camera permission in your browser and try again.",
+    "retryButton": "Retry",
+    "cameraUnavailable": "This device doesn't support a camera, or the browser doesn't allow access.",
+    "previewAlt": "Captured attendance photo",
+    "cancelButton": "Cancel",
+    "retakeButton": "Retake",
+    "confirmButton": "Confirm",
+    "captureButton": "Capture"
+  },
+  "toasts": {
+    "checkInSuccess": "Checked in",
+    "checkInError": "Couldn't check in",
+    "checkOutSuccess": "Checked out",
+    "checkOutError": "Couldn't check out",
+    "createLeaveRequestSuccess": "Leave request submitted",
+    "createLeaveRequestError": "Couldn't submit the leave request",
+    "approveLeaveRequestSuccess": "Leave request approved",
+    "approveLeaveRequestError": "Couldn't approve the request",
+    "rejectLeaveRequestSuccess": "Leave request rejected",
+    "rejectLeaveRequestError": "Couldn't reject the request"
+  }
+}

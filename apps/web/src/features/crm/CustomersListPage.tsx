@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
@@ -10,6 +11,7 @@ import { NewCustomerModal } from './components/NewCustomerModal';
 
 /** Danh sach khach hang (CRM-lite) - mirror ProjectsListPage.tsx (features/projects). */
 export function CustomersListPage() {
+  const { t } = useTranslation();
   const [isNewOpen, setIsNewOpen] = useState(false);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -28,11 +30,11 @@ export function CustomersListPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Khách hàng</h1>
-          <p className="text-sm text-slate-500">Quản lý khách hàng và cơ hội bán hàng (deal pipeline).</p>
+          <h1 className="text-xl font-semibold text-slate-900">{t('crm:customersListPage.title')}</h1>
+          <p className="text-sm text-slate-500">{t('crm:customersListPage.subtitle')}</p>
         </div>
         <Button onClick={() => setIsNewOpen(true)}>
-          <PlusIcon className="h-4 w-4" /> Khách hàng mới
+          <PlusIcon className="h-4 w-4" /> {t('crm:customersListPage.newCustomer')}
         </Button>
       </div>
 
@@ -42,8 +44,8 @@ export function CustomersListPage() {
           type="search"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Tìm kiếm khách hàng…"
-          aria-label="Tìm kiếm khách hàng…"
+          placeholder={t('crm:customersListPage.searchPlaceholder')}
+          aria-label={t('crm:customersListPage.searchPlaceholder')}
           className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100"
         />
       </div>
@@ -52,20 +54,20 @@ export function CustomersListPage() {
         isLoading={customersQuery.isLoading}
         isError={customersQuery.isError}
         onRetry={() => customersQuery.refetch()}
-        loadingFallback={<FullPageSpinner label="Đang tải danh sách khách hàng…" />}
-        errorTitle="Không thể tải danh sách khách hàng"
-        errorDescription="Đã xảy ra lỗi khi tải danh sách khách hàng. Vui lòng thử lại."
+        loadingFallback={<FullPageSpinner label={t('crm:customersListPage.loading')} />}
+        errorTitle={t('crm:customersListPage.errorTitle')}
+        errorDescription={t('crm:customersListPage.errorDescription')}
       >
         {customers.length === 0 ? (
           <EmptyState
             icon={<BriefcaseIcon className="h-10 w-10" />}
-            title={hasFilters ? 'Không tìm thấy khách hàng phù hợp' : 'Chưa có khách hàng nào'}
+            title={hasFilters ? t('crm:customersListPage.emptyFilteredTitle') : t('crm:customersListPage.emptyTitle')}
             description={
               hasFilters
-                ? 'Thử điều chỉnh từ khóa tìm kiếm.'
-                : 'Thêm khách hàng đầu tiên để bắt đầu theo dõi cơ hội bán hàng.'
+                ? t('crm:customersListPage.emptyFilteredDescription')
+                : t('crm:customersListPage.emptyDescription')
             }
-            action={!hasFilters && <Button onClick={() => setIsNewOpen(true)}>Thêm khách hàng mới</Button>}
+            action={!hasFilters && <Button onClick={() => setIsNewOpen(true)}>{t('crm:customersListPage.addFirstCustomer')}</Button>}
           />
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">

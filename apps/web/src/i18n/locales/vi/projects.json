@@ -1,0 +1,131 @@
+{
+  "enums": {
+    "taskStatus": {
+      "TODO": "Cần làm",
+      "DOING": "Đang làm",
+      "DONE": "Hoàn thành"
+    },
+    "projectStatus": {
+      "ACTIVE": "Đang hoạt động",
+      "COMPLETED": "Hoàn thành",
+      "ARCHIVED": "Lưu trữ"
+    }
+  },
+  "list": {
+    "title": "Dự án & Công việc",
+    "subtitle": "Quản lý dự án và theo dõi tiến độ công việc dạng Kanban.",
+    "newProject": "Dự án mới",
+    "searchPlaceholder": "Tìm kiếm dự án…",
+    "statusFilter": {
+      "all": "Tất cả trạng thái"
+    },
+    "loading": "Đang tải danh sách dự án…",
+    "errorTitle": "Không thể tải danh sách dự án",
+    "errorDescription": "Đã xảy ra lỗi khi tải danh sách dự án. Vui lòng thử lại.",
+    "emptyFilteredTitle": "Không tìm thấy dự án phù hợp",
+    "emptyTitle": "Chưa có dự án nào",
+    "emptyFilteredDescription": "Thử điều chỉnh từ khóa tìm kiếm hoặc trạng thái đã chọn.",
+    "emptyDescription": "Tạo dự án đầu tiên để bắt đầu phân chia công việc cho nhóm của bạn.",
+    "createFirst": "Tạo dự án mới"
+  },
+  "detail": {
+    "loading": "Đang tải dự án…",
+    "notFoundTitle": "Không tìm thấy dự án",
+    "notFoundDescription": "Dự án có thể đã bị xoá hoặc bạn không có quyền truy cập.",
+    "backToList": "Quay lại danh sách dự án",
+    "dueDate": "Hạn: {{date}}",
+    "completeProject": "Hoàn thành dự án",
+    "newTask": "Công việc mới",
+    "tasksLoading": "Đang tải công việc…",
+    "tasksErrorTitle": "Không thể tải công việc",
+    "tasksErrorDescription": "Đã xảy ra lỗi khi tải danh sách công việc của dự án. Vui lòng thử lại.",
+    "emptyTasksTitle": "Chưa có công việc nào",
+    "emptyTasksDescription": "Thêm công việc đầu tiên để bắt đầu theo dõi tiến độ dự án.",
+    "createFirstTask": "Tạo công việc mới"
+  },
+  "newProjectModal": {
+    "title": "Tạo dự án mới",
+    "nameRequired": "Vui lòng nhập tên dự án",
+    "nameLabel": "Tên dự án",
+    "namePlaceholder": "Ví dụ: Ra mắt website mới",
+    "descriptionLabel": "Mô tả",
+    "descriptionPlaceholder": "Mục tiêu, phạm vi công việc của dự án…",
+    "dueDateLabel": "Hạn hoàn thành",
+    "cancel": "Hủy",
+    "submit": "Tạo dự án"
+  },
+  "newTaskModal": {
+    "title": "Tạo công việc mới",
+    "titleRequired": "Vui lòng nhập tiêu đề công việc",
+    "titleLabel": "Tiêu đề",
+    "titlePlaceholder": "Ví dụ: Thiết kế giao diện trang chủ",
+    "descriptionLabel": "Mô tả",
+    "dueDateLabel": "Hạn hoàn thành",
+    "cancel": "Hủy",
+    "submit": "Tạo công việc"
+  },
+  "projectCard": {
+    "optionsAriaLabel": "Tùy chọn dự án",
+    "markComplete": "Đánh dấu hoàn thành",
+    "delete": "Xoá dự án",
+    "memberCount": "{{count}} thành viên",
+    "confirmDeleteTitle": "Xoá dự án này?",
+    "confirmDeleteDescription": "Toàn bộ công việc thuộc \"{{name}}\" cũng có thể bị xoá. Hành động này không thể hoàn tác."
+  },
+  "taskCard": {
+    "unknownAssignee": "Thành viên"
+  },
+  "assigneePicker": {
+    "allAssigned": "Tất cả thành viên đã được phân công.",
+    "selectAriaLabel": "Chọn thành viên để thêm",
+    "selectPlaceholderOption": "Chọn thành viên để thêm…",
+    "add": "Thêm"
+  },
+  "taskDetail": {
+    "unknownMember": "Thành viên",
+    "fallbackTitle": "Công việc",
+    "statusLabel": "Trạng thái",
+    "dueDateLabel": "Hạn hoàn thành",
+    "deleteTask": "Xoá công việc",
+    "descriptionLabel": "Mô tả",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "descriptionEmpty": "Chưa có mô tả. Bấm để thêm…",
+    "assigneesLabel": "Người phụ trách",
+    "noAssignees": "Chưa có ai được phân công.",
+    "removeAssigneeAriaLabel": "Gỡ khỏi công việc",
+    "commentsLabel": "Bình luận",
+    "noComments": "Chưa có bình luận nào.",
+    "commentPlaceholder": "Viết bình luận…",
+    "send": "Gửi",
+    "statusHistoryLabel": "Lịch sử thay đổi trạng thái",
+    "statusHistoryError": "Không thể tải lịch sử thay đổi trạng thái.",
+    "noStatusHistory": "Chưa có lịch sử thay đổi trạng thái.",
+    "confirmDeleteTitle": "Xoá công việc này?",
+    "confirmDeleteDescription": "Hành động này không thể hoàn tác."
+  },
+  "toast": {
+    "project": {
+      "created": "Đã tạo dự án mới",
+      "createError": "Không thể tạo dự án",
+      "updated": "Đã cập nhật dự án",
+      "updateError": "Không thể cập nhật dự án",
+      "deleted": "Đã xoá dự án",
+      "deleteError": "Không thể xoá dự án",
+      "completed": "Đã đánh dấu dự án hoàn thành",
+      "completeError": "Không thể hoàn thành dự án"
+    },
+    "task": {
+      "created": "Đã tạo công việc mới",
+      "createError": "Không thể tạo công việc",
+      "updated": "Đã lưu thay đổi công việc",
+      "updateError": "Không thể cập nhật công việc",
+      "deleted": "Đã xoá công việc",
+      "deleteError": "Không thể xoá công việc",
+      "statusUpdateError": "Không thể cập nhật trạng thái công việc",
+      "addAssigneeError": "Không thể thêm người phụ trách",
+      "removeAssigneeError": "Không thể gỡ người phụ trách",
+      "addCommentError": "Không thể gửi bình luận"
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/stores/auth.store';
 import type { AuthSession } from '@/stores/auth.store';
+import i18n from '@/i18n';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
@@ -88,10 +89,32 @@ apiClient.interceptors.response.use(
   },
 );
 
-/** Trich xuat thong diep loi tu response API (Technical_Spec.md muc 7: { message, ... }). */
+interface ErrorResponseData {
+  message?: string | string[];
+  errorCode?: string;
+  errorParams?: Record<string, string | number>;
+  details?: { code: string; params?: Record<string, string | number> }[];
+}
+
+/**
+ * Trich xuat thong diep loi tu response API (Technical_Spec.md muc 7: { message, ... }).
+ *
+ * 20/08/2026: nang cap cho rollout i18n (xem
+ * packages/common-dto/src/constants/error-codes.constant.ts) - uu tien dich qua i18next bang
+ * errorCode/details khi backend da gan ma cho diem loi do, LUON co defaultValue la chinh message
+ * tieng Viet cu (dang chua kip gan ma, hoac key dich con thieu) nen KHONG bao gio "vo" - hanh vi
+ * cu (chi doc message) giu nguyen 100% khi khong co field moi nao.
+ */
 export function extractErrorMessage(error: unknown, fallback = 'Đã xảy ra lỗi. Vui lòng thử lại.'): string {
   if (axios.isAxiosError(error)) {
-    const data = error.response?.data as { message?: string | string[] } | undefined;
+    const data = error.response?.data as ErrorResponseData | undefined;
+    if (data?.details && Array.isArray(data.message)) {
+      const messages = data.message;
+      return data.details.map((d, i) => i18n.t(`errors:${d.code}`, { ...d.params, defaultValue: messages[i] })).join(', ');
+    }
+    if (data?.errorCode && typeof data.message === 'string') {
+      return i18n.t(`errors:${data.errorCode}`, { ...data.errorParams, defaultValue: data.message });
+    }
     if (data?.message) {
       return Array.isArray(data.message) ? data.message.join(', ') : data.message;
     }

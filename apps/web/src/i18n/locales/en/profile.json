@@ -1,0 +1,19 @@
+{
+  "page": {
+    "title": "Profile",
+    "subtitle": "Your account information within the organization.",
+    "loading": "Loading profile…",
+    "loadError": "Couldn't load profile",
+    "status": {
+      "active": "Active",
+      "inactive": "Deactivated"
+    },
+    "fields": {
+      "email": "Email",
+      "department": "Department",
+      "roles": "Role",
+      "joinedAt": "Joined on"
+    },
+    "contactAdminNote": "To change your department or role, please contact your organization admin (Admin > Members)."
+  }
+}

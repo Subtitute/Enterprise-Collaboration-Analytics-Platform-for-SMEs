@@ -17,7 +17,7 @@ import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 // nay trong upload() ben duoi).
 import { isUUID } from 'class-validator';
 import { CurrentUser, RequirePermissions } from '@app/common-guard';
-import { PERMISSIONS } from '@app/common-dto';
+import { ERROR_CODES, PERMISSIONS } from '@app/common-dto';
 import { FilesService } from './files.service';
 import { ShareFileDto } from './dto/share-file.dto';
 import { mimeTypeFileFilter } from './allowed-mime-types';
@@ -116,7 +116,7 @@ export class FilesController {
     @UploadedFile() file: Express.Multer.File,
     @Body('folderId') folderId?: string,
   ) {
-    if (!file) throw new BadRequestException('Thieu file can tai len');
+    if (!file) throw new BadRequestException({ message: 'Thieu file can tai len', errorCode: ERROR_CODES.MISSING_UPLOAD_FILE });
     // 25/07/2026: MAJOR fix (audit round) - `folderId` o day duoc doc THO qua `@Body('folderId')`
     // (mot truong ke ben file nhi phan trong multipart/form-data), KHONG phai 1 DTO co kieu class
     // - ValidationPipe toan cuc CHI validate `@Body()` khi tham so nhan 1 DTO dang class (xem
@@ -128,7 +128,7 @@ export class FilesController {
     // (`folderId` rong/undefined = tai len thu muc goc, quy uoc hop le - xem
     // `folderId || null` ben duoi), chi kiem tra hinh dang UUID khi CO gia tri.
     if (folderId && !isUUID(folderId, '4')) {
-      throw new BadRequestException('folderId phai la UUID hop le');
+      throw new BadRequestException({ message: 'folderId phai la UUID hop le', errorCode: ERROR_CODES.INVALID_FOLDER_ID });
     }
     return this.filesService.upload(organizationId, actorId, folderId || null, file);
   }
@@ -152,7 +152,7 @@ export class FilesController {
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    if (!file) throw new BadRequestException('Thieu file can tai len');
+    if (!file) throw new BadRequestException({ message: 'Thieu file can tai len', errorCode: ERROR_CODES.MISSING_UPLOAD_FILE });
     return this.filesService.uploadNewVersion(
       organizationId,
       actorId,

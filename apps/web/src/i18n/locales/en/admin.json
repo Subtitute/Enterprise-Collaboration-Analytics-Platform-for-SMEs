@@ -1,0 +1,156 @@
+{
+  "adminPage": {
+    "title": "Administration",
+    "description": "Manage members, departments, and system access permissions.",
+    "tabs": {
+      "members": "Members",
+      "departments": "Departments",
+      "roles": "Roles & Permissions",
+      "failedEvents": "System Failed Events"
+    }
+  },
+  "departmentsPage": {
+    "description": "Manage the department structure within your organization.",
+    "newDepartment": "New department",
+    "loading": "Loading departments…",
+    "errorTitle": "Couldn't load departments",
+    "emptyTitle": "No departments yet",
+    "optionsAria": "Department options",
+    "columns": {
+      "name": "Department name",
+      "description": "Description",
+      "memberCount": "Members",
+      "actions": "Actions"
+    },
+    "actionsMenu": {
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "deleteConfirm": {
+      "title": "Delete this department?",
+      "description": "Members in \"{{name}}\" will no longer belong to any department.",
+      "confirmLabel": "Delete department"
+    }
+  },
+  "membersPage": {
+    "description": "Manage members, departments, and access permissions within your organization.",
+    "inviteMember": "Invite member",
+    "loading": "Loading members…",
+    "errorTitle": "Couldn't load members",
+    "emptyTitle": "No members yet",
+    "optionsAria": "Member options",
+    "columns": {
+      "member": "Member",
+      "department": "Department",
+      "role": "Role",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Deactivated"
+    },
+    "actionsMenu": {
+      "editRoleDepartment": "Change department / role",
+      "deactivate": "Deactivate",
+      "reactivate": "Reactivate"
+    },
+    "deactivateConfirm": {
+      "title": "Deactivate this account?",
+      "description": "\"{{fullName}}\" won't be able to sign in until reactivated.",
+      "confirmLabel": "Deactivate"
+    }
+  },
+  "rolesPermissionsPage": {
+    "otherGroup": "Other",
+    "loading": "Loading permission matrix…",
+    "errorTitle": "Couldn't load role/permission data",
+    "emptyTitle": "No role or permission data yet",
+    "hint": "Check a box to grant or revoke a permission for a role. Changes are saved immediately.",
+    "permissionColumn": "Permission",
+    "checkboxAriaLabel": "{{roleName}} - {{permissionLabel}}"
+  },
+  "failedEventsPage": {
+    "description": "Internal processing events (Kafka) that failed permanently or exhausted their automatic retries - these aren't user-caused errors, but diagnostic data for troubleshooting system issues. This list is read-only; there's no retry action from this interface.",
+    "descriptionOrgNote": "Events marked \"Unknown organization\" are errors that occurred at the data-ingestion stage (before any organization could be identified), so they're shown to every Org Admin - this is shared infrastructure diagnostic data, not business data belonging to any single organization.",
+    "loading": "Loading failed events…",
+    "errorTitle": "Couldn't load failed events",
+    "emptyTitle": "No failed events",
+    "emptyDescription": "No internal processing events have failed so far.",
+    "columns": {
+      "time": "Time",
+      "errorType": "Error type",
+      "scope": "Scope",
+      "source": "Source",
+      "eventType": "Event type",
+      "errorMessage": "Error message"
+    },
+    "errorTypeLabels": {
+      "malformedJson": "Malformed data",
+      "invalidEnvelope": "Malformed data",
+      "permanentDataError": "Data error",
+      "retryExhausted": "Retries exhausted"
+    },
+    "scopeUnknownOrg": "Unknown organization",
+    "scopeOwnOrg": "Your organization"
+  },
+  "roleCheckboxList": {
+    "empty": "There are no roles in the system yet."
+  },
+  "departmentModal": {
+    "editTitle": "Edit department",
+    "createTitle": "Create new department",
+    "nameLabel": "Department name",
+    "namePlaceholder": "e.g. Sales Department",
+    "descriptionLabel": "Description",
+    "nameRequiredError": "Please enter a department name",
+    "cancel": "Cancel",
+    "saveChanges": "Save changes",
+    "create": "Create department"
+  },
+  "editMemberModal": {
+    "title": "Edit — {{fullName}}",
+    "departmentLabel": "Department",
+    "noDepartmentOption": "— No department —",
+    "roleLabel": "Role",
+    "cancel": "Cancel",
+    "saveChanges": "Save changes"
+  },
+  "inviteMemberModal": {
+    "title": "Invite new member",
+    "emailLabel": "Email",
+    "emailPlaceholder": "name@company.com",
+    "fullNameLabel": "Full name",
+    "fullNamePlaceholder": "Jane Doe",
+    "passwordLabel": "Initial password",
+    "passwordHint": "Members should change their password after their first sign-in",
+    "passwordPlaceholder": "At least 8 characters",
+    "departmentLabel": "Department",
+    "noDepartmentOption": "— No department —",
+    "roleLabel": "Role",
+    "cancel": "Cancel",
+    "submit": "Send invitation",
+    "errors": {
+      "emailRequired": "Please enter an email address",
+      "fullNameRequired": "Please enter a full name",
+      "passwordMinLength": "Password must be at least 8 characters"
+    }
+  },
+  "toast": {
+    "memberInvited": "Member invited",
+    "memberInviteFailed": "Couldn't invite member",
+    "memberUpdated": "Member updated",
+    "memberUpdateFailed": "Couldn't update member",
+    "memberDeactivated": "Account deactivated",
+    "memberDeactivateFailed": "Couldn't deactivate account",
+    "memberReactivated": "Account reactivated",
+    "memberReactivateFailed": "Couldn't reactivate account",
+    "departmentCreated": "Department created",
+    "departmentCreateFailed": "Couldn't create department",
+    "departmentUpdated": "Department updated",
+    "departmentUpdateFailed": "Couldn't update department",
+    "departmentDeleted": "Department deleted",
+    "departmentDeleteFailed": "Couldn't delete department",
+    "permissionsUpdateFailed": "Couldn't update permissions"
+  }
+}

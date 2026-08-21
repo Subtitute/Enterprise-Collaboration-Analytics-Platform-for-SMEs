@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUIStore } from '@/stores/ui.store';
@@ -6,6 +7,7 @@ import { useLogout } from '@/features/auth/hooks';
 import { useGlobalSearch } from '@/features/search/useGlobalSearch';
 import type { SearchResult } from '@/features/search/useGlobalSearch';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 import { Avatar } from '@/components/ui/Avatar';
 import { Spinner } from '@/components/ui/Spinner';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
@@ -20,11 +22,11 @@ import {
   FolderIcon,
 } from '@/components/ui/Icons';
 
-const CATEGORY_LABEL: Record<SearchResult['category'], string> = {
-  project: 'Dự án',
-  task: 'Công việc',
-  member: 'Thành viên',
-  folder: 'Tài liệu',
+const CATEGORY_LABEL_KEY: Record<SearchResult['category'], string> = {
+  project: 'project',
+  task: 'task',
+  member: 'member',
+  folder: 'folder',
 };
 
 const CATEGORY_ICON: Record<SearchResult['category'], typeof FolderKanbanIcon> = {
@@ -35,6 +37,7 @@ const CATEGORY_ICON: Record<SearchResult['category'], typeof FolderKanbanIcon> =
 };
 
 function GlobalSearchBox() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState('');
@@ -81,14 +84,14 @@ function GlobalSearchBox() {
           setIsFocused(true);
           setHasInteracted(true);
         }}
-        placeholder="Tìm kiếm dự án, tài liệu, công việc…"
+        placeholder={t('common:search.placeholder')}
         // 28/07/2026: them aria-label khop voi placeholder + cac thuoc tinh ARIA combobox/listbox
         // (phat hien qua ra soat kha nang tiep can) - placeholder bien mat khi go chu va khong dam
         // bao duoc dung lam ten truy cap; o nhap nay con dieu khien 1 hop ket qua dang mo/dong nhung
         // truoc do khong co ngu nghia combobox nao de trinh doc man hinh biet co danh sach lien quan.
         // Chi bo sung ngu nghia ARIA, KHONG doi hanh vi/dieu huong ban phim hien co (dieu huong bang
         // mui ten trong danh sach ket qua nam ngoai pham vi lan sua nay).
-        aria-label="Tìm kiếm dự án, tài liệu, công việc…"
+        aria-label={t('common:search.placeholder')}
         role="combobox"
         aria-expanded={open}
         aria-haspopup="listbox"
@@ -112,7 +115,7 @@ function GlobalSearchBox() {
             </div>
           )}
           {!isLoading && query.length > 0 && results.length === 0 && (
-            <p className="px-3.5 py-3 text-center text-sm text-slate-400">Không tìm thấy kết quả cho “{query}”.</p>
+            <p className="px-3.5 py-3 text-center text-sm text-slate-400">{t('common:search.noResults', { query })}</p>
           )}
           {!isLoading &&
             (['project', 'task', 'member', 'folder'] as const).map((category) => {
@@ -122,7 +125,7 @@ function GlobalSearchBox() {
               return (
                 <div key={category} className="py-1">
                   <p className="px-3.5 pb-1 pt-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                    {CATEGORY_LABEL[category]}
+                    {t(`common:search.category.${CATEGORY_LABEL_KEY[category]}`)}
                   </p>
                   {items.map((r) => (
                     <button
@@ -149,6 +152,7 @@ function GlobalSearchBox() {
 }
 
 export function Topbar() {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen);
   const logout = useLogout();
@@ -159,7 +163,7 @@ export function Topbar() {
       <button
         type="button"
         onClick={() => setMobileSidebarOpen(true)}
-        aria-label="Mở menu"
+        aria-label={t('common:topbar.openMenu')}
         className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 md:hidden"
       >
         <MenuIcon className="h-5 w-5" />
@@ -168,6 +172,7 @@ export function Topbar() {
       <GlobalSearchBox />
 
       <div className="ml-auto flex items-center gap-1.5">
+        <LanguageSwitcher />
         <NotificationBell />
 
         <Dropdown
@@ -178,7 +183,7 @@ export function Topbar() {
             // cap tuong minh (chi dua vao text ten nguoi dung hien thi, an tren mobile va co the
             // doi theo tung tai khoan), gay kho khan cho ca trinh doc man hinh lan E2E test can
             // dinh vi nut on dinh khong phu thuoc du lieu dang nhap.
-            <button type="button" onClick={toggle} aria-label="Menu tài khoản" className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 hover:bg-slate-100">
+            <button type="button" onClick={toggle} aria-label={t('common:topbar.accountMenu')} className="flex items-center gap-2 rounded-lg py-1 pl-1 pr-2 hover:bg-slate-100">
               <Avatar name={user?.fullName} size="sm" />
               <span className="hidden max-w-[9rem] truncate text-sm font-medium text-slate-700 md:inline">{user?.fullName}</span>
               <ChevronDownIcon className="hidden h-3.5 w-3.5 text-slate-400 md:inline" />
@@ -200,10 +205,10 @@ export function Topbar() {
                   close();
                 }}
               >
-                <UserIcon className="h-4 w-4" /> Hồ sơ cá nhân
+                <UserIcon className="h-4 w-4" /> {t('common:topbar.profile')}
               </DropdownItem>
               <DropdownItem onClick={() => logout.mutate()} className="text-rose-600 hover:bg-rose-50">
-                <LogOutIcon className="h-4 w-4" /> Đăng xuất
+                <LogOutIcon className="h-4 w-4" /> {t('common:topbar.logout')}
               </DropdownItem>
             </div>
           )}

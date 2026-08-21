@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Checkbox } from '@/components/ui/Input';
 import type { Role } from '@/types';
 
@@ -10,12 +11,14 @@ export function RoleCheckboxList({
   selectedIds: string[];
   onChange: (ids: string[]) => void;
 }) {
+  const { t } = useTranslation();
+
   function toggle(id: string) {
     onChange(selectedIds.includes(id) ? selectedIds.filter((v) => v !== id) : [...selectedIds, id]);
   }
 
   if (roles.length === 0) {
-    return <p className="text-xs text-slate-400">Chưa có vai trò nào trong hệ thống.</p>;
+    return <p className="text-xs text-slate-400">{t('admin:roleCheckboxList.empty')}</p>;
   }
 
   return (

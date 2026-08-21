@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { ERROR_CODES } from '@app/common-dto';
 
 /**
  * Allowlist MIME type cho anh cham cong (chup tu camera trinh duyet) - sao chep-va-thu-gon tu
@@ -57,6 +58,8 @@ export function verifyPhotoContentMatchesMimeType(file: Express.Multer.File): vo
     throw new BadRequestException({
       error: 'VALIDATION_ERROR',
       message: `Noi dung anh khong khop voi loai duoc khai bao (${file.mimetype})`,
+      errorCode: ERROR_CODES.PHOTO_CONTENT_MISMATCH,
+      errorParams: { mimeType: file.mimetype },
     });
   }
 }

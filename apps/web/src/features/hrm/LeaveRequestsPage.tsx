@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -8,7 +9,6 @@ import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PlusIcon, CheckIcon, XIcon } from '@/components/ui/Icons';
 import { formatDate } from '@/lib/utils';
-import { LEAVE_REQUEST_STATUS_LABEL_VI } from '@/types';
 import type { LeaveRequestStatus } from '@/types';
 import { NewLeaveRequestModal } from './components/NewLeaveRequestModal';
 import {
@@ -26,6 +26,7 @@ const STATUS_BADGE_VARIANT: Record<LeaveRequestStatus, BadgeVariant> = {
 
 /** Trang Nghỉ phép (HRM-lite) - Technical_Spec.md muc 17, Wireframe.md muc 13. */
 export function LeaveRequestsPage() {
+  const { t } = useTranslation();
   const [isNewOpen, setIsNewOpen] = useState(false);
   const myRequestsQuery = useMyLeaveRequestsQuery({ limit: 20 });
   const pendingQuery = usePendingLeaveRequestsQuery();
@@ -40,18 +41,18 @@ export function LeaveRequestsPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Nghỉ phép</h1>
-          <p className="text-sm text-slate-500">Tạo và theo dõi yêu cầu nghỉ phép của bạn.</p>
+          <h1 className="text-xl font-semibold text-slate-900">{t('hrm:leaveRequestsPage.title')}</h1>
+          <p className="text-sm text-slate-500">{t('hrm:leaveRequestsPage.subtitle')}</p>
         </div>
         <Button onClick={() => setIsNewOpen(true)}>
-          <PlusIcon className="h-4 w-4" /> Yêu cầu mới
+          <PlusIcon className="h-4 w-4" /> {t('hrm:leaveRequestsPage.newRequestButton')}
         </Button>
       </div>
 
       {canApprove && (pendingQuery.data?.data.length ?? 0) > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Chờ duyệt ({pendingQuery.data?.data.length})</CardTitle>
+            <CardTitle>{t('hrm:leaveRequestsPage.pending.cardTitle', { count: pendingQuery.data?.data.length })}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {pendingQuery.data?.data.map((request) => (
@@ -64,10 +65,10 @@ export function LeaveRequestsPage() {
                 </div>
                 <div className="flex shrink-0 gap-2">
                   <Button size="sm" variant="outline" onClick={() => reject.mutate(request.id)} isLoading={reject.isPending}>
-                    <XIcon className="h-4 w-4" /> Từ chối
+                    <XIcon className="h-4 w-4" /> {t('hrm:leaveRequestsPage.pending.reject')}
                   </Button>
                   <Button size="sm" onClick={() => approve.mutate(request.id)} isLoading={approve.isPending}>
-                    <CheckIcon className="h-4 w-4" /> Duyệt
+                    <CheckIcon className="h-4 w-4" /> {t('hrm:leaveRequestsPage.pending.approve')}
                   </Button>
                 </div>
               </div>
@@ -78,22 +79,22 @@ export function LeaveRequestsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Yêu cầu của tôi</CardTitle>
+          <CardTitle>{t('hrm:leaveRequestsPage.myRequests.cardTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <QueryState
             isLoading={myRequestsQuery.isLoading}
             isError={myRequestsQuery.isError}
             onRetry={() => myRequestsQuery.refetch()}
-            loadingFallback={<FullPageSpinner label="Đang tải yêu cầu nghỉ phép…" />}
-            errorTitle="Không thể tải yêu cầu nghỉ phép"
-            errorDescription="Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại."
+            loadingFallback={<FullPageSpinner label={t('hrm:leaveRequestsPage.myRequests.loading')} />}
+            errorTitle={t('hrm:leaveRequestsPage.myRequests.errorTitle')}
+            errorDescription={t('hrm:leaveRequestsPage.myRequests.errorDescription')}
           >
             {(myRequestsQuery.data?.data.length ?? 0) === 0 ? (
               <EmptyState
-                title="Chưa có yêu cầu nghỉ phép nào"
-                description="Tạo yêu cầu đầu tiên khi bạn cần nghỉ phép."
-                action={<Button onClick={() => setIsNewOpen(true)}>Tạo yêu cầu mới</Button>}
+                title={t('hrm:leaveRequestsPage.myRequests.emptyTitle')}
+                description={t('hrm:leaveRequestsPage.myRequests.emptyDescription')}
+                action={<Button onClick={() => setIsNewOpen(true)}>{t('hrm:leaveRequestsPage.myRequests.createFirstButton')}</Button>}
               />
             ) : (
               <div className="space-y-3">
@@ -105,10 +106,12 @@ export function LeaveRequestsPage() {
                       </p>
                       <p className="mt-0.5 text-xs text-slate-500">{request.reason}</p>
                       {request.decisionNote && (
-                        <p className="mt-1 text-xs italic text-slate-400">Ghi chú: {request.decisionNote}</p>
+                        <p className="mt-1 text-xs italic text-slate-400">
+                          {t('hrm:leaveRequestsPage.myRequests.decisionNote', { note: request.decisionNote })}
+                        </p>
                       )}
                     </div>
-                    <Badge variant={STATUS_BADGE_VARIANT[request.status]}>{LEAVE_REQUEST_STATUS_LABEL_VI[request.status]}</Badge>
+                    <Badge variant={STATUS_BADGE_VARIANT[request.status]}>{t(`hrm:enums.leaveRequestStatus.${request.status}`)}</Badge>
                   </div>
                 ))}
               </div>

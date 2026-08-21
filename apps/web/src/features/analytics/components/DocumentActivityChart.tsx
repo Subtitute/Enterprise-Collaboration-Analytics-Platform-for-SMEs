@@ -1,4 +1,5 @@
 import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useTranslation } from 'react-i18next';
 import { CATEGORICAL, CHART_INK } from '@/lib/chart-colors';
 import { formatDate } from '@/lib/utils';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -29,6 +30,7 @@ interface DocumentActivityChartProps {
 }
 
 export function DocumentActivityChart({ data, isLoading, isError, onRetry }: DocumentActivityChartProps) {
+  const { t } = useTranslation();
   const hasShares = data.some((d) => typeof d.shares === 'number');
 
   return (
@@ -41,11 +43,11 @@ export function DocumentActivityChart({ data, isLoading, isError, onRetry }: Doc
           <Spinner />
         </div>
       }
-      errorTitle="Không thể tải hoạt động tài liệu"
-      errorDescription="Đã xảy ra lỗi khi tải dữ liệu biểu đồ. Vui lòng thử lại."
+      errorTitle={t('analytics:documentActivityChart.errorTitle')}
+      errorDescription={t('analytics:documentActivityChart.errorDescription')}
     >
       {data.length === 0 ? (
-        <EmptyState title="Chưa có dữ liệu hoạt động tài liệu" />
+        <EmptyState title={t('analytics:documentActivityChart.emptyTitle')} />
       ) : (
         <ResponsiveContainer width="100%" height={280}>
           <AreaChart data={data} margin={{ top: 8, right: 12, left: -16, bottom: 0 }}>
@@ -73,7 +75,7 @@ export function DocumentActivityChart({ data, isLoading, isError, onRetry }: Doc
             <Area
               type="monotone"
               dataKey="uploads"
-              name="Tải lên"
+              name={t('analytics:documentActivityChart.uploadsLabel')}
               stroke={CATEGORICAL[0]}
               strokeWidth={2}
               fill="url(#doc-activity-uploads)"
@@ -82,7 +84,7 @@ export function DocumentActivityChart({ data, isLoading, isError, onRetry }: Doc
               <Area
                 type="monotone"
                 dataKey="shares"
-                name="Chia sẻ"
+                name={t('analytics:documentActivityChart.sharesLabel')}
                 stroke={CATEGORICAL[4]}
                 strokeWidth={2}
                 fill="url(#doc-activity-shares)"

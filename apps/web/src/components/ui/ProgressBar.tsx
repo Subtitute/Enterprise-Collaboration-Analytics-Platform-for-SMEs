@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 interface ProgressBarProps {
@@ -9,6 +10,7 @@ interface ProgressBarProps {
 }
 
 export function ProgressBar({ value, className, trackClassName, barClassName, showLabel }: ProgressBarProps) {
+  const { t } = useTranslation();
   const clamped = Math.max(0, Math.min(100, Math.round(value || 0)));
   return (
     <div
@@ -21,7 +23,7 @@ export function ProgressBar({ value, className, trackClassName, barClassName, sh
       aria-valuenow={clamped}
       aria-valuemin={0}
       aria-valuemax={100}
-      aria-label="Tiến độ"
+      aria-label={t('common:progress')}
       className={cn('flex items-center gap-2', className)}
     >
       <div className={cn('h-2 w-full flex-1 overflow-hidden rounded-full bg-slate-100', trackClassName)}>

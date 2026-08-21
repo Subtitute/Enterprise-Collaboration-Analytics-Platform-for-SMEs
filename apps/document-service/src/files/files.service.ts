@@ -28,6 +28,7 @@ import {
   DocumentDeletedPayload,
   DocumentSharedPayload,
   DocumentUploadedPayload,
+  ERROR_CODES,
   EVENT_TYPES,
   PaginatedResponse,
   PaginationQueryDto,
@@ -96,7 +97,7 @@ export class FilesService {
 
   private async assertFileAccess(organizationId: string, fileMeta: FileMeta, ctx: AccessContext): Promise<void> {
     if (!(await this.canAccessFile(organizationId, fileMeta, ctx))) {
-      throw new ForbiddenException('Ban khong co quyen truy cap file nay');
+      throw new ForbiddenException({ message: 'Ban khong co quyen truy cap file nay', errorCode: ERROR_CODES.FORBIDDEN_FILE_ACCESS });
     }
   }
 
@@ -115,7 +116,10 @@ export class FilesService {
     if (folderId) {
       const folder = await this.folderRepo.findOne({ where: { id: folderId, organizationId } });
       if (folder && !(await this.folderAccessService.canAccessFolder(folder, ctx))) {
-        throw new ForbiddenException('Ban khong co quyen xem danh sach file trong thu muc nay');
+        throw new ForbiddenException({
+          message: 'Ban khong co quyen xem danh sach file trong thu muc nay',
+          errorCode: ERROR_CODES.FORBIDDEN_FILE_LIST_ACCESS,
+        });
       }
     }
     const [data, total] = await this.fileMetaRepo.findAndCount({
@@ -130,7 +134,7 @@ export class FilesService {
   // 28/07/2026: bo sung tham so `ctx` + assertFileAccess() - xem canAccessFile() o tren.
   async findOne(organizationId: string, id: string, ctx: AccessContext): Promise<FileMeta & { versions: FileVersion[] }> {
     const fileMeta = await this.fileMetaRepo.findOne({ where: { id, organizationId } });
-    if (!fileMeta) throw new NotFoundException('Khong tim thay file');
+    if (!fileMeta) throw new NotFoundException({ message: 'Khong tim thay file', errorCode: ERROR_CODES.FILE_NOT_FOUND });
     await this.assertFileAccess(organizationId, fileMeta, ctx);
     const versions = await this.fileVersionRepo.find({
       where: { fileId: id },
@@ -148,7 +152,7 @@ export class FilesService {
     ctx: AccessContext,
   ): Promise<{ downloadUrl: string }> {
     const fileMeta = await this.fileMetaRepo.findOne({ where: { id, organizationId } });
-    if (!fileMeta) throw new NotFoundException('Khong tim thay file');
+    if (!fileMeta) throw new NotFoundException({ message: 'Khong tim thay file', errorCode: ERROR_CODES.FILE_NOT_FOUND });
     await this.assertFileAccess(organizationId, fileMeta, ctx);
 
     // 25/07/2026: MAJOR fix (audit round) - stored content-sniffing XSS. `fileMeta.mimeType` la
@@ -187,7 +191,11 @@ export class FilesService {
     // phat sinh sau khi da buffer/tai xong toan bo noi dung nhi phan len MinIO (lang phi bang
     // thong + I/O cho 1 request cuoi cung van bi tu choi).
     if (file.originalname.length > MAX_FILE_NAME_LENGTH) {
-      throw new BadRequestException(`Ten file qua dai (toi da ${MAX_FILE_NAME_LENGTH} ky tu)`);
+      throw new BadRequestException({
+        message: `Ten file qua dai (toi da ${MAX_FILE_NAME_LENGTH} ky tu)`,
+        errorCode: ERROR_CODES.FILE_NAME_TOO_LONG,
+        errorParams: { max: MAX_FILE_NAME_LENGTH },
+      });
     }
     const sanitizedFileName = sanitizeFileName(file.originalname);
 
@@ -197,7 +205,7 @@ export class FilesService {
 
     if (folderId) {
       const folder = await this.folderRepo.findOne({ where: { id: folderId, organizationId } });
-      if (!folder) throw new NotFoundException('Khong tim thay thu muc');
+      if (!folder) throw new NotFoundException({ message: 'Khong tim thay thu muc', errorCode: ERROR_CODES.FOLDER_NOT_FOUND });
     }
 
     const fileId = uuidv4();
@@ -267,7 +275,11 @@ export class FilesService {
     // 22/07/2026: Fix 1 (code review) - xem giai thich day du o upload() ben tren, ap dung dong
     // nhat cho duong tai phien ban moi.
     if (file.originalname.length > MAX_FILE_NAME_LENGTH) {
-      throw new BadRequestException(`Ten file qua dai (toi da ${MAX_FILE_NAME_LENGTH} ky tu)`);
+      throw new BadRequestException({
+        message: `Ten file qua dai (toi da ${MAX_FILE_NAME_LENGTH} ky tu)`,
+        errorCode: ERROR_CODES.FILE_NAME_TOO_LONG,
+        errorParams: { max: MAX_FILE_NAME_LENGTH },
+      });
     }
     const sanitizedFileName = sanitizeFileName(file.originalname);
 
@@ -282,7 +294,7 @@ export class FilesService {
     // giai thich chi tiet o comment Fix 2 ben duoi (transaction se tu doc lai 1 lan nua, CO khoa,
     // ngay sau day - khong dua thang `fileMeta` doc o day vao logic tinh versionNumber).
     const fileMetaForAccessCheck = await this.fileMetaRepo.findOne({ where: { id: fileId, organizationId } });
-    if (!fileMetaForAccessCheck) throw new NotFoundException('Khong tim thay file');
+    if (!fileMetaForAccessCheck) throw new NotFoundException({ message: 'Khong tim thay file', errorCode: ERROR_CODES.FILE_NOT_FOUND });
     await this.assertFileAccess(organizationId, fileMetaForAccessCheck, ctx);
 
     // 22/07/2026: Fix 2 (code review) - TOAN BO doc + tinh versionNumber + ghi FileVersion/cap
@@ -312,7 +324,7 @@ export class FilesService {
         where: { id: fileId, organizationId },
         lock: { mode: 'pessimistic_write' },
       });
-      if (!fileMeta) throw new NotFoundException('Khong tim thay file');
+      if (!fileMeta) throw new NotFoundException({ message: 'Khong tim thay file', errorCode: ERROR_CODES.FILE_NOT_FOUND });
 
       const versionNumber = fileMeta.currentVersion + 1;
       // 22/07/2026: Fix 1 - dung TEN DA LAM SACH; Fix 2 - versionNumber tinh tu ban ghi VUA KHOA.
@@ -389,13 +401,16 @@ export class FilesService {
     ctx: AccessContext,
   ): Promise<FileShare> {
     const fileMeta = await this.fileMetaRepo.findOne({ where: { id: fileId, organizationId } });
-    if (!fileMeta) throw new NotFoundException('Khong tim thay file');
+    if (!fileMeta) throw new NotFoundException({ message: 'Khong tim thay file', errorCode: ERROR_CODES.FILE_NOT_FOUND });
     await this.assertFileAccess(organizationId, fileMeta, ctx);
 
     const hasUser = !!dto.sharedWithUserId;
     const hasDepartment = !!dto.sharedWithDepartmentId;
     if (hasUser === hasDepartment) {
-      throw new BadRequestException('Phai cung cap chinh xac mot trong hai: sharedWithUserId hoac sharedWithDepartmentId');
+      throw new BadRequestException({
+        message: 'Phai cung cap chinh xac mot trong hai: sharedWithUserId hoac sharedWithDepartmentId',
+        errorCode: ERROR_CODES.SHARE_TARGET_REQUIRED,
+      });
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -449,7 +464,7 @@ export class FilesService {
   // khong co quyen truy cap.
   async remove(organizationId: string, actorId: string, id: string, ctx: AccessContext): Promise<void> {
     const fileMeta = await this.fileMetaRepo.findOne({ where: { id, organizationId } });
-    if (!fileMeta) throw new NotFoundException('Khong tim thay file');
+    if (!fileMeta) throw new NotFoundException({ message: 'Khong tim thay file', errorCode: ERROR_CODES.FILE_NOT_FOUND });
     await this.assertFileAccess(organizationId, fileMeta, ctx);
 
     const versions = await this.fileVersionRepo.find({ where: { fileId: id } });

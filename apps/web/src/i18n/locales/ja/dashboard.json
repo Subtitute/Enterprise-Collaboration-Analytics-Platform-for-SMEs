@@ -1,0 +1,82 @@
+{
+  "page": {
+    "title": "ダッシュボード",
+    "subtitle": "組織の活動状況の概要です。"
+  },
+  "onboarding": {
+    "welcomeTitle": "ECAP for SMEs へようこそ！",
+    "welcomeDescription": "組織にはまだプロジェクトがありません。メンバーを招待するか、最初のプロジェクトを作成して始めましょう。",
+    "inviteMembers": "メンバーを招待",
+    "createFirstProject": "最初のプロジェクトを作成"
+  },
+  "kpi": {
+    "totalTasks": {
+      "label": "タスク総数",
+      "hint": "{{count}}件完了"
+    },
+    "completionRate": {
+      "label": "完了率",
+      "hint": "全タスクに対する割合"
+    },
+    "newDocuments": {
+      "label": "新規ドキュメント（7日間）",
+      "hint": "今週アップロードされたファイル"
+    },
+    "activeUsers": {
+      "label": "アクティブメンバー",
+      "hint": "過去7日間"
+    }
+  },
+  "filters": {
+    "dateRangeAriaLabel": "期間",
+    "departmentAriaLabel": "部署",
+    "allDepartments": "すべての部署"
+  },
+  "charts": {
+    "taskTrendTitle": "タスク完了推移",
+    "taskStatusTitle": "タスクステータス分布"
+  },
+  "recentActivitySection": {
+    "title": "最近のアクティビティ"
+  },
+  "kpiCard": {
+    "errorLabel": "読み込みエラー",
+    "retryAriaLabel": "{{label}}を再試行"
+  },
+  "taskStatusDonut": {
+    "errorTitle": "タスクステータスを読み込めませんでした",
+    "errorDescription": "グラフデータの読み込み中にエラーが発生しました。もう一度お試しください。",
+    "emptyTitle": "タスクがまだありません",
+    "emptyDescription": "システムにタスクが登録されると、ステータスグラフが表示されます。",
+    "unit": "件"
+  },
+  "taskTrendChart": {
+    "errorTitle": "タスクの推移を読み込めませんでした",
+    "errorDescription": "グラフデータの読み込み中にエラーが発生しました。もう一度お試しください。",
+    "emptyTitle": "タスクの推移データがまだありません",
+    "emptyDescription": "タスクが作成または完了すると、データが表示されます。",
+    "completedLine": "完了",
+    "createdLine": "新規作成"
+  },
+  "recentActivityFeed": {
+    "live": "リアルタイム更新中",
+    "offline": "オフライン",
+    "errorTitle": "最近のアクティビティを読み込めませんでした",
+    "emptyTitle": "アクティビティはまだありません",
+    "emptyDescription": "組織内の新しいアクティビティがここにリアルタイムで表示されます。",
+    "unknownActor": "あるメンバー",
+    "actions": {
+      "iam_organization_registered": "新しい組織を登録しました",
+      "iam_user_registered": "組織に参加しました",
+      "iam_user_deactivated": "アカウントが無効化されました",
+      "task_created": "新しいタスクを作成しました",
+      "task_status_changed": "タスクのステータスを更新しました",
+      "task_assigned": "タスクを割り当てられました",
+      "project_created": "新しいプロジェクトを作成しました",
+      "project_completed": "プロジェクトを完了しました",
+      "document_uploaded": "ドキュメントをアップロードしました",
+      "document_shared": "ドキュメントを共有しました",
+      "document_deleted": "ドキュメントを削除しました"
+    }
+  }
+}

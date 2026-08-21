@@ -17,6 +17,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     let message: string | string[] = 'Da xay ra loi khong xac dinh, vui long thu lai sau';
     let error = 'INTERNAL_SERVER_ERROR';
+    // 20/08/2026: 3 field CONG THEM cho rollout i18n (xem
+    // packages/common-dto/src/constants/error-codes.constant.ts) - chi duoc dien khi than
+    // exception la 1 object co cac field nay (vd `new NotFoundException({message, errorCode})`),
+    // undefined nghia la diem throw do chua duoc gan ma, response giu nguyen hanh vi cu 100%.
+    let errorCode: string | undefined;
+    let errorParams: Record<string, string | number> | undefined;
+    let details: ErrorResponseDto['details'];
 
     if (typeof body === 'string') {
       message = body;
@@ -24,7 +31,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
     } else if (body && typeof body === 'object') {
       const anyBody = body as Record<string, unknown>;
       message = (anyBody.message as string | string[]) ?? message;
+      // 20/08/2026: neu than exception la object nhung KHONG tu khai bao `error` (vd cac diem
+      // throw nghiep vu moi gan ma qua {message, errorCode}), roi ve ten class exception thuc su
+      // (vd 'NotFoundException') thay vi cum tieng Anh NestJS tu dien truoc day (vd 'Not Found') -
+      // vo tinh thong nhat quy uoc voi cac ma Gateway dang dung san (sendErrorResponse.ts:
+      // 'UnauthorizedException', 'BadGatewayException'...), khong service nao doc field nay de
+      // hien thi (chi message/errorCode moi duoc dung de hien thi) nen an toan.
       error = (anyBody.error as string) ?? (isHttpException ? exception!.constructor.name : error);
+      errorCode = anyBody.errorCode as string | undefined;
+      errorParams = anyBody.errorParams as Record<string, string | number> | undefined;
+      details = anyBody.details as ErrorResponseDto['details'];
     }
 
     if (!isHttpException) {
@@ -37,6 +53,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message,
       timestamp: new Date().toISOString(),
       path: request?.url,
+      ...(errorCode !== undefined && { errorCode }),
+      ...(errorParams !== undefined && { errorParams }),
+      ...(details !== undefined && { details }),
     };
 
     response.status(statusCode).json(payload);

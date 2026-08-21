@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth.store';
 import { silentRefresh } from '@/lib/api-client';
@@ -37,6 +38,7 @@ const RolesPermissionsPage = lazy(() => import('@/features/admin/RolesPermission
 const FailedEventsPage = lazy(() => import('@/features/admin/FailedEventsPage').then((m) => ({ default: m.FailedEventsPage })));
 
 export default function App() {
+  const { t } = useTranslation();
   const hasPersistedUser = useAuthStore((s) => Boolean(s.user));
   const setBootstrapped = useAuthStore((s) => s.setBootstrapped);
 
@@ -67,7 +69,7 @@ export default function App() {
     // Suspense rieng, gan hon, cho phan Outlet ben trong AppShell (xem AppShell.tsx) moi la noi xu
     // ly da so truong hop dieu huong giua cac trang da dang nhap - de Sidebar/Topbar khong bi go
     // mount/tai lai moi lan chuyen trang.
-    <Suspense fallback={<FullPageSpinner label="Đang tải…" />}>
+    <Suspense fallback={<FullPageSpinner label={t('common:loading')} />}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />

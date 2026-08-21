@@ -86,6 +86,15 @@ WebView) không bao giờ gửi header này, nên không bao giờ bị chặn b
 (access token 15 phút, giữ trong bộ nhớ qua `AuthSession`, KHÔNG ghi đĩa) cho mọi request, và
 tự gọi `/auth/refresh` một lần khi gặp `401` rồi thử lại request gốc (mirror hành vi phía web).
 
+**(Bổ sung 20-21/08/2026, không đổi CNA)** Nền tảng thêm rollout đa ngôn ngữ (Việt/Anh/Nhật) cho
+`apps/web` và mở rộng CỘNG THÊM 3 trường tùy chọn (`errorCode`/`errorParams`/`details`) vào body
+lỗi JSON để phục vụ dịch thông báo phía web (`Technical_Spec.md` §18) — 4 trường gốc
+(`statusCode`/`error`/`message`/`timestamp`) `_toApiException()` đang đọc giữ nguyên 100% giá trị
+và hành vi. Đã xác minh trực tiếp bằng cách gọi thật `POST /api/v1/auth/login` sai mật khẩu qua
+Gateway đã rebuild: response vẫn đúng hình dạng cũ, `message` tiếng Việt y hệt trước đây, chỉ có
+thêm field lạ mà `_toApiException()` vốn đã bỏ qua (parse JSON→Map permissive). CNA tiếp tục
+100% tiếng Việt, không có nút chọn ngôn ngữ, không cần sửa dòng nào.
+
 ## 4. Kết nối mạng — Wi-Fi/LAN, không cần cáp USB
 
 Vì đây là ứng dụng native (không phải WebView proxy qua Nginx như hướng Capacitor đã cân
@@ -574,3 +583,10 @@ này thì ai cũng có thể né bằng cách luôn chấm công qua web.
   thiết lập Gist và lý do thiết kế soft flag, ở mục 13 (mới). Xác minh: `flutter analyze`/
   `flutter test`/`flutter build apk --debug` đều sạch; build+test toàn workspace của nền tảng
   cũng sạch (backend + `apps/web` cùng áp dụng cờ vị trí, xem `Technical_Spec.md` mục cùng ngày).
+- **2026-08-20 → 21 (Đa ngôn ngữ Việt/Anh/Nhật ở nền tảng — không đổi CNA)** — Nền tảng triển
+  khai rollout đa ngôn ngữ đầy đủ cho `apps/web`, kèm mở rộng CỘNG THÊM 3 trường tùy chọn vào
+  body lỗi JSON (`errorCode`/`errorParams`/`details`, xem `Technical_Spec.md` §18). Ghi chú ngắn
+  thêm ở mục 3 xác nhận `_toApiException()` không bị ảnh hưởng (4 trường gốc giữ nguyên, field
+  mới bị bỏ qua tự nhiên) — đã xác minh bằng cách gọi thật API sai mật khẩu qua Gateway đã
+  rebuild. CNA không có nút chọn ngôn ngữ và không nằm trong phạm vi rollout này, tiếp tục 100%
+  tiếng Việt như từ đầu.

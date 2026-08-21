@@ -1,0 +1,53 @@
+{
+  "page": {
+    "title": "Báo cáo & Phân tích",
+    "subtitle": "Số liệu tổng hợp toàn tổ chức theo khoảng thời gian đã chọn.",
+    "unnamedProject": "Dự án #{{id}}"
+  },
+  "filters": {
+    "dateRangeAriaLabel": "Khoảng thời gian",
+    "departmentAriaLabel": "Phòng ban",
+    "allDepartments": "Tất cả phòng ban"
+  },
+  "aiInsight": {
+    "title": "Nhận xét AI",
+    "generateButton": "Tạo nhận xét AI",
+    "summaryWithDepartment": "Dựa trên số liệu {{range}} · Phòng ban {{department}}",
+    "summaryAllOrg": "Dựa trên số liệu {{range}} · Toàn tổ chức",
+    "placeholder": "Bấm “Tạo nhận xét AI” để nhận một đoạn nhận xét ngắn gọn về số liệu đang hiển thị, do AI tổng hợp."
+  },
+  "charts": {
+    "projectProgressTitle": "So sánh tiến độ dự án",
+    "documentActivityTitle": "Xu hướng hoạt động tài liệu"
+  },
+  "projectProgressTableSection": {
+    "title": "Bảng chỉ số theo dự án",
+    "errorTitle": "Không thể tải bảng chỉ số dự án"
+  },
+  "projectProgressChart": {
+    "tooltipProgressLabel": "Tiến độ:",
+    "errorTitle": "Không thể tải tiến độ dự án",
+    "errorDescription": "Đã xảy ra lỗi khi tải dữ liệu biểu đồ. Vui lòng thử lại.",
+    "emptyTitle": "Chưa có dữ liệu tiến độ dự án"
+  },
+  "documentActivityChart": {
+    "errorTitle": "Không thể tải hoạt động tài liệu",
+    "errorDescription": "Đã xảy ra lỗi khi tải dữ liệu biểu đồ. Vui lòng thử lại.",
+    "emptyTitle": "Chưa có dữ liệu hoạt động tài liệu",
+    "uploadsLabel": "Tải lên",
+    "sharesLabel": "Chia sẻ"
+  },
+  "projectProgressTable": {
+    "emptyTitle": "Chưa có dữ liệu để hiển thị",
+    "footnote": "* Số liệu hiển thị theo toàn tổ chức. Phân tích theo phòng ban sẽ được bổ sung khi hệ thống hỗ trợ.",
+    "columns": {
+      "name": "Dự án",
+      "progress": "Tiến độ",
+      "completedTasks": "Hoàn thành",
+      "totalTasks": "Tổng công việc"
+    }
+  },
+  "hooks": {
+    "aiInsightError": "Không thể tạo nhận xét AI"
+  }
+}

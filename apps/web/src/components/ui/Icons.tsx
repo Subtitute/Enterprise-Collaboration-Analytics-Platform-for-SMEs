@@ -287,3 +287,20 @@ export const MapPinIcon = (p: IconProps) => (
     <circle cx="12" cy="10" r="3" />
   </svg>
 );
+
+// 20/08/2026: dung cho nut an mat khau trong PasswordInput.tsx.
+export const EyeOffIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M3 3l18 18" />
+    <path d="M10.6 5.2A10.6 10.6 0 0 1 12 5c6.2 0 10 7 10 7a17.6 17.6 0 0 1-3.3 4.2M6.5 6.6C4 8.3 2 12 2 12s3.8 7 10 7a9.7 9.7 0 0 0 3.6-.7" />
+    <path d="M9.9 10a3 3 0 0 0 4.2 4.2" />
+  </svg>
+);
+
+// 20/08/2026: dung cho LanguageSwitcher.tsx (rollout i18n).
+export const GlobeIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M3 12h18M12 3a13.5 13.5 0 0 1 0 18M12 3a13.5 13.5 0 0 0 0 18" />
+  </svg>
+);

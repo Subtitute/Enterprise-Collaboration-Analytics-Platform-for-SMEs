@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -14,6 +15,7 @@ import type { Deal } from '@/types';
 
 /** Chi tiet khach hang + Kanban pipeline ban hang (Wireframe.md muc 12) - mirror ProjectDetailPage.tsx. */
 export function CustomerDetailPage() {
+  const { t } = useTranslation();
   const { customerId = '' } = useParams<{ customerId: string }>();
   const customerQuery = useCustomerQuery(customerId);
   const dealsQuery = useDealsQuery(customerId);
@@ -21,9 +23,14 @@ export function CustomerDetailPage() {
   const [isNewDealOpen, setIsNewDealOpen] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
 
-  if (customerQuery.isLoading) return <FullPageSpinner label="Đang tải khách hàng…" />;
+  if (customerQuery.isLoading) return <FullPageSpinner label={t('crm:customerDetailPage.loading')} />;
   if (customerQuery.isError || !customerQuery.data) {
-    return <EmptyState title="Không tìm thấy khách hàng" description="Khách hàng có thể đã bị xoá hoặc bạn không có quyền truy cập." />;
+    return (
+      <EmptyState
+        title={t('crm:customerDetailPage.notFoundTitle')}
+        description={t('crm:customerDetailPage.notFoundDescription')}
+      />
+    );
   }
 
   const customer = customerQuery.data;
@@ -32,7 +39,7 @@ export function CustomerDetailPage() {
   return (
     <div className="space-y-5">
       <Link to="/customers" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700">
-        <ChevronLeftIcon className="h-4 w-4" /> Quay lại danh sách khách hàng
+        <ChevronLeftIcon className="h-4 w-4" /> {t('crm:customerDetailPage.backToList')}
       </Link>
 
       <div className="flex flex-col justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center">
@@ -50,14 +57,17 @@ export function CustomerDetailPage() {
               </span>
             )}
             <span className="text-xs text-slate-500">
-              {customer.openDealCount ?? 0} deal đang hoạt động — {formatDealValue(customer.openDealValue ?? 0)}
+              {t('crm:customerDetailPage.openDealsSummary', {
+                count: customer.openDealCount ?? 0,
+                value: formatDealValue(customer.openDealValue ?? 0),
+              })}
             </span>
           </div>
           {customer.notes && <p className="mt-2 max-w-2xl text-sm text-slate-500">{customer.notes}</p>}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Button onClick={() => setIsNewDealOpen(true)}>
-            <PlusIcon className="h-4 w-4" /> Deal mới
+            <PlusIcon className="h-4 w-4" /> {t('crm:customerDetailPage.newDeal')}
           </Button>
         </div>
       </div>
@@ -66,15 +76,15 @@ export function CustomerDetailPage() {
         isLoading={dealsQuery.isLoading}
         isError={dealsQuery.isError}
         onRetry={() => dealsQuery.refetch()}
-        loadingFallback={<FullPageSpinner label="Đang tải deal…" />}
-        errorTitle="Không thể tải deal"
-        errorDescription="Đã xảy ra lỗi khi tải danh sách deal của khách hàng. Vui lòng thử lại."
+        loadingFallback={<FullPageSpinner label={t('crm:customerDetailPage.dealsLoading')} />}
+        errorTitle={t('crm:customerDetailPage.dealsErrorTitle')}
+        errorDescription={t('crm:customerDetailPage.dealsErrorDescription')}
       >
         {deals.length === 0 ? (
           <EmptyState
-            title="Chưa có deal nào"
-            description="Tạo cơ hội bán hàng đầu tiên cho khách hàng này."
-            action={<Button onClick={() => setIsNewDealOpen(true)}>Tạo deal mới</Button>}
+            title={t('crm:customerDetailPage.emptyDealsTitle')}
+            description={t('crm:customerDetailPage.emptyDealsDescription')}
+            action={<Button onClick={() => setIsNewDealOpen(true)}>{t('crm:customerDetailPage.createFirstDeal')}</Button>}
           />
         ) : (
           <DealKanbanBoard customerId={customerId} deals={deals} onDealClick={setSelectedDeal} />

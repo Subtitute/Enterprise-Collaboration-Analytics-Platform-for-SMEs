@@ -1,21 +1,24 @@
 import { NavLink, Outlet } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 const TABS = [
-  { to: '/admin/members', label: 'Thành viên' },
-  { to: '/admin/departments', label: 'Phòng ban' },
-  { to: '/admin/roles', label: 'Vai trò & Quyền' },
+  { to: '/admin/members', labelKey: 'admin:adminPage.tabs.members' },
+  { to: '/admin/departments', labelKey: 'admin:adminPage.tabs.departments' },
+  { to: '/admin/roles', labelKey: 'admin:adminPage.tabs.roles' },
   // 28/07/2026: tab moi cho man hinh chan doan Dead Letter Queue (GET /failed-events) - xem
   // FailedEventsPage.tsx.
-  { to: '/admin/failed-events', label: 'Sự kiện lỗi hệ thống' },
+  { to: '/admin/failed-events', labelKey: 'admin:adminPage.tabs.failedEvents' },
 ];
 
 export function AdminPage() {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Quản trị</h1>
-        <p className="text-sm text-slate-500">Quản lý thành viên, phòng ban và phân quyền truy cập hệ thống.</p>
+        <h1 className="text-xl font-semibold text-slate-900">{t('admin:adminPage.title')}</h1>
+        <p className="text-sm text-slate-500">{t('admin:adminPage.description')}</p>
       </div>
 
       <div className="flex items-center gap-1 border-b border-slate-200">
@@ -30,7 +33,7 @@ export function AdminPage() {
               )
             }
           >
-            {tab.label}
+            {t(tab.labelKey)}
           </NavLink>
         ))}
       </div>

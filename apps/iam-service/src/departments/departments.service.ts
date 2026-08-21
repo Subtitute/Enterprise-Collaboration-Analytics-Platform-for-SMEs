@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ERROR_CODES } from '@app/common-dto';
 import { Department } from '../entities/department.entity';
 import { CreateDepartmentDto } from './dto/create-department.dto';
 import { UpdateDepartmentDto } from './dto/update-department.dto';
@@ -22,14 +23,14 @@ export class DepartmentsService {
 
   async update(organizationId: string, id: string, dto: UpdateDepartmentDto): Promise<Department> {
     const department = await this.departmentRepo.findOne({ where: { id, organizationId } });
-    if (!department) throw new NotFoundException('Khong tim thay phong ban');
+    if (!department) throw new NotFoundException({ message: 'Khong tim thay phong ban', errorCode: ERROR_CODES.DEPARTMENT_NOT_FOUND });
     Object.assign(department, dto);
     return this.departmentRepo.save(department);
   }
 
   async remove(organizationId: string, id: string): Promise<void> {
     const department = await this.departmentRepo.findOne({ where: { id, organizationId } });
-    if (!department) throw new NotFoundException('Khong tim thay phong ban');
+    if (!department) throw new NotFoundException({ message: 'Khong tim thay phong ban', errorCode: ERROR_CODES.DEPARTMENT_NOT_FOUND });
     await this.departmentRepo.remove(department);
   }
 }

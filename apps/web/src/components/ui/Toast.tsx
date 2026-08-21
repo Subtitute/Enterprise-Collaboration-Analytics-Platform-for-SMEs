@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { useToastStore } from '@/stores/toast.store';
 import type { ToastItem, ToastVariant } from '@/stores/toast.store';
 import { cn } from '@/lib/utils';
@@ -11,6 +12,7 @@ const variantClasses: Record<ToastVariant, string> = {
 };
 
 function ToastCard({ item }: { item: ToastItem }) {
+  const { t } = useTranslation();
   const dismiss = useToastStore((s) => s.dismiss);
 
   useEffect(() => {
@@ -28,7 +30,7 @@ function ToastCard({ item }: { item: ToastItem }) {
     >
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-semibold">{item.title}</p>
-        <button onClick={() => dismiss(item.id)} aria-label="Đóng thông báo" className="shrink-0 text-current/60 hover:text-current">
+        <button onClick={() => dismiss(item.id)} aria-label={t('common:toast.dismiss')} className="shrink-0 text-current/60 hover:text-current">
           ×
         </button>
       </div>

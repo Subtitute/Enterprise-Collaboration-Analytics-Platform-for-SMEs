@@ -1,0 +1,147 @@
+{
+  "documentsPage": {
+    "title": "ドキュメント",
+    "subtitle": "組織で共有するフォルダとドキュメントファイルを管理します。",
+    "newFolder": "新規フォルダ",
+    "upload": "アップロード",
+    "breadcrumbRoot": "すべてのドキュメント",
+    "loading": "ドキュメントを読み込み中…",
+    "errorTitle": "ドキュメントを読み込めませんでした",
+    "errorDescription": "フォルダ/ファイルの読み込み中にエラーが発生しました。もう一度お試しください。",
+    "emptyState": {
+      "title": "フォルダは空です",
+      "description": "サブフォルダを作成するか、最初のドキュメントをアップロードしてください。",
+      "newFolder": "新規フォルダ",
+      "uploadFile": "ドキュメントをアップロード"
+    }
+  },
+  "newFolderModal": {
+    "title": "新規フォルダを作成",
+    "nameLabel": "フォルダ名",
+    "namePlaceholder": "例: 契約書2026",
+    "nameRequiredError": "フォルダ名を入力してください",
+    "cancel": "キャンセル",
+    "submit": "フォルダを作成"
+  },
+  "versionHistoryModal": {
+    "title": "バージョン履歴 — {{fileName}}",
+    "currentVersion": "現在のバージョン: v{{version}}",
+    "uploadNewVersion": "新しいバージョンをアップロード",
+    "emptyTitle": "バージョン履歴はまだありません",
+    "emptyDescription": "更新版をアップロードすると、ファイルの過去のバージョンがここに表示されます。",
+    "versionLabel": "バージョン {{version}}"
+  },
+  "fileTable": {
+    "columns": {
+      "name": "ファイル名",
+      "size": "サイズ",
+      "version": "バージョン",
+      "updated": "更新日時",
+      "actions": "操作"
+    },
+    "openFileTitle": "新しいタブでファイルを開いて表示",
+    "optionsAria": "ファイルオプション",
+    "viewFile": "ファイルを表示",
+    "download": "ダウンロード",
+    "share": "共有",
+    "versionHistory": "バージョン履歴",
+    "delete": "ファイルを削除",
+    "deleteConfirm": {
+      "title": "このファイルを削除しますか？",
+      "description": "「{{name}}」はシステムから削除されます。",
+      "confirmLabel": "ファイルを削除"
+    }
+  },
+  "uploadModal": {
+    "title": "ドキュメントをアップロード",
+    "dropHint": "ここにファイルをドラッグ&ドロップするか、クリックしてファイルを選択してください",
+    "supportedTypes": "PDF、Word、Excel、PowerPoint、画像、CSV、TXT、ZIPに対応 — 最大{{maxSize}}",
+    "removeFileAria": "選択したファイルを解除",
+    "cancel": "キャンセル",
+    "submit": "アップロード"
+  },
+  "folderShareModal": {
+    "title": "「{{folderName}}」の共有を管理",
+    "targetType": {
+      "user": "メンバー",
+      "department": "部署"
+    },
+    "shareWithMemberLabel": "メンバーと共有",
+    "shareWithDepartmentLabel": "部署と共有",
+    "selectMemberPlaceholder": "メンバーを選択…",
+    "selectDepartmentPlaceholder": "部署を選択…",
+    "addShare": "共有を追加",
+    "sharedWithHeading": "共有先",
+    "loading": "読み込み中…",
+    "noShares": "まだ誰とも共有されていません。",
+    "deleteShareAria": "共有を削除",
+    "close": "閉じる"
+  },
+  "shareModal": {
+    "title": "「{{fileName}}」を共有",
+    "targetType": {
+      "user": "メンバー",
+      "department": "部署"
+    },
+    "shareWithLabel": "共有先",
+    "shareWithDepartmentLabel": "部署と共有",
+    "selectMemberPlaceholder": "メンバーを選択…",
+    "selectDepartmentPlaceholder": "部署を選択…",
+    "permissionLabel": "権限",
+    "permissions": {
+      "view": "閲覧のみ",
+      "edit": "編集"
+    },
+    "cancel": "キャンセル",
+    "submit": "共有"
+  },
+  "folderGrid": {
+    "restrictedTooltip": "アクセス制限のあるフォルダ",
+    "optionsAria": "フォルダオプション",
+    "rename": "名前を変更",
+    "restrictAccess": "アクセスを制限",
+    "openToOrganization": "組織全体に公開",
+    "manageSharing": "共有を管理",
+    "delete": "フォルダを削除",
+    "renameDialog": {
+      "title": "フォルダ名を変更",
+      "confirmLabel": "保存",
+      "inputAria": "新しいフォルダ名"
+    },
+    "deleteConfirm": {
+      "title": "このフォルダを削除しますか？",
+      "description": "「{{name}}」およびその中のすべての内容が削除される可能性があります。",
+      "confirmLabel": "フォルダを削除"
+    }
+  },
+  "api": {
+    "unsupportedFileType": "サポートされていないファイル形式です",
+    "fileTooLarge": "ファイルが許容サイズを超えています(最大{{maxSize}})"
+  },
+  "hooks": {
+    "folderCreated": "フォルダを作成しました",
+    "folderCreateError": "フォルダを作成できませんでした",
+    "folderRenamed": "フォルダ名を変更しました",
+    "folderRenameError": "フォルダ名を変更できませんでした",
+    "folderDeleted": "フォルダを削除しました",
+    "folderDeleteError": "フォルダを削除できませんでした",
+    "folderVisibilityUpdated": "フォルダのアクセス権を更新しました",
+    "folderVisibilityUpdateError": "フォルダのアクセス権を更新できませんでした",
+    "folderShared": "フォルダを共有しました",
+    "folderShareError": "フォルダを共有できませんでした",
+    "folderShareDeleted": "共有を削除しました",
+    "folderShareDeleteError": "共有を削除できませんでした",
+    "uploadSuccess": "アップロードが完了しました",
+    "uploadError": "アップロードに失敗しました",
+    "newVersionUploaded": "新しいバージョンをアップロードしました",
+    "newVersionUploadError": "新しいバージョンをアップロードできませんでした",
+    "fileShared": "ファイルを共有しました",
+    "fileShareError": "ファイルを共有できませんでした",
+    "fileDeleted": "ファイルを削除しました",
+    "fileDeleteError": "ファイルを削除できませんでした",
+    "popupBlockedTitle": "新しいウィンドウがブラウザにブロックされた可能性があります",
+    "popupBlockedDescription": "このサイトのポップアップを許可してから、もう一度お試しください。",
+    "openFileError": "ファイルを開けませんでした",
+    "downloadFileError": "ファイルをダウンロードできませんでした"
+  }
+}

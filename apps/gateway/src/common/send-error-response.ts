@@ -11,6 +11,10 @@ export function sendErrorResponse(
   error: string,
   message: string,
   path?: string,
+  // 20/08/2026: tham so CONG THEM cho rollout i18n (xem
+  // packages/common-dto/src/constants/error-codes.constant.ts) - de trong van dung, chi giup web
+  // dich duoc thong bao nay qua i18next thay vi luon hien tieng Viet.
+  errorCode?: string,
 ): void {
   const body: ErrorResponseDto = {
     statusCode,
@@ -18,6 +22,7 @@ export function sendErrorResponse(
     message,
     timestamp: new Date().toISOString(),
     path,
+    ...(errorCode !== undefined && { errorCode }),
   };
   res.status(statusCode).json(body);
 }

@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import {
+  ERROR_CODES,
   EVENT_TYPES,
   LeaveRequestApprovedPayload,
   LeaveRequestCreatedPayload,
@@ -28,7 +29,7 @@ export class LeaveRequestsService {
 
   async create(organizationId: string, userId: string, dto: CreateLeaveRequestDto): Promise<LeaveRequest> {
     if (new Date(dto.startDate) > new Date(dto.endDate)) {
-      throw new BadRequestException('Ngày bắt đầu không được sau ngày kết thúc');
+      throw new BadRequestException({ message: 'Ngày bắt đầu không được sau ngày kết thúc', errorCode: ERROR_CODES.LEAVE_DATE_RANGE_INVALID });
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -107,9 +108,12 @@ export class LeaveRequestsService {
     eventType: typeof EVENT_TYPES.LEAVE_REQUEST_APPROVED | typeof EVENT_TYPES.LEAVE_REQUEST_REJECTED,
   ): Promise<LeaveRequest> {
     const existing = await this.leaveRequestRepo.findOne({ where: { id, organizationId } });
-    if (!existing) throw new NotFoundException('Không tìm thấy yêu cầu nghỉ phép');
+    if (!existing) throw new NotFoundException({ message: 'Không tìm thấy yêu cầu nghỉ phép', errorCode: ERROR_CODES.LEAVE_REQUEST_NOT_FOUND });
     if (existing.status !== LeaveRequestStatus.PENDING) {
-      throw new BadRequestException('Yêu cầu nghỉ phép này đã được xử lý trước đó');
+      throw new BadRequestException({
+        message: 'Yêu cầu nghỉ phép này đã được xử lý trước đó',
+        errorCode: ERROR_CODES.LEAVE_REQUEST_ALREADY_DECIDED,
+      });
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -117,9 +121,12 @@ export class LeaveRequestsService {
         where: { id, organizationId },
         lock: { mode: 'pessimistic_write' },
       });
-      if (!leaveRequest) throw new NotFoundException('Không tìm thấy yêu cầu nghỉ phép');
+      if (!leaveRequest) throw new NotFoundException({ message: 'Không tìm thấy yêu cầu nghỉ phép', errorCode: ERROR_CODES.LEAVE_REQUEST_NOT_FOUND });
       if (leaveRequest.status !== LeaveRequestStatus.PENDING) {
-        throw new BadRequestException('Yêu cầu nghỉ phép này đã được xử lý trước đó');
+        throw new BadRequestException({
+        message: 'Yêu cầu nghỉ phép này đã được xử lý trước đó',
+        errorCode: ERROR_CODES.LEAVE_REQUEST_ALREADY_DECIDED,
+      });
       }
 
       leaveRequest.status = toStatus;

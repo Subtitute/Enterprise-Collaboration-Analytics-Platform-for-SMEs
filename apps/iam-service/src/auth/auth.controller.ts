@@ -2,7 +2,7 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, Res, Unauthoriz
 import type { Request, Response } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, Public } from '@app/common-guard';
-import { AuthContext } from '@app/common-dto';
+import { AuthContext, ERROR_CODES } from '@app/common-dto';
 import { AuthService } from './auth.service';
 import { RegisterOrganizationDto } from './dto/register-organization.dto';
 import { LoginDto } from './dto/login.dto';
@@ -62,7 +62,10 @@ export class AuthController {
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const refreshTokenValue = req.cookies?.[REFRESH_TOKEN_COOKIE] as string | undefined;
     if (!refreshTokenValue) {
-      throw new UnauthorizedException('Thieu refresh token, vui long dang nhap lai');
+      throw new UnauthorizedException({
+        message: 'Thieu refresh token, vui long dang nhap lai',
+        errorCode: ERROR_CODES.MISSING_REFRESH_TOKEN,
+      });
     }
     const { refreshToken, ...rest } = await this.authService.refresh(refreshTokenValue);
     setRefreshTokenCookie(res, refreshToken);

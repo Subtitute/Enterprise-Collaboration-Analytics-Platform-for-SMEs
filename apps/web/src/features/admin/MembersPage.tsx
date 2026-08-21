@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -19,6 +20,7 @@ import type { User } from '@/types';
 const LIMIT = 15;
 
 export function MembersPage() {
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -38,9 +40,9 @@ export function MembersPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-slate-500">Quản lý thành viên, phòng ban và phân quyền truy cập trong tổ chức.</p>
+        <p className="text-sm text-slate-500">{t('admin:membersPage.description')}</p>
         <Button onClick={() => setIsInviteOpen(true)}>
-          <PlusIcon className="h-4 w-4" /> Mời thành viên
+          <PlusIcon className="h-4 w-4" /> {t('admin:membersPage.inviteMember')}
         </Button>
       </div>
 
@@ -49,29 +51,29 @@ export function MembersPage() {
           isLoading={usersQuery.isLoading}
           isError={usersQuery.isError}
           onRetry={() => usersQuery.refetch()}
-          loadingFallback={<FullPageSpinner label="Đang tải danh sách thành viên…" />}
-          errorTitle="Không thể tải danh sách thành viên"
+          loadingFallback={<FullPageSpinner label={t('admin:membersPage.loading')} />}
+          errorTitle={t('admin:membersPage.errorTitle')}
         >
         {users.length === 0 ? (
           <div className="p-6">
-            <EmptyState icon={<UserIcon className="h-8 w-8" />} title="Chưa có thành viên nào" />
+            <EmptyState icon={<UserIcon className="h-8 w-8" />} title={t('admin:membersPage.emptyTitle')} />
           </div>
         ) : (
           <>
             <Table>
               <TableHead>
                 <tr>
-                  <TableHeadCell>Thành viên</TableHeadCell>
-                  <TableHeadCell>Phòng ban</TableHeadCell>
-                  <TableHeadCell>Vai trò</TableHeadCell>
-                  <TableHeadCell>Trạng thái</TableHeadCell>
-                  <TableHeadCell className="text-right">Hành động</TableHeadCell>
+                  <TableHeadCell>{t('admin:membersPage.columns.member')}</TableHeadCell>
+                  <TableHeadCell>{t('admin:membersPage.columns.department')}</TableHeadCell>
+                  <TableHeadCell>{t('admin:membersPage.columns.role')}</TableHeadCell>
+                  <TableHeadCell>{t('admin:membersPage.columns.status')}</TableHeadCell>
+                  <TableHeadCell className="text-right">{t('admin:membersPage.columns.actions')}</TableHeadCell>
                 </tr>
               </TableHead>
               <TableBody>
                 {users.map((u) => (
                   <TableRow key={u.id}>
-                    <TableCell label="Thành viên">
+                    <TableCell label={t('admin:membersPage.columns.member')}>
                       <div className="flex items-center gap-2.5">
                         <Avatar name={u.fullName} size="sm" />
                         <div className="min-w-0">
@@ -80,10 +82,10 @@ export function MembersPage() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell label="Phòng ban" className="text-sm text-slate-600">
+                    <TableCell label={t('admin:membersPage.columns.department')} className="text-sm text-slate-600">
                       {u.departmentId ? (departmentNameById[u.departmentId] ?? '—') : '—'}
                     </TableCell>
-                    <TableCell label="Vai trò">
+                    <TableCell label={t('admin:membersPage.columns.role')}>
                       <div className="flex flex-wrap gap-1">
                         {(u.roles ?? []).length === 0 ? (
                           <span className="text-xs text-slate-400">—</span>
@@ -96,16 +98,20 @@ export function MembersPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell label="Trạng thái">
+                    <TableCell label={t('admin:membersPage.columns.status')}>
                       <Badge variant={u.isActive === false ? 'danger' : 'success'}>
-                        {u.isActive === false ? 'Đã vô hiệu hoá' : 'Đang hoạt động'}
+                        {u.isActive === false ? t('admin:membersPage.status.inactive') : t('admin:membersPage.status.active')}
                       </Badge>
                     </TableCell>
-                    <TableCell label="Hành động" className="text-right">
+                    <TableCell label={t('admin:membersPage.columns.actions')} className="text-right">
                       <Dropdown
                         align="right"
                         trigger={({ toggle }) => (
-                          <button onClick={toggle} className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label="Tùy chọn thành viên">
+                          <button
+                            onClick={toggle}
+                            className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                            aria-label={t('admin:membersPage.optionsAria')}
+                          >
                             <MoreVerticalIcon className="h-4 w-4" />
                           </button>
                         )}
@@ -118,7 +124,7 @@ export function MembersPage() {
                                 close();
                               }}
                             >
-                              <EditIcon className="h-4 w-4" /> Đổi phòng ban / vai trò
+                              <EditIcon className="h-4 w-4" /> {t('admin:membersPage.actionsMenu.editRoleDepartment')}
                             </DropdownItem>
                             {u.isActive !== false ? (
                               <DropdownItem
@@ -128,7 +134,7 @@ export function MembersPage() {
                                   close();
                                 }}
                               >
-                                <UserIcon className="h-4 w-4" /> Vô hiệu hoá
+                                <UserIcon className="h-4 w-4" /> {t('admin:membersPage.actionsMenu.deactivate')}
                               </DropdownItem>
                             ) : (
                               // 22/07/2026 (review toan du an): truoc day KHONG co cach nao kich
@@ -141,7 +147,7 @@ export function MembersPage() {
                                   close();
                                 }}
                               >
-                                <RefreshIcon className="h-4 w-4" /> Kích hoạt lại
+                                <RefreshIcon className="h-4 w-4" /> {t('admin:membersPage.actionsMenu.reactivate')}
                               </DropdownItem>
                             )}
                           </div>
@@ -167,9 +173,11 @@ export function MembersPage() {
           if (deactivatingUser) deactivateUser.mutate(deactivatingUser.id);
           setDeactivatingUser(null);
         }}
-        title="Vô hiệu hoá tài khoản này?"
-        description={deactivatingUser ? `"${deactivatingUser.fullName}" sẽ không thể đăng nhập cho đến khi được kích hoạt lại.` : undefined}
-        confirmLabel="Vô hiệu hoá"
+        title={t('admin:membersPage.deactivateConfirm.title')}
+        description={
+          deactivatingUser ? t('admin:membersPage.deactivateConfirm.description', { fullName: deactivatingUser.fullName }) : undefined
+        }
+        confirmLabel={t('admin:membersPage.deactivateConfirm.confirmLabel')}
         danger
       />
     </div>

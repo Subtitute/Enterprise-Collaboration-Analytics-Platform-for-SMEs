@@ -4,6 +4,7 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 // assignees cho ca 1 trang Task trong findAll() (fix code review 22/07/2026, xem findAll() ben duoi).
 import { DataSource, FindOptionsWhere, In, QueryFailedError, Repository } from 'typeorm';
 import {
+  ERROR_CODES,
   EVENT_TYPES,
   PaginatedResponse,
   PaginationQueryDto,
@@ -148,7 +149,10 @@ export class TasksService {
         where: { id: dto.projectId, organizationId },
       });
       if (!project) {
-        throw new NotFoundException('Khong tim thay du an trong to chuc cua ban');
+        throw new NotFoundException({
+          message: 'Khong tim thay du an trong to chuc cua ban',
+          errorCode: ERROR_CODES.PROJECT_NOT_FOUND_IN_ORG,
+        });
       }
 
       const task = await manager.save(
@@ -209,9 +213,11 @@ export class TasksService {
     const toStatus = dto.status;
 
     if (!isValidTaskStatusTransition(existing.status, toStatus)) {
-      throw new BadRequestException(
-        `Khong the chuyen trang thai cong viec tu ${existing.status} sang ${toStatus}`,
-      );
+      throw new BadRequestException({
+        message: `Khong the chuyen trang thai cong viec tu ${existing.status} sang ${toStatus}`,
+        errorCode: ERROR_CODES.TASK_STATUS_TRANSITION_INVALID,
+        errorParams: { from: existing.status, to: toStatus },
+      });
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -223,9 +229,11 @@ export class TasksService {
       // Re-validate dua tren trang thai vua duoc khoa (khong dung bien `existing` da co the stale).
       const fromStatus = task.status;
       if (!isValidTaskStatusTransition(fromStatus, toStatus)) {
-        throw new BadRequestException(
-          `Khong the chuyen trang thai cong viec tu ${fromStatus} sang ${toStatus}`,
-        );
+        throw new BadRequestException({
+          message: `Khong the chuyen trang thai cong viec tu ${fromStatus} sang ${toStatus}`,
+          errorCode: ERROR_CODES.TASK_STATUS_TRANSITION_INVALID,
+          errorParams: { from: fromStatus, to: toStatus },
+        });
       }
 
       task.status = toStatus;
@@ -423,7 +431,7 @@ export class TasksService {
 
   private async findTaskOrFail(organizationId: string, id: string): Promise<Task> {
     const task = await this.taskRepo.findOne({ where: { id, organizationId } });
-    if (!task) throw new NotFoundException('Khong tim thay cong viec');
+    if (!task) throw new NotFoundException({ message: 'Khong tim thay cong viec', errorCode: ERROR_CODES.TASK_NOT_FOUND });
     return task;
   }
 }

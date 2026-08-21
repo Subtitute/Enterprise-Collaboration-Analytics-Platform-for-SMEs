@@ -1,0 +1,147 @@
+{
+  "documentsPage": {
+    "title": "Documents",
+    "subtitle": "Manage your organization's shared folders and document files.",
+    "newFolder": "New Folder",
+    "upload": "Upload",
+    "breadcrumbRoot": "All Documents",
+    "loading": "Loading documents…",
+    "errorTitle": "Couldn't load documents",
+    "errorDescription": "Something went wrong loading folders/files. Please try again.",
+    "emptyState": {
+      "title": "Folder is empty",
+      "description": "Create a subfolder or upload your first document.",
+      "newFolder": "New Folder",
+      "uploadFile": "Upload Document"
+    }
+  },
+  "newFolderModal": {
+    "title": "Create New Folder",
+    "nameLabel": "Folder name",
+    "namePlaceholder": "e.g. Contracts 2026",
+    "nameRequiredError": "Please enter a folder name",
+    "cancel": "Cancel",
+    "submit": "Create Folder"
+  },
+  "versionHistoryModal": {
+    "title": "Version History — {{fileName}}",
+    "currentVersion": "Current version: v{{version}}",
+    "uploadNewVersion": "Upload New Version",
+    "emptyTitle": "No version history yet",
+    "emptyDescription": "Previous versions of the file will appear here after you upload an update.",
+    "versionLabel": "Version {{version}}"
+  },
+  "fileTable": {
+    "columns": {
+      "name": "File name",
+      "size": "Size",
+      "version": "Version",
+      "updated": "Updated",
+      "actions": "Actions"
+    },
+    "openFileTitle": "Open and view file in new tab",
+    "optionsAria": "File options",
+    "viewFile": "View file",
+    "download": "Download",
+    "share": "Share",
+    "versionHistory": "Version history",
+    "delete": "Delete file",
+    "deleteConfirm": {
+      "title": "Delete this file?",
+      "description": "\"{{name}}\" will be removed from the system.",
+      "confirmLabel": "Delete File"
+    }
+  },
+  "uploadModal": {
+    "title": "Upload Document",
+    "dropHint": "Drag and drop a file here, or click to select a file",
+    "supportedTypes": "Supports PDF, Word, Excel, PowerPoint, images, CSV, TXT, ZIP — up to {{maxSize}}",
+    "removeFileAria": "Remove selected file",
+    "cancel": "Cancel",
+    "submit": "Upload"
+  },
+  "folderShareModal": {
+    "title": "Manage Sharing for \"{{folderName}}\"",
+    "targetType": {
+      "user": "Member",
+      "department": "Department"
+    },
+    "shareWithMemberLabel": "Share with member",
+    "shareWithDepartmentLabel": "Share with department",
+    "selectMemberPlaceholder": "Select a member…",
+    "selectDepartmentPlaceholder": "Select a department…",
+    "addShare": "Add Share",
+    "sharedWithHeading": "Shared with",
+    "loading": "Loading…",
+    "noShares": "Not shared with anyone yet.",
+    "deleteShareAria": "Remove share",
+    "close": "Close"
+  },
+  "shareModal": {
+    "title": "Share \"{{fileName}}\"",
+    "targetType": {
+      "user": "Member",
+      "department": "Department"
+    },
+    "shareWithLabel": "Share with",
+    "shareWithDepartmentLabel": "Share with department",
+    "selectMemberPlaceholder": "Select a member…",
+    "selectDepartmentPlaceholder": "Select a department…",
+    "permissionLabel": "Permission",
+    "permissions": {
+      "view": "View only",
+      "edit": "Edit"
+    },
+    "cancel": "Cancel",
+    "submit": "Share"
+  },
+  "folderGrid": {
+    "restrictedTooltip": "Restricted folder",
+    "optionsAria": "Folder options",
+    "rename": "Rename",
+    "restrictAccess": "Restrict Access",
+    "openToOrganization": "Open to Organization",
+    "manageSharing": "Manage Sharing",
+    "delete": "Delete folder",
+    "renameDialog": {
+      "title": "Rename Folder",
+      "confirmLabel": "Save",
+      "inputAria": "New folder name"
+    },
+    "deleteConfirm": {
+      "title": "Delete this folder?",
+      "description": "\"{{name}}\" and everything inside it may be deleted.",
+      "confirmLabel": "Delete Folder"
+    }
+  },
+  "api": {
+    "unsupportedFileType": "Unsupported file type",
+    "fileTooLarge": "File exceeds the allowed size (max {{maxSize}})"
+  },
+  "hooks": {
+    "folderCreated": "Folder created",
+    "folderCreateError": "Couldn't create folder",
+    "folderRenamed": "Folder renamed",
+    "folderRenameError": "Couldn't rename folder",
+    "folderDeleted": "Folder deleted",
+    "folderDeleteError": "Couldn't delete folder",
+    "folderVisibilityUpdated": "Folder access updated",
+    "folderVisibilityUpdateError": "Couldn't update folder access",
+    "folderShared": "Folder shared",
+    "folderShareError": "Couldn't share folder",
+    "folderShareDeleted": "Share removed",
+    "folderShareDeleteError": "Couldn't remove share",
+    "uploadSuccess": "Upload successful",
+    "uploadError": "Upload failed",
+    "newVersionUploaded": "New version uploaded",
+    "newVersionUploadError": "Couldn't upload new version",
+    "fileShared": "File shared",
+    "fileShareError": "Couldn't share file",
+    "fileDeleted": "File deleted",
+    "fileDeleteError": "Couldn't delete file",
+    "popupBlockedTitle": "New window may have been blocked by your browser",
+    "popupBlockedDescription": "Please allow pop-ups for this site and try again.",
+    "openFileError": "Couldn't open file",
+    "downloadFileError": "Couldn't download file"
+  }
+}

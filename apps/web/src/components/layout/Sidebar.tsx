@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { cn, hasAdminRole } from '@/lib/utils';
 import { NAV_ITEMS } from './nav-items';
 import { ChevronLeftIcon, ChevronRightIcon } from '@/components/ui/Icons';
@@ -12,6 +13,7 @@ interface SidebarContentProps {
 }
 
 function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
+  const { t } = useTranslation();
   const roles = useAuthStore((s) => s.user?.roles);
   const canSeeAdmin = hasAdminRole(roles);
   const items = NAV_ITEMS.filter((item) => !item.adminOnly || canSeeAdmin);
@@ -23,12 +25,12 @@ function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
           key={item.to}
           to={item.to}
           onClick={onNavigate}
-          title={collapsed ? item.label : undefined}
+          title={collapsed ? t(item.labelKey) : undefined}
           // 28/07/2026: them aria-label = ten muc dieu huong (phat hien qua ra soat kha nang tiep
           // can) - truoc do khi thu gon Sidebar, ten muc chi duoc gan qua title (tooltip khi ru
           // chuot), khong dam bao duoc trinh doc man hinh dung lam ten truy cap; giu title de hien
           // tooltip cho chuot, bo sung aria-label de luon co ten truy cap on dinh du thu gon hay khong.
-          aria-label={item.label}
+          aria-label={t(item.labelKey)}
           className={({ isActive }) =>
             cn(
               'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
@@ -40,7 +42,7 @@ function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
           {({ isActive }) => (
             <>
               <item.icon className={cn('h-5 w-5 shrink-0', isActive ? 'text-primary-600' : 'text-slate-400')} />
-              {!collapsed && <span className="truncate">{item.label}</span>}
+              {!collapsed && <span className="truncate">{t(item.labelKey)}</span>}
             </>
           )}
         </NavLink>

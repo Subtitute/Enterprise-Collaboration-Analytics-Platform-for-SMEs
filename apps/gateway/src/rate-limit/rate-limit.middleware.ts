@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
-import type { JwtAccessPayload } from '@app/common-dto';
+import { ERROR_CODES, type JwtAccessPayload } from '@app/common-dto';
 import { RedisService } from '../redis/redis.service';
 import { sendErrorResponse } from '../common/send-error-response';
 import { buildRateLimitKey, evaluateRateLimit, getClientIp } from './rate-limit.util';
@@ -49,6 +49,7 @@ export function createRateLimitMiddleware(
             'TooManyRequestsException',
             'Ban da gui qua nhieu yeu cau, vui long thu lai sau it phut',
             req.originalUrl,
+            ERROR_CODES.GATEWAY_RATE_LIMITED,
           );
           return;
         }

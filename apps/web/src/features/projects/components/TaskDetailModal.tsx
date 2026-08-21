@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { FormField, Input, Select, Textarea, Label } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -7,7 +8,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { TrashIcon, XIcon } from '@/components/ui/Icons';
 import { formatDateTime, formatRelativeTime } from '@/lib/utils';
 import { useUserNameMap } from '@/hooks/useOrgUsers';
-import { TASK_STATUSES, TASK_STATUS_LABEL_VI } from '@/types';
+import { TASK_STATUSES } from '@/types';
 import type { TaskStatus } from '@/types';
 import {
   useAddAssignee,
@@ -29,6 +30,7 @@ interface TaskDetailModalProps {
 }
 
 export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalProps) {
+  const { t } = useTranslation();
   const tasksQuery = useTasksQuery(projectId);
   const task = tasksQuery.data?.find((t) => t.id === taskId);
 
@@ -53,12 +55,12 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
   }, [task?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function displayName(userId: string, fallbackName?: string) {
-    return fallbackName ?? userNames[userId] ?? 'Thành viên';
+    return fallbackName ?? userNames[userId] ?? t('projects:taskDetail.unknownMember');
   }
 
   return (
     <>
-      <Modal open={Boolean(taskId)} onClose={onClose} title={task?.title ?? 'Công việc'} size="lg">
+      <Modal open={Boolean(taskId)} onClose={onClose} title={task?.title ?? t('projects:taskDetail.fallbackTitle')} size="lg">
         {!task ? (
           <div className="flex justify-center py-10">
             <Spinner />
@@ -70,7 +72,7 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
                   nay FormField co san prop htmlFor nhung khong duoc truyen o day nen <Label> khong
                   gan duoc voi control tuong ung (trinh doc man hinh/bam vao label khong focus vao
                   input), khac voi pattern chuan da dung o NewTaskModal.tsx/NewProjectModal.tsx. */}
-              <FormField label="Trạng thái" htmlFor="task-status-select" className="w-40">
+              <FormField label={t('projects:taskDetail.statusLabel')} htmlFor="task-status-select" className="w-40">
                 <Select
                   id="task-status-select"
                   value={task.status}
@@ -78,12 +80,12 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
                 >
                   {TASK_STATUSES.map((s) => (
                     <option key={s} value={s}>
-                      {TASK_STATUS_LABEL_VI[s]}
+                      {t(`projects:enums.taskStatus.${s}`)}
                     </option>
                   ))}
                 </Select>
               </FormField>
-              <FormField label="Hạn hoàn thành" htmlFor="task-due-date" className="w-40">
+              <FormField label={t('projects:taskDetail.dueDateLabel')} htmlFor="task-due-date" className="w-40">
                 <Input
                   id="task-due-date"
                   type="date"
@@ -97,12 +99,12 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
                 className="ml-auto text-rose-600 hover:bg-rose-50"
                 onClick={() => setConfirmDelete(true)}
               >
-                <TrashIcon className="h-4 w-4" /> Xoá công việc
+                <TrashIcon className="h-4 w-4" /> {t('projects:taskDetail.deleteTask')}
               </Button>
             </div>
 
             <div>
-              <Label>Mô tả</Label>
+              <Label>{t('projects:taskDetail.descriptionLabel')}</Label>
               {isEditingDesc ? (
                 <div className="space-y-2">
                   <Textarea value={descDraft} onChange={(e) => setDescDraft(e.target.value)} rows={4} autoFocus />
@@ -112,10 +114,10 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
                       isLoading={updateTask.isPending}
                       onClick={() => updateTask.mutate({ description: descDraft }, { onSuccess: () => setIsEditingDesc(false) })}
                     >
-                      Lưu
+                      {t('projects:taskDetail.save')}
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => setIsEditingDesc(false)}>
-                      Hủy
+                      {t('projects:taskDetail.cancel')}
                     </Button>
                   </div>
                 </div>
@@ -125,15 +127,15 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
                   onClick={() => setIsEditingDesc(true)}
                   className="block w-full rounded-lg border border-dashed border-slate-200 p-3 text-left text-sm text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                 >
-                  {task.description || <span className="text-slate-400">Chưa có mô tả. Bấm để thêm…</span>}
+                  {task.description || <span className="text-slate-400">{t('projects:taskDetail.descriptionEmpty')}</span>}
                 </button>
               )}
             </div>
 
             <div>
-              <Label>Người phụ trách</Label>
+              <Label>{t('projects:taskDetail.assigneesLabel')}</Label>
               <div className="mb-2 flex flex-wrap gap-2">
-                {(task.assignees ?? []).length === 0 && <p className="text-xs text-slate-400">Chưa có ai được phân công.</p>}
+                {(task.assignees ?? []).length === 0 && <p className="text-xs text-slate-400">{t('projects:taskDetail.noAssignees')}</p>}
                 {(task.assignees ?? []).map((a) => (
                   <span key={a.userId} className="flex items-center gap-1.5 rounded-full bg-slate-100 py-1 pl-1 pr-2 text-xs text-slate-700">
                     <Avatar name={displayName(a.userId, a.fullName)} size="sm" />
@@ -142,7 +144,7 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
                       type="button"
                       onClick={() => removeAssignee.mutate(a.userId)}
                       className="text-slate-400 hover:text-rose-600"
-                      aria-label="Gỡ khỏi công việc"
+                      aria-label={t('projects:taskDetail.removeAssigneeAriaLabel')}
                     >
                       <XIcon className="h-3 w-3" />
                     </button>
@@ -157,14 +159,14 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
             </div>
 
             <div>
-              <Label>Bình luận</Label>
+              <Label>{t('projects:taskDetail.commentsLabel')}</Label>
               <div className="max-h-52 space-y-3 overflow-y-auto rounded-lg border border-slate-100 p-3">
                 {commentsQuery.isLoading ? (
                   <div className="flex justify-center py-3">
                     <Spinner size="sm" />
                   </div>
                 ) : (commentsQuery.data ?? []).length === 0 ? (
-                  <p className="text-xs text-slate-400">Chưa có bình luận nào.</p>
+                  <p className="text-xs text-slate-400">{t('projects:taskDetail.noComments')}</p>
                 ) : (
                   (commentsQuery.data ?? []).map((c) => (
                     <div key={c.id} className="flex items-start gap-2">
@@ -191,33 +193,33 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
                 <Input
                   value={commentDraft}
                   onChange={(e) => setCommentDraft(e.target.value)}
-                  placeholder="Viết bình luận…"
+                  placeholder={t('projects:taskDetail.commentPlaceholder')}
                   className="flex-1"
                 />
                 <Button type="submit" size="sm" isLoading={addComment.isPending}>
-                  Gửi
+                  {t('projects:taskDetail.send')}
                 </Button>
               </form>
             </div>
 
             <div>
-              <Label>Lịch sử thay đổi trạng thái</Label>
+              <Label>{t('projects:taskDetail.statusHistoryLabel')}</Label>
               <div className="max-h-40 space-y-2 overflow-y-auto rounded-lg border border-slate-100 p-3">
                 {statusHistoryQuery.isLoading ? (
                   <div className="flex justify-center py-3">
                     <Spinner size="sm" />
                   </div>
                 ) : statusHistoryQuery.isError ? (
-                  <p className="text-xs text-slate-400">Không thể tải lịch sử thay đổi trạng thái.</p>
+                  <p className="text-xs text-slate-400">{t('projects:taskDetail.statusHistoryError')}</p>
                 ) : (statusHistoryQuery.data ?? []).length === 0 ? (
-                  <p className="text-xs text-slate-400">Chưa có lịch sử thay đổi trạng thái.</p>
+                  <p className="text-xs text-slate-400">{t('projects:taskDetail.noStatusHistory')}</p>
                 ) : (
                   (statusHistoryQuery.data ?? []).map((entry, index) => (
                     <div key={`${entry.changedAt}-${index}`} className="flex items-center gap-2 text-xs text-slate-600">
                       <span className="font-medium text-slate-700">
-                        {entry.fromStatus ? (TASK_STATUS_LABEL_VI[entry.fromStatus as TaskStatus] ?? entry.fromStatus) : '—'}
+                        {entry.fromStatus ? t(`projects:enums.taskStatus.${entry.fromStatus}`, { defaultValue: entry.fromStatus }) : '—'}
                         {' → '}
-                        {TASK_STATUS_LABEL_VI[entry.toStatus as TaskStatus] ?? entry.toStatus}
+                        {t(`projects:enums.taskStatus.${entry.toStatus}`, { defaultValue: entry.toStatus })}
                       </span>
                       <span className="text-slate-400">
                         • {displayName(entry.actorId ?? '')} • {formatDateTime(entry.changedAt)}
@@ -239,9 +241,9 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
           setConfirmDelete(false);
           onClose();
         }}
-        title="Xoá công việc này?"
-        description="Hành động này không thể hoàn tác."
-        confirmLabel="Xoá công việc"
+        title={t('projects:taskDetail.confirmDeleteTitle')}
+        description={t('projects:taskDetail.confirmDeleteDescription')}
+        confirmLabel={t('projects:taskDetail.deleteTask')}
         danger
       />
     </>

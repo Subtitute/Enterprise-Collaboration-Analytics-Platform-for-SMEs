@@ -6,6 +6,7 @@ import {
   CustomerDeletedPayload,
   DealDeletedPayload,
   DealStage,
+  ERROR_CODES,
   EVENT_TYPES,
   PaginatedResponse,
   paginate,
@@ -71,7 +72,7 @@ export class CustomersService {
 
   async findById(organizationId: string, id: string): Promise<CustomerListItem> {
     const customer = await this.customerRepo.findOne({ where: { id, organizationId } });
-    if (!customer) throw new NotFoundException('Khong tim thay khach hang');
+    if (!customer) throw new NotFoundException({ message: 'Khong tim thay khach hang', errorCode: ERROR_CODES.CUSTOMER_NOT_FOUND });
 
     const stats = await this.computeCustomerStats([id]);
     const stat = stats.get(id) ?? { openDealCount: 0, openDealValue: 0 };
@@ -106,7 +107,7 @@ export class CustomersService {
 
   async update(organizationId: string, id: string, dto: UpdateCustomerDto): Promise<Customer> {
     const customer = await this.customerRepo.findOne({ where: { id, organizationId } });
-    if (!customer) throw new NotFoundException('Khong tim thay khach hang');
+    if (!customer) throw new NotFoundException({ message: 'Khong tim thay khach hang', errorCode: ERROR_CODES.CUSTOMER_NOT_FOUND });
 
     if (dto.name !== undefined) customer.name = dto.name;
     if (dto.email !== undefined) customer.email = dto.email;
@@ -123,7 +124,7 @@ export class CustomersService {
    */
   async remove(organizationId: string, actorId: string, id: string): Promise<void> {
     const existing = await this.customerRepo.findOne({ where: { id, organizationId } });
-    if (!existing) throw new NotFoundException('Khong tim thay khach hang');
+    if (!existing) throw new NotFoundException({ message: 'Khong tim thay khach hang', errorCode: ERROR_CODES.CUSTOMER_NOT_FOUND });
 
     await this.dataSource.transaction(async (manager) => {
       const customer = await manager.findOne(Customer, {

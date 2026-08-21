@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { FormField, Input, Textarea } from '@/components/ui/Input';
@@ -15,6 +16,7 @@ export function DepartmentModal({
   onClose: () => void;
   department?: Department | null;
 }) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState('');
@@ -33,7 +35,7 @@ export function DepartmentModal({
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
-      setError('Vui lòng nhập tên phòng ban');
+      setError(t('admin:departmentModal.nameRequiredError'));
       return;
     }
     const payload = { name: name.trim(), description: description.trim() || undefined };
@@ -47,20 +49,30 @@ export function DepartmentModal({
   const isPending = createDepartment.isPending || updateDepartment.isPending;
 
   return (
-    <Modal open={open} onClose={onClose} title={isEditing ? 'Chỉnh sửa phòng ban' : 'Tạo phòng ban mới'} size="sm">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={isEditing ? t('admin:departmentModal.editTitle') : t('admin:departmentModal.createTitle')}
+      size="sm"
+    >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <FormField label="Tên phòng ban" htmlFor="department-name" error={error} required>
-          <Input id="department-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ví dụ: Phòng Kinh doanh" />
+        <FormField label={t('admin:departmentModal.nameLabel')} htmlFor="department-name" error={error} required>
+          <Input
+            id="department-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t('admin:departmentModal.namePlaceholder')}
+          />
         </FormField>
-        <FormField label="Mô tả" htmlFor="department-description">
+        <FormField label={t('admin:departmentModal.descriptionLabel')} htmlFor="department-description">
           <Textarea id="department-description" value={description} onChange={(e) => setDescription(e.target.value)} />
         </FormField>
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onClose}>
-            Hủy
+            {t('admin:departmentModal.cancel')}
           </Button>
           <Button type="submit" isLoading={isPending}>
-            {isEditing ? 'Lưu thay đổi' : 'Tạo phòng ban'}
+            {isEditing ? t('admin:departmentModal.saveChanges') : t('admin:departmentModal.create')}
           </Button>
         </div>
       </form>

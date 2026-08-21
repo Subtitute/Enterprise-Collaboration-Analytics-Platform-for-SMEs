@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { ERROR_CODES } from '@app/common-dto';
 
 /**
  * `latitude`/`longitude` cua check-in/out den kem `@Body('...')` doc THO tu multipart/form-data
@@ -11,11 +12,27 @@ import { BadRequestException } from '@nestjs/common';
  * undefined, KHONG nem loi (cham cong van tiep tuc binh thuong, xem attendance.service.ts).
  * Chi nem loi khi CO gia tri nhung khong phai so hop le trong khoang toa do GPS thuc.
  */
-export function parseOptionalCoordinate(raw: string | undefined, label: string, min: number, max: number): number | undefined {
+export type CoordinateField = 'latitude' | 'longitude';
+
+// 20/08/2026: rollout i18n - `field` truoc day la CHUOI HIEN THI tieng Viet ('Vĩ độ'/'Kinh độ')
+// truyen thang tu attendance.controller.ts vao message loi, khong the dung lam errorParams.field
+// (can 1 key on dinh, khong phai van ban tieng Viet). Doi thanh key on dinh, dich nguoc lai ve
+// tieng Viet CHI o day (giu message hien tai KHONG doi mot chu nao) de vua giu duoc hanh vi cu,
+// vua co field on dinh cho web dich sang Anh/Nhat qua errorCode/errorParams.
+const FIELD_LABEL_VI: Record<CoordinateField, string> = {
+  latitude: 'Vĩ độ',
+  longitude: 'Kinh độ',
+};
+
+export function parseOptionalCoordinate(raw: string | undefined, field: CoordinateField, min: number, max: number): number | undefined {
   if (raw === undefined || raw === '') return undefined;
   const value = Number(raw);
   if (Number.isNaN(value) || value < min || value > max) {
-    throw new BadRequestException(`${label} không hợp lệ`);
+    throw new BadRequestException({
+      message: `${FIELD_LABEL_VI[field]} không hợp lệ`,
+      errorCode: ERROR_CODES.INVALID_COORDINATE,
+      errorParams: { field },
+    });
   }
   return value;
 }

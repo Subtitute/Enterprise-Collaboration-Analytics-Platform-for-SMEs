@@ -1,4 +1,5 @@
 import { apiClient } from '@/lib/api-client';
+import { t } from '@/i18n';
 import { formatBytes, unwrapList } from '@/lib/utils';
 // 28/07/2026: them FolderShare - kieu du lieu cho cac ham fetchFolderShares/createFolderShare
 // moi them ben duoi (tinh nang kiem soat truy cap thu muc theo cap do).
@@ -111,10 +112,10 @@ export const MAX_UPLOAD_SIZE_BYTES = 25 * 1024 * 1024;
  *  that su (Technical_Spec.md muc 9). Tra ve null neu hop le, nguoc lai tra ve thong diep loi. */
 export function validateUploadFile(file: File): string | null {
   if (!(ALLOWED_UPLOAD_MIME_TYPES as readonly string[]).includes(file.type)) {
-    return 'Loại tệp không được hỗ trợ';
+    return t('documents:api.unsupportedFileType');
   }
   if (file.size > MAX_UPLOAD_SIZE_BYTES) {
-    return `Tệp vượt quá kích thước cho phép (tối đa ${formatBytes(MAX_UPLOAD_SIZE_BYTES)})`;
+    return t('documents:api.fileTooLarge', { maxSize: formatBytes(MAX_UPLOAD_SIZE_BYTES) });
   }
   return null;
 }

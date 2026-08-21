@@ -1,10 +1,11 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { FolderKanbanIcon, CheckCircleIcon, UserIcon, FileTextIcon } from '@/components/ui/Icons';
-import { DATE_RANGE_LABEL_VI } from '@/types';
+import { DATE_RANGE_OPTIONS } from '@/types';
 import type { DateRangeOption } from '@/types';
 import { useAuthStore } from '@/stores/auth.store';
 import { hasAdminRole } from '@/lib/utils';
@@ -19,6 +20,7 @@ import { TaskStatusDonut } from './components/TaskStatusDonut';
 import { RecentActivityFeed } from './components/RecentActivityFeed';
 
 export function DashboardPage() {
+  const { t } = useTranslation();
   const [range, setRange] = useState<DateRangeOption>('30d');
   // 28/07/2026: state cho bo loc "Phong ban" moi - '' nghia la khong loc (hanh vi toan to chuc
   // nhu truoc day). Chi truyen vao useAnalyticsSummary/useTaskStatusBreakdown; useTaskTrend
@@ -42,26 +44,26 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Dashboard</h1>
-        <p className="text-sm text-slate-500">Tổng quan hoạt động của tổ chức bạn.</p>
+        <h1 className="text-xl font-semibold text-slate-900">{t('dashboard:page.title')}</h1>
+        <p className="text-sm text-slate-500">{t('dashboard:page.subtitle')}</p>
       </div>
 
       {showOnboarding && (
         <Card className="flex flex-col items-start gap-3 border-primary-100 bg-primary-50/40 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-slate-900">Chào mừng đến với ECAP for SMEs!</p>
+            <p className="text-sm font-semibold text-slate-900">{t('dashboard:onboarding.welcomeTitle')}</p>
             <p className="mt-1 text-sm text-slate-600">
-              Tổ chức của bạn chưa có dự án nào. Mời thêm thành viên hoặc tạo dự án đầu tiên để bắt đầu.
+              {t('dashboard:onboarding.welcomeDescription')}
             </p>
           </div>
           <div className="flex shrink-0 gap-2">
             {canInviteMembers && (
               <Link to="/admin/members">
-                <Button variant="outline">Mời thành viên</Button>
+                <Button variant="outline">{t('dashboard:onboarding.inviteMembers')}</Button>
               </Link>
             )}
             <Link to="/projects">
-              <Button>Tạo dự án đầu tiên</Button>
+              <Button>{t('dashboard:onboarding.createFirstProject')}</Button>
             </Link>
           </div>
         </Card>
@@ -80,18 +82,18 @@ export function DashboardPage() {
           nhat quan voi pattern loi/thu lai da co san. */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard
-          label="Tổng công việc"
+          label={t('dashboard:kpi.totalTasks.label')}
           value={summary?.totalTasksCreated ?? '—'}
-          hint={summary ? `${summary.totalTasksCompleted} đã hoàn thành` : undefined}
+          hint={summary ? t('dashboard:kpi.totalTasks.hint', { count: summary.totalTasksCompleted }) : undefined}
           icon={<FolderKanbanIcon className="h-5 w-5" />}
           isLoading={summaryQuery.isLoading}
           isError={summaryQuery.isError}
           onRetry={() => summaryQuery.refetch()}
         />
         <KpiCard
-          label="Tỷ lệ hoàn thành"
+          label={t('dashboard:kpi.completionRate.label')}
           value={summary ? `${summary.completionRate}%` : '—'}
-          hint="Trên tổng số công việc"
+          hint={t('dashboard:kpi.completionRate.hint')}
           icon={<CheckCircleIcon className="h-5 w-5" />}
           accentClassName="bg-emerald-50 text-emerald-600"
           isLoading={summaryQuery.isLoading}
@@ -99,9 +101,9 @@ export function DashboardPage() {
           onRetry={() => summaryQuery.refetch()}
         />
         <KpiCard
-          label="Tài liệu mới (7 ngày)"
+          label={t('dashboard:kpi.newDocuments.label')}
           value={summary?.newDocumentsThisWeek ?? '—'}
-          hint="Tệp tải lên trong tuần"
+          hint={t('dashboard:kpi.newDocuments.hint')}
           icon={<FileTextIcon className="h-5 w-5" />}
           accentClassName="bg-violet-50 text-violet-600"
           isLoading={summaryQuery.isLoading}
@@ -109,9 +111,9 @@ export function DashboardPage() {
           onRetry={() => summaryQuery.refetch()}
         />
         <KpiCard
-          label="Thành viên hoạt động"
+          label={t('dashboard:kpi.activeUsers.label')}
           value={summary?.activeUsersLast7Days ?? '—'}
-          hint="Trong 7 ngày qua"
+          hint={t('dashboard:kpi.activeUsers.hint')}
           icon={<UserIcon className="h-5 w-5" />}
           accentClassName="bg-amber-50 text-amber-600"
           isLoading={summaryQuery.isLoading}
@@ -123,20 +125,20 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>Xu hướng hoàn thành công việc</CardTitle>
+            <CardTitle>{t('dashboard:charts.taskTrendTitle')}</CardTitle>
             {/* 25/07/2026: them aria-label - Select nay khong co <Label> hien thi kem theo (chi
                 dat canh CardTitle) nen truoc do khong co ten hop le cho trinh doc man hinh. */}
             <div className="flex items-center gap-2">
               <Select
                 value={range}
                 onChange={(e) => setRange(e.target.value as DateRangeOption)}
-                aria-label="Khoảng thời gian"
+                aria-label={t('dashboard:filters.dateRangeAriaLabel')}
                 className="text-xs"
                 style={{ width: 'auto' }}
               >
-                {(Object.keys(DATE_RANGE_LABEL_VI) as DateRangeOption[]).map((key) => (
+                {DATE_RANGE_OPTIONS.map((key) => (
                   <option key={key} value={key}>
-                    {DATE_RANGE_LABEL_VI[key]}
+                    {t(`common:enums.dateRange.${key}`)}
                   </option>
                 ))}
               </Select>
@@ -147,11 +149,11 @@ export function DashboardPage() {
               <Select
                 value={departmentId}
                 onChange={(e) => setDepartmentId(e.target.value)}
-                aria-label="Phòng ban"
+                aria-label={t('dashboard:filters.departmentAriaLabel')}
                 className="text-xs"
                 style={{ width: 'auto' }}
               >
-                <option value="">Tất cả phòng ban</option>
+                <option value="">{t('dashboard:filters.allDepartments')}</option>
                 {(departmentsQuery.data ?? []).map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.name}
@@ -172,7 +174,7 @@ export function DashboardPage() {
 
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Phân bố trạng thái công việc</CardTitle>
+            <CardTitle>{t('dashboard:charts.taskStatusTitle')}</CardTitle>
           </CardHeader>
           <CardContent>
             <TaskStatusDonut
@@ -187,7 +189,7 @@ export function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Hoạt động gần đây</CardTitle>
+          <CardTitle>{t('dashboard:recentActivitySection.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <RecentActivityFeed />

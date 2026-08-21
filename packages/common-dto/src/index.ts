@@ -14,3 +14,5 @@ export * from './interfaces/auth-context.interface';
 export * from './constants/public-routes';
 // 22/07/2026: export hang so bi mat noi bo dung chung (xem constants/internal-shared-secret.constant.ts)
 export * from './constants/internal-shared-secret.constant';
+// 20/08/2026: danh muc ma loi may doc duoc, dung cho rollout i18n (xem constants/error-codes.constant.ts)
+export * from './constants/error-codes.constant';

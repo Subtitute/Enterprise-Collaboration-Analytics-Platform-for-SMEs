@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Dropdown } from '@/components/ui/Dropdown';
 import { BellIcon } from '@/components/ui/Icons';
 import { Spinner } from '@/components/ui/Spinner';
@@ -8,6 +9,7 @@ import { useMarkAllNotificationsRead, useMarkNotificationRead, useUnreadNotifica
 import type { AppNotification } from '@/types';
 
 export function NotificationBell() {
+  const { t } = useTranslation();
   const { data, isLoading } = useUnreadNotificationsPreview();
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
@@ -21,7 +23,7 @@ export function NotificationBell() {
         <button
           type="button"
           onClick={toggle}
-          aria-label="Thông báo"
+          aria-label={t('notifications:bell.ariaLabel')}
           className="relative flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700"
         >
           <BellIcon className="h-5 w-5" />
@@ -36,14 +38,14 @@ export function NotificationBell() {
       {({ close }) => (
         <div className="flex max-h-[26rem] flex-col">
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-            <p className="text-sm font-semibold text-slate-900">Thông báo</p>
+            <p className="text-sm font-semibold text-slate-900">{t('notifications:bell.title')}</p>
             {unreadCount > 0 && (
               <button
                 onClick={() => markAllRead.mutate()}
                 className="text-xs font-medium text-primary-600 hover:text-primary-700 disabled:opacity-50"
                 disabled={markAllRead.isPending}
               >
-                Đánh dấu tất cả đã đọc
+                {t('notifications:bell.markAllRead')}
               </button>
             )}
           </div>
@@ -54,7 +56,7 @@ export function NotificationBell() {
               </div>
             ) : !data || data.data.length === 0 ? (
               <div className="px-4 py-6">
-                <EmptyState title="Không có thông báo mới" />
+                <EmptyState title={t('notifications:bell.empty')} />
               </div>
             ) : (
               <ul className="divide-y divide-slate-100">
@@ -93,7 +95,7 @@ export function NotificationBell() {
             onClick={close}
             className="border-t border-slate-100 px-4 py-2.5 text-center text-sm font-medium text-primary-600 hover:bg-slate-50"
           >
-            Xem tất cả thông báo
+            {t('notifications:bell.viewAll')}
           </Link>
         </div>
       )}

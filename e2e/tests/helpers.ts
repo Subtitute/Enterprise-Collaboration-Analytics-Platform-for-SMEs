@@ -9,7 +9,10 @@ export const ADMIN_PASSWORD = 'Password123!';
 export async function loginAsAdmin(page: Page) {
   await page.goto('/login');
   await page.getByLabel('Email').fill(ADMIN_EMAIL);
-  await page.getByLabel('Mật khẩu').fill(ADMIN_PASSWORD);
+  // 21/08/2026: getByLabel('Mật khẩu') tro thanh mo ho sau khi PasswordInput them nut "Hien mat
+  // khau" (aria-label="Hien mat khau" - chua chuoi con "mat khau") - ca o nhap va nut deu khop.
+  // Loc theo role=textbox de chi lay o nhap, khong lay nut (role=button).
+  await page.getByRole('textbox', { name: 'Mật khẩu' }).fill(ADMIN_PASSWORD);
   await page.getByRole('button', { name: 'Đăng nhập' }).click();
   await page.waitForURL('**/dashboard');
 }

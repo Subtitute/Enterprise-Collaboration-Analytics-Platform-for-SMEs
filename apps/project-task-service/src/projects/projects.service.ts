@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, FindOptionsWhere, ILike, Repository } from 'typeorm';
 import {
+  ERROR_CODES,
   EVENT_TYPES,
   PaginatedResponse,
   ProjectCompletedPayload,
@@ -86,7 +87,7 @@ export class ProjectsService {
    */
   async findById(organizationId: string, id: string): Promise<ProjectListItem> {
     const project = await this.projectRepo.findOne({ where: { id, organizationId } });
-    if (!project) throw new NotFoundException('Khong tim thay du an');
+    if (!project) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
 
     const stats = await this.computeProjectStats([id]);
     const stat = stats.get(id) ?? { completionRate: 0, memberCount: 0 };
@@ -126,7 +127,7 @@ export class ProjectsService {
 
   async update(organizationId: string, id: string, dto: UpdateProjectDto): Promise<Project> {
     const project = await this.projectRepo.findOne({ where: { id, organizationId } });
-    if (!project) throw new NotFoundException('Khong tim thay du an');
+    if (!project) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
 
     if (dto.name !== undefined) project.name = dto.name;
     if (dto.description !== undefined) project.description = dto.description;
@@ -148,9 +149,9 @@ export class ProjectsService {
    */
   async complete(organizationId: string, id: string, actorId: string): Promise<Project> {
     const existing = await this.projectRepo.findOne({ where: { id, organizationId } });
-    if (!existing) throw new NotFoundException('Khong tim thay du an');
+    if (!existing) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
     if (existing.status === ProjectStatus.COMPLETED) {
-      throw new BadRequestException('Du an nay da o trang thai hoan thanh');
+      throw new BadRequestException({ message: 'Du an nay da o trang thai hoan thanh', errorCode: ERROR_CODES.PROJECT_ALREADY_COMPLETED });
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -158,10 +159,10 @@ export class ProjectsService {
         where: { id, organizationId },
         lock: { mode: 'pessimistic_write' },
       });
-      if (!project) throw new NotFoundException('Khong tim thay du an');
+      if (!project) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
       // Re-check dua tren trang thai vua duoc khoa (khong dung bien `existing` da co the stale).
       if (project.status === ProjectStatus.COMPLETED) {
-        throw new BadRequestException('Du an nay da o trang thai hoan thanh');
+        throw new BadRequestException({ message: 'Du an nay da o trang thai hoan thanh', errorCode: ERROR_CODES.PROJECT_ALREADY_COMPLETED });
       }
 
       project.status = ProjectStatus.COMPLETED;
@@ -195,9 +196,9 @@ export class ProjectsService {
   // log/outbox trong tuong lai neu EVENT_TYPES bo sung PROJECT_ARCHIVED.
   async archive(organizationId: string, id: string, actorId: string): Promise<Project> {
     const existing = await this.projectRepo.findOne({ where: { id, organizationId } });
-    if (!existing) throw new NotFoundException('Khong tim thay du an');
+    if (!existing) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
     if (existing.status === ProjectStatus.ARCHIVED) {
-      throw new BadRequestException('Du an nay da duoc luu tru');
+      throw new BadRequestException({ message: 'Du an nay da duoc luu tru', errorCode: ERROR_CODES.PROJECT_ALREADY_ARCHIVED });
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -205,9 +206,9 @@ export class ProjectsService {
         where: { id, organizationId },
         lock: { mode: 'pessimistic_write' },
       });
-      if (!project) throw new NotFoundException('Khong tim thay du an');
+      if (!project) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
       if (project.status === ProjectStatus.ARCHIVED) {
-        throw new BadRequestException('Du an nay da duoc luu tru');
+        throw new BadRequestException({ message: 'Du an nay da duoc luu tru', errorCode: ERROR_CODES.PROJECT_ALREADY_ARCHIVED });
       }
 
       project.status = ProjectStatus.ARCHIVED;
@@ -238,7 +239,7 @@ export class ProjectsService {
    */
   async remove(organizationId: string, actorId: string, id: string): Promise<void> {
     const existing = await this.projectRepo.findOne({ where: { id, organizationId } });
-    if (!existing) throw new NotFoundException('Khong tim thay du an');
+    if (!existing) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
 
     await this.dataSource.transaction(async (manager) => {
       const project = await manager.findOne(Project, {

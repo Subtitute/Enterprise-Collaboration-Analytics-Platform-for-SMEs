@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FullPageSpinner } from './Spinner';
 import { EmptyState } from './EmptyState';
 import { Button } from './Button';
@@ -23,30 +24,23 @@ interface QueryStateProps {
  * xu ly 2 nhanh loading/error; nhanh "empty" van do component con (children) tu quyet dinh
  * dua tren du lieu da tai xong, de giu nguyen copy/CTA rieng cua tung trang.
  */
-export function QueryState({
-  isLoading,
-  isError,
-  onRetry,
-  loadingFallback,
-  loadingLabel = 'Đang tải dữ liệu…',
-  errorTitle = 'Không thể tải dữ liệu',
-  errorDescription = 'Đã xảy ra lỗi khi tải dữ liệu. Vui lòng kiểm tra kết nối và thử lại.',
-  children,
-}: QueryStateProps) {
+export function QueryState({ isLoading, isError, onRetry, loadingFallback, loadingLabel, errorTitle, errorDescription, children }: QueryStateProps) {
+  const { t } = useTranslation();
+
   if (isLoading) {
-    return <>{loadingFallback ?? <FullPageSpinner label={loadingLabel} />}</>;
+    return <>{loadingFallback ?? <FullPageSpinner label={loadingLabel ?? t('common:queryState.loading')} />}</>;
   }
 
   if (isError) {
     return (
       <EmptyState
         icon={<AlertCircleIcon className="h-10 w-10 text-rose-400" />}
-        title={errorTitle}
-        description={errorDescription}
+        title={errorTitle ?? t('common:queryState.errorTitle')}
+        description={errorDescription ?? t('common:queryState.errorDescription')}
         action={
           onRetry && (
             <Button variant="outline" onClick={onRetry}>
-              <RefreshIcon className="h-4 w-4" /> Thử lại
+              <RefreshIcon className="h-4 w-4" /> {t('common:queryState.retry')}
             </Button>
           )
         }
