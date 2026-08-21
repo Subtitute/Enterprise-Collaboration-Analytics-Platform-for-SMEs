@@ -32,6 +32,13 @@
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-slate-400;
   }
+
+  /* 20/08/2026: an nut "hien mat khau"/"xoa" co san cua Edge tren input[type=password] - du an
+     tu ve nut rieng (xem PasswordInput trong components/ui/Input.tsx), giu ca 2 se bi chong hinh. */
+  input[type='password']::-ms-reveal,
+  input[type='password']::-ms-clear {
+    display: none;
+  }
 }
 
 @layer utilities {

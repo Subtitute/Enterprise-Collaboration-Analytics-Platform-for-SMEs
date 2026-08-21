@@ -6,6 +6,7 @@ import {
   DealDeletedPayload,
   DealStage,
   DealStageChangedPayload,
+  ERROR_CODES,
   EVENT_TYPES,
   PaginatedResponse,
   paginate,
@@ -60,7 +61,10 @@ export class DealsService {
         where: { id: dto.customerId, organizationId },
       });
       if (!customer) {
-        throw new NotFoundException('Khong tim thay khach hang trong to chuc cua ban');
+        throw new NotFoundException({
+          message: 'Khong tim thay khach hang trong to chuc cua ban',
+          errorCode: ERROR_CODES.CUSTOMER_NOT_FOUND_IN_ORG,
+        });
       }
 
       const deal = await manager.save(
@@ -121,9 +125,11 @@ export class DealsService {
     const toStage = dto.stage;
 
     if (!isValidDealStageTransition(existing.stage, toStage)) {
-      throw new BadRequestException(
-        `Khong the chuyen giai doan deal tu ${existing.stage} sang ${toStage}`,
-      );
+      throw new BadRequestException({
+        message: `Khong the chuyen giai doan deal tu ${existing.stage} sang ${toStage}`,
+        errorCode: ERROR_CODES.DEAL_STAGE_TRANSITION_INVALID,
+        errorParams: { from: existing.stage, to: toStage },
+      });
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -135,9 +141,11 @@ export class DealsService {
       // Re-validate dua tren giai doan vua duoc khoa (khong dung bien `existing` da co the stale).
       const fromStage = deal.stage;
       if (!isValidDealStageTransition(fromStage, toStage)) {
-        throw new BadRequestException(
-          `Khong the chuyen giai doan deal tu ${fromStage} sang ${toStage}`,
-        );
+        throw new BadRequestException({
+          message: `Khong the chuyen giai doan deal tu ${fromStage} sang ${toStage}`,
+          errorCode: ERROR_CODES.DEAL_STAGE_TRANSITION_INVALID,
+          errorParams: { from: fromStage, to: toStage },
+        });
       }
 
       deal.stage = toStage;
@@ -192,7 +200,7 @@ export class DealsService {
 
   private async findDealOrFail(organizationId: string, id: string): Promise<Deal> {
     const deal = await this.dealRepo.findOne({ where: { id, organizationId } });
-    if (!deal) throw new NotFoundException('Khong tim thay deal');
+    if (!deal) throw new NotFoundException({ message: 'Khong tim thay deal', errorCode: ERROR_CODES.DEAL_NOT_FOUND });
     return deal;
   }
 }

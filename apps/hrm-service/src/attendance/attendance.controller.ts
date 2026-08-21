@@ -12,7 +12,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequirePermissions } from '@app/common-guard';
-import { PERMISSIONS } from '@app/common-dto';
+import { ERROR_CODES, PERMISSIONS } from '@app/common-dto';
 import { AttendanceService } from './attendance.service';
 import { AttendanceQueryDto } from './dto/attendance-query.dto';
 import { photoMimeTypeFileFilter } from './allowed-photo-mime-types';
@@ -41,9 +41,9 @@ export class AttendanceController {
     @Body('latitude') latitudeRaw?: string,
     @Body('longitude') longitudeRaw?: string,
   ) {
-    if (!photo) throw new BadRequestException('Thiếu ảnh chấm công');
-    const latitude = parseOptionalCoordinate(latitudeRaw, 'Vĩ độ', -90, 90);
-    const longitude = parseOptionalCoordinate(longitudeRaw, 'Kinh độ', -180, 180);
+    if (!photo) throw new BadRequestException({ message: 'Thiếu ảnh chấm công', errorCode: ERROR_CODES.MISSING_CHECKIN_PHOTO });
+    const latitude = parseOptionalCoordinate(latitudeRaw, 'latitude', -90, 90);
+    const longitude = parseOptionalCoordinate(longitudeRaw, 'longitude', -180, 180);
     return this.attendanceService.checkIn(organizationId, userId, photo, latitude, longitude);
   }
 
@@ -58,9 +58,9 @@ export class AttendanceController {
     @Body('latitude') latitudeRaw?: string,
     @Body('longitude') longitudeRaw?: string,
   ) {
-    if (!photo) throw new BadRequestException('Thiếu ảnh chấm công');
-    const latitude = parseOptionalCoordinate(latitudeRaw, 'Vĩ độ', -90, 90);
-    const longitude = parseOptionalCoordinate(longitudeRaw, 'Kinh độ', -180, 180);
+    if (!photo) throw new BadRequestException({ message: 'Thiếu ảnh chấm công', errorCode: ERROR_CODES.MISSING_CHECKIN_PHOTO });
+    const latitude = parseOptionalCoordinate(latitudeRaw, 'latitude', -90, 90);
+    const longitude = parseOptionalCoordinate(longitudeRaw, 'longitude', -180, 180);
     return this.attendanceService.checkOut(organizationId, userId, photo, latitude, longitude);
   }
 
@@ -94,7 +94,7 @@ export class AttendanceController {
     @Query('kind') kind?: string,
   ) {
     if (kind !== 'checkin' && kind !== 'checkout') {
-      throw new BadRequestException('kind phải là "checkin" hoặc "checkout"');
+      throw new BadRequestException({ message: 'kind phải là "checkin" hoặc "checkout"', errorCode: ERROR_CODES.INVALID_PHOTO_KIND });
     }
     return this.attendanceService.getPhotoUrl(organizationId, id, kind, requesterUserId, requesterPermissions);
   }

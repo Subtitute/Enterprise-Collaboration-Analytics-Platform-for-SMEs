@@ -1,13 +1,17 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { TASK_STATUS_COLOR } from '@/lib/chart-colors';
-import { TASK_STATUS_LABEL_VI } from '@/types';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
 import { Spinner } from '@/components/ui/Spinner';
 import type { TaskStatusBreakdownItem } from '@/types';
+// 20/08/2026: `statusLabel` la ham NGOAI component (module-level) - khong the goi
+// useTranslation() (vi pham Rules of Hooks). Dung tham chieu `t` khong-qua-hook tu i18n/index.ts.
+// Van tu dong doi ngon ngu dung vi component cha (DashboardPage) da dung useTranslation() nen
+// re-render moi khi doi ngon ngu, keo theo TaskStatusDonut re-render lai theo.
+import { t } from '@/i18n';
 
 function statusLabel(status: string) {
-  return TASK_STATUS_LABEL_VI[status as keyof typeof TASK_STATUS_LABEL_VI] ?? status;
+  return t(`projects:enums.taskStatus.${status}`, { defaultValue: status });
 }
 
 function DonutTooltip({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; payload: { fill: string } }> }) {

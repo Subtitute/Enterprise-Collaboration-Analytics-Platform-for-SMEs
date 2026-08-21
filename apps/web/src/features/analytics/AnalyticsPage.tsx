@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Select } from '@/components/ui/Input';
@@ -6,7 +7,7 @@ import { QueryState } from '@/components/ui/QueryState';
 import { Spinner } from '@/components/ui/Spinner';
 import { SparklesIcon } from '@/components/ui/Icons';
 import { useProjectNameMap } from '@/hooks/useOrgProjects';
-import { DATE_RANGE_LABEL_VI } from '@/types';
+import { DATE_RANGE_OPTIONS } from '@/types';
 import type { DateRangeOption } from '@/types';
 // 28/07/2026: tai su dung useDepartmentsQuery da co san (dung chung o MembersPage/InviteMemberModal)
 // cho bo loc "Phong ban" moi tren trang Bao cao & Phan tich, khong tao hook fetch phong ban rieng.
@@ -17,6 +18,7 @@ import { ProjectProgressTable } from './components/ProjectProgressTable';
 import { DocumentActivityChart } from './components/DocumentActivityChart';
 
 export function AnalyticsPage() {
+  const { t } = useTranslation();
   const [range, setRange] = useState<DateRangeOption>('30d');
   // 28/07/2026: state cho bo loc "Phong ban" moi - '' nghia la khong loc (hanh vi toan to chuc
   // nhu truoc day). Chi truyen vao useProjectProgressQuery; useDocumentActivityQuery giu nguyen
@@ -69,9 +71,9 @@ export function AnalyticsPage() {
             aria-label="Khoảng thời gian"
             style={{ width: 'auto' }}
           >
-            {(Object.keys(DATE_RANGE_LABEL_VI) as DateRangeOption[]).map((key) => (
+            {DATE_RANGE_OPTIONS.map((key) => (
               <option key={key} value={key}>
-                {DATE_RANGE_LABEL_VI[key]}
+                {t(`common:enums.dateRange.${key}`)}
               </option>
             ))}
           </Select>
@@ -117,7 +119,7 @@ export function AnalyticsPage() {
             <div className="space-y-1">
               <p className="text-sm text-slate-700">{aiInsightMutation.data.insight}</p>
               <p className="text-xs text-slate-400">
-                Dựa trên số liệu {DATE_RANGE_LABEL_VI[aiInsightMutation.variables?.range ?? range].toLowerCase()}
+                Dựa trên số liệu {t(`common:enums.dateRange.${aiInsightMutation.variables?.range ?? range}`).toLowerCase()}
                 {aiInsightMutation.variables?.departmentName ? ` · Phòng ban ${aiInsightMutation.variables.departmentName}` : ' · Toàn tổ chức'}
               </p>
             </div>

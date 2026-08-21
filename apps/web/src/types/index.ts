@@ -41,6 +41,11 @@ export interface ApiErrorShape {
   message: string | string[];
   timestamp: string;
   path: string;
+  // 20/08/2026: field CONG THEM cho rollout i18n (xem
+  // packages/common-dto/src/dto/error-response.dto.ts va lib/api-client.ts extractErrorMessage).
+  errorCode?: string;
+  errorParams?: Record<string, string | number>;
+  details?: { code: string; params?: Record<string, string | number> }[];
 }
 
 /** Nguoi dung tra ve tu IAM Service (GET /users), khac voi AuthUser (ngu canh JWT da giai ma). */
@@ -77,11 +82,9 @@ export type TaskStatus = 'TODO' | 'DOING' | 'DONE';
 
 export const TASK_STATUSES: TaskStatus[] = ['TODO', 'DOING', 'DONE'];
 
-export const TASK_STATUS_LABEL_VI: Record<TaskStatus, string> = {
-  TODO: 'Cần làm',
-  DOING: 'Đang làm',
-  DONE: 'Hoàn thành',
-};
+// 20/08/2026: TASK_STATUS_LABEL_VI (map tinh, chi tieng Viet) da bo - rollout i18n, dung
+// t('projects:enums.taskStatus.'+status) qua useTranslation() thay the (xem
+// apps/web/src/i18n/locales/{vi,en,ja}/projects.json).
 
 export type ProjectStatus = 'ACTIVE' | 'COMPLETED' | 'ARCHIVED' | string;
 
@@ -250,11 +253,10 @@ export interface RecentActivityItem {
 
 export type DateRangeOption = '7d' | '30d' | 'quarter';
 
-export const DATE_RANGE_LABEL_VI: Record<DateRangeOption, string> = {
-  '7d': '7 ngày qua',
-  '30d': '30 ngày qua',
-  quarter: 'Quý này',
-};
+export const DATE_RANGE_OPTIONS: DateRangeOption[] = ['7d', '30d', 'quarter'];
+
+// 20/08/2026: DATE_RANGE_LABEL_VI (map tinh, chi tieng Viet) da bo - rollout i18n, dung
+// t('common:enums.dateRange.'+range) qua useTranslation() thay the.
 
 // 28/07/2026: kieu du lieu cho GET /analytics/ai-insights (tinh nang "Nhan xet AI").
 export interface AiInsight {
@@ -305,14 +307,8 @@ export type DealStage = 'NEW' | 'CONTACTED' | 'PROPOSAL' | 'NEGOTIATION' | 'WON'
 
 export const DEAL_STAGES: DealStage[] = ['NEW', 'CONTACTED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST'];
 
-export const DEAL_STAGE_LABEL_VI: Record<DealStage, string> = {
-  NEW: 'Mới',
-  CONTACTED: 'Đã liên hệ',
-  PROPOSAL: 'Đề xuất',
-  NEGOTIATION: 'Đàm phán',
-  WON: 'Thắng',
-  LOST: 'Thua',
-};
+// 20/08/2026: DEAL_STAGE_LABEL_VI (map tinh, chi tieng Viet) da bo - rollout i18n, dung
+// t('crm:enums.dealStage.'+stage) qua useTranslation() thay the.
 
 export interface Deal {
   id: string;
@@ -346,11 +342,8 @@ export interface Attendance {
 
 export type LeaveRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
-export const LEAVE_REQUEST_STATUS_LABEL_VI: Record<LeaveRequestStatus, string> = {
-  PENDING: 'Chờ duyệt',
-  APPROVED: 'Đã duyệt',
-  REJECTED: 'Từ chối',
-};
+// 20/08/2026: LEAVE_REQUEST_STATUS_LABEL_VI (map tinh, chi tieng Viet) da bo - rollout i18n, dung
+// t('hrm:enums.leaveRequestStatus.'+status) qua useTranslation() thay the.
 
 export interface LeaveRequest {
   id: string;

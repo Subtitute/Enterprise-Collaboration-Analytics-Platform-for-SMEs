@@ -3,6 +3,7 @@ import type { Socket } from 'net';
 import { Logger } from '@nestjs/common';
 import type { Response } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
+import { ERROR_CODES } from '@app/common-dto';
 import { sendErrorResponse } from '../common/send-error-response';
 import { injectAuthHeaders } from './inject-auth-headers';
 import { matchesPrefix } from './path-match.util';
@@ -47,6 +48,7 @@ export function createServiceProxy(prefixes: string[], target: string): ReturnTy
             'BadGatewayException',
             'Khong the ket noi toi dich vu, vui long thu lai sau',
             req.url,
+            ERROR_CODES.GATEWAY_PROXY_FAILED,
           );
         }
       },

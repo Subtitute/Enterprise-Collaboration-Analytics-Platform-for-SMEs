@@ -1,0 +1,9 @@
+{
+  "enums": {
+    "taskStatus": {
+      "TODO": "Cần làm",
+      "DOING": "Đang làm",
+      "DONE": "Hoàn thành"
+    }
+  }
+}

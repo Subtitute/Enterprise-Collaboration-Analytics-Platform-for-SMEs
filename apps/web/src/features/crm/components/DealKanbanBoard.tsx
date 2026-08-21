@@ -1,7 +1,8 @@
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { DEAL_STAGES, DEAL_STAGE_LABEL_VI } from '@/types';
+import { DEAL_STAGES } from '@/types';
 import type { Deal, DealStage } from '@/types';
 import { DealCard } from './DealCard';
 import { useUpdateDealStage } from '../hooks';
@@ -22,6 +23,7 @@ const COLUMN_ACCENT: Record<DealStage, string> = {
  * goi mutation va hien loi qua toast neu backend tu choi (xem useUpdateDealStage).
  */
 export function DealKanbanBoard({ customerId, deals, onDealClick }: { customerId: string; deals: Deal[]; onDealClick: (deal: Deal) => void }) {
+  const { t } = useTranslation();
   const updateStage = useUpdateDealStage(customerId);
 
   function handleDragEnd(result: DropResult) {
@@ -44,7 +46,7 @@ export function DealKanbanBoard({ customerId, deals, onDealClick }: { customerId
             <div key={stage} className="flex w-64 shrink-0 flex-col rounded-xl border border-slate-200 bg-slate-50/60">
               <div className="flex items-center gap-2 border-b border-slate-200 px-3.5 py-2.5">
                 <span className={cn('h-2.5 w-2.5 rounded-full', COLUMN_ACCENT[stage])} />
-                <p className="text-sm font-semibold text-slate-700">{DEAL_STAGE_LABEL_VI[stage]}</p>
+                <p className="text-sm font-semibold text-slate-700">{t(`crm:enums.dealStage.${stage}`)}</p>
                 <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs font-medium text-slate-500 ring-1 ring-slate-200">
                   {columnDeals.length}
                 </span>

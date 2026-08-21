@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, Model, Types } from 'mongoose';
-import { PaginatedResponse, paginate } from '@app/common-dto';
+import { ERROR_CODES, PaginatedResponse, paginate } from '@app/common-dto';
 import { Notification, NotificationDocument } from './schemas/notification.schema';
 import { ListNotificationsQueryDto } from './dto/list-notifications-query.dto';
 import { NotificationsGateway } from '../realtime/notifications.gateway';
@@ -100,12 +100,12 @@ export class NotificationsService {
 
   async markAsRead(organizationId: string, userId: string, id: string): Promise<NotificationDocument> {
     if (!Types.ObjectId.isValid(id)) {
-      throw new NotFoundException('Khong tim thay thong bao');
+      throw new NotFoundException({ message: 'Khong tim thay thong bao', errorCode: ERROR_CODES.NOTIFICATION_NOT_FOUND });
     }
 
     const notification = await this.notificationModel.findOne({ _id: id, organizationId, userId });
     if (!notification) {
-      throw new NotFoundException('Khong tim thay thong bao');
+      throw new NotFoundException({ message: 'Khong tim thay thong bao', errorCode: ERROR_CODES.NOTIFICATION_NOT_FOUND });
     }
 
     if (!notification.isRead) {

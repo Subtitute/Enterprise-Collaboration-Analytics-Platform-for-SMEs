@@ -1,0 +1,65 @@
+{
+  "language": {
+    "switcherLabel": "Language",
+    "vi": "Tiếng Việt",
+    "en": "English",
+    "ja": "日本語"
+  },
+  "actions": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "close": "Close",
+    "save": "Save"
+  },
+  "appTitle": "Enterprise Collaboration & Analytics Platform",
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you're looking for doesn't exist or has been moved.",
+    "backToDashboard": "Back to Dashboard"
+  },
+  "loading": "Loading…",
+  "loadingPage": "Loading page…",
+  "skipToContent": "Skip to main content",
+  "progress": "Progress",
+  "password": {
+    "show": "Show password",
+    "hide": "Hide password",
+    "diacriticsWarning": "Vietnamese diacritics detected in your password - check your input method if this wasn't intentional."
+  },
+  "toast": {
+    "dismiss": "Dismiss notification"
+  },
+  "pagination": {
+    "showing": "Showing {{from}}–{{to}} of {{total}} results",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {{page}}/{{totalPages}}"
+  },
+  "queryState": {
+    "loading": "Loading data…",
+    "errorTitle": "Couldn't load data",
+    "errorDescription": "Something went wrong loading the data. Please check your connection and try again.",
+    "retry": "Retry"
+  },
+  "relativeTime": {
+    "justNow": "just now"
+  },
+  "enums": {
+    "dateRange": {
+      "7d": "Last 7 days",
+      "30d": "Last 30 days",
+      "quarter": "This quarter"
+    }
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "projects": "Projects & Tasks",
+    "documents": "Documents",
+    "customers": "Customers",
+    "attendance": "Attendance",
+    "leaveRequests": "Leave Requests",
+    "notifications": "Notifications",
+    "analytics": "Reports & Analytics",
+    "admin": "Administration"
+  }
+}

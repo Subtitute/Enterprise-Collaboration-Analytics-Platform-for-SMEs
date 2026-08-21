@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { FormField, Input } from '@/components/ui/Input';
 import { TrashIcon } from '@/components/ui/Icons';
-import { DEAL_STAGE_LABEL_VI } from '@/types';
 import type { Deal } from '@/types';
 import { dealStageBadgeVariant } from '../utils';
 import { useDeleteDeal, useUpdateDeal } from '../hooks';
@@ -25,6 +25,7 @@ export function DealDetailModal({
   deal: Deal | null;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [value, setValue] = useState('');
   const [expectedCloseDate, setExpectedCloseDate] = useState('');
@@ -56,7 +57,7 @@ export function DealDetailModal({
       <Modal open={Boolean(deal)} onClose={onClose} title="Chi tiết deal">
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div className="flex items-center justify-between">
-            <Badge variant={dealStageBadgeVariant(deal.stage)}>{DEAL_STAGE_LABEL_VI[deal.stage]}</Badge>
+            <Badge variant={dealStageBadgeVariant(deal.stage)}>{t(`crm:enums.dealStage.${deal.stage}`)}</Badge>
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}

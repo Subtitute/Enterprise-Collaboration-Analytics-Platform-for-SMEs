@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, In, Repository } from 'typeorm';
 import { Role } from '../entities/role.entity';
 import { Permission } from '../entities/permission.entity';
-import { DEFAULT_ROLE_PERMISSIONS, DefaultRoleName } from '@app/common-dto';
+import { DEFAULT_ROLE_PERMISSIONS, DefaultRoleName, ERROR_CODES } from '@app/common-dto';
 
 @Injectable()
 export class RolesService {
@@ -51,7 +51,7 @@ export class RolesService {
     // nghia (loi MINOR, review 22/07/2026). Doi sang findOne() + kiem tra null tuong tu cach
     // DepartmentsService/UsersService trong cung service nay xu ly "khong tim thay".
     const role = await this.roleRepo.findOne({ where: { id: roleId, organizationId } });
-    if (!role) throw new NotFoundException('Khong tim thay vai tro');
+    if (!role) throw new NotFoundException({ message: 'Khong tim thay vai tro', errorCode: ERROR_CODES.ROLE_NOT_FOUND });
     const permissions = await this.permissionRepo.find({ where: { key: In(permissionKeys) } });
 
     // 25/07/2026: MINOR (review 25/07/2026) - truoc day permissionKeys khong resolve duoc thanh

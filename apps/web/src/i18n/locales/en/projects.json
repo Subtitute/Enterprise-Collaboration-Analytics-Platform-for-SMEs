@@ -1,0 +1,9 @@
+{
+  "enums": {
+    "taskStatus": {
+      "TODO": "To Do",
+      "DOING": "In Progress",
+      "DONE": "Done"
+    }
+  }
+}

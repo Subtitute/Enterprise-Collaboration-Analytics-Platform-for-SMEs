@@ -17,6 +17,7 @@ import { RedisService } from '../redis/redis.service';
 import { parseDurationMs } from '../auth/auth.service';
 import { isPostgresUniqueViolation } from '../common/db-errors.util';
 import {
+  ERROR_CODES,
   EVENT_TYPES,
   PaginatedResponse,
   PaginationQueryDto,
@@ -70,7 +71,7 @@ export class UsersService {
 
   async findById(organizationId: string, id: string): Promise<PublicUser> {
     const user = await this.userRepo.findOne({ where: { id, organizationId } });
-    if (!user) throw new NotFoundException('Khong tim thay nguoi dung');
+    if (!user) throw new NotFoundException({ message: 'Khong tim thay nguoi dung', errorCode: ERROR_CODES.USER_NOT_FOUND });
     return this.toPublicUser(user);
   }
 
@@ -80,7 +81,7 @@ export class UsersService {
     callerPermissions: string[],
   ): Promise<PublicUser> {
     const existing = await this.userRepo.findOne({ where: { email: dto.email } });
-    if (existing) throw new ConflictException('Email da duoc su dung');
+    if (existing) throw new ConflictException({ message: 'Email da duoc su dung', errorCode: ERROR_CODES.EMAIL_ALREADY_USED });
 
     // 25/07/2026: RBAC bypass CRITICAL (review 25/07/2026) - truoc day dto.roleIds duoc gan THANG
     // cho user moi ma KHONG kiem tra nguoi goi co duoc phep cap NHUNG vai tro do hay khong.
@@ -98,9 +99,10 @@ export class UsersService {
     // than endpoint do da doi hoi role:manage (chi Org Admin) nen 1 Manager dung UI that KHONG BAO
     // GIO gui duoc roleIds khac rong - 403 o day chi chan duong client tu tao request thu cong.
     if (dto.roleIds?.length && !callerPermissions.includes(PERMISSIONS.USER_MANAGE)) {
-      throw new ForbiddenException(
-        'Ban khong co quyen gan vai tro khi moi thanh vien moi (can quyen user:manage)',
-      );
+      throw new ForbiddenException({
+        message: 'Ban khong co quyen gan vai tro khi moi thanh vien moi (can quyen user:manage)',
+        errorCode: ERROR_CODES.FORBIDDEN_ASSIGN_ROLE,
+      });
     }
 
     // 22/07/2026: xac thuc departmentId thuoc DUNG to chuc cua nguoi goi truoc khi gan cho user
@@ -113,7 +115,7 @@ export class UsersService {
       const department = await this.departmentRepo.findOne({
         where: { id: dto.departmentId, organizationId },
       });
-      if (!department) throw new NotFoundException('Khong tim thay phong ban');
+      if (!department) throw new NotFoundException({ message: 'Khong tim thay phong ban', errorCode: ERROR_CODES.DEPARTMENT_NOT_FOUND });
     }
 
     // 22/07/2026: pre-check findOne() o tren khong nguyen tu voi insert ben duoi - boc them
@@ -157,7 +159,7 @@ export class UsersService {
       return this.toPublicUser(saved);
     } catch (error) {
       if (isPostgresUniqueViolation(error)) {
-        throw new ConflictException('Email da duoc su dung');
+        throw new ConflictException({ message: 'Email da duoc su dung', errorCode: ERROR_CODES.EMAIL_ALREADY_USED });
       }
       throw error;
     }
@@ -170,7 +172,7 @@ export class UsersService {
     callerPermissions: string[],
   ): Promise<PublicUser> {
     const user = await this.userRepo.findOne({ where: { id, organizationId } });
-    if (!user) throw new NotFoundException('Khong tim thay nguoi dung');
+    if (!user) throw new NotFoundException({ message: 'Khong tim thay nguoi dung', errorCode: ERROR_CODES.USER_NOT_FOUND });
 
     // 25/07/2026: cung 1 lo hong RBAC nhu invite() o tren, ap dung cho "canh cua" thu 2 - PATCH
     // /users/:id doi vai tro cua 1 tai khoan DA TON TAI. Controller hien tai da gate ca endpoint
@@ -180,9 +182,10 @@ export class UsersService {
     // (vd 1 job noi bo, 1 endpoint moi tai su dung lai update()) ma quen ap lai dung guard, luc do
     // day se la lop chan cuoi cung ngan chan leo thang quyen qua roleIds - xem chu thich invite().
     if (dto.roleIds && !callerPermissions.includes(PERMISSIONS.USER_MANAGE)) {
-      throw new ForbiddenException(
-        'Ban khong co quyen thay doi vai tro cua nguoi dung (can quyen user:manage)',
-      );
+      throw new ForbiddenException({
+        message: 'Ban khong co quyen thay doi vai tro cua nguoi dung (can quyen user:manage)',
+        errorCode: ERROR_CODES.FORBIDDEN_CHANGE_ROLE,
+      });
     }
 
     if (dto.fullName !== undefined) user.fullName = dto.fullName;
@@ -202,7 +205,7 @@ export class UsersService {
         const department = await this.departmentRepo.findOne({
           where: { id: dto.departmentId, organizationId },
         });
-        if (!department) throw new NotFoundException('Khong tim thay phong ban');
+        if (!department) throw new NotFoundException({ message: 'Khong tim thay phong ban', errorCode: ERROR_CODES.DEPARTMENT_NOT_FOUND });
       }
       user.departmentId = dto.departmentId;
     }
@@ -248,11 +251,14 @@ export class UsersService {
     // hoa admin B la nguoi co quyen quan tri cuoi cung khac van chua bi chan o day) - xem bao cao
     // cuoi cung ve gioi han da biet nay va endpoint reactivate() moi bo sung ben duoi.
     if (id === actorId) {
-      throw new BadRequestException('Khong the tu vo hieu hoa chinh tai khoan cua minh');
+      throw new BadRequestException({
+        message: 'Khong the tu vo hieu hoa chinh tai khoan cua minh',
+        errorCode: ERROR_CODES.CANNOT_DEACTIVATE_SELF,
+      });
     }
 
     const existing = await this.userRepo.findOne({ where: { id, organizationId } });
-    if (!existing) throw new NotFoundException('Khong tim thay nguoi dung');
+    if (!existing) throw new NotFoundException({ message: 'Khong tim thay nguoi dung', errorCode: ERROR_CODES.USER_NOT_FOUND });
 
     const saved = await this.dataSource.transaction(async (manager) => {
       const user = await manager.findOneOrFail(User, { where: { id, organizationId } });
@@ -290,7 +296,7 @@ export class UsersService {
    */
   async reactivate(organizationId: string, id: string): Promise<PublicUser> {
     const user = await this.userRepo.findOne({ where: { id, organizationId } });
-    if (!user) throw new NotFoundException('Khong tim thay nguoi dung');
+    if (!user) throw new NotFoundException({ message: 'Khong tim thay nguoi dung', errorCode: ERROR_CODES.USER_NOT_FOUND });
 
     user.isActive = true;
     const saved = await this.userRepo.save(user);

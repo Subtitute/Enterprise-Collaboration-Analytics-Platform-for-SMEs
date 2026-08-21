@@ -1,0 +1,12 @@
+{
+  "enums": {
+    "dealStage": {
+      "NEW": "New",
+      "CONTACTED": "Contacted",
+      "PROPOSAL": "Proposal",
+      "NEGOTIATION": "Negotiation",
+      "WON": "Won",
+      "LOST": "Lost"
+    }
+  }
+}

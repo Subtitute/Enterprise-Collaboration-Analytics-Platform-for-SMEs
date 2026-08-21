@@ -6,6 +6,7 @@ import { useLogout } from '@/features/auth/hooks';
 import { useGlobalSearch } from '@/features/search/useGlobalSearch';
 import type { SearchResult } from '@/features/search/useGlobalSearch';
 import { NotificationBell } from '@/features/notifications/components/NotificationBell';
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 import { Avatar } from '@/components/ui/Avatar';
 import { Spinner } from '@/components/ui/Spinner';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
@@ -168,6 +169,7 @@ export function Topbar() {
       <GlobalSearchBox />
 
       <div className="ml-auto flex items-center gap-1.5">
+        <LanguageSwitcher />
         <NotificationBell />
 
         <Dropdown

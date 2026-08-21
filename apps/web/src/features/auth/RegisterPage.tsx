@@ -4,7 +4,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth.store';
 import { useRegisterOrganization } from './hooks';
 import { AuthLayout } from './components/AuthLayout';
-import { FormField, Input } from '@/components/ui/Input';
+import { FormField, Input, PasswordInput } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { CheckIcon } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
@@ -151,18 +151,16 @@ export function RegisterPage() {
           </FormField>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FormField label="Mật khẩu" htmlFor="adminPassword" error={errors.adminPassword} required>
-              <Input
+              <PasswordInput
                 id="adminPassword"
-                type="password"
                 placeholder="Tối thiểu 8 ký tự"
                 value={data.adminPassword}
                 onChange={(e) => update('adminPassword', e.target.value)}
               />
             </FormField>
             <FormField label="Xác nhận mật khẩu" htmlFor="confirmPassword" error={errors.confirmPassword} required>
-              <Input
+              <PasswordInput
                 id="confirmPassword"
-                type="password"
                 placeholder="Nhập lại mật khẩu"
                 value={data.confirmPassword}
                 onChange={(e) => update('confirmPassword', e.target.value)}

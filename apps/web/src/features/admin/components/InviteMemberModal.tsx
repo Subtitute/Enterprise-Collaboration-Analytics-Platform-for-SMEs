@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { FormField, Input, Select, Label } from '@/components/ui/Input';
+import { FormField, Input, PasswordInput, Select, Label } from '@/components/ui/Input';
 import { useDepartmentsQuery, useInviteUser, useRolesQuery } from '../hooks';
 import { RoleCheckboxList } from './RoleCheckboxList';
 
@@ -69,9 +69,8 @@ export function InviteMemberModal({ open, onClose }: { open: boolean; onClose: (
           hint="Thành viên nên đổi lại mật khẩu sau lần đăng nhập đầu tiên"
           required
         >
-          <Input
+          <PasswordInput
             id="invite-password"
-            type="password"
             value={initialPassword}
             onChange={(e) => setInitialPassword(e.target.value)}
             placeholder="Tối thiểu 8 ký tự"

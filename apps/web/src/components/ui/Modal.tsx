@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 // 28/07/2026: danh sach the co the nhan focus, dung chung cho focus-trap ben duoi (bo qua phan tu
@@ -26,8 +27,21 @@ const sizeClasses = {
 };
 
 export function Modal({ open, onClose, title, description, children, footer, size = 'md' }: ModalProps) {
+  const { t } = useTranslation();
   const dialogRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  // 20/08/2026: sua loi thuc te - hau het noi goi Modal truyen `onClose` la 1 ham MOI moi lan
+  // component cha render (vd `function handleClose() {...}` khai bao lai trong than component,
+  // khong boc useCallback - xem InviteMemberModal.tsx). Truoc day `onClose` nam trong dependency
+  // array cua effect quan ly focus ben duoi, nen MOI lan nguoi dung go 1 ky tu vao 1 input trong
+  // modal (setState -> re-render -> `onClose` doi tham chieu) effect chay lai TU DAU, bao gom ca
+  // buoc "focus phan tu co the nhan focus DAU TIEN trong dialog" - nut Dong (X) o header luon la
+  // phan tu do (dung truoc form trong DOM), nen focus bi giat khoi o dang go sang nut Dong ngay
+  // sau MOI ky tu. Luu `onClose` vao ref, cap nhat moi render (khong can effect rieng), de
+  // handler Escape ben duoi luon goi ban moi nhat MA effect chinh KHONG can `onClose` trong
+  // dependency array nua - chi con phu thuoc `open` (dung nhu y dinh: chay 1 lan khi modal MO).
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   // 28/07/2026: bo sung quan ly focus (phat hien qua ra soat kha nang tiep can) - truoc do Modal
   // KHONG chuyen focus vao trong dialog khi mo (nguoi dung ban phim van dang o phan tu vua bam mo
@@ -46,7 +60,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== 'Tab' || !dialogRef.current) return;
@@ -73,7 +87,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
       document.body.style.overflow = prevOverflow;
       previouslyFocusedRef.current?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
@@ -100,7 +114,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
             <button
               type="button"
               onClick={onClose}
-              aria-label="Đóng"
+              aria-label={t('common:actions.close')}
               className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
             >
               <CloseIcon />
@@ -129,8 +143,8 @@ export function ConfirmDialog({
   onConfirm,
   title,
   description,
-  confirmLabel = 'Xác nhận',
-  cancelLabel = 'Hủy',
+  confirmLabel,
+  cancelLabel,
   danger,
   isLoading,
   children,
@@ -147,6 +161,7 @@ export function ConfirmDialog({
   children?: ReactNode;
 }) {
   // Lazy import de tranh vong lap phu thuoc (Button dung Spinner, khong lien quan Modal)
+  const { t } = useTranslation();
   return (
     <Modal open={open} onClose={onClose} title={title} description={description} size="sm">
       {children}
@@ -156,7 +171,7 @@ export function ConfirmDialog({
           onClick={onClose}
           className="inline-flex h-9 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
         >
-          {cancelLabel}
+          {cancelLabel ?? t('common:actions.cancel')}
         </button>
         <button
           type="button"
@@ -167,7 +182,7 @@ export function ConfirmDialog({
             danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-primary-600 hover:bg-primary-700',
           )}
         >
-          {confirmLabel}
+          {confirmLabel ?? t('common:actions.confirm')}
         </button>
       </div>
     </Modal>

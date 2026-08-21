@@ -1,7 +1,7 @@
 import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequirePermissions } from '@app/common-guard';
-import { PaginationQueryDto, PERMISSIONS } from '@app/common-dto';
+import { ERROR_CODES, PaginationQueryDto, PERMISSIONS } from '@app/common-dto';
 import { UsersService } from './users.service';
 import { InviteUserDto } from './dto/invite-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -64,7 +64,10 @@ export class UsersController {
     const isSelf = id === callerId;
     const canManageUsers = (callerPermissions ?? []).includes(PERMISSIONS.USER_MANAGE);
     if (!isSelf && !canManageUsers) {
-      throw new ForbiddenException('Ban chi co the xem ho so cua chinh minh');
+      throw new ForbiddenException({
+        message: 'Ban chi co the xem ho so cua chinh minh',
+        errorCode: ERROR_CODES.FORBIDDEN_SELF_PROFILE_ONLY,
+      });
     }
     return this.usersService.findById(organizationId, id);
   }

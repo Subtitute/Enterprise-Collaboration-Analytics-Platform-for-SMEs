@@ -1,10 +1,11 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { FolderKanbanIcon, CheckCircleIcon, UserIcon, FileTextIcon } from '@/components/ui/Icons';
-import { DATE_RANGE_LABEL_VI } from '@/types';
+import { DATE_RANGE_OPTIONS } from '@/types';
 import type { DateRangeOption } from '@/types';
 import { useAuthStore } from '@/stores/auth.store';
 import { hasAdminRole } from '@/lib/utils';
@@ -19,6 +20,7 @@ import { TaskStatusDonut } from './components/TaskStatusDonut';
 import { RecentActivityFeed } from './components/RecentActivityFeed';
 
 export function DashboardPage() {
+  const { t } = useTranslation();
   const [range, setRange] = useState<DateRangeOption>('30d');
   // 28/07/2026: state cho bo loc "Phong ban" moi - '' nghia la khong loc (hanh vi toan to chuc
   // nhu truoc day). Chi truyen vao useAnalyticsSummary/useTaskStatusBreakdown; useTaskTrend
@@ -134,9 +136,9 @@ export function DashboardPage() {
                 className="text-xs"
                 style={{ width: 'auto' }}
               >
-                {(Object.keys(DATE_RANGE_LABEL_VI) as DateRangeOption[]).map((key) => (
+                {DATE_RANGE_OPTIONS.map((key) => (
                   <option key={key} value={key}>
-                    {DATE_RANGE_LABEL_VI[key]}
+                    {t(`common:enums.dateRange.${key}`)}
                   </option>
                 ))}
               </Select>

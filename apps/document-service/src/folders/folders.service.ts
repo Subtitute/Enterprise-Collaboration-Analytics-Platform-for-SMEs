@@ -13,7 +13,7 @@ import { OutboxService } from '../outbox/outbox.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
 import { CreateFolderShareDto } from './dto/create-folder-share.dto';
-import { DocumentDeletedPayload, EVENT_TYPES } from '@app/common-dto';
+import { DocumentDeletedPayload, ERROR_CODES, EVENT_TYPES } from '@app/common-dto';
 
 const PRODUCER = 'document-service';
 
@@ -52,7 +52,7 @@ export class FoldersService {
       const parent = await this.folderRepo.findOne({
         where: { id: dto.parentFolderId, organizationId },
       });
-      if (!parent) throw new NotFoundException('Khong tim thay thu muc cha');
+      if (!parent) throw new NotFoundException({ message: 'Khong tim thay thu muc cha', errorCode: ERROR_CODES.PARENT_FOLDER_NOT_FOUND });
     }
     const folder = this.folderRepo.create({
       organizationId,
@@ -73,10 +73,10 @@ export class FoldersService {
   // muc nguoi khac tao.
   async update(organizationId: string, id: string, dto: UpdateFolderDto, ctx: AccessContext): Promise<Folder> {
     const folder = await this.folderRepo.findOne({ where: { id, organizationId } });
-    if (!folder) throw new NotFoundException('Khong tim thay thu muc');
+    if (!folder) throw new NotFoundException({ message: 'Khong tim thay thu muc', errorCode: ERROR_CODES.FOLDER_NOT_FOUND });
 
     if (!(await this.folderAccessService.canAccessFolder(folder, ctx))) {
-      throw new ForbiddenException('Ban khong co quyen truy cap thu muc nay');
+      throw new ForbiddenException({ message: 'Ban khong co quyen truy cap thu muc nay', errorCode: ERROR_CODES.FORBIDDEN_FOLDER_ACCESS });
     }
 
     // 28/07/2026: chi gan lai `name` khi THUC SU duoc truyen - xem ghi chu tai UpdateFolderDto.name
@@ -99,7 +99,10 @@ export class FoldersService {
   // danh sach chia se (createShare/listShares/removeShare ben duoi) cua 1 thu muc.
   private assertFolderOwnerOrOrgAdmin(folder: Folder, ctx: AccessContext): void {
     if (folder.createdByUserId !== ctx.userId && !ctx.isOrgAdmin) {
-      throw new ForbiddenException('Chi nguoi tao thu muc hoac Quan tri vien to chuc moi duoc thuc hien thao tac nay');
+      throw new ForbiddenException({
+        message: 'Chi nguoi tao thu muc hoac Quan tri vien to chuc moi duoc thuc hien thao tac nay',
+        errorCode: ERROR_CODES.FORBIDDEN_FOLDER_MODIFY,
+      });
     }
   }
 
@@ -111,13 +114,16 @@ export class FoldersService {
    */
   async createShare(organizationId: string, folderId: string, ctx: AccessContext, dto: CreateFolderShareDto): Promise<FolderShare> {
     const folder = await this.folderRepo.findOne({ where: { id: folderId, organizationId } });
-    if (!folder) throw new NotFoundException('Khong tim thay thu muc');
+    if (!folder) throw new NotFoundException({ message: 'Khong tim thay thu muc', errorCode: ERROR_CODES.FOLDER_NOT_FOUND });
     this.assertFolderOwnerOrOrgAdmin(folder, ctx);
 
     const hasUser = !!dto.sharedWithUserId;
     const hasDepartment = !!dto.sharedWithDepartmentId;
     if (hasUser === hasDepartment) {
-      throw new BadRequestException('Phai cung cap chinh xac mot trong hai: sharedWithUserId hoac sharedWithDepartmentId');
+      throw new BadRequestException({
+        message: 'Phai cung cap chinh xac mot trong hai: sharedWithUserId hoac sharedWithDepartmentId',
+        errorCode: ERROR_CODES.SHARE_TARGET_REQUIRED,
+      });
     }
 
     const existing = await this.folderShareRepo.findOne({
@@ -126,7 +132,10 @@ export class FoldersService {
         : { folderId, sharedWithDepartmentId: dto.sharedWithDepartmentId },
     });
     if (existing) {
-      throw new BadRequestException('Thu muc nay da duoc chia se voi nguoi dung/phong ban nay');
+      throw new BadRequestException({
+        message: 'Thu muc nay da duoc chia se voi nguoi dung/phong ban nay',
+        errorCode: ERROR_CODES.FOLDER_ALREADY_SHARED,
+      });
     }
 
     const share = this.folderShareRepo.create({
@@ -146,7 +155,7 @@ export class FoldersService {
    */
   async listShares(organizationId: string, folderId: string, ctx: AccessContext): Promise<FolderShare[]> {
     const folder = await this.folderRepo.findOne({ where: { id: folderId, organizationId } });
-    if (!folder) throw new NotFoundException('Khong tim thay thu muc');
+    if (!folder) throw new NotFoundException({ message: 'Khong tim thay thu muc', errorCode: ERROR_CODES.FOLDER_NOT_FOUND });
     this.assertFolderOwnerOrOrgAdmin(folder, ctx);
     return this.folderShareRepo.find({ where: { folderId }, order: { createdAt: 'DESC' } });
   }
@@ -154,11 +163,11 @@ export class FoldersService {
   /** 28/07/2026: endpoint moi `DELETE /folders/:id/shares/:shareId` - go 1 chia se. Cung han che voi createShare()/listShares(). */
   async removeShare(organizationId: string, folderId: string, shareId: string, ctx: AccessContext): Promise<void> {
     const folder = await this.folderRepo.findOne({ where: { id: folderId, organizationId } });
-    if (!folder) throw new NotFoundException('Khong tim thay thu muc');
+    if (!folder) throw new NotFoundException({ message: 'Khong tim thay thu muc', errorCode: ERROR_CODES.FOLDER_NOT_FOUND });
     this.assertFolderOwnerOrOrgAdmin(folder, ctx);
 
     const share = await this.folderShareRepo.findOne({ where: { id: shareId, folderId } });
-    if (!share) throw new NotFoundException('Khong tim thay chia se');
+    if (!share) throw new NotFoundException({ message: 'Khong tim thay chia se', errorCode: ERROR_CODES.SHARE_NOT_FOUND });
     await this.folderShareRepo.remove(share);
   }
 
@@ -204,9 +213,9 @@ export class FoldersService {
   // THUC SU ton tai trong to chuc ho).
   async remove(organizationId: string, actorId: string, id: string, ctx: AccessContext): Promise<void> {
     const folder = await this.folderRepo.findOne({ where: { id, organizationId } });
-    if (!folder) throw new NotFoundException('Khong tim thay thu muc');
+    if (!folder) throw new NotFoundException({ message: 'Khong tim thay thu muc', errorCode: ERROR_CODES.FOLDER_NOT_FOUND });
     if (!(await this.folderAccessService.canAccessFolder(folder, ctx))) {
-      throw new ForbiddenException('Ban khong co quyen truy cap thu muc nay');
+      throw new ForbiddenException({ message: 'Ban khong co quyen truy cap thu muc nay', errorCode: ERROR_CODES.FORBIDDEN_FOLDER_ACCESS });
     }
 
     const folderIds = await this.collectFolderTreeIds(organizationId, id);

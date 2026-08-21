@@ -1,5 +1,17 @@
+import i18n from '@/i18n';
+
 export function cn(...classes: Array<string | false | null | undefined>): string {
   return classes.filter(Boolean).join(' ');
+}
+
+// 20/08/2026: rollout i18n - anh xa ngon ngu app (i18n.language: 'vi'|'en'|'ja') sang tag locale
+// chuan cua Intl. Dung 'en-GB' (khong phai 'en-US') cho tieng Anh de GIU NGUYEN thu tu ngay/thang
+// (DD/MM/YYYY) nhat quan voi tieng Viet - doi sang 'en-US' se doi thu tu thanh MM/DD/YYYY, gay
+// nham lan khi nguoi dung chuyen qua lai giua ngon ngu tren cung 1 du lieu.
+const INTL_LOCALE_MAP: Record<string, string> = { vi: 'vi-VN', en: 'en-GB', ja: 'ja-JP' };
+
+function currentIntlLocale(): string {
+  return INTL_LOCALE_MAP[i18n.language] ?? 'vi-VN';
 }
 
 /**
@@ -24,14 +36,16 @@ export function formatDate(value?: string | null): string {
   if (!value) return '—';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '—';
-  return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }).format(d);
+  return new Intl.DateTimeFormat(currentIntlLocale(), { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }).format(
+    d,
+  );
 }
 
 export function formatDateTime(value?: string | null): string {
   if (!value) return '—';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '—';
-  return new Intl.DateTimeFormat('vi-VN', {
+  return new Intl.DateTimeFormat(currentIntlLocale(), {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -41,20 +55,27 @@ export function formatDateTime(value?: string | null): string {
   }).format(d);
 }
 
+// 20/08/2026: chuyen sang Intl.RelativeTimeFormat (co san node/trinh duyet, du lieu CLDR chinh
+// thuc) thay vi tu ghep chuoi tieng Viet tay - da xac minh truc tiep: Intl.RelativeTimeFormat('vi',
+// {numeric:'auto'}) tra ve DUNG "5 giây trước"/"3 phút trước"/... khop 100% voi chuoi cu, nen doi
+// sang day KHONG lam thay doi hien thi tieng Viet, chi them mien phi ban Anh/Nhat. Nguong "vua
+// xong" (<5 giay) van tu code rieng vi RelativeTimeFormat khong co "just now" o cap giay.
 export function formatRelativeTime(value?: string | null): string {
   if (!value) return '—';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '—';
   const diffMs = Date.now() - d.getTime();
   const diffSec = Math.round(diffMs / 1000);
-  if (diffSec < 5) return 'vừa xong';
-  if (diffSec < 60) return `${diffSec} giây trước`;
+  if (diffSec < 5) return i18n.t('common:relativeTime.justNow');
+
+  const rtf = new Intl.RelativeTimeFormat(currentIntlLocale(), { numeric: 'auto' });
+  if (diffSec < 60) return rtf.format(-diffSec, 'second');
   const diffMin = Math.round(diffSec / 60);
-  if (diffMin < 60) return `${diffMin} phút trước`;
+  if (diffMin < 60) return rtf.format(-diffMin, 'minute');
   const diffHour = Math.round(diffMin / 60);
-  if (diffHour < 24) return `${diffHour} giờ trước`;
+  if (diffHour < 24) return rtf.format(-diffHour, 'hour');
   const diffDay = Math.round(diffHour / 24);
-  if (diffDay < 30) return `${diffDay} ngày trước`;
+  if (diffDay < 30) return rtf.format(-diffDay, 'day');
   return formatDate(value);
 }
 
@@ -80,6 +101,18 @@ const ADMIN_ROLE_PATTERN = /admin|quản\s*trị|quan\s*tri|owner/i;
 export function hasAdminRole(roles?: Array<{ name: string }>): boolean {
   if (!roles || roles.length === 0) return false;
   return roles.some((r) => ADMIN_ROLE_PATTERN.test(r.name));
+}
+
+// 20/08/2026: dung cho PasswordInput (components/ui/Input.tsx) - phat hien go NHAM dau tieng
+// Viet vao o mat khau (bo go Unikey/EVKey... doi khi tu dong ghep dau du nguoi dung go phim
+// thuong, KHONG nhan ra vi o mat khau che ky tu, khong xem lai duoc gi da go that su) de HIEN THI
+// canh bao, KHONG chan/loc bo ky tu - han che bo ky tu mat khau lam giam do manh mat khau, day chi
+// la tin hieu THEM giup nguoi dung tu nhan ra, khong phai co che thuc thi.
+// `normalize('NFD')` tach ky tu co dau thanh chu cai goc + dau ghep rieng (dai U+0300-U+036F) -
+// bat duoc hau het nguyen am co dau. "đ/Đ" la 1 chu cai La-tinh MO RONG rieng (khong phai chu cai
+// + dau ghep) nen NFD khong tach duoc, phai kiem tra rieng.
+export function containsVietnameseDiacritics(value: string): boolean {
+  return /[\u0300-\u036f]/.test(value.normalize('NFD')) || /[đĐ]/.test(value);
 }
 
 export function getInitials(name?: string): string {

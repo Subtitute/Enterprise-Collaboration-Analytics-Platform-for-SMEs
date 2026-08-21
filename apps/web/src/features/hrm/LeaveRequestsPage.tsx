@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -8,7 +9,6 @@ import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PlusIcon, CheckIcon, XIcon } from '@/components/ui/Icons';
 import { formatDate } from '@/lib/utils';
-import { LEAVE_REQUEST_STATUS_LABEL_VI } from '@/types';
 import type { LeaveRequestStatus } from '@/types';
 import { NewLeaveRequestModal } from './components/NewLeaveRequestModal';
 import {
@@ -26,6 +26,7 @@ const STATUS_BADGE_VARIANT: Record<LeaveRequestStatus, BadgeVariant> = {
 
 /** Trang Nghỉ phép (HRM-lite) - Technical_Spec.md muc 17, Wireframe.md muc 13. */
 export function LeaveRequestsPage() {
+  const { t } = useTranslation();
   const [isNewOpen, setIsNewOpen] = useState(false);
   const myRequestsQuery = useMyLeaveRequestsQuery({ limit: 20 });
   const pendingQuery = usePendingLeaveRequestsQuery();
@@ -108,7 +109,7 @@ export function LeaveRequestsPage() {
                         <p className="mt-1 text-xs italic text-slate-400">Ghi chú: {request.decisionNote}</p>
                       )}
                     </div>
-                    <Badge variant={STATUS_BADGE_VARIANT[request.status]}>{LEAVE_REQUEST_STATUS_LABEL_VI[request.status]}</Badge>
+                    <Badge variant={STATUS_BADGE_VARIANT[request.status]}>{t(`hrm:enums.leaveRequestStatus.${request.status}`)}</Badge>
                   </div>
                 ))}
               </div>

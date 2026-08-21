@@ -1,0 +1,12 @@
+{
+  "enums": {
+    "dealStage": {
+      "NEW": "新規",
+      "CONTACTED": "連絡済み",
+      "PROPOSAL": "提案",
+      "NEGOTIATION": "交渉",
+      "WON": "成約",
+      "LOST": "失注"
+    }
+  }
+}

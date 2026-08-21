@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { ERROR_CODES } from '@app/common-dto';
 
 /**
  * Allowlist MIME type duoc phep upload - Technical_Spec.md muc 9 ("File upload gioi han
@@ -51,6 +52,8 @@ export function mimeTypeFileFilter(
       new BadRequestException({
         error: 'VALIDATION_ERROR',
         message: `Loai file khong duoc ho tro: ${file.mimetype}`,
+        errorCode: ERROR_CODES.UNSUPPORTED_FILE_TYPE,
+        errorParams: { mimeType: file.mimetype },
       }),
       false,
     );

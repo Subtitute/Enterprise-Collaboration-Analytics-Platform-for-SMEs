@@ -3,10 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth.store';
 import { disconnectAnalyticsSocket, disconnectNotificationSocket } from '@/lib/socket';
 import { extractErrorMessage } from '@/lib/api-client';
+import { queryClient } from '@/lib/query-client';
 import { toast } from '@/stores/toast.store';
 import { login, logout as logoutApi, registerOrganization } from './api';
 import type { LoginPayload, RegisterOrganizationPayload } from './api';
 
+// 20/08/2026: sua loi bao mat thuc te (phat hien qua kiem thu da to chuc trong CUNG 1 tab trinh
+// duyet) - `queryClient` la 1 THE DUY NHAT song suot phien lam viec cua tab (khoi tao 1 lan o
+// main.tsx), cac query "lay toan bo 1 lan" (users/projects/tasks/folders...) dung chung 1 query
+// key KHONG gan organizationId (vd ['users','all']) va co staleTime vai chuc giay/vai phut. Truoc
+// ban sua nay, dang nhap/dang ky/dang xuat chi doi Zustand auth store (setSession/clearSession),
+// KHONG dong cham gi toi queryClient - nen neu 1 nguoi dang nhap to chuc A trong tab, roi dang
+// xuat va dang nhap/dang ky to chuc B trong CUNG tab do, cac trang doc du lieu qua React Query
+// (thanh vien, tim kiem tong hop o Topbar, du an, cong viec, thu muc...) hien NGAY du lieu CU cua
+// to chuc A tu cache (chua het han, khong bi coi la loi thoi) truoc khi kip goi lai API that -
+// ro ri du lieu xuyen to chuc ngay tren giao dien, du API backend van loc dung organizationId khi
+// goi that su. Goi queryClient.clear() o CA 3 diem chuyen doi phien (dang nhap/dang ky/dang xuat)
+// xoa SACH toan bo cache, dam bao khong con du lieu cua phien truoc song sot sang phien sau.
 export function useLogin() {
   const navigate = useNavigate();
   const setSession = useAuthStore((s) => s.setSession);
@@ -14,6 +27,7 @@ export function useLogin() {
   return useMutation({
     mutationFn: (payload: LoginPayload) => login(payload),
     onSuccess: (data) => {
+      queryClient.clear();
       setSession(data);
       navigate('/dashboard', { replace: true });
     },
@@ -30,6 +44,7 @@ export function useRegisterOrganization() {
   return useMutation({
     mutationFn: (payload: RegisterOrganizationPayload) => registerOrganization(payload),
     onSuccess: (data) => {
+      queryClient.clear();
       setSession(data);
       toast.success('Tạo tổ chức thành công', `Chào mừng ${data.user.fullName} đến với ECAP for SMEs.`);
       navigate('/dashboard', { replace: true });
@@ -55,6 +70,7 @@ export function useLogout() {
       }
     },
     onSettled: () => {
+      queryClient.clear();
       clearSession();
       disconnectNotificationSocket();
       disconnectAnalyticsSocket();

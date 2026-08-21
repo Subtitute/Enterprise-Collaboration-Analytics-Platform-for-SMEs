@@ -1,5 +1,6 @@
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ERROR_CODES } from '@app/common-dto';
 import {
   AnalyticsService,
   AnalyticsSummary,
@@ -78,9 +79,10 @@ export class AiInsightsService {
     const geminiApiKey = this.configService.get<string>('gemini.apiKey');
     const groqApiKey = this.configService.get<string>('groq.apiKey');
     if (!geminiApiKey && !groqApiKey) {
-      throw new ServiceUnavailableException(
-        'Tinh nang Nhan xet AI chua duoc cau hinh (thieu ca GEMINI_API_KEY lan GROQ_API_KEY) - lien he quan tri he thong.',
-      );
+      throw new ServiceUnavailableException({
+        message: 'Tinh nang Nhan xet AI chua duoc cau hinh (thieu ca GEMINI_API_KEY lan GROQ_API_KEY) - lien he quan tri he thong.',
+        errorCode: ERROR_CODES.AI_INSIGHT_NOT_CONFIGURED,
+      });
     }
 
     const [summary, breakdown, projects] = await Promise.all([
@@ -127,7 +129,10 @@ export class AiInsightsService {
         this.logger.error(`Groq (du phong) cung that bai: ${(err as Error).message}`);
       }
     }
-    throw new ServiceUnavailableException('Khong the tao nhan xet AI luc nay, vui long thu lai sau.');
+    throw new ServiceUnavailableException({
+      message: 'Khong the tao nhan xet AI luc nay, vui long thu lai sau.',
+      errorCode: ERROR_CODES.AI_INSIGHT_GENERATION_FAILED,
+    });
   }
 
   /**

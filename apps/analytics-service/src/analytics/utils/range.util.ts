@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { ERROR_CODES } from '@app/common-dto';
 
 /**
  * Anh xa query-param `range` sang lua chon bang continuous aggregate + khoang thoi gian SQL.
@@ -27,9 +28,11 @@ const TASK_TREND_CONFIG: Record<TaskTrendRange, TaskTrendConfig> = {
 export function resolveTaskTrendConfig(range: string): TaskTrendConfig {
   const config = TASK_TREND_CONFIG[range as TaskTrendRange];
   if (!config) {
-    throw new BadRequestException(
-      `Khoang thoi gian khong hop le: '${range}' (chi chap nhan 7d, 30d, quarter)`,
-    );
+    throw new BadRequestException({
+      message: `Khoang thoi gian khong hop le: '${range}' (chi chap nhan 7d, 30d, quarter)`,
+      errorCode: ERROR_CODES.INVALID_RANGE_WITH_QUARTER,
+      errorParams: { range },
+    });
   }
   return config;
 }
@@ -42,9 +45,11 @@ const DOCUMENT_ACTIVITY_INTERVAL: Record<DocumentActivityRange, string> = {
 export function resolveDocumentActivityInterval(range: string): string {
   const interval = DOCUMENT_ACTIVITY_INTERVAL[range as DocumentActivityRange];
   if (!interval) {
-    throw new BadRequestException(
-      `Khoang thoi gian khong hop le: '${range}' (chi chap nhan 7d, 30d)`,
-    );
+    throw new BadRequestException({
+      message: `Khoang thoi gian khong hop le: '${range}' (chi chap nhan 7d, 30d)`,
+      errorCode: ERROR_CODES.INVALID_RANGE_NO_QUARTER,
+      errorParams: { range },
+    });
   }
   return interval;
 }

@@ -1,0 +1,65 @@
+{
+  "language": {
+    "switcherLabel": "Ngôn ngữ",
+    "vi": "Tiếng Việt",
+    "en": "English",
+    "ja": "日本語"
+  },
+  "actions": {
+    "cancel": "Hủy",
+    "confirm": "Xác nhận",
+    "close": "Đóng",
+    "save": "Lưu"
+  },
+  "appTitle": "Nền tảng Cộng tác & Phân tích Doanh nghiệp",
+  "notFound": {
+    "title": "Không tìm thấy trang",
+    "description": "Trang bạn truy cập không tồn tại hoặc đã bị di chuyển.",
+    "backToDashboard": "Về trang Dashboard"
+  },
+  "loading": "Đang tải…",
+  "loadingPage": "Đang tải trang…",
+  "skipToContent": "Bỏ qua tới nội dung chính",
+  "progress": "Tiến độ",
+  "password": {
+    "show": "Hiện mật khẩu",
+    "hide": "Ẩn mật khẩu",
+    "diacriticsWarning": "Phát hiện dấu tiếng Việt trong mật khẩu - kiểm tra lại bộ gõ nếu bạn không cố ý gõ dấu."
+  },
+  "toast": {
+    "dismiss": "Đóng thông báo"
+  },
+  "pagination": {
+    "showing": "Hiển thị {{from}}–{{to}} trên {{total}} kết quả",
+    "previous": "Trước",
+    "next": "Sau",
+    "pageOf": "Trang {{page}}/{{totalPages}}"
+  },
+  "queryState": {
+    "loading": "Đang tải dữ liệu…",
+    "errorTitle": "Không thể tải dữ liệu",
+    "errorDescription": "Đã xảy ra lỗi khi tải dữ liệu. Vui lòng kiểm tra kết nối và thử lại.",
+    "retry": "Thử lại"
+  },
+  "relativeTime": {
+    "justNow": "vừa xong"
+  },
+  "enums": {
+    "dateRange": {
+      "7d": "7 ngày qua",
+      "30d": "30 ngày qua",
+      "quarter": "Quý này"
+    }
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "projects": "Dự án & Công việc",
+    "documents": "Tài liệu",
+    "customers": "Khách hàng",
+    "attendance": "Chấm công",
+    "leaveRequests": "Nghỉ phép",
+    "notifications": "Thông báo",
+    "analytics": "Báo cáo & Phân tích",
+    "admin": "Quản trị"
+  }
+}

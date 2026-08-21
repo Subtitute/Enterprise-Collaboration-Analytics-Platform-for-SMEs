@@ -5,6 +5,7 @@ import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import {
   AttendanceCheckedInPayload,
   AttendanceCheckedOutPayload,
+  ERROR_CODES,
   EVENT_TYPES,
   PERMISSIONS,
   PaginatedResponse,
@@ -70,7 +71,7 @@ export class AttendanceService {
 
     const existing = await this.attendanceRepo.findOne({ where: { organizationId, userId, workDate } });
     if (existing) {
-      throw new BadRequestException('Bạn đã chấm công vào làm hôm nay rồi');
+      throw new BadRequestException({ message: 'Bạn đã chấm công vào làm hôm nay rồi', errorCode: ERROR_CODES.ALREADY_CHECKED_IN_TODAY });
     }
 
     const objectKey = buildAttendancePhotoObjectKey(organizationId, userId, workDate, 'checkin', file.mimetype);
@@ -133,10 +134,13 @@ export class AttendanceService {
 
     const attendance = await this.attendanceRepo.findOne({ where: { organizationId, userId, workDate } });
     if (!attendance) {
-      throw new BadRequestException('Bạn chưa chấm công vào làm hôm nay, không thể chấm công ra về');
+      throw new BadRequestException({
+        message: 'Bạn chưa chấm công vào làm hôm nay, không thể chấm công ra về',
+        errorCode: ERROR_CODES.NOT_CHECKED_IN_YET,
+      });
     }
     if (attendance.checkOutAt) {
-      throw new BadRequestException('Bạn đã chấm công ra về hôm nay rồi');
+      throw new BadRequestException({ message: 'Bạn đã chấm công ra về hôm nay rồi', errorCode: ERROR_CODES.ALREADY_CHECKED_OUT_TODAY });
     }
 
     const objectKey = buildAttendancePhotoObjectKey(organizationId, userId, workDate, 'checkout', file.mimetype);
@@ -201,16 +205,16 @@ export class AttendanceService {
     requesterPermissions: string[],
   ): Promise<{ url: string }> {
     const attendance = await this.attendanceRepo.findOne({ where: { id, organizationId } });
-    if (!attendance) throw new NotFoundException('Không tìm thấy bản ghi chấm công');
+    if (!attendance) throw new NotFoundException({ message: 'Không tìm thấy bản ghi chấm công', errorCode: ERROR_CODES.ATTENDANCE_NOT_FOUND });
 
     const isOwner = attendance.userId === requesterUserId;
     const canViewAll = requesterPermissions.includes(PERMISSIONS.ATTENDANCE_VIEW);
     if (!isOwner && !canViewAll) {
-      throw new ForbiddenException('Bạn không có quyền xem ảnh chấm công này');
+      throw new ForbiddenException({ message: 'Bạn không có quyền xem ảnh chấm công này', errorCode: ERROR_CODES.FORBIDDEN_ATTENDANCE_PHOTO });
     }
 
     const objectKey = kind === 'checkin' ? attendance.checkInPhotoObjectKey : attendance.checkOutPhotoObjectKey;
-    if (!objectKey) throw new NotFoundException('Chưa có ảnh cho thao tác này');
+    if (!objectKey) throw new NotFoundException({ message: 'Chưa có ảnh cho thao tác này', errorCode: ERROR_CODES.ATTENDANCE_PHOTO_MISSING });
 
     const url = await this.minioService.presignedGetObject(objectKey);
     return { url };

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
 
 interface PaginationProps {
@@ -8,6 +9,7 @@ interface PaginationProps {
 }
 
 export function Pagination({ page, limit, total, onPageChange }: PaginationProps) {
+  const { t } = useTranslation();
   const totalPages = Math.max(1, Math.ceil(total / Math.max(limit, 1)));
   if (totalPages <= 1) return null;
 
@@ -17,18 +19,15 @@ export function Pagination({ page, limit, total, onPageChange }: PaginationProps
   return (
     <div className="flex flex-col items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 sm:flex-row">
       <p className="text-xs text-slate-500">
-        Hiển thị <span className="font-medium text-slate-700">{from}</span>–<span className="font-medium text-slate-700">{to}</span> trên{' '}
-        <span className="font-medium text-slate-700">{total}</span> kết quả
+        {t('common:pagination.showing', { from, to, total })}
       </p>
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
-          Trước
+          {t('common:pagination.previous')}
         </Button>
-        <span className="text-xs text-slate-500">
-          Trang {page}/{totalPages}
-        </span>
+        <span className="text-xs text-slate-500">{t('common:pagination.pageOf', { page, totalPages })}</span>
         <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
-          Sau
+          {t('common:pagination.next')}
         </Button>
       </div>
     </div>

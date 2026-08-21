@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { FormField, Input, Select, Textarea, Label } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -7,7 +8,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { TrashIcon, XIcon } from '@/components/ui/Icons';
 import { formatDateTime, formatRelativeTime } from '@/lib/utils';
 import { useUserNameMap } from '@/hooks/useOrgUsers';
-import { TASK_STATUSES, TASK_STATUS_LABEL_VI } from '@/types';
+import { TASK_STATUSES } from '@/types';
 import type { TaskStatus } from '@/types';
 import {
   useAddAssignee,
@@ -29,6 +30,7 @@ interface TaskDetailModalProps {
 }
 
 export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalProps) {
+  const { t } = useTranslation();
   const tasksQuery = useTasksQuery(projectId);
   const task = tasksQuery.data?.find((t) => t.id === taskId);
 
@@ -78,7 +80,7 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
                 >
                   {TASK_STATUSES.map((s) => (
                     <option key={s} value={s}>
-                      {TASK_STATUS_LABEL_VI[s]}
+                      {t(`projects:enums.taskStatus.${s}`)}
                     </option>
                   ))}
                 </Select>
@@ -215,9 +217,9 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
                   (statusHistoryQuery.data ?? []).map((entry, index) => (
                     <div key={`${entry.changedAt}-${index}`} className="flex items-center gap-2 text-xs text-slate-600">
                       <span className="font-medium text-slate-700">
-                        {entry.fromStatus ? (TASK_STATUS_LABEL_VI[entry.fromStatus as TaskStatus] ?? entry.fromStatus) : '—'}
+                        {entry.fromStatus ? t(`projects:enums.taskStatus.${entry.fromStatus}`, { defaultValue: entry.fromStatus }) : '—'}
                         {' → '}
-                        {TASK_STATUS_LABEL_VI[entry.toStatus as TaskStatus] ?? entry.toStatus}
+                        {t(`projects:enums.taskStatus.${entry.toStatus}`, { defaultValue: entry.toStatus })}
                       </span>
                       <span className="text-slate-400">
                         • {displayName(entry.actorId ?? '')} • {formatDateTime(entry.changedAt)}

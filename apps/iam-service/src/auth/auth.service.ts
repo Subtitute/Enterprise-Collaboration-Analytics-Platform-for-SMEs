@@ -15,6 +15,7 @@ import { LoginDto } from './dto/login.dto';
 import { isPostgresUniqueViolation } from '../common/db-errors.util';
 import {
   DefaultRoleName,
+  ERROR_CODES,
   EVENT_TYPES,
   JwtAccessPayload,
   JwtRefreshPayload,
@@ -75,7 +76,10 @@ export class AuthService {
 
   async registerOrganization(dto: RegisterOrganizationDto) {
     const existing = await this.userRepo.findOne({ where: { email: dto.adminEmail } });
-    if (existing) throw new ConflictException('Email da duoc su dung boi mot to chuc khac');
+    if (existing) throw new ConflictException({
+      message: 'Email da duoc su dung boi mot to chuc khac',
+      errorCode: ERROR_CODES.EMAIL_ALREADY_USED_BY_ORG,
+    });
 
     // 22/07/2026: pre-check findOne() o tren khong nguyen tu voi insert ben duoi - boc them
     // try/catch de bat truong hop hiem gap 2 request dang ky cung email gan nhu dong thoi, ca hai
@@ -130,7 +134,10 @@ export class AuthService {
       });
     } catch (error) {
       if (isPostgresUniqueViolation(error)) {
-        throw new ConflictException('Email da duoc su dung boi mot to chuc khac');
+        throw new ConflictException({
+      message: 'Email da duoc su dung boi mot to chuc khac',
+      errorCode: ERROR_CODES.EMAIL_ALREADY_USED_BY_ORG,
+    });
       }
       throw error;
     }
@@ -151,11 +158,17 @@ export class AuthService {
       // de nhanh nay ton thoi gian tuong duong nhanh "sai mat khau" ben duoi - xem chu thich
       // DUMMY_PASSWORD_HASH dau file. Ket qua bi bo qua, chi de lam phang thoi gian phan hoi.
       await bcrypt.compare(dto.password, DUMMY_PASSWORD_HASH);
-      throw new UnauthorizedException('Email hoac mat khau khong dung');
+      throw new UnauthorizedException({
+      message: 'Email hoac mat khau khong dung',
+      errorCode: ERROR_CODES.INVALID_CREDENTIALS,
+    });
     }
     const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordMatches) {
-      throw new UnauthorizedException('Email hoac mat khau khong dung');
+      throw new UnauthorizedException({
+      message: 'Email hoac mat khau khong dung',
+      errorCode: ERROR_CODES.INVALID_CREDENTIALS,
+    });
     }
     const tokens = await this.issueTokenPair(user);
     return { ...tokens, user: toPublicUser(user) };
@@ -168,7 +181,10 @@ export class AuthService {
         secret: this.configService.get<string>('jwt.refreshSecret'),
       });
     } catch {
-      throw new UnauthorizedException('Refresh token khong hop le hoac da het han');
+      throw new UnauthorizedException({
+        message: 'Refresh token khong hop le hoac da het han',
+        errorCode: ERROR_CODES.REFRESH_TOKEN_INVALID,
+      });
     }
 
     // 25/07/2026: MAJOR (review 25/07/2026) - truoc day goi thang isTokenBlacklisted() khong co
@@ -192,12 +208,18 @@ export class AuthService {
       );
     }
     if (isBlacklisted) {
-      throw new UnauthorizedException('Refresh token da bi thu hoi');
+      throw new UnauthorizedException({
+        message: 'Refresh token da bi thu hoi',
+        errorCode: ERROR_CODES.REFRESH_TOKEN_REVOKED,
+      });
     }
 
     const user = await this.userRepo.findOne({ where: { id: payload.sub } });
     if (!user || !user.isActive) {
-      throw new UnauthorizedException('Nguoi dung khong ton tai hoac da bi vo hieu hoa');
+      throw new UnauthorizedException({
+        message: 'Nguoi dung khong ton tai hoac da bi vo hieu hoa',
+        errorCode: ERROR_CODES.USER_INACTIVE_OR_MISSING,
+      });
     }
 
     // Xoay vong token: thu hoi token cu ngay khi cap token moi. revokeRefreshToken() tu no da
@@ -238,7 +260,10 @@ export class AuthService {
   private async revokeRefreshToken(tokenId: string, expUnixSeconds?: number): Promise<void> {
     const result = await this.refreshTokenRepo.delete({ id: tokenId });
     if (!result.affected) {
-      throw new UnauthorizedException('Refresh token khong ton tai hoac da bi thu hoi');
+      throw new UnauthorizedException({
+        message: 'Refresh token khong ton tai hoac da bi thu hoi',
+        errorCode: ERROR_CODES.REFRESH_TOKEN_NOT_FOUND_OR_REVOKED,
+      });
     }
     const ttlSeconds = expUnixSeconds
       ? Math.max(0, expUnixSeconds - Math.floor(Date.now() / 1000))

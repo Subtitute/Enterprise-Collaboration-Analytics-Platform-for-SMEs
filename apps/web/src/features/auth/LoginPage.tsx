@@ -4,7 +4,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth.store';
 import { useLogin } from './hooks';
 import { AuthLayout } from './components/AuthLayout';
-import { FormField, Input } from '@/components/ui/Input';
+import { FormField, Input, PasswordInput } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -48,9 +48,8 @@ export function LoginPage() {
           />
         </FormField>
         <FormField label="Mật khẩu" htmlFor="password" error={errors.password} required>
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             autoComplete="current-password"
             placeholder="••••••••"
             value={password}

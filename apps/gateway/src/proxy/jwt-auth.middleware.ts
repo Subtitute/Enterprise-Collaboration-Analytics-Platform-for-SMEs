@@ -2,7 +2,7 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
-import { PUBLIC_GATEWAY_ROUTES, type JwtAccessPayload } from '@app/common-dto';
+import { ERROR_CODES, PUBLIC_GATEWAY_ROUTES, type JwtAccessPayload } from '@app/common-dto';
 import { RedisService } from '../redis/redis.service';
 import { sendErrorResponse } from '../common/send-error-response';
 
@@ -78,6 +78,7 @@ export function createJwtAuthMiddleware(
         'UnauthorizedException',
         'Thieu token xac thuc, vui long dang nhap lai',
         req.originalUrl,
+        ERROR_CODES.GATEWAY_MISSING_TOKEN,
       );
       return;
     }
@@ -92,6 +93,7 @@ export function createJwtAuthMiddleware(
         'UnauthorizedException',
         'Token khong hop le hoac da het han, vui long dang nhap lai',
         req.originalUrl,
+        ERROR_CODES.GATEWAY_INVALID_TOKEN,
       );
       return;
     }
@@ -118,6 +120,7 @@ export function createJwtAuthMiddleware(
           'UnauthorizedException',
           'Tai khoan da bi vo hieu hoa, vui long dang nhap lai',
           req.originalUrl,
+          ERROR_CODES.GATEWAY_ACCOUNT_DISABLED,
         );
         return;
       }
@@ -134,6 +137,7 @@ export function createJwtAuthMiddleware(
           'INTERNAL_SERVER_ERROR',
           'Da xay ra loi khong xac dinh, vui long thu lai sau',
           req.originalUrl,
+          ERROR_CODES.INTERNAL_ERROR,
         );
       }
     }
