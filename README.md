@@ -140,6 +140,9 @@ web app) - xem `Doc/Technical_Spec.md` mục 15.
 
 ## Ghi chú
 
+- **(Bổ sung 20-21/08/2026)** Giao diện web hỗ trợ Việt (mặc định)/English/日本語 — đổi qua nút
+  chọn ngôn ngữ (🌐) ở màn đăng nhập hoặc Topbar sau khi đăng nhập. Chi tiết kỹ thuật:
+  `Doc/Technical_Spec.md` mục 18.
 - MVP bắt buộc gồm 6 service đầu tiên ở bảng trên; `crm-service`/`hrm-service` là 2 hạng mục mở
   rộng đã triển khai thêm (04-05/08/2026). Kubernetes, Debezium CDC, dự báo xu hướng ML/thống kê
   vẫn là hướng mở rộng chưa triển khai (xem `Doc/General_idea.md` mục 3 và `Doc/Technical_Spec.md`
