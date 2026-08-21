@@ -8,5 +8,94 @@
       "WON": "Won",
       "LOST": "Lost"
     }
+  },
+  "customersListPage": {
+    "title": "Customers",
+    "subtitle": "Manage customers and your sales pipeline.",
+    "newCustomer": "New customer",
+    "searchPlaceholder": "Search customers…",
+    "loading": "Loading customers…",
+    "errorTitle": "Couldn't load customers",
+    "errorDescription": "Something went wrong loading the customer list. Please try again.",
+    "emptyFilteredTitle": "No matching customers found",
+    "emptyTitle": "No customers yet",
+    "emptyFilteredDescription": "Try adjusting your search terms.",
+    "emptyDescription": "Add your first customer to start tracking sales opportunities.",
+    "addFirstCustomer": "Add new customer"
+  },
+  "customerDetailPage": {
+    "loading": "Loading customer…",
+    "notFoundTitle": "Customer not found",
+    "notFoundDescription": "This customer may have been deleted, or you don't have permission to access it.",
+    "backToList": "Back to customers",
+    "newDeal": "New deal",
+    "openDealsSummary": "{{count}} open deals — {{value}}",
+    "dealsLoading": "Loading deals…",
+    "dealsErrorTitle": "Couldn't load deals",
+    "dealsErrorDescription": "Something went wrong loading this customer's deals. Please try again.",
+    "emptyDealsTitle": "No deals yet",
+    "emptyDealsDescription": "Create the first sales opportunity for this customer.",
+    "createFirstDeal": "Create new deal"
+  },
+  "newDealModal": {
+    "title": "Create new deal",
+    "titleRequiredError": "Please enter a deal title",
+    "fieldTitle": "Title",
+    "titlePlaceholder": "e.g. 2026 deployment package",
+    "fieldValue": "Value (VND)",
+    "fieldExpectedCloseDate": "Expected close date",
+    "cancel": "Cancel",
+    "submit": "Create deal"
+  },
+  "newCustomerModal": {
+    "title": "Add new customer",
+    "nameRequiredError": "Please enter a customer name",
+    "fieldName": "Customer name",
+    "namePlaceholder": "e.g. ABC Co., Ltd.",
+    "fieldCompany": "Company",
+    "fieldEmail": "Email",
+    "fieldPhone": "Phone number",
+    "fieldNotes": "Notes",
+    "notesPlaceholder": "Additional information about this customer…",
+    "cancel": "Cancel",
+    "submit": "Add customer"
+  },
+  "customerCard": {
+    "optionsAriaLabel": "Customer options",
+    "deleteCustomer": "Delete customer",
+    "openDeals": "{{count}} open deals",
+    "deleteConfirmTitle": "Delete this customer?",
+    "deleteConfirmDescription": "All deals belonging to \"{{name}}\" will also be deleted. This action cannot be undone."
+  },
+  "dealDetailModal": {
+    "title": "Deal details",
+    "deleteAriaLabel": "Delete deal",
+    "fieldTitle": "Title",
+    "fieldValue": "Value (VND)",
+    "fieldExpectedCloseDate": "Expected close date",
+    "close": "Close",
+    "save": "Save changes",
+    "deleteConfirmTitle": "Delete this deal?",
+    "deleteConfirmDescription": "The deal \"{{title}}\" will be permanently deleted. This action cannot be undone.",
+    "deleteConfirmButton": "Delete deal"
+  },
+  "hooks": {
+    "customer": {
+      "createSuccess": "Customer created",
+      "createError": "Couldn't create customer",
+      "updateSuccess": "Customer updated",
+      "updateError": "Couldn't update customer",
+      "deleteSuccess": "Customer deleted",
+      "deleteError": "Couldn't delete customer"
+    },
+    "deal": {
+      "createSuccess": "Deal created",
+      "createError": "Couldn't create deal",
+      "updateSuccess": "Deal changes saved",
+      "updateError": "Couldn't update deal",
+      "deleteSuccess": "Deal deleted",
+      "deleteError": "Couldn't delete deal",
+      "updateStageError": "Couldn't update deal stage"
+    }
   }
 }

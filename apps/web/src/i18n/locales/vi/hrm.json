@@ -5,5 +5,103 @@
       "APPROVED": "Đã duyệt",
       "REJECTED": "Từ chối"
     }
+  },
+  "attendancePage": {
+    "title": "Chấm công",
+    "subtitle": "Chấm công vào làm/ra về kèm ảnh chụp làm bằng chứng.",
+    "onSiteBadge": {
+      "onSiteTitle": "Vị trí GPS nằm trong bán kính văn phòng",
+      "offSiteTitle": "Vị trí GPS nằm ngoài bán kính văn phòng",
+      "onSite": "Tại văn phòng",
+      "offSite": "Ngoài văn phòng"
+    },
+    "today": {
+      "cardTitle": "Hôm nay ({{date}})",
+      "notCheckedIn": "Bạn chưa chấm công vào làm hôm nay.",
+      "checkedInPrefix": "Đã vào làm lúc",
+      "checkInLabel": "Vào làm",
+      "checkOutLabel": "· Ra về",
+      "checkInButton": "Check-in",
+      "checkOutButton": "Check-out",
+      "doneToday": "Đã hoàn tất hôm nay"
+    },
+    "history": {
+      "cardTitle": "Lịch sử chấm công",
+      "loading": "Đang tải lịch sử chấm công…",
+      "errorTitle": "Không thể tải lịch sử chấm công",
+      "errorDescription": "Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại.",
+      "emptyTitle": "Chưa có lịch sử chấm công",
+      "emptyDescription": "Dữ liệu sẽ xuất hiện sau lần chấm công đầu tiên.",
+      "columns": {
+        "date": "Ngày",
+        "checkIn": "Vào làm",
+        "checkOut": "Ra về"
+      }
+    },
+    "allAttendance": {
+      "cardTitle": "Chấm công toàn tổ chức",
+      "columns": {
+        "employee": "Nhân viên",
+        "date": "Ngày",
+        "checkIn": "Vào làm",
+        "checkOut": "Ra về"
+      }
+    }
+  },
+  "leaveRequestsPage": {
+    "title": "Nghỉ phép",
+    "subtitle": "Tạo và theo dõi yêu cầu nghỉ phép của bạn.",
+    "newRequestButton": "Yêu cầu mới",
+    "pending": {
+      "cardTitle": "Chờ duyệt ({{count}})",
+      "reject": "Từ chối",
+      "approve": "Duyệt"
+    },
+    "myRequests": {
+      "cardTitle": "Yêu cầu của tôi",
+      "loading": "Đang tải yêu cầu nghỉ phép…",
+      "errorTitle": "Không thể tải yêu cầu nghỉ phép",
+      "errorDescription": "Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại.",
+      "emptyTitle": "Chưa có yêu cầu nghỉ phép nào",
+      "emptyDescription": "Tạo yêu cầu đầu tiên khi bạn cần nghỉ phép.",
+      "createFirstButton": "Tạo yêu cầu mới",
+      "decisionNote": "Ghi chú: {{note}}"
+    }
+  },
+  "newLeaveRequestModal": {
+    "title": "Tạo yêu cầu nghỉ phép",
+    "startDateLabel": "Ngày bắt đầu",
+    "endDateLabel": "Ngày kết thúc",
+    "reasonLabel": "Lý do",
+    "reasonPlaceholder": "Lý do xin nghỉ phép…",
+    "cancelButton": "Hủy",
+    "submitButton": "Gửi yêu cầu",
+    "errors": {
+      "missingDates": "Vui lòng chọn ngày bắt đầu và kết thúc",
+      "missingReason": "Vui lòng nhập lý do nghỉ phép"
+    }
+  },
+  "checkInCamera": {
+    "modalTitle": "Chụp ảnh chấm công",
+    "cameraDenied": "Không thể truy cập camera. Vui lòng cấp quyền camera cho trình duyệt rồi thử lại.",
+    "retryButton": "Thử lại",
+    "cameraUnavailable": "Thiết bị này không hỗ trợ camera hoặc trình duyệt không cho phép truy cập.",
+    "previewAlt": "Ảnh chấm công vừa chụp",
+    "cancelButton": "Hủy",
+    "retakeButton": "Chụp lại",
+    "confirmButton": "Xác nhận",
+    "captureButton": "Chụp ảnh"
+  },
+  "toasts": {
+    "checkInSuccess": "Đã chấm công vào làm",
+    "checkInError": "Không thể chấm công vào làm",
+    "checkOutSuccess": "Đã chấm công ra về",
+    "checkOutError": "Không thể chấm công ra về",
+    "createLeaveRequestSuccess": "Đã gửi yêu cầu nghỉ phép",
+    "createLeaveRequestError": "Không thể gửi yêu cầu nghỉ phép",
+    "approveLeaveRequestSuccess": "Đã duyệt yêu cầu nghỉ phép",
+    "approveLeaveRequestError": "Không thể duyệt yêu cầu",
+    "rejectLeaveRequestSuccess": "Đã từ chối yêu cầu nghỉ phép",
+    "rejectLeaveRequestError": "Không thể từ chối yêu cầu"
   }
 }

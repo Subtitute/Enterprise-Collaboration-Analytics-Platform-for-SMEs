@@ -1,1 +1,147 @@
-{}
+{
+  "documentsPage": {
+    "title": "Tài liệu",
+    "subtitle": "Quản lý thư mục và tệp tài liệu dùng chung của tổ chức.",
+    "newFolder": "Thư mục mới",
+    "upload": "Tải lên",
+    "breadcrumbRoot": "Tất cả tài liệu",
+    "loading": "Đang tải tài liệu…",
+    "errorTitle": "Không thể tải tài liệu",
+    "errorDescription": "Đã xảy ra lỗi khi tải thư mục/tệp. Vui lòng thử lại.",
+    "emptyState": {
+      "title": "Thư mục trống",
+      "description": "Tạo thư mục con hoặc tải lên tài liệu đầu tiên.",
+      "newFolder": "Thư mục mới",
+      "uploadFile": "Tải lên tài liệu"
+    }
+  },
+  "newFolderModal": {
+    "title": "Tạo thư mục mới",
+    "nameLabel": "Tên thư mục",
+    "namePlaceholder": "Ví dụ: Hợp đồng 2026",
+    "nameRequiredError": "Vui lòng nhập tên thư mục",
+    "cancel": "Hủy",
+    "submit": "Tạo thư mục"
+  },
+  "versionHistoryModal": {
+    "title": "Lịch sử phiên bản — {{fileName}}",
+    "currentVersion": "Phiên bản hiện tại: v{{version}}",
+    "uploadNewVersion": "Tải lên phiên bản mới",
+    "emptyTitle": "Chưa có lịch sử phiên bản",
+    "emptyDescription": "Các phiên bản trước của tệp sẽ hiển thị tại đây sau khi bạn tải lên bản cập nhật.",
+    "versionLabel": "Phiên bản {{version}}"
+  },
+  "fileTable": {
+    "columns": {
+      "name": "Tên tệp",
+      "size": "Kích thước",
+      "version": "Phiên bản",
+      "updated": "Cập nhật",
+      "actions": "Hành động"
+    },
+    "openFileTitle": "Mở và xem tệp trong tab mới",
+    "optionsAria": "Tùy chọn tệp",
+    "viewFile": "Xem tệp",
+    "download": "Tải xuống",
+    "share": "Chia sẻ",
+    "versionHistory": "Lịch sử phiên bản",
+    "delete": "Xoá tệp",
+    "deleteConfirm": {
+      "title": "Xoá tệp này?",
+      "description": "\"{{name}}\" sẽ bị xoá khỏi hệ thống.",
+      "confirmLabel": "Xoá tệp"
+    }
+  },
+  "uploadModal": {
+    "title": "Tải lên tài liệu",
+    "dropHint": "Kéo thả tệp vào đây, hoặc bấm để chọn tệp",
+    "supportedTypes": "Hỗ trợ PDF, Word, Excel, PowerPoint, ảnh, CSV, TXT, ZIP — tối đa {{maxSize}}",
+    "removeFileAria": "Bỏ chọn tệp",
+    "cancel": "Hủy",
+    "submit": "Tải lên"
+  },
+  "folderShareModal": {
+    "title": "Quản lý chia sẻ \"{{folderName}}\"",
+    "targetType": {
+      "user": "Người dùng",
+      "department": "Phòng ban"
+    },
+    "shareWithMemberLabel": "Chia sẻ với thành viên",
+    "shareWithDepartmentLabel": "Chia sẻ với phòng ban",
+    "selectMemberPlaceholder": "Chọn thành viên…",
+    "selectDepartmentPlaceholder": "Chọn phòng ban…",
+    "addShare": "Thêm chia sẻ",
+    "sharedWithHeading": "Đã chia sẻ với",
+    "loading": "Đang tải…",
+    "noShares": "Chưa chia sẻ với ai.",
+    "deleteShareAria": "Xoá chia sẻ",
+    "close": "Đóng"
+  },
+  "shareModal": {
+    "title": "Chia sẻ \"{{fileName}}\"",
+    "targetType": {
+      "user": "Người dùng",
+      "department": "Phòng ban"
+    },
+    "shareWithLabel": "Chia sẻ với",
+    "shareWithDepartmentLabel": "Chia sẻ với phòng ban",
+    "selectMemberPlaceholder": "Chọn thành viên…",
+    "selectDepartmentPlaceholder": "Chọn phòng ban…",
+    "permissionLabel": "Quyền truy cập",
+    "permissions": {
+      "view": "Chỉ xem",
+      "edit": "Chỉnh sửa"
+    },
+    "cancel": "Hủy",
+    "submit": "Chia sẻ"
+  },
+  "folderGrid": {
+    "restrictedTooltip": "Thư mục hạn chế truy cập",
+    "optionsAria": "Tùy chọn thư mục",
+    "rename": "Đổi tên",
+    "restrictAccess": "Hạn chế truy cập",
+    "openToOrganization": "Mở cho cả tổ chức",
+    "manageSharing": "Quản lý chia sẻ",
+    "delete": "Xoá thư mục",
+    "renameDialog": {
+      "title": "Đổi tên thư mục",
+      "confirmLabel": "Lưu",
+      "inputAria": "Tên thư mục mới"
+    },
+    "deleteConfirm": {
+      "title": "Xoá thư mục này?",
+      "description": "\"{{name}}\" và toàn bộ nội dung bên trong có thể bị xoá.",
+      "confirmLabel": "Xoá thư mục"
+    }
+  },
+  "api": {
+    "unsupportedFileType": "Loại tệp không được hỗ trợ",
+    "fileTooLarge": "Tệp vượt quá kích thước cho phép (tối đa {{maxSize}})"
+  },
+  "hooks": {
+    "folderCreated": "Đã tạo thư mục mới",
+    "folderCreateError": "Không thể tạo thư mục",
+    "folderRenamed": "Đã đổi tên thư mục",
+    "folderRenameError": "Không thể đổi tên thư mục",
+    "folderDeleted": "Đã xoá thư mục",
+    "folderDeleteError": "Không thể xoá thư mục",
+    "folderVisibilityUpdated": "Đã cập nhật quyền truy cập thư mục",
+    "folderVisibilityUpdateError": "Không thể cập nhật quyền truy cập thư mục",
+    "folderShared": "Đã chia sẻ thư mục",
+    "folderShareError": "Không thể chia sẻ thư mục",
+    "folderShareDeleted": "Đã xoá chia sẻ",
+    "folderShareDeleteError": "Không thể xoá chia sẻ",
+    "uploadSuccess": "Tải lên thành công",
+    "uploadError": "Tải lên thất bại",
+    "newVersionUploaded": "Đã tải lên phiên bản mới",
+    "newVersionUploadError": "Không thể tải lên phiên bản mới",
+    "fileShared": "Đã chia sẻ tệp",
+    "fileShareError": "Không thể chia sẻ tệp",
+    "fileDeleted": "Đã xoá tệp",
+    "fileDeleteError": "Không thể xoá tệp",
+    "popupBlockedTitle": "Cửa sổ mới có thể đã bị trình duyệt chặn",
+    "popupBlockedDescription": "Vui lòng cho phép cửa sổ bật lên (pop-up) cho trang này rồi thử lại.",
+    "openFileError": "Không thể mở tệp",
+    "downloadFileError": "Không thể tải xuống tệp"
+  }
+}

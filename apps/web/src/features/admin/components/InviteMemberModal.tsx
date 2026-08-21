@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { FormField, Input, PasswordInput, Select, Label } from '@/components/ui/Input';
@@ -7,6 +8,7 @@ import { useDepartmentsQuery, useInviteUser, useRolesQuery } from '../hooks';
 import { RoleCheckboxList } from './RoleCheckboxList';
 
 export function InviteMemberModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [initialPassword, setInitialPassword] = useState('');
@@ -35,9 +37,9 @@ export function InviteMemberModal({ open, onClose }: { open: boolean; onClose: (
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     const next: Record<string, string> = {};
-    if (!email.trim()) next.email = 'Vui lòng nhập email';
-    if (!fullName.trim()) next.fullName = 'Vui lòng nhập họ tên';
-    if (!initialPassword || initialPassword.length < 8) next.initialPassword = 'Mật khẩu tối thiểu 8 ký tự';
+    if (!email.trim()) next.email = t('admin:inviteMemberModal.errors.emailRequired');
+    if (!fullName.trim()) next.fullName = t('admin:inviteMemberModal.errors.fullNameRequired');
+    if (!initialPassword || initialPassword.length < 8) next.initialPassword = t('admin:inviteMemberModal.errors.passwordMinLength');
     setErrors(next);
     if (Object.keys(next).length > 0) return;
 
@@ -54,31 +56,42 @@ export function InviteMemberModal({ open, onClose }: { open: boolean; onClose: (
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title="Mời thành viên mới">
+    <Modal open={open} onClose={handleClose} title={t('admin:inviteMemberModal.title')}>
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <FormField label="Email" htmlFor="invite-email" error={errors.email} required>
-          <Input id="invite-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ten@congty.com" />
+        <FormField label={t('admin:inviteMemberModal.emailLabel')} htmlFor="invite-email" error={errors.email} required>
+          <Input
+            id="invite-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder={t('admin:inviteMemberModal.emailPlaceholder')}
+          />
         </FormField>
-        <FormField label="Họ và tên" htmlFor="invite-fullname" error={errors.fullName} required>
-          <Input id="invite-fullname" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Nguyễn Văn A" />
+        <FormField label={t('admin:inviteMemberModal.fullNameLabel')} htmlFor="invite-fullname" error={errors.fullName} required>
+          <Input
+            id="invite-fullname"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            placeholder={t('admin:inviteMemberModal.fullNamePlaceholder')}
+          />
         </FormField>
         <FormField
-          label="Mật khẩu ban đầu"
+          label={t('admin:inviteMemberModal.passwordLabel')}
           htmlFor="invite-password"
           error={errors.initialPassword}
-          hint="Thành viên nên đổi lại mật khẩu sau lần đăng nhập đầu tiên"
+          hint={t('admin:inviteMemberModal.passwordHint')}
           required
         >
           <PasswordInput
             id="invite-password"
             value={initialPassword}
             onChange={(e) => setInitialPassword(e.target.value)}
-            placeholder="Tối thiểu 8 ký tự"
+            placeholder={t('admin:inviteMemberModal.passwordPlaceholder')}
           />
         </FormField>
-        <FormField label="Phòng ban" htmlFor="invite-department">
+        <FormField label={t('admin:inviteMemberModal.departmentLabel')} htmlFor="invite-department">
           <Select id="invite-department" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
-            <option value="">— Không thuộc phòng ban —</option>
+            <option value="">{t('admin:inviteMemberModal.noDepartmentOption')}</option>
             {(departmentsQuery.data ?? []).map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
@@ -87,15 +100,15 @@ export function InviteMemberModal({ open, onClose }: { open: boolean; onClose: (
           </Select>
         </FormField>
         <div>
-          <Label>Vai trò</Label>
+          <Label>{t('admin:inviteMemberModal.roleLabel')}</Label>
           <RoleCheckboxList roles={rolesQuery.data ?? []} selectedIds={roleIds} onChange={setRoleIds} />
         </div>
         <div className="flex justify-end gap-2 pt-1">
           <Button type="button" variant="outline" onClick={handleClose}>
-            Hủy
+            {t('admin:inviteMemberModal.cancel')}
           </Button>
           <Button type="submit" isLoading={inviteUser.isPending}>
-            Gửi lời mời
+            {t('admin:inviteMemberModal.submit')}
           </Button>
         </div>
       </form>

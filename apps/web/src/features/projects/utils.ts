@@ -1,23 +1,27 @@
 import type { BadgeVariant } from '@/components/ui/Badge';
 import type { Task } from '@/types';
+// `projectStatusMeta` la ham NGOAI component (module-level) - khong the goi useTranslation()
+// (vi pham Rules of Hooks). Dung tham chieu `t` khong-qua-hook tu i18n/index.ts, cung pattern voi
+// statusLabel() o features/dashboard/components/TaskStatusDonut.tsx.
+import { t } from '@/i18n';
 
 export function projectStatusMeta(status: string): { label: string; variant: BadgeVariant } {
   switch (status) {
     case 'ACTIVE':
-      return { label: 'Đang hoạt động', variant: 'info' };
+      return { label: t('projects:enums.projectStatus.ACTIVE'), variant: 'info' };
     case 'COMPLETED':
-      return { label: 'Hoàn thành', variant: 'success' };
+      return { label: t('projects:enums.projectStatus.COMPLETED'), variant: 'success' };
     case 'ARCHIVED':
-      return { label: 'Lưu trữ', variant: 'outline' };
+      return { label: t('projects:enums.projectStatus.ARCHIVED'), variant: 'outline' };
     default:
-      return { label: status, variant: 'default' };
+      return { label: t(`projects:enums.projectStatus.${status}`, { defaultValue: status }), variant: 'default' };
   }
 }
 
 /** Tinh % tien do tu danh sach cong viec khi backend chua tra ve san truong progress. */
 export function computeProgressFromTasks(tasks: Task[]): number {
   if (tasks.length === 0) return 0;
-  const done = tasks.filter((t) => t.status === 'DONE').length;
+  const done = tasks.filter((task) => task.status === 'DONE').length;
   return Math.round((done / tasks.length) * 100);
 }
 

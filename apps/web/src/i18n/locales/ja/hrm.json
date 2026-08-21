@@ -5,5 +5,103 @@
       "APPROVED": "承認済み",
       "REJECTED": "却下"
     }
+  },
+  "attendancePage": {
+    "title": "勤怠",
+    "subtitle": "写真を証拠として出勤・退勤を記録します。",
+    "onSiteBadge": {
+      "onSiteTitle": "GPS位置がオフィスの範囲内です",
+      "offSiteTitle": "GPS位置がオフィスの範囲外です",
+      "onSite": "オフィス内",
+      "offSite": "オフィス外"
+    },
+    "today": {
+      "cardTitle": "本日（{{date}}）",
+      "notCheckedIn": "本日はまだ出勤していません。",
+      "checkedInPrefix": "出勤時刻",
+      "checkInLabel": "出勤",
+      "checkOutLabel": "・退勤",
+      "checkInButton": "出勤",
+      "checkOutButton": "退勤",
+      "doneToday": "本日の勤怠は完了しました"
+    },
+    "history": {
+      "cardTitle": "勤怠履歴",
+      "loading": "勤怠履歴を読み込み中…",
+      "errorTitle": "勤怠履歴を読み込めませんでした",
+      "errorDescription": "データの読み込み中にエラーが発生しました。もう一度お試しください。",
+      "emptyTitle": "勤怠履歴がありません",
+      "emptyDescription": "最初の出勤打刻の後にデータが表示されます。",
+      "columns": {
+        "date": "日付",
+        "checkIn": "出勤",
+        "checkOut": "退勤"
+      }
+    },
+    "allAttendance": {
+      "cardTitle": "組織全体の勤怠",
+      "columns": {
+        "employee": "従業員",
+        "date": "日付",
+        "checkIn": "出勤",
+        "checkOut": "退勤"
+      }
+    }
+  },
+  "leaveRequestsPage": {
+    "title": "休暇申請",
+    "subtitle": "休暇申請を作成し、状況を確認できます。",
+    "newRequestButton": "新規申請",
+    "pending": {
+      "cardTitle": "承認待ち（{{count}}件）",
+      "reject": "却下",
+      "approve": "承認"
+    },
+    "myRequests": {
+      "cardTitle": "自分の申請",
+      "loading": "休暇申請を読み込み中…",
+      "errorTitle": "休暇申請を読み込めませんでした",
+      "errorDescription": "データの読み込み中にエラーが発生しました。もう一度お試しください。",
+      "emptyTitle": "休暇申請はまだありません",
+      "emptyDescription": "休暇が必要な際は、最初の申請を作成してください。",
+      "createFirstButton": "新規申請を作成",
+      "decisionNote": "メモ: {{note}}"
+    }
+  },
+  "newLeaveRequestModal": {
+    "title": "休暇申請を作成",
+    "startDateLabel": "開始日",
+    "endDateLabel": "終了日",
+    "reasonLabel": "理由",
+    "reasonPlaceholder": "休暇の理由を入力…",
+    "cancelButton": "キャンセル",
+    "submitButton": "申請を送信",
+    "errors": {
+      "missingDates": "開始日と終了日を選択してください",
+      "missingReason": "休暇の理由を入力してください"
+    }
+  },
+  "checkInCamera": {
+    "modalTitle": "勤怠写真を撮影",
+    "cameraDenied": "カメラにアクセスできません。ブラウザでカメラの使用を許可してから、もう一度お試しください。",
+    "retryButton": "再試行",
+    "cameraUnavailable": "この端末はカメラに対応していないか、ブラウザがアクセスを許可していません。",
+    "previewAlt": "撮影した勤怠写真",
+    "cancelButton": "キャンセル",
+    "retakeButton": "再撮影",
+    "confirmButton": "確認",
+    "captureButton": "撮影"
+  },
+  "toasts": {
+    "checkInSuccess": "出勤を記録しました",
+    "checkInError": "出勤の記録に失敗しました",
+    "checkOutSuccess": "退勤を記録しました",
+    "checkOutError": "退勤の記録に失敗しました",
+    "createLeaveRequestSuccess": "休暇申請を送信しました",
+    "createLeaveRequestError": "休暇申請の送信に失敗しました",
+    "approveLeaveRequestSuccess": "休暇申請を承認しました",
+    "approveLeaveRequestError": "申請の承認に失敗しました",
+    "rejectLeaveRequestSuccess": "休暇申請を却下しました",
+    "rejectLeaveRequestError": "申請の却下に失敗しました"
   }
 }

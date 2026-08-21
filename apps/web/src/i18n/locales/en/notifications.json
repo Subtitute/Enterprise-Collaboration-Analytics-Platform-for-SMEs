@@ -1,1 +1,31 @@
-{}
+{
+  "page": {
+    "title": "Notifications",
+    "subtitle": "All notifications related to your activity.",
+    "markAllRead": "Mark all as read",
+    "markRead": "Mark as read",
+    "loading": "Loading notifications…",
+    "loadError": "Couldn't load notifications",
+    "empty": "No notifications",
+    "tabs": {
+      "all": "All",
+      "unread": "Unread"
+    },
+    "typeFilter": {
+      "all": "All types",
+      "task": "Task",
+      "document": "Document",
+      "system": "System"
+    }
+  },
+  "bell": {
+    "ariaLabel": "Notifications",
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "empty": "No new notifications",
+    "viewAll": "View all notifications"
+  },
+  "toast": {
+    "updateError": "Couldn't update notification"
+  }
+}

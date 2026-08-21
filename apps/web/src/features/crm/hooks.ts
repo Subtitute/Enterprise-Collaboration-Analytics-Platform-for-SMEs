@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { toast } from '@/stores/toast.store';
 import { extractErrorMessage } from '@/lib/api-client';
 import type { Deal, DealStage } from '@/types';
@@ -25,39 +26,42 @@ export function useCustomerQuery(id: string | undefined) {
 }
 
 export function useCreateCustomer() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: CreateCustomerPayload) => createCustomer(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
-      toast.success('Đã tạo khách hàng mới');
+      toast.success(t('crm:hooks.customer.createSuccess'));
     },
-    onError: (error) => toast.error('Không thể tạo khách hàng', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('crm:hooks.customer.createError'), extractErrorMessage(error)),
   });
 }
 
 export function useUpdateCustomer(id: string) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: Partial<CreateCustomerPayload>) => updateCustomer(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['customer', id] });
-      toast.success('Đã cập nhật khách hàng');
+      toast.success(t('crm:hooks.customer.updateSuccess'));
     },
-    onError: (error) => toast.error('Không thể cập nhật khách hàng', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('crm:hooks.customer.updateError'), extractErrorMessage(error)),
   });
 }
 
 export function useDeleteCustomer() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteCustomer(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
-      toast.success('Đã xoá khách hàng');
+      toast.success(t('crm:hooks.customer.deleteSuccess'));
     },
-    onError: (error) => toast.error('Không thể xoá khách hàng', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('crm:hooks.customer.deleteError'), extractErrorMessage(error)),
   });
 }
 
@@ -77,45 +81,49 @@ export function useDealsQuery(customerId: string | undefined) {
 }
 
 export function useCreateDeal(customerId: string) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: Omit<CreateDealPayload, 'customerId'>) => createDeal({ customerId, ...payload }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deals', customerId] });
       queryClient.invalidateQueries({ queryKey: ['customer', customerId] });
-      toast.success('Đã tạo deal mới');
+      toast.success(t('crm:hooks.deal.createSuccess'));
     },
-    onError: (error) => toast.error('Không thể tạo deal', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('crm:hooks.deal.createError'), extractErrorMessage(error)),
   });
 }
 
 export function useUpdateDeal(customerId: string, dealId: string) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: Partial<Omit<CreateDealPayload, 'customerId'>>) => updateDeal(dealId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deals', customerId] });
-      toast.success('Đã lưu thay đổi deal');
+      toast.success(t('crm:hooks.deal.updateSuccess'));
     },
-    onError: (error) => toast.error('Không thể cập nhật deal', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('crm:hooks.deal.updateError'), extractErrorMessage(error)),
   });
 }
 
 export function useDeleteDeal(customerId: string) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (dealId: string) => deleteDeal(dealId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deals', customerId] });
       queryClient.invalidateQueries({ queryKey: ['customer', customerId] });
-      toast.success('Đã xoá deal');
+      toast.success(t('crm:hooks.deal.deleteSuccess'));
     },
-    onError: (error) => toast.error('Không thể xoá deal', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('crm:hooks.deal.deleteError'), extractErrorMessage(error)),
   });
 }
 
 /** Cap nhat giai doan Kanban (keo-tha) - optimistic update, mirror useUpdateTaskStatus. */
 export function useUpdateDealStage(customerId: string) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const queryKey = ['deals', customerId];
 
@@ -129,7 +137,7 @@ export function useUpdateDealStage(customerId: string) {
     },
     onError: (error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
-      toast.error('Không thể cập nhật giai đoạn deal', extractErrorMessage(error));
+      toast.error(t('crm:hooks.deal.updateStageError'), extractErrorMessage(error));
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
   });

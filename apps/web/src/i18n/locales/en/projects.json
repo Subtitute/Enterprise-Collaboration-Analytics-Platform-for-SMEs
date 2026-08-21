@@ -4,6 +4,128 @@
       "TODO": "To Do",
       "DOING": "In Progress",
       "DONE": "Done"
+    },
+    "projectStatus": {
+      "ACTIVE": "Active",
+      "COMPLETED": "Completed",
+      "ARCHIVED": "Archived"
+    }
+  },
+  "list": {
+    "title": "Projects & Tasks",
+    "subtitle": "Manage projects and track progress with a Kanban board.",
+    "newProject": "New project",
+    "searchPlaceholder": "Search projects…",
+    "statusFilter": {
+      "all": "All statuses"
+    },
+    "loading": "Loading projects…",
+    "errorTitle": "Couldn't load projects",
+    "errorDescription": "Something went wrong loading the project list. Please try again.",
+    "emptyFilteredTitle": "No matching projects found",
+    "emptyTitle": "No projects yet",
+    "emptyFilteredDescription": "Try adjusting your search keywords or selected status.",
+    "emptyDescription": "Create your first project to start organizing work for your team.",
+    "createFirst": "Create new project"
+  },
+  "detail": {
+    "loading": "Loading project…",
+    "notFoundTitle": "Project not found",
+    "notFoundDescription": "This project may have been deleted, or you don't have access to it.",
+    "backToList": "Back to projects",
+    "dueDate": "Due: {{date}}",
+    "completeProject": "Complete project",
+    "newTask": "New task",
+    "tasksLoading": "Loading tasks…",
+    "tasksErrorTitle": "Couldn't load tasks",
+    "tasksErrorDescription": "Something went wrong loading the project's tasks. Please try again.",
+    "emptyTasksTitle": "No tasks yet",
+    "emptyTasksDescription": "Add your first task to start tracking project progress.",
+    "createFirstTask": "Create new task"
+  },
+  "newProjectModal": {
+    "title": "Create new project",
+    "nameRequired": "Please enter a project name",
+    "nameLabel": "Project name",
+    "namePlaceholder": "e.g. Launch new website",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "Project goals, scope of work…",
+    "dueDateLabel": "Due date",
+    "cancel": "Cancel",
+    "submit": "Create project"
+  },
+  "newTaskModal": {
+    "title": "Create new task",
+    "titleRequired": "Please enter a task title",
+    "titleLabel": "Title",
+    "titlePlaceholder": "e.g. Design homepage layout",
+    "descriptionLabel": "Description",
+    "dueDateLabel": "Due date",
+    "cancel": "Cancel",
+    "submit": "Create task"
+  },
+  "projectCard": {
+    "optionsAriaLabel": "Project options",
+    "markComplete": "Mark as complete",
+    "delete": "Delete project",
+    "memberCount": "{{count}} members",
+    "confirmDeleteTitle": "Delete this project?",
+    "confirmDeleteDescription": "All tasks belonging to \"{{name}}\" may also be deleted. This action cannot be undone."
+  },
+  "taskCard": {
+    "unknownAssignee": "Member"
+  },
+  "assigneePicker": {
+    "allAssigned": "All members have been assigned.",
+    "selectAriaLabel": "Select a member to add",
+    "selectPlaceholderOption": "Select a member to add…",
+    "add": "Add"
+  },
+  "taskDetail": {
+    "unknownMember": "Member",
+    "fallbackTitle": "Task",
+    "statusLabel": "Status",
+    "dueDateLabel": "Due date",
+    "deleteTask": "Delete task",
+    "descriptionLabel": "Description",
+    "save": "Save",
+    "cancel": "Cancel",
+    "descriptionEmpty": "No description yet. Click to add…",
+    "assigneesLabel": "Assignees",
+    "noAssignees": "No one has been assigned yet.",
+    "removeAssigneeAriaLabel": "Remove from task",
+    "commentsLabel": "Comments",
+    "noComments": "No comments yet.",
+    "commentPlaceholder": "Write a comment…",
+    "send": "Send",
+    "statusHistoryLabel": "Status change history",
+    "statusHistoryError": "Couldn't load status change history.",
+    "noStatusHistory": "No status change history yet.",
+    "confirmDeleteTitle": "Delete this task?",
+    "confirmDeleteDescription": "This action cannot be undone."
+  },
+  "toast": {
+    "project": {
+      "created": "Project created",
+      "createError": "Couldn't create project",
+      "updated": "Project updated",
+      "updateError": "Couldn't update project",
+      "deleted": "Project deleted",
+      "deleteError": "Couldn't delete project",
+      "completed": "Project marked as complete",
+      "completeError": "Couldn't complete project"
+    },
+    "task": {
+      "created": "Task created",
+      "createError": "Couldn't create task",
+      "updated": "Task changes saved",
+      "updateError": "Couldn't update task",
+      "deleted": "Task deleted",
+      "deleteError": "Couldn't delete task",
+      "statusUpdateError": "Couldn't update task status",
+      "addAssigneeError": "Couldn't add assignee",
+      "removeAssigneeError": "Couldn't remove assignee",
+      "addCommentError": "Couldn't post comment"
     }
   }
 }

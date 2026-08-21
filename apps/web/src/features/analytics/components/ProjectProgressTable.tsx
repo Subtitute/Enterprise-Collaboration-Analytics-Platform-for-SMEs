@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow } from '@/components/ui/Table';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -14,22 +15,23 @@ export interface ProjectProgressTableRow extends ProjectProgressRow {
   totalTasks: number;
 }
 
-const COLUMNS: { key: SortKey; label: string }[] = [
-  { key: 'name', label: 'Dự án' },
-  { key: 'progress', label: 'Tiến độ' },
-  { key: 'completedTasks', label: 'Hoàn thành' },
-  { key: 'totalTasks', label: 'Tổng công việc' },
-];
-
 // Wireframe.md muc 7 yeu cau bang KPI vua sortable vua co phan trang. Toan bo du lieu da duoc
 // tai het phia client (quy mo SME nho), nen phan trang o day chi la cat mang (slice) tren tap
 // da sap xep, khong goi lai API - dung lai component Pagination dung chung.
 const PAGE_SIZE = 10;
 
 export function ProjectProgressTable({ rows }: { rows: ProjectProgressTableRow[] }) {
+  const { t } = useTranslation();
   const [sortKey, setSortKey] = useState<SortKey>('progress');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
+
+  const COLUMNS: { key: SortKey; label: string }[] = [
+    { key: 'name', label: t('analytics:projectProgressTable.columns.name') },
+    { key: 'progress', label: t('analytics:projectProgressTable.columns.progress') },
+    { key: 'completedTasks', label: t('analytics:projectProgressTable.columns.completedTasks') },
+    { key: 'totalTasks', label: t('analytics:projectProgressTable.columns.totalTasks') },
+  ];
 
   const sorted = useMemo(() => {
     const copy = [...rows];
@@ -60,14 +62,12 @@ export function ProjectProgressTable({ rows }: { rows: ProjectProgressTableRow[]
   }
 
   if (rows.length === 0) {
-    return <EmptyState title="Chưa có dữ liệu để hiển thị" />;
+    return <EmptyState title={t('analytics:projectProgressTable.emptyTitle')} />;
   }
 
   return (
     <div>
-      <p className="mb-2 text-xs text-slate-400">
-        * Số liệu hiển thị theo toàn tổ chức. Phân tích theo phòng ban sẽ được bổ sung khi hệ thống hỗ trợ.
-      </p>
+      <p className="mb-2 text-xs text-slate-400">{t('analytics:projectProgressTable.footnote')}</p>
       <Table>
         <TableHead>
           <tr>
@@ -90,14 +90,14 @@ export function ProjectProgressTable({ rows }: { rows: ProjectProgressTableRow[]
         <TableBody>
           {paginated.map((row) => (
             <TableRow key={row.projectId}>
-              <TableCell label="Dự án" className="font-medium text-slate-800">
+              <TableCell label={t('analytics:projectProgressTable.columns.name')} className="font-medium text-slate-800">
                 {row.name}
               </TableCell>
-              <TableCell label="Tiến độ" className="md:w-40">
+              <TableCell label={t('analytics:projectProgressTable.columns.progress')} className="md:w-40">
                 <ProgressBar value={row.progress} showLabel />
               </TableCell>
-              <TableCell label="Hoàn thành">{row.completedTasks}</TableCell>
-              <TableCell label="Tổng công việc">{row.totalTasks}</TableCell>
+              <TableCell label={t('analytics:projectProgressTable.columns.completedTasks')}>{row.completedTasks}</TableCell>
+              <TableCell label={t('analytics:projectProgressTable.columns.totalTasks')}>{row.totalTasks}</TableCell>
             </TableRow>
           ))}
         </TableBody>

@@ -3,7 +3,6 @@ import { Dropdown, DropdownItem } from './Dropdown';
 import { GlobeIcon, CheckIcon } from './Icons';
 import { useI18nStore } from '@/stores/i18n.store';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i18n';
-import { cn } from '@/lib/utils';
 
 // 20/08/2026: t()/i18n.language khong dung de xac dinh "dang chon ngon ngu nao" o day - dung
 // truc tiep useI18nStore (nguon that duy nhat, xem stores/i18n.store.ts), tranh 2 nguon trang
@@ -13,8 +12,13 @@ import { cn } from '@/lib/utils';
  * 20/08/2026: nut chon ngon ngu (Viet/Anh/Nhat) - dung o 2 noi: Topbar.tsx (moi trang da dang
  * nhap) va AuthLayout.tsx (dang nhap/dang ky). Dung lai Dropdown co san (portal, click-outside,
  * Esc - xem Dropdown.tsx) giong menu tai khoan tren Topbar.
+ *
+ * 21/08/2026: KHONG nhan prop dinh vi (vd className="absolute ...") - Dropdown boc trigger trong
+ * 1 the div "relative inline-block" rieng cua no; neu trigger tro thanh position:absolute thi the
+ * div boc do sup ve kich thuoc 0 (xem loi thuc te da sua tai AuthLayout.tsx). Noi nao can dinh vi
+ * tuyet doi cho nut nay thi boc 1 the <div> dinh vi o BEN NGOAI, giu component nay khong doi.
  */
-export function LanguageSwitcher({ className }: { className?: string }) {
+export function LanguageSwitcher() {
   const { t } = useTranslation();
   const language = useI18nStore((s) => s.language);
   const setLanguage = useI18nStore((s) => s.setLanguage);
@@ -28,10 +32,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
           type="button"
           onClick={toggle}
           aria-label={t('common:language.switcherLabel')}
-          className={cn(
-            'flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100',
-            className,
-          )}
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
         >
           <GlobeIcon className="h-5 w-5" />
         </button>

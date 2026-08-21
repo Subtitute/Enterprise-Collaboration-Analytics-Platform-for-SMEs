@@ -8,5 +8,94 @@
       "WON": "成約",
       "LOST": "失注"
     }
+  },
+  "customersListPage": {
+    "title": "顧客",
+    "subtitle": "顧客と商談パイプラインを管理します。",
+    "newCustomer": "新規顧客",
+    "searchPlaceholder": "顧客を検索…",
+    "loading": "顧客一覧を読み込み中…",
+    "errorTitle": "顧客一覧を読み込めませんでした",
+    "errorDescription": "顧客一覧の読み込み中にエラーが発生しました。もう一度お試しください。",
+    "emptyFilteredTitle": "該当する顧客が見つかりません",
+    "emptyTitle": "顧客がまだありません",
+    "emptyFilteredDescription": "検索キーワードを調整してみてください。",
+    "emptyDescription": "最初の顧客を追加して、商談の管理を始めましょう。",
+    "addFirstCustomer": "新規顧客を追加"
+  },
+  "customerDetailPage": {
+    "loading": "顧客情報を読み込み中…",
+    "notFoundTitle": "顧客が見つかりません",
+    "notFoundDescription": "この顧客は削除されたか、アクセス権限がない可能性があります。",
+    "backToList": "顧客一覧に戻る",
+    "newDeal": "新規商談",
+    "openDealsSummary": "進行中の商談 {{count}}件 — {{value}}",
+    "dealsLoading": "商談を読み込み中…",
+    "dealsErrorTitle": "商談を読み込めませんでした",
+    "dealsErrorDescription": "この顧客の商談の読み込み中にエラーが発生しました。もう一度お試しください。",
+    "emptyDealsTitle": "商談がまだありません",
+    "emptyDealsDescription": "この顧客の最初の商談を作成しましょう。",
+    "createFirstDeal": "新規商談を作成"
+  },
+  "newDealModal": {
+    "title": "新規商談を作成",
+    "titleRequiredError": "商談のタイトルを入力してください",
+    "fieldTitle": "タイトル",
+    "titlePlaceholder": "例: 2026年導入パッケージ",
+    "fieldValue": "金額 (VND)",
+    "fieldExpectedCloseDate": "成約予定日",
+    "cancel": "キャンセル",
+    "submit": "商談を作成"
+  },
+  "newCustomerModal": {
+    "title": "新規顧客を追加",
+    "nameRequiredError": "顧客名を入力してください",
+    "fieldName": "顧客名",
+    "namePlaceholder": "例: ABC株式会社",
+    "fieldCompany": "会社名",
+    "fieldEmail": "メールアドレス",
+    "fieldPhone": "電話番号",
+    "fieldNotes": "メモ",
+    "notesPlaceholder": "顧客に関する補足情報…",
+    "cancel": "キャンセル",
+    "submit": "顧客を追加"
+  },
+  "customerCard": {
+    "optionsAriaLabel": "顧客のオプション",
+    "deleteCustomer": "顧客を削除",
+    "openDeals": "進行中の商談 {{count}}件",
+    "deleteConfirmTitle": "この顧客を削除しますか?",
+    "deleteConfirmDescription": "「{{name}}」に属するすべての商談も削除されます。この操作は取り消せません。"
+  },
+  "dealDetailModal": {
+    "title": "商談の詳細",
+    "deleteAriaLabel": "商談を削除",
+    "fieldTitle": "タイトル",
+    "fieldValue": "金額 (VND)",
+    "fieldExpectedCloseDate": "成約予定日",
+    "close": "閉じる",
+    "save": "変更を保存",
+    "deleteConfirmTitle": "この商談を削除しますか?",
+    "deleteConfirmDescription": "商談「{{title}}」は完全に削除されます。この操作は取り消せません。",
+    "deleteConfirmButton": "商談を削除"
+  },
+  "hooks": {
+    "customer": {
+      "createSuccess": "顧客を作成しました",
+      "createError": "顧客を作成できませんでした",
+      "updateSuccess": "顧客を更新しました",
+      "updateError": "顧客を更新できませんでした",
+      "deleteSuccess": "顧客を削除しました",
+      "deleteError": "顧客を削除できませんでした"
+    },
+    "deal": {
+      "createSuccess": "商談を作成しました",
+      "createError": "商談を作成できませんでした",
+      "updateSuccess": "商談の変更を保存しました",
+      "updateError": "商談を更新できませんでした",
+      "deleteSuccess": "商談を削除しました",
+      "deleteError": "商談を削除できませんでした",
+      "updateStageError": "商談のステージを更新できませんでした"
+    }
   }
 }

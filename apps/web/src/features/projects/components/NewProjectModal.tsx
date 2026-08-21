@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { FormField, Input, Textarea } from '@/components/ui/Input';
 import { useCreateProject } from '../hooks';
 
 export function NewProjectModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -27,7 +29,7 @@ export function NewProjectModal({ open, onClose }: { open: boolean; onClose: () 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
-      setError('Vui lòng nhập tên dự án');
+      setError(t('projects:newProjectModal.nameRequired'));
       return;
     }
     createProject.mutate(
@@ -37,28 +39,33 @@ export function NewProjectModal({ open, onClose }: { open: boolean; onClose: () 
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title="Tạo dự án mới">
+    <Modal open={open} onClose={handleClose} title={t('projects:newProjectModal.title')}>
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <FormField label="Tên dự án" htmlFor="project-name" error={error} required>
-          <Input id="project-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ví dụ: Ra mắt website mới" />
+        <FormField label={t('projects:newProjectModal.nameLabel')} htmlFor="project-name" error={error} required>
+          <Input
+            id="project-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={t('projects:newProjectModal.namePlaceholder')}
+          />
         </FormField>
-        <FormField label="Mô tả" htmlFor="project-description">
+        <FormField label={t('projects:newProjectModal.descriptionLabel')} htmlFor="project-description">
           <Textarea
             id="project-description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Mục tiêu, phạm vi công việc của dự án…"
+            placeholder={t('projects:newProjectModal.descriptionPlaceholder')}
           />
         </FormField>
-        <FormField label="Hạn hoàn thành" htmlFor="project-due-date">
+        <FormField label={t('projects:newProjectModal.dueDateLabel')} htmlFor="project-due-date">
           <Input id="project-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
         </FormField>
         <div className="flex justify-end gap-2 pt-1">
           <Button type="button" variant="outline" onClick={handleClose}>
-            Hủy
+            {t('projects:newProjectModal.cancel')}
           </Button>
           <Button type="submit" isLoading={createProject.isPending}>
-            Tạo dự án
+            {t('projects:newProjectModal.submit')}
           </Button>
         </div>
       </form>

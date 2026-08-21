@@ -1,1 +1,19 @@
-{}
+{
+  "page": {
+    "title": "Hồ sơ cá nhân",
+    "subtitle": "Thông tin tài khoản của bạn trong tổ chức.",
+    "loading": "Đang tải hồ sơ…",
+    "loadError": "Không thể tải hồ sơ cá nhân",
+    "status": {
+      "active": "Đang hoạt động",
+      "inactive": "Đã vô hiệu hoá"
+    },
+    "fields": {
+      "email": "Email",
+      "department": "Phòng ban",
+      "roles": "Vai trò",
+      "joinedAt": "Ngày tham gia"
+    },
+    "contactAdminNote": "Để đổi phòng ban hoặc vai trò, vui lòng liên hệ quản trị viên tổ chức (Quản trị > Thành viên)."
+  }
+}

@@ -19,7 +19,8 @@ test.describe('Xac thuc', () => {
   test('dang nhap sai mat khau hien thong bao tieng Viet, khong chuyen trang', async ({ page }) => {
     await page.goto('/login');
     await page.getByLabel('Email').fill(ADMIN_EMAIL);
-    await page.getByLabel('Mật khẩu').fill('SaiMatKhauChacChan123!');
+    // 21/08/2026: dung getByRole('textbox', ...) thay vi getByLabel - xem chu thich trong helpers.ts.
+    await page.getByRole('textbox', { name: 'Mật khẩu' }).fill('SaiMatKhauChacChan123!');
     await page.getByRole('button', { name: 'Đăng nhập' }).click();
 
     // 28/07/2026: chi kiem tra co thong bao loi hien ra (khong gan chat vao 1 cau chu the) - IAM

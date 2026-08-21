@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from '@/stores/toast.store';
 import { extractErrorMessage } from '@/lib/api-client';
+import { t } from '@/i18n';
 import type { DateRangeOption } from '@/types';
 import { fetchAiInsight, fetchDocumentActivity, fetchProjectProgress } from './api';
 
@@ -24,6 +25,6 @@ export function useAiInsightMutation() {
   return useMutation({
     mutationFn: ({ range, departmentId, departmentName }: { range: DateRangeOption; departmentId?: string; departmentName?: string }) =>
       fetchAiInsight(range, departmentId, departmentName),
-    onError: (error) => toast.error('Không thể tạo nhận xét AI', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('analytics:hooks.aiInsightError'), extractErrorMessage(error)),
   });
 }

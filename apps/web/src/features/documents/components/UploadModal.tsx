@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import type { DragEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -9,6 +10,7 @@ import { useUploadFile } from '../hooks';
 import { MAX_UPLOAD_SIZE_BYTES, validateUploadFile } from '../api';
 
 export function UploadModal({ folderId, open, onClose }: { folderId: string | null; open: boolean; onClose: () => void }) {
+  const { t } = useTranslation();
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
@@ -41,7 +43,7 @@ export function UploadModal({ folderId, open, onClose }: { folderId: string | nu
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title="Tải lên tài liệu">
+    <Modal open={open} onClose={handleClose} title={t('documents:uploadModal.title')}>
       <div className="space-y-4">
         {!file ? (
           <div
@@ -73,9 +75,9 @@ export function UploadModal({ folderId, open, onClose }: { folderId: string | nu
             )}
           >
             <UploadIcon className="h-8 w-8 text-slate-400" />
-            <p className="text-sm font-medium text-slate-700">Kéo thả tệp vào đây, hoặc bấm để chọn tệp</p>
+            <p className="text-sm font-medium text-slate-700">{t('documents:uploadModal.dropHint')}</p>
             <p className="text-xs text-slate-400">
-              Hỗ trợ PDF, Word, Excel, PowerPoint, ảnh, CSV, TXT, ZIP — tối đa {formatBytes(MAX_UPLOAD_SIZE_BYTES)}
+              {t('documents:uploadModal.supportedTypes', { maxSize: formatBytes(MAX_UPLOAD_SIZE_BYTES) })}
             </p>
             <input
               ref={inputRef}
@@ -102,7 +104,7 @@ export function UploadModal({ folderId, open, onClose }: { folderId: string | nu
                     setFileError(null);
                   }}
                   className="text-slate-400 hover:text-rose-600"
-                  aria-label="Bỏ chọn tệp"
+                  aria-label={t('documents:uploadModal.removeFileAria')}
                 >
                   <XIcon className="h-4 w-4" />
                 </button>
@@ -123,10 +125,10 @@ export function UploadModal({ folderId, open, onClose }: { folderId: string | nu
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={handleClose} disabled={upload.isPending}>
-            Hủy
+            {t('documents:uploadModal.cancel')}
           </Button>
           <Button type="button" onClick={handleSubmit} disabled={!file || Boolean(fileError)} isLoading={upload.isPending}>
-            Tải lên
+            {t('documents:uploadModal.submit')}
           </Button>
         </div>
       </div>

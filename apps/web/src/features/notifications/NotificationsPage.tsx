@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Tabs } from '@/components/ui/Tabs';
@@ -14,17 +15,18 @@ import type { AppNotification } from '@/types';
 
 const LIMIT = 15;
 
-const TYPE_OPTIONS: { value: string; label: string }[] = [
-  { value: '', label: 'Tất cả loại' },
-  { value: 'TASK', label: 'Task' },
-  { value: 'DOCUMENT', label: 'Document' },
-  { value: 'SYSTEM', label: 'Hệ thống' },
-];
-
 export function NotificationsPage() {
+  const { t } = useTranslation();
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [typeFilter, setTypeFilter] = useState('');
   const [page, setPage] = useState(1);
+
+  const typeOptions: { value: string; label: string }[] = [
+    { value: '', label: t('notifications:page.typeFilter.all') },
+    { value: 'TASK', label: t('notifications:page.typeFilter.task') },
+    { value: 'DOCUMENT', label: t('notifications:page.typeFilter.document') },
+    { value: 'SYSTEM', label: t('notifications:page.typeFilter.system') },
+  ];
 
   const query = useNotificationsQuery({
     isRead: filter === 'unread' ? false : undefined,
@@ -52,11 +54,11 @@ export function NotificationsPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Thông báo</h1>
-          <p className="text-sm text-slate-500">Toàn bộ thông báo liên quan đến hoạt động của bạn.</p>
+          <h1 className="text-xl font-semibold text-slate-900">{t('notifications:page.title')}</h1>
+          <p className="text-sm text-slate-500">{t('notifications:page.subtitle')}</p>
         </div>
         <Button variant="outline" onClick={() => markAllRead.mutate()} isLoading={markAllRead.isPending}>
-          Đánh dấu tất cả đã đọc
+          {t('notifications:page.markAllRead')}
         </Button>
       </div>
 
@@ -66,8 +68,8 @@ export function NotificationsPage() {
             value={filter}
             onChange={handleFilterChange}
             tabs={[
-              { value: 'all', label: 'Tất cả' },
-              { value: 'unread', label: 'Chưa đọc' },
+              { value: 'all', label: t('notifications:page.tabs.all') },
+              { value: 'unread', label: t('notifications:page.tabs.unread') },
             ]}
           />
           <Select
@@ -76,7 +78,7 @@ export function NotificationsPage() {
             className="mb-1 text-sm"
             style={{ width: 'auto' }}
           >
-            {TYPE_OPTIONS.map((opt) => (
+            {typeOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
@@ -88,12 +90,12 @@ export function NotificationsPage() {
           isLoading={query.isLoading}
           isError={query.isError}
           onRetry={() => query.refetch()}
-          errorTitle="Không thể tải thông báo"
-          loadingFallback={<FullPageSpinner label="Đang tải thông báo…" />}
+          errorTitle={t('notifications:page.loadError')}
+          loadingFallback={<FullPageSpinner label={t('notifications:page.loading')} />}
         >
           {items.length === 0 ? (
             <div className="p-6">
-              <EmptyState icon={<BellIcon className="h-8 w-8" />} title="Không có thông báo" />
+              <EmptyState icon={<BellIcon className="h-8 w-8" />} title={t('notifications:page.empty')} />
             </div>
           ) : (
             <ul className="divide-y divide-slate-100">
@@ -116,7 +118,7 @@ export function NotificationsPage() {
                       onClick={() => markRead.mutate(n.id)}
                       className="shrink-0 text-xs font-medium text-primary-600 hover:text-primary-700"
                     >
-                      Đánh dấu đã đọc
+                      {t('notifications:page.markRead')}
                     </button>
                   )}
                 </li>

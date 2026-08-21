@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { toast } from '@/stores/toast.store';
 import { extractErrorMessage } from '@/lib/api-client';
 import type { Task, TaskStatus } from '@/types';
@@ -40,52 +41,56 @@ export function useProjectQuery(id: string | undefined) {
 }
 
 export function useCreateProject() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: CreateProjectPayload) => createProject(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      toast.success('Đã tạo dự án mới');
+      toast.success(t('projects:toast.project.created'));
     },
-    onError: (error) => toast.error('Không thể tạo dự án', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('projects:toast.project.createError'), extractErrorMessage(error)),
   });
 }
 
 export function useUpdateProject(id: string) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: Partial<CreateProjectPayload>) => updateProject(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['project', id] });
-      toast.success('Đã cập nhật dự án');
+      toast.success(t('projects:toast.project.updated'));
     },
-    onError: (error) => toast.error('Không thể cập nhật dự án', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('projects:toast.project.updateError'), extractErrorMessage(error)),
   });
 }
 
 export function useDeleteProject() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteProject(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
-      toast.success('Đã xoá dự án');
+      toast.success(t('projects:toast.project.deleted'));
     },
-    onError: (error) => toast.error('Không thể xoá dự án', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('projects:toast.project.deleteError'), extractErrorMessage(error)),
   });
 }
 
 export function useCompleteProject(id: string) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: () => completeProject(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['project', id] });
-      toast.success('Đã đánh dấu dự án hoàn thành');
+      toast.success(t('projects:toast.project.completed'));
     },
-    onError: (error) => toast.error('Không thể hoàn thành dự án', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('projects:toast.project.completeError'), extractErrorMessage(error)),
   });
 }
 
@@ -98,43 +103,47 @@ export function useTasksQuery(projectId: string | undefined) {
 }
 
 export function useCreateTask(projectId: string) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: Omit<CreateTaskPayload, 'projectId'>) => createTask({ projectId, ...payload }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
-      toast.success('Đã tạo công việc mới');
+      toast.success(t('projects:toast.task.created'));
     },
-    onError: (error) => toast.error('Không thể tạo công việc', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('projects:toast.task.createError'), extractErrorMessage(error)),
   });
 }
 
 export function useUpdateTask(projectId: string, taskId: string) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: Partial<Omit<CreateTaskPayload, 'projectId'>>) => updateTask(taskId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
-      toast.success('Đã lưu thay đổi công việc');
+      toast.success(t('projects:toast.task.updated'));
     },
-    onError: (error) => toast.error('Không thể cập nhật công việc', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('projects:toast.task.updateError'), extractErrorMessage(error)),
   });
 }
 
 export function useDeleteTask(projectId: string) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (taskId: string) => deleteTask(taskId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
-      toast.success('Đã xoá công việc');
+      toast.success(t('projects:toast.task.deleted'));
     },
-    onError: (error) => toast.error('Không thể xoá công việc', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('projects:toast.task.deleteError'), extractErrorMessage(error)),
   });
 }
 
 /** Cap nhat trang thai Kanban (keo-tha) - optimistic update de UI phan hoi ngay lap tuc. */
 export function useUpdateTaskStatus(projectId: string) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const queryKey = ['tasks', projectId];
 
@@ -143,32 +152,34 @@ export function useUpdateTaskStatus(projectId: string) {
     onMutate: async ({ taskId, status }) => {
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData<Task[]>(queryKey);
-      queryClient.setQueryData<Task[]>(queryKey, (old) => (old ?? []).map((t) => (t.id === taskId ? { ...t, status } : t)));
+      queryClient.setQueryData<Task[]>(queryKey, (old) => (old ?? []).map((task) => (task.id === taskId ? { ...task, status } : task)));
       return { previous };
     },
     onError: (error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
-      toast.error('Không thể cập nhật trạng thái công việc', extractErrorMessage(error));
+      toast.error(t('projects:toast.task.statusUpdateError'), extractErrorMessage(error));
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey }),
   });
 }
 
 export function useAddAssignee(projectId: string, taskId: string) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (userId: string) => addAssignee(taskId, userId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks', projectId] }),
-    onError: (error) => toast.error('Không thể thêm người phụ trách', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('projects:toast.task.addAssigneeError'), extractErrorMessage(error)),
   });
 }
 
 export function useRemoveAssignee(projectId: string, taskId: string) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (userId: string) => removeAssignee(taskId, userId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks', projectId] }),
-    onError: (error) => toast.error('Không thể gỡ người phụ trách', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('projects:toast.task.removeAssigneeError'), extractErrorMessage(error)),
   });
 }
 
@@ -177,11 +188,12 @@ export function useCommentsQuery(taskId: string | undefined) {
 }
 
 export function useAddComment(taskId: string) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (content: string) => addComment(taskId, content),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['task-comments', taskId] }),
-    onError: (error) => toast.error('Không thể gửi bình luận', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('projects:toast.task.addCommentError'), extractErrorMessage(error)),
   });
 }
 

@@ -8,5 +8,94 @@
       "WON": "Thắng",
       "LOST": "Thua"
     }
+  },
+  "customersListPage": {
+    "title": "Khách hàng",
+    "subtitle": "Quản lý khách hàng và cơ hội bán hàng (deal pipeline).",
+    "newCustomer": "Khách hàng mới",
+    "searchPlaceholder": "Tìm kiếm khách hàng…",
+    "loading": "Đang tải danh sách khách hàng…",
+    "errorTitle": "Không thể tải danh sách khách hàng",
+    "errorDescription": "Đã xảy ra lỗi khi tải danh sách khách hàng. Vui lòng thử lại.",
+    "emptyFilteredTitle": "Không tìm thấy khách hàng phù hợp",
+    "emptyTitle": "Chưa có khách hàng nào",
+    "emptyFilteredDescription": "Thử điều chỉnh từ khóa tìm kiếm.",
+    "emptyDescription": "Thêm khách hàng đầu tiên để bắt đầu theo dõi cơ hội bán hàng.",
+    "addFirstCustomer": "Thêm khách hàng mới"
+  },
+  "customerDetailPage": {
+    "loading": "Đang tải khách hàng…",
+    "notFoundTitle": "Không tìm thấy khách hàng",
+    "notFoundDescription": "Khách hàng có thể đã bị xoá hoặc bạn không có quyền truy cập.",
+    "backToList": "Quay lại danh sách khách hàng",
+    "newDeal": "Deal mới",
+    "openDealsSummary": "{{count}} deal đang hoạt động — {{value}}",
+    "dealsLoading": "Đang tải deal…",
+    "dealsErrorTitle": "Không thể tải deal",
+    "dealsErrorDescription": "Đã xảy ra lỗi khi tải danh sách deal của khách hàng. Vui lòng thử lại.",
+    "emptyDealsTitle": "Chưa có deal nào",
+    "emptyDealsDescription": "Tạo cơ hội bán hàng đầu tiên cho khách hàng này.",
+    "createFirstDeal": "Tạo deal mới"
+  },
+  "newDealModal": {
+    "title": "Tạo deal mới",
+    "titleRequiredError": "Vui lòng nhập tiêu đề deal",
+    "fieldTitle": "Tiêu đề",
+    "titlePlaceholder": "Ví dụ: Gói triển khai năm 2026",
+    "fieldValue": "Giá trị (VND)",
+    "fieldExpectedCloseDate": "Ngày dự kiến chốt",
+    "cancel": "Hủy",
+    "submit": "Tạo deal"
+  },
+  "newCustomerModal": {
+    "title": "Thêm khách hàng mới",
+    "nameRequiredError": "Vui lòng nhập tên khách hàng",
+    "fieldName": "Tên khách hàng",
+    "namePlaceholder": "Ví dụ: Công ty TNHH ABC",
+    "fieldCompany": "Công ty",
+    "fieldEmail": "Email",
+    "fieldPhone": "Số điện thoại",
+    "fieldNotes": "Ghi chú",
+    "notesPlaceholder": "Thông tin thêm về khách hàng…",
+    "cancel": "Hủy",
+    "submit": "Thêm khách hàng"
+  },
+  "customerCard": {
+    "optionsAriaLabel": "Tùy chọn khách hàng",
+    "deleteCustomer": "Xoá khách hàng",
+    "openDeals": "{{count}} deal đang hoạt động",
+    "deleteConfirmTitle": "Xoá khách hàng này?",
+    "deleteConfirmDescription": "Toàn bộ deal thuộc \"{{name}}\" cũng sẽ bị xoá. Hành động này không thể hoàn tác."
+  },
+  "dealDetailModal": {
+    "title": "Chi tiết deal",
+    "deleteAriaLabel": "Xoá deal",
+    "fieldTitle": "Tiêu đề",
+    "fieldValue": "Giá trị (VND)",
+    "fieldExpectedCloseDate": "Ngày dự kiến chốt",
+    "close": "Đóng",
+    "save": "Lưu thay đổi",
+    "deleteConfirmTitle": "Xoá deal này?",
+    "deleteConfirmDescription": "Deal \"{{title}}\" sẽ bị xoá vĩnh viễn. Hành động này không thể hoàn tác.",
+    "deleteConfirmButton": "Xoá deal"
+  },
+  "hooks": {
+    "customer": {
+      "createSuccess": "Đã tạo khách hàng mới",
+      "createError": "Không thể tạo khách hàng",
+      "updateSuccess": "Đã cập nhật khách hàng",
+      "updateError": "Không thể cập nhật khách hàng",
+      "deleteSuccess": "Đã xoá khách hàng",
+      "deleteError": "Không thể xoá khách hàng"
+    },
+    "deal": {
+      "createSuccess": "Đã tạo deal mới",
+      "createError": "Không thể tạo deal",
+      "updateSuccess": "Đã lưu thay đổi deal",
+      "updateError": "Không thể cập nhật deal",
+      "deleteSuccess": "Đã xoá deal",
+      "deleteError": "Không thể xoá deal",
+      "updateStageError": "Không thể cập nhật giai đoạn deal"
+    }
   }
 }

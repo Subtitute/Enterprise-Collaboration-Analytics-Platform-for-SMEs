@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -18,14 +19,15 @@ import { useAllAttendanceQuery, useCheckIn, useCheckOut, useMyAttendanceQuery } 
  * hieu THEM cho Manager doi chieu voi anh, khong phai trang thai loi/canh bao chan cham cong.
  */
 function OnSiteBadge({ isOnSite }: { isOnSite?: boolean | null }) {
+  const { t } = useTranslation();
   if (isOnSite === undefined || isOnSite === null) return null;
   return (
     <span
       className={`inline-flex items-center gap-1 text-xs ${isOnSite ? 'text-emerald-600' : 'text-amber-600'}`}
-      title={isOnSite ? 'Vị trí GPS nằm trong bán kính văn phòng' : 'Vị trí GPS nằm ngoài bán kính văn phòng'}
+      title={isOnSite ? t('hrm:attendancePage.onSiteBadge.onSiteTitle') : t('hrm:attendancePage.onSiteBadge.offSiteTitle')}
     >
       <MapPinIcon className="h-3.5 w-3.5" />
-      {isOnSite ? 'Tại văn phòng' : 'Ngoài văn phòng'}
+      {isOnSite ? t('hrm:attendancePage.onSiteBadge.onSite') : t('hrm:attendancePage.onSiteBadge.offSite')}
     </span>
   );
 }
@@ -38,6 +40,7 @@ function getTodayGmt7(): string {
 
 /** Trang Cham cong (HRM-lite) - Technical_Spec.md muc 17, Wireframe.md muc 13. */
 export function AttendancePage() {
+  const { t } = useTranslation();
   const [cameraMode, setCameraMode] = useState<'checkin' | 'checkout' | null>(null);
   const attendanceQuery = useMyAttendanceQuery({ limit: 20 });
   const allAttendanceQuery = useAllAttendanceQuery();
@@ -59,28 +62,29 @@ export function AttendancePage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Chấm công</h1>
-        <p className="text-sm text-slate-500">Chấm công vào làm/ra về kèm ảnh chụp làm bằng chứng.</p>
+        <h1 className="text-xl font-semibold text-slate-900">{t('hrm:attendancePage.title')}</h1>
+        <p className="text-sm text-slate-500">{t('hrm:attendancePage.subtitle')}</p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Hôm nay ({formatDate(today)})</CardTitle>
+          <CardTitle>{t('hrm:attendancePage.today.cardTitle', { date: formatDate(today) })}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <ClockIcon className="h-4 w-4 text-slate-400" />
-            {!todayRecord && <span>Bạn chưa chấm công vào làm hôm nay.</span>}
+            {!todayRecord && <span>{t('hrm:attendancePage.today.notCheckedIn')}</span>}
             {todayRecord && !todayRecord.checkOutAt && (
               <span className="flex items-center gap-2">
-                Đã vào làm lúc <strong>{formatDateTime(todayRecord.checkInAt)}</strong>
+                {t('hrm:attendancePage.today.checkedInPrefix')} <strong>{formatDateTime(todayRecord.checkInAt)}</strong>
                 <OnSiteBadge isOnSite={todayRecord.checkInIsOnSite} />
               </span>
             )}
             {todayRecord?.checkOutAt && (
               <span className="flex flex-wrap items-center gap-2">
-                Vào làm <strong>{formatDateTime(todayRecord.checkInAt)}</strong>
-                <OnSiteBadge isOnSite={todayRecord.checkInIsOnSite} />· Ra về{' '}
+                {t('hrm:attendancePage.today.checkInLabel')} <strong>{formatDateTime(todayRecord.checkInAt)}</strong>
+                <OnSiteBadge isOnSite={todayRecord.checkInIsOnSite} />
+                {t('hrm:attendancePage.today.checkOutLabel')}{' '}
                 <strong>{formatDateTime(todayRecord.checkOutAt)}</strong>
                 <OnSiteBadge isOnSite={todayRecord.checkOutIsOnSite} />
               </span>
@@ -89,42 +93,45 @@ export function AttendancePage() {
           <div className="flex gap-2">
             {!todayRecord && (
               <Button onClick={() => setCameraMode('checkin')}>
-                <CameraIcon className="h-4 w-4" /> Check-in
+                <CameraIcon className="h-4 w-4" /> {t('hrm:attendancePage.today.checkInButton')}
               </Button>
             )}
             {todayRecord && !todayRecord.checkOutAt && (
               <Button onClick={() => setCameraMode('checkout')}>
-                <CameraIcon className="h-4 w-4" /> Check-out
+                <CameraIcon className="h-4 w-4" /> {t('hrm:attendancePage.today.checkOutButton')}
               </Button>
             )}
-            {todayRecord?.checkOutAt && <Badge variant="success">Đã hoàn tất hôm nay</Badge>}
+            {todayRecord?.checkOutAt && <Badge variant="success">{t('hrm:attendancePage.today.doneToday')}</Badge>}
           </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Lịch sử chấm công</CardTitle>
+          <CardTitle>{t('hrm:attendancePage.history.cardTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           <QueryState
             isLoading={attendanceQuery.isLoading}
             isError={attendanceQuery.isError}
             onRetry={() => attendanceQuery.refetch()}
-            loadingFallback={<FullPageSpinner label="Đang tải lịch sử chấm công…" />}
-            errorTitle="Không thể tải lịch sử chấm công"
-            errorDescription="Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại."
+            loadingFallback={<FullPageSpinner label={t('hrm:attendancePage.history.loading')} />}
+            errorTitle={t('hrm:attendancePage.history.errorTitle')}
+            errorDescription={t('hrm:attendancePage.history.errorDescription')}
           >
             {(attendanceQuery.data?.data.length ?? 0) === 0 ? (
-              <EmptyState title="Chưa có lịch sử chấm công" description="Dữ liệu sẽ xuất hiện sau lần chấm công đầu tiên." />
+              <EmptyState
+                title={t('hrm:attendancePage.history.emptyTitle')}
+                description={t('hrm:attendancePage.history.emptyDescription')}
+              />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-200 text-left text-xs font-medium uppercase text-slate-500">
-                      <th className="py-2 pr-4">Ngày</th>
-                      <th className="py-2 pr-4">Vào làm</th>
-                      <th className="py-2 pr-4">Ra về</th>
+                      <th className="py-2 pr-4">{t('hrm:attendancePage.history.columns.date')}</th>
+                      <th className="py-2 pr-4">{t('hrm:attendancePage.history.columns.checkIn')}</th>
+                      <th className="py-2 pr-4">{t('hrm:attendancePage.history.columns.checkOut')}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -160,17 +167,17 @@ export function AttendancePage() {
       {canViewAll && (allAttendanceQuery.data?.data.length ?? 0) > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Chấm công toàn tổ chức</CardTitle>
+            <CardTitle>{t('hrm:attendancePage.allAttendance.cardTitle')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-left text-xs font-medium uppercase text-slate-500">
-                    <th className="py-2 pr-4">Nhân viên</th>
-                    <th className="py-2 pr-4">Ngày</th>
-                    <th className="py-2 pr-4">Vào làm</th>
-                    <th className="py-2 pr-4">Ra về</th>
+                    <th className="py-2 pr-4">{t('hrm:attendancePage.allAttendance.columns.employee')}</th>
+                    <th className="py-2 pr-4">{t('hrm:attendancePage.allAttendance.columns.date')}</th>
+                    <th className="py-2 pr-4">{t('hrm:attendancePage.allAttendance.columns.checkIn')}</th>
+                    <th className="py-2 pr-4">{t('hrm:attendancePage.allAttendance.columns.checkOut')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">

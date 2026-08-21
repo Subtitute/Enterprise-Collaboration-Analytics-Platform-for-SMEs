@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { ConfirmDialog } from '@/components/ui/Modal';
@@ -13,6 +14,7 @@ import { useDeleteFolder, useRenameFolder, useUpdateFolderVisibility } from '../
 // 28/07/2026: them onShare - callback mo FolderShareModal (quan ly chia se) tu dropdown cua tung
 // thu muc, day len DocumentsPage.tsx dieu khien giong het pattern sharingFile/ShareModal hien co.
 export function FolderGrid({ folders, onOpen, onShare }: { folders: Folder[]; onOpen: (folder: Folder) => void; onShare: (folder: Folder) => void }) {
+  const { t } = useTranslation();
   const [renaming, setRenaming] = useState<Folder | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [deleting, setDeleting] = useState<Folder | null>(null);
@@ -50,14 +52,22 @@ export function FolderGrid({ folders, onOpen, onShare }: { folders: Folder[]; on
                 // (IconProps/SVGProps khong co thuoc tinh HTML "title"), dung pattern da ap dung
                 // cung ngay hom nay cho Avatar.tsx (title+aria-label tren phan tu container); icon
                 // ben trong danh aria-hidden de tranh trinh doc man hinh cong bo trung lap.
-                <span title="Thư mục hạn chế truy cập" aria-label="Thư mục hạn chế truy cập" className="inline-flex shrink-0 text-slate-400">
+                <span
+                  title={t('documents:folderGrid.restrictedTooltip')}
+                  aria-label={t('documents:folderGrid.restrictedTooltip')}
+                  className="inline-flex shrink-0 text-slate-400"
+                >
                   <LockIcon className="h-3.5 w-3.5" aria-hidden="true" />
                 </span>
               )}
             </button>
             <Dropdown
               trigger={({ toggle }) => (
-                <button onClick={toggle} className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label="Tùy chọn thư mục">
+                <button
+                  onClick={toggle}
+                  className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                  aria-label={t('documents:folderGrid.optionsAria')}
+                >
                   <MoreVerticalIcon className="h-4 w-4" />
                 </button>
               )}
@@ -71,7 +81,7 @@ export function FolderGrid({ folders, onOpen, onShare }: { folders: Folder[]; on
                       close();
                     }}
                   >
-                    <EditIcon className="h-4 w-4" /> Đổi tên
+                    <EditIcon className="h-4 w-4" /> {t('documents:folderGrid.rename')}
                   </DropdownItem>
                   {canManage(folder) && (
                     // 28/07/2026: muc "Han che truy cap"/"Mo cho ca to chuc" - chi hien voi nguoi
@@ -87,7 +97,9 @@ export function FolderGrid({ folders, onOpen, onShare }: { folders: Folder[]; on
                       }}
                     >
                       <LockIcon className="h-4 w-4" />
-                      {folder.visibility === 'restricted' ? 'Mở cho cả tổ chức' : 'Hạn chế truy cập'}
+                      {folder.visibility === 'restricted'
+                        ? t('documents:folderGrid.openToOrganization')
+                        : t('documents:folderGrid.restrictAccess')}
                     </DropdownItem>
                   )}
                   {canManage(folder) && folder.visibility === 'restricted' && (
@@ -99,7 +111,7 @@ export function FolderGrid({ folders, onOpen, onShare }: { folders: Folder[]; on
                         close();
                       }}
                     >
-                      <ShareIcon className="h-4 w-4" /> Quản lý chia sẻ
+                      <ShareIcon className="h-4 w-4" /> {t('documents:folderGrid.manageSharing')}
                     </DropdownItem>
                   )}
                   <DropdownItem
@@ -109,7 +121,7 @@ export function FolderGrid({ folders, onOpen, onShare }: { folders: Folder[]; on
                       close();
                     }}
                   >
-                    <TrashIcon className="h-4 w-4" /> Xoá thư mục
+                    <TrashIcon className="h-4 w-4" /> {t('documents:folderGrid.delete')}
                   </DropdownItem>
                 </div>
               )}
@@ -126,8 +138,8 @@ export function FolderGrid({ folders, onOpen, onShare }: { folders: Folder[]; on
             if (renameValue.trim()) renameFolder.mutate({ id: renaming.id, name: renameValue.trim() });
             setRenaming(null);
           }}
-          title="Đổi tên thư mục"
-          confirmLabel="Lưu"
+          title={t('documents:folderGrid.renameDialog.title')}
+          confirmLabel={t('documents:folderGrid.renameDialog.confirmLabel')}
         >
           <input
             autoFocus
@@ -136,7 +148,7 @@ export function FolderGrid({ folders, onOpen, onShare }: { folders: Folder[]; on
             // 28/07/2026: them aria-label (phat hien qua ra soat kha nang tiep can) - input nay
             // khong co <label> nao gan voi no, truoc do trinh doc man hinh chi doc "edit text",
             // khong biet muc dich cua o nhap nay la gi.
-            aria-label="Tên thư mục mới"
+            aria-label={t('documents:folderGrid.renameDialog.inputAria')}
             className="mb-3 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100"
           />
         </ConfirmDialog>
@@ -149,9 +161,9 @@ export function FolderGrid({ folders, onOpen, onShare }: { folders: Folder[]; on
           if (deleting) deleteFolder.mutate(deleting.id);
           setDeleting(null);
         }}
-        title="Xoá thư mục này?"
-        description={deleting ? `"${deleting.name}" và toàn bộ nội dung bên trong có thể bị xoá.` : undefined}
-        confirmLabel="Xoá thư mục"
+        title={t('documents:folderGrid.deleteConfirm.title')}
+        description={deleting ? t('documents:folderGrid.deleteConfirm.description', { name: deleting.name }) : undefined}
+        confirmLabel={t('documents:folderGrid.deleteConfirm.confirmLabel')}
         danger
       />
     </>

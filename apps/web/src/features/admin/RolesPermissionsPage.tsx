@@ -1,4 +1,5 @@
 import { Fragment, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Checkbox } from '@/components/ui/Input';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -9,6 +10,7 @@ import { usePermissionsQuery, useRolesQuery, useUpdateRolePermissions } from './
 import type { Permission, RoleWithPermissions } from '@/types';
 
 export function RolesPermissionsPage() {
+  const { t } = useTranslation();
   const rolesQuery = useRolesQuery();
   const permissionsQuery = usePermissionsQuery();
   const updatePermissions = useUpdateRolePermissions();
@@ -19,11 +21,11 @@ export function RolesPermissionsPage() {
   const grouped = useMemo(() => {
     const map: Record<string, Permission[]> = {};
     for (const p of permissions) {
-      const group = p.group ?? 'Khác';
+      const group = p.group ?? t('admin:rolesPermissionsPage.otherGroup');
       (map[group] ??= []).push(p);
     }
     return map;
-  }, [permissions]);
+  }, [permissions, t]);
 
   function togglePermission(role: RoleWithPermissions, permissionKey: string) {
     const has = role.permissionKeys.includes(permissionKey);
@@ -39,24 +41,22 @@ export function RolesPermissionsPage() {
         rolesQuery.refetch();
         permissionsQuery.refetch();
       }}
-      loadingFallback={<FullPageSpinner label="Đang tải ma trận phân quyền…" />}
-      errorTitle="Không thể tải dữ liệu vai trò/phân quyền"
+      loadingFallback={<FullPageSpinner label={t('admin:rolesPermissionsPage.loading')} />}
+      errorTitle={t('admin:rolesPermissionsPage.errorTitle')}
     >
       {roles.length === 0 || permissions.length === 0 ? (
         <Card className="p-6">
-          <EmptyState icon={<ShieldIcon className="h-8 w-8" />} title="Chưa có dữ liệu vai trò hoặc quyền" />
+          <EmptyState icon={<ShieldIcon className="h-8 w-8" />} title={t('admin:rolesPermissionsPage.emptyTitle')} />
         </Card>
       ) : (
         <Card>
-          <p className="border-b border-slate-100 px-5 py-3 text-xs text-slate-400">
-            Tick vào ô tương ứng để cấp/thu hồi quyền cho từng vai trò. Thay đổi được lưu ngay lập tức.
-          </p>
+          <p className="border-b border-slate-100 px-5 py-3 text-xs text-slate-400">{t('admin:rolesPermissionsPage.hint')}</p>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] border-collapse text-sm">
               <thead>
                 <tr className="bg-slate-50">
                   <th className="sticky left-0 z-10 bg-slate-50 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Quyền
+                    {t('admin:rolesPermissionsPage.permissionColumn')}
                   </th>
                   {roles.map((r) => (
                     <th key={r.id} className="min-w-[110px] px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -86,7 +86,10 @@ export function RolesPermissionsPage() {
                               // nang tiep can) - truoc do trinh doc man hinh chi doc duoc "checkbox, chua chon",
                               // khong biet o nay dai dien cho vai tro/quyen nao, khien ca ma tran phan quyen khong
                               // the su dung neu khong nhin thay man hinh.
-                              aria-label={`${r.name} - ${p.description ?? p.key}`}
+                              aria-label={t('admin:rolesPermissionsPage.checkboxAriaLabel', {
+                                roleName: r.name,
+                                permissionLabel: p.description ?? p.key,
+                              })}
                             />
                           </td>
                         ))}

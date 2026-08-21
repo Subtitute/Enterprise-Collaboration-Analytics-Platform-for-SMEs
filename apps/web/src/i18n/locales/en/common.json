@@ -51,6 +51,25 @@
       "quarter": "This quarter"
     }
   },
+  "topbar": {
+    "openMenu": "Open menu",
+    "accountMenu": "Account menu",
+    "profile": "My profile",
+    "logout": "Log out"
+  },
+  "search": {
+    "placeholder": "Search projects, documents, tasks…",
+    "noResults": "No results found for \"{{query}}\".",
+    "category": {
+      "project": "Projects",
+      "task": "Tasks",
+      "member": "Members",
+      "folder": "Documents"
+    }
+  },
+  "session": {
+    "restoring": "Restoring your session…"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "projects": "Projects & Tasks",

@@ -1,1 +1,156 @@
-{}
+{
+  "adminPage": {
+    "title": "Quản trị",
+    "description": "Quản lý thành viên, phòng ban và phân quyền truy cập hệ thống.",
+    "tabs": {
+      "members": "Thành viên",
+      "departments": "Phòng ban",
+      "roles": "Vai trò & Quyền",
+      "failedEvents": "Sự kiện lỗi hệ thống"
+    }
+  },
+  "departmentsPage": {
+    "description": "Quản lý cơ cấu phòng ban trong tổ chức.",
+    "newDepartment": "Phòng ban mới",
+    "loading": "Đang tải phòng ban…",
+    "errorTitle": "Không thể tải danh sách phòng ban",
+    "emptyTitle": "Chưa có phòng ban nào",
+    "optionsAria": "Tùy chọn phòng ban",
+    "columns": {
+      "name": "Tên phòng ban",
+      "description": "Mô tả",
+      "memberCount": "Số thành viên",
+      "actions": "Hành động"
+    },
+    "actionsMenu": {
+      "edit": "Chỉnh sửa",
+      "delete": "Xoá"
+    },
+    "deleteConfirm": {
+      "title": "Xoá phòng ban này?",
+      "description": "Thành viên thuộc \"{{name}}\" sẽ không còn thuộc phòng ban nào.",
+      "confirmLabel": "Xoá phòng ban"
+    }
+  },
+  "membersPage": {
+    "description": "Quản lý thành viên, phòng ban và phân quyền truy cập trong tổ chức.",
+    "inviteMember": "Mời thành viên",
+    "loading": "Đang tải danh sách thành viên…",
+    "errorTitle": "Không thể tải danh sách thành viên",
+    "emptyTitle": "Chưa có thành viên nào",
+    "optionsAria": "Tùy chọn thành viên",
+    "columns": {
+      "member": "Thành viên",
+      "department": "Phòng ban",
+      "role": "Vai trò",
+      "status": "Trạng thái",
+      "actions": "Hành động"
+    },
+    "status": {
+      "active": "Đang hoạt động",
+      "inactive": "Đã vô hiệu hoá"
+    },
+    "actionsMenu": {
+      "editRoleDepartment": "Đổi phòng ban / vai trò",
+      "deactivate": "Vô hiệu hoá",
+      "reactivate": "Kích hoạt lại"
+    },
+    "deactivateConfirm": {
+      "title": "Vô hiệu hoá tài khoản này?",
+      "description": "\"{{fullName}}\" sẽ không thể đăng nhập cho đến khi được kích hoạt lại.",
+      "confirmLabel": "Vô hiệu hoá"
+    }
+  },
+  "rolesPermissionsPage": {
+    "otherGroup": "Khác",
+    "loading": "Đang tải ma trận phân quyền…",
+    "errorTitle": "Không thể tải dữ liệu vai trò/phân quyền",
+    "emptyTitle": "Chưa có dữ liệu vai trò hoặc quyền",
+    "hint": "Tick vào ô tương ứng để cấp/thu hồi quyền cho từng vai trò. Thay đổi được lưu ngay lập tức.",
+    "permissionColumn": "Quyền",
+    "checkboxAriaLabel": "{{roleName}} - {{permissionLabel}}"
+  },
+  "failedEventsPage": {
+    "description": "Danh sách các sự kiện xử lý nội bộ (Kafka) đã thất bại vĩnh viễn hoặc hết lượt thử lại tự động - đây không phải lỗi do người dùng gây ra, mà là dữ liệu phục vụ chẩn đoán sự cố hệ thống. Danh sách chỉ để xem, không có thao tác thử lại từ giao diện này.",
+    "descriptionOrgNote": "Riêng các sự kiện đánh dấu “Không xác định tổ chức” là lỗi xảy ra ngay từ khâu đọc dữ liệu (trước khi xác định được tổ chức nào phát sinh) nên hiển thị cho mọi Org Admin - đây là dữ liệu chẩn đoán hạ tầng dùng chung, không phải dữ liệu nghiệp vụ riêng của tổ chức nào.",
+    "loading": "Đang tải danh sách sự kiện lỗi…",
+    "errorTitle": "Không thể tải danh sách sự kiện lỗi",
+    "emptyTitle": "Chưa có sự kiện lỗi nào",
+    "emptyDescription": "Hiện chưa ghi nhận sự kiện xử lý nội bộ nào thất bại.",
+    "columns": {
+      "time": "Thời điểm",
+      "errorType": "Loại lỗi",
+      "scope": "Phạm vi",
+      "source": "Nguồn",
+      "eventType": "Loại sự kiện",
+      "errorMessage": "Thông báo lỗi"
+    },
+    "errorTypeLabels": {
+      "malformedJson": "Dữ liệu không hợp lệ",
+      "invalidEnvelope": "Dữ liệu không hợp lệ",
+      "permanentDataError": "Lỗi dữ liệu",
+      "retryExhausted": "Hết lượt thử lại"
+    },
+    "scopeUnknownOrg": "Không xác định tổ chức",
+    "scopeOwnOrg": "Tổ chức của bạn"
+  },
+  "roleCheckboxList": {
+    "empty": "Chưa có vai trò nào trong hệ thống."
+  },
+  "departmentModal": {
+    "editTitle": "Chỉnh sửa phòng ban",
+    "createTitle": "Tạo phòng ban mới",
+    "nameLabel": "Tên phòng ban",
+    "namePlaceholder": "Ví dụ: Phòng Kinh doanh",
+    "descriptionLabel": "Mô tả",
+    "nameRequiredError": "Vui lòng nhập tên phòng ban",
+    "cancel": "Hủy",
+    "saveChanges": "Lưu thay đổi",
+    "create": "Tạo phòng ban"
+  },
+  "editMemberModal": {
+    "title": "Chỉnh sửa — {{fullName}}",
+    "departmentLabel": "Phòng ban",
+    "noDepartmentOption": "— Không thuộc phòng ban —",
+    "roleLabel": "Vai trò",
+    "cancel": "Hủy",
+    "saveChanges": "Lưu thay đổi"
+  },
+  "inviteMemberModal": {
+    "title": "Mời thành viên mới",
+    "emailLabel": "Email",
+    "emailPlaceholder": "ten@congty.com",
+    "fullNameLabel": "Họ và tên",
+    "fullNamePlaceholder": "Nguyễn Văn A",
+    "passwordLabel": "Mật khẩu ban đầu",
+    "passwordHint": "Thành viên nên đổi lại mật khẩu sau lần đăng nhập đầu tiên",
+    "passwordPlaceholder": "Tối thiểu 8 ký tự",
+    "departmentLabel": "Phòng ban",
+    "noDepartmentOption": "— Không thuộc phòng ban —",
+    "roleLabel": "Vai trò",
+    "cancel": "Hủy",
+    "submit": "Gửi lời mời",
+    "errors": {
+      "emailRequired": "Vui lòng nhập email",
+      "fullNameRequired": "Vui lòng nhập họ tên",
+      "passwordMinLength": "Mật khẩu tối thiểu 8 ký tự"
+    }
+  },
+  "toast": {
+    "memberInvited": "Đã mời thành viên mới",
+    "memberInviteFailed": "Không thể mời thành viên",
+    "memberUpdated": "Đã cập nhật thành viên",
+    "memberUpdateFailed": "Không thể cập nhật thành viên",
+    "memberDeactivated": "Đã vô hiệu hoá tài khoản",
+    "memberDeactivateFailed": "Không thể vô hiệu hoá tài khoản",
+    "memberReactivated": "Đã kích hoạt lại tài khoản",
+    "memberReactivateFailed": "Không thể kích hoạt lại tài khoản",
+    "departmentCreated": "Đã tạo phòng ban mới",
+    "departmentCreateFailed": "Không thể tạo phòng ban",
+    "departmentUpdated": "Đã cập nhật phòng ban",
+    "departmentUpdateFailed": "Không thể cập nhật phòng ban",
+    "departmentDeleted": "Đã xoá phòng ban",
+    "departmentDeleteFailed": "Không thể xoá phòng ban",
+    "permissionsUpdateFailed": "Không thể cập nhật quyền"
+  }
+}

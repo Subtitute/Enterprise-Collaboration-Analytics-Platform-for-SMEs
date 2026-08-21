@@ -1,4 +1,5 @@
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useTranslation } from 'react-i18next';
 import { CATEGORICAL, CHART_INK } from '@/lib/chart-colors';
 import { formatDate } from '@/lib/utils';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -29,6 +30,7 @@ interface TaskTrendChartProps {
 }
 
 export function TaskTrendChart({ data, isLoading, isError, onRetry }: TaskTrendChartProps) {
+  const { t } = useTranslation();
   const hasCreated = data.some((d) => typeof d.created === 'number');
 
   return (
@@ -41,11 +43,11 @@ export function TaskTrendChart({ data, isLoading, isError, onRetry }: TaskTrendC
           <Spinner />
         </div>
       }
-      errorTitle="Không thể tải xu hướng công việc"
-      errorDescription="Đã xảy ra lỗi khi tải dữ liệu biểu đồ. Vui lòng thử lại."
+      errorTitle={t('dashboard:taskTrendChart.errorTitle')}
+      errorDescription={t('dashboard:taskTrendChart.errorDescription')}
     >
       {data.length === 0 ? (
-        <EmptyState title="Chưa có dữ liệu xu hướng công việc" description="Dữ liệu sẽ xuất hiện khi có công việc được tạo hoặc hoàn thành." />
+        <EmptyState title={t('dashboard:taskTrendChart.emptyTitle')} description={t('dashboard:taskTrendChart.emptyDescription')} />
       ) : (
         <ResponsiveContainer width="100%" height={280}>
           <LineChart data={data} margin={{ top: 8, right: 12, left: -16, bottom: 0 }}>
@@ -63,7 +65,7 @@ export function TaskTrendChart({ data, isLoading, isError, onRetry }: TaskTrendC
             <Line
               type="monotone"
               dataKey="completed"
-              name="Hoàn thành"
+              name={t('dashboard:taskTrendChart.completedLine')}
               stroke={CATEGORICAL[0]}
               strokeWidth={2}
               dot={{ r: 3, strokeWidth: 0, fill: CATEGORICAL[0] }}
@@ -73,7 +75,7 @@ export function TaskTrendChart({ data, isLoading, isError, onRetry }: TaskTrendC
               <Line
                 type="monotone"
                 dataKey="created"
-                name="Được tạo mới"
+                name={t('dashboard:taskTrendChart.createdLine')}
                 stroke={CATEGORICAL[1]}
                 strokeWidth={2}
                 dot={{ r: 3, strokeWidth: 0, fill: CATEGORICAL[1] }}

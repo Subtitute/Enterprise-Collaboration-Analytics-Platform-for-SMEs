@@ -51,6 +51,25 @@
       "quarter": "今四半期"
     }
   },
+  "topbar": {
+    "openMenu": "メニューを開く",
+    "accountMenu": "アカウントメニュー",
+    "profile": "プロフィール",
+    "logout": "ログアウト"
+  },
+  "search": {
+    "placeholder": "プロジェクト、ドキュメント、タスクを検索…",
+    "noResults": "「{{query}}」に一致する結果が見つかりませんでした。",
+    "category": {
+      "project": "プロジェクト",
+      "task": "タスク",
+      "member": "メンバー",
+      "folder": "ドキュメント"
+    }
+  },
+  "session": {
+    "restoring": "セッションを復元しています…"
+  },
   "nav": {
     "dashboard": "ダッシュボード",
     "projects": "プロジェクト・タスク",

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth.store';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -15,13 +16,14 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
+  const { t } = useTranslation();
   const isBootstrapping = useAuthStore((s) => s.isBootstrapping);
   const accessToken = useAuthStore((s) => s.accessToken);
   const roles = useAuthStore((s) => s.user?.roles);
   const location = useLocation();
 
   if (isBootstrapping) {
-    return <FullPageSpinner label="Đang khôi phục phiên đăng nhập…" />;
+    return <FullPageSpinner label={t('common:session.restoring')} />;
   }
 
   if (!accessToken) {

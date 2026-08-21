@@ -51,6 +51,25 @@
       "quarter": "Quý này"
     }
   },
+  "topbar": {
+    "openMenu": "Mở menu",
+    "accountMenu": "Menu tài khoản",
+    "profile": "Hồ sơ cá nhân",
+    "logout": "Đăng xuất"
+  },
+  "search": {
+    "placeholder": "Tìm kiếm dự án, tài liệu, công việc…",
+    "noResults": "Không tìm thấy kết quả cho “{{query}}”.",
+    "category": {
+      "project": "Dự án",
+      "task": "Công việc",
+      "member": "Thành viên",
+      "folder": "Tài liệu"
+    }
+  },
+  "session": {
+    "restoring": "Đang khôi phục phiên đăng nhập…"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "projects": "Dự án & Công việc",

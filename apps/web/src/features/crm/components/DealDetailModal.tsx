@@ -54,7 +54,7 @@ export function DealDetailModal({
 
   return (
     <>
-      <Modal open={Boolean(deal)} onClose={onClose} title="Chi tiết deal">
+      <Modal open={Boolean(deal)} onClose={onClose} title={t('crm:dealDetailModal.title')}>
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div className="flex items-center justify-between">
             <Badge variant={dealStageBadgeVariant(deal.stage)}>{t(`crm:enums.dealStage.${deal.stage}`)}</Badge>
@@ -62,18 +62,18 @@ export function DealDetailModal({
               type="button"
               onClick={() => setConfirmDelete(true)}
               className="rounded-md p-1.5 text-rose-500 hover:bg-rose-50"
-              aria-label="Xoá deal"
+              aria-label={t('crm:dealDetailModal.deleteAriaLabel')}
             >
               <TrashIcon className="h-4 w-4" />
             </button>
           </div>
-          <FormField label="Tiêu đề" htmlFor="deal-detail-title">
+          <FormField label={t('crm:dealDetailModal.fieldTitle')} htmlFor="deal-detail-title">
             <Input id="deal-detail-title" value={title} onChange={(e) => setTitle(e.target.value)} />
           </FormField>
-          <FormField label="Giá trị (VND)" htmlFor="deal-detail-value">
+          <FormField label={t('crm:dealDetailModal.fieldValue')} htmlFor="deal-detail-value">
             <Input id="deal-detail-value" type="number" min="0" value={value} onChange={(e) => setValue(e.target.value)} />
           </FormField>
-          <FormField label="Ngày dự kiến chốt" htmlFor="deal-detail-expected-close-date">
+          <FormField label={t('crm:dealDetailModal.fieldExpectedCloseDate')} htmlFor="deal-detail-expected-close-date">
             <Input
               id="deal-detail-expected-close-date"
               type="date"
@@ -83,10 +83,10 @@ export function DealDetailModal({
           </FormField>
           <div className="flex justify-end gap-2 pt-1">
             <Button type="button" variant="outline" onClick={onClose}>
-              Đóng
+              {t('crm:dealDetailModal.close')}
             </Button>
             <Button type="submit" isLoading={updateDeal.isPending}>
-              Lưu thay đổi
+              {t('crm:dealDetailModal.save')}
             </Button>
           </div>
         </form>
@@ -100,9 +100,9 @@ export function DealDetailModal({
           setConfirmDelete(false);
           onClose();
         }}
-        title="Xoá deal này?"
-        description={`Deal "${deal.title}" sẽ bị xoá vĩnh viễn. Hành động này không thể hoàn tác.`}
-        confirmLabel="Xoá deal"
+        title={t('crm:dealDetailModal.deleteConfirmTitle')}
+        description={t('crm:dealDetailModal.deleteConfirmDescription', { title: deal.title })}
+        confirmLabel={t('crm:dealDetailModal.deleteConfirmButton')}
         danger
       />
     </>

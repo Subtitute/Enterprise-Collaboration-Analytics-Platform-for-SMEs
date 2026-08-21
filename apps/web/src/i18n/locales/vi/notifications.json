@@ -1,1 +1,31 @@
-{}
+{
+  "page": {
+    "title": "Thông báo",
+    "subtitle": "Toàn bộ thông báo liên quan đến hoạt động của bạn.",
+    "markAllRead": "Đánh dấu tất cả đã đọc",
+    "markRead": "Đánh dấu đã đọc",
+    "loading": "Đang tải thông báo…",
+    "loadError": "Không thể tải thông báo",
+    "empty": "Không có thông báo",
+    "tabs": {
+      "all": "Tất cả",
+      "unread": "Chưa đọc"
+    },
+    "typeFilter": {
+      "all": "Tất cả loại",
+      "task": "Task",
+      "document": "Document",
+      "system": "Hệ thống"
+    }
+  },
+  "bell": {
+    "ariaLabel": "Thông báo",
+    "title": "Thông báo",
+    "markAllRead": "Đánh dấu tất cả đã đọc",
+    "empty": "Không có thông báo mới",
+    "viewAll": "Xem tất cả thông báo"
+  },
+  "toast": {
+    "updateError": "Không thể cập nhật thông báo"
+  }
+}

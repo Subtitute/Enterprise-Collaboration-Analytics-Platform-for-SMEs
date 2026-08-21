@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { FormField, Select } from '@/components/ui/Input';
@@ -10,16 +11,16 @@ import { useDepartmentsQuery } from '@/features/admin/hooks';
 import { useShareFile } from '../hooks';
 import type { FileItem } from '@/types';
 
-const PERMISSIONS = [
-  { value: 'VIEW', label: 'Chỉ xem' },
-  { value: 'EDIT', label: 'Chỉnh sửa' },
-];
-
 // 28/07/2026: kieu doi tuong nhan chia se - dung cho cong tac "Người dùng"/"Phòng ban" ben duoi
 // (tinh nang kiem soat truy cap thu muc/tep theo cap do, mo rong chia se sang ca phong ban).
 type ShareTargetType = 'user' | 'department';
 
 export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: () => void }) {
+  const { t } = useTranslation();
+  const PERMISSIONS = [
+    { value: 'VIEW', label: t('documents:shareModal.permissions.view') },
+    { value: 'EDIT', label: t('documents:shareModal.permissions.edit') },
+  ];
   const { data: users } = useOrgUsersQuery();
   const { data: departments } = useDepartmentsQuery();
   // 28/07/2026: thay `userId` rieng le bang `targetType` + `targetId` de dung chung 1 <Select> cho
@@ -37,7 +38,7 @@ export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: 
   }
 
   return (
-    <Modal open={Boolean(file)} onClose={handleClose} title={`Chia sẻ "${file?.name ?? ''}"`} size="sm">
+    <Modal open={Boolean(file)} onClose={handleClose} title={t('documents:shareModal.title', { fileName: file?.name ?? '' })} size="sm">
       <div className="space-y-4">
         {/* 28/07/2026: cong tac dang segmented control - chuyen doi <Select> ben duoi giua danh sach
             thanh vien va danh sach phong ban, vi backend chi nhan DUNG 1 trong 2 truong
@@ -54,7 +55,7 @@ export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: 
               targetType === 'user' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700',
             )}
           >
-            Người dùng
+            {t('documents:shareModal.targetType.user')}
           </button>
           <button
             type="button"
@@ -67,7 +68,7 @@ export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: 
               targetType === 'department' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700',
             )}
           >
-            Phòng ban
+            {t('documents:shareModal.targetType.department')}
           </button>
         </div>
         {/* 25/07/2026: them htmlFor/id (share-user, share-permission) - <Label> truoc do khong gan
@@ -75,9 +76,15 @@ export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: 
             NewTaskModal.tsx/InviteMemberModal.tsx dang dung. */}
         {/* 28/07/2026: doi id sang "share-target" (dung chung cho ca 2 loai) va doc du lieu tu
             users/departments tuy targetType - xem giai thich tai khai bao targetType/targetId. */}
-        <FormField label={targetType === 'user' ? 'Chia sẻ với' : 'Chia sẻ với phòng ban'} htmlFor="share-target" required>
+        <FormField
+          label={targetType === 'user' ? t('documents:shareModal.shareWithLabel') : t('documents:shareModal.shareWithDepartmentLabel')}
+          htmlFor="share-target"
+          required
+        >
           <Select id="share-target" value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-            <option value="">{targetType === 'user' ? 'Chọn thành viên…' : 'Chọn phòng ban…'}</option>
+            <option value="">
+              {targetType === 'user' ? t('documents:shareModal.selectMemberPlaceholder') : t('documents:shareModal.selectDepartmentPlaceholder')}
+            </option>
             {targetType === 'user'
               ? (users ?? []).map((u) => (
                   <option key={u.id} value={u.id}>
@@ -91,7 +98,7 @@ export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: 
                 ))}
           </Select>
         </FormField>
-        <FormField label="Quyền truy cập" htmlFor="share-permission">
+        <FormField label={t('documents:shareModal.permissionLabel')} htmlFor="share-permission">
           <Select id="share-permission" value={permission} onChange={(e) => setPermission(e.target.value)}>
             {PERMISSIONS.map((p) => (
               <option key={p.value} value={p.value}>
@@ -102,7 +109,7 @@ export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: 
         </FormField>
         <div className="flex justify-end gap-2 pt-1">
           <Button type="button" variant="outline" onClick={handleClose}>
-            Hủy
+            {t('documents:shareModal.cancel')}
           </Button>
           <Button
             type="button"
@@ -116,7 +123,7 @@ export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: 
               share.mutate({ fileId: file.id, ...target, permission }, { onSuccess: handleClose });
             }}
           >
-            Chia sẻ
+            {t('documents:shareModal.submit')}
           </Button>
         </div>
       </div>

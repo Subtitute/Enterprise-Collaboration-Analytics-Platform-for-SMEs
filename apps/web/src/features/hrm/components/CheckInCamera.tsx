@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
@@ -57,6 +58,7 @@ export function CheckInCamera({
   onConfirm: (photo: Blob, location?: CheckInLocation) => void;
   isSubmitting?: boolean;
 }) {
+  const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -147,7 +149,7 @@ export function CheckInCamera({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Chụp ảnh chấm công" size="sm">
+    <Modal open={open} onClose={onClose} title={t('hrm:checkInCamera.modalTitle')} size="sm">
       <div className="space-y-4">
         <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-slate-900">
           {status === 'requesting' && (
@@ -157,19 +159,19 @@ export function CheckInCamera({
           )}
           {status === 'denied' && (
             <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center text-sm text-slate-300">
-              <p>Không thể truy cập camera. Vui lòng cấp quyền camera cho trình duyệt rồi thử lại.</p>
+              <p>{t('hrm:checkInCamera.cameraDenied')}</p>
               <Button size="sm" variant="outline" onClick={startCamera}>
-                <RefreshIcon className="h-4 w-4" /> Thử lại
+                <RefreshIcon className="h-4 w-4" /> {t('hrm:checkInCamera.retryButton')}
               </Button>
             </div>
           )}
           {status === 'unavailable' && (
             <div className="flex h-full items-center justify-center p-4 text-center text-sm text-slate-300">
-              Thiết bị này không hỗ trợ camera hoặc trình duyệt không cho phép truy cập.
+              {t('hrm:checkInCamera.cameraUnavailable')}
             </div>
           )}
           {previewUrl ? (
-            <img src={previewUrl} alt="Ảnh chấm công vừa chụp" className="h-full w-full object-cover" />
+            <img src={previewUrl} alt={t('hrm:checkInCamera.previewAlt')} className="h-full w-full object-cover" />
           ) : (
             <video
               ref={videoRef}
@@ -183,20 +185,20 @@ export function CheckInCamera({
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onClose}>
-            Hủy
+            {t('hrm:checkInCamera.cancelButton')}
           </Button>
           {previewUrl ? (
             <>
               <Button type="button" variant="outline" onClick={handleRetake}>
-                <RefreshIcon className="h-4 w-4" /> Chụp lại
+                <RefreshIcon className="h-4 w-4" /> {t('hrm:checkInCamera.retakeButton')}
               </Button>
               <Button type="button" onClick={handleConfirm} isLoading={isSubmitting}>
-                Xác nhận
+                {t('hrm:checkInCamera.confirmButton')}
               </Button>
             </>
           ) : (
             <Button type="button" onClick={handleCapture} disabled={status !== 'ready'}>
-              <CameraIcon className="h-4 w-4" /> Chụp ảnh
+              <CameraIcon className="h-4 w-4" /> {t('hrm:checkInCamera.captureButton')}
             </Button>
           )}
         </div>

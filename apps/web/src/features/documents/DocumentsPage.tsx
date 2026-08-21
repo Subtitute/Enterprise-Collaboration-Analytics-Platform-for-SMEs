@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -18,6 +19,7 @@ import { VersionHistoryModal } from './components/VersionHistoryModal';
 import type { FileItem, Folder } from '@/types';
 
 export function DocumentsPage() {
+  const { t } = useTranslation();
   // 22/07/2026: chuyen currentFolderId tu useState noi bo sang query param ?folderId= tren URL
   // (setSearchParams mac dinh PUSH 1 history entry moi, giong navigate thong thuong) - truoc do
   // moi lan bam vao 1 thu muc chi doi state React, KHONG tao history entry nao, nen nut Back
@@ -70,15 +72,15 @@ export function DocumentsPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Tài liệu</h1>
-          <p className="text-sm text-slate-500">Quản lý thư mục và tệp tài liệu dùng chung của tổ chức.</p>
+          <h1 className="text-xl font-semibold text-slate-900">{t('documents:documentsPage.title')}</h1>
+          <p className="text-sm text-slate-500">{t('documents:documentsPage.subtitle')}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setIsNewFolderOpen(true)}>
-            <PlusIcon className="h-4 w-4" /> Thư mục mới
+            <PlusIcon className="h-4 w-4" /> {t('documents:documentsPage.newFolder')}
           </Button>
           <Button onClick={() => setIsUploadOpen(true)}>
-            <UploadIcon className="h-4 w-4" /> Tải lên
+            <UploadIcon className="h-4 w-4" /> {t('documents:documentsPage.upload')}
           </Button>
         </div>
       </div>
@@ -88,7 +90,7 @@ export function DocumentsPage() {
           onClick={() => setCurrentFolderId(null)}
           className={currentFolderId === null ? 'font-medium text-slate-900' : 'hover:text-primary-600'}
         >
-          Tất cả tài liệu
+          {t('documents:documentsPage.breadcrumbRoot')}
         </button>
         {breadcrumb.map((folder) => (
           <span key={folder.id} className="flex items-center gap-1">
@@ -110,21 +112,21 @@ export function DocumentsPage() {
           foldersQuery.refetch();
           filesQuery.refetch();
         }}
-        loadingFallback={<FullPageSpinner label="Đang tải tài liệu…" />}
-        errorTitle="Không thể tải tài liệu"
-        errorDescription="Đã xảy ra lỗi khi tải thư mục/tệp. Vui lòng thử lại."
+        loadingFallback={<FullPageSpinner label={t('documents:documentsPage.loading')} />}
+        errorTitle={t('documents:documentsPage.errorTitle')}
+        errorDescription={t('documents:documentsPage.errorDescription')}
       >
         {isEmpty ? (
           <EmptyState
             icon={<FileTextIcon className="h-10 w-10" />}
-            title="Thư mục trống"
-            description="Tạo thư mục con hoặc tải lên tài liệu đầu tiên."
+            title={t('documents:documentsPage.emptyState.title')}
+            description={t('documents:documentsPage.emptyState.description')}
             action={
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => setIsNewFolderOpen(true)}>
-                  Thư mục mới
+                  {t('documents:documentsPage.emptyState.newFolder')}
                 </Button>
-                <Button onClick={() => setIsUploadOpen(true)}>Tải lên tài liệu</Button>
+                <Button onClick={() => setIsUploadOpen(true)}>{t('documents:documentsPage.emptyState.uploadFile')}</Button>
               </div>
             }
           />

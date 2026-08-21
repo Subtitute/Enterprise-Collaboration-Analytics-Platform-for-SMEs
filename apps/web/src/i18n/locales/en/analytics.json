@@ -1,1 +1,53 @@
-{}
+{
+  "page": {
+    "title": "Reports & Analytics",
+    "subtitle": "Organization-wide metrics for the selected date range.",
+    "unnamedProject": "Project #{{id}}"
+  },
+  "filters": {
+    "dateRangeAriaLabel": "Date range",
+    "departmentAriaLabel": "Department",
+    "allDepartments": "All departments"
+  },
+  "aiInsight": {
+    "title": "AI Insight",
+    "generateButton": "Generate AI Insight",
+    "summaryWithDepartment": "Based on {{range}} data · {{department}} department",
+    "summaryAllOrg": "Based on {{range}} data · Organization-wide",
+    "placeholder": "Click \"Generate AI Insight\" to get a concise, AI-generated summary of the metrics currently shown."
+  },
+  "charts": {
+    "projectProgressTitle": "Project Progress Comparison",
+    "documentActivityTitle": "Document Activity Trend"
+  },
+  "projectProgressTableSection": {
+    "title": "Project Metrics Table",
+    "errorTitle": "Couldn't load project metrics table"
+  },
+  "projectProgressChart": {
+    "tooltipProgressLabel": "Progress:",
+    "errorTitle": "Couldn't load project progress",
+    "errorDescription": "Something went wrong loading the chart data. Please try again.",
+    "emptyTitle": "No project progress data yet"
+  },
+  "documentActivityChart": {
+    "errorTitle": "Couldn't load document activity",
+    "errorDescription": "Something went wrong loading the chart data. Please try again.",
+    "emptyTitle": "No document activity data yet",
+    "uploadsLabel": "Uploads",
+    "sharesLabel": "Shares"
+  },
+  "projectProgressTable": {
+    "emptyTitle": "No data to display",
+    "footnote": "* Figures are shown organization-wide. Department-level breakdown will be added when the system supports it.",
+    "columns": {
+      "name": "Project",
+      "progress": "Progress",
+      "completedTasks": "Completed",
+      "totalTasks": "Total Tasks"
+    }
+  },
+  "hooks": {
+    "aiInsightError": "Couldn't generate AI insight"
+  }
+}

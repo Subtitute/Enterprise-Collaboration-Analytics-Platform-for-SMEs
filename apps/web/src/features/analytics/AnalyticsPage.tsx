@@ -46,21 +46,21 @@ export function AnalyticsPage() {
         const progress = item.progress ?? (totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0);
         return {
           projectId: item.projectId,
-          name: projectNames[item.projectId] ?? `Dự án #${item.projectId.slice(0, 8)}`,
+          name: projectNames[item.projectId] ?? t('analytics:page.unnamedProject', { id: item.projectId.slice(0, 8) }),
           progress,
           completedTasks,
           totalTasks,
         };
       }),
-    [progressQuery.data, projectNames],
+    [progressQuery.data, projectNames, t],
   );
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">Báo cáo &amp; Phân tích</h1>
-          <p className="text-sm text-slate-500">Số liệu tổng hợp toàn tổ chức theo khoảng thời gian đã chọn.</p>
+          <h1 className="text-xl font-semibold text-slate-900">{t('analytics:page.title')}</h1>
+          <p className="text-sm text-slate-500">{t('analytics:page.subtitle')}</p>
         </div>
         {/* 25/07/2026: them aria-label - cung ly do nhu Select tuong tu o DashboardPage.tsx (khong
             co <Label> hien thi kem theo de trinh doc man hinh doc ten). */}
@@ -68,7 +68,7 @@ export function AnalyticsPage() {
           <Select
             value={range}
             onChange={(e) => setRange(e.target.value as DateRangeOption)}
-            aria-label="Khoảng thời gian"
+            aria-label={t('analytics:filters.dateRangeAriaLabel')}
             style={{ width: 'auto' }}
           >
             {DATE_RANGE_OPTIONS.map((key) => (
@@ -83,10 +83,10 @@ export function AnalyticsPage() {
           <Select
             value={departmentId}
             onChange={(e) => setDepartmentId(e.target.value)}
-            aria-label="Phòng ban"
+            aria-label={t('analytics:filters.departmentAriaLabel')}
             style={{ width: 'auto' }}
           >
-            <option value="">Tất cả phòng ban</option>
+            <option value="">{t('analytics:filters.allDepartments')}</option>
             {(departmentsQuery.data ?? []).map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
@@ -101,7 +101,7 @@ export function AnalyticsPage() {
           xem ly do day du tai hooks.ts (useAiInsightMutation). */}
       <Card>
         <CardHeader>
-          <CardTitle>Nhận xét AI</CardTitle>
+          <CardTitle>{t('analytics:aiInsight.title')}</CardTitle>
           <Button
             size="sm"
             variant="outline"
@@ -111,7 +111,7 @@ export function AnalyticsPage() {
             }
           >
             <SparklesIcon className="h-4 w-4" />
-            Tạo nhận xét AI
+            {t('analytics:aiInsight.generateButton')}
           </Button>
         </CardHeader>
         <CardContent>
@@ -119,14 +119,18 @@ export function AnalyticsPage() {
             <div className="space-y-1">
               <p className="text-sm text-slate-700">{aiInsightMutation.data.insight}</p>
               <p className="text-xs text-slate-400">
-                Dựa trên số liệu {t(`common:enums.dateRange.${aiInsightMutation.variables?.range ?? range}`).toLowerCase()}
-                {aiInsightMutation.variables?.departmentName ? ` · Phòng ban ${aiInsightMutation.variables.departmentName}` : ' · Toàn tổ chức'}
+                {aiInsightMutation.variables?.departmentName
+                  ? t('analytics:aiInsight.summaryWithDepartment', {
+                      range: t(`common:enums.dateRange.${aiInsightMutation.variables?.range ?? range}`).toLowerCase(),
+                      department: aiInsightMutation.variables.departmentName,
+                    })
+                  : t('analytics:aiInsight.summaryAllOrg', {
+                      range: t(`common:enums.dateRange.${aiInsightMutation.variables?.range ?? range}`).toLowerCase(),
+                    })}
               </p>
             </div>
           ) : (
-            <p className="text-sm text-slate-500">
-              Bấm “Tạo nhận xét AI” để nhận một đoạn nhận xét ngắn gọn về số liệu đang hiển thị, do AI tổng hợp.
-            </p>
+            <p className="text-sm text-slate-500">{t('analytics:aiInsight.placeholder')}</p>
           )}
         </CardContent>
       </Card>
@@ -134,7 +138,7 @@ export function AnalyticsPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>So sánh tiến độ dự án</CardTitle>
+            <CardTitle>{t('analytics:charts.projectProgressTitle')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ProjectProgressChart
@@ -148,7 +152,7 @@ export function AnalyticsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Xu hướng hoạt động tài liệu</CardTitle>
+            <CardTitle>{t('analytics:charts.documentActivityTitle')}</CardTitle>
           </CardHeader>
           <CardContent>
             <DocumentActivityChart
@@ -163,14 +167,14 @@ export function AnalyticsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Bảng chỉ số theo dự án</CardTitle>
+          <CardTitle>{t('analytics:projectProgressTableSection.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <QueryState
             isLoading={progressQuery.isLoading}
             isError={progressQuery.isError}
             onRetry={() => progressQuery.refetch()}
-            errorTitle="Không thể tải bảng chỉ số dự án"
+            errorTitle={t('analytics:projectProgressTableSection.errorTitle')}
             loadingFallback={
               <div className="flex justify-center py-10">
                 <Spinner />

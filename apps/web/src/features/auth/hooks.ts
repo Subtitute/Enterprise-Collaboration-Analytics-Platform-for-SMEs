@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth.store';
 import { disconnectAnalyticsSocket, disconnectNotificationSocket } from '@/lib/socket';
 import { extractErrorMessage } from '@/lib/api-client';
@@ -21,6 +22,7 @@ import type { LoginPayload, RegisterOrganizationPayload } from './api';
 // goi that su. Goi queryClient.clear() o CA 3 diem chuyen doi phien (dang nhap/dang ky/dang xuat)
 // xoa SACH toan bo cache, dam bao khong con du lieu cua phien truoc song sot sang phien sau.
 export function useLogin() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const setSession = useAuthStore((s) => s.setSession);
 
@@ -32,12 +34,13 @@ export function useLogin() {
       navigate('/dashboard', { replace: true });
     },
     onError: (error) => {
-      toast.error('Đăng nhập thất bại', extractErrorMessage(error, 'Email hoặc mật khẩu không đúng.'));
+      toast.error(t('auth:hooks.login.errorTitle'), extractErrorMessage(error, t('auth:hooks.login.errorFallback')));
     },
   });
 }
 
 export function useRegisterOrganization() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const setSession = useAuthStore((s) => s.setSession);
 
@@ -46,11 +49,11 @@ export function useRegisterOrganization() {
     onSuccess: (data) => {
       queryClient.clear();
       setSession(data);
-      toast.success('Tạo tổ chức thành công', `Chào mừng ${data.user.fullName} đến với ECAP for SMEs.`);
+      toast.success(t('auth:hooks.register.successTitle'), t('auth:hooks.register.successDescription', { fullName: data.user.fullName }));
       navigate('/dashboard', { replace: true });
     },
     onError: (error) => {
-      toast.error('Không thể tạo tổ chức', extractErrorMessage(error));
+      toast.error(t('auth:hooks.register.errorTitle'), extractErrorMessage(error));
     },
   });
 }

@@ -1,4 +1,5 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { useTranslation } from 'react-i18next';
 import { CATEGORICAL, CHART_INK } from '@/lib/chart-colors';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
@@ -11,13 +12,14 @@ export interface ProjectProgressRow {
 }
 
 function ProgressTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: ProjectProgressRow }> }) {
+  const { t } = useTranslation();
   if (!active || !payload?.length) return null;
   const row = payload[0].payload;
   return (
     <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs shadow-lg">
       <p className="font-medium text-slate-700">{row.name}</p>
       <p className="text-slate-600">
-        Tiến độ: <span className="font-semibold text-slate-900">{row.progress}%</span>
+        {t('analytics:projectProgressChart.tooltipProgressLabel')} <span className="font-semibold text-slate-900">{row.progress}%</span>
       </p>
     </div>
   );
@@ -31,6 +33,7 @@ interface ProjectProgressChartProps {
 }
 
 export function ProjectProgressChart({ data, isLoading, isError, onRetry }: ProjectProgressChartProps) {
+  const { t } = useTranslation();
   const height = Math.max(220, data.length * 40);
 
   return (
@@ -43,11 +46,11 @@ export function ProjectProgressChart({ data, isLoading, isError, onRetry }: Proj
           <Spinner />
         </div>
       }
-      errorTitle="Không thể tải tiến độ dự án"
-      errorDescription="Đã xảy ra lỗi khi tải dữ liệu biểu đồ. Vui lòng thử lại."
+      errorTitle={t('analytics:projectProgressChart.errorTitle')}
+      errorDescription={t('analytics:projectProgressChart.errorDescription')}
     >
       {data.length === 0 ? (
-        <EmptyState title="Chưa có dữ liệu tiến độ dự án" />
+        <EmptyState title={t('analytics:projectProgressChart.emptyTitle')} />
       ) : (
         <ResponsiveContainer width="100%" height={height}>
           <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, left: 4, bottom: 4 }} barCategoryGap={10}>

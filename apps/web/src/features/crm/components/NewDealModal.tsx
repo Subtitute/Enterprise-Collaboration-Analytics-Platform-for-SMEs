@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { FormField, Input } from '@/components/ui/Input';
 import { useCreateDeal } from '../hooks';
 
 export function NewDealModal({ customerId, open, onClose }: { customerId: string; open: boolean; onClose: () => void }) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [value, setValue] = useState('');
   const [expectedCloseDate, setExpectedCloseDate] = useState('');
@@ -27,7 +29,7 @@ export function NewDealModal({ customerId, open, onClose }: { customerId: string
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!title.trim()) {
-      setError('Vui lòng nhập tiêu đề deal');
+      setError(t('crm:newDealModal.titleRequiredError'));
       return;
     }
     createDeal.mutate(
@@ -41,15 +43,20 @@ export function NewDealModal({ customerId, open, onClose }: { customerId: string
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title="Tạo deal mới">
+    <Modal open={open} onClose={handleClose} title={t('crm:newDealModal.title')}>
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <FormField label="Tiêu đề" htmlFor="deal-title" error={error} required>
-          <Input id="deal-title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ví dụ: Gói triển khai năm 2026" />
+        <FormField label={t('crm:newDealModal.fieldTitle')} htmlFor="deal-title" error={error} required>
+          <Input
+            id="deal-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={t('crm:newDealModal.titlePlaceholder')}
+          />
         </FormField>
-        <FormField label="Giá trị (VND)" htmlFor="deal-value">
+        <FormField label={t('crm:newDealModal.fieldValue')} htmlFor="deal-value">
           <Input id="deal-value" type="number" min="0" value={value} onChange={(e) => setValue(e.target.value)} placeholder="0" />
         </FormField>
-        <FormField label="Ngày dự kiến chốt" htmlFor="deal-expected-close-date">
+        <FormField label={t('crm:newDealModal.fieldExpectedCloseDate')} htmlFor="deal-expected-close-date">
           <Input
             id="deal-expected-close-date"
             type="date"
@@ -59,10 +66,10 @@ export function NewDealModal({ customerId, open, onClose }: { customerId: string
         </FormField>
         <div className="flex justify-end gap-2 pt-1">
           <Button type="button" variant="outline" onClick={handleClose}>
-            Hủy
+            {t('crm:newDealModal.cancel')}
           </Button>
           <Button type="submit" isLoading={createDeal.isPending}>
-            Tạo deal
+            {t('crm:newDealModal.submit')}
           </Button>
         </div>
       </form>

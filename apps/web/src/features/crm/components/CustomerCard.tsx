@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
@@ -9,6 +10,7 @@ import { useDeleteCustomer } from '../hooks';
 import type { Customer } from '@/types';
 
 export function CustomerCard({ customer }: { customer: Customer }) {
+  const { t } = useTranslation();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const del = useDeleteCustomer();
 
@@ -24,7 +26,7 @@ export function CustomerCard({ customer }: { customer: Customer }) {
               <button
                 onClick={toggle}
                 className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                aria-label="Tùy chọn khách hàng"
+                aria-label={t('crm:customerCard.optionsAriaLabel')}
               >
                 <MoreVerticalIcon className="h-4 w-4" />
               </button>
@@ -39,7 +41,7 @@ export function CustomerCard({ customer }: { customer: Customer }) {
                     close();
                   }}
                 >
-                  <TrashIcon className="h-4 w-4" /> Xoá khách hàng
+                  <TrashIcon className="h-4 w-4" /> {t('crm:customerCard.deleteCustomer')}
                 </DropdownItem>
               </div>
             )}
@@ -58,7 +60,9 @@ export function CustomerCard({ customer }: { customer: Customer }) {
         )}
 
         <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-          <span className="text-xs text-slate-500">{customer.openDealCount ?? 0} deal đang hoạt động</span>
+          <span className="text-xs text-slate-500">
+            {t('crm:customerCard.openDeals', { count: customer.openDealCount ?? 0 })}
+          </span>
           <span className="text-sm font-semibold text-primary-700">{formatDealValue(customer.openDealValue ?? 0)}</span>
         </div>
       </Card>
@@ -70,9 +74,9 @@ export function CustomerCard({ customer }: { customer: Customer }) {
           del.mutate(customer.id);
           setConfirmDelete(false);
         }}
-        title="Xoá khách hàng này?"
-        description={`Toàn bộ deal thuộc "${customer.name}" cũng sẽ bị xoá. Hành động này không thể hoàn tác.`}
-        confirmLabel="Xoá khách hàng"
+        title={t('crm:customerCard.deleteConfirmTitle')}
+        description={t('crm:customerCard.deleteConfirmDescription', { name: customer.name })}
+        confirmLabel={t('crm:customerCard.deleteCustomer')}
         danger
       />
     </>

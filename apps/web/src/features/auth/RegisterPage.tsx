@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth.store';
 import { useRegisterOrganization } from './hooks';
 import { AuthLayout } from './components/AuthLayout';
@@ -20,15 +21,16 @@ interface WizardData {
   confirmPassword: string;
 }
 
-const STEPS = [
-  { step: 1, label: 'Thông tin tổ chức' },
-  { step: 2, label: 'Tài khoản quản trị' },
-  { step: 3, label: 'Hoàn tất' },
-];
-
 export function RegisterPage() {
+  const { t } = useTranslation();
   const accessToken = useAuthStore((s) => s.accessToken);
   const registerOrg = useRegisterOrganization();
+
+  const STEPS = [
+    { step: 1, label: t('auth:registerPage.steps.organization') },
+    { step: 2, label: t('auth:registerPage.steps.adminAccount') },
+    { step: 3, label: t('auth:registerPage.steps.complete') },
+  ];
 
   const [step, setStep] = useState(1);
   const [data, setData] = useState<WizardData>({
@@ -49,19 +51,19 @@ export function RegisterPage() {
 
   function validateStep1() {
     const next: Record<string, string> = {};
-    if (!data.organizationName.trim()) next.organizationName = 'Vui lòng nhập tên tổ chức';
+    if (!data.organizationName.trim()) next.organizationName = t('auth:registerPage.errors.organizationNameRequired');
     setErrors(next);
     return Object.keys(next).length === 0;
   }
 
   function validateStep2() {
     const next: Record<string, string> = {};
-    if (!data.adminFullName.trim()) next.adminFullName = 'Vui lòng nhập họ tên';
-    if (!data.adminEmail.trim()) next.adminEmail = 'Vui lòng nhập email';
-    else if (!EMAIL_RE.test(data.adminEmail.trim())) next.adminEmail = 'Email không hợp lệ';
-    if (!data.adminPassword) next.adminPassword = 'Vui lòng nhập mật khẩu';
-    else if (data.adminPassword.length < 8) next.adminPassword = 'Mật khẩu tối thiểu 8 ký tự';
-    if (data.confirmPassword !== data.adminPassword) next.confirmPassword = 'Mật khẩu xác nhận không khớp';
+    if (!data.adminFullName.trim()) next.adminFullName = t('auth:registerPage.errors.adminFullNameRequired');
+    if (!data.adminEmail.trim()) next.adminEmail = t('auth:registerPage.errors.adminEmailRequired');
+    else if (!EMAIL_RE.test(data.adminEmail.trim())) next.adminEmail = t('auth:registerPage.errors.adminEmailInvalid');
+    if (!data.adminPassword) next.adminPassword = t('auth:registerPage.errors.adminPasswordRequired');
+    else if (data.adminPassword.length < 8) next.adminPassword = t('auth:registerPage.errors.adminPasswordTooShort');
+    if (data.confirmPassword !== data.adminPassword) next.confirmPassword = t('auth:registerPage.errors.confirmPasswordMismatch');
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -85,7 +87,7 @@ export function RegisterPage() {
   }
 
   return (
-    <AuthLayout title="Đăng ký tổ chức mới" subtitle="Khởi tạo không gian làm việc cho doanh nghiệp của bạn" wide>
+    <AuthLayout title={t('auth:registerPage.title')} subtitle={t('auth:registerPage.subtitle')} wide>
       <ol className="mb-7 flex items-center justify-between">
         {STEPS.map((s, i) => (
           <li key={s.step} className="flex flex-1 items-center">
@@ -113,55 +115,55 @@ export function RegisterPage() {
 
       {step === 1 && (
         <form onSubmit={handleNext} className="space-y-4" noValidate>
-          <FormField label="Tên tổ chức" htmlFor="organizationName" error={errors.organizationName} required>
+          <FormField label={t('auth:registerPage.step1.organizationNameLabel')} htmlFor="organizationName" error={errors.organizationName} required>
             <Input
               id="organizationName"
-              placeholder="Công ty TNHH ABC"
+              placeholder={t('auth:registerPage.step1.organizationNamePlaceholder')}
               value={data.organizationName}
               onChange={(e) => update('organizationName', e.target.value)}
             />
           </FormField>
-          <FormField label="Mã số thuế" htmlFor="taxCode" hint="Không bắt buộc">
+          <FormField label={t('auth:registerPage.step1.taxCodeLabel')} htmlFor="taxCode" hint={t('auth:registerPage.step1.taxCodeHint')}>
             <Input id="taxCode" placeholder="0123456789" value={data.taxCode} onChange={(e) => update('taxCode', e.target.value)} />
           </FormField>
           <Button type="submit" className="w-full">
-            Tiếp tục
+            {t('auth:registerPage.step1.continue')}
           </Button>
         </form>
       )}
 
       {step === 2 && (
         <form onSubmit={handleFinish} className="space-y-4" noValidate>
-          <FormField label="Họ và tên quản trị viên" htmlFor="adminFullName" error={errors.adminFullName} required>
+          <FormField label={t('auth:registerPage.step2.adminFullNameLabel')} htmlFor="adminFullName" error={errors.adminFullName} required>
             <Input
               id="adminFullName"
-              placeholder="Nguyễn Văn A"
+              placeholder={t('auth:registerPage.step2.adminFullNamePlaceholder')}
               value={data.adminFullName}
               onChange={(e) => update('adminFullName', e.target.value)}
             />
           </FormField>
-          <FormField label="Email quản trị viên" htmlFor="adminEmail" error={errors.adminEmail} required>
+          <FormField label={t('auth:registerPage.step2.adminEmailLabel')} htmlFor="adminEmail" error={errors.adminEmail} required>
             <Input
               id="adminEmail"
               type="email"
-              placeholder="admin@congty.com"
+              placeholder={t('auth:registerPage.step2.adminEmailPlaceholder')}
               value={data.adminEmail}
               onChange={(e) => update('adminEmail', e.target.value)}
             />
           </FormField>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField label="Mật khẩu" htmlFor="adminPassword" error={errors.adminPassword} required>
+            <FormField label={t('auth:registerPage.step2.adminPasswordLabel')} htmlFor="adminPassword" error={errors.adminPassword} required>
               <PasswordInput
                 id="adminPassword"
-                placeholder="Tối thiểu 8 ký tự"
+                placeholder={t('auth:registerPage.step2.adminPasswordPlaceholder')}
                 value={data.adminPassword}
                 onChange={(e) => update('adminPassword', e.target.value)}
               />
             </FormField>
-            <FormField label="Xác nhận mật khẩu" htmlFor="confirmPassword" error={errors.confirmPassword} required>
+            <FormField label={t('auth:registerPage.step2.confirmPasswordLabel')} htmlFor="confirmPassword" error={errors.confirmPassword} required>
               <PasswordInput
                 id="confirmPassword"
-                placeholder="Nhập lại mật khẩu"
+                placeholder={t('auth:registerPage.step2.confirmPasswordPlaceholder')}
                 value={data.confirmPassword}
                 onChange={(e) => update('confirmPassword', e.target.value)}
               />
@@ -169,10 +171,10 @@ export function RegisterPage() {
           </div>
           <div className="flex gap-3 pt-1">
             <Button type="button" variant="outline" className="flex-1" onClick={() => setStep(1)}>
-              Quay lại
+              {t('auth:registerPage.step2.back')}
             </Button>
             <Button type="submit" className="flex-1" isLoading={registerOrg.isPending}>
-              Hoàn tất đăng ký
+              {t('auth:registerPage.step2.finish')}
             </Button>
           </div>
         </form>
@@ -182,9 +184,9 @@ export function RegisterPage() {
         <div className="flex flex-col items-center gap-3 py-6 text-center">
           {registerOrg.isError ? (
             <>
-              <p className="text-sm font-medium text-rose-600">Đăng ký chưa thành công. Vui lòng kiểm tra lại thông tin.</p>
+              <p className="text-sm font-medium text-rose-600">{t('auth:registerPage.step3.errorMessage')}</p>
               <Button variant="outline" onClick={() => setStep(2)}>
-                Quay lại chỉnh sửa
+                {t('auth:registerPage.step3.backToEdit')}
               </Button>
             </>
           ) : (
@@ -192,16 +194,16 @@ export function RegisterPage() {
               <span className="flex h-12 w-12 animate-pulse items-center justify-center rounded-full bg-primary-100 text-primary-600">
                 <CheckIcon className="h-6 w-6" />
               </span>
-              <p className="text-sm font-medium text-slate-700">Đang khởi tạo tổ chức và đăng nhập cho bạn…</p>
+              <p className="text-sm font-medium text-slate-700">{t('auth:registerPage.step3.inProgress')}</p>
             </>
           )}
         </div>
       )}
 
       <p className="mt-6 text-center text-sm text-slate-500">
-        Đã có tài khoản?{' '}
+        {t('auth:registerPage.hasAccount')}{' '}
         <Link to="/login" className="font-medium text-primary-600 hover:text-primary-700">
-          Đăng nhập
+          {t('auth:registerPage.loginLink')}
         </Link>
       </p>
     </AuthLayout>

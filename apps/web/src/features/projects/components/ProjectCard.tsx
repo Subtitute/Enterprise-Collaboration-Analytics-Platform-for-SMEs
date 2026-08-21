@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -20,6 +21,7 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, progress, memberCount }: ProjectCardProps) {
+  const { t } = useTranslation();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const status = projectStatusMeta(project.status);
   const complete = useCompleteProject(project.id);
@@ -37,7 +39,7 @@ export function ProjectCard({ project, progress, memberCount }: ProjectCardProps
               <button
                 onClick={toggle}
                 className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                aria-label="Tùy chọn dự án"
+                aria-label={t('projects:projectCard.optionsAriaLabel')}
               >
                 <MoreVerticalIcon className="h-4 w-4" />
               </button>
@@ -52,7 +54,7 @@ export function ProjectCard({ project, progress, memberCount }: ProjectCardProps
                       close();
                     }}
                   >
-                    <CheckCircleIcon className="h-4 w-4" /> Đánh dấu hoàn thành
+                    <CheckCircleIcon className="h-4 w-4" /> {t('projects:projectCard.markComplete')}
                   </DropdownItem>
                 )}
                 <DropdownItem
@@ -62,7 +64,7 @@ export function ProjectCard({ project, progress, memberCount }: ProjectCardProps
                     close();
                   }}
                 >
-                  <TrashIcon className="h-4 w-4" /> Xoá dự án
+                  <TrashIcon className="h-4 w-4" /> {t('projects:projectCard.delete')}
                 </DropdownItem>
               </div>
             )}
@@ -85,7 +87,7 @@ export function ProjectCard({ project, progress, memberCount }: ProjectCardProps
             <ProgressBar value={progress} showLabel />
           </div>
           {typeof memberCount === 'number' && (
-            <span className="shrink-0 text-xs text-slate-500">{memberCount} thành viên</span>
+            <span className="shrink-0 text-xs text-slate-500">{t('projects:projectCard.memberCount', { count: memberCount })}</span>
           )}
         </div>
       </Card>
@@ -97,9 +99,9 @@ export function ProjectCard({ project, progress, memberCount }: ProjectCardProps
           del.mutate(project.id);
           setConfirmDelete(false);
         }}
-        title="Xoá dự án này?"
-        description={`Toàn bộ công việc thuộc "${project.name}" cũng có thể bị xoá. Hành động này không thể hoàn tác.`}
-        confirmLabel="Xoá dự án"
+        title={t('projects:projectCard.confirmDeleteTitle')}
+        description={t('projects:projectCard.confirmDeleteDescription', { name: project.name })}
+        confirmLabel={t('projects:projectCard.delete')}
         danger
       />
     </>

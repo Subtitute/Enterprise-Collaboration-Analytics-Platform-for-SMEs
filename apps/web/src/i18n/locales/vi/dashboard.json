@@ -1,1 +1,82 @@
-{}
+{
+  "page": {
+    "title": "Dashboard",
+    "subtitle": "Tổng quan hoạt động của tổ chức bạn."
+  },
+  "onboarding": {
+    "welcomeTitle": "Chào mừng đến với ECAP for SMEs!",
+    "welcomeDescription": "Tổ chức của bạn chưa có dự án nào. Mời thêm thành viên hoặc tạo dự án đầu tiên để bắt đầu.",
+    "inviteMembers": "Mời thành viên",
+    "createFirstProject": "Tạo dự án đầu tiên"
+  },
+  "kpi": {
+    "totalTasks": {
+      "label": "Tổng công việc",
+      "hint": "{{count}} đã hoàn thành"
+    },
+    "completionRate": {
+      "label": "Tỷ lệ hoàn thành",
+      "hint": "Trên tổng số công việc"
+    },
+    "newDocuments": {
+      "label": "Tài liệu mới (7 ngày)",
+      "hint": "Tệp tải lên trong tuần"
+    },
+    "activeUsers": {
+      "label": "Thành viên hoạt động",
+      "hint": "Trong 7 ngày qua"
+    }
+  },
+  "filters": {
+    "dateRangeAriaLabel": "Khoảng thời gian",
+    "departmentAriaLabel": "Phòng ban",
+    "allDepartments": "Tất cả phòng ban"
+  },
+  "charts": {
+    "taskTrendTitle": "Xu hướng hoàn thành công việc",
+    "taskStatusTitle": "Phân bố trạng thái công việc"
+  },
+  "recentActivitySection": {
+    "title": "Hoạt động gần đây"
+  },
+  "kpiCard": {
+    "errorLabel": "Lỗi tải dữ liệu",
+    "retryAriaLabel": "Thử lại tải {{label}}"
+  },
+  "taskStatusDonut": {
+    "errorTitle": "Không thể tải trạng thái công việc",
+    "errorDescription": "Đã xảy ra lỗi khi tải dữ liệu biểu đồ. Vui lòng thử lại.",
+    "emptyTitle": "Chưa có công việc nào",
+    "emptyDescription": "Biểu đồ trạng thái sẽ hiển thị khi có công việc trong hệ thống.",
+    "unit": "công việc"
+  },
+  "taskTrendChart": {
+    "errorTitle": "Không thể tải xu hướng công việc",
+    "errorDescription": "Đã xảy ra lỗi khi tải dữ liệu biểu đồ. Vui lòng thử lại.",
+    "emptyTitle": "Chưa có dữ liệu xu hướng công việc",
+    "emptyDescription": "Dữ liệu sẽ xuất hiện khi có công việc được tạo hoặc hoàn thành.",
+    "completedLine": "Hoàn thành",
+    "createdLine": "Được tạo mới"
+  },
+  "recentActivityFeed": {
+    "live": "Đang cập nhật trực tiếp",
+    "offline": "Ngoại tuyến",
+    "errorTitle": "Không thể tải hoạt động gần đây",
+    "emptyTitle": "Chưa có hoạt động nào",
+    "emptyDescription": "Hoạt động mới trong tổ chức sẽ hiển thị tại đây theo thời gian thực.",
+    "unknownActor": "Một thành viên",
+    "actions": {
+      "iam_organization_registered": "đã đăng ký tổ chức mới",
+      "iam_user_registered": "đã tham gia tổ chức",
+      "iam_user_deactivated": "đã bị vô hiệu hóa tài khoản",
+      "task_created": "đã tạo một công việc mới",
+      "task_status_changed": "đã cập nhật trạng thái công việc",
+      "task_assigned": "đã được giao một công việc",
+      "project_created": "đã tạo một dự án mới",
+      "project_completed": "đã hoàn thành một dự án",
+      "document_uploaded": "đã tải lên một tài liệu",
+      "document_shared": "đã chia sẻ một tài liệu",
+      "document_deleted": "đã xóa một tài liệu"
+    }
+  }
+}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
@@ -15,6 +16,7 @@ import { useMyProfileQuery } from './hooks';
  *  createdAt, khong co avatar/so dien thoai/tieu su). Sua thong tin (doi phong ban/vai tro) van
  *  thuc hien o Quan tri > Thanh vien (yeu cau quyen user:manage) - khong lap lai o day. */
 export function ProfilePage() {
+  const { t } = useTranslation();
   const profileQuery = useMyProfileQuery();
   const departmentsQuery = useDepartmentsQuery();
   const user = profileQuery.data;
@@ -23,8 +25,8 @@ export function ProfilePage() {
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Hồ sơ cá nhân</h1>
-        <p className="text-sm text-slate-500">Thông tin tài khoản của bạn trong tổ chức.</p>
+        <h1 className="text-xl font-semibold text-slate-900">{t('profile:page.title')}</h1>
+        <p className="text-sm text-slate-500">{t('profile:page.subtitle')}</p>
       </div>
 
       {/* 22/07/2026: sua loi thuc te - truoc ban sua nay isError chi doc tu profileQuery, nen neu
@@ -39,8 +41,8 @@ export function ProfilePage() {
           profileQuery.refetch();
           departmentsQuery.refetch();
         }}
-        loadingFallback={<FullPageSpinner label="Đang tải hồ sơ…" />}
-        errorTitle="Không thể tải hồ sơ cá nhân"
+        loadingFallback={<FullPageSpinner label={t('profile:page.loading')} />}
+        errorTitle={t('profile:page.loadError')}
       >
         {user && (
           <Card>
@@ -53,7 +55,7 @@ export function ProfilePage() {
                 </div>
               </div>
               <Badge variant={user.isActive === false ? 'danger' : 'success'}>
-                {user.isActive === false ? 'Đã vô hiệu hoá' : 'Đang hoạt động'}
+                {user.isActive === false ? t('profile:page.status.inactive') : t('profile:page.status.active')}
               </Badge>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -61,21 +63,21 @@ export function ProfilePage() {
                 <div className="flex items-start gap-2.5">
                   <MailIcon className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
                   <div>
-                    <dt className="text-xs text-slate-400">Email</dt>
+                    <dt className="text-xs text-slate-400">{t('profile:page.fields.email')}</dt>
                     <dd className="text-sm font-medium text-slate-800">{user.email}</dd>
                   </div>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <BuildingIcon className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
                   <div>
-                    <dt className="text-xs text-slate-400">Phòng ban</dt>
+                    <dt className="text-xs text-slate-400">{t('profile:page.fields.department')}</dt>
                     <dd className="text-sm font-medium text-slate-800">{department?.name ?? '—'}</dd>
                   </div>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <ShieldIcon className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
                   <div>
-                    <dt className="text-xs text-slate-400">Vai trò</dt>
+                    <dt className="text-xs text-slate-400">{t('profile:page.fields.roles')}</dt>
                     <dd className="flex flex-wrap gap-1">
                       {(user.roles ?? []).length === 0 ? (
                         <span className="text-sm text-slate-400">—</span>
@@ -92,13 +94,13 @@ export function ProfilePage() {
                 <div className="flex items-start gap-2.5">
                   <CalendarIcon className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
                   <div>
-                    <dt className="text-xs text-slate-400">Ngày tham gia</dt>
+                    <dt className="text-xs text-slate-400">{t('profile:page.fields.joinedAt')}</dt>
                     <dd className="text-sm font-medium text-slate-800">{formatDate(user.createdAt)}</dd>
                   </div>
                 </div>
               </dl>
               <p className="border-t border-slate-100 pt-3 text-xs text-slate-400">
-                Để đổi phòng ban hoặc vai trò, vui lòng liên hệ quản trị viên tổ chức (Quản trị &gt; Thành viên).
+                {t('profile:page.contactAdminNote')}
               </p>
             </CardContent>
           </Card>

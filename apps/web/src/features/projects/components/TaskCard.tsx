@@ -1,4 +1,5 @@
 import { Draggable } from '@hello-pangea/dnd';
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { AvatarStack } from '@/components/ui/Avatar';
 import { CalendarIcon } from '@/components/ui/Icons';
@@ -8,9 +9,10 @@ import { isOverdue } from '../utils';
 import type { Task } from '@/types';
 
 export function TaskCard({ task, index, onClick }: { task: Task; index: number; onClick: () => void }) {
+  const { t } = useTranslation();
   const { map: userNames } = useUserNameMap();
   const overdue = isOverdue(task.dueDate, task.status);
-  const assigneeNames = (task.assignees ?? []).map((a) => a.fullName ?? userNames[a.userId] ?? 'Thành viên');
+  const assigneeNames = (task.assignees ?? []).map((a) => a.fullName ?? userNames[a.userId] ?? t('projects:taskCard.unknownAssignee'));
 
   return (
     <Draggable draggableId={task.id} index={index}>

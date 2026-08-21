@@ -1,1 +1,82 @@
-{}
+{
+  "page": {
+    "title": "Dashboard",
+    "subtitle": "An overview of your organization's activity."
+  },
+  "onboarding": {
+    "welcomeTitle": "Welcome to ECAP for SMEs!",
+    "welcomeDescription": "Your organization doesn't have any projects yet. Invite members or create your first project to get started.",
+    "inviteMembers": "Invite members",
+    "createFirstProject": "Create first project"
+  },
+  "kpi": {
+    "totalTasks": {
+      "label": "Total tasks",
+      "hint": "{{count}} completed"
+    },
+    "completionRate": {
+      "label": "Completion rate",
+      "hint": "Of all tasks"
+    },
+    "newDocuments": {
+      "label": "New documents (7 days)",
+      "hint": "Files uploaded this week"
+    },
+    "activeUsers": {
+      "label": "Active members",
+      "hint": "In the last 7 days"
+    }
+  },
+  "filters": {
+    "dateRangeAriaLabel": "Date range",
+    "departmentAriaLabel": "Department",
+    "allDepartments": "All departments"
+  },
+  "charts": {
+    "taskTrendTitle": "Task completion trend",
+    "taskStatusTitle": "Task status distribution"
+  },
+  "recentActivitySection": {
+    "title": "Recent activity"
+  },
+  "kpiCard": {
+    "errorLabel": "Error loading data",
+    "retryAriaLabel": "Retry loading {{label}}"
+  },
+  "taskStatusDonut": {
+    "errorTitle": "Couldn't load task status",
+    "errorDescription": "Something went wrong loading the chart data. Please try again.",
+    "emptyTitle": "No tasks yet",
+    "emptyDescription": "The status chart will appear once there are tasks in the system.",
+    "unit": "tasks"
+  },
+  "taskTrendChart": {
+    "errorTitle": "Couldn't load task trend",
+    "errorDescription": "Something went wrong loading the chart data. Please try again.",
+    "emptyTitle": "No task trend data yet",
+    "emptyDescription": "Data will appear once tasks are created or completed.",
+    "completedLine": "Completed",
+    "createdLine": "Created"
+  },
+  "recentActivityFeed": {
+    "live": "Live updates",
+    "offline": "Offline",
+    "errorTitle": "Couldn't load recent activity",
+    "emptyTitle": "No activity yet",
+    "emptyDescription": "New activity in your organization will appear here in real time.",
+    "unknownActor": "A member",
+    "actions": {
+      "iam_organization_registered": "registered a new organization",
+      "iam_user_registered": "joined the organization",
+      "iam_user_deactivated": "was deactivated",
+      "task_created": "created a new task",
+      "task_status_changed": "updated a task's status",
+      "task_assigned": "was assigned a task",
+      "project_created": "created a new project",
+      "project_completed": "completed a project",
+      "document_uploaded": "uploaded a document",
+      "document_shared": "shared a document",
+      "document_deleted": "deleted a document"
+    }
+  }
+}

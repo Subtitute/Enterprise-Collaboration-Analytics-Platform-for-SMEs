@@ -4,6 +4,7 @@
 // (b) hien them danh sach da chia se (GET /folders/:id/shares) kem nut "Xoá" tung dong, vi 1 thu
 // muc co the co NHIEU luot chia se cung luc (khac ShareModal.tsx chi co 1 form "chia se 1 lan").
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { FormField, Select } from '@/components/ui/Input';
@@ -17,6 +18,7 @@ import type { Folder } from '@/types';
 type ShareTargetType = 'user' | 'department';
 
 export function FolderShareModal({ folder, onClose }: { folder: Folder | null; onClose: () => void }) {
+  const { t } = useTranslation();
   const { data: users } = useOrgUsersQuery();
   const { data: departments } = useDepartmentsQuery();
   // 28/07/2026: useUserNameMap() - dung de quy doi sharedWithUserId -> ten hien thi tren tung dong
@@ -42,7 +44,12 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
   const shares = sharesQuery.data ?? [];
 
   return (
-    <Modal open={Boolean(folder)} onClose={handleClose} title={`Quản lý chia sẻ "${folder?.name ?? ''}"`} size="sm">
+    <Modal
+      open={Boolean(folder)}
+      onClose={handleClose}
+      title={t('documents:folderShareModal.title', { folderName: folder?.name ?? '' })}
+      size="sm"
+    >
       <div className="space-y-4">
         {/* 28/07/2026: cong tac dang segmented control - chuyen doi <Select> ben duoi giua danh sach
             thanh vien va danh sach phong ban, vi backend chi nhan DUNG 1 trong 2 truong
@@ -59,7 +66,7 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
               targetType === 'user' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700',
             )}
           >
-            Người dùng
+            {t('documents:folderShareModal.targetType.user')}
           </button>
           <button
             type="button"
@@ -72,13 +79,18 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
               targetType === 'department' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700',
             )}
           >
-            Phòng ban
+            {t('documents:folderShareModal.targetType.department')}
           </button>
         </div>
 
-        <FormField label={targetType === 'user' ? 'Chia sẻ với thành viên' : 'Chia sẻ với phòng ban'} htmlFor="folder-share-target">
+        <FormField
+          label={targetType === 'user' ? t('documents:folderShareModal.shareWithMemberLabel') : t('documents:folderShareModal.shareWithDepartmentLabel')}
+          htmlFor="folder-share-target"
+        >
           <Select id="folder-share-target" value={targetId} onChange={(e) => setTargetId(e.target.value)}>
-            <option value="">{targetType === 'user' ? 'Chọn thành viên…' : 'Chọn phòng ban…'}</option>
+            <option value="">
+              {targetType === 'user' ? t('documents:folderShareModal.selectMemberPlaceholder') : t('documents:folderShareModal.selectDepartmentPlaceholder')}
+            </option>
             {targetType === 'user'
               ? (users ?? []).map((u) => (
                   <option key={u.id} value={u.id}>
@@ -105,16 +117,16 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
               createShare.mutate({ folderId: folder.id, payload }, { onSuccess: () => setTargetId('') });
             }}
           >
-            Thêm chia sẻ
+            {t('documents:folderShareModal.addShare')}
           </Button>
         </div>
 
         <div className="border-t border-slate-100 pt-3">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">Đã chia sẻ với</p>
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">{t('documents:folderShareModal.sharedWithHeading')}</p>
           {sharesQuery.isLoading ? (
-            <p className="text-sm text-slate-400">Đang tải…</p>
+            <p className="text-sm text-slate-400">{t('documents:folderShareModal.loading')}</p>
           ) : shares.length === 0 ? (
-            <p className="text-sm text-slate-400">Chưa chia sẻ với ai.</p>
+            <p className="text-sm text-slate-400">{t('documents:folderShareModal.noShares')}</p>
           ) : (
             <ul className="space-y-1.5">
               {shares.map((share) => (
@@ -129,7 +141,7 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
                   <button
                     type="button"
                     onClick={() => folder && deleteShare.mutate({ folderId: folder.id, shareId: share.id })}
-                    aria-label="Xoá chia sẻ"
+                    aria-label={t('documents:folderShareModal.deleteShareAria')}
                     className="shrink-0 rounded-md p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
                   >
                     <TrashIcon className="h-4 w-4" />
@@ -142,7 +154,7 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
 
         <div className="flex justify-end pt-1">
           <Button type="button" variant="outline" onClick={handleClose}>
-            Đóng
+            {t('documents:folderShareModal.close')}
           </Button>
         </div>
       </div>

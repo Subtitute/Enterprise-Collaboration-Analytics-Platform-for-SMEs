@@ -4,6 +4,128 @@
       "TODO": "未着手",
       "DOING": "進行中",
       "DONE": "完了"
+    },
+    "projectStatus": {
+      "ACTIVE": "進行中",
+      "COMPLETED": "完了",
+      "ARCHIVED": "アーカイブ済み"
+    }
+  },
+  "list": {
+    "title": "プロジェクト・タスク",
+    "subtitle": "プロジェクトを管理し、カンバンボードで進捗を追跡します。",
+    "newProject": "新規プロジェクト",
+    "searchPlaceholder": "プロジェクトを検索…",
+    "statusFilter": {
+      "all": "すべてのステータス"
+    },
+    "loading": "プロジェクトを読み込み中…",
+    "errorTitle": "プロジェクトを読み込めませんでした",
+    "errorDescription": "プロジェクト一覧の読み込み中にエラーが発生しました。もう一度お試しください。",
+    "emptyFilteredTitle": "該当するプロジェクトが見つかりません",
+    "emptyTitle": "プロジェクトがまだありません",
+    "emptyFilteredDescription": "検索キーワードや選択したステータスを調整してみてください。",
+    "emptyDescription": "最初のプロジェクトを作成して、チームの作業を整理しましょう。",
+    "createFirst": "新規プロジェクトを作成"
+  },
+  "detail": {
+    "loading": "プロジェクトを読み込み中…",
+    "notFoundTitle": "プロジェクトが見つかりません",
+    "notFoundDescription": "このプロジェクトは削除されたか、アクセス権がない可能性があります。",
+    "backToList": "プロジェクト一覧に戻る",
+    "dueDate": "期限: {{date}}",
+    "completeProject": "プロジェクトを完了にする",
+    "newTask": "新規タスク",
+    "tasksLoading": "タスクを読み込み中…",
+    "tasksErrorTitle": "タスクを読み込めませんでした",
+    "tasksErrorDescription": "プロジェクトのタスク一覧の読み込み中にエラーが発生しました。もう一度お試しください。",
+    "emptyTasksTitle": "タスクがまだありません",
+    "emptyTasksDescription": "最初のタスクを追加して、プロジェクトの進捗を追跡しましょう。",
+    "createFirstTask": "新規タスクを作成"
+  },
+  "newProjectModal": {
+    "title": "新規プロジェクトを作成",
+    "nameRequired": "プロジェクト名を入力してください",
+    "nameLabel": "プロジェクト名",
+    "namePlaceholder": "例: 新しいウェブサイトの公開",
+    "descriptionLabel": "説明",
+    "descriptionPlaceholder": "プロジェクトの目標や作業範囲…",
+    "dueDateLabel": "期限",
+    "cancel": "キャンセル",
+    "submit": "プロジェクトを作成"
+  },
+  "newTaskModal": {
+    "title": "新規タスクを作成",
+    "titleRequired": "タスクのタイトルを入力してください",
+    "titleLabel": "タイトル",
+    "titlePlaceholder": "例: ホームページのデザイン",
+    "descriptionLabel": "説明",
+    "dueDateLabel": "期限",
+    "cancel": "キャンセル",
+    "submit": "タスクを作成"
+  },
+  "projectCard": {
+    "optionsAriaLabel": "プロジェクトのオプション",
+    "markComplete": "完了にする",
+    "delete": "プロジェクトを削除",
+    "memberCount": "メンバー{{count}}人",
+    "confirmDeleteTitle": "このプロジェクトを削除しますか？",
+    "confirmDeleteDescription": "「{{name}}」に属するすべてのタスクも削除される可能性があります。この操作は取り消せません。"
+  },
+  "taskCard": {
+    "unknownAssignee": "メンバー"
+  },
+  "assigneePicker": {
+    "allAssigned": "すべてのメンバーが割り当て済みです。",
+    "selectAriaLabel": "追加するメンバーを選択",
+    "selectPlaceholderOption": "追加するメンバーを選択…",
+    "add": "追加"
+  },
+  "taskDetail": {
+    "unknownMember": "メンバー",
+    "fallbackTitle": "タスク",
+    "statusLabel": "ステータス",
+    "dueDateLabel": "期限",
+    "deleteTask": "タスクを削除",
+    "descriptionLabel": "説明",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "descriptionEmpty": "説明はまだありません。クリックして追加…",
+    "assigneesLabel": "担当者",
+    "noAssignees": "担当者はまだ割り当てられていません。",
+    "removeAssigneeAriaLabel": "タスクから削除",
+    "commentsLabel": "コメント",
+    "noComments": "コメントはまだありません。",
+    "commentPlaceholder": "コメントを入力…",
+    "send": "送信",
+    "statusHistoryLabel": "ステータス変更履歴",
+    "statusHistoryError": "ステータス変更履歴を読み込めませんでした。",
+    "noStatusHistory": "ステータス変更履歴はまだありません。",
+    "confirmDeleteTitle": "このタスクを削除しますか？",
+    "confirmDeleteDescription": "この操作は取り消せません。"
+  },
+  "toast": {
+    "project": {
+      "created": "プロジェクトを作成しました",
+      "createError": "プロジェクトを作成できませんでした",
+      "updated": "プロジェクトを更新しました",
+      "updateError": "プロジェクトを更新できませんでした",
+      "deleted": "プロジェクトを削除しました",
+      "deleteError": "プロジェクトを削除できませんでした",
+      "completed": "プロジェクトを完了にしました",
+      "completeError": "プロジェクトを完了にできませんでした"
+    },
+    "task": {
+      "created": "タスクを作成しました",
+      "createError": "タスクを作成できませんでした",
+      "updated": "タスクの変更を保存しました",
+      "updateError": "タスクを更新できませんでした",
+      "deleted": "タスクを削除しました",
+      "deleteError": "タスクを削除できませんでした",
+      "statusUpdateError": "タスクのステータスを更新できませんでした",
+      "addAssigneeError": "担当者を追加できませんでした",
+      "removeAssigneeError": "担当者を削除できませんでした",
+      "addCommentError": "コメントを送信できませんでした"
     }
   }
 }

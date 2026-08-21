@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow } from '@/components/ui/Table';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { ConfirmDialog } from '@/components/ui/Modal';
@@ -16,6 +17,7 @@ interface FileTableProps {
 }
 
 export function FileTable({ files, folderId, onShare, onVersionHistory }: FileTableProps) {
+  const { t } = useTranslation();
   const [deleting, setDeleting] = useState<FileItem | null>(null);
   const download = useDownloadFile();
   const deleteFile = useDeleteFile(folderId);
@@ -25,44 +27,48 @@ export function FileTable({ files, folderId, onShare, onVersionHistory }: FileTa
       <Table>
         <TableHead>
           <tr>
-            <TableHeadCell>Tên tệp</TableHeadCell>
-            <TableHeadCell>Kích thước</TableHeadCell>
-            <TableHeadCell>Phiên bản</TableHeadCell>
-            <TableHeadCell>Cập nhật</TableHeadCell>
-            <TableHeadCell className="text-right">Hành động</TableHeadCell>
+            <TableHeadCell>{t('documents:fileTable.columns.name')}</TableHeadCell>
+            <TableHeadCell>{t('documents:fileTable.columns.size')}</TableHeadCell>
+            <TableHeadCell>{t('documents:fileTable.columns.version')}</TableHeadCell>
+            <TableHeadCell>{t('documents:fileTable.columns.updated')}</TableHeadCell>
+            <TableHeadCell className="text-right">{t('documents:fileTable.columns.actions')}</TableHeadCell>
           </tr>
         </TableHead>
         <TableBody>
           {files.map((file) => (
             <TableRow key={file.id}>
-              <TableCell label="Tên tệp">
+              <TableCell label={t('documents:fileTable.columns.name')}>
                 <button
                   type="button"
                   // 22/07/2026: goi download.openFile() (khong phai .mutate() truc tiep) - ham nay
                   // tu mo tab trong DONG BO ngay trong onClick truoc khi goi API, xem giai thich
                   // day du tai dinh nghia useDownloadFile() o documents/hooks.ts.
                   onClick={() => download.openFile(file.id, 'inline')}
-                  title="Mở và xem tệp trong tab mới"
+                  title={t('documents:fileTable.openFileTitle')}
                   className="flex min-w-0 items-center gap-2.5 text-left hover:underline"
                 >
                   <FileIcon className="h-4 w-4 shrink-0 text-primary-500" />
                   <span className="truncate font-medium text-slate-800">{file.name}</span>
                 </button>
               </TableCell>
-              <TableCell label="Kích thước" className="whitespace-nowrap text-xs text-slate-500">
+              <TableCell label={t('documents:fileTable.columns.size')} className="whitespace-nowrap text-xs text-slate-500">
                 {formatBytes(file.size)}
               </TableCell>
-              <TableCell label="Phiên bản">
+              <TableCell label={t('documents:fileTable.columns.version')}>
                 <Badge variant="outline">v{file.version ?? 1}</Badge>
               </TableCell>
-              <TableCell label="Cập nhật" className="whitespace-nowrap text-xs text-slate-500">
+              <TableCell label={t('documents:fileTable.columns.updated')} className="whitespace-nowrap text-xs text-slate-500">
                 {formatDateTime(file.updatedAt)}
               </TableCell>
-              <TableCell label="Hành động" className="text-right">
+              <TableCell label={t('documents:fileTable.columns.actions')} className="text-right">
                 <Dropdown
                   align="right"
                   trigger={({ toggle }) => (
-                    <button onClick={toggle} className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label="Tùy chọn tệp">
+                    <button
+                      onClick={toggle}
+                      className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                      aria-label={t('documents:fileTable.optionsAria')}
+                    >
                       <MoreVerticalIcon className="h-4 w-4" />
                     </button>
                   )}
@@ -79,7 +85,7 @@ export function FileTable({ files, folderId, onShare, onVersionHistory }: FileTa
                           close();
                         }}
                       >
-                        <EyeIcon className="h-4 w-4" /> Xem tệp
+                        <EyeIcon className="h-4 w-4" /> {t('documents:fileTable.viewFile')}
                       </DropdownItem>
                       <DropdownItem
                         // 22/07/2026: tuong tu nut "Xem tệp" - dung openFile() de tab tai xuong
@@ -89,7 +95,7 @@ export function FileTable({ files, folderId, onShare, onVersionHistory }: FileTa
                           close();
                         }}
                       >
-                        <DownloadIcon className="h-4 w-4" /> Tải xuống
+                        <DownloadIcon className="h-4 w-4" /> {t('documents:fileTable.download')}
                       </DropdownItem>
                       <DropdownItem
                         onClick={() => {
@@ -97,7 +103,7 @@ export function FileTable({ files, folderId, onShare, onVersionHistory }: FileTa
                           close();
                         }}
                       >
-                        <ShareIcon className="h-4 w-4" /> Chia sẻ
+                        <ShareIcon className="h-4 w-4" /> {t('documents:fileTable.share')}
                       </DropdownItem>
                       <DropdownItem
                         onClick={() => {
@@ -105,7 +111,7 @@ export function FileTable({ files, folderId, onShare, onVersionHistory }: FileTa
                           close();
                         }}
                       >
-                        <ClockIcon className="h-4 w-4" /> Lịch sử phiên bản
+                        <ClockIcon className="h-4 w-4" /> {t('documents:fileTable.versionHistory')}
                       </DropdownItem>
                       <DropdownItem
                         className="text-rose-600 hover:bg-rose-50"
@@ -114,7 +120,7 @@ export function FileTable({ files, folderId, onShare, onVersionHistory }: FileTa
                           close();
                         }}
                       >
-                        <TrashIcon className="h-4 w-4" /> Xoá tệp
+                        <TrashIcon className="h-4 w-4" /> {t('documents:fileTable.delete')}
                       </DropdownItem>
                     </div>
                   )}
@@ -132,9 +138,9 @@ export function FileTable({ files, folderId, onShare, onVersionHistory }: FileTa
           if (deleting) deleteFile.mutate(deleting.id);
           setDeleting(null);
         }}
-        title="Xoá tệp này?"
-        description={deleting ? `"${deleting.name}" sẽ bị xoá khỏi hệ thống.` : undefined}
-        confirmLabel="Xoá tệp"
+        title={t('documents:fileTable.deleteConfirm.title')}
+        description={deleting ? t('documents:fileTable.deleteConfirm.description', { name: deleting.name }) : undefined}
+        confirmLabel={t('documents:fileTable.deleteConfirm.confirmLabel')}
         danger
       />
     </>

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { toast } from '@/stores/toast.store';
 import { extractErrorMessage } from '@/lib/api-client';
 import {
@@ -30,25 +31,27 @@ export function useAllAttendanceQuery() {
 
 export function useCheckIn() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   return useMutation({
     mutationFn: ({ photo, location }: { photo: Blob; location?: CheckInLocation }) => checkIn(photo, location),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      toast.success('Đã chấm công vào làm');
+      toast.success(t('hrm:toasts.checkInSuccess'));
     },
-    onError: (error) => toast.error('Không thể chấm công vào làm', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('hrm:toasts.checkInError'), extractErrorMessage(error)),
   });
 }
 
 export function useCheckOut() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   return useMutation({
     mutationFn: ({ photo, location }: { photo: Blob; location?: CheckInLocation }) => checkOut(photo, location),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      toast.success('Đã chấm công ra về');
+      toast.success(t('hrm:toasts.checkOutSuccess'));
     },
-    onError: (error) => toast.error('Không thể chấm công ra về', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('hrm:toasts.checkOutError'), extractErrorMessage(error)),
   });
 }
 
@@ -67,36 +70,39 @@ export function usePendingLeaveRequestsQuery() {
 
 export function useCreateLeaveRequest() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   return useMutation({
     mutationFn: (payload: CreateLeaveRequestPayload) => createLeaveRequest(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
-      toast.success('Đã gửi yêu cầu nghỉ phép');
+      toast.success(t('hrm:toasts.createLeaveRequestSuccess'));
     },
-    onError: (error) => toast.error('Không thể gửi yêu cầu nghỉ phép', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('hrm:toasts.createLeaveRequestError'), extractErrorMessage(error)),
   });
 }
 
 export function useApproveLeaveRequest() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   return useMutation({
     mutationFn: (id: string) => approveLeaveRequest(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
-      toast.success('Đã duyệt yêu cầu nghỉ phép');
+      toast.success(t('hrm:toasts.approveLeaveRequestSuccess'));
     },
-    onError: (error) => toast.error('Không thể duyệt yêu cầu', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('hrm:toasts.approveLeaveRequestError'), extractErrorMessage(error)),
   });
 }
 
 export function useRejectLeaveRequest() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   return useMutation({
     mutationFn: (id: string) => rejectLeaveRequest(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
-      toast.success('Đã từ chối yêu cầu nghỉ phép');
+      toast.success(t('hrm:toasts.rejectLeaveRequestSuccess'));
     },
-    onError: (error) => toast.error('Không thể từ chối yêu cầu', extractErrorMessage(error)),
+    onError: (error) => toast.error(t('hrm:toasts.rejectLeaveRequestError'), extractErrorMessage(error)),
   });
 }
