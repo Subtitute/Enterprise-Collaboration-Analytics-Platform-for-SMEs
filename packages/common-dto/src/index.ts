@@ -16,3 +16,5 @@ export * from './constants/public-routes';
 export * from './constants/internal-shared-secret.constant';
 // 20/08/2026: danh muc ma loi may doc duoc, dung cho rollout i18n (xem constants/error-codes.constant.ts)
 export * from './constants/error-codes.constant';
+// 22/08/2026: ten header correlation ID dung chung Gateway <-> cac service (xem constants/correlation-id.constant.ts)
+export * from './constants/correlation-id.constant';

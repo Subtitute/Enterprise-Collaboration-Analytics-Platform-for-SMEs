@@ -46,6 +46,9 @@ export interface ApiErrorShape {
   errorCode?: string;
   errorParams?: Record<string, string | number>;
   details?: { code: string; params?: Record<string, string | number> }[];
+  // 22/08/2026: field CONG THEM (xem packages/common-dto/src/constants/correlation-id.constant.ts)
+  // - chua dung o UI, chi khai bao de khop kieu voi backend; xem Technical_Spec.md ve tracing.
+  correlationId?: string;
 }
 
 /** Nguoi dung tra ve tu IAM Service (GET /users), khac voi AuthUser (ngu canh JWT da giai ma). */

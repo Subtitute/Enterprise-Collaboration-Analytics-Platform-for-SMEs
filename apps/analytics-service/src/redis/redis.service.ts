@@ -41,4 +41,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     if (ttlSeconds <= 0) return;
     await this.client.set(key, JSON.stringify(value), 'EX', ttlSeconds);
   }
+
+  // 22/08/2026: fix audit "/health la liveness-only" - dung cho HealthController (xem
+  // health/health.controller.ts) de kiem tra Redis that qua PING thay vi tra ve {status:'ok'}
+  // co dinh. Chi expose PING (khong lo `client` ra ngoai) de giu nguyen viec dong goi ket noi
+  // ioredis ben trong service nay.
+  async ping(): Promise<string> {
+    return this.client.ping();
+  }
 }

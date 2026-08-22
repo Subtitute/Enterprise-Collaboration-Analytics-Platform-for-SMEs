@@ -19,6 +19,7 @@ volumes:
   minio-data:
   prometheus-data:
   grafana-data:
+  alertmanager-data:
 
 services:
   # ---------------------------------------------------------------
@@ -124,7 +125,10 @@ services:
       retries: 10
 
   timescaledb:
-    image: timescale/timescaledb:latest-pg16
+    # 22/08/2026: pin theo digest (thay vi tag "latest-pg16" troi) - phat hien qua audit ha tang:
+    # tag troi nghia la build lai vai thang sau co the am tham keo ban khac voi ban da kiem thu.
+    # Digest = dung chinh xac ban image dang chay/da kiem thu hom nay, khong bao gio doi y nghia.
+    image: timescale/timescaledb:latest-pg16@sha256:61f891691050da6032023c01ea885730eeeba06b7c17b403e7d0b9c49c37dfe9
     container_name: timescaledb
     restart: unless-stopped
     environment:
@@ -185,7 +189,8 @@ services:
       retries: 10
 
   minio:
-    image: minio/minio:latest
+    # 22/08/2026: pin theo digest - mirror ly do o timescaledb (tranh tag "latest" troi).
+    image: minio/minio:latest@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     container_name: minio
     restart: unless-stopped
     environment:
@@ -208,7 +213,8 @@ services:
 
   # Tao bucket MinIO mac dinh khi khoi dong (chay 1 lan roi thoat)
   minio-init:
-    image: minio/mc:latest
+    # 22/08/2026: pin theo digest - mirror ly do o timescaledb.
+    image: minio/mc:latest@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
     container_name: minio-init
     depends_on:
       minio:
@@ -604,11 +610,13 @@ services:
   # nhom nay - mat Prometheus/Grafana khong lam gian doan he thong nghiep vu.
   # ---------------------------------------------------------------
   prometheus:
-    image: prom/prometheus:latest
+    # 22/08/2026: pin theo digest - mirror ly do o timescaledb.
+    image: prom/prometheus:latest@sha256:508729e0e2d18e11fd742a5a5ca70e557b940a93948c3c95fd0123a6fd538b69
     container_name: prometheus
     restart: unless-stopped
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alert-rules.yml:/etc/prometheus/alert-rules.yml:ro
       - prometheus-data:/prometheus
     # Map ra host de xem truc tiep http://localhost:9090 (debug/demo cuc bo) - khong phai
     # thiet ke cho moi truong co the truy cap tu ben ngoai (giong cac container ha tang khac).
@@ -622,12 +630,34 @@ services:
       retries: 10
       start_period: 10s
 
+  # 22/08/2026: nhan canh bao tu Prometheus (xem prometheus/alert-rules.yml) va dinh tuyen theo
+  # alertmanager/alertmanager.yml - xem chu thich dau file do ve pham vi (chua co kenh thong bao
+  # that). Map port ra host CHI de xem giao dien web debug/demo cuc bo, cung quy uoc voi Prometheus/
+  # Grafana ben tren.
+  alertmanager:
+    image: prom/alertmanager:latest@sha256:690c7b525f4367aa91f73e2f91c632206d32e97c6384bdbf2fb7a861b420340d
+    container_name: alertmanager
+    restart: unless-stopped
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    ports:
+      - "9095:9093"
+    networks: [internal-net]
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9093/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
   # Xuat metric Kafka (lag theo consumer group/topic) de Prometheus scrape - tu dong hoa lai
   # phan "kiem tra lag Kafka" truoc day phai lam thu cong o dot "ultimate check" (Technical_Spec.md,
   # muc 2026-07-28). Image build tu scratch (khong co shell/wget ben trong) nen KHONG khai bao
   # healthcheck - Prometheus tu retry scrape, khong service nao khac phu thuoc container nay.
   kafka-exporter:
-    image: danielqsj/kafka-exporter:latest
+    # 22/08/2026: pin theo digest - mirror ly do o timescaledb.
+    image: danielqsj/kafka-exporter:latest@sha256:a51b280b55a763deaa1bc5024310bc2954995d9160014d7445055dac6a090868
     container_name: kafka-exporter
     restart: unless-stopped
     command: ["--kafka.server=kafka:29092"]
@@ -636,7 +666,8 @@ services:
     networks: [internal-net]
 
   grafana:
-    image: grafana/grafana:latest
+    # 22/08/2026: pin theo digest - mirror ly do o timescaledb.
+    image: grafana/grafana:latest@sha256:1c1bd67c54c5fcf6e759897852b5a584191bd6796e8d328a5ace457799801261
     container_name: grafana
     restart: unless-stopped
     depends_on:

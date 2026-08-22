@@ -6,6 +6,7 @@ import type { Server } from 'http';
 import type { Duplex } from 'stream';
 import { RedisService } from '../redis/redis.service';
 import { createRateLimitMiddleware } from '../rate-limit/rate-limit.middleware';
+import { correlationIdMiddleware } from './correlation-id.middleware';
 import { createJwtAuthMiddleware } from './jwt-auth.middleware';
 import { createServiceProxy } from './rest-proxy.factory';
 import { createWsServiceProxy } from './ws-proxy.factory';
@@ -21,6 +22,8 @@ interface UpgradeCapableProxy {
 
 /**
  * Lap rap toan bo pipeline cua Gateway (Technical_Spec.md muc 6, muc 8), theo dung THU TU:
+ *   0) gan correlation ID cho MOI request (bo sung 22/08/2026 - xem correlation-id.middleware.ts),
+ *      chay TRUOC ca xac thuc JWT de LUON co gia tri nay, ke ca request bi tu choi 401 som nhat
  *   1) xac thuc JWT + gan req.user (bo qua route cong khai va duong dan /ws/*)
  *   2) rate-limit theo IP (+ organizationId khi da biet, tu req.user vua duoc gan o buoc 1)
  *   3) proxy REST toi tung downstream service, gan header noi bo tu req.user (x-org-id, x-user-id, ...)
@@ -46,6 +49,7 @@ export function setupGateway(app: INestApplication): (server: Server) => void {
   const jwtService = app.get(JwtService);
   const redisService = app.get(RedisService);
 
+  app.use(correlationIdMiddleware);
   app.use(createJwtAuthMiddleware(jwtService, configService, redisService));
   app.use(createRateLimitMiddleware(redisService, configService));
 

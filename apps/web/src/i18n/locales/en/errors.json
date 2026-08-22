@@ -17,6 +17,7 @@
   "MISSING_REFRESH_TOKEN": "Missing refresh token. Please log in again.",
   "EMAIL_ALREADY_USED_BY_ORG": "This email is already used by another organization.",
   "INVALID_CREDENTIALS": "Incorrect email or password.",
+  "TOO_MANY_LOGIN_ATTEMPTS": "Too many failed login attempts for this account. Please try again in a few minutes.",
   "REFRESH_TOKEN_INVALID": "Invalid or expired refresh token.",
   "REFRESH_TOKEN_REVOKED": "This refresh token has been revoked.",
   "USER_INACTIVE_OR_MISSING": "This user does not exist or has been deactivated.",

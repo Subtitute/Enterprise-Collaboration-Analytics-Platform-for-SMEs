@@ -1,0 +1,20 @@
+# 22/08/2026: cau hinh toi thieu cho Alertmanager - dinh tuyen canh bao (xem ../prometheus/alert-
+# rules.yml) toi 1 receiver duy nhat. CHUA co kenh thong bao that (Slack/email/webhook) - pham vi
+# hien tai la 1 may hoc vien tu quan, khong co kenh on-call that de gui toi. Muon nhan thong bao
+# that: them "slack_configs"/"email_configs"/"webhook_configs" vao receiver "default" ben duoi (xem
+# tai lieu Alertmanager: https://prometheus.io/docs/alerting/latest/configuration/). Cho toi luc do,
+# gia tri cua khoi nay la lam cho alert THUC SU duoc DINH TUYEN va CO THE XEM/TRA CUU qua giao dien
+# web cua Alertmanager (http://localhost:9095, xem infra/docker-compose.yml) - khac voi truoc day
+# (hoan toan khong co gi bat alert nao ca, chi Grafana hien thi thu dong).
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: default
+  group_by: ['alertname', 'job']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: default

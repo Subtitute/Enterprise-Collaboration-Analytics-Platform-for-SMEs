@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
+import { TerminusModule } from '@nestjs/terminus';
 import { AllExceptionsFilter } from '@app/common-guard';
 // 04/08/2026: metric Prometheus dung chung (Technical_Spec.md muc 15). MetricsService duoc
 // export de main.ts lay ra qua app.get() va gan vao createHttpMetricsMiddleware() cho luu
@@ -22,6 +23,9 @@ import { HealthController } from './health/health.controller';
     ConfigModule.forRoot({ isGlobal: true, load: [configuration] }),
     JwtModule.register({}),
     RedisModule,
+    // 22/08/2026: can cho HealthController dung HealthCheckService (fix audit /health
+    // liveness-only) - xem apps/gateway/src/health/health.controller.ts.
+    TerminusModule,
   ],
   controllers: [HealthController, MetricsController],
   providers: [

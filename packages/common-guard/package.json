@@ -38,6 +38,9 @@
     "setupFiles": ["reflect-metadata"],
     "collectCoverageFrom": ["**/*.(t|j)s"],
     "coverageDirectory": "../coverage",
+    "coverageThreshold": {
+      "global": { "statements": 60, "branches": 50, "functions": 75, "lines": 60 }
+    },
     "testEnvironment": "node"
   }
 }

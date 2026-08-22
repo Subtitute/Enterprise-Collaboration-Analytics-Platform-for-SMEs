@@ -79,6 +79,7 @@ export function createJwtAuthMiddleware(
         'Thieu token xac thuc, vui long dang nhap lai',
         req.originalUrl,
         ERROR_CODES.GATEWAY_MISSING_TOKEN,
+        req,
       );
       return;
     }
@@ -94,6 +95,7 @@ export function createJwtAuthMiddleware(
         'Token khong hop le hoac da het han, vui long dang nhap lai',
         req.originalUrl,
         ERROR_CODES.GATEWAY_INVALID_TOKEN,
+        req,
       );
       return;
     }
@@ -121,6 +123,7 @@ export function createJwtAuthMiddleware(
           'Tai khoan da bi vo hieu hoa, vui long dang nhap lai',
           req.originalUrl,
           ERROR_CODES.GATEWAY_ACCOUNT_DISABLED,
+          req,
         );
         return;
       }
@@ -138,6 +141,7 @@ export function createJwtAuthMiddleware(
           'Da xay ra loi khong xac dinh, vui long thu lai sau',
           req.originalUrl,
           ERROR_CODES.INTERNAL_ERROR,
+          req,
         );
       }
     }

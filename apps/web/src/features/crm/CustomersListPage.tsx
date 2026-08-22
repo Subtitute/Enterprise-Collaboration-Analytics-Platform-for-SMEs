@@ -4,10 +4,14 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner } from '@/components/ui/Spinner';
+import { Pagination } from '@/components/ui/Pagination';
 import { BriefcaseIcon, PlusIcon, SearchIcon } from '@/components/ui/Icons';
 import { useCustomersQuery } from './hooks';
 import { CustomerCard } from './components/CustomerCard';
 import { NewCustomerModal } from './components/NewCustomerModal';
+
+// 22/08/2026: mirror ProjectsListPage.tsx (features/projects) - kich thuoc trang cho luoi the.
+const LIMIT = 20;
 
 /** Danh sach khach hang (CRM-lite) - mirror ProjectsListPage.tsx (features/projects). */
 export function CustomersListPage() {
@@ -15,6 +19,7 @@ export function CustomersListPage() {
   const [isNewOpen, setIsNewOpen] = useState(false);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
   // Debounce 400ms de khong goi API lien tuc theo tung ky tu go, mirror ProjectsListPage.tsx.
   useEffect(() => {
@@ -22,8 +27,14 @@ export function CustomersListPage() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const customersQuery = useCustomersQuery({ limit: 100, search: search || undefined });
+  // 22/08/2026: doi tim kiem thi quay ve trang 1, mirror ProjectsListPage.tsx.
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  const customersQuery = useCustomersQuery({ page, limit: LIMIT, search: search || undefined });
   const customers = customersQuery.data?.data ?? [];
+  const meta = customersQuery.data?.meta ?? { page: 1, limit: LIMIT, total: 0 };
   const hasFilters = Boolean(search);
 
   return (
@@ -70,11 +81,14 @@ export function CustomersListPage() {
             action={!hasFilters && <Button onClick={() => setIsNewOpen(true)}>{t('crm:customersListPage.addFirstCustomer')}</Button>}
           />
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {customers.map((customer) => (
-              <CustomerCard key={customer.id} customer={customer} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {customers.map((customer) => (
+                <CustomerCard key={customer.id} customer={customer} />
+              ))}
+            </div>
+            <Pagination page={meta.page} limit={meta.limit} total={meta.total} onPageChange={setPage} />
+          </>
         )}
       </QueryState>
 

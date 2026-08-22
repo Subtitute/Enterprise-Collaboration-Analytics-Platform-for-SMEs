@@ -49,8 +49,13 @@ jobs:
       - name: Type-check (tsc --noEmit) — all workspaces
         run: npm run typecheck
 
-      - name: Unit tests — all workspaces
-        run: npm test
+      # 22/08/2026: doi sang `test:coverage` (chay `--coverage` cho moi workspace) - 8 service
+      # backend + 3 package dung chung da co `coverageThreshold` rieng trong package.json (dat theo
+      # so lieu coverage thuc te da do, lam san chan chong tut coverage, khong phai muc tieu ly
+      # tuong) nen buoc nay se lam CI DO neu coverage giam duoi nguong. `apps/web` chi bao cao so
+      # lieu (khong dat threshold - xem ly do trong vite.config.ts) nen khong the lam buoc nay do.
+      - name: Unit tests — all workspaces (with coverage; backend enforces coverageThreshold)
+        run: npm run test:coverage
 
   # Step 4: build-verification only for the 7 service Docker images. Runs after the
   # job above so we don't burn CI time building images for a change that fails

@@ -45,4 +45,29 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     if (ttlSeconds <= 0) return;
     await this.client.set(`blacklist:user:${userId}`, '1', 'EX', ttlSeconds);
   }
+
+  /**
+   * Dem so lan dang nhap THAT BAI lien tiep theo email (da chuan hoa chu thuong o phia goi,
+   * xem AuthService.login()) - bo sung 22/08/2026 de chan brute-force dang nhap THEO TAI KHOAN
+   * CU THE, bo sung cho rate-limit theo IP da co san o Gateway. Fixed-window bang INCR + EXPIRE
+   * lan dau, mirror createRateLimitMiddleware (apps/gateway/src/rate-limit/rate-limit.middleware.ts).
+   */
+  async incrementFailedLoginAttempts(email: string, windowSeconds: number): Promise<number> {
+    const key = `login-attempts:${email}`;
+    const count = await this.client.incr(key);
+    if (count === 1) {
+      await this.client.expire(key, windowSeconds);
+    }
+    return count;
+  }
+
+  async getFailedLoginAttempts(email: string): Promise<number> {
+    const value = await this.client.get(`login-attempts:${email}`);
+    return value ? parseInt(value, 10) : 0;
+  }
+
+  /** Xoa bo dem ngay khi dang nhap thanh cong - khong de nguoi dung hop le bi khoa oan vi vai lan go nham truoc do. */
+  async resetFailedLoginAttempts(email: string): Promise<void> {
+    await this.client.del(`login-attempts:${email}`);
+  }
 }

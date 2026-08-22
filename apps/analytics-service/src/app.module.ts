@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { TerminusModule } from '@nestjs/terminus';
 import { DataSource, DataSourceOptions } from 'typeorm';
 // 04/08/2026: metric Prometheus dung chung (Technical_Spec.md muc 15) - xem
 // packages/common-metrics/src/index.ts.
@@ -62,6 +63,9 @@ import { AiInsightsModule } from './ai-insights/ai-insights.module';
     AnalyticsModule,
     KafkaModule,
     AiInsightsModule,
+    // 22/08/2026: fix audit "/health liveness-only" - cung cap HealthCheckService/
+    // TypeOrmHealthIndicator cho HealthController (xem health/health.controller.ts).
+    TerminusModule,
   ],
   controllers: [HealthController, MetricsController],
   providers: [

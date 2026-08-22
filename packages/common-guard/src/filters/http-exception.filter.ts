@@ -1,5 +1,5 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
-import { ErrorResponseDto } from '@app/common-dto';
+import { CORRELATION_ID_HEADER, ErrorResponseDto } from '@app/common-dto';
 
 /** Chuan hoa moi loi tra ve theo dinh dang Technical_Spec.md muc 7. */
 @Catch()
@@ -43,8 +43,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
       details = anyBody.details as ErrorResponseDto['details'];
     }
 
+    // 22/08/2026: doc correlation ID Gateway da gan cho request nay (xem
+    // apps/gateway/src/proxy/correlation-id.middleware.ts) - chi doc lai tu header, KHONG can
+    // middleware rieng o tung service. Ghi kem vao log loi 500 (nhanh duy nhat filter nay tu log)
+    // de tra cuu 1 request bi loi xuyen qua nhieu service KHONG con phai doi chieu timestamp.
+    const correlationHeader = request?.headers?.[CORRELATION_ID_HEADER];
+    const correlationId = Array.isArray(correlationHeader) ? correlationHeader[0] : correlationHeader;
+
     if (!isHttpException) {
-      this.logger.error(exception instanceof Error ? exception.stack : String(exception));
+      const stack = exception instanceof Error ? exception.stack : String(exception);
+      this.logger.error(correlationId ? `[${correlationId}] ${stack}` : stack);
     }
 
     const payload: ErrorResponseDto = {
@@ -56,6 +64,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       ...(errorCode !== undefined && { errorCode }),
       ...(errorParams !== undefined && { errorParams }),
       ...(details !== undefined && { details }),
+      ...(correlationId !== undefined && { correlationId }),
     };
 
     response.status(statusCode).json(payload);

@@ -49,6 +49,7 @@ export function createServiceProxy(prefixes: string[], target: string): ReturnTy
             'Khong the ket noi toi dich vu, vui long thu lai sau',
             req.url,
             ERROR_CODES.GATEWAY_PROXY_FAILED,
+            req,
           );
         }
       },

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { TerminusModule } from '@nestjs/terminus';
 import { AllExceptionsFilter, InternalAuthGuard, PermissionsGuard } from '@app/common-guard';
 // 04/08/2026: metric Prometheus dung chung (Technical_Spec.md muc 15) - xem
 // packages/common-metrics/src/index.ts.
@@ -24,6 +25,9 @@ import { FailedEventsModule } from './failed-events/failed-events.module';
         uri: config.get<string>('mongo.uri'),
       }),
     }),
+    // 22/08/2026: fix audit "/health liveness-only" - TerminusModule cung cap HealthCheckService
+    // + MongooseHealthIndicator (dung that connection Mongoose mac dinh o tren) cho HealthController.
+    TerminusModule,
     RealtimeModule,
     NotificationsModule,
     KafkaModule,

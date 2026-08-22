@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
+import { TerminusModule } from '@nestjs/terminus';
 import { AllExceptionsFilter, InternalAuthGuard, PermissionsGuard } from '@app/common-guard';
 import { HttpMetricsInterceptor, MetricsController, MetricsService } from '@app/common-metrics';
 import configuration from './config/configuration';
@@ -33,6 +34,7 @@ import { HealthController } from './health/health.controller';
       }),
     }),
     ScheduleModule.forRoot(),
+    TerminusModule,
     KafkaModule,
     OutboxModule,
     CustomersModule,

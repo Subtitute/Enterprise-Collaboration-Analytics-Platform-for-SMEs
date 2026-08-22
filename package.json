@@ -14,6 +14,7 @@
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run build:libs && tsc --noEmit -p apps/gateway/tsconfig.json && tsc --noEmit -p apps/iam-service/tsconfig.json && tsc --noEmit -p apps/project-task-service/tsconfig.json && tsc --noEmit -p apps/document-service/tsconfig.json && tsc --noEmit -p apps/notification-service/tsconfig.json && tsc --noEmit -p apps/analytics-service/tsconfig.json && tsc --noEmit -p apps/crm-service/tsconfig.json && tsc --noEmit -p apps/hrm-service/tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json",
     "test": "npm run test --workspaces --if-present",
+    "test:coverage": "npm run test --workspaces --if-present -- --coverage",
     "test:e2e": "npm run test:e2e -w e2e",
     "dev:iam": "npm run start:dev -w apps/iam-service",
     "dev:gateway": "npm run start:dev -w apps/gateway",
@@ -24,7 +25,9 @@
     "dev:crm": "npm run start:dev -w apps/crm-service",
     "dev:hrm": "npm run start:dev -w apps/hrm-service",
     "dev:web": "npm run dev -w apps/web",
-    "seed": "node scripts/seed.js"
+    "seed": "node scripts/seed.js",
+    "backup": "node scripts/backup.js",
+    "restore": "node scripts/restore.js"
   },
   "dependencies": {
     "pg": "^8.12.0"

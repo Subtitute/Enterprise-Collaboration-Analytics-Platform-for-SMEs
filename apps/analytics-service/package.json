@@ -22,6 +22,7 @@
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/platform-socket.io": "^11.0.0",
     "@nestjs/swagger": "^11.0.0",
+    "@nestjs/terminus": "^11.1.1",
     "@nestjs/typeorm": "^11.0.0",
     "@nestjs/websockets": "^11.0.0",
     "class-transformer": "^0.5.1",
@@ -58,6 +59,9 @@
     "setupFiles": ["reflect-metadata"],
     "collectCoverageFrom": ["**/*.(t|j)s"],
     "coverageDirectory": "../coverage",
+    "coverageThreshold": {
+      "global": { "statements": 55, "branches": 60, "functions": 45, "lines": 55 }
+    },
     "testEnvironment": "node"
   }
 }

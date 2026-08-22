@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
+import { TerminusModule } from '@nestjs/terminus';
 import { AllExceptionsFilter, InternalAuthGuard, PermissionsGuard } from '@app/common-guard';
 import { HttpMetricsInterceptor, MetricsController, MetricsService } from '@app/common-metrics';
 import configuration from './config/configuration';
@@ -34,6 +35,9 @@ import { HealthController } from './health/health.controller';
       }),
     }),
     ScheduleModule.forRoot(),
+    // 22/08/2026: can cho HealthController dung TypeOrmHealthIndicator (fix audit /health
+    // liveness-only) - xem apps/hrm-service/src/health/health.controller.ts.
+    TerminusModule,
     KafkaModule,
     MinioModule,
     OutboxModule,
