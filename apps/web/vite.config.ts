@@ -40,5 +40,17 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
     css: false,
+    // 22/08/2026: bat bao cao coverage (chi de XEM SO LIEU qua `vitest run --coverage`, dung
+    // '@vitest/coverage-v8' moi them) - CO Y KHONG dat `thresholds` nhu 8 service backend
+    // (packages/*/package.json, apps/*-service/package.json) da lam. Ly do: coverage thuc te cua
+    // frontend hien tai qua thap (5 file test / ~117 file nguon, tap trung o UI primitive, chua
+    // dong nao trong `features/*`) - dat 1 nguong o muc do se khong that su chan duoc gi (vd 5%),
+    // con dat cao hon se lam CI do ngay lap tuc du khong co thay doi hanh vi nao. Quyet dinh: hien
+    // so lieu that trong CI de theo doi xu huong, chi bat `thresholds` khi da co 1 dot viet them
+    // test rieng cho `features/*` (van con la hang muc mo, xem Doc/Technical_Spec.md).
+    coverage: {
+      provider: 'v8',
+      reporter: ['text-summary'],
+    },
   },
 });

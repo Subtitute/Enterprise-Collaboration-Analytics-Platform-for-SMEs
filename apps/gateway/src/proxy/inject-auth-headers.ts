@@ -1,6 +1,7 @@
 import type { ClientRequest, IncomingMessage } from 'http';
 import { Logger } from '@nestjs/common';
 import {
+  CORRELATION_ID_HEADER,
   DEV_FALLBACK_INTERNAL_SHARED_SECRET,
   INTERNAL_AUTH_HEADERS,
   INTERNAL_SHARED_SECRET_HEADER,
@@ -62,6 +63,14 @@ const RESOLVED_INTERNAL_SHARED_SECRET = resolveInternalSharedSecret();
  */
 export function injectAuthHeaders(proxyReq: ClientRequest, req: IncomingMessage): void {
   proxyReq.setHeader(INTERNAL_SHARED_SECRET_HEADER, RESOLVED_INTERNAL_SHARED_SECRET);
+
+  // 22/08/2026: forward correlation ID (xem correlation-id.middleware.ts, chay truoc middleware
+  // nay trong pipeline nen header CHAC CHAN da co gia tri luc toi day) - dong bo tren MOI request
+  // duoc proxy, khong phu thuoc trang thai xac thuc, mirror x-internal-secret o tren.
+  const correlationId = req.headers?.[CORRELATION_ID_HEADER];
+  if (correlationId) {
+    proxyReq.setHeader(CORRELATION_ID_HEADER, correlationId);
+  }
 
   const user = (req as RequestWithUser).user;
   if (!user) return;

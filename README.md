@@ -24,10 +24,18 @@ Monorepo npm workspaces gồm **Core Platform** (8 microservice NestJS + React S
 **(Cập nhật 21/07/2026)** Đây là finding nghiêm trọng nhất của đợt review hạ tầng: 5 service nghiệp
 vụ trên trước đây map port thẳng ra host, cho phép gọi trực tiếp bỏ qua Gateway (bỏ qua luôn JWT
 verify + rate limiting), kết hợp với header nội bộ có thể giả mạo thì đây là một lỗi bypass xác
-thực hoàn chỉnh. Cả 5 service giờ chỉ còn truy cập được qua mạng nội bộ `internal-net` (từ Gateway
-hoặc từ service khác trong cùng mạng) - **không còn truy cập trực tiếp từ máy host được nữa**, dù
-`docker compose ps` vẫn hiển thị container đang chạy. Xem `infra/docker-compose.yml` và
-`Doc/Technical_Spec.md` mục 6/8.
+thực hoàn chỉnh. Cả 5 service giờ **không còn map port ra host nữa** - không có cách nào gọi thẳng
+từ máy host bỏ qua Gateway, dù `docker compose ps` vẫn hiển thị container đang chạy. Xem
+`infra/docker-compose.yml` và `Doc/Technical_Spec.md` mục 6/8.
+
+**(Làm rõ 22/08/2026, phát hiện qua audit hạ tầng)** Cơ chế phía trên là "không công bố port ra
+host", **không phải cô lập theo mạng** - `internal-net` (`infra/docker-compose.yml`) là MỘT mạng
+bridge phẳng duy nhất chứa TẤT CẢ container (kể cả 5 Postgres, MongoDB, Redis, Kafka, MinIO,
+Prometheus/Grafana), không có mạng "nội bộ" tách biệt mạng "công khai" nào cả. Nghĩa là bất kỳ
+container nào đã có mặt trên `internal-net` (không chỉ Gateway) đều gọi thẳng được 5 service này -
+"internal-net" chỉ nói đúng "không lộ ra ngoài máy host", không nói đúng "chỉ Gateway gọi được".
+`Doc/Technical_Spec.md` mục 8/12 đã tự ghi nhận đây là rủi ro chấp nhận được cho phạm vi 1 máy học
+viên tự quản, không phù hợp nếu triển khai lên môi trường nhiều máy/nhiều người dùng chung mạng.
 
 Các container hạ tầng/CSDL vẫn map port ra host **chỉ để phục vụ debug cục bộ** (không dùng cho môi
 trường có thể truy cập từ bên ngoài):
@@ -134,9 +142,26 @@ Kafka consumer lag) có sẵn tại:
   `.env`, mặc định dev là `admin`) - dashboard "ECAP - Tổng quan hạ tầng" được tự động cấu hình sẵn.
 - Prometheus: `http://localhost:9090` (chỉ phục vụ debug cục bộ, cùng quy ước với các cổng debug
   hạ tầng khác ở bảng trên).
+- **(Bổ sung 22/08/2026)** Alertmanager: `http://localhost:9095` (cảnh báo chủ động - 4 luật ở
+  `infra/prometheus/alert-rules.yml`, định tuyến ở `infra/alertmanager/alertmanager.yml`; **chưa
+  có kênh thông báo thật** (Slack/email) vì đây là môi trường 1 máy học viên tự quản - alert vẫn
+  được đánh giá/chuyển trạng thái "firing" thật sự, chỉ chưa có ai được báo ngoài giao diện này).
 
 Tách biệt hoàn toàn khỏi Analytics Dashboard nghiệp vụ (KPI công việc/dự án/tài liệu, xem trong
 web app) - xem `Doc/Technical_Spec.md` mục 15.
+
+## Sao lưu / phục hồi dữ liệu
+
+**(Bổ sung 22/08/2026)** Sao lưu thủ công (chưa có lịch cron tự động) cho toàn bộ 8 nguồn dữ liệu
+(5 Postgres + TimescaleDB + MongoDB + MinIO):
+
+```powershell
+npm run backup                                    # tạo backups/<timestamp>/ (đã .gitignore)
+npm run restore -- <ten-thu-muc-trong-backups>    # ghi đè dữ liệu hiện tại bằng bản sao lưu đó
+```
+
+Yêu cầu stack đang chạy (`docker compose up -d`). Xem `scripts/backup.js`/`scripts/restore.js` để
+biết chi tiết.
 
 ## Ghi chú
 

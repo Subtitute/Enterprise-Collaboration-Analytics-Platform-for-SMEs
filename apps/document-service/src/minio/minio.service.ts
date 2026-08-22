@@ -67,4 +67,18 @@ export class MinioService implements OnModuleInit {
   ): Promise<string> {
     return this.publicUrlClient.presignedGetObject(this.bucket, objectKey, expirySeconds, respHeaders);
   }
+
+  /**
+   * 22/08/2026: dung cho health check (Terminus) - health.controller.ts. Goi 1 request HEAD
+   * nhe (bucketExists) toi MinIO de xac nhan server + credentials con song, KHONG doc/ghi du
+   * lieu. Bucket da duoc container `minio-init` tao san (xem ghi chu tren class) nen ket qua
+   * `false` (bucket khong ton tai) cung duoc coi la mot dang loi cau hinh - throw de dong bo
+   * voi truong hop mang/loi ket noi that bai.
+   */
+  async checkConnection(): Promise<void> {
+    const exists = await this.client.bucketExists(this.bucket);
+    if (!exists) {
+      throw new Error(`MinIO bucket "${this.bucket}" khong ton tai`);
+    }
+  }
 }

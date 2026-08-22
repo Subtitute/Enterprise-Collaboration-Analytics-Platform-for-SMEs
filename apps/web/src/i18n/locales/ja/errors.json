@@ -17,6 +17,7 @@
   "MISSING_REFRESH_TOKEN": "リフレッシュトークンがありません。再度ログインしてください。",
   "EMAIL_ALREADY_USED_BY_ORG": "このメールアドレスは既に別の組織で使用されています。",
   "INVALID_CREDENTIALS": "メールアドレスまたはパスワードが正しくありません。",
+  "TOO_MANY_LOGIN_ATTEMPTS": "このアカウントへのログイン失敗回数が多すぎます。しばらくしてから再度お試しください。",
   "REFRESH_TOKEN_INVALID": "リフレッシュトークンが無効か期限切れです。",
   "REFRESH_TOKEN_REVOKED": "このリフレッシュトークンは無効化されています。",
   "USER_INACTIVE_OR_MISSING": "このユーザーは存在しないか、無効化されています。",

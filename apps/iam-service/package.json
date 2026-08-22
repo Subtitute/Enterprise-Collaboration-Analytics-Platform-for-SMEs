@@ -23,6 +23,7 @@
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/schedule": "^6.0.0",
     "@nestjs/swagger": "^11.0.0",
+    "@nestjs/terminus": "^11.1.1",
     "@nestjs/typeorm": "^11.0.0",
     "bcryptjs": "^3.0.0",
     "class-transformer": "^0.5.1",
@@ -74,6 +75,14 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
+    "coverageThreshold": {
+      "global": {
+        "statements": 45,
+        "branches": 35,
+        "functions": 15,
+        "lines": 45
+      }
+    },
     "testEnvironment": "node"
   }
 }

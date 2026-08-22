@@ -34,6 +34,10 @@ Thumbs.db
 # Docker volumes data (if bind-mounted locally)
 infra/data/
 
+# 22/08/2026: ket qua cua scripts/backup.js (npm run backup) - du lieu that cua he thong (Postgres/
+# Mongo/MinIO), khong bao gio commit vao git.
+backups/
+
 # 12/08/2026: chi dan noi bo cho tro ly AI (khong phai tai lieu du an) - Doc/ vua duoc dua vao
 # repo nay (truoc do nam cung cap voi thu muc repo, xem Doc/ECAP_Mobile.md "Lich su thay doi tai
 # lieu", 12/08/2026) nhung file nay khong duoc commit.

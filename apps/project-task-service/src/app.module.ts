@@ -3,6 +3,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
+import { TerminusModule } from '@nestjs/terminus';
 import { AllExceptionsFilter, InternalAuthGuard, PermissionsGuard } from '@app/common-guard';
 // 04/08/2026: metric Prometheus dung chung (Technical_Spec.md muc 15) - xem
 // packages/common-metrics/src/index.ts.
@@ -38,6 +39,9 @@ import { HealthController } from './health/health.controller';
       }),
     }),
     ScheduleModule.forRoot(),
+    // 22/08/2026: TerminusModule - fix audit "/health chi liveness, khong kiem tra DB that"
+    // (xem health.controller.ts: TypeOrmHealthIndicator.pingCheck kiem tra ket noi Postgres that su).
+    TerminusModule,
     KafkaModule,
     OutboxModule,
     ProjectsModule,

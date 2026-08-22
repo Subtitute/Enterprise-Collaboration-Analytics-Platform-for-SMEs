@@ -20,6 +20,7 @@
     "@nestjs/core": "^11.0.0",
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/platform-express": "^11.0.0",
+    "@nestjs/terminus": "^11.1.1",
     "helmet": "^8.3.0",
     "http-proxy-middleware": "^3.0.0",
     "ioredis": "^5.4.1",
@@ -59,6 +60,14 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
+    "coverageThreshold": {
+      "global": {
+        "statements": 35,
+        "branches": 35,
+        "functions": 40,
+        "lines": 40
+      }
+    },
     "testEnvironment": "node"
   }
 }

@@ -5,11 +5,16 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { Select } from '@/components/ui/Input';
+import { Pagination } from '@/components/ui/Pagination';
 import { FolderKanbanIcon, PlusIcon, SearchIcon } from '@/components/ui/Icons';
 import { useAllTasksQuery, useProjectsQuery } from './hooks';
 import { ProjectCard } from './components/ProjectCard';
 import { NewProjectModal } from './components/NewProjectModal';
 import { computeProgressFromTasks } from './utils';
+
+// 22/08/2026: kich thuoc trang - mirror MembersPage.tsx (features/admin), dieu chinh len 20 vi day
+// la luoi the (card) chu khong phai bang, can nhieu phan tu hon moi trang de lap day luoi 3 cot.
+const LIMIT = 20;
 
 export function ProjectsListPage() {
   const { t } = useTranslation();
@@ -17,6 +22,7 @@ export function ProjectsListPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [page, setPage] = useState(1);
 
   const STATUS_OPTIONS: { value: string; label: string }[] = [
     { value: '', label: t('projects:list.statusFilter.all') },
@@ -32,7 +38,14 @@ export function ProjectsListPage() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const projectsQuery = useProjectsQuery({ limit: 100, search: search || undefined, status: status || undefined });
+  // 22/08/2026: doi bo loc (tim kiem/trang thai) thi luon quay ve trang 1 - neu khong, nguoi dung
+  // dang o vd. trang 3 loc theo, doi bo loc con it ket qua hon co the "lo" thay danh sach rong dù
+  // thuc su co du lieu (trang 3 khong ton tai voi bo loc moi).
+  useEffect(() => {
+    setPage(1);
+  }, [search, status]);
+
+  const projectsQuery = useProjectsQuery({ page, limit: LIMIT, search: search || undefined, status: status || undefined });
   const tasksQuery = useAllTasksQuery();
 
   const progressByProject = useMemo(() => {
@@ -49,6 +62,7 @@ export function ProjectsListPage() {
   }, [tasksQuery.data]);
 
   const projects = projectsQuery.data?.data ?? [];
+  const meta = projectsQuery.data?.meta ?? { page: 1, limit: LIMIT, total: 0 };
   const hasFilters = Boolean(search || status);
 
   return (
@@ -107,16 +121,19 @@ export function ProjectsListPage() {
             action={!hasFilters && <Button onClick={() => setIsNewOpen(true)}>{t('projects:list.createFirst')}</Button>}
           />
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {projects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                project={project}
-                progress={project.completionRate ?? project.progress ?? progressByProject[project.id] ?? 0}
-                memberCount={project.memberCount}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {projects.map((project) => (
+                <ProjectCard
+                  key={project.id}
+                  project={project}
+                  progress={project.completionRate ?? project.progress ?? progressByProject[project.id] ?? 0}
+                  memberCount={project.memberCount}
+                />
+              ))}
+            </div>
+            <Pagination page={meta.page} limit={meta.limit} total={meta.total} onPageChange={setPage} />
+          </>
         )}
       </QueryState>
 

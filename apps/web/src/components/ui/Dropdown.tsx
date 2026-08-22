@@ -16,6 +16,12 @@ interface PanelPosition {
   right: number;
 }
 
+// 22/08/2026: danh sach the co the nhan focus, dung cho quan ly focus ban phim ben duoi - mirror
+// hang so cung ten trong Modal.tsx (khong gop chung thanh 1 file dung chung vi day chi la 1 chuoi
+// selector don gian, khong dang tach rieng theo tinh than toi gian).
+const FOCUSABLE_SELECTOR =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 /**
  * Menu tha xuong don gian, dong khi click ra ngoai hoac nhan Esc. Dung cho user menu, thong
  * bao, hanh dong theo dong trong bang...
@@ -34,6 +40,7 @@ export function Dropdown({ trigger, children, align = 'right', panelClassName }:
   const [position, setPosition] = useState<PanelPosition | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
   const toggle = () => {
     setOpen((v) => {
@@ -48,6 +55,17 @@ export function Dropdown({ trigger, children, align = 'right', panelClassName }:
 
   useEffect(() => {
     if (!open) return;
+    // 22/08/2026: bo sung quan ly focus ban phim (phat hien qua ra soat kha nang tiep can) - truoc
+    // day mo Dropdown bang ban phim khong chuyen focus vao panel: panel duoc dua qua React Portal
+    // nen nam CUOI DOM, Tab tiep theo tu nut trigger di THANG qua phan con lai cua trang thay vi
+    // vao menu vua mo (nguoi dung phai Tab het trang moi toi duoc menu). Sua theo dung mau da dung
+    // o Modal.tsx: luu lai phan tu dang focus truoc do, focus phan tu co the nhan focus DAU TIEN
+    // trong panel ngay khi mo, "nhot" Tab/Shift+Tab trong pham vi panel (o duoi, trong onKeyDown),
+    // va tra focus ve dung nut trigger khi dong (o cleanup, cuoi effect).
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+    const firstFocusable = panelRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+    (firstFocusable ?? panelRef.current)?.focus();
+
     const close = () => setOpen(false);
     const onClickOutside = (e: MouseEvent) => {
       const target = e.target as Node;
@@ -55,7 +73,25 @@ export function Dropdown({ trigger, children, align = 'right', panelClassName }:
       setOpen(false);
     };
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') {
+        setOpen(false);
+        return;
+      }
+      if (e.key !== 'Tab' || !panelRef.current) return;
+      const focusables = Array.from(panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+      if (focusables.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
     // 22/07/2026: sua loi thuc te - dung `close` (bare) lam listener cho scroll capture-phase se
     // dong Dropdown khi cuon BAT KY noi nao trong document, KE CA khi cuon ben trong chinh panel
@@ -82,6 +118,7 @@ export function Dropdown({ trigger, children, align = 'right', panelClassName }:
       document.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('scroll', onScroll, true);
       window.removeEventListener('resize', close);
+      previouslyFocusedRef.current?.focus?.();
     };
   }, [open]);
 
@@ -93,6 +130,10 @@ export function Dropdown({ trigger, children, align = 'right', panelClassName }:
         createPortal(
           <div
             ref={panelRef}
+            // 22/08/2026: tabIndex=-1 - cho phep goi .focus() bang script (khong hien trong vong Tab
+            // thong thuong) trong truong hop panel khong co phan tu con nao co the nhan focus, mirror
+            // dialogRef trong Modal.tsx.
+            tabIndex={-1}
             style={{ position: 'fixed', top: position.top, ...(align === 'right' ? { right: position.right } : { left: position.left }) }}
             className={cn('z-40 animate-slide-up rounded-xl border border-slate-200 bg-white shadow-xl', panelClassName)}
           >

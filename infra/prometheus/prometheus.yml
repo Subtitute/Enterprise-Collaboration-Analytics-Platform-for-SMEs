@@ -4,6 +4,20 @@
 # goi thang qua ten service, khong can qua Gateway.
 global:
   scrape_interval: 15s
+  # 22/08/2026: khai bao tuong minh (mac dinh cua Prometheus la 1m BAT KE scrape_interval neu
+  # khong dat rieng) - khop voi scrape_interval de luat "for: 1m" (alert-rules.yml) danh gia du
+  # nhanh/kip thoi, khong bi tre them toi 1 phut chi vi chu ky danh gia rieng cham hon chu ky scrape.
+  evaluation_interval: 15s
+
+# 22/08/2026: bo sung canh bao chu dong - xem alert-rules.yml (4 luat) va
+# ../alertmanager/alertmanager.yml (dinh tuyen, chua co kenh thong bao that - xem README).
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+rule_files:
+  - /etc/prometheus/alert-rules.yml
 
 scrape_configs:
   - job_name: prometheus

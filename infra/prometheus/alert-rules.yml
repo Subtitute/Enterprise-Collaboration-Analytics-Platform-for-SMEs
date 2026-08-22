@@ -1,0 +1,47 @@
+# 22/08/2026: bo sung canh bao chu dong (Alertmanager) - phat hien qua audit ha tang: truoc day
+# Prometheus chi thu thap so lieu + Grafana chi hien thi thu dong (service-overview.json), khong ai
+# duoc BAO khi loi that xay ra - phai tu mo dashboard moi biet ty le loi/lag dang cao. 4 luat toi
+# thieu duoi day dung LAI chinh xac cac bieu thuc PromQL da co san trong service-overview.json (4
+# panel), khong phat minh chi so moi. Chi la buoc "co canh bao", CHUA co kenh thong bao that (xem
+# alertmanager/alertmanager.yml) - phu hop pham vi 1 may hoc vien tu quan, xem ghi chu trong README.
+groups:
+  - name: ecap-core-alerts
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Service {{ $labels.job }} khong phan hoi scrape cua Prometheus'
+          description: 'Target {{ $labels.instance }} (job={{ $labels.job }}) da mat ket noi qua 1 phut.'
+
+      - alert: HighErrorRate5xx
+        expr: |
+          sum by (job) (rate(http_request_duration_seconds_count{status_code=~"5.."}[5m]))
+          /
+          sum by (job) (rate(http_request_duration_seconds_count[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Ty le loi 5xx cao bat thuong o {{ $labels.job }}'
+          description: 'Hon 5% request toi {{ $labels.job }} tra ve 5xx trong 5 phut gan nhat.'
+
+      - alert: HighLatencyP95
+        expr: histogram_quantile(0.95, sum by (job, le) (rate(http_request_duration_seconds_bucket[5m]))) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Do tre p95 cua {{ $labels.job }} vuot 2 giay'
+          description: 'p95 thoi gian xu ly request cua {{ $labels.job }} > 2s trong 5 phut gan nhat.'
+
+      - alert: KafkaConsumerLagHigh
+        expr: sum by (consumergroup, topic) (kafka_consumergroup_lag) > 1000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Kafka consumer lag cao: {{ $labels.consumergroup }} / {{ $labels.topic }}'
+          description: 'Lag vuot 1000 message trong 10 phut gan nhat - consumer co the dang xu ly cham hoac bi ket.'

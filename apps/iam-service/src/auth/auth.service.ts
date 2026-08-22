@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, HttpException, HttpStatus, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -36,6 +36,11 @@ interface TokenPair {
 // tre phan hoi de doan biet 1 email co ton tai trong he thong hay khong (timing side-channel,
 // loi MAJOR, review 22/07/2026).
 const DUMMY_PASSWORD_HASH = bcrypt.hashSync('dummy-password-for-timing-normalization', 10);
+
+// 22/08/2026: chan brute-force dang nhap THEO TAI KHOAN CU THE - xem chu thich day du trong
+// AuthService.login() ve ly do dat o day (iam-service) thay vi Gateway.
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOGIN_ATTEMPT_WINDOW_SECONDS = 15 * 60; // 15 phut
 
 /** Ho so nguoi dung cong khai tra ve o response - khong bao gio bao gom passwordHash. */
 function toPublicUser(user: User) {
@@ -152,12 +157,32 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
+    // 22/08/2026: bo sung chan brute-force dang nhap THEO TAI KHOAN CU THE (khong chi theo IP nhu
+    // rate-limit hien co o Gateway - apps/gateway/src/rate-limit/rate-limit.middleware.ts, toi da
+    // 100 request/60s/IP, ap dung cho MOI route). Gateway KHONG the tu lam viec nay: no la reverse
+    // proxy thuan, chu dong tat bodyParser (NestFactory.create(AppModule, {bodyParser: false}),
+    // apps/gateway/src/main.ts) de khong tieu thu stream body truoc khi forward nguyen ven toi
+    // downstream - nghia la Gateway khong doc duoc dto.email de dung lam khoa. Dat kiem tra o day
+    // (iam-service, noi email THUC SU duoc parse boi @Body() LoginDto) la dung tang kien truc.
+    const emailKey = dto.email.trim().toLowerCase();
+    const attempts = await this.redisService.getFailedLoginAttempts(emailKey);
+    if (attempts >= MAX_LOGIN_ATTEMPTS) {
+      throw new HttpException(
+        {
+          message: 'Tai khoan nay da dang nhap sai qua nhieu lan, vui long thu lai sau it phut',
+          errorCode: ERROR_CODES.TOO_MANY_LOGIN_ATTEMPTS,
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
     const user = await this.userRepo.findOne({ where: { email: dto.email } });
     if (!user || !user.isActive) {
       // 22/07/2026: van chay bcrypt.compare() (voi DUMMY_PASSWORD_HASH co dinh) truoc khi tu choi
       // de nhanh nay ton thoi gian tuong duong nhanh "sai mat khau" ben duoi - xem chu thich
       // DUMMY_PASSWORD_HASH dau file. Ket qua bi bo qua, chi de lam phang thoi gian phan hoi.
       await bcrypt.compare(dto.password, DUMMY_PASSWORD_HASH);
+      await this.redisService.incrementFailedLoginAttempts(emailKey, LOGIN_ATTEMPT_WINDOW_SECONDS);
       throw new UnauthorizedException({
       message: 'Email hoac mat khau khong dung',
       errorCode: ERROR_CODES.INVALID_CREDENTIALS,
@@ -165,11 +190,13 @@ export class AuthService {
     }
     const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordMatches) {
+      await this.redisService.incrementFailedLoginAttempts(emailKey, LOGIN_ATTEMPT_WINDOW_SECONDS);
       throw new UnauthorizedException({
       message: 'Email hoac mat khau khong dung',
       errorCode: ERROR_CODES.INVALID_CREDENTIALS,
     });
     }
+    await this.redisService.resetFailedLoginAttempts(emailKey);
     const tokens = await this.issueTokenPair(user);
     return { ...tokens, user: toPublicUser(user) };
   }
