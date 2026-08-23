@@ -28,7 +28,7 @@ export function AuthLayout({ title, subtitle, children, wide }: { title: string;
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
           {subtitle && <p className="text-sm text-slate-500 max-w-sm sm:max-w-none">{subtitle}</p>}
         </div>
-        <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-6 shadow-xl shadow-slate-200/50 backdrop-blur-md sm:p-8">
+        <div className="rounded-2xl border border-slate-200/90 bg-white/95 p-6 shadow-2xl shadow-slate-300/60 ring-1 ring-slate-900/5 backdrop-blur-md sm:p-8">
           {children}
         </div>
       </div>

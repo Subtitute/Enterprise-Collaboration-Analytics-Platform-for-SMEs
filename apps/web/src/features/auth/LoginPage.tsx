@@ -73,7 +73,10 @@ export function LoginPage() {
       </form>
       <p className="mt-6 text-center text-sm text-slate-500">
         {t('auth:loginPage.noOrganization')}{' '}
-        <Link to="/register" className="font-medium text-primary-600 hover:text-primary-700">
+        <Link
+          to="/register"
+          className="inline-block font-medium text-primary-600 transition-all duration-200 hover:text-primary-700 hover:-translate-y-[0.5px] active:translate-y-0 hover:underline"
+        >
           {t('auth:loginPage.registerLink')}
         </Link>
       </p>
