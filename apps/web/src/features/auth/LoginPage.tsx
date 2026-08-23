@@ -17,16 +17,16 @@ export function LoginPage() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errorKeys, setErrorKeys] = useState<{ email?: 'emailRequired' | 'emailInvalid'; password?: 'passwordRequired' }>({});
 
   if (accessToken) return <Navigate to="/dashboard" replace />;
 
   function validate() {
-    const next: typeof errors = {};
-    if (!email.trim()) next.email = t('auth:loginPage.errors.emailRequired');
-    else if (!EMAIL_RE.test(email.trim())) next.email = t('auth:loginPage.errors.emailInvalid');
-    if (!password) next.password = t('auth:loginPage.errors.passwordRequired');
-    setErrors(next);
+    const next: typeof errorKeys = {};
+    if (!email.trim()) next.email = 'emailRequired';
+    else if (!EMAIL_RE.test(email.trim())) next.email = 'emailInvalid';
+    if (!password) next.password = 'passwordRequired';
+    setErrorKeys(next);
     return Object.keys(next).length === 0;
   }
 
@@ -36,26 +36,35 @@ export function LoginPage() {
     login.mutate({ email: email.trim(), password });
   }
 
+  const emailError = errorKeys.email ? t(`auth:loginPage.errors.${errorKeys.email}`) : undefined;
+  const passwordError = errorKeys.password ? t(`auth:loginPage.errors.${errorKeys.password}`) : undefined;
+
   return (
     <AuthLayout title={t('auth:loginPage.title')} subtitle={t('auth:loginPage.subtitle')}>
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <FormField label={t('auth:loginPage.emailLabel')} htmlFor="email" error={errors.email} required>
+        <FormField label={t('auth:loginPage.emailLabel')} htmlFor="email" error={emailError} required>
           <Input
             id="email"
             type="email"
             autoComplete="email"
             placeholder={t('auth:loginPage.emailPlaceholder')}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (errorKeys.email) setErrorKeys((prev) => ({ ...prev, email: undefined }));
+            }}
           />
         </FormField>
-        <FormField label={t('auth:loginPage.passwordLabel')} htmlFor="password" error={errors.password} required>
+        <FormField label={t('auth:loginPage.passwordLabel')} htmlFor="password" error={passwordError} required>
           <PasswordInput
             id="password"
             autoComplete="current-password"
             placeholder="••••••••"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (errorKeys.password) setErrorKeys((prev) => ({ ...prev, password: undefined }));
+            }}
           />
         </FormField>
         <Button type="submit" className="w-full" isLoading={login.isPending}>

@@ -41,30 +41,37 @@ export function RegisterPage() {
     adminPassword: '',
     confirmPassword: '',
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errorKeys, setErrorKeys] = useState<Record<string, string>>({});
 
   if (accessToken) return <Navigate to="/dashboard" replace />;
 
   function update<K extends keyof WizardData>(key: K, value: WizardData[K]) {
     setData((d) => ({ ...d, [key]: value }));
+    if (errorKeys[key]) {
+      setErrorKeys((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
   }
 
   function validateStep1() {
     const next: Record<string, string> = {};
-    if (!data.organizationName.trim()) next.organizationName = t('auth:registerPage.errors.organizationNameRequired');
-    setErrors(next);
+    if (!data.organizationName.trim()) next.organizationName = 'organizationNameRequired';
+    setErrorKeys(next);
     return Object.keys(next).length === 0;
   }
 
   function validateStep2() {
     const next: Record<string, string> = {};
-    if (!data.adminFullName.trim()) next.adminFullName = t('auth:registerPage.errors.adminFullNameRequired');
-    if (!data.adminEmail.trim()) next.adminEmail = t('auth:registerPage.errors.adminEmailRequired');
-    else if (!EMAIL_RE.test(data.adminEmail.trim())) next.adminEmail = t('auth:registerPage.errors.adminEmailInvalid');
-    if (!data.adminPassword) next.adminPassword = t('auth:registerPage.errors.adminPasswordRequired');
-    else if (data.adminPassword.length < 8) next.adminPassword = t('auth:registerPage.errors.adminPasswordTooShort');
-    if (data.confirmPassword !== data.adminPassword) next.confirmPassword = t('auth:registerPage.errors.confirmPasswordMismatch');
-    setErrors(next);
+    if (!data.adminFullName.trim()) next.adminFullName = 'adminFullNameRequired';
+    if (!data.adminEmail.trim()) next.adminEmail = 'adminEmailRequired';
+    else if (!EMAIL_RE.test(data.adminEmail.trim())) next.adminEmail = 'adminEmailInvalid';
+    if (!data.adminPassword) next.adminPassword = 'adminPasswordRequired';
+    else if (data.adminPassword.length < 8) next.adminPassword = 'adminPasswordTooShort';
+    if (data.confirmPassword !== data.adminPassword) next.confirmPassword = 'confirmPasswordMismatch';
+    setErrorKeys(next);
     return Object.keys(next).length === 0;
   }
 
@@ -88,34 +95,57 @@ export function RegisterPage() {
 
   return (
     <AuthLayout title={t('auth:registerPage.title')} subtitle={t('auth:registerPage.subtitle')} wide>
-      <ol className="mb-7 flex items-center justify-between">
-        {STEPS.map((s, i) => (
-          <li key={s.step} className="flex flex-1 items-center">
-            <div className="flex flex-col items-center gap-1.5">
-              <span
-                className={cn(
-                  'flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold',
-                  step > s.step
-                    ? 'bg-primary-600 text-white'
-                    : step === s.step
-                      ? 'border-2 border-primary-600 text-primary-600'
-                      : 'border-2 border-slate-200 text-slate-400',
-                )}
-              >
-                {step > s.step ? <CheckIcon className="h-4 w-4" /> : s.step}
-              </span>
-              <span className={cn('text-xs font-medium', step >= s.step ? 'text-slate-700' : 'text-slate-400')}>{s.label}</span>
-            </div>
-            {i < STEPS.length - 1 && (
-              <div className={cn('mx-2 mb-5 h-0.5 flex-1 rounded', step > s.step ? 'bg-primary-600' : 'bg-slate-200')} />
-            )}
-          </li>
-        ))}
-      </ol>
+      <div className="mb-8 w-full">
+        <ol className="grid grid-cols-3 w-full max-w-lg mx-auto">
+          {STEPS.map((s, i) => (
+            <li key={s.step} className="relative flex flex-col items-center text-center">
+              {/* Connecting line between circles */}
+              {i < STEPS.length - 1 && (
+                <div
+                  className={cn(
+                    'absolute top-4 left-1/2 w-full h-0.5 transition-colors',
+                    step > s.step ? 'bg-primary-600' : 'bg-slate-200',
+                  )}
+                  style={{ zIndex: 0 }}
+                />
+              )}
+
+              {/* Step Circle */}
+              <div className="relative z-10 flex flex-col items-center gap-1.5 w-full px-1">
+                <span
+                  className={cn(
+                    'flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold transition-colors',
+                    step > s.step
+                      ? 'bg-primary-600 text-white shadow-sm shadow-primary-600/30'
+                      : step === s.step
+                        ? 'bg-white border-2 border-primary-600 text-primary-600 ring-4 ring-primary-50'
+                        : 'bg-white border-2 border-slate-200 text-slate-400',
+                  )}
+                >
+                  {step > s.step ? <CheckIcon className="h-4 w-4" /> : s.step}
+                </span>
+                <span
+                  className={cn(
+                    'text-xs font-medium leading-tight line-clamp-2 px-0.5',
+                    step >= s.step ? 'text-slate-800' : 'text-slate-400',
+                  )}
+                >
+                  {s.label}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
 
       {step === 1 && (
         <form onSubmit={handleNext} className="space-y-4" noValidate>
-          <FormField label={t('auth:registerPage.step1.organizationNameLabel')} htmlFor="organizationName" error={errors.organizationName} required>
+          <FormField
+            label={t('auth:registerPage.step1.organizationNameLabel')}
+            htmlFor="organizationName"
+            error={errorKeys.organizationName ? t(`auth:registerPage.errors.${errorKeys.organizationName}`) : undefined}
+            required
+          >
             <Input
               id="organizationName"
               placeholder={t('auth:registerPage.step1.organizationNamePlaceholder')}
@@ -134,7 +164,12 @@ export function RegisterPage() {
 
       {step === 2 && (
         <form onSubmit={handleFinish} className="space-y-4" noValidate>
-          <FormField label={t('auth:registerPage.step2.adminFullNameLabel')} htmlFor="adminFullName" error={errors.adminFullName} required>
+          <FormField
+            label={t('auth:registerPage.step2.adminFullNameLabel')}
+            htmlFor="adminFullName"
+            error={errorKeys.adminFullName ? t(`auth:registerPage.errors.${errorKeys.adminFullName}`) : undefined}
+            required
+          >
             <Input
               id="adminFullName"
               placeholder={t('auth:registerPage.step2.adminFullNamePlaceholder')}
@@ -142,7 +177,12 @@ export function RegisterPage() {
               onChange={(e) => update('adminFullName', e.target.value)}
             />
           </FormField>
-          <FormField label={t('auth:registerPage.step2.adminEmailLabel')} htmlFor="adminEmail" error={errors.adminEmail} required>
+          <FormField
+            label={t('auth:registerPage.step2.adminEmailLabel')}
+            htmlFor="adminEmail"
+            error={errorKeys.adminEmail ? t(`auth:registerPage.errors.${errorKeys.adminEmail}`) : undefined}
+            required
+          >
             <Input
               id="adminEmail"
               type="email"
@@ -152,7 +192,12 @@ export function RegisterPage() {
             />
           </FormField>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField label={t('auth:registerPage.step2.adminPasswordLabel')} htmlFor="adminPassword" error={errors.adminPassword} required>
+            <FormField
+              label={t('auth:registerPage.step2.adminPasswordLabel')}
+              htmlFor="adminPassword"
+              error={errorKeys.adminPassword ? t(`auth:registerPage.errors.${errorKeys.adminPassword}`) : undefined}
+              required
+            >
               <PasswordInput
                 id="adminPassword"
                 placeholder={t('auth:registerPage.step2.adminPasswordPlaceholder')}
@@ -160,7 +205,12 @@ export function RegisterPage() {
                 onChange={(e) => update('adminPassword', e.target.value)}
               />
             </FormField>
-            <FormField label={t('auth:registerPage.step2.confirmPasswordLabel')} htmlFor="confirmPassword" error={errors.confirmPassword} required>
+            <FormField
+              label={t('auth:registerPage.step2.confirmPasswordLabel')}
+              htmlFor="confirmPassword"
+              error={errorKeys.confirmPassword ? t(`auth:registerPage.errors.${errorKeys.confirmPassword}`) : undefined}
+              required
+            >
               <PasswordInput
                 id="confirmPassword"
                 placeholder={t('auth:registerPage.step2.confirmPasswordPlaceholder')}
