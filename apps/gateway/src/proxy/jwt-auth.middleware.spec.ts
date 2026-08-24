@@ -175,6 +175,36 @@ describe('createJwtAuthMiddleware', () => {
     expect(res.status).not.toHaveBeenCalled();
   });
 
+  // 22/08/2026: kiem thu cho fix vua boc withTimeout() quanh isUserBlacklisted() (phat hien qua
+  // rieng ra soat - cung 1 lop loi da tung sua o rate-limit.middleware.ts nhung chua ap dung o
+  // day). Mo phong ioredis "treo" that (khong resolve/reject) bang fake timer, xac nhan middleware
+  // van fail-open (goi next()) sau timeout thay vi treo vo han.
+  it('fail-open sau timeout khi Redis "treo" vo thoi han (khong resolve/reject - mo phong offline queue that su)', async () => {
+    jest.useFakeTimers();
+    try {
+      const jwtService = { verifyAsync: jest.fn().mockResolvedValue(PAYLOAD) } as unknown as JwtService;
+      const configService = { get: jest.fn().mockReturnValue('test-secret') } as unknown as ConfigService;
+      const redisService = {
+        isUserBlacklisted: jest.fn(() => new Promise<never>(() => undefined)),
+      } as unknown as RedisService;
+      const middleware = createJwtAuthMiddleware(jwtService, configService, redisService);
+      const req = createReq();
+      const res = createRes();
+      const next = jest.fn();
+
+      const pending = middleware(req, res, next);
+      expect(next).not.toHaveBeenCalled();
+
+      await jest.advanceTimersByTimeAsync(1000);
+      await pending;
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(res.status).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('KHONG tao unhandled promise rejection khi next() nem loi DONG BO sau khi xac thuc thanh cong, ma tra ve 500 qua duong dan loi chuan', async () => {
     const { jwtService, configService, redisService } = createDeps();
     const middleware = createJwtAuthMiddleware(jwtService, configService, redisService);

@@ -70,4 +70,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   async resetFailedLoginAttempts(email: string): Promise<void> {
     await this.client.del(`login-attempts:${email}`);
   }
+
+  // 22/08/2026: fix audit "/health chua kiem tra Redis" - login()/deactivate() cua service nay deu
+  // phu thuoc Redis (throttle dang nhap, blacklist token) nhung /health truoc day chi ping
+  // Postgres, an di truong hop Redis chet trong luc 2 co che tren dang fail-open lang le. Dung cho
+  // HealthController (mirror analytics-service/redis.service.ts ping()).
+  async ping(): Promise<string> {
+    return this.client.ping();
+  }
 }

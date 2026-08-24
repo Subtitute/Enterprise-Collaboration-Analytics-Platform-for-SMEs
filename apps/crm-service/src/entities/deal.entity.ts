@@ -1,6 +1,7 @@
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm';
 import { DealStage } from '@app/common-dto';
 import { AppBaseEntity } from '../common/base.entity';
+import { numericTransformer } from '../common/numeric.transformer';
 import { Customer } from './customer.entity';
 
 /** Co hoi ban hang (deal pipeline, Kanban) - Technical_Spec.md muc 16, Wireframe.md muc 12. */
@@ -21,7 +22,9 @@ export class Deal extends AppBaseEntity {
   @Column()
   title: string;
 
-  @Column({ type: 'numeric', precision: 14, scale: 2, default: 0 })
+  // 22/08/2026: transformer - Postgres `numeric` ve dang string qua driver `pg`, thieu transformer
+  // khien GET /deals tra ve value la string, sai hop dong kieu voi DTO/FE (Deal.value: number).
+  @Column({ type: 'numeric', precision: 14, scale: 2, default: 0, transformer: numericTransformer })
   value: number;
 
   @Column({ type: 'enum', enum: DealStage, default: DealStage.NEW })

@@ -2,6 +2,32 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as Minio from 'minio';
 
+// 22/08/2026: sao chep tu apps/document-service/src/minio/minio.service.ts (file mau tham chieu,
+// xem docblock class ben duoi) - phat hien qua rieng ra soat: SDK `minio` khong dat timeout tren
+// bat ky HTTP call nao, nen 1 lan MinIO "treo" mang (khong tu choi ngay ma khong bao gio phan hoi)
+// khien putObject() "treo" VO THOI HAN, lam ca request checkIn()/checkOut() cua nguoi dung "treo"
+// theo. Boc timeout de LUON tra loi (thanh cong hoac loi) trong thoi gian gioi han.
+function withTimeout<T>(promise: Promise<T>, ms: number, timeoutMessage: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(timeoutMessage)), ms);
+    timer.unref?.();
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err: unknown) => {
+        clearTimeout(timer);
+        reject(err instanceof Error ? err : new Error(String(err)));
+      },
+    );
+  });
+}
+
+// Anh cham cong nho hon nhieu so voi MAX_FILE_SIZE_BYTES cua Document Service nen tran an toan
+// ngan hon - van chi de chan truong hop "treo" THAT SU (0 thong luong), khong phai upload cham binh thuong.
+const PUT_OBJECT_TIMEOUT_MS = 15_000;
+
 /**
  * Wrapper mong quanh MinIO SDK (S3-compatible object storage) - Technical_Spec.md muc 17.
  * Sao chep-va-dieu-chinh tu apps/document-service/src/minio/minio.service.ts (file mau tham
@@ -45,9 +71,11 @@ export class MinioService implements OnModuleInit {
   }
 
   async putObject(objectKey: string, buffer: Buffer, sizeBytes: number, mimeType: string): Promise<void> {
-    await this.client.putObject(this.bucket, objectKey, buffer, sizeBytes, {
-      'Content-Type': mimeType,
-    });
+    await withTimeout(
+      this.client.putObject(this.bucket, objectKey, buffer, sizeBytes, { 'Content-Type': mimeType }),
+      PUT_OBJECT_TIMEOUT_MS,
+      `Upload MinIO vuot qua ${PUT_OBJECT_TIMEOUT_MS}ms (object: ${objectKey})`,
+    );
   }
 
   /** URL GET co chu ky tam thoi - client (trang duyet duyet cham cong cua Manager) tai truc tiep tu MinIO. */

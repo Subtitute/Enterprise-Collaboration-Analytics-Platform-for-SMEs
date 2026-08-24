@@ -2,6 +2,8 @@
 
 Nguồn gốc: 1 đợt review toàn dự án (vai trò giảng viên phản biện, theo `ClaudeRule.md` mục 6) thực hiện ngày 22/08/2026, chia thành 3 nhóm theo mức ưu tiên/chi phí. File này chỉ để **tra cứu nhanh trạng thái từng hạng mục** — chi tiết kỹ thuật đầy đủ (file:line, cách xác minh, số liệu trước/sau) nằm ở `Technical_Spec.md` → mục "Lịch sử thay đổi tài liệu", 2 đoạn ngày 2026-08-22.
 
+**Xem thêm:** `Doc/RevisionHistory.md` gộp TOÀN BỘ dòng thời gian rà soát/sửa lỗi của dự án (kể cả trước và sau 3 Tier ở đây) thành 1 file duy nhất — bao gồm đợt rà soát ngày 22/08/2026 gốc ra 3 tier này, VÀ đợt rà soát tiếp theo ngày 24/08/2026 (độc lập với 3 tier, nhắm riêng vào lỗi có thể treo/sập hệ thống — 7 lỗi Nghiêm trọng + ~13 lỗi Nghiêm trọng vừa, tất cả đã sửa).
+
 ---
 
 ## Tier 1 — chi phí thấp, ảnh hưởng rõ

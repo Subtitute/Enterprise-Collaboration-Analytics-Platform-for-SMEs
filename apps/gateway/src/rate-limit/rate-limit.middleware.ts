@@ -4,6 +4,7 @@ import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { ERROR_CODES, type JwtAccessPayload } from '@app/common-dto';
 import { RedisService } from '../redis/redis.service';
 import { sendErrorResponse } from '../common/send-error-response';
+import { withTimeout } from '../common/with-timeout.util';
 import { buildRateLimitKey, evaluateRateLimit, getClientIp } from './rate-limit.util';
 
 const logger = new Logger('RateLimitMiddleware');
@@ -17,26 +18,12 @@ type RequestWithUser = Request & { user?: JwtAccessPayload };
 // Gateway "treo" vo thoi han voi MOI request trong luc Redis gap su co, di NGUOC LAI chinh thiet ke
 // "fail-open" da ghi trong comment cuoi file (chi xu ly duoc truong hop tu choi ngay, khong xu ly
 // duoc truong hop "khong bao gio tra loi"). Bao boc bang timeout de dam bao luon fail-open THAT SU.
+//
+// 22/08/2026 (bo sung): withTimeout() truoc day dinh nghia rieng NGAY TAI DAY - da chuyen sang
+// ../common/with-timeout.util.ts de jwt-auth.middleware.ts (co CUNG 1 lop loi voi lenh Redis kiem
+// tra JWT blacklist, phat hien qua rieng ra soat) dung chung, tranh lap lai dung sai lam da khien
+// ban fix truoc chi ap dung o 1 noi duy nhat trong 2 noi Gateway goi Redis.
 const RATE_LIMIT_TIMEOUT_MS = 1000;
-
-function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`Redis rate-limit check vuot qua ${ms}ms`)), ms);
-    // unref() - timer nay khong duoc giu tien trinh Node song neu no la viec con lai duy nhat
-    // (quan trong cho test dung fake timer/lifecycle ngan, khong anh huong hanh vi production).
-    timer.unref?.();
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (err: unknown) => {
-        clearTimeout(timer);
-        reject(err instanceof Error ? err : new Error(String(err)));
-      },
-    );
-  });
-}
 
 /**
  * Rate limiting co ban theo IP (+ organizationId khi da biet) dung bo dem fixed-window
@@ -70,6 +57,7 @@ export function createRateLimitMiddleware(
         return count;
       }),
       RATE_LIMIT_TIMEOUT_MS,
+      `Redis rate-limit check vuot qua ${RATE_LIMIT_TIMEOUT_MS}ms`,
     )
       .then((count) => {
         const decision = evaluateRateLimit(count, max);

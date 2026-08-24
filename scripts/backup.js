@@ -71,37 +71,63 @@ function backupMinio() {
 
   const rootUser = getContainerEnvVar('minio', 'MINIO_ROOT_USER');
   const rootPassword = getContainerEnvVar('minio', 'MINIO_ROOT_PASSWORD');
-  // 2 bucket rieng (document-service + hrm-service, xem docker-compose.yml) - moi service tu doc
-  // ten bucket cua CHINH NO qua bien MINIO_BUCKET (cung ten bien, khac gia tri giua 2 service).
-  const documentBucket = getContainerEnvVar('document-service', 'MINIO_BUCKET');
-  const hrmBucket = getContainerEnvVar('hrm-service', 'MINIO_BUCKET');
+  // 22/08/2026: 2 bucket rieng (document-service + hrm-service) - moi bucket gio nam TRONG 1
+  // try/catch cua rieng no. Truoc day ca 2 ten bucket duoc doc (qua getContainerEnvVar, tuc goi
+  // `docker compose exec`) TRUOC khi vao vong lap mirror: 1 trong 2 container (document-service/
+  // hrm-service) dung/loi se nem loi dong bo va lam hong CA HAI bucket - ke ca bucket cua container
+  // van khoe - pha vo nguyen tac cach ly loi tung nguon ma vong lap `steps` o main() da chu y lam.
+  const sources = [
+    { service: 'document-service', label: 'document-service' },
+    { service: 'hrm-service', label: 'hrm-service' },
+  ];
 
-  for (const bucket of [documentBucket, hrmBucket]) {
-    console.log(`  mirroring bucket "${bucket}"...`);
-    // Container mc TAM THOI (--rm), noi vao CUNG mang Docker voi minio (khong qua cong host de
-    // tranh phu thuoc port da doi 9010/9011 - xem README.md) va mount thang thu muc sao luu cuc bo.
-    // --entrypoint /bin/sh: image minio/mc dat san ENTRYPOINT la "mc" (khong phai shell) - mirror
-    // dung cach infra/docker-compose.yml (service minio-init) da override entrypoint de chay duoc
-    // nhieu lenh `mc` noi tiep nhau trong 1 lan goi container.
-    execFileSync(
-      'docker',
-      [
-        'run',
-        '--rm',
-        '--network',
-        NETWORK,
-        '-v',
-        `${minioDir}:/backup`,
-        '--entrypoint',
-        '/bin/sh',
-        MC_IMAGE,
-        '-c',
-        `mc alias set local http://minio:9000 "${rootUser}" "${rootPassword}" >/dev/null && mc mirror --quiet "local/${bucket}" "/backup/${bucket}"`,
-      ],
-      { stdio: 'inherit' },
-    );
+  const failedBuckets = [];
+  for (const { service, label } of sources) {
+    try {
+      const bucket = getContainerEnvVar(service, 'MINIO_BUCKET');
+      console.log(`  mirroring bucket "${bucket}" (${label})...`);
+      // Container mc TAM THOI (--rm), noi vao CUNG mang Docker voi minio (khong qua cong host de
+      // tranh phu thuoc port da doi 9010/9011 - xem README.md) va mount thang thu muc sao luu cuc bo.
+      // --entrypoint /bin/sh: image minio/mc dat san ENTRYPOINT la "mc" (khong phai shell) - mirror
+      // dung cach infra/docker-compose.yml (service minio-init) da override entrypoint de chay duoc
+      // nhieu lenh `mc` noi tiep nhau trong 1 lan goi container.
+      // 22/08/2026: rootUser/rootPassword/bucket truyen qua BIEN MOI TRUONG (-e ..., moi gia tri 1
+      // phan tu argv rieng - execFileSync KHONG di qua shell nen an toan voi moi ky tu), THAY VI noi
+      // truc tiep vao chuoi lenh `sh -c` nhu truoc: gia tri chua ky tu " ` $ ; se pha vo dau nhay va
+      // CHEN LENH TUY Y vao container mc (dang giu quyen admin MinIO song, mount ca /backup).
+      execFileSync(
+        'docker',
+        [
+          'run',
+          '--rm',
+          '--network',
+          NETWORK,
+          '-v',
+          `${minioDir}:/backup`,
+          '-e',
+          `MC_USER=${rootUser}`,
+          '-e',
+          `MC_PASSWORD=${rootPassword}`,
+          '-e',
+          `MC_BUCKET=${bucket}`,
+          '--entrypoint',
+          '/bin/sh',
+          MC_IMAGE,
+          '-c',
+          'mc alias set local http://minio:9000 "$MC_USER" "$MC_PASSWORD" >/dev/null && mc mirror --quiet "local/$MC_BUCKET" "/backup/$MC_BUCKET"',
+        ],
+        { stdio: 'inherit' },
+      );
+    } catch (err) {
+      failedBuckets.push(label);
+      console.error(`  LOI khi sao luu bucket cua ${label}: ${err.message}`);
+    }
   }
+
   console.log(`  -> ${path.relative(process.cwd(), minioDir)}/`);
+  if (failedBuckets.length > 0) {
+    throw new Error(`bucket loi: ${failedBuckets.join(', ')} (bucket con lai van da sao luu binh thuong)`);
+  }
 }
 
 function main() {

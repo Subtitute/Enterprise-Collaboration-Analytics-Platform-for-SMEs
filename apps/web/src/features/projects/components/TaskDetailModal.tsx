@@ -5,6 +5,8 @@ import { FormField, Input, Select, Textarea, Label } from '@/components/ui/Input
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { Spinner } from '@/components/ui/Spinner';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { QueryState } from '@/components/ui/QueryState';
 import { TrashIcon, XIcon } from '@/components/ui/Icons';
 import { formatDateTime, formatRelativeTime } from '@/lib/utils';
 import { useUserNameMap } from '@/hooks/useOrgUsers';
@@ -61,11 +63,27 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
   return (
     <>
       <Modal open={Boolean(taskId)} onClose={onClose} title={task?.title ?? t('projects:taskDetail.fallbackTitle')} size="lg">
-        {!task ? (
-          <div className="flex justify-center py-10">
-            <Spinner />
-          </div>
-        ) : (
+        {/* 22/08/2026: tach 3 trang thai dang gop lam mot ("dang tai", "loi tai", "khong con ton
+            tai") - truoc day chi check "!task" nen ca 3 truong hop deu hien spinner vo han, kha
+            nang cao la mot nguoi dung khac da xoa cong viec trong luc modal dang mo. */}
+        <QueryState
+          isLoading={tasksQuery.isLoading}
+          isError={tasksQuery.isError}
+          onRetry={() => tasksQuery.refetch()}
+          loadingFallback={
+            <div className="flex justify-center py-10">
+              <Spinner />
+            </div>
+          }
+          errorTitle={t('projects:taskDetail.loadErrorTitle')}
+          errorDescription={t('projects:taskDetail.loadErrorDescription')}
+        >
+          {!task ? (
+            <EmptyState
+              title={t('projects:taskDetail.notFoundTitle')}
+              description={t('projects:taskDetail.notFoundDescription')}
+            />
+          ) : (
           <div className="space-y-5">
             <div className="flex flex-wrap items-end gap-3">
               {/* 25/07/2026: them htmlFor/id (task-status-select, task-due-date) - truoc ban sua
@@ -230,7 +248,8 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
               </div>
             </div>
           </div>
-        )}
+          )}
+        </QueryState>
       </Modal>
 
       <ConfirmDialog

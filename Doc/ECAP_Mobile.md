@@ -518,6 +518,34 @@ này thì ai cũng có thể né bằng cách luôn chấm công qua web.
   bản mới hơn (`11.x`) build lỗi trên máy phát triển hiện tại (xem mục 12) — cần thử lại khi
   nâng cấp Flutter/Android Gradle Plugin trên máy phát triển.
 
+## 15. Rà soát lỗi treo/sập ứng dụng (24/08/2026)
+
+Trong đợt rà soát toàn dự án lần 2 (xem `Doc/Technical_Spec.md`, mục "2026-08-24" và
+`Doc/RevisionHistory.md`), một hướng rà soát riêng tập trung vào `ecap-mobile` — cụ thể là liệu
+`ApiClient` có thể **crash/kẹt vĩnh viễn** với bất kỳ hình dạng response nào mà Gateway thật có
+thể trả về hay không (không chỉ đọc lại code của chính mình như đợt 07/08/2026, mà đối chiếu trực
+tiếp với `AllExceptionsFilter`/`AuthService` thật ở backend). Phát hiện 1 lỗi Nghiêm trọng:
+
+- **`tryAutoLogin()`/`_refresh()` ép kiểu cứng không có `try/catch` bao quát toàn bộ:** cả hai chỉ
+  bọc `on DioException` (lỗi mạng/HTTP) quanh `response.data['accessToken'] as String`/
+  `AppUser.fromJson(response.data['user'] as Map<String, dynamic>)`. Một response HTTP **200**
+  nhưng sai hình dạng — ví dụ trang đăng nhập của captive portal Wi-Fi công cộng, hoặc proxy doanh
+  nghiệp chèn nội dung khác — khiến phép ép kiểu ném `TypeError`, KHÔNG PHẢI `DioException`, nên
+  lọt qua khối `catch` hiện có. `tryAutoLogin()` được gọi trong `main.dart`'s `_bootstrap()` mà
+  KHÔNG có `try/catch` nào bọc bên ngoài — lỗi thoát ra ngoài khiến `setState(() => _apiClient =
+  client)` không bao giờ chạy, màn hình khởi động (spinner) treo **vĩnh viễn**, không thể phục hồi
+  mà không xoá dữ liệu app. `_refresh()` (gọi khi có request nào đó trả `401`, tức mỗi 15 phút khi
+  access token hết hạn trong lúc dùng bình thường) gặp đúng lỗi này thì request đó âm thầm thất
+  bại thay vì hiện thông báo lỗi.
+  Sửa: đổi `on DioException` thành bắt MỌI lỗi (`catch (_)`) ở cả 2 hàm — coi bất kỳ lỗi nào trong
+  lúc thử refresh/auto-login là "chưa đăng nhập"/"refresh thất bại", đúng đúng ý nghĩa vốn có của
+  2 hàm này (best-effort, không phải luồng bắt buộc phải thành công).
+
+**Xác minh sau khi sửa:** `flutter analyze` (0 lỗi, chạy trên `api_client.dart`). Không có test
+widget/unit nào sẵn cho `ApiClient` (xem mục 14 — giới hạn kiểm thử đã biết) nên không thêm test
+Dart cho lần sửa này, theo đúng phạm vi tối thiểu của đợt rà soát (không mở rộng hạ tầng test
+`ecap-mobile` ngoài yêu cầu).
+
 ## Lịch sử thay đổi tài liệu
 
 - **2026-08-06** — Khởi tạo tài liệu, đồng thời với việc scaffold `ecap-mobile` (Flutter/Dart,
@@ -590,3 +618,10 @@ này thì ai cũng có thể né bằng cách luôn chấm công qua web.
   mới bị bỏ qua tự nhiên) — đã xác minh bằng cách gọi thật API sai mật khẩu qua Gateway đã
   rebuild. CNA không có nút chọn ngôn ngữ và không nằm trong phạm vi rollout này, tiếp tục 100%
   tiếng Việt như từ đầu.
+- **2026-08-24 (rà soát lỗi treo/sập ứng dụng)** — Một hướng trong đợt rà soát toàn dự án lần 2
+  của nền tảng (xem `Technical_Spec.md`/`RevisionHistory.md` mục cùng ngày) rà lại `ApiClient` với
+  câu hỏi cụ thể "có hình dạng response nào từ Gateway thật khiến app crash/kẹt vĩnh viễn không?".
+  Phát hiện và sửa 1 lỗi Nghiêm trọng: `tryAutoLogin()`/`_refresh()` chỉ bắt `DioException`, không
+  bắt được `TypeError` từ ép kiểu sai khi gặp response 200 sai hình dạng (captive portal Wi-Fi,
+  proxy doanh nghiệp) — khiến màn hình khởi động app kẹt vĩnh viễn. Chi tiết đầy đủ ở mục 15
+  (mới). Xác minh: `flutter analyze` sạch.

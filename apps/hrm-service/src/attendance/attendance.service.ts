@@ -132,14 +132,16 @@ export class AttendanceService {
     verifyPhotoContentMatchesMimeType(file);
     const workDate = toGmt7DateString(new Date());
 
-    const attendance = await this.attendanceRepo.findOne({ where: { organizationId, userId, workDate } });
-    if (!attendance) {
+    // Pre-check NGOAI transaction (khong khoa) - chi de tra loi nhanh 2 truong hop pho bien "chua
+    // check-in"/"da check-out roi" ma khong can mo transaction. KHONG phai "chot" quyet dinh chinh.
+    const preCheck = await this.attendanceRepo.findOne({ where: { organizationId, userId, workDate } });
+    if (!preCheck) {
       throw new BadRequestException({
         message: 'Bạn chưa chấm công vào làm hôm nay, không thể chấm công ra về',
         errorCode: ERROR_CODES.NOT_CHECKED_IN_YET,
       });
     }
-    if (attendance.checkOutAt) {
+    if (preCheck.checkOutAt) {
       throw new BadRequestException({ message: 'Bạn đã chấm công ra về hôm nay rồi', errorCode: ERROR_CODES.ALREADY_CHECKED_OUT_TODAY });
     }
 
@@ -147,7 +149,30 @@ export class AttendanceService {
     await this.minioService.putObject(objectKey, file.buffer, file.size, file.mimetype);
     const isOnSite = this.computeIsOnSite(latitude, longitude);
 
+    // 22/08/2026: phat hien qua rieng ra soat - checkOut() truoc day CHI doc/ghi ben ngoai/khong
+    // khoa (bien `attendance` o pre-check duoc dung THANG trong transaction ben duoi), khac han
+    // checkIn() (dua vao @Unique constraint) va LeaveRequestsService.decide() (dung
+    // pessimistic_write + re-check). 2 request "Cham cong ra ve" gan nhu dong thoi (bam nham 2 lan,
+    // hoac 2 tab) deu doc qua duoc pre-check o tren TRUOC KHI ben nao kip ghi, roi ca 2 cung
+    // manager.save() len CUNG 1 dong - ghi de last-write-wins (anh checkout cua request thua cuoc
+    // bi mat, khong bao loi) va phat 2 outbox event ATTENDANCE_CHECKED_OUT trung nhau. Sua bang
+    // doc lai VOI khoa pessimistic_write BEN TRONG transaction va re-check `checkOutAt`, mirror
+        // dung pattern LeaveRequestsService.decide() (apps/hrm-service/src/leave-requests) da dung.
     return this.dataSource.transaction(async (manager) => {
+      const attendance = await manager.findOne(Attendance, {
+        where: { organizationId, userId, workDate },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!attendance) {
+        throw new BadRequestException({
+          message: 'Bạn chưa chấm công vào làm hôm nay, không thể chấm công ra về',
+          errorCode: ERROR_CODES.NOT_CHECKED_IN_YET,
+        });
+      }
+      if (attendance.checkOutAt) {
+        throw new BadRequestException({ message: 'Bạn đã chấm công ra về hôm nay rồi', errorCode: ERROR_CODES.ALREADY_CHECKED_OUT_TODAY });
+      }
+
       attendance.checkOutAt = new Date();
       attendance.checkOutPhotoObjectKey = objectKey;
       attendance.checkOutLatitude = latitude ?? null;

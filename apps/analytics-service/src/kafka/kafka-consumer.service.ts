@@ -52,6 +52,9 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   // 28/07/2026: nguong so lan retry toi da cho 1 eventId truoc khi bi coi la RETRY_EXHAUSTED va
   // day sang DLQ thay vi tiep tuc rethrow cho kafkajs redeliver vo han.
   private readonly maxRetryAttempts = 5;
+  // 22/08/2026: dem so lan da thu khoi dong lai LIEN TIEP sau 1 lan CRASH - dung tinh backoff mu
+  // dan, ve 0 ngay khi khoi dong lai thanh cong. Xem registerCrashHandler()/restartWithBackoff().
+  private restartAttempt = 0;
 
   constructor(
     private readonly configService: ConfigService,
@@ -72,6 +75,18 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       retry: { retries: 8 },
     });
     this.consumer = this.kafka.consumer({ groupId: KAFKA_CONSUMER_GROUPS.ANALYTICS_SERVICE });
+    this.registerCrashHandler();
+    await this.startConsuming();
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.consumer?.disconnect();
+  }
+
+  // 22/08/2026: tach tu onModuleInit() (giu nguyen logic connect/subscribe/run goc) de co the goi
+  // lai duoc TU restartWithBackoff() ben duoi sau 1 lan CRASH, khong chi 1 lan duy nhat luc khoi
+  // dong module.
+  private async startConsuming(): Promise<void> {
     await this.consumer.connect();
     await this.consumer.subscribe({
       topics: [KAFKA_TOPICS.IAM, KAFKA_TOPICS.PROJECT_TASK, KAFKA_TOPICS.DOCUMENT],
@@ -93,8 +108,43 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
-  async onModuleDestroy(): Promise<void> {
-    await this.consumer?.disconnect();
+  // 22/08/2026: phat hien qua rieng ra soat - truoc day KHONG co consumer.on(CRASH,...) nao. Khi
+  // kafkajs het ngan sach retry NOI BO (vd Kafka mat ket noi keo dai, vuot qua `retry.retries=8` o
+  // startConsuming()) va tu dung han vong lap consumer (khac voi retryAttempts/DLQ o
+  // processMessage() ben duoi, von xu ly loi TUNG message - day la loi cua CA VONG LAP), tien
+  // trinh Node VAN SONG BINH THUONG va /health van bao "khoe manh" (khong biet gi ve trang thai
+  // consumer) - toan bo viec cap nhat KPI/dashboard real-time NGUNG VINH VIEN, am tham, cho toi
+  // khi co nguoi thu cong restart container. Tu khoi dong lai voi backoff mu dan (toi da 30s) de
+  // tu phuc hoi khi Kafka on dinh tro lai.
+  private registerCrashHandler(): void {
+    this.consumer.on(this.consumer.events.CRASH, (event) => {
+      this.logger.error(
+        `Kafka consumer CRASH (group=${KAFKA_CONSUMER_GROUPS.ANALYTICS_SERVICE}): ${event.payload.error.message}. ` +
+          `kafkajs tu restart: ${event.payload.restart}.`,
+      );
+      if (!event.payload.restart) {
+        void this.restartWithBackoff();
+      }
+    });
+  }
+
+  private async restartWithBackoff(): Promise<void> {
+    this.restartAttempt += 1;
+    const delayMs = Math.min(30_000, 1000 * 2 ** this.restartAttempt);
+    this.logger.warn(`Se thu khoi dong lai Kafka consumer sau ${delayMs}ms (lan thu ${this.restartAttempt})...`);
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    try {
+      await this.startConsuming();
+      this.logger.log('Kafka consumer da khoi dong lai thanh cong sau CRASH.');
+      this.restartAttempt = 0;
+    } catch (err) {
+      this.logger.error(
+        `Khoi dong lai Kafka consumer that bai (lan thu ${this.restartAttempt}): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      void this.restartWithBackoff();
+    }
   }
 
   // 28/07/2026: tach tu callback eachMessage() cua consumer.run() o onModuleInit() ben tren -

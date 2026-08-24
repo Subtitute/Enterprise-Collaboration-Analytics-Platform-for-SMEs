@@ -17,10 +17,21 @@ const logger = new Logger('RestProxy');
  * pathFilter dang ham - vi Express se cat bo doan prefix khoi req.url khi mount theo path,
  * pha vo tinh chat "path-preserving" cua proxy (downstream can nguyen /api/v1/... trong URL).
  */
+// 22/08/2026: phat hien qua rieng ra soat - truoc day KHONG dat proxyTimeout/timeout, chi co
+// handler 'error' (ban tren) von CHI bat loi cap ket noi (vd downstream tu choi ket noi ngay).
+// Neu downstream NHAN ket noi TCP roi khong bao gio phan hoi (deadlock, row lock Postgres bi khoa
+// vinh vien...), request cua client se "treo" vo thoi han - handler 'error' khong bao gio chay vi
+// khong co loi cap ket noi nao xay ra, chi la khong ai tra loi. Dat tran thoi gian de Gateway LUON
+// tra loi (thanh cong hoac 504-tuong-duong qua handler 'error' o tren, http-proxy-middleware tu
+// phat 'error' voi ECONNRESET khi vuot proxyTimeout) thay vi treo mai theo downstream.
+const PROXY_TIMEOUT_MS = 30_000;
+
 export function createServiceProxy(prefixes: string[], target: string): ReturnType<typeof createProxyMiddleware> {
   return createProxyMiddleware({
     target,
     changeOrigin: true,
+    proxyTimeout: PROXY_TIMEOUT_MS,
+    timeout: PROXY_TIMEOUT_MS,
     pathFilter: (pathname) => matchesPrefix(pathname, prefixes),
     on: {
       proxyReq: injectAuthHeaders,

@@ -48,6 +48,17 @@ export function ProjectsListPage() {
   const projectsQuery = useProjectsQuery({ page, limit: LIMIT, search: search || undefined, status: status || undefined });
   const tasksQuery = useAllTasksQuery();
 
+  // 22/08/2026: xoa du an lam giam tong so ket qua co the khien trang hien tai vuot qua trang cuoi
+  // cung (vd. dang o trang cuoi chi con 1 du an, xoa xong) - BE khong tu dong dieu chinh, chi tra
+  // ve data: [] cho trang khong con hop le nua, nen can tu clamp ve trang cuoi cung hop le o day.
+  useEffect(() => {
+    const newTotal = projectsQuery.data?.meta.total;
+    if (newTotal === undefined) return;
+    if (page > 1 && (page - 1) * LIMIT >= newTotal) {
+      setPage(Math.max(1, Math.ceil(newTotal / LIMIT)));
+    }
+  }, [projectsQuery.data, page]);
+
   const progressByProject = useMemo(() => {
     const map: Record<string, number> = {};
     const tasks = tasksQuery.data ?? [];

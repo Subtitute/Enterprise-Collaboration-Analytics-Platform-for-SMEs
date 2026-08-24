@@ -467,9 +467,18 @@ export class FilesService {
     if (!fileMeta) throw new NotFoundException({ message: 'Khong tim thay file', errorCode: ERROR_CODES.FILE_NOT_FOUND });
     await this.assertFileAccess(organizationId, fileMeta, ctx);
 
-    const versions = await this.fileVersionRepo.find({ where: { fileId: id } });
+    // 22/08/2026: doc FileVersion bang `manager` (TRONG transaction), khong phai bang
+    // `fileVersionRepo` (ngoai transaction) nhu ban cu - phat hien qua rieng ra soat, cung 1 lop
+    // loi voi FoldersService.remove() da tung sua (25/07/2026, xem docblock/chu thich tai do) nhung
+    // chua duoc ap dung lai o day. Neu doc `versions` TRUOC transaction, 1 phien ban moi duoc
+    // upload (POST .../upload) dung vao dung khoang ho giua lan doc do va luc transaction cascade
+    // xoa FileMeta ben duoi se KHONG nam trong danh sach xoa object MinIO - row FileVersion cua no
+    // van bi FK CASCADE xoa nhung khong con dau vet DB nao de doi chieu lai, object MinIO mo coi
+    // VINH VIEN va am tham hon ca gioi han da biet o Technical_Spec.md muc 14 (chi ghi nhan truong
+    // hop xoa THAT BAI co log lai, khong phai truong hop nay - hoan toan khong co dau vet).
+    const versions = await this.dataSource.transaction(async (manager) => {
+      const versionsInTx = await manager.find(FileVersion, { where: { fileId: id } });
 
-    await this.dataSource.transaction(async (manager) => {
       // Cascade xoa FileVersion + FileShare o tang DB (onDelete: CASCADE tren ca 2 entity).
       await manager.remove(fileMeta);
 
@@ -480,6 +489,8 @@ export class FilesService {
         producer: PRODUCER,
         payload: payload as unknown as Record<string, unknown>,
       });
+
+      return versionsInTx;
     });
 
     for (const version of versions) {

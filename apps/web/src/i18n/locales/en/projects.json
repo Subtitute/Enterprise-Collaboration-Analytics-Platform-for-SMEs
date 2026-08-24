@@ -84,6 +84,10 @@
   "taskDetail": {
     "unknownMember": "Member",
     "fallbackTitle": "Task",
+    "loadErrorTitle": "Couldn't load task",
+    "loadErrorDescription": "An error occurred while loading this task. Please try again.",
+    "notFoundTitle": "Task not found",
+    "notFoundDescription": "This task may have been deleted, or you no longer have access to it.",
     "statusLabel": "Status",
     "dueDateLabel": "Due date",
     "deleteTask": "Delete task",
