@@ -42,6 +42,35 @@ const DUMMY_PASSWORD_HASH = bcrypt.hashSync('dummy-password-for-timing-normaliza
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_ATTEMPT_WINDOW_SECONDS = 15 * 60; // 15 phut
 
+// 22/08/2026: phat hien qua rieng ra soat - 3 lenh Redis cua co che throttle o tren
+// (getFailedLoginAttempts/incrementFailedLoginAttempts/resetFailedLoginAttempts, xem login() ben
+// duoi) truoc day goi THANG, khong timeout/khong try-catch. ioredis mac dinh
+// `enableOfflineQueue: true` nen 1 lan mat ket noi Redis khien LENH NAY "treo" toi hang chuc giay
+// (cho maxRetriesPerRequest) thay vi tu choi ngay - dang nhap DUNG mat khau van bi treo/500, khoa
+// CA TO CHUC ra khoi he thong dung luc Redis gap su co. Di NGUOC LAI triet ly fail-open da ap dung
+// cho refresh()/revokeRefreshToken() trong CHINH file nay. Boc timeout + fail-open (xem
+// recordFailedLoginAttemptSafe/resetFailedLoginAttemptsSafe ben duoi) de dam bao Redis loi KHONG
+// bao gio chan duoc 1 lan dang nhap hop le - co che throttle nay von la lop phong thu bo sung,
+// khong phai co che xac thuc chinh (mat khau/bcrypt.compare van la "chot" quyet dinh duy nhat).
+const REDIS_TIMEOUT_MS = 1000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`Redis vuot qua ${ms}ms`)), ms);
+    timer.unref?.();
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err: unknown) => {
+        clearTimeout(timer);
+        reject(err instanceof Error ? err : new Error(String(err)));
+      },
+    );
+  });
+}
+
 /** Ho so nguoi dung cong khai tra ve o response - khong bao gio bao gom passwordHash. */
 function toPublicUser(user: User) {
   return {
@@ -165,7 +194,16 @@ export class AuthService {
     // downstream - nghia la Gateway khong doc duoc dto.email de dung lam khoa. Dat kiem tra o day
     // (iam-service, noi email THUC SU duoc parse boi @Body() LoginDto) la dung tang kien truc.
     const emailKey = dto.email.trim().toLowerCase();
-    const attempts = await this.redisService.getFailedLoginAttempts(emailKey);
+    let attempts = 0;
+    try {
+      attempts = await withTimeout(this.redisService.getFailedLoginAttempts(emailKey), REDIS_TIMEOUT_MS);
+    } catch (err) {
+      this.logger.warn(
+        `Kiem tra so lan dang nhap sai that bai, fail-open (bo qua throttle cho lan nay): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
     if (attempts >= MAX_LOGIN_ATTEMPTS) {
       throw new HttpException(
         {
@@ -182,7 +220,7 @@ export class AuthService {
       // de nhanh nay ton thoi gian tuong duong nhanh "sai mat khau" ben duoi - xem chu thich
       // DUMMY_PASSWORD_HASH dau file. Ket qua bi bo qua, chi de lam phang thoi gian phan hoi.
       await bcrypt.compare(dto.password, DUMMY_PASSWORD_HASH);
-      await this.redisService.incrementFailedLoginAttempts(emailKey, LOGIN_ATTEMPT_WINDOW_SECONDS);
+      await this.recordFailedLoginAttemptSafe(emailKey);
       throw new UnauthorizedException({
       message: 'Email hoac mat khau khong dung',
       errorCode: ERROR_CODES.INVALID_CREDENTIALS,
@@ -190,15 +228,44 @@ export class AuthService {
     }
     const passwordMatches = await bcrypt.compare(dto.password, user.passwordHash);
     if (!passwordMatches) {
-      await this.redisService.incrementFailedLoginAttempts(emailKey, LOGIN_ATTEMPT_WINDOW_SECONDS);
+      await this.recordFailedLoginAttemptSafe(emailKey);
       throw new UnauthorizedException({
       message: 'Email hoac mat khau khong dung',
       errorCode: ERROR_CODES.INVALID_CREDENTIALS,
     });
     }
-    await this.redisService.resetFailedLoginAttempts(emailKey);
+    await this.resetFailedLoginAttemptsSafe(emailKey);
     const tokens = await this.issueTokenPair(user);
     return { ...tokens, user: toPublicUser(user) };
+  }
+
+  /** Ghi nhan 1 lan dang nhap sai (fail-open) - xem chu thich REDIS_TIMEOUT_MS dau file. */
+  private async recordFailedLoginAttemptSafe(emailKey: string): Promise<void> {
+    try {
+      await withTimeout(
+        this.redisService.incrementFailedLoginAttempts(emailKey, LOGIN_ATTEMPT_WINDOW_SECONDS),
+        REDIS_TIMEOUT_MS,
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Ghi nhan lan dang nhap sai that bai (bo qua, khong chan dang nhap chi vi Redis loi): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+  }
+
+  /** Xoa bo dem dang nhap sai sau khi dang nhap thanh cong (fail-open) - xem chu thich REDIS_TIMEOUT_MS dau file. */
+  private async resetFailedLoginAttemptsSafe(emailKey: string): Promise<void> {
+    try {
+      await withTimeout(this.redisService.resetFailedLoginAttempts(emailKey), REDIS_TIMEOUT_MS);
+    } catch (err) {
+      this.logger.warn(
+        `Xoa bo dem dang nhap sai that bai (bo qua, khong anh huong dang nhap thanh cong): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
   }
 
   async refresh(refreshTokenValue: string) {

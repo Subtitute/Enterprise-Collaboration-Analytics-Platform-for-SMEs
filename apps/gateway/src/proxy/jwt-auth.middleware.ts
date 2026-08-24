@@ -5,8 +5,17 @@ import type { NextFunction, Request, RequestHandler, Response } from 'express';
 import { ERROR_CODES, PUBLIC_GATEWAY_ROUTES, type JwtAccessPayload } from '@app/common-dto';
 import { RedisService } from '../redis/redis.service';
 import { sendErrorResponse } from '../common/send-error-response';
+import { withTimeout } from '../common/with-timeout.util';
 
 const logger = new Logger('JwtAuthMiddleware');
+
+// 22/08/2026: phat hien qua rieng ra soat - redisService.isUserBlacklisted() ben duoi da co
+// try/catch (khong lam crash) nhung KHONG co timeout, khac voi rate-limit.middleware.ts (da sua
+// cung loi nay 22/08/2026). ioredis mac dinh `enableOfflineQueue: true` nen mat ket noi Redis
+// khien lenh nay "treo" toi hang chuc giay thay vi tu choi ngay - MOI request da xac thuc qua
+// Gateway (gan nhu toan bo traffic nghiep vu) se bi "treo" cho toi luc do, du try/catch cuoi cung
+// van fail-open dung. Boc timeout de dam bao fail-open THAT SU trong thoi gian gioi han.
+const BLACKLIST_CHECK_TIMEOUT_MS = 1000;
 
 /**
  * Cac duong dan KHONG thuoc REST API (/api/v1/...) - hien tai la WebSocket upgrade.
@@ -107,7 +116,11 @@ export function createJwtAuthMiddleware(
     try {
       let blacklisted: boolean;
       try {
-        blacklisted = await redisService.isUserBlacklisted(payload.sub);
+        blacklisted = await withTimeout(
+          redisService.isUserBlacklisted(payload.sub),
+          BLACKLIST_CHECK_TIMEOUT_MS,
+          `Kiem tra blacklist Redis vuot qua ${BLACKLIST_CHECK_TIMEOUT_MS}ms`,
+        );
       } catch (err) {
         logger.warn(
           `Kiem tra blacklist that bai, cho qua yeu cau: ${err instanceof Error ? err.message : String(err)}`,

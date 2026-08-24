@@ -33,6 +33,19 @@ export function CustomersListPage() {
   }, [search]);
 
   const customersQuery = useCustomersQuery({ page, limit: LIMIT, search: search || undefined });
+
+  // 22/08/2026: xoa khach hang lam giam tong so ket qua co the khien trang hien tai vuot qua trang
+  // cuoi cung (vd. dang o trang cuoi chi con 1 khach hang, xoa xong) - BE khong tu dong dieu chinh,
+  // chi tra ve data: [] cho trang khong con hop le nua, nen can tu clamp ve trang cuoi cung hop le
+  // o day, mirror ProjectsListPage.tsx.
+  useEffect(() => {
+    const newTotal = customersQuery.data?.meta.total;
+    if (newTotal === undefined) return;
+    if (page > 1 && (page - 1) * LIMIT >= newTotal) {
+      setPage(Math.max(1, Math.ceil(newTotal / LIMIT)));
+    }
+  }, [customersQuery.data, page]);
+
   const customers = customersQuery.data?.data ?? [];
   const meta = customersQuery.data?.meta ?? { page: 1, limit: LIMIT, total: 0 };
   const hasFilters = Boolean(search);

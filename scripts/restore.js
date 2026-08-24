@@ -81,34 +81,59 @@ function restoreMinio() {
     return;
   }
   console.log('\n=== MinIO ===');
+  // rootUser/rootPassword doc 1 lan duy nhat (khac backupMinio): CA HAI deu la thong tin dang nhap
+  // vao CHINH container `minio`, moi bucket duoi day deu can no de mirror - khong phai 2 nguon doc
+  // lap nhu document-service/hrm-service ben backupMinio, nen khong co lo hong cach ly loi o day
+  // (minio down thi khong bucket nao phuc hoi duoc du co tach rieng cach doc hay khong).
   const rootUser = getContainerEnvVar('minio', 'MINIO_ROOT_USER');
   const rootPassword = getContainerEnvVar('minio', 'MINIO_ROOT_PASSWORD');
 
+  // 22/08/2026: moi bucket 1 try/catch rieng - 1 bucket loi (vd du lieu backup cua rieng no bi hong)
+  // khong duoc chan cac bucket con lai (cung nguyen tac cach ly loi nhu backupMinio/vong lap `steps`).
+  const failedBuckets = [];
   for (const bucket of fs.readdirSync(minioDir)) {
-    console.log(`  restoring bucket "${bucket}"...`);
-    // --entrypoint /bin/sh: xem chu thich cung dong trong backup.js.
-    execFileSync(
-      'docker',
-      [
-        'run',
-        '--rm',
-        '--network',
-        NETWORK,
-        '-v',
-        `${minioDir}:/backup`,
-        '--entrypoint',
-        '/bin/sh',
-        MC_IMAGE,
-        '-c',
-        // --overwrite: mc mirror TU CHOI ghi de file dich neu da ton tai VOI CUNG mtime/kich thuoc
-        // (bao ve chong ghi de nham mac dinh) - o day ta MUON ghi de that su (dung y nghia "restore",
-        // ke ca khi file dich da ton tai tu truoc do vi cung 1 lan sao luu/chua bi mat du lieu that su).
-        `mc alias set local http://minio:9000 "${rootUser}" "${rootPassword}" >/dev/null && mc mb -p "local/${bucket}" >/dev/null 2>&1; mc mirror --quiet --overwrite "/backup/${bucket}" "local/${bucket}"`,
-      ],
-      { stdio: 'inherit' },
-    );
+    try {
+      console.log(`  restoring bucket "${bucket}"...`);
+      // --entrypoint /bin/sh: xem chu thich cung dong trong backup.js.
+      // 22/08/2026: rootUser/rootPassword/bucket truyen qua BIEN MOI TRUONG (-e ..., moi gia tri 1
+      // phan tu argv rieng, khong qua shell) THAY VI noi truc tiep vao chuoi lenh `sh -c` nhu truoc -
+      // gia tri chua ky tu " ` $ ; se pha vo dau nhay va CHEN LENH TUY Y (xem backupMinio).
+      execFileSync(
+        'docker',
+        [
+          'run',
+          '--rm',
+          '--network',
+          NETWORK,
+          '-v',
+          `${minioDir}:/backup`,
+          '-e',
+          `MC_USER=${rootUser}`,
+          '-e',
+          `MC_PASSWORD=${rootPassword}`,
+          '-e',
+          `MC_BUCKET=${bucket}`,
+          '--entrypoint',
+          '/bin/sh',
+          MC_IMAGE,
+          '-c',
+          // --overwrite: mc mirror TU CHOI ghi de file dich neu da ton tai VOI CUNG mtime/kich thuoc
+          // (bao ve chong ghi de nham mac dinh) - o day ta MUON ghi de that su (dung y nghia "restore",
+          // ke ca khi file dich da ton tai tu truoc do vi cung 1 lan sao luu/chua bi mat du lieu that su).
+          'mc alias set local http://minio:9000 "$MC_USER" "$MC_PASSWORD" >/dev/null && mc mb -p "local/$MC_BUCKET" >/dev/null 2>&1; mc mirror --quiet --overwrite "/backup/$MC_BUCKET" "local/$MC_BUCKET"',
+        ],
+        { stdio: 'inherit' },
+      );
+    } catch (err) {
+      failedBuckets.push(bucket);
+      console.error(`  LOI khi phuc hoi bucket "${bucket}": ${err.message}`);
+    }
   }
+
   console.log(`  <- ${path.relative(process.cwd(), minioDir)}/`);
+  if (failedBuckets.length > 0) {
+    throw new Error(`bucket loi: ${failedBuckets.join(', ')} (bucket con lai van da phuc hoi binh thuong)`);
+  }
 }
 
 function main() {

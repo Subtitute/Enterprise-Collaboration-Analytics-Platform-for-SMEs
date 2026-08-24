@@ -109,6 +109,10 @@
   "taskDetail": {
     "unknownMember": "Thành viên",
     "fallbackTitle": "Công việc",
+    "loadErrorTitle": "Không thể tải công việc",
+    "loadErrorDescription": "Đã xảy ra lỗi khi tải công việc này. Vui lòng thử lại.",
+    "notFoundTitle": "Không tìm thấy công việc",
+    "notFoundDescription": "Công việc này có thể đã bị xoá hoặc bạn không còn quyền truy cập.",
     "statusLabel": "Trạng thái",
     "dueDateLabel": "Hạn hoàn thành",
     "deleteTask": "Xoá công việc",

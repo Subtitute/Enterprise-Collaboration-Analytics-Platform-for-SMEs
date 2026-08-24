@@ -96,7 +96,14 @@ class ApiClient {
         user: AppUser.fromJson(response.data['user'] as Map<String, dynamic>),
       );
       return true;
-    } on DioException {
+      // 22/08/2026: doi "on DioException" (chi bat loi mang/HTTP) thanh bat MOI loi - phat hien
+      // qua rieng ra soat: 1 response HTTP 200 nhung sai hinh dang (vd 1 captive-portal Wi-Fi tra
+      // ve trang HTML thay vi JSON that, hoac proxy doanh nghiep chen noi dung khac) khien ep kieu
+      // "as String"/"as Map<String,dynamic>" o tren nem TypeError - loai loi nay KHONG PHAI
+      // DioException nen truoc day thoat khoi ham nay khong duoc bat, roi loi ra ngoai interceptor
+      // onError() ben tren (chinh no cung dang trong 1 try/catch rieng - xem _tryRefreshOnce()) mà
+      // khong bi coi la "refresh that bai" mot cach gon gang.
+    } catch (_) {
       session.clear();
       return false;
     }
@@ -111,7 +118,15 @@ class ApiClient {
         accessToken: response.data['accessToken'] as String,
         user: AppUser.fromJson(response.data['user'] as Map<String, dynamic>),
       );
-    } on DioException {
+      // 22/08/2026: phat hien qua rieng ra soat - "on DioException" chi bat loi mang/HTTP, KHONG
+      // bat TypeError tu ep kieu sai (vd captive-portal Wi-Fi/proxy tra ve HTTP 200 voi noi dung
+      // khong phai JSON hop le nhu mong doi). main.dart goi ham nay trong _bootstrap() KHONG co
+      // try/catch nao boc ben ngoai - 1 TypeError thoat ra khoi day se la loi CHUA DUOC BAT, treo
+      // man hinh spinner khoi dong VINH VIEN (setState() ben duoi khong bao gio chay), khong the
+      // phuc hoi ma khong xoa du lieu app. Bat MOI loi (khong chi DioException) va coi la "chua
+      // dang nhap" - dung dung y nghia cua ham nay (chi la thu tu dang nhap lai, that bai thi coi
+      // nhu nguoi dung moi, KHONG PHAI loi can hien thi).
+    } catch (_) {
       session.clear();
     }
   }

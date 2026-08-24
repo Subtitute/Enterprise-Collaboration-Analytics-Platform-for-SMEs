@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
@@ -43,6 +44,8 @@ export interface PublicUser {
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
@@ -279,9 +282,25 @@ export class UsersService {
     // Thu hoi access token dang hieu luc cua tai khoan vua bi deactivate ngay lap tuc, thay vi
     // cho token het han tu nhien (toi da 15 phut) - Technical_Spec.md muc 6 (bo sung 21/07/2026).
     // TTL bang chinh thoi han access token de khoa blacklist tu dong het hieu luc cung luc.
+    //
+    // 22/08/2026: phat hien qua rieng ra soat - lenh Redis nay truoc day goi THANG, khong
+    // try/catch, SAU KHI transaction Postgres o tren DA COMMIT THANH CONG (isActive=false + outbox
+    // event da ghi). Neu Redis dang loi/mat ket noi luc nay, request se 500 lam admin tuong thao
+    // tac that bai va co the thu lai - trong khi vo hieu hoa DA THANH CONG that su trong DB. Boc
+    // try/catch (khong can withTimeout vi day la lenh GHI cuoi cung, khong chan luong nghiep vu
+    // nao khac phia sau) - blacklist Redis chi la lop thu hoi token SOM (defense in depth), token
+    // van tu het han binh thuong trong toi da 15 phut ke ca khi buoc nay that bai.
     const accessExpiresIn = this.configService.get<string>('jwt.accessExpiresIn') ?? '15m';
     const ttlSeconds = Math.floor(parseDurationMs(accessExpiresIn) / 1000);
-    await this.redisService.blacklistUser(saved.id, ttlSeconds);
+    try {
+      await this.redisService.blacklistUser(saved.id, ttlSeconds);
+    } catch (err) {
+      this.logger.warn(
+        `Ghi Redis blacklist that bai sau khi deactivate ${saved.id} (bo qua, tai khoan van DA bi vo hieu hoa trong DB, token se tu het han trong toi da ${accessExpiresIn}): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
 
     return this.toPublicUser(saved);
   }

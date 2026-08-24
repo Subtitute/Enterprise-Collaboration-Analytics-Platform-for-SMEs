@@ -44,12 +44,18 @@ describe('AttendanceService', () => {
     managerMock?: { create: jest.Mock; save: jest.Mock };
     configServiceMock?: { get: jest.Mock };
   }) {
+    // 22/08/2026: them findOne mac dinh cho managerMock (uy quyen lai attendanceRepoMock.findOne())
+    // - can cho checkOut() sau khi sua rieng ra soat (doc lai voi khoa pessimistic_write BEN TRONG
+    // transaction, xem attendance.service.ts). Test nao khong quan tam ket qua rieng cua manager
+    // .findOne() (da hoc happy-path) chi can dung mac dinh nay, mockResolvedValue() cua
+    // attendanceRepoMock.findOne tra ve CUNG 1 gia tri moi lan goi nen an toan de goi lai.
     const managerMock =
       opts.managerMock ??
       ({
         create: jest.fn((_entityClass: unknown, data: unknown) => data),
         save: jest.fn((entity: unknown) => Promise.resolve(entity)),
-      } as { create: jest.Mock; save: jest.Mock });
+        findOne: jest.fn(() => opts.attendanceRepoMock.findOne()),
+      } as { create: jest.Mock; save: jest.Mock; findOne: jest.Mock });
     const dataSourceMock = { transaction: jest.fn((cb: any) => cb(managerMock)) };
     const outboxServiceMock = { record: jest.fn().mockResolvedValue(undefined) };
     const minioServiceMock = {
@@ -244,6 +250,32 @@ describe('AttendanceService', () => {
       expect(outboxServiceMock.record).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({ eventType: EVENT_TYPES.ATTENDANCE_CHECKED_OUT }),
+      );
+    });
+
+    it('race condition: 2 request checkout dong thoi - request thua cuoc bi tu choi thay vi ghi de len anh/gio cua request thang', async () => {
+      // Pre-check (ngoai transaction) doc thay checkOutAt=null (chua ai checkout) - CA HAI request
+      // deu vuot qua duoc buoc nay. Nhung giua luc pre-check va luc request nay lay duoc khoa
+      // pessimistic_write, request kia da checkout xong va commit truoc -> doc lai BEN TRONG
+      // transaction (manager.findOne, sau khi co khoa) phai thay checkOutAt DA duoc set.
+      const beforeRace = { id: 'att-1', organizationId, userId, workDate: '2026-08-22', checkOutAt: null };
+      const afterRace = { id: 'att-1', organizationId, userId, workDate: '2026-08-22', checkOutAt: new Date() };
+      const attendanceRepoMock = { findOne: jest.fn().mockResolvedValue(beforeRace) };
+      const managerMock = {
+        create: jest.fn((_entityClass: unknown, data: unknown) => data),
+        save: jest.fn((entity: unknown) => Promise.resolve(entity)),
+        findOne: jest.fn().mockResolvedValue(afterRace),
+      };
+      const { service, outboxServiceMock } = createService({ attendanceRepoMock, managerMock });
+
+      await expect(service.checkOut(organizationId, userId, validJpegFile())).rejects.toMatchObject({
+        response: expect.objectContaining({ errorCode: ERROR_CODES.ALREADY_CHECKED_OUT_TODAY }),
+      });
+      expect(managerMock.save).not.toHaveBeenCalled();
+      expect(outboxServiceMock.record).not.toHaveBeenCalled();
+      expect(managerMock.findOne).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ lock: { mode: 'pessimistic_write' } }),
       );
     });
   });

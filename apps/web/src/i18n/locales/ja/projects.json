@@ -84,6 +84,10 @@
   "taskDetail": {
     "unknownMember": "メンバー",
     "fallbackTitle": "タスク",
+    "loadErrorTitle": "タスクを読み込めませんでした",
+    "loadErrorDescription": "このタスクの読み込み中にエラーが発生しました。もう一度お試しください。",
+    "notFoundTitle": "タスクが見つかりません",
+    "notFoundDescription": "このタスクは削除されたか、アクセス権がなくなった可能性があります。",
     "statusLabel": "ステータス",
     "dueDateLabel": "期限",
     "deleteTask": "タスクを削除",

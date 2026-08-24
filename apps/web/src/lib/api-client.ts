@@ -108,7 +108,10 @@ interface ErrorResponseData {
 export function extractErrorMessage(error: unknown, fallback = 'Đã xảy ra lỗi. Vui lòng thử lại.'): string {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data as ErrorResponseData | undefined;
-    if (data?.details && Array.isArray(data.message)) {
+    // 22/08/2026: kiem tra them Array.isArray(data.details) - truoc day chi check "truthy" nen
+    // details la object/string/number (BE gui sai dinh dang) se lam .map() ben duoi nem TypeError
+    // ngay trong ham xu ly loi nay, mat het thong bao toast thay vi hien fallback an toan.
+    if (data?.details && Array.isArray(data.details) && Array.isArray(data.message)) {
       const messages = data.message;
       return data.details.map((d, i) => i18n.t(`errors:${d.code}`, { ...d.params, defaultValue: messages[i] })).join(', ');
     }
