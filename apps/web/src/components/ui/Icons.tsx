@@ -304,3 +304,10 @@ export const GlobeIcon = (p: IconProps) => (
     <path d="M3 12h18M12 3a13.5 13.5 0 0 1 0 18M12 3a13.5 13.5 0 0 0 0 18" />
   </svg>
 );
+
+export const CopyIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </svg>
+);

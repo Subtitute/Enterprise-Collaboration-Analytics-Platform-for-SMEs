@@ -41,8 +41,8 @@ export function CustomersListPage() {
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">{t('crm:customersListPage.title')}</h1>
-          <p className="text-sm text-slate-500">{t('crm:customersListPage.subtitle')}</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('crm:customersListPage.title')}</h1>
+          <p className="mt-1 text-sm text-slate-500">{t('crm:customersListPage.subtitle')}</p>
         </div>
         <Button onClick={() => setIsNewOpen(true)}>
           <PlusIcon className="h-4 w-4" /> {t('crm:customersListPage.newCustomer')}

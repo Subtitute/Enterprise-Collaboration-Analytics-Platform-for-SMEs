@@ -24,13 +24,13 @@ interface KpiCardProps {
 export function KpiCard({ label, value, hint, icon, accentClassName, isLoading, isError, onRetry }: KpiCardProps) {
   const { t } = useTranslation();
   return (
-    <Card className="flex items-start justify-between gap-3 p-5">
-      <div className="min-w-0">
-        <p className="text-sm text-slate-500">{label}</p>
+    <Card className="group flex items-start justify-between gap-2 p-4 sm:p-5 sm:gap-3 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-slate-200/80 hover:border-slate-300">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs sm:text-sm font-medium text-slate-500 group-hover:text-slate-700 transition-colors">{label}</p>
         {isError ? (
           <div className="mt-1.5 flex items-center gap-1.5">
             <AlertCircleIcon className="h-4 w-4 shrink-0 text-rose-500" />
-            <span className="text-sm text-rose-500">{t('dashboard:kpiCard.errorLabel')}</span>
+            <span className="text-xs sm:text-sm text-rose-500">{t('dashboard:kpiCard.errorLabel')}</span>
             {onRetry && (
               <button
                 type="button"
@@ -45,11 +45,16 @@ export function KpiCard({ label, value, hint, icon, accentClassName, isLoading, 
         ) : isLoading ? (
           <div className="mt-2 h-7 w-16 animate-pulse rounded bg-slate-100" />
         ) : (
-          <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-900">{value}</p>
+          <p className="mt-1 text-xl sm:text-2xl font-bold tracking-tight tabular-nums text-slate-900">{value}</p>
         )}
-        {hint && !isError && <p className="mt-1 truncate text-xs text-slate-400">{hint}</p>}
+        {hint && !isError && <p className="mt-1 truncate text-[11px] sm:text-xs text-slate-400">{hint}</p>}
       </div>
-      <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-lg', accentClassName ?? 'bg-primary-50 text-primary-600')}>
+      <div
+        className={cn(
+          'flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl shadow-sm transition-transform duration-200 group-hover:scale-105',
+          accentClassName ?? 'bg-blue-50 text-blue-600 border border-blue-100/60',
+        )}
+      >
         {icon}
       </div>
     </Card>

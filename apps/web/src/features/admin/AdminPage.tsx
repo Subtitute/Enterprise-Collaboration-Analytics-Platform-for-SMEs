@@ -17,8 +17,8 @@ export function AdminPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">{t('admin:adminPage.title')}</h1>
-        <p className="text-sm text-slate-500">{t('admin:adminPage.description')}</p>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('admin:adminPage.title')}</h1>
+        <p className="mt-1 text-sm text-slate-500">{t('admin:adminPage.subtitle')}</p>
       </div>
 
       <div className="flex items-center gap-1 border-b border-slate-200">

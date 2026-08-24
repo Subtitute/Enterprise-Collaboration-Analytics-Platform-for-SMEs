@@ -7,8 +7,14 @@ import { useLogin } from './hooks';
 import { AuthLayout } from './components/AuthLayout';
 import { FormField, Input, PasswordInput } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { CopyIcon, CheckIcon } from '@/components/ui/Icons';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const DEMO_CREDENTIALS = {
+  email: 'admin@demo-sme.vn',
+  password: 'Password123!',
+};
 
 export function LoginPage() {
   const { t } = useTranslation();
@@ -18,6 +24,7 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorKeys, setErrorKeys] = useState<{ email?: 'emailRequired' | 'emailInvalid'; password?: 'passwordRequired' }>({});
+  const [copiedField, setCopiedField] = useState<'email' | 'password' | null>(null);
 
   if (accessToken) return <Navigate to="/dashboard" replace />;
 
@@ -36,50 +43,121 @@ export function LoginPage() {
     login.mutate({ email: email.trim(), password });
   }
 
+  const handleCopy = (text: string, field: 'email' | 'password') => {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleFillDemo = () => {
+    setEmail(DEMO_CREDENTIALS.email);
+    setPassword(DEMO_CREDENTIALS.password);
+    setErrorKeys({});
+  };
+
   const emailError = errorKeys.email ? t(`auth:loginPage.errors.${errorKeys.email}`) : undefined;
   const passwordError = errorKeys.password ? t(`auth:loginPage.errors.${errorKeys.password}`) : undefined;
 
   return (
-    <AuthLayout title={t('auth:loginPage.title')} subtitle={t('auth:loginPage.subtitle')}>
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <FormField label={t('auth:loginPage.emailLabel')} htmlFor="email" error={emailError} required>
-          <Input
-            id="email"
-            type="email"
-            autoComplete="email"
-            placeholder={t('auth:loginPage.emailPlaceholder')}
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              if (errorKeys.email) setErrorKeys((prev) => ({ ...prev, email: undefined }));
-            }}
-          />
-        </FormField>
-        <FormField label={t('auth:loginPage.passwordLabel')} htmlFor="password" error={passwordError} required>
-          <PasswordInput
-            id="password"
-            autoComplete="current-password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              if (errorKeys.password) setErrorKeys((prev) => ({ ...prev, password: undefined }));
-            }}
-          />
-        </FormField>
-        <Button type="submit" className="w-full" isLoading={login.isPending}>
-          {t('auth:loginPage.submit')}
-        </Button>
-      </form>
-      <p className="mt-6 text-center text-sm text-slate-500">
-        {t('auth:loginPage.noOrganization')}{' '}
-        <Link
-          to="/register"
-          className="inline-block font-medium text-primary-600 transition-all duration-200 hover:text-primary-700 hover:-translate-y-[0.5px] active:translate-y-0 hover:underline"
-        >
-          {t('auth:loginPage.registerLink')}
-        </Link>
-      </p>
-    </AuthLayout>
+    <>
+      <AuthLayout title={t('auth:loginPage.title')} subtitle={t('auth:loginPage.subtitle')}>
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <FormField label={t('auth:loginPage.emailLabel')} htmlFor="email" error={emailError} required>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              placeholder={t('auth:loginPage.emailPlaceholder')}
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errorKeys.email) setErrorKeys((prev) => ({ ...prev, email: undefined }));
+              }}
+            />
+          </FormField>
+          <FormField label={t('auth:loginPage.passwordLabel')} htmlFor="password" error={passwordError} required>
+            <PasswordInput
+              id="password"
+              autoComplete="current-password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errorKeys.password) setErrorKeys((prev) => ({ ...prev, password: undefined }));
+              }}
+            />
+          </FormField>
+          <Button type="submit" className="w-full" isLoading={login.isPending}>
+            {t('auth:loginPage.submit')}
+          </Button>
+        </form>
+        <p className="mt-6 text-center text-sm text-slate-500">
+          {t('auth:loginPage.noOrganization')}{' '}
+          <Link
+            to="/register"
+            className="inline-block font-medium text-primary-600 transition-all duration-200 hover:text-primary-700 hover:-translate-y-[0.5px] active:translate-y-0 hover:underline"
+          >
+            {t('auth:loginPage.registerLink')}
+          </Link>
+        </p>
+      </AuthLayout>
+
+      {/* Thẻ hiển thị tài khoản mẫu ở góc dưới bên phải */}
+      <div className="fixed bottom-6 right-6 z-30 max-w-xs animate-slide-up rounded-2xl border border-slate-200/90 bg-white/95 p-4 shadow-xl shadow-slate-200/80 backdrop-blur-md transition-all duration-200 hover:shadow-2xl">
+        <div className="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-slate-100">
+          <div className="flex items-center gap-1.5">
+            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs font-bold text-slate-900">Tài khoản Demo</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleFillDemo}
+            className="text-[11px] font-semibold text-primary-600 hover:text-primary-700 hover:underline cursor-pointer"
+          >
+            Tự điền nhanh
+          </button>
+        </div>
+
+        <div className="space-y-2 text-xs">
+          <div className="flex items-center justify-between gap-2 rounded-lg bg-slate-50/80 px-2.5 py-1.5 border border-slate-100">
+            <div className="min-w-0 flex-1">
+              <span className="block text-[10px] text-slate-400 font-medium">Email:</span>
+              <span className="block truncate font-mono text-slate-800">{DEMO_CREDENTIALS.email}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleCopy(DEMO_CREDENTIALS.email, 'email')}
+              title="Sao chép Email"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-400 transition-colors hover:bg-slate-200/70 hover:text-slate-700 cursor-pointer"
+            >
+              {copiedField === 'email' ? (
+                <CheckIcon className="h-3.5 w-3.5 text-emerald-600 animate-fade-in" />
+              ) : (
+                <CopyIcon className="h-3.5 w-3.5" />
+              )}
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between gap-2 rounded-lg bg-slate-50/80 px-2.5 py-1.5 border border-slate-100">
+            <div className="min-w-0 flex-1">
+              <span className="block text-[10px] text-slate-400 font-medium">Mật khẩu:</span>
+              <span className="block truncate font-mono text-slate-800">{DEMO_CREDENTIALS.password}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleCopy(DEMO_CREDENTIALS.password, 'password')}
+              title="Sao chép Mật khẩu"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-400 transition-colors hover:bg-slate-200/70 hover:text-slate-700 cursor-pointer"
+            >
+              {copiedField === 'password' ? (
+                <CheckIcon className="h-3.5 w-3.5 text-emerald-600 animate-fade-in" />
+              ) : (
+                <CopyIcon className="h-3.5 w-3.5" />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
