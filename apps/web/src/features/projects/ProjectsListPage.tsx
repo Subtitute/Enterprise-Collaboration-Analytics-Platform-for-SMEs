@@ -4,17 +4,17 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner } from '@/components/ui/Spinner';
-import { Select } from '@/components/ui/Input';
+import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { Pagination } from '@/components/ui/Pagination';
 import { FolderKanbanIcon, PlusIcon, SearchIcon } from '@/components/ui/Icons';
 import { useAllTasksQuery, useProjectsQuery } from './hooks';
 import { ProjectCard } from './components/ProjectCard';
 import { NewProjectModal } from './components/NewProjectModal';
 import { computeProgressFromTasks } from './utils';
+import type { Project } from '@/types';
 
-// 22/08/2026: kich thuoc trang - mirror MembersPage.tsx (features/admin), dieu chinh len 20 vi day
-// la luoi the (card) chu khong phai bang, can nhieu phan tu hon moi trang de lap day luoi 3 cot.
 const LIMIT = 20;
+const ORDER_STORAGE_KEY = 'ec_projects_custom_order';
 
 export function ProjectsListPage() {
   const { t } = useTranslation();
@@ -22,7 +22,9 @@ export function ProjectsListPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
+  const [priorityFilter, setPriorityFilter] = useState('');
   const [page, setPage] = useState(1);
+  const [orderedProjects, setOrderedProjects] = useState<Project[]>([]);
 
   const STATUS_OPTIONS: { value: string; label: string }[] = [
     { value: '', label: t('projects:list.statusFilter.all') },
@@ -31,22 +33,163 @@ export function ProjectsListPage() {
     { value: 'ARCHIVED', label: t('projects:enums.projectStatus.ARCHIVED') },
   ];
 
-  // Debounce 400ms de khong goi API lien tuc theo tung ky tu go (Wireframe.md muc 4.1:
-  // "[Tim kiem du an___] [Trang thai v]", khong con bo loc "Phong ban" - xem ghi chu 21/07/2026).
+  const PRIORITY_FILTER_OPTIONS: { value: string; label: string }[] = [
+    { value: '', label: t('projects:list.priorityFilter.all') },
+    { value: 'LOW', label: t('projects:list.priorityFilter.LOW') },
+    { value: 'MEDIUM', label: t('projects:list.priorityFilter.MEDIUM') },
+    { value: 'HIGH', label: t('projects:list.priorityFilter.HIGH') },
+    { value: 'URGENT', label: t('projects:list.priorityFilter.URGENT') },
+  ];
+
   useEffect(() => {
-    const timer = setTimeout(() => setSearch(searchInput.trim()), 400);
+    const timer = setTimeout(() => setSearch(searchInput.trim()), 300);
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  // 22/08/2026: doi bo loc (tim kiem/trang thai) thi luon quay ve trang 1 - neu khong, nguoi dung
-  // dang o vd. trang 3 loc theo, doi bo loc con it ket qua hon co the "lo" thay danh sach rong dù
-  // thuc su co du lieu (trang 3 khong ton tai voi bo loc moi).
   useEffect(() => {
     setPage(1);
-  }, [search, status]);
+  }, [search, status, priorityFilter]);
 
   const projectsQuery = useProjectsQuery({ page, limit: LIMIT, search: search || undefined, status: status || undefined });
   const tasksQuery = useAllTasksQuery();
+
+  const rawProjects = projectsQuery.data?.data ?? [];
+
+  const [updateTick, setUpdateTick] = useState(0);
+
+  // Lắng nghe sự kiện cập nhật trạng thái hoặc thứ tự dự án từ bất kỳ đâu
+  useEffect(() => {
+    const handleUpdate = () => setUpdateTick((t) => t + 1);
+    window.addEventListener('ec_projects_updated', handleUpdate);
+    return () => window.removeEventListener('ec_projects_updated', handleUpdate);
+  }, []);
+
+  // Đồng bộ danh sách dự án với thứ tự đã lưu trong localStorage và lọc theo độ ưu tiên
+  useEffect(() => {
+    if (rawProjects.length === 0) {
+      setOrderedProjects([]);
+      return;
+    }
+    try {
+      const savedOrder: string[] = JSON.parse(localStorage.getItem(ORDER_STORAGE_KEY) || '[]');
+      const metaStore: Record<string, { priority?: string; status?: string }> = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
+
+      let list = [...rawProjects];
+
+      // Lọc theo độ ưu tiên (nếu có chọn)
+      if (priorityFilter) {
+        list = list.filter((p) => {
+          const pPriority = metaStore[p.id]?.priority ?? 'MEDIUM';
+          return pPriority === priorityFilter;
+        });
+      }
+
+      const PRIORITY_WEIGHT: Record<string, number> = {
+        URGENT: 4,
+        HIGH: 3,
+        MEDIUM: 2,
+        LOW: 1,
+      };
+
+      // 1. Phân chia rõ ràng 2 nhóm: Đang hoạt động (activeList) và Đã hoàn thành (completedList)
+      const activeList: typeof list = [];
+      const completedList: typeof list = [];
+
+      for (const p of list) {
+        const pStatus = metaStore[p.id]?.status ?? p.status;
+        if (pStatus === 'COMPLETED') {
+          completedList.push(p);
+        } else {
+          activeList.push(p);
+        }
+      }
+
+      // 2. Sắp xếp danh sách ĐANG HOẠT ĐỘNG:
+      // Ưu tiên theo savedOrder nếu có, hoặc mặc định theo Độ ưu tiên giảm dần
+      const sortGroup = (group: typeof list) => {
+        if (savedOrder.length > 0) {
+          group.sort((a, b) => {
+            const idxA = savedOrder.indexOf(a.id);
+            const idxB = savedOrder.indexOf(b.id);
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            const weightA = PRIORITY_WEIGHT[metaStore[a.id]?.priority ?? 'MEDIUM'] ?? 2;
+            const weightB = PRIORITY_WEIGHT[metaStore[b.id]?.priority ?? 'MEDIUM'] ?? 2;
+            return weightB - weightA;
+          });
+        } else {
+          group.sort((a, b) => {
+            const weightA = PRIORITY_WEIGHT[metaStore[a.id]?.priority ?? 'MEDIUM'] ?? 2;
+            const weightB = PRIORITY_WEIGHT[metaStore[b.id]?.priority ?? 'MEDIUM'] ?? 2;
+            return weightB - weightA;
+          });
+        }
+      };
+
+      sortGroup(activeList);
+      sortGroup(completedList);
+
+      // 3. Ghép danh sách: Toàn bộ ACTIVE ở trên, toàn bộ COMPLETED LUÔN NẰM DƯỚI CÙNG
+      let finalSorted = [...activeList, ...completedList];
+
+      // 4. Nếu có tìm kiếm từ khóa, đưa các dự án khớp lên đầu
+      if (search) {
+        finalSorted.sort((a, b) => {
+          const matchA = a.name.toLowerCase().includes(search.toLowerCase()) ? 0 : 1;
+          const matchB = b.name.toLowerCase().includes(search.toLowerCase()) ? 0 : 1;
+          return matchA - matchB;
+        });
+      }
+
+      setOrderedProjects(finalSorted);
+    } catch {
+      setOrderedProjects(rawProjects);
+    }
+  }, [rawProjects, priorityFilter, search, updateTick]);
+
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedId(id);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (draggedId && draggedId !== id && dragOverId !== id) {
+      setDragOverId(id);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    setDragOverId(null);
+    if (!draggedId || draggedId === targetId) {
+      setDraggedId(null);
+      return;
+    }
+
+    const sourceIndex = orderedProjects.findIndex((p) => p.id === draggedId);
+    const destIndex = orderedProjects.findIndex((p) => p.id === targetId);
+
+    if (sourceIndex !== -1 && destIndex !== -1) {
+      const updated = Array.from(orderedProjects);
+      const [moved] = updated.splice(sourceIndex, 1);
+      updated.splice(destIndex, 0, moved);
+      setOrderedProjects(updated);
+      localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(updated.map((p) => p.id)));
+    }
+    setDraggedId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedId(null);
+    setDragOverId(null);
+  };
 
   const progressByProject = useMemo(() => {
     const map: Record<string, number> = {};
@@ -61,20 +204,35 @@ export function ProjectsListPage() {
     return map;
   }, [tasksQuery.data]);
 
-  const projects = projectsQuery.data?.data ?? [];
   const meta = projectsQuery.data?.meta ?? { page: 1, limit: LIMIT, total: 0 };
-  const hasFilters = Boolean(search || status);
+  const hasFilters = Boolean(search || status || priorityFilter);
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('projects:list.title')}</h1>
           <p className="mt-1 text-sm text-slate-500">{t('projects:list.subtitle')}</p>
         </div>
-        <Button onClick={() => setIsNewOpen(true)}>
-          <PlusIcon className="h-4 w-4" /> {t('projects:list.newProject')}
-        </Button>
+        <div className="flex items-center gap-2.5 shrink-0">
+          {hasFilters && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSearchInput('');
+                setStatus('');
+                setPriorityFilter('');
+              }}
+              className="text-xs text-slate-600 hover:text-slate-900"
+            >
+              {t('projects:list.viewAll')}
+            </Button>
+          )}
+          <Button onClick={() => setIsNewOpen(true)} size="sm">
+            <PlusIcon className="h-4 w-4" /> {t('projects:list.newProject')}
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -85,20 +243,24 @@ export function ProjectsListPage() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder={t('projects:list.searchPlaceholder')}
-            // 28/07/2026: them aria-label khop voi placeholder (phat hien qua ra soat kha nang tiep
-            // can) - placeholder bien mat ngay khi go chu va khong phai luon duoc trinh doc man hinh
-            // dung lam ten truy cap, nen can aria-label rieng.
             aria-label={t('projects:list.searchPlaceholder')}
             className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100"
           />
         </div>
-        <Select value={status} onChange={(e) => setStatus(e.target.value)} className="sm:w-48" style={{ width: 'auto' }}>
-          {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </Select>
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <CustomFilterSelect
+            value={status}
+            onChange={(val) => setStatus(val)}
+            ariaLabel={t('projects:list.statusFilter.all')}
+            options={STATUS_OPTIONS}
+          />
+          <CustomFilterSelect
+            value={priorityFilter}
+            onChange={(val) => setPriorityFilter(val)}
+            ariaLabel={t('projects:list.priorityFilter.all')}
+            options={PRIORITY_FILTER_OPTIONS}
+          />
+        </div>
       </div>
 
       <QueryState
@@ -109,7 +271,7 @@ export function ProjectsListPage() {
         errorTitle={t('projects:list.errorTitle')}
         errorDescription={t('projects:list.errorDescription')}
       >
-        {projects.length === 0 ? (
+        {orderedProjects.length === 0 ? (
           <EmptyState
             icon={<FolderKanbanIcon className="h-10 w-10" />}
             title={hasFilters ? t('projects:list.emptyFilteredTitle') : t('projects:list.emptyTitle')}
@@ -122,16 +284,34 @@ export function ProjectsListPage() {
           />
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {projects.map((project) => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  progress={project.completionRate ?? project.progress ?? progressByProject[project.id] ?? 0}
-                  memberCount={project.memberCount}
-                />
-              ))}
+            {/* Lưới 3 cột chuẩn CSS Grid tích hợp Kéo thả & Hiệu ứng chuyển động mượt mà */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 transition-all duration-300">
+              {orderedProjects.map((project) => {
+                const isDragging = draggedId === project.id;
+                const isOver = dragOverId === project.id;
+
+                return (
+                  <div
+                    key={project.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, project.id)}
+                    onDragOver={(e) => handleDragOver(e, project.id)}
+                    onDrop={(e) => handleDrop(e, project.id)}
+                    onDragEnd={handleDragEnd}
+                    className={`animate-fade-in transition-all duration-300 ease-out transform ${
+                      isDragging ? 'opacity-40 scale-95 ring-2 ring-primary-500 rounded-xl' : 'opacity-100 scale-100'
+                    } ${isOver ? 'scale-[1.02] ring-2 ring-primary-400/80 rounded-xl' : ''}`}
+                  >
+                    <ProjectCard
+                      project={project}
+                      progress={project.completionRate ?? project.progress ?? progressByProject[project.id] ?? 0}
+                      memberCount={project.memberCount}
+                    />
+                  </div>
+                );
+              })}
             </div>
+
             <Pagination page={meta.page} limit={meta.limit} total={meta.total} onPageChange={setPage} />
           </>
         )}

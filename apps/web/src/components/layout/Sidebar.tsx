@@ -78,6 +78,10 @@ function SidebarHeader({
   onToggle?: () => void;
   onNavigate?: () => void;
 }) {
+  const user = useAuthStore((s) => s.user);
+  const orgName = user?.organizationName || 'Demo SME Platform';
+  const orgInitial = orgName.trim().charAt(0).toUpperCase() || 'O';
+
   return (
     <div
       className={cn(
@@ -88,11 +92,11 @@ function SidebarHeader({
       <Link
         to="/"
         onClick={onNavigate}
-        aria-label="Về trang Dashboard"
+        aria-label={`Tổ chức: ${orgName}`}
         className="group flex min-w-0 items-center rounded-lg p-1 transition-colors hover:bg-slate-50 overflow-hidden"
       >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-sm font-bold text-white shadow-sm shadow-primary-500/20 transition-transform duration-200 group-hover:scale-105">
-          EFS
+          {orgInitial}
         </span>
         <div
           className={cn(
@@ -100,10 +104,10 @@ function SidebarHeader({
             collapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[130px] opacity-100 ml-2.5',
           )}
         >
-          <span className="truncate text-sm font-bold text-slate-900 transition-colors group-hover:text-primary-600">
-            ECAP for SMEs
+          <span className="truncate text-sm font-bold text-slate-900 transition-colors group-hover:text-primary-600" title={orgName}>
+            {orgName}
           </span>
-          <span className="truncate text-[10px] font-medium text-slate-400">Enterprise Platform</span>
+          <span className="truncate text-[10px] font-medium text-slate-400">Doanh nghiệp / Tổ chức</span>
         </div>
       </Link>
 

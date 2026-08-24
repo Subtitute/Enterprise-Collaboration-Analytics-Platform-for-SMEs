@@ -9,9 +9,9 @@ import { EmptyState } from '@/components/ui/EmptyState';
 // 22/07/2026: them QueryState de xu ly nhanh isError cho tasksQuery ben duoi (xem chu thich tai
 // vi tri dung).
 import { QueryState } from '@/components/ui/QueryState';
-import { ChevronLeftIcon, PlusIcon, CheckCircleIcon, CalendarIcon } from '@/components/ui/Icons';
+import { ChevronLeftIcon, PlusIcon, CheckCircleIcon, CalendarIcon, RefreshIcon } from '@/components/ui/Icons';
 import { formatDate } from '@/lib/utils';
-import { useProjectQuery, useTasksQuery, useCompleteProject } from './hooks';
+import { useProjectQuery, useTasksQuery, useCompleteProject, useReopenProject } from './hooks';
 import { projectStatusMeta, computeProgressFromTasks } from './utils';
 import { KanbanBoard } from './components/KanbanBoard';
 import { NewTaskModal } from './components/NewTaskModal';
@@ -23,6 +23,7 @@ export function ProjectDetailPage() {
   const projectQuery = useProjectQuery(projectId);
   const tasksQuery = useTasksQuery(projectId);
   const completeProject = useCompleteProject(projectId);
+  const reopenProject = useReopenProject(projectId);
 
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -33,24 +34,58 @@ export function ProjectDetailPage() {
   }
 
   const project = projectQuery.data;
-  const status = projectStatusMeta(project.status);
+
+  // Đọc metadata mở rộng từ localStorage (priority, lead, status override)
+  const projectMeta: { priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'; leadId?: string; status?: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED' } = (() => {
+    try {
+      const meta = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
+      return meta[project.id] ?? {};
+    } catch {
+      return {};
+    }
+  })();
+
+  const currentStatus = projectMeta.status ?? project.status;
+  const status = projectStatusMeta(currentStatus);
   const tasks = tasksQuery.data ?? [];
   const progress = project.progress ?? computeProgressFromTasks(tasks);
 
+  const statusDotColor =
+    currentStatus === 'COMPLETED'
+      ? 'bg-emerald-500 ring-emerald-200'
+      : currentStatus === 'ACTIVE'
+        ? 'bg-primary-500 ring-primary-200'
+        : 'bg-slate-400 ring-slate-200';
+
+  const priorityMeta = {
+    LOW: { label: 'Ưu tiên thấp', color: 'text-slate-600 bg-slate-50 border-slate-200' },
+    MEDIUM: { label: 'Trung bình', color: 'text-blue-700 bg-blue-50 border-blue-200' },
+    HIGH: { label: 'Ưu tiên cao', color: 'text-amber-700 bg-amber-50 border-amber-200' },
+    URGENT: { label: 'Khẩn cấp', color: 'text-rose-700 bg-rose-50 border-rose-200' },
+  }[projectMeta.priority ?? 'MEDIUM'];
+
   return (
     <div className="space-y-5">
-      <Link to="/projects" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700">
+      <Link to="/projects" className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-700">
         <ChevronLeftIcon className="h-4 w-4" /> {t('projects:detail.backToList')}
       </Link>
 
-      <div className="flex flex-col justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center">
+      <div className="flex flex-col justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center shadow-xs">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-lg font-semibold text-slate-900">{project.name}</h1>
-            <Badge variant={status.variant}>{status.label}</Badge>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">{project.name}</h1>
+            {projectMeta.priority && (
+              <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-semibold border ${priorityMeta.color}`}>
+                {priorityMeta.label}
+              </span>
+            )}
+            <Badge variant={status.variant} className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold shadow-xs">
+              <span className={`h-1.5 w-1.5 rounded-full ring-2 ${statusDotColor}`} />
+              <span>{status.label}</span>
+            </Badge>
           </div>
-          {project.description && <p className="mt-1 max-w-2xl text-sm text-slate-500">{project.description}</p>}
-          <div className="mt-2 flex flex-wrap items-center gap-4">
+          {project.description && <p className="mt-1.5 max-w-2xl text-sm text-slate-500">{project.description}</p>}
+          <div className="mt-2.5 flex flex-wrap items-center gap-4">
             {project.dueDate && (
               <span className="flex items-center gap-1 text-xs text-slate-400">
                 <CalendarIcon className="h-3.5 w-3.5" /> {t('projects:detail.dueDate', { date: formatDate(project.dueDate) })}
@@ -62,9 +97,13 @@ export function ProjectDetailPage() {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          {project.status !== 'COMPLETED' && (
+          {currentStatus !== 'COMPLETED' ? (
             <Button variant="outline" onClick={() => completeProject.mutate()} isLoading={completeProject.isPending}>
               <CheckCircleIcon className="h-4 w-4" /> {t('projects:detail.completeProject')}
+            </Button>
+          ) : (
+            <Button variant="outline" onClick={() => reopenProject.mutate()} isLoading={reopenProject.isPending}>
+              <RefreshIcon className="h-4 w-4 text-primary-600" /> {t('projects:detail.reopenProject')}
             </Button>
           )}
           <Button onClick={() => setIsNewTaskOpen(true)}>

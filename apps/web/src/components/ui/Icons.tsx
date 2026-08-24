@@ -122,9 +122,9 @@ export const PlusIcon = (p: IconProps) => (
 
 export const MoreVerticalIcon = (p: IconProps) => (
   <svg {...base(p)}>
-    <circle cx="12" cy="5" r="1.2" fill="currentColor" stroke="none" />
-    <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
-    <circle cx="12" cy="19" r="1.2" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="5" r="1.75" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="12" r="1.75" fill="currentColor" stroke="none" />
+    <circle cx="12" cy="19" r="1.75" fill="currentColor" stroke="none" />
   </svg>
 );
 
