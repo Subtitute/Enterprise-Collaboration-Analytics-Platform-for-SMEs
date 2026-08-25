@@ -447,6 +447,28 @@ sửa hạ tầng vẫn hợp lệ (chưa `docker compose up` sống lại toàn
 *Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 25/08/2026 (phần review bảo mật,
 tiếp sau phần rà soát lỗi logic cùng ngày ở trên).*
 
+## 2026-08-25 (bổ sung — merge nhánh frontend của Nguyễn Lê Tiến)
+
+Merge nhánh `frontend` của Tiến vào nhánh đang làm việc, phát sinh xung đột ở 2 file:
+
+- **`Sidebar.tsx`:** xung đột với chính nút thu gọn/mở rộng thanh bên (đã qua rà soát khả năng
+  tiếp cận 28/07/2026) — phía nhánh Tiến không sửa đoạn này (rỗng), giữ nguyên bản có nút.
+- **`ProjectsListPage.tsx`:** xung đột với bản vá "tự lùi về trang cuối hợp lệ sau khi xoá dự án"
+  (22/08/2026, xem mục "Rà soát toàn dự án lần 3" ở trên). Đây không phải trường hợp chọn 1 trong
+  2 — cả hai đều cần thiết và không loại trừ nhau: JSX render (phần không xung đột, nằm sau đoạn
+  conflict) đã sẵn tham chiếu `orderedProjects`/`draggedId`/`handleDragStart` do nhánh Tiến định
+  nghĩa, nên phải giữ nguyên state + `useEffect` sắp xếp của Tiến; đồng thời giữ nguyên `useEffect`
+  tự lùi trang của bản vá 22/08 — 2 đoạn logic độc lập, không chồng lấn hành vi. Gộp cả hai.
+
+**Đóng góp của Nguyễn Lê Tiến (nhánh `frontend`):** tính năng kéo-thả sắp xếp tuỳ chỉnh thứ tự thẻ
+dự án (lưu `localStorage`), lọc theo độ ưu tiên, và gom nhóm dự án đã hoàn thành xuống cuối danh
+sách — chi tiết ở Technical_Spec.md §3.3.
+
+**Nhóm thực hiện đồ án (3 thành viên):** Dương Minh Quang, Nguyễn Lê Tiến, Thiều Quang Thành —
+điền vào trang bìa `Doc/GraduationReport.tex`.
+
+*Chi tiết: Technical_Spec.md, mục "2026-08-25 (merge nhánh frontend của Nguyễn Lê Tiến)".*
+
 ---
 
 ## Lịch sử thay đổi tài liệu này
@@ -459,3 +481,6 @@ tiếp sau phần rà soát lỗi logic cùng ngày ở trên).*
 - **2026-08-25 (bổ sung)** — Bổ sung mục "Review bảo mật chuyên biệt" (6 hướng OWASP-style song
   song) — phát hiện 1 lỗ hổng Nghiêm trọng chưa xử lý (rate-limit Gateway có thể bị vô hiệu hoá
   qua gia mạo IP khi kết nối thẳng cổng 3000) cần việc riêng có kiểm thử sống.
+- **2026-08-25 (bổ sung lần 2)** — Bổ sung mục "Merge nhánh frontend của Nguyễn Lê Tiến" — ghi
+  nhận đóng góp của Tiến (sắp xếp tuỳ chỉnh danh sách Dự án) và cách giải quyết 2 xung đột merge
+  với `Sidebar.tsx`/`ProjectsListPage.tsx`; lần đầu ghi nhận đủ tên 3 thành viên nhóm.
