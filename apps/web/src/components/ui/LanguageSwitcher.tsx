@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Dropdown, DropdownItem } from './Dropdown';
-import { GlobeIcon, CheckIcon } from './Icons';
+import { GlobeIcon, CheckIcon, ChevronDownIcon } from './Icons';
 import { useI18nStore } from '@/stores/i18n.store';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i18n';
 
@@ -32,9 +32,11 @@ export function LanguageSwitcher() {
           type="button"
           onClick={toggle}
           aria-label={t('common:language.switcherLabel')}
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100"
+          className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-200/60"
         >
-          <GlobeIcon className="h-5 w-5" />
+          <GlobeIcon className="h-4 w-4 shrink-0 text-slate-500" />
+          <span className="uppercase">{language}</span>
+          <ChevronDownIcon className="h-3.5 w-3.5 text-slate-400" />
         </button>
       )}
     >

@@ -25,8 +25,8 @@ export function ProfilePage() {
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">{t('profile:page.title')}</h1>
-        <p className="text-sm text-slate-500">{t('profile:page.subtitle')}</p>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('profile:page.title')}</h1>
+        <p className="mt-1 text-sm text-slate-500">{t('profile:page.subtitle')}</p>
       </div>
 
       {/* 22/07/2026: sua loi thuc te - truoc ban sua nay isError chi doc tu profileQuery, nen neu

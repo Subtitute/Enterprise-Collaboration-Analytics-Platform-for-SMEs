@@ -29,7 +29,8 @@ export function AppShell() {
   const location = useLocation();
   const mainRef = useRef<HTMLElement>(null);
   useEffect(() => {
-    mainRef.current?.focus();
+    window.scrollTo(0, 0);
+    mainRef.current?.focus({ preventScroll: true });
   }, [location.pathname]);
 
   return (

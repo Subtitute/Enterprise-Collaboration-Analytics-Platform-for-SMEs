@@ -13,11 +13,19 @@
   },
   "list": {
     "title": "Dự án & Công việc",
-    "subtitle": "Quản lý dự án và theo dõi tiến độ công việc dạng Kanban.",
-    "newProject": "Dự án mới",
+    "subtitle": "Theo dõi tiến độ và quản lý công việc nhóm trực quan.",
+    "newProject": "Tạo dự án",
+    "viewAll": "Xem tất cả",
     "searchPlaceholder": "Tìm kiếm dự án…",
     "statusFilter": {
       "all": "Tất cả trạng thái"
+    },
+    "priorityFilter": {
+      "all": "Tất cả độ ưu tiên",
+      "LOW": "Ưu tiên: Thấp",
+      "MEDIUM": "Ưu tiên: Trung bình",
+      "HIGH": "Ưu tiên: Cao",
+      "URGENT": "Ưu tiên: Khẩn cấp"
     },
     "loading": "Đang tải danh sách dự án…",
     "errorTitle": "Không thể tải danh sách dự án",
@@ -35,6 +43,7 @@
     "backToList": "Quay lại danh sách dự án",
     "dueDate": "Hạn: {{date}}",
     "completeProject": "Hoàn thành dự án",
+    "reopenProject": "Mở lại đang hoạt động",
     "newTask": "Công việc mới",
     "tasksLoading": "Đang tải công việc…",
     "tasksErrorTitle": "Không thể tải công việc",
@@ -51,8 +60,22 @@
     "descriptionLabel": "Mô tả",
     "descriptionPlaceholder": "Mục tiêu, phạm vi công việc của dự án…",
     "dueDateLabel": "Hạn hoàn thành",
+    "priorityLabel": "Độ ưu tiên",
+    "priorityRequired": "Vui lòng chọn độ ưu tiên",
+    "leadLabel": "Người phụ trách",
+    "searchMemberPlaceholder": "Tìm và chọn người phụ trách…",
+    "priorities": {
+      "LOW": "Thấp",
+      "MEDIUM": "Trung bình",
+      "HIGH": "Cao",
+      "URGENT": "Khẩn cấp"
+    },
     "cancel": "Hủy",
     "submit": "Tạo dự án"
+  },
+  "editProjectModal": {
+    "title": "Chỉnh sửa thông tin dự án",
+    "submit": "Lưu thay đổi"
   },
   "newTaskModal": {
     "title": "Tạo công việc mới",
@@ -66,7 +89,9 @@
   },
   "projectCard": {
     "optionsAriaLabel": "Tùy chọn dự án",
+    "edit": "Chỉnh sửa lại thông tin",
     "markComplete": "Đánh dấu hoàn thành",
+    "reopen": "Chuyển về đang hoạt động",
     "delete": "Xoá dự án",
     "memberCount": "{{count}} thành viên",
     "confirmDeleteTitle": "Xoá dự án này?",
@@ -117,7 +142,9 @@
       "deleted": "Đã xoá dự án",
       "deleteError": "Không thể xoá dự án",
       "completed": "Đã đánh dấu dự án hoàn thành",
-      "completeError": "Không thể hoàn thành dự án"
+      "completeError": "Không thể hoàn thành dự án",
+      "reopened": "Đã chuyển dự án về trạng thái đang hoạt động",
+      "reopenError": "Không thể mở lại dự án"
     },
     "task": {
       "created": "Đã tạo công việc mới",

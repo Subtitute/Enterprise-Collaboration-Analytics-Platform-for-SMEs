@@ -59,8 +59,8 @@ export function AnalyticsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">{t('analytics:page.title')}</h1>
-          <p className="text-sm text-slate-500">{t('analytics:page.subtitle')}</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('analytics:page.title')}</h1>
+          <p className="mt-1 text-sm text-slate-500">{t('analytics:page.subtitle')}</p>
         </div>
         {/* 25/07/2026: them aria-label - cung ly do nhu Select tuong tu o DashboardPage.tsx (khong
             co <Label> hien thi kem theo de trinh doc man hinh doc ten). */}

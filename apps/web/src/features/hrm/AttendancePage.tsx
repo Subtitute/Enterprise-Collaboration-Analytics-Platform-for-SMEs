@@ -62,8 +62,8 @@ export function AttendancePage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">{t('hrm:attendancePage.title')}</h1>
-        <p className="text-sm text-slate-500">{t('hrm:attendancePage.subtitle')}</p>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('hrm:attendancePage.title')}</h1>
+        <p className="mt-1 text-sm text-slate-500">{t('hrm:attendancePage.subtitle')}</p>
       </div>
 
       <Card>

@@ -40,9 +40,20 @@ const MAX_PER_CATEGORY = 5;
  */
 export function useGlobalSearch(rawQuery: string, hasInteracted: boolean) {
   const [query, setQuery] = useState('');
+  const [isDebouncing, setIsDebouncing] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setQuery(rawQuery.trim()), 300);
+    const trimmed = rawQuery.trim();
+    if (!trimmed) {
+      setQuery('');
+      setIsDebouncing(false);
+      return;
+    }
+    setIsDebouncing(true);
+    const timer = setTimeout(() => {
+      setQuery(trimmed);
+      setIsDebouncing(false);
+    }, 250);
     return () => clearTimeout(timer);
   }, [rawQuery]);
 
@@ -87,9 +98,17 @@ export function useGlobalSearch(rawQuery: string, hasInteracted: boolean) {
     return [...projects, ...tasks, ...members, ...folders];
   }, [query, projectsQuery.data, tasksQuery.data, usersQuery.data, foldersQuery.data]);
 
+  const isQueryLoading =
+    rawQuery.trim().length > 0 &&
+    (isDebouncing ||
+      projectsQuery.isLoading ||
+      tasksQuery.isLoading ||
+      usersQuery.isLoading ||
+      foldersQuery.isLoading);
+
   return {
     query,
     results,
-    isLoading: query.length > 0 && (projectsQuery.isLoading || tasksQuery.isLoading || usersQuery.isLoading || foldersQuery.isLoading),
+    isLoading: isQueryLoading,
   };
 }

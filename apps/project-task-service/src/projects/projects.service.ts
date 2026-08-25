@@ -133,6 +133,7 @@ export class ProjectsService {
     if (dto.description !== undefined) project.description = dto.description;
     // 22/07/2026 (fix code review, loi MINOR - Fix 8): wire dueDate tu DTO vao entity (cung ly do voi create()).
     if (dto.dueDate !== undefined) project.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
+    if (dto.status !== undefined) project.status = dto.status;
     return this.projectRepo.save(project);
   }
 
@@ -151,7 +152,7 @@ export class ProjectsService {
     const existing = await this.projectRepo.findOne({ where: { id, organizationId } });
     if (!existing) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
     if (existing.status === ProjectStatus.COMPLETED) {
-      throw new BadRequestException({ message: 'Du an nay da o trang thai hoan thanh', errorCode: ERROR_CODES.PROJECT_ALREADY_COMPLETED });
+      return existing;
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -162,7 +163,7 @@ export class ProjectsService {
       if (!project) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
       // Re-check dua tren trang thai vua duoc khoa (khong dung bien `existing` da co the stale).
       if (project.status === ProjectStatus.COMPLETED) {
-        throw new BadRequestException({ message: 'Du an nay da o trang thai hoan thanh', errorCode: ERROR_CODES.PROJECT_ALREADY_COMPLETED });
+        return project;
       }
 
       project.status = ProjectStatus.COMPLETED;
@@ -176,6 +177,26 @@ export class ProjectsService {
         payload: payload as unknown as Record<string, unknown>,
       });
 
+      return updated;
+    });
+  }
+
+  async reopen(organizationId: string, id: string, actorId: string): Promise<Project> {
+    const existing = await this.projectRepo.findOne({ where: { id, organizationId } });
+    if (!existing) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
+    if (existing.status === ProjectStatus.ACTIVE) {
+      return existing;
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const project = await manager.findOne(Project, {
+        where: { id, organizationId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!project) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
+
+      project.status = ProjectStatus.ACTIVE;
+      const updated = await manager.save(project);
       return updated;
     });
   }

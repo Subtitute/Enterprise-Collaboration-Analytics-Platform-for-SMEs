@@ -24,7 +24,7 @@ export function NotificationBell() {
           type="button"
           onClick={toggle}
           aria-label={t('notifications:bell.ariaLabel')}
-          className="relative flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+          className="relative flex h-9 w-9 items-center justify-center rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
         >
           <BellIcon className="h-5 w-5" />
           {unreadCount > 0 && (
@@ -93,7 +93,7 @@ export function NotificationBell() {
           <Link
             to="/notifications"
             onClick={close}
-            className="border-t border-slate-100 px-4 py-2.5 text-center text-sm font-medium text-primary-600 hover:bg-slate-50"
+            className="border-t border-slate-100 px-4 py-2.5 text-center text-sm font-medium text-primary-600 transition-colors hover:bg-slate-50 rounded-b-xl"
           >
             {t('notifications:bell.viewAll')}
           </Link>

@@ -108,14 +108,21 @@ export function FormField({ label, htmlFor, error, hint, required, children, cla
   return (
     <div className={cn('w-full', className)}>
       {label && (
-        <Label htmlFor={htmlFor}>
-          {label}
-          {required && <span className="ml-0.5 text-rose-500">*</span>}
-        </Label>
+        <div className="mb-1.5 flex items-center justify-between gap-2">
+          <Label htmlFor={htmlFor} className="mb-0">
+            {label}
+            {required && <span className="ml-0.5 text-rose-500">*</span>}
+          </Label>
+          {error && (
+            <p id={messageId} role="alert" className="text-xs font-medium text-rose-600 animate-fade-in">
+              {error}
+            </p>
+          )}
+        </div>
       )}
       {control}
-      {error ? (
-        <p id={messageId} role="alert" className="mt-1 text-xs text-rose-600">
+      {!label && error ? (
+        <p id={messageId} role="alert" className="mt-1 text-xs font-medium text-rose-600 animate-fade-in">
           {error}
         </p>
       ) : hint ? (

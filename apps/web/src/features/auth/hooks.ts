@@ -48,7 +48,14 @@ export function useRegisterOrganization() {
     mutationFn: (payload: RegisterOrganizationPayload) => registerOrganization(payload),
     onSuccess: (data) => {
       queryClient.clear();
-      setSession(data);
+      const userWithOrg = {
+        ...data.user,
+        organizationName: data.organization?.name || undefined,
+      };
+      setSession({
+        accessToken: data.accessToken,
+        user: userWithOrg,
+      });
       toast.success(t('auth:hooks.register.successTitle'), t('auth:hooks.register.successDescription', { fullName: data.user.fullName }));
       navigate('/dashboard', { replace: true });
     },

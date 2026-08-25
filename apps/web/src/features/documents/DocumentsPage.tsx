@@ -72,8 +72,8 @@ export function DocumentsPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-slate-900">{t('documents:documentsPage.title')}</h1>
-          <p className="text-sm text-slate-500">{t('documents:documentsPage.subtitle')}</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('documents:documentsPage.title')}</h1>
+          <p className="mt-1 text-sm text-slate-500">{t('documents:documentsPage.subtitle')}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setIsNewFolderOpen(true)}>

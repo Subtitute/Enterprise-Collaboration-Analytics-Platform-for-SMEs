@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn, hasAdminRole } from '@/lib/utils';
 import { NAV_ITEMS } from './nav-items';
@@ -19,7 +19,7 @@ function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
   const items = NAV_ITEMS.filter((item) => !item.adminOnly || canSeeAdmin);
 
   return (
-    <nav className="flex-1 space-y-1 overflow-y-auto px-2.5 py-3">
+    <nav className="flex-1 space-y-1 overflow-x-hidden overflow-y-auto px-2.5 py-2">
       {items.map((item) => (
         <NavLink
           key={item.to}
@@ -33,16 +33,34 @@ function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
           aria-label={t(item.labelKey)}
           className={({ isActive }) =>
             cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-              collapsed && 'justify-center px-0',
-              isActive ? 'bg-primary-50 text-primary-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+              'group relative flex h-10 items-center rounded-lg px-2.5 text-sm font-medium transition-all duration-300 ease-out',
+              isActive
+                ? 'bg-primary-50/80 text-primary-700 font-semibold shadow-sm shadow-primary-500/5'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
             )
           }
         >
           {({ isActive }) => (
             <>
-              <item.icon className={cn('h-5 w-5 shrink-0', isActive ? 'text-primary-600' : 'text-slate-400')} />
-              {!collapsed && <span className="truncate">{t(item.labelKey)}</span>}
+              {isActive && (
+                <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r bg-primary-600 animate-fade-in" />
+              )}
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+                <item.icon
+                  className={cn(
+                    'h-5 w-5 transition-colors duration-300 ease-out',
+                    isActive ? 'text-primary-600' : 'text-slate-400 group-hover:text-slate-600',
+                  )}
+                />
+              </div>
+              <div
+                className={cn(
+                  'flex-1 min-w-0 overflow-hidden transition-all duration-300 ease-out whitespace-nowrap',
+                  collapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[160px] opacity-100 ml-3',
+                )}
+              >
+                <span className="block truncate">{t(item.labelKey)}</span>
+              </div>
             </>
           )}
         </NavLink>
@@ -51,11 +69,62 @@ function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
   );
 }
 
-function Logo({ collapsed }: { collapsed: boolean }) {
+function SidebarHeader({
+  collapsed,
+  onToggle,
+  onNavigate,
+}: {
+  collapsed: boolean;
+  onToggle?: () => void;
+  onNavigate?: () => void;
+}) {
+  const user = useAuthStore((s) => s.user);
+  const orgName = user?.organizationName || 'Demo SME Platform';
+  const orgInitial = orgName.trim().charAt(0).toUpperCase() || 'O';
+
   return (
-    <div className={cn('flex h-14 shrink-0 items-center gap-2 border-b border-slate-100 px-4', collapsed && 'justify-center px-0')}>
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-600 text-sm font-bold text-white">EC</span>
-      {!collapsed && <span className="truncate text-sm font-semibold text-slate-900">ECAP for SMEs</span>}
+    <div
+      className={cn(
+        'border-b border-slate-100 mb-2 transition-all duration-300 ease-out',
+        collapsed ? 'flex flex-col items-center gap-2 py-3 px-2' : 'flex h-16 items-center justify-between px-3 pt-3 pb-3',
+      )}
+    >
+      <Link
+        to="/"
+        onClick={onNavigate}
+        aria-label={`Tổ chức: ${orgName}`}
+        className="group flex min-w-0 items-center rounded-lg p-1 transition-colors hover:bg-slate-50 overflow-hidden"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-sm font-bold text-white shadow-sm shadow-primary-500/20 transition-transform duration-200 group-hover:scale-105">
+          {orgInitial}
+        </span>
+        <div
+          className={cn(
+            'flex flex-col min-w-0 overflow-hidden transition-all duration-300 ease-out whitespace-nowrap',
+            collapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[130px] opacity-100 ml-2.5',
+          )}
+        >
+          <span className="truncate text-sm font-bold text-slate-900 transition-colors group-hover:text-primary-600" title={orgName}>
+            {orgName}
+          </span>
+          <span className="truncate text-[10px] font-medium text-slate-400">Doanh nghiệp / Tổ chức</span>
+        </div>
+      </Link>
+
+      {onToggle && (
+        <button
+          type="button"
+          onClick={onToggle}
+          title={collapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
+          aria-label={collapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
+          className={cn(
+            'flex items-center justify-center rounded-lg text-slate-400 transition-all duration-200 hover:bg-slate-100 hover:text-slate-700',
+            collapsed ? 'h-6 w-full py-0.5 text-slate-500 hover:bg-slate-100' : 'h-7 w-7 shrink-0',
+          )}
+        >
+          {collapsed ? <ChevronRightIcon className="h-4 w-4" /> : <ChevronLeftIcon className="h-4 w-4" />}
+        </button>
+      )}
     </div>
   );
 }
@@ -74,11 +143,11 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'sticky top-0 hidden h-screen shrink-0 flex-col border-r border-slate-200 bg-white transition-[width] duration-200 md:flex',
+        'sticky top-0 hidden h-screen shrink-0 flex-col border-r border-slate-200 bg-white transition-[width] duration-300 ease-out md:flex',
         collapsed ? 'w-[68px]' : 'w-60',
       )}
     >
-      <Logo collapsed={collapsed} />
+      <SidebarHeader collapsed={collapsed} onToggle={toggle} />
       <SidebarLinks collapsed={collapsed} />
       <button
         type="button"
@@ -128,7 +197,7 @@ export function MobileSidebar() {
         tabIndex={-1}
         className="relative z-10 flex h-full w-72 max-w-[80vw] animate-slide-up flex-col bg-white shadow-xl focus:outline-none"
       >
-        <Logo collapsed={false} />
+        <SidebarHeader collapsed={false} onNavigate={() => setOpen(false)} />
         <SidebarLinks collapsed={false} onNavigate={() => setOpen(false)} />
       </div>
     </div>

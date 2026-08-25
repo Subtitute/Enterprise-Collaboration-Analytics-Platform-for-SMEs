@@ -2,11 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/stores/toast.store';
 import { extractErrorMessage } from '@/lib/api-client';
-import type { Task, TaskStatus } from '@/types';
+import type { PaginatedResponse, Project, Task, TaskStatus } from '@/types';
 import {
   addAssignee,
   addComment,
   completeProject,
+  reopenProject,
   createProject,
   createTask,
   deleteProject,
@@ -86,11 +87,57 @@ export function useCompleteProject(id: string) {
   return useMutation({
     mutationFn: () => completeProject(id),
     onSuccess: () => {
+      // 1. Cập nhật trực tiếp cache danh sách projects
+      queryClient.setQueriesData<PaginatedResponse<Project>>({ queryKey: ['projects'] }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: old.data.map((p) => (p.id === id ? { ...p, status: 'COMPLETED' as const } : p)),
+        };
+      });
+
+      // 2. Cập nhật trực tiếp cache chi tiết project
+      queryClient.setQueryData<Project>(['project', id], (old) => {
+        if (!old) return old;
+        return { ...old, status: 'COMPLETED' as const };
+      });
+
+      // 3. Invalidate để đồng bộ
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['project', id] });
       toast.success(t('projects:toast.project.completed'));
     },
     onError: (error) => toast.error(t('projects:toast.project.completeError'), extractErrorMessage(error)),
+  });
+}
+
+export function useReopenProject(id: string) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => reopenProject(id),
+    onSuccess: (updated) => {
+      // 1. Cập nhật trực tiếp cache danh sách projects
+      queryClient.setQueriesData<PaginatedResponse<Project>>({ queryKey: ['projects'] }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          data: old.data.map((p) => (p.id === id ? { ...p, status: 'ACTIVE' as const } : p)),
+        };
+      });
+
+      // 2. Cập nhật trực tiếp cache chi tiết project
+      queryClient.setQueryData<Project>(['project', id], (old) => {
+        if (!old) return old;
+        return { ...old, status: 'ACTIVE' as const };
+      });
+
+      // 3. Invalidate để đồng bộ
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['project', id] });
+      toast.success(t('projects:toast.project.reopened'));
+    },
+    onError: (error) => toast.error(t('projects:toast.project.reopenError'), extractErrorMessage(error)),
   });
 }
 

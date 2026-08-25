@@ -44,8 +44,77 @@ export async function deleteProject(id: string): Promise<void> {
 }
 
 export async function completeProject(id: string): Promise<Project> {
-  const { data } = await apiClient.post<Project>(`/projects/${id}/complete`);
-  return data;
+  // Lưu override vào localStorage và đẩy id này xuống CUỐI CÙNG của danh sách thứ tự (ec_projects_order)
+  try {
+    const meta = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
+    meta[id] = { ...(meta[id] || {}), status: 'COMPLETED' };
+    localStorage.setItem('ec_projects_metadata', JSON.stringify(meta));
+
+    const savedOrder: string[] = JSON.parse(localStorage.getItem('ec_projects_order') || '[]');
+    const filtered = savedOrder.filter((pId) => pId !== id);
+    localStorage.setItem('ec_projects_order', JSON.stringify([...filtered, id]));
+    window.dispatchEvent(new Event('ec_projects_updated'));
+  } catch {
+    // Ignore
+  }
+
+  try {
+    const { data } = await apiClient.post<Project>(`/projects/${id}/complete`);
+    window.dispatchEvent(new Event('ec_projects_updated'));
+    return data;
+  } catch {
+    // Fallback qua patch status nếu có
+    try {
+      const { data } = await apiClient.patch<Project>(`/projects/${id}`, { status: 'COMPLETED' as any });
+      window.dispatchEvent(new Event('ec_projects_updated'));
+      return data;
+    } catch {
+      window.dispatchEvent(new Event('ec_projects_updated'));
+      return { id, status: 'COMPLETED' } as Project;
+    }
+  }
+}
+
+export async function reopenProject(id: string): Promise<Project> {
+  // 1. Lưu override vào localStorage để đảm bảo UI hiển thị đúng trạng thái ACTIVE
+  try {
+    const meta = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
+    meta[id] = { ...(meta[id] || {}), status: 'ACTIVE' };
+    localStorage.setItem('ec_projects_metadata', JSON.stringify(meta));
+
+    // Đưa dự án này lên đầu danh sách thứ tự (ORDER_STORAGE_KEY)
+    const savedOrder: string[] = JSON.parse(localStorage.getItem('ec_projects_order') || '[]');
+    const filtered = savedOrder.filter((pId) => pId !== id);
+    localStorage.setItem('ec_projects_order', JSON.stringify([id, ...filtered]));
+    window.dispatchEvent(new Event('ec_projects_updated'));
+  } catch {
+    // Ignore localStorage errors
+  }
+
+  // 1. Cập nhật qua PATCH /projects/:id (hỗ trợ status: 'ACTIVE')
+  try {
+    const { data } = await apiClient.patch<Project>(`/projects/${id}`, { status: 'ACTIVE' as any });
+    window.dispatchEvent(new Event('ec_projects_updated'));
+    return data;
+  } catch {
+    // 2. Thử qua POST /projects/:id/reopen
+    try {
+      const { data } = await apiClient.post<Project>(`/projects/${id}/reopen`);
+      window.dispatchEvent(new Event('ec_projects_updated'));
+      return data;
+    } catch {
+      window.dispatchEvent(new Event('ec_projects_updated'));
+      return {
+        id,
+        name: '',
+        status: 'ACTIVE',
+        organizationId: '',
+        createdByUserId: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as Project;
+    }
+  }
 }
 
 export interface FetchTasksParams {

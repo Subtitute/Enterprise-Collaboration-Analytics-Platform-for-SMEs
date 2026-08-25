@@ -3,7 +3,11 @@ import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 
 export function AuthLayout({ title, subtitle, children, wide }: { title: string; subtitle?: string; children: ReactNode; wide?: boolean }) {
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-50 via-white to-slate-50 px-4 py-10">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-br from-slate-50 via-indigo-50/30 to-blue-50/50 px-4 py-10 antialiased">
+      {/* Ambient Blobs */}
+      <div className="pointer-events-none absolute -top-32 -left-32 h-80 w-80 rounded-full bg-indigo-400/15 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-32 h-80 w-80 rounded-full bg-blue-400/15 blur-3xl" />
+
       {/* 20/08/2026: goc tren ben phai man hinh dang nhap/dang ky - man hinh nay khong co
           Topbar (AppShell chi bao trang da dang nhap), can 1 vi tri rieng cho LanguageSwitcher.
           21/08/2026: sua loi thuc te (phat hien qua chup man hinh kiem tra i18n) - truyen thang
@@ -13,16 +17,20 @@ export function AuthLayout({ title, subtitle, children, wide }: { title: string;
           vi vay dinh vi theo goc CUA DIV DA SUP DO ay (troi ve giua man hinh, dung canh the dang
           nhap) thay vi goc tren-phai TOAN TRANG. Boc rieng 1 the div dinh vi tuyet doi o NGOAI
           Dropdown, giu LanguageSwitcher khong nhan className dinh vi nao ca. */}
-      <div className="absolute right-4 top-4">
+      <div className="absolute right-6 top-6 z-20">
         <LanguageSwitcher />
       </div>
-      <div className={wide ? 'w-full max-w-xl' : 'w-full max-w-md'}>
+      <div className={`relative z-10 ${wide ? 'w-full max-w-3xl' : 'w-full max-w-lg'}`}>
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-600 text-base font-bold text-white">EC</span>
-          <h1 className="text-xl font-semibold text-slate-900">{title}</h1>
-          {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-600 shadow-md shadow-primary-500/20 text-base font-bold text-white">
+            EFS
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
+          {subtitle && <p className="text-sm text-slate-500 max-w-sm sm:max-w-none">{subtitle}</p>}
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-card sm:p-8">{children}</div>
+        <div className="rounded-2xl border border-slate-200/90 bg-white/95 p-6 shadow-2xl shadow-slate-300/60 ring-1 ring-slate-900/5 backdrop-blur-md sm:p-8">
+          {children}
+        </div>
       </div>
     </div>
   );

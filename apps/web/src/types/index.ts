@@ -14,6 +14,7 @@ export interface AuthUser {
   email: string;
   fullName: string;
   organizationId: string;
+  organizationName?: string;
   departmentId: string | null;
   roles: Role[];
 }

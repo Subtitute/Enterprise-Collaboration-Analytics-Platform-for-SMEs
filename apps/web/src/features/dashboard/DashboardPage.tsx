@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Input';
+import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { Button } from '@/components/ui/Button';
 import { FolderKanbanIcon, CheckCircleIcon, UserIcon, FileTextIcon } from '@/components/ui/Icons';
 import { DATE_RANGE_OPTIONS } from '@/types';
@@ -44,8 +45,8 @@ export function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">{t('dashboard:page.title')}</h1>
-        <p className="text-sm text-slate-500">{t('dashboard:page.subtitle')}</p>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('dashboard:page.title')}</h1>
+        <p className="mt-1 text-sm text-slate-500">{t('dashboard:page.subtitle')}</p>
       </div>
 
       {showOnboarding && (
@@ -80,12 +81,13 @@ export function DashboardPage() {
           han 2 bieu do ben duoi (TaskTrendChart/TaskStatusDonut) tren CUNG trang nay da lam dung.
           Them isError={summaryQuery.isError} + onRetry={summaryQuery.refetch} cho ca 4 the de
           nhat quan voi pattern loi/thu lai da co san. */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <KpiCard
           label={t('dashboard:kpi.totalTasks.label')}
           value={summary?.totalTasksCreated ?? '—'}
           hint={summary ? t('dashboard:kpi.totalTasks.hint', { count: summary.totalTasksCompleted }) : undefined}
           icon={<FolderKanbanIcon className="h-5 w-5" />}
+          accentClassName="bg-blue-50 text-blue-600 border border-blue-100/80 shadow-blue-500/10"
           isLoading={summaryQuery.isLoading}
           isError={summaryQuery.isError}
           onRetry={() => summaryQuery.refetch()}
@@ -95,7 +97,7 @@ export function DashboardPage() {
           value={summary ? `${summary.completionRate}%` : '—'}
           hint={t('dashboard:kpi.completionRate.hint')}
           icon={<CheckCircleIcon className="h-5 w-5" />}
-          accentClassName="bg-emerald-50 text-emerald-600"
+          accentClassName="bg-emerald-50 text-emerald-600 border border-emerald-100/80 shadow-emerald-500/10"
           isLoading={summaryQuery.isLoading}
           isError={summaryQuery.isError}
           onRetry={() => summaryQuery.refetch()}
@@ -105,7 +107,7 @@ export function DashboardPage() {
           value={summary?.newDocumentsThisWeek ?? '—'}
           hint={t('dashboard:kpi.newDocuments.hint')}
           icon={<FileTextIcon className="h-5 w-5" />}
-          accentClassName="bg-violet-50 text-violet-600"
+          accentClassName="bg-purple-50 text-purple-600 border border-purple-100/80 shadow-purple-500/10"
           isLoading={summaryQuery.isLoading}
           isError={summaryQuery.isError}
           onRetry={() => summaryQuery.refetch()}
@@ -115,7 +117,7 @@ export function DashboardPage() {
           value={summary?.activeUsersLast7Days ?? '—'}
           hint={t('dashboard:kpi.activeUsers.hint')}
           icon={<UserIcon className="h-5 w-5" />}
-          accentClassName="bg-amber-50 text-amber-600"
+          accentClassName="bg-orange-50 text-orange-600 border border-orange-100/80 shadow-orange-500/10"
           isLoading={summaryQuery.isLoading}
           isError={summaryQuery.isError}
           onRetry={() => summaryQuery.refetch()}
@@ -129,37 +131,31 @@ export function DashboardPage() {
             {/* 25/07/2026: them aria-label - Select nay khong co <Label> hien thi kem theo (chi
                 dat canh CardTitle) nen truoc do khong co ten hop le cho trinh doc man hinh. */}
             <div className="flex items-center gap-2">
-              <Select
+              <CustomFilterSelect
                 value={range}
-                onChange={(e) => setRange(e.target.value as DateRangeOption)}
-                aria-label={t('dashboard:filters.dateRangeAriaLabel')}
-                className="text-xs"
-                style={{ width: 'auto' }}
-              >
-                {DATE_RANGE_OPTIONS.map((key) => (
-                  <option key={key} value={key}>
-                    {t(`common:enums.dateRange.${key}`)}
-                  </option>
-                ))}
-              </Select>
+                onChange={(val) => setRange(val as DateRangeOption)}
+                ariaLabel={t('dashboard:filters.dateRangeAriaLabel')}
+                options={DATE_RANGE_OPTIONS.map((key) => ({
+                  value: key,
+                  label: t(`common:enums.dateRange.${key}`),
+                }))}
+              />
               {/* 28/07/2026: bo loc "Phong ban" moi cho khoi KPI cua Dashboard (KHONG anh huong
                   bieu do "Xu hướng hoàn thành công việc" ben duoi - GET /analytics/task-trend
                   chua ho tro departmentId, xem Technical_Spec.md). Dat canh Select khoang thoi
                   gian de dung chung mot vi tri quen thuoc tren trang. */}
-              <Select
+              <CustomFilterSelect
                 value={departmentId}
-                onChange={(e) => setDepartmentId(e.target.value)}
-                aria-label={t('dashboard:filters.departmentAriaLabel')}
-                className="text-xs"
-                style={{ width: 'auto' }}
-              >
-                <option value="">{t('dashboard:filters.allDepartments')}</option>
-                {(departmentsQuery.data ?? []).map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </Select>
+                onChange={(val) => setDepartmentId(val)}
+                ariaLabel={t('dashboard:filters.departmentAriaLabel')}
+                options={[
+                  { value: '', label: t('dashboard:filters.allDepartments') },
+                  ...(departmentsQuery.data ?? []).map((d) => ({
+                    value: d.id,
+                    label: d.name,
+                  })),
+                ]}
+              />
             </div>
           </CardHeader>
           <CardContent>
@@ -172,7 +168,7 @@ export function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 drop-shadow-md border-slate-200/90">
           <CardHeader>
             <CardTitle>{t('dashboard:charts.taskStatusTitle')}</CardTitle>
           </CardHeader>

@@ -33,11 +33,11 @@ export const CHART_INK = {
   surface: '#fcfcfb',
 };
 
-/** TODO = trung tinh, DOING = xanh duong (dang xu ly), DONE = xanh la (hoan thanh). */
+/** TODO = Xám trung tính (slate-500 #64748b), DOING = Xanh dương (blue-500 #3b82f6), DONE = Xanh lá (emerald-500 #10b981). */
 export const TASK_STATUS_COLOR: Record<string, string> = {
-  TODO: CHART_INK.muted,
-  DOING: CATEGORICAL[0],
-  DONE: STATUS.good,
+  TODO: '#64748b', // slate-500 (Cần làm)
+  DOING: '#3b82f6', // blue-500 (Đang làm)
+  DONE: '#10b981', // emerald-500 (Hoàn thành)
 };
 
 // 25/07/2026: xoa TASK_STATUS_BADGE_VARIANT - export chet, xac nhan qua grep khong co noi nao
