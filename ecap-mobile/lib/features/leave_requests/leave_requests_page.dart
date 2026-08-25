@@ -46,7 +46,10 @@ class _LeaveRequestsPageState extends State<LeaveRequestsPage> {
       context: context,
       builder: (context) => _NewLeaveRequestDialog(apiClient: widget.apiClient),
     );
-    if (created == true) _load();
+    // 25/08/2026: fix code review Minor (phat hien qua dot ra soat toan du an lan 3) - _load() goi
+    // setState() NGAY dong dau tien, khong tu kiem tra mounted - can kiem tra o day truoc vi widget
+    // co the da bi dispose trong luc showDialog() dang mo (vd nguoi dung dang xuat tu 1 tab khac).
+    if (created == true && mounted) _load();
   }
 
   Color _statusColor(LeaveRequestStatus status) {

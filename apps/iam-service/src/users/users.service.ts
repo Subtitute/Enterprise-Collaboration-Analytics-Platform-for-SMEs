@@ -83,7 +83,11 @@ export class UsersService {
     dto: InviteUserDto,
     callerPermissions: string[],
   ): Promise<PublicUser> {
-    const existing = await this.userRepo.findOne({ where: { email: dto.email } });
+    // 25/08/2026: fix ra soat bao mat - chuan hoa email (trim + chu thuong) TRUOC kiem tra trung,
+    // cung ly do voi AuthService.registerOrganization() (xem comment tai do) - tranh tao duoc 2
+    // tai khoan nhin-giong-het nhau chi khac hoa/thuong (vd "Bob@Corp.vn" vs "bob@corp.vn").
+    const normalizedEmail = dto.email.trim().toLowerCase();
+    const existing = await this.userRepo.findOne({ where: { email: normalizedEmail } });
     if (existing) throw new ConflictException({ message: 'Email da duoc su dung', errorCode: ERROR_CODES.EMAIL_ALREADY_USED });
 
     // 25/07/2026: RBAC bypass CRITICAL (review 25/07/2026) - truoc day dto.roleIds duoc gan THANG
@@ -135,7 +139,7 @@ export class UsersService {
         const user = await manager.save(
           manager.create(User, {
             organizationId,
-            email: dto.email,
+            email: normalizedEmail,
             fullName: dto.fullName,
             departmentId: dto.departmentId ?? null,
             passwordHash,

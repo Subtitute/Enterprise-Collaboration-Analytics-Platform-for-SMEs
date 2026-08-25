@@ -1,4 +1,4 @@
-import { ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AiInsightsService } from './ai-insights.service';
 import { AnalyticsService } from '../analytics/analytics.service';
@@ -16,6 +16,7 @@ describe('AiInsightsService', () => {
     getSummary: jest.Mock;
     getTaskStatusBreakdown: jest.Mock;
     getProjectProgress: jest.Mock;
+    departmentExists: jest.Mock;
   };
   let redisServiceMock: { getJson: jest.Mock; setJson: jest.Mock };
   let configServiceMock: { get: jest.Mock };
@@ -36,6 +37,7 @@ describe('AiInsightsService', () => {
       getSummary: jest.fn().mockResolvedValue(SUMMARY),
       getTaskStatusBreakdown: jest.fn().mockResolvedValue(BREAKDOWN),
       getProjectProgress: jest.fn().mockResolvedValue(PROJECTS),
+      departmentExists: jest.fn().mockResolvedValue(true),
     };
     redisServiceMock = {
       getJson: jest.fn().mockResolvedValue(null),
@@ -77,6 +79,30 @@ describe('AiInsightsService', () => {
 
     await expect(service.generateInsight('org-1', '7d')).rejects.toBeInstanceOf(ServiceUnavailableException);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  // 25/08/2026: fix code review High (phat hien qua dot ra soat bao mat lan 3 - "cross-tenant
+  // resource exhaustion") - truoc ban sua nay, departmentId chi duoc validate LA UUID, khong kiem
+  // tra co thuoc to chuc goi hay khong, nen 1 UUID ngau nhien moi lan luon cache-miss va bat buoc
+  // goi API Gemini/Groq that (han ngach mien phi dung chung TOAN NEN TANG). 2 test duoi day xac
+  // nhan: (1) departmentId khong thuoc to chuc bi tu choi 400 TRUOC khi cham toi cache/AnalyticsService
+  // KPI/fetch, (2) departmentId hop le van chay binh thuong nhu truoc.
+  it('nem BadRequestException/DEPARTMENT_NOT_FOUND khi departmentId KHONG thuoc to chuc goi - KHONG goi cache/KPI/Gemini', async () => {
+    analyticsServiceMock.departmentExists.mockResolvedValueOnce(false);
+
+    await expect(service.generateInsight('org-1', '7d', 'dept-la', 'La')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(analyticsServiceMock.departmentExists).toHaveBeenCalledWith('org-1', 'dept-la');
+    expect(redisServiceMock.getJson).not.toHaveBeenCalled();
+    expect(analyticsServiceMock.getSummary).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('khong kiem tra departmentExists() khi khong truyen departmentId (toan to chuc)', async () => {
+    await service.generateInsight('org-1', '7d');
+
+    expect(analyticsServiceMock.departmentExists).not.toHaveBeenCalled();
   });
 
   it('goi ca 3 phuong thuc AnalyticsService voi dung organizationId/range/departmentId', async () => {

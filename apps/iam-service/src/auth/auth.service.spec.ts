@@ -75,6 +75,18 @@ describe('AuthService.login', () => {
     expect(redisService.incrementFailedLoginAttempts).not.toHaveBeenCalled();
   });
 
+  // 25/08/2026: fix code review (phat hien qua dot ra soat bao mat lan 3) - truoc ban sua nay,
+  // userRepo.findOne() dung `dto.email` THO (chua chuan hoa) de tra cuu tai khoan, chi rieng
+  // `emailKey` (bo dem throttle) moi duoc chuan hoa - 1 nguoi dung go hoa dau email (vd trinh
+  // duyet tu viet hoa) se KHONG tim thay chinh tai khoan cua ho du dung mat khau.
+  it('dang nhap thanh cong voi email VIET HOA khac ban da luu (chuan hoa truoc khi tra cuu)', async () => {
+    const { service, userRepo } = buildService();
+    const result = await service.login({ email: 'User@Demo-SME.vn', password: rawPassword } as LoginDto);
+
+    expect(result.user.email).toBe(email);
+    expect(userRepo.findOne).toHaveBeenCalledWith({ where: { email } });
+  });
+
   it('sai mat khau: tang bo dem loi, van nem UnauthorizedException/INVALID_CREDENTIALS nhu truoc', async () => {
     const { service, redisService } = buildService();
     await expect(service.login({ email, password: 'sai-mat-khau' } as LoginDto)).rejects.toThrow(

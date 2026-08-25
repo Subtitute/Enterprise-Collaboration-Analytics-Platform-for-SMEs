@@ -64,6 +64,23 @@ export class AnalyticsService {
   ) {}
 
   /**
+   * 25/08/2026: fix ra soat bao mat - kiem tra `departmentId` co THUC SU thuoc to chuc cua nguoi
+   * goi hay khong, dung cho AiInsightsService (xem giai thich day du tai do). Analytics Service
+   * khong so huu bang `Department` rieng (chi co `dim_user.department_id`, ban sao denormalize
+   * dong bo qua Kafka - xem schema-bootstrap.ts) nen "phong ban hop le" o day nghia la "co it nhat
+   * 1 user cua DUNG to chuc nay dang thuoc phong ban do" - dung DUNG cach dim_user da duoc dung de
+   * loc KPI theo phong ban o cac ham ben duoi (computeSummary()/getTaskStatusBreakdown()/
+   * getProjectProgress()), khong phat minh nguon du lieu moi.
+   */
+  async departmentExists(organizationId: string, departmentId: string): Promise<boolean> {
+    const rows = await this.dataSource.query<{ exists: boolean }[]>(
+      `SELECT EXISTS(SELECT 1 FROM dim_user WHERE organization_id = $1 AND department_id = $2) AS exists`,
+      [organizationId, departmentId],
+    );
+    return rows[0]?.exists ?? false;
+  }
+
+  /**
    * GET /analytics/summary?range=7d|30d|quarter - KPI card tren Dashboard (Wireframe.md muc 3,
    * muc 7 - "Khoang thoi gian"). Cache Redis TTL ngan, key theo ca `range` de tranh tra nham
    * KPI da cache cua 1 khoang thoi gian khac.

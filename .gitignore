@@ -43,6 +43,14 @@ backups/
 # lieu", 12/08/2026) nhung file nay khong duoc commit.
 Doc/ClaudeRule.md
 
+# 25/08/2026: ghi chu ca nhan chuan bi buoi bao ve (kich ban trinh bay, khong phai bao cao chinh
+# thuc). File nay chi la note lam viec, tuong tu ly do Doc/ClaudeRule.md khong duoc commit o tren.
+Doc/DemoScript.md
+
+# 25/08/2026: bao cao do an (Doc/GraduationReport.tex) va toan bo file MiKTeX sinh ra khi bien dich
+# (.aux/.out/.toc/.lot/.pdf/.synctex.gz/.log...) - khong day len GitHub theo yeu cau, chi giu cuc bo.
+Doc/GraduationReport.*
+
 # Frontend
 apps/web/dist/
 apps/web/.vite/

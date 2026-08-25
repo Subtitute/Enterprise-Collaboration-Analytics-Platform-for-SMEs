@@ -57,6 +57,10 @@
     "profile": "My profile",
     "logout": "Log out"
   },
+  "sidebar": {
+    "expand": "Expand sidebar",
+    "collapse": "Collapse sidebar"
+  },
   "search": {
     "placeholder": "Search projects, documents, tasks…",
     "noResults": "No results found for \"{{query}}\".",

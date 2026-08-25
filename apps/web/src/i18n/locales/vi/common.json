@@ -57,6 +57,10 @@
     "profile": "Hồ sơ cá nhân",
     "logout": "Đăng xuất"
   },
+  "sidebar": {
+    "expand": "Mở rộng thanh bên",
+    "collapse": "Thu gọn thanh bên"
+  },
   "search": {
     "placeholder": "Tìm kiếm dự án, tài liệu, công việc…",
     "noResults": "Không tìm thấy kết quả cho “{{query}}”.",

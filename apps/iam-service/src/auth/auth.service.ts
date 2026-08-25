@@ -109,7 +109,14 @@ export class AuthService {
   ) {}
 
   async registerOrganization(dto: RegisterOrganizationDto) {
-    const existing = await this.userRepo.findOne({ where: { email: dto.adminEmail } });
+    // 25/08/2026: fix ra soat bao mat - chuan hoa email (trim + chu thuong) TRUOC ca kiem tra
+    // trung lan luu, dong bo voi login() (da chuan hoa tu truoc, xem comment tai do) - truoc ban
+    // sua nay, `email` la cot Postgres thuong (khong phai citext), so sanh PHAN BIET hoa/thuong,
+    // nen "Alice@Example.com" khong khop duoc voi "alice@example.com" da dang ky truoc do va tao
+    // duoc 1 to chuc/tai khoan THU HAI voi email nhin-giong-het email that cua nguoi khac - vi
+    // pham bat bien "1 email = 1 tai khoan" ma chinh kiem tra trung o day dinh bao ve.
+    const normalizedEmail = dto.adminEmail.trim().toLowerCase();
+    const existing = await this.userRepo.findOne({ where: { email: normalizedEmail } });
     if (existing) throw new ConflictException({
       message: 'Email da duoc su dung boi mot to chuc khac',
       errorCode: ERROR_CODES.EMAIL_ALREADY_USED_BY_ORG,
@@ -132,7 +139,7 @@ export class AuthService {
         const user = await manager.save(
           manager.create(User, {
             organizationId: organization.id,
-            email: dto.adminEmail,
+            email: normalizedEmail,
             fullName: dto.adminFullName,
             passwordHash,
             isActive: true,
@@ -214,7 +221,14 @@ export class AuthService {
       );
     }
 
-    const user = await this.userRepo.findOne({ where: { email: dto.email } });
+    // 25/08/2026: fix ra soat bao mat/dung sai - truoc ban sua nay, dong nay dung `dto.email` THO
+    // (chua chuan hoa) de tra cuu tai khoan, trong khi `emailKey` (dong 203, DA chuan hoa) chi
+    // dung cho bo dem throttle - lech nhau. Vi email luon duoc luu chu THUONG tu ban sua
+    // registerOrganization()/invite() (xem comment tai do), 1 nguoi dung go "Alice@Example.com"
+    // (hoa dau, vd do trinh duyet tu viet hoa) se KHONG tim thay chinh tai khoan cua ho (so sanh
+    // Postgres phan biet hoa/thuong) du go dung mat khau - bao "Email hoac mat khau khong dung"
+    // sai lech. Dung `emailKey` (da chuan hoa) o day, dong nhat voi bo dem throttle.
+    const user = await this.userRepo.findOne({ where: { email: emailKey } });
     if (!user || !user.isActive) {
       // 22/07/2026: van chay bcrypt.compare() (voi DUMMY_PASSWORD_HASH co dinh) truoc khi tu choi
       // de nhanh nay ton thoi gian tuong duong nhanh "sai mat khau" ben duoi - xem chu thich

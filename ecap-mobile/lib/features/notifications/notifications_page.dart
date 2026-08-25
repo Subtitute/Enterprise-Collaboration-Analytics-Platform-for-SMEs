@@ -45,7 +45,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
     if (item.isRead) return;
     try {
       await widget.apiClient.patch('/notifications/${item.id}/read');
-      _load();
+      // 25/08/2026: fix code review Minor (phat hien qua dot ra soat toan du an lan 3) - _load()
+      // goi setState() NGAY dong dau tien (khong cho mounted) - neu widget bi dispose (vd dang xuat)
+      // giua luc await patch() o tren dang cho, goi _load() sau do se nem "setState() called after
+      // dispose()".
+      if (mounted) _load();
     } on ApiException {
       // Bo qua loi khi danh dau doc - khong lam gian doan luong xem thong bao.
     }
@@ -54,7 +58,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Future<void> _markAllAsRead() async {
     try {
       await widget.apiClient.patch('/notifications/read-all');
-      _load();
+      if (mounted) _load();
     } on ApiException {
       // Bo qua loi khi danh dau doc - khong lam gian doan luong xem thong bao.
     }

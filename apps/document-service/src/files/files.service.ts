@@ -463,20 +463,29 @@ export class FilesService {
   // 28/07/2026: bo sung tham so `ctx` + assertFileAccess() - khong the xoa 1 file ma nguoi goi
   // khong co quyen truy cap.
   async remove(organizationId: string, actorId: string, id: string, ctx: AccessContext): Promise<void> {
-    const fileMeta = await this.fileMetaRepo.findOne({ where: { id, organizationId } });
-    if (!fileMeta) throw new NotFoundException({ message: 'Khong tim thay file', errorCode: ERROR_CODES.FILE_NOT_FOUND });
-    await this.assertFileAccess(organizationId, fileMeta, ctx);
+    const fileMetaForAccessCheck = await this.fileMetaRepo.findOne({ where: { id, organizationId } });
+    if (!fileMetaForAccessCheck) throw new NotFoundException({ message: 'Khong tim thay file', errorCode: ERROR_CODES.FILE_NOT_FOUND });
+    await this.assertFileAccess(organizationId, fileMetaForAccessCheck, ctx);
 
-    // 22/08/2026: doc FileVersion bang `manager` (TRONG transaction), khong phai bang
-    // `fileVersionRepo` (ngoai transaction) nhu ban cu - phat hien qua rieng ra soat, cung 1 lop
-    // loi voi FoldersService.remove() da tung sua (25/07/2026, xem docblock/chu thich tai do) nhung
-    // chua duoc ap dung lai o day. Neu doc `versions` TRUOC transaction, 1 phien ban moi duoc
-    // upload (POST .../upload) dung vao dung khoang ho giua lan doc do va luc transaction cascade
-    // xoa FileMeta ben duoi se KHONG nam trong danh sach xoa object MinIO - row FileVersion cua no
-    // van bi FK CASCADE xoa nhung khong con dau vet DB nao de doi chieu lai, object MinIO mo coi
-    // VINH VIEN va am tham hon ca gioi han da biet o Technical_Spec.md muc 14 (chi ghi nhan truong
-    // hop xoa THAT BAI co log lai, khong phai truong hop nay - hoan toan khong co dau vet).
+    // 25/08/2026: fix code review Major (phat hien qua dot ra soat toan du an lan 3) - ban sua
+    // 22/08/2026 (doc FileVersion bang `manager` TRONG transaction) van con 1 khe ho: doc do KHONG
+    // khoa FileMeta, nen van dua vao THOI DIEM doc, khong dong bo voi uploadNewVersion() (ham do DA
+    // khoa pessimistic_write tren cung row - xem giai thich Fix 2, 22/07/2026, ngay phia tren ham
+    // nay). Kich ban: uploadNewVersion() dang chay song song chen xong 1 FileVersion moi (vd v4) va
+    // COMMIT ngay SAU khi remove() da doc xong danh sach cu (v1..v3) nhung TRUOC khi remove() xoa
+    // FileMeta - row FileVersion cua v4 van bi FK CASCADE xoa theo FileMeta nhung object MinIO cua
+    // no KHONG nam trong danh sach da doc nen KHONG BAO GIO duoc goi removeObject() - mo coi VINH
+    // VIEN va HOAN TOAN KHONG CON DAU VET DB de doi chieu lai (nang hon ca truong hop xoa MinIO that
+    // bai da biet o Technical_Spec.md muc 14, von it nhat con duoc log lai). Khoa dong bo hoa: doc
+    // lai FileMeta VOI `lock: { mode: 'pessimistic_write' }` TRUOC khi doc FileVersion, dam bao 2
+    // ham nay khong con chay xen ke tren cung 1 file.
     const versions = await this.dataSource.transaction(async (manager) => {
+      const fileMeta = await manager.findOne(FileMeta, {
+        where: { id, organizationId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!fileMeta) throw new NotFoundException({ message: 'Khong tim thay file', errorCode: ERROR_CODES.FILE_NOT_FOUND });
+
       const versionsInTx = await manager.find(FileVersion, { where: { fileId: id } });
 
       // Cascade xoa FileVersion + FileShare o tang DB (onDelete: CASCADE tren ca 2 entity).

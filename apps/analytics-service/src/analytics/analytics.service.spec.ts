@@ -38,6 +38,23 @@ describe('AnalyticsService', () => {
     );
   });
 
+  // 25/08/2026: unit test moi cho departmentExists() (fix ra soat bao mat - xem
+  // apps/analytics-service/src/ai-insights/ai-insights.service.ts giai thich day du ly do).
+  describe('departmentExists', () => {
+    it('tra ve true khi dim_user co it nhat 1 user cua DUNG to chuc thuoc phong ban do', async () => {
+      queryMock.mockResolvedValueOnce([{ exists: true }]);
+
+      await expect(service.departmentExists('org-1', 'dept-1')).resolves.toBe(true);
+      expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('dim_user'), ['org-1', 'dept-1']);
+    });
+
+    it('tra ve false khi khong co user nao cua to chuc do thuoc phong ban nay (vd UUID bia dat)', async () => {
+      queryMock.mockResolvedValueOnce([{ exists: false }]);
+
+      await expect(service.departmentExists('org-1', 'dept-gia-mao')).resolves.toBe(false);
+    });
+  });
+
   describe('getSummary / computeSummary', () => {
     it('mac dinh range="7d" khi khong truyen gi (giong default cua getTaskTrend)', async () => {
       queryMock.mockResolvedValueOnce([{ total_tasks_created: '2', total_tasks_completed: '1' }]);

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:path_provider/path_provider.dart';
 
 import 'auth_session.dart';
@@ -103,7 +104,17 @@ class ApiClient {
       // DioException nen truoc day thoat khoi ham nay khong duoc bat, roi loi ra ngoai interceptor
       // onError() ben tren (chinh no cung dang trong 1 try/catch rieng - xem _tryRefreshOnce()) mà
       // khong bi coi la "refresh that bai" mot cach gon gang.
-    } catch (_) {
+      //
+      // 25/08/2026: fix code review Major (phat hien qua dot ra soat toan du an lan 3) - "catch (_)"
+      // gop chung 2 loai loi rat khac nhau (refresh token that su het han/khong hop le, VA response
+      // 200 nhung sai hinh dang) lam CUNG 1 hanh dong (dang xuat lang le) ma khong de lai dau vet
+      // nao de phan biet - neu la truong hop thu 2 (loi phan tich, khong phai loi xac thuc That),
+      // nguoi dung se bi dang xuat GIUA phien lam viec ma khong co loi giai thich, va khong co cach
+      // nao debug duoc tu xa. Ghi lai debugPrint (chi hien trong chu do debug/profile, khong lam gi
+      // trong bo AOT release) TRUOC khi xoa session, van GIU nguyen hanh vi xoa session (khong the
+      // phan biet chac chan 2 truong hop tai day, nen van an toan hon la coi nhu da dang nhap).
+    } catch (e) {
+      debugPrint('ApiClient._refresh() that bai: $e');
       session.clear();
       return false;
     }
@@ -126,7 +137,10 @@ class ApiClient {
       // phuc hoi ma khong xoa du lieu app. Bat MOI loi (khong chi DioException) va coi la "chua
       // dang nhap" - dung dung y nghia cua ham nay (chi la thu tu dang nhap lai, that bai thi coi
       // nhu nguoi dung moi, KHONG PHAI loi can hien thi).
-    } catch (_) {
+      //
+      // 25/08/2026: xem giai thich debugPrint tai _refresh() ben tren - cung 1 ly do.
+    } catch (e) {
+      debugPrint('ApiClient.tryAutoLogin() that bai: $e');
       session.clear();
     }
   }
@@ -140,6 +154,14 @@ class ApiClient {
       );
     } on DioException catch (e) {
       throw _toApiException(e);
+      // 25/08/2026: fix code review Major (phat hien qua dot ra soat toan du an lan 3) - ham nay ep
+      // kieu response.data giong het _refresh()/tryAutoLogin() (da sua 22/08/2026 de bat ca
+      // TypeError) nhung chinh no lai chi bat DioException - 1 response 200 sai hinh dang khi dang
+      // nhap (vd captive-portal Wi-Fi) nem TypeError CHUA DUOC BAT, khong phai ApiException nen
+      // login_page.dart's "on ApiException catch" khong bat duoc: spinner tat (nho finally) nhung
+      // khong co thong bao loi nao hien ra - that bai am tham, kho hieu.
+    } on TypeError {
+      throw ApiException('Phản hồi từ máy chủ không hợp lệ, vui lòng thử lại');
     }
   }
 
@@ -158,6 +180,10 @@ class ApiClient {
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       throw _toApiException(e);
+      // 25/08/2026: xem giai thich tai login() ben tren - dong bo cach xu ly response sai hinh dang
+      // cho tat ca ham goi API con lai cua class nay (get/getList/postJson/patch/postPhoto/postFile).
+    } on TypeError {
+      throw ApiException('Phản hồi từ máy chủ không hợp lệ, vui lòng thử lại');
     }
   }
 
@@ -170,6 +196,8 @@ class ApiClient {
       return response.data as List<dynamic>;
     } on DioException catch (e) {
       throw _toApiException(e);
+    } on TypeError {
+      throw ApiException('Phản hồi từ máy chủ không hợp lệ, vui lòng thử lại');
     }
   }
 
@@ -179,6 +207,8 @@ class ApiClient {
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       throw _toApiException(e);
+    } on TypeError {
+      throw ApiException('Phản hồi từ máy chủ không hợp lệ, vui lòng thử lại');
     }
   }
 
@@ -188,6 +218,8 @@ class ApiClient {
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       throw _toApiException(e);
+    } on TypeError {
+      throw ApiException('Phản hồi từ máy chủ không hợp lệ, vui lòng thử lại');
     }
   }
 
@@ -210,6 +242,8 @@ class ApiClient {
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       throw _toApiException(e);
+    } on TypeError {
+      throw ApiException('Phản hồi từ máy chủ không hợp lệ, vui lòng thử lại');
     }
   }
 
@@ -231,6 +265,8 @@ class ApiClient {
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       throw _toApiException(e);
+    } on TypeError {
+      throw ApiException('Phản hồi từ máy chủ không hợp lệ, vui lòng thử lại');
     }
   }
 

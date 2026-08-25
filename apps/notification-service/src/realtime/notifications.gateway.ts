@@ -9,6 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtAccessPayload } from '@app/common-dto';
+import { RedisService } from '../redis/redis.service';
 
 /**
  * 25/07/2026 (audit - MINOR): doc danh sach origin duoc phep mo WebSocket handshake tu bien moi
@@ -46,9 +47,10 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
   ) {}
 
-  handleConnection(socket: Socket): void {
+  async handleConnection(socket: Socket): Promise<void> {
     const token = socket.handshake.auth?.token as string | undefined;
     if (!token) {
       this.logger.debug(`Socket ${socket.id} khong co token, ngat ket noi`);
@@ -60,6 +62,25 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
       const payload = this.jwtService.verify<JwtAccessPayload>(token, {
         secret: this.configService.get<string>('jwt.accessSecret'),
       });
+
+      // 25/08/2026: fix ra soat bao mat - xem giai thich day du tai
+      // apps/analytics-service/src/realtime/analytics.gateway.ts (cung 1 fix, cung ly do: WS
+      // khong di qua Gateway/InternalAuthGuard nen truoc ban sua nay hoan toan bo sot kiem tra
+      // blacklist ma REST da co tu 21/07/2026). Fail-open neu Redis loi.
+      let blacklisted = false;
+      try {
+        blacklisted = await this.redisService.isUserBlacklisted(payload.sub);
+      } catch (err) {
+        this.logger.warn(
+          `Kiem tra blacklist that bai, cho qua ket noi: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+      if (blacklisted) {
+        this.logger.debug(`Socket ${socket.id} bi tu choi (tai khoan da bi vo hieu hoa)`);
+        socket.disconnect(true);
+        return;
+      }
+
       socket.data.userId = payload.sub;
       socket.data.organizationId = payload.organizationId;
       void socket.join(`user:${payload.sub}`);

@@ -57,6 +57,10 @@
     "profile": "プロフィール",
     "logout": "ログアウト"
   },
+  "sidebar": {
+    "expand": "サイドバーを展開",
+    "collapse": "サイドバーを折りたたむ"
+  },
   "search": {
     "placeholder": "プロジェクト、ドキュメント、タスクを検索…",
     "noResults": "「{{query}}」に一致する結果が見つかりませんでした。",

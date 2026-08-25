@@ -329,5 +329,23 @@ describe('KafkaConsumerService (Notification Service)', () => {
       expect(mockConsumer.connect).toHaveBeenCalledTimes(2);
       expect(service['restartAttempt']).toBe(0); // ve 0 sau khi thanh cong
     });
+
+    // 25/08/2026: fix code review Minor (phat hien qua dot ra soat toan du an lan 3) - truoc ban
+    // sua nay, onModuleDestroy() khong huy timer backoff dang cho, nen module bi pha huy DUNG luc
+    // dang "ngu" giua 1 lan backoff van tu ket noi lai "ma" sau khi da coi la tat xong.
+    it('onModuleDestroy() huy timer backoff dang cho - KHONG tu ket noi lai "ma" sau khi da tat', async () => {
+      jest.useFakeTimers();
+      const mockConsumer = createMockConsumer();
+      service['consumer'] = { ...mockConsumer, disconnect: jest.fn().mockResolvedValue(undefined) } as never;
+      service['registerCrashHandler']();
+
+      mockConsumer.triggerCrash({ error: new Error('Kafka mat ket noi keo dai'), restart: false });
+      // Dang "ngu" giua backoff (2000ms) thi module bi pha huy (vd container redeploy).
+      await service.onModuleDestroy();
+
+      await jest.advanceTimersByTimeAsync(30_000); // du de moi backoff toi da (30s) da troi qua.
+
+      expect(mockConsumer.connect).not.toHaveBeenCalled();
+    });
   });
 });

@@ -62,8 +62,14 @@ function Logo({ collapsed }: { collapsed: boolean }) {
 
 /** Sidebar co dinh cho man hinh md+. Tu dong thu gon o do rong tablet, co the bam nut de thu gon/mo rong thu cong. */
 export function Sidebar() {
+  // 25/08/2026: fix code review Major (phat hien qua dot ra soat toan du an lan 3) - nut thu
+  // gon/mo rong ben duoi la 2 chuoi tieng Viet cung duoc phat hien BO SOT hoan toan trong dot
+  // rollout i18n (Sidebar() truoc day khong goi useTranslation(), chi SidebarLinks ben trong moi
+  // co) - nguoi dung chon EN/JA van thay tooltip/aria-label tieng Viet o dung nut nay.
+  const { t } = useTranslation();
   const collapsed = useUIStore((s) => s.sidebarCollapsed);
   const toggle = useUIStore((s) => s.toggleSidebarCollapsed);
+  const toggleLabel = t(collapsed ? 'common:sidebar.expand' : 'common:sidebar.collapse');
 
   return (
     <aside
@@ -77,11 +83,11 @@ export function Sidebar() {
       <button
         type="button"
         onClick={toggle}
-        title={collapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
+        title={toggleLabel}
         // 28/07/2026: them aria-label giong title (phat hien qua ra soat kha nang tiep can) - nut
         // nay chi co icon, khong co text hien thi, truoc do khong co ten truy cap ro rang cho trinh
         // doc man hinh vi title khong dam bao duoc dung lam ten truy cap.
-        aria-label={collapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
+        aria-label={toggleLabel}
         className="flex h-11 shrink-0 items-center justify-center gap-2 border-t border-slate-100 text-slate-400 hover:bg-slate-50 hover:text-slate-600"
       >
         {collapsed ? <ChevronRightIcon className="h-4 w-4" /> : <ChevronLeftIcon className="h-4 w-4" />}

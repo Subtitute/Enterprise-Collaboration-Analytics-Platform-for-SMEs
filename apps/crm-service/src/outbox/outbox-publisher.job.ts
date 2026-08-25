@@ -33,23 +33,39 @@ export class OutboxPublisherJob {
         take: 50,
       });
 
+      // 25/08/2026: fix code review CRITICAL - truoc day 1 record loi phi-tam-thoi (payload sai,
+      // message qua khuon kho, sai topic) se lam throw ca vong lap for, khien record do nam ket
+      // o dau hang doi (query khong scope theo to chuc, sap ASC theo createdAt) va chan Kafka cho
+      // TAT CA to chuc moi tick. Boc try/catch tung record: loi thi log va continue sang record
+      // ke tiep, khong revert published (van la false) de tick sau tu dong retry neu loi tam thoi.
+      // Ban sao cua fix nay o apps/project-task-service (22/08/2026) - file nay la MAU THAM CHIEU
+      // nhung chinh no lai chua duoc ap dung fix, phat hien lai qua dot ra soat toan du an lan 3.
+      let publishedCount = 0;
       for (const record of pending) {
-        const topic = EVENT_TYPE_TOPIC_MAP[record.eventType as EventType] ?? KAFKA_TOPICS.CRM;
-        const event: DomainEvent = {
-          eventId: record.eventId,
-          eventType: record.eventType,
-          occurredAt: record.occurredAt.toISOString(),
-          organizationId: record.organizationId,
-          producer: record.producer,
-          payload: record.payload,
-        };
-        await this.kafkaProducer.publish(topic, event);
-        record.published = true;
-        await this.outboxRepo.save(record);
+        try {
+          const topic = EVENT_TYPE_TOPIC_MAP[record.eventType as EventType] ?? KAFKA_TOPICS.CRM;
+          const event: DomainEvent = {
+            eventId: record.eventId,
+            eventType: record.eventType,
+            occurredAt: record.occurredAt.toISOString(),
+            organizationId: record.organizationId,
+            producer: record.producer,
+            payload: record.payload,
+          };
+          await this.kafkaProducer.publish(topic, event);
+          record.published = true;
+          await this.outboxRepo.save(record);
+          publishedCount++;
+        } catch (recordError) {
+          this.logger.error(
+            `Loi khi publish outbox event ${record.eventId} (eventType=${record.eventType}), bo qua de khong chan cac record khac`,
+            recordError as Error,
+          );
+        }
       }
 
-      if (pending.length > 0) {
-        this.logger.log(`Da publish ${pending.length} su kien tu outbox`);
+      if (publishedCount > 0) {
+        this.logger.log(`Da publish ${publishedCount} su kien tu outbox`);
       }
     } catch (error) {
       this.logger.error('Loi khi publish outbox events', error as Error);

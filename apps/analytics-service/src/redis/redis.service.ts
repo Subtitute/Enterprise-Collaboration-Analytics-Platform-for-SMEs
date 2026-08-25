@@ -83,4 +83,21 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   async ping(): Promise<string> {
     return this.client.ping();
   }
+
+  /**
+   * 25/08/2026: fix ra soat bao mat - kiem tra tai khoan da bi blacklist (vd vua bi deactivate) -
+   * DOC cung khoa `blacklist:user:${userId}` ma UsersService.deactivate() (iam-service) GHI, qua
+   * chung 1 Redis vat ly (moi service co ioredis client rieng nhung tro toi cung 1 container
+   * `redis`, xem infra/docker-compose.yml). Dung cho AnalyticsGateway.handleConnection() - REST
+   * qua Gateway da kiem tra khoa nay tu 21/07/2026 (jwt-auth.middleware.ts) nhung WebSocket
+   * handshake khong di qua Gateway/InternalAuthGuard nen truoc ban sua nay hoan toan bo sot.
+   */
+  async isUserBlacklisted(userId: string): Promise<boolean> {
+    const value = await withTimeout(
+      this.client.get(`blacklist:user:${userId}`),
+      REDIS_CACHE_TIMEOUT_MS,
+      `Kiem tra blacklist Redis vuot qua ${REDIS_CACHE_TIMEOUT_MS}ms`,
+    );
+    return value !== null;
+  }
 }

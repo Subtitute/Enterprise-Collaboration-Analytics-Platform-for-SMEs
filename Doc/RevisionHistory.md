@@ -272,6 +272,181 @@ lần nào**.
 file:line riêng để tránh trùng lặp nội dung, theo đúng quy ước Technical_Spec.md đã áp dụng từ
 21/07/2026); riêng phần `ecap-mobile` xem thêm `Doc/ECAP_Mobile.md` mục 15.*
 
+## 2026-08-25 — Rà soát toàn dự án lần 3 (6 hướng song song, không giới hạn ở lỗi treo/sập)
+
+Khác 2 đợt rà soát trước (Tier 1/2/3 ngày 22/08, lỗi treo/sập ngày 24/08) — đợt này mở rộng phạm
+vi sang **mọi lỗi logic/đúng-sai**, không chỉ lỗi treo/sập hệ thống. 6 hướng song song: mã lỗi
+i18n + Gateway, Frontend, Project-Task + CRM, IAM + Document, HRM + Notification + Analytics, và
+hạ tầng + `ecap-mobile` + e2e (hướng cuối tự chia thêm 3 nhánh con: audit biến môi trường, review
+sâu `ecap-mobile`, đối chiếu e2e với UI hiện tại).
+
+**Nghiêm trọng (Critical):**
+- `OutboxPublisherJob` của **4/5 service** (iam-service, document-service, hrm-service,
+  crm-service) vẫn là bản CHƯA sửa lỗi cô lập từng bản ghi — bản vá 22/08/2026 (`try/catch` từng
+  record, không để 1 bản ghi lỗi chặn cả hàng đợi) chỉ từng được áp dụng cho project-task-service,
+  dù chính file đó tự nhận là "MẪU THAM CHIẾU" cho các service kia. Sửa: áp dụng lại đúng bản vá
+  cho cả 4 service.
+- `FilesService.remove()` (document-service) — bản sửa 22/08 (đọc `FileVersion` TRONG transaction)
+  vẫn thiếu khoá `pessimistic_write` trên `FileMeta`, nên vẫn có thể đua với `uploadNewVersion()`
+  đang chạy song song: phiên bản file mới được upload lọt vào khoảng hở giữa lúc đọc và lúc xoá,
+  bị xoá CASCADE theo `FileMeta` nhưng object MinIO của nó không nằm trong danh sách dọn — mồ côi
+  vĩnh viễn, không còn dấu vết DB nào để đối chiếu lại. Sửa: khoá `FileMeta` trước khi đọc
+  `FileVersion`, mirror đúng pattern `uploadNewVersion()` đã dùng.
+
+**Nghiêm trọng vừa (Major):**
+- `MinioService.removeObject()` (document-service) — chưa được bọc timeout như `putObject()`/
+  `checkConnection()`, dù cùng 1 rủi ro "SDK không tự đặt timeout".
+- Sidebar bị bỏ sót hoàn toàn khỏi đợt rollout i18n — nút thu gọn/mở rộng thanh bên luôn hiện
+  tiếng Việt (`title`/`aria-label`) dù đang xem giao diện Anh/Nhật.
+- Continuous aggregate TimescaleDB (`daily_task_summary`/`weekly_project_progress`/
+  `daily_document_activity`) gộp nhóm theo **ngày UTC**, không phải GMT+7 như quy ước xuyên suốt dự
+  án — hoạt động 00:00–06:59 giờ VN bị gán nhầm sang ngày hôm trước trên biểu đồ xu hướng Dashboard.
+  Sửa: thêm tham số timezone `'Asia/Ho_Chi_Minh'` vào `time_bucket()`. Chỉ áp dụng cho lần cài đặt
+  MỚI (dự án không có migration runner; môi trường đang chạy sẵn cần drop + tạo lại 3 view thủ công).
+- `ecap-mobile`: bản vá 22/08 (bắt mọi lỗi thay vì chỉ `DioException`) chỉ áp dụng cho
+  `_refresh()`/`tryAutoLogin()`, chưa đồng bộ cho `login()` và 6 hàm gọi API còn lại
+  (`get`/`getList`/`postJson`/`patch`/`postPhoto`/`postFile`) dù cùng 1 kiểu ép kiểu response — 1
+  response 200 sai hình dạng khi đăng nhập/gọi API nem `TypeError` CHƯA ĐƯỢC BẮT, thất bại âm thầm
+  không rõ lý do thay vì hiện thông báo lỗi.
+- `ecap-mobile`: `GatewayConfig.resolveBaseUrl()` ghi cache (`cacheFile.writeAsString`) không có
+  `try/catch`, trong khi 2 bước còn lại của hàm này đều có — lỗi ghi đĩa (hết dung lượng, quyền bị
+  thu hồi) khiến app kẹt VĨNH VIỄN ở màn hình khởi động, cùng 1 lớp lỗi vừa được sửa ở
+  `api_client.dart` nhưng tái diễn ở file khác.
+
+**Nhẹ (Minor), đã sửa:**
+- `AllExceptionsFilter` (dùng chung 8 service) không gán `errorCode` cho lỗi 500 KHÔNG PHẢI
+  `HttpException` (lỗi thật sự không lường trước) — người dùng Anh/Nhật vẫn thấy message tiếng
+  Việt thay vì bản dịch `ERROR_CODES.INTERNAL_ERROR` đã có sẵn.
+- `restartWithBackoff()` (Kafka consumer, notification-service + analytics-service) không huỷ
+  timer backoff đang chờ khi `onModuleDestroy()` — service bị tắt (redeploy container) đúng lúc
+  đang "ngủ" giữa 1 lần backoff sẽ tự kết nối lại "ma" sau khi coi như đã tắt xong.
+- `ecap-mobile`: `_refresh()`/`tryAutoLogin()` bắt lỗi nhưng không ghi log gì — không thể debug từ
+  xa khi gặp lỗi phân tích response. Thêm `debugPrint` (không ảnh hưởng bản release).
+- `ecap-mobile`: 3 trang (`notifications_page`, `leave_requests_page`, `tasks_page`) gọi lại
+  `_load()` sau 1 `await` mà không kiểm tra `mounted` trước — có thể `setState()` sau khi widget đã
+  dispose (vd người dùng đăng xuất giữa lúc đang chờ).
+
+**Cố ý KHÔNG sửa (ghi nhận lại, không phải lỗi mới):**
+- `withTimeout()` (mọi service dùng Redis) chỉ đua ở phía gọi — lệnh Redis bên dưới vẫn nằm trong
+  hàng đợi nội bộ của ioredis (`enableOfflineQueue: true` mặc định) và có thể vẫn thực thi/ghi dữ
+  liệu sau khi phía gọi đã "bỏ cuộc". Hướng cải thiện khả dĩ: đặt `commandTimeout` thẳng trên client
+  ioredis — CHƯA áp dụng vì cần kiểm thử sống (thay đổi hành vi reconnect của ioredis), không phải
+  sửa an toàn có thể xác minh chỉ bằng test giả lập.
+- Cơ chế fail-open của chặn brute-force đăng nhập (iam-service, quyết định có chủ đích từ 22/08)
+  không có cảnh báo/metric khi Redis lỗi kéo dài — là đề xuất tính năng quan sát mới, ngoài phạm vi
+  "sửa lỗi" của đợt rà soát này.
+- `coordinate.util.ts` (hrm-service): tên field lỗi (`latitude`/`longitude`) không được dịch sang
+  nhãn thân thiện ở Anh/Nhật trong thông báo lỗi — nhất quán với quyết định đã chốt từ đợt i18n
+  (giữ nguyên tên property thô, không dịch), chỉ là góc nhỏ chưa hoàn thiện.
+- Last-admin lockout (`UsersService.deactivate()`) — hạn chế đã biết và đã ghi chú trong code từ
+  trước, vẫn còn mở.
+- Outbox chưa có giới hạn số lần retry/dead-letter cho 1 bản ghi lỗi VĨNH VIỄN (khác lỗi tạm thời)
+  — sẽ retry mỗi 2.5s mãi mãi, chiếm 1 trong 50 slot mỗi lượt; hạn chế vận hành, không phải lỗi
+  đúng-sai.
+- Toàn bộ e2e Playwright, RBAC/guard của IAM + Document Service, transaction/khoá của
+  Project-Task + CRM, và env var toàn hạ tầng: rà soát kỹ, KHÔNG phát hiện lỗi mới.
+
+**Xác minh:** `typecheck` (root, cả 8 service backend + web) sạch; `test` toàn bộ workspace pass
+(document-service 106/106, crm-service 37/37, analytics-service 103/103, gateway 50/50, hrm-service
+39/39, iam-service 52/52, notification-service 28/28, common-guard 32/32, web 18/18 — không service
+nào tụt test); `flutter analyze` sạch (1 cảnh báo info-level có sẵn từ trước, không liên quan tới
+sửa đổi lần này).
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 25/08/2026 (không tạo file
+file:line riêng, theo đúng quy ước đã áp dụng từ đợt 24/08/2026).*
+
+## 2026-08-25 (bổ sung) — Review bảo mật chuyên biệt (OWASP-style, 6 hướng song song)
+
+Khác các đợt trên (lỗi treo/sập, lỗi logic đúng-sai) — đợt này dùng riêng lăng kính **bảo mật**:
+authN/session/token, authorization/IDOR (4 service chưa từng rà theo góc này), injection/XSS/
+deserialization, secrets + cấu hình hạ tầng, file/object storage, và realtime + rate-limit + bề
+mặt DoS. Kỹ năng `security-review` (yêu cầu `git diff`) không dùng được do môi trường không cài
+`git` — thay bằng 6 agent song song đọc trực tiếp mã nguồn.
+
+**Đã sửa:**
+- Rate-limit của Gateway **không bao giờ được áp dụng** cho request thiếu/sai token — middleware
+  xác thực JWT trả 401 ngay, không gọi `next()`, nên không bao giờ tới được middleware rate-limit
+  đăng ký sau nó; kẻ tấn công flood 1 route bất kỳ với token rỗng/giả ở tốc độ tuỳ ý mà không bao
+  giờ bị 429. Sửa: tách logic kiểm tra rate-limit thành `checkRateLimit()` dùng chung, gọi trực
+  tiếp từ nhánh 401 trước khi phản hồi.
+- WebSocket (`AnalyticsGateway`, `NotificationsGateway`) chỉ verify JWT, **không kiểm tra
+  blacklist** — 1 tài khoản vừa bị deactivate vẫn mở được kết nối WS mới và tiếp tục nhận dữ liệu
+  hoạt động real-time tới khi access token hết hạn tự nhiên (tối đa 15 phút), khác hẳn REST (đã
+  chặn ngay từ 21/07/2026). Sửa: cả 2 gateway tự kiểm tra `blacklist:user:<id>` qua Redis trước
+  khi cho `join()` phòng (fail-open nếu Redis lỗi) — bổ sung `RedisService` mới cho
+  notification-service (trước đây hoàn toàn không dùng Redis).
+- `AnalyticsGateway` chỉ xác thực (verify JWT), **không uỷ quyền** (không kiểm tra quyền
+  `analytics:view` như REST đã làm) — 1 nhân viên không có quyền xem báo cáo vẫn thụ động nhận
+  được feed hoạt động real-time của cả tổ chức qua WS. Sửa: thêm kiểm tra quyền tại
+  `handleConnection()`.
+- **`GET /analytics/ai-insights?departmentId=<uuid>`**: `departmentId` chỉ được validate LÀ UUID,
+  không kiểm tra có thực sự thuộc tổ chức gọi hay không — vì tham số này nằm trong khoá cache, 1
+  người dùng có quyền `analytics:view` (Manager/Admin mặc định) có thể gửi 1 UUID ngẫu nhiên MỖI
+  LẦN để luôn cache-miss, ép hệ thống luôn gọi API Gemini/Groq thật — 2 khoá API này dùng CHUNG
+  TOÀN NỀN TẢNG (không tách theo tổ chức), nên 1 tổ chức có thể đơn phương làm cạn hạn ngạch miễn
+  phí của MỌI tổ chức khác. Sửa: thêm `AnalyticsService.departmentExists()` (tra `dim_user`), từ
+  chối 400 trước khi chạm tới cache/LLM nếu `departmentId` không khớp tổ chức.
+- Email đăng ký tổ chức mới (`registerOrganization()`) và mời thành viên (`invite()`) không được
+  chuẩn hoá (trim + chữ thường) trước khi lưu/so khớp trùng lặp — cột `email` là Postgres thường
+  (phân biệt hoa/thường), nên `"Alice@Example.com"` không khớp được với `"alice@example.com"` đã
+  đăng ký trước đó, tạo được 1 tài khoản/tổ chức THỨ HAI nhìn-giống-hệt email thật của người khác.
+  Phát hiện thêm khi sửa: chính `login()` cũng dùng `dto.email` THÔ (chưa chuẩn hoá) để tra cứu tài
+  khoản dù bộ đếm throttle đã chuẩn hoá đúng — một người dùng gõ hoa đầu email (trình duyệt tự viết
+  hoa) sẽ không tìm thấy được chính tài khoản của họ dù gõ đúng mật khẩu. Sửa cả 3 điểm.
+- Log lỗi Kafka (`analytics-service`, `notification-service`) nhúng nguyên văn nội dung event/
+  message vào dòng log dạng văn bản thuần khi gặp envelope không hợp lệ/lỗi dữ liệu vĩnh viễn — 1
+  số payload (vd `USER_REGISTERED`) mang email người dùng, bị ghi lặp thừa vào log server trong khi
+  bản sao bền vững thật sự cần giữ (để replay) đã có sẵn trong `rawPayload` của bản ghi DLQ. Bỏ
+  phần nhúng nội dung, chỉ log `eventId`/`eventType`.
+- `Object.assign(department, dto)` (iam-service) — không phải lỗ hổng đang khai thác được
+  (`class-transformer` 0.5.1 + `whitelist:true` đã chặn `__proto__`/`constructor` từ trước) nhưng
+  đổi sang gán từng field rõ ràng, bỏ hẳn phụ thuộc vào whitelist của thư viện — phòng khi DTO này
+  mở rộng thêm field trong tương lai.
+- Hạ tầng (`infra/docker-compose.yml`): cổng console quản trị MinIO (9011) và toàn bộ tầng dữ
+  liệu/quan sát (5 Postgres + TimescaleDB + MongoDB + Redis + Kafka + Prometheus + Alertmanager +
+  Grafana, ~13 điểm) trước đây mở ra TOÀN BỘ mạng (cú pháp cổng trần, Docker mặc định bind
+  `0.0.0.0`) dù comment sẵn có từ lâu đã nói rõ ý định chỉ debug từ máy host — giới hạn về
+  `127.0.0.1`. Mật khẩu Grafana mặc định fail-open về đúng `"admin"` (mật khẩu mặc định CHUẨN của
+  chính Grafana, mục tiêu dò quét đầu tiên) khi biến môi trường chưa được đặt — đổi sang giá trị
+  yếu-nhưng-không-phải-mặc-định, đồng bộ quy ước với các mật khẩu dev khác trong `.env.example`.
+  `MINIO_PUBLIC_USE_SSL` bị hardcode `"false"` (không đọc được từ `.env`) dù code ứng dụng đã hỗ
+  trợ bật TLS qua biến này — đổi sang có thể ghi đè (mặc định vẫn `false`, không đổi hành vi hiện
+  tại).
+
+**Cố ý CHƯA sửa (ghi nhận, cần việc riêng có xác minh sống):**
+- **Nghiêm trọng nhất chưa xử lý**: `getClientIp()` (Gateway) tin tưởng header `X-Real-IP` vô điều
+  kiện, đúng khi Nginx là cổng vào DUY NHẤT — nhưng `docker-compose.yml` cũng expose thẳng cổng
+  3000 của Gateway ra host (cố ý, phục vụ `ecap-mobile` kết nối trực tiếp qua LAN/Cloudflare
+  Tunnel, không qua Nginx). Kết nối thẳng tới cổng 3000 kèm `X-Real-IP` tự đặt sẽ vô hiệu hoá hoàn
+  toàn rate-limit theo IP của Gateway (kể cả chặn brute-force đăng nhập theo IP), vì mỗi request
+  tạo 1 khoá Redis mới. Chưa sửa vì cách khắc phục đúng (chỉ tin header khi kết nối THỰC SỰ đến từ
+  Nginx — qua IP tĩnh trên `internal-net` hoặc secret header do Nginx tự chèn qua envsubst
+  template) đòi hỏi thay đổi cấu hình mạng Docker hoặc pipeline build Nginx, cần kiểm thử sống
+  (curl giả mạo thật) trên stack đang chạy trước khi áp dụng — không phải thứ sửa "mù" an toàn.
+- Email enumeration qua `POST /auth/register-organization` (409 phân biệt được "email đã dùng" —
+  khác `login()` đã cố tình làm phẳng) — không có hạ tầng xác minh email để "đăng ký âm thầm" đúng
+  cách; giảm nhẹ một phần khi phát hiện trên được sửa (rate-limit theo IP lúc đó mới thực sự chặn
+  được tốc độ dò).
+- `x-internal-secret` là 1 secret tĩnh, dùng chung toàn nền tảng, không xoay vòng, không ràng buộc
+  mật mã với danh tính claim trong header đi kèm — nếu rò rỉ, kẻ có secret mạo danh được BẤT KỲ ai
+  ở BẤT KỲ tổ chức nào với BẤT KỲ quyền nào. Đã có fail-closed lúc khởi động (không mới); nâng cấp
+  thật (secret riêng từng service, token ký ngắn hạn) là thay đổi kiến trúc, không phải 1 lần sửa.
+- Toàn bộ CORS, header bảo mật HTTP (`helmet`, security header của Nginx), logging hygiene (không
+  log password/token/body đầy đủ), non-root Docker, và toàn bộ SQL/NoSQL injection/XSS/eval: rà
+  soát kỹ, KHÔNG phát hiện lỗ hổng — codebase đã qua ít nhất 1 đợt bảo mật trước đó.
+
+**Xác minh:** `typecheck` (root) sạch; `npm audit` baseline không đổi (3 lỗ hổng moderate,
+`react-router`/`uuid`, chỉ vá được bằng breaking change, đã ghi nhận từ Tier 1); quét toàn bộ
+workspace (`npm test --workspaces` + `apps/web` riêng, do `e2e` thiếu script `test` từ trước) —
+tất cả pass, không service nào tụt test/ngưỡng coverage: analytics-service 121/121, crm-service
+39/39, document-service 111/111, gateway 52/52, hrm-service 41/41, iam-service 55/55,
+notification-service 50/50, project-task-service 28/28, common-dto 10/10, common-guard 35/35,
+common-metrics 5/5, web 18/18. `docker compose config` xác nhận cú pháp `docker-compose.yml` sau
+sửa hạ tầng vẫn hợp lệ (chưa `docker compose up` sống lại toàn stack trong lượt này).
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 25/08/2026 (phần review bảo mật,
+tiếp sau phần rà soát lỗi logic cùng ngày ở trên).*
+
 ---
 
 ## Lịch sử thay đổi tài liệu này
@@ -279,3 +454,8 @@ file:line riêng để tránh trùng lặp nội dung, theo đúng quy ước Te
 - **2026-08-24** — Khởi tạo file, gộp lại toàn bộ lịch sử rà soát/sửa lỗi từ 18/07/2026 (khởi tạo
   `Technical_Spec.md`) tới đợt rà soát cùng ngày — nguồn dữ liệu là mục "Lịch sử thay đổi tài
   liệu" của `Technical_Spec.md` và `ECAP_Mobile.md`, cô đọng lại thành 1 dòng thời gian duy nhất.
+- **2026-08-25** — Bổ sung mục "Rà soát toàn dự án lần 3" (6 hướng song song, mở rộng phạm vi
+  sang mọi lỗi logic thay vì chỉ lỗi treo/sập như đợt 24/08).
+- **2026-08-25 (bổ sung)** — Bổ sung mục "Review bảo mật chuyên biệt" (6 hướng OWASP-style song
+  song) — phát hiện 1 lỗ hổng Nghiêm trọng chưa xử lý (rate-limit Gateway có thể bị vô hiệu hoá
+  qua gia mạo IP khi kết nối thẳng cổng 3000) cần việc riêng có kiểm thử sống.

@@ -546,6 +546,38 @@ widget/unit nào sẵn cho `ApiClient` (xem mục 14 — giới hạn kiểm th�
 Dart cho lần sửa này, theo đúng phạm vi tối thiểu của đợt rà soát (không mở rộng hạ tầng test
 `ecap-mobile` ngoài yêu cầu).
 
+## 16. Rà soát lỗi lần 2 — đồng bộ hoá bản vá 24/08 + lỗi mới (25/08/2026)
+
+Trong đợt rà soát toàn dự án lần 3 (xem `Doc/RevisionHistory.md` mục "2026-08-25"), rà soát lại
+`ecap-mobile` với phạm vi rộng hơn (không chỉ lỗi treo/sập). Phát hiện bản vá "bắt mọi lỗi ép
+kiểu" của mục 15 (24/08/2026) chưa được áp dụng ĐỒNG BỘ, cộng 1 lỗi mới cùng lớp ở file khác:
+
+- **`login()` và 6 hàm gọi API còn lại của `ApiClient` chưa có `on TypeError`:** mục 15 chỉ sửa
+  `_refresh()`/`tryAutoLogin()`; `login()`, `get()`, `getList()`, `postJson()`, `patch()`,
+  `postPhoto()`, `postFile()` vẫn chỉ bắt `on DioException`, dù cùng 1 kiểu ép kiểu
+  `response.data as Map<String,dynamic>`/`as List<dynamic>` có thể ném `TypeError`. Với `login()`
+  cụ thể: response 200 sai hình dạng khi đăng nhập (vd captive-portal Wi-Fi) khiến `TypeError`
+  thoát ra ngoài, `login_page.dart`'s `on ApiException catch` không bắt được — spinner tắt (nhờ
+  `finally`) nhưng không có thông báo lỗi nào hiện ra. Sửa: thêm `on TypeError` (trả về 1
+  `ApiException` chung "Phản hồi từ máy chủ không hợp lệ") cho cả 7 hàm.
+- **`_refresh()`/`tryAutoLogin()` bắt lỗi nhưng không ghi log:** `catch (_)` không lưu lại đối
+  tượng lỗi nào — không thể phân biệt "refresh token thật sự hết hạn" (bình thường) với "lỗi phân
+  tích response" (bug) khi debug từ xa. Thêm `debugPrint` (không ảnh hưởng bản release AOT).
+- **`GatewayConfig.resolveBaseUrl()` — lỗi mới cùng lớp với mục 15:** `cacheFile.writeAsString()`
+  không có `try/catch`, trong khi `_fetchRemote()`/`_readCache()` (2 bước còn lại của cùng hàm) đều
+  có. Nếu ghi cache thất bại (hết dung lượng, quyền bị thu hồi giữa chừng), lỗi thoát ra khỏi
+  `resolveBaseUrl()` mà `main.dart`'s `_bootstrap()` (nơi gọi hàm này) không có `try/catch` nào bọc
+  ngoài — đúng kiểu "màn hình khởi động treo vĩnh viễn" mà mục 15 vừa sửa, chỉ tái diễn ở 1 file
+  khác. Sửa: bọc riêng bước ghi cache, thất bại thì bỏ qua (vẫn trả về địa chỉ vừa fetch được).
+- **3 trang thiếu kiểm tra `mounted` trước khi gọi lại `_load()` sau 1 `await`:**
+  `notifications_page.dart` (2 chỗ), `leave_requests_page.dart`, `tasks_page.dart` — `_load()` gọi
+  `setState()` ngay dòng đầu tiên, không tự kiểm tra `mounted`; nếu widget bị dispose (vd đăng
+  xuất) giữa lúc `await` đang chờ, lệnh gọi lại sẽ ném lỗi "setState() called after dispose()".
+  Sửa: thêm `if (mounted)` trước cả 4 điểm gọi.
+
+**Xác minh sau khi sửa:** `flutter analyze` sạch (1 cảnh báo info-level có sẵn từ trước ở
+`app_config.dart`, không liên quan tới các file vừa sửa).
+
 ## Lịch sử thay đổi tài liệu
 
 - **2026-08-06** — Khởi tạo tài liệu, đồng thời với việc scaffold `ecap-mobile` (Flutter/Dart,
@@ -625,3 +657,9 @@ Dart cho lần sửa này, theo đúng phạm vi tối thiểu của đợt rà 
   bắt được `TypeError` từ ép kiểu sai khi gặp response 200 sai hình dạng (captive portal Wi-Fi,
   proxy doanh nghiệp) — khiến màn hình khởi động app kẹt vĩnh viễn. Chi tiết đầy đủ ở mục 15
   (mới). Xác minh: `flutter analyze` sạch.
+- **2026-08-25 (rà soát lỗi lần 2 — đồng bộ hoá bản vá 24/08)** — Đợt rà soát toàn dự án lần 3 của
+  nền tảng (xem `RevisionHistory.md` mục cùng ngày) phát hiện bản vá mục 15 chỉ áp dụng cho
+  `_refresh()`/`tryAutoLogin()`, chưa lan sang `login()` + 6 hàm gọi API còn lại của `ApiClient`,
+  cộng 1 lỗi mới cùng lớp ở `GatewayConfig.resolveBaseUrl()` (ghi cache không `try/catch`) và 3
+  trang thiếu kiểm tra `mounted` trước khi gọi lại `_load()`. Chi tiết đầy đủ ở mục 16 (mới). Xác
+  minh: `flutter analyze` sạch.

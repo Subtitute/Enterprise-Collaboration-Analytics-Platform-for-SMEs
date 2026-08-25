@@ -24,7 +24,11 @@ export class DepartmentsService {
   async update(organizationId: string, id: string, dto: UpdateDepartmentDto): Promise<Department> {
     const department = await this.departmentRepo.findOne({ where: { id, organizationId } });
     if (!department) throw new NotFoundException({ message: 'Khong tim thay phong ban', errorCode: ERROR_CODES.DEPARTMENT_NOT_FOUND });
-    Object.assign(department, dto);
+    // 25/08/2026: fix ra soat bao mat (khong phai lo hong dang khai thac - class-transformer 0.5.1
+    // + ValidationPipe({whitelist:true}) da chan __proto__/constructor truoc khi toi day) - doi
+    // Object.assign(department, dto) sang gan tung field ro rang, bo han su phu thuoc vao whitelist
+    // cua thu vien de chan mass-assignment, phong khi DTO nay mo rong them field trong tuong lai.
+    if (dto.name !== undefined) department.name = dto.name;
     return this.departmentRepo.save(department);
   }
 

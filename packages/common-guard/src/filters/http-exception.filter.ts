@@ -1,5 +1,5 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
-import { CORRELATION_ID_HEADER, ErrorResponseDto } from '@app/common-dto';
+import { CORRELATION_ID_HEADER, ERROR_CODES, ErrorResponseDto } from '@app/common-dto';
 
 /** Chuan hoa moi loi tra ve theo dinh dang Technical_Spec.md muc 7. */
 @Catch()
@@ -53,6 +53,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (!isHttpException) {
       const stack = exception instanceof Error ? exception.stack : String(exception);
       this.logger.error(correlationId ? `[${correlationId}] ${stack}` : stack);
+      // 25/08/2026: loi khong luong truoc (khong phai HttpException) truoc day khong co errorCode,
+      // khien client EN/JA thay message tieng Viet cung thay vi ban dich ERROR_CODES.INTERNAL_ERROR
+      // da co san trong en/errors.json + ja/errors.json - mirror cach jwt-auth.middleware.ts
+      // (Gateway) da lam cho nhanh catch-all tuong tu cua no.
+      errorCode = ERROR_CODES.INTERNAL_ERROR;
     }
 
     const payload: ErrorResponseDto = {

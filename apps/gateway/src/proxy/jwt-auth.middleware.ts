@@ -6,6 +6,8 @@ import { ERROR_CODES, PUBLIC_GATEWAY_ROUTES, type JwtAccessPayload } from '@app/
 import { RedisService } from '../redis/redis.service';
 import { sendErrorResponse } from '../common/send-error-response';
 import { withTimeout } from '../common/with-timeout.util';
+import { checkRateLimit } from '../rate-limit/rate-limit.middleware';
+import { getClientIp } from '../rate-limit/rate-limit.util';
 
 const logger = new Logger('JwtAuthMiddleware');
 
@@ -79,17 +81,36 @@ export function createJwtAuthMiddleware(
       return;
     }
 
+    // 25/08/2026: fix ra soat bao mat - jwt-auth chay TRUOC rate-limit trong pipeline (xem
+    // setup-gateway.ts) va tra 401 NGAY (khong goi next()) khi thieu/sai token, nen truoc ban sua
+    // nay request loai nay KHONG BAO GIO toi duoc rate-limit middleware ben duoi - hoan toan khong
+    // bi dem/chan boi gioi han nao, cho phep flood toc do bat ky. Tu kiem tra rate-limit IP-only
+    // (chua co req.user luc nay) TRUOC khi tra 401 cho 2 nhanh thieu/sai token duoi day; vuot
+    // nguong thi tra 429 thay vi 401 (dung nhu rate-limit middleware se lam neu request toi duoc).
+    const ip = getClientIp(req);
+    async function sendUnauthorized(
+      message: string,
+      errorCode: string,
+    ): Promise<void> {
+      const decision = await checkRateLimit(redisService, configService, ip);
+      if (!decision.allowed) {
+        sendErrorResponse(
+          res,
+          429,
+          'TooManyRequestsException',
+          'Ban da gui qua nhieu yeu cau, vui long thu lai sau it phut',
+          req.originalUrl,
+          ERROR_CODES.GATEWAY_RATE_LIMITED,
+          req,
+        );
+        return;
+      }
+      sendErrorResponse(res, 401, 'UnauthorizedException', message, req.originalUrl, errorCode, req);
+    }
+
     const token = extractBearerToken(req.headers.authorization);
     if (!token) {
-      sendErrorResponse(
-        res,
-        401,
-        'UnauthorizedException',
-        'Thieu token xac thuc, vui long dang nhap lai',
-        req.originalUrl,
-        ERROR_CODES.GATEWAY_MISSING_TOKEN,
-        req,
-      );
+      await sendUnauthorized('Thieu token xac thuc, vui long dang nhap lai', ERROR_CODES.GATEWAY_MISSING_TOKEN);
       return;
     }
 
@@ -97,14 +118,9 @@ export function createJwtAuthMiddleware(
     try {
       payload = await jwtService.verifyAsync<JwtAccessPayload>(token, { secret });
     } catch {
-      sendErrorResponse(
-        res,
-        401,
-        'UnauthorizedException',
+      await sendUnauthorized(
         'Token khong hop le hoac da het han, vui long dang nhap lai',
-        req.originalUrl,
         ERROR_CODES.GATEWAY_INVALID_TOKEN,
-        req,
       );
       return;
     }
