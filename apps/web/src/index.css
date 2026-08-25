@@ -8,7 +8,12 @@
   }
 
   body {
+    font-family: 'Inter', sans-serif;
     @apply h-full bg-slate-50 text-slate-900 antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', sans-serif;
   }
 
   #root {

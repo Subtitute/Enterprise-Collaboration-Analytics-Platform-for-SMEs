@@ -72,7 +72,7 @@ export function ProjectCard({ project, progress, memberCount }: ProjectCardProps
 
   const priorityMeta = {
     LOW: { label: 'Ưu tiên thấp', color: 'text-slate-600 bg-slate-50 border-slate-200' },
-    MEDIUM: { label: 'Trung bình', color: 'text-blue-700 bg-blue-50 border-blue-200' },
+    MEDIUM: { label: 'Trung bình', color: 'text-indigo-700 bg-indigo-50 border-indigo-200' },
     HIGH: { label: 'Ưu tiên cao', color: 'text-amber-700 bg-amber-50 border-amber-200' },
     URGENT: { label: 'Khẩn cấp', color: 'text-rose-700 bg-rose-50 border-rose-200' },
   }[projectMeta.priority ?? 'MEDIUM'];

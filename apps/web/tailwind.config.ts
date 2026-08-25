@@ -7,18 +7,28 @@ export default {
     extend: {
       colors: {
         primary: {
-          50: '#eef4ff',
-          100: '#dbe6fe',
-          200: '#bfd2fe',
-          300: '#93b4fd',
-          400: '#608bfa',
-          500: '#3b64f5',
-          600: '#2544ea',
-          700: '#1f34d6',
-          800: '#202bad',
-          900: '#1f2989',
-          950: '#161a54',
+          50: '#eef2ff',   // indigo-50
+          100: '#e0e7ff',  // indigo-100
+          200: '#c7d2fe',  // indigo-200
+          300: '#a5b4fc',  // indigo-300
+          400: '#818cf8',  // indigo-400
+          500: '#6366f1',  // indigo-500
+          600: '#4f46e5',  // indigo-600 (chủ đạo)
+          700: '#4338ca',  // indigo-700
+          800: '#3730a3',  // indigo-800
+          900: '#312e81',  // indigo-900
+          950: '#1e1b4b',  // indigo-950
         },
+        violetBrand: {
+          500: '#8b5cf6',  // violet-500
+          600: '#7c3aed',  // violet-600
+          700: '#6d28d9',  // violet-700
+        },
+      },
+      fontFamily: {
+        display: ['"Space Grotesk"', 'sans-serif'],
+        body: ['Inter', 'sans-serif'],
+        sans: ['Inter', 'sans-serif'],
       },
       borderRadius: {
         xl: '0.875rem',

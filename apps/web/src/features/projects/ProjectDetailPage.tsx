@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 // vi tri dung).
 import { QueryState } from '@/components/ui/QueryState';
 import { ChevronLeftIcon, PlusIcon, CheckCircleIcon, CalendarIcon, RefreshIcon } from '@/components/ui/Icons';
-import { formatDate } from '@/lib/utils';
+import { formatDate, cn } from '@/lib/utils';
 import { useProjectQuery, useTasksQuery, useCompleteProject, useReopenProject } from './hooks';
 import { projectStatusMeta, computeProgressFromTasks } from './utils';
 import { KanbanBoard } from './components/KanbanBoard';
@@ -59,7 +59,7 @@ export function ProjectDetailPage() {
 
   const priorityMeta = {
     LOW: { label: 'Ưu tiên thấp', color: 'text-slate-600 bg-slate-50 border-slate-200' },
-    MEDIUM: { label: 'Trung bình', color: 'text-blue-700 bg-blue-50 border-blue-200' },
+    MEDIUM: { label: 'Trung bình', color: 'text-indigo-700 bg-indigo-50 border-indigo-200' },
     HIGH: { label: 'Ưu tiên cao', color: 'text-amber-700 bg-amber-50 border-amber-200' },
     URGENT: { label: 'Khẩn cấp', color: 'text-rose-700 bg-rose-50 border-rose-200' },
   }[projectMeta.priority ?? 'MEDIUM'];
@@ -70,10 +70,10 @@ export function ProjectDetailPage() {
         <ChevronLeftIcon className="h-4 w-4" /> {t('projects:detail.backToList')}
       </Link>
 
-      <div className="flex flex-col justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center shadow-xs">
-        <div className="min-w-0">
+      <div className="flex flex-col justify-between gap-5 rounded-2xl border border-slate-200/80 bg-white p-6 sm:flex-row sm:items-center shadow-xs">
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">{project.name}</h1>
+            <h1 className="font-display text-2xl font-bold tracking-tight text-slate-900">{project.name}</h1>
             {projectMeta.priority && (
               <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-semibold border ${priorityMeta.color}`}>
                 {priorityMeta.label}
@@ -85,21 +85,44 @@ export function ProjectDetailPage() {
             </Badge>
           </div>
           {project.description && <p className="mt-1.5 max-w-2xl text-sm text-slate-500">{project.description}</p>}
-          <div className="mt-2.5 flex flex-wrap items-center gap-4">
+          <div className="mt-4 flex flex-wrap items-center gap-4 sm:gap-6">
             {project.dueDate && (
-              <span className="flex items-center gap-1 text-xs text-slate-400">
-                <CalendarIcon className="h-3.5 w-3.5" /> {t('projects:detail.dueDate', { date: formatDate(project.dueDate) })}
+              <span className="flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-50 border border-slate-200/60 px-2.5 py-1.5 rounded-lg">
+                <CalendarIcon className="h-3.5 w-3.5 text-slate-400" /> {t('projects:detail.dueDate', { date: formatDate(project.dueDate) })}
               </span>
             )}
-            <div className="w-40">
-              <ProgressBar value={progress} showLabel />
+            
+            {/* Widget tiến độ hoàn thành công việc hiện đại chuẩn SaaS */}
+            <div className="flex items-center gap-3 bg-slate-50/80 border border-slate-200/70 px-3 py-1.5 rounded-xl min-w-[200px] max-w-xs shadow-2xs">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[11px] font-semibold text-slate-600">Tiến độ dự án</span>
+                  <span className={cn(
+                    "text-xs font-bold font-display",
+                    progress >= 100 ? "text-emerald-600" : "text-primary-600"
+                  )}>
+                    {progress}%
+                  </span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200/80">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all duration-500 ease-out",
+                      progress >= 100 
+                        ? "bg-gradient-to-r from-emerald-500 to-teal-500" 
+                        : "bg-gradient-to-r from-indigo-600 to-violet-600"
+                    )}
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2.5">
           {currentStatus !== 'COMPLETED' ? (
             <Button variant="outline" onClick={() => completeProject.mutate()} isLoading={completeProject.isPending}>
-              <CheckCircleIcon className="h-4 w-4" /> {t('projects:detail.completeProject')}
+              <CheckCircleIcon className="h-4 w-4 text-emerald-600" /> {t('projects:detail.completeProject')}
             </Button>
           ) : (
             <Button variant="outline" onClick={() => reopenProject.mutate()} isLoading={reopenProject.isPending}>

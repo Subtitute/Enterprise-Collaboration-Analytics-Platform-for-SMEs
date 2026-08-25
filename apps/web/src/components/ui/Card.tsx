@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 // @hello-pangea/dnd truc tiep vao node DOM thuc su - neu khong forwardRef, ref se khong gan
 // duoc va tinh nang keo-tha se hong.
 export const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn('rounded-xl border border-slate-200 bg-white shadow-card', className)} {...props} />
+  <div ref={ref} className={cn('rounded-2xl border border-slate-200/80 bg-white shadow-sm transition-all duration-200', className)} {...props} />
 ));
 Card.displayName = 'Card';
 
