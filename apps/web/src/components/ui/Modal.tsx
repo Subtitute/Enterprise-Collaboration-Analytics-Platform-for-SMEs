@@ -106,10 +106,10 @@ export function Modal({ open, onClose, title, description, children, footer, siz
         )}
       >
         {title && (
-          <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 px-6 py-4.5 bg-slate-50/50">
-            <div>
-              <h2 className="text-base font-bold text-slate-900">{title}</h2>
-              {description && <p className="mt-0.5 text-sm text-slate-500">{description}</p>}
+          <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100/90 px-6 pt-6 pb-4.5 bg-slate-50/50">
+            <div className="pt-0.5">
+              <h2 className="font-display text-base font-bold text-slate-900">{title}</h2>
+              {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
             </div>
             <button
               type="button"

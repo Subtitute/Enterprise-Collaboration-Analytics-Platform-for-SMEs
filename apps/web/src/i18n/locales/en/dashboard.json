@@ -3,6 +3,17 @@
     "title": "Dashboard",
     "subtitle": "An overview of your organization's activity."
   },
+  "hero": {
+    "title": "Enterprise-Wide Task Overview",
+    "subtitle": "Summary of implementation progress and task completion rate across all ongoing projects.",
+    "completionRateLabel": "Overall completion rate",
+    "progressLabel": "Progress status",
+    "progressUnit": "tasks",
+    "realtimeSyncHint": "Automatically synchronized in real-time across all projects",
+    "completedStatus": "Completed",
+    "totalTasksStatus": "Total tasks",
+    "viewAllLink": "View all projects & tasks →"
+  },
   "onboarding": {
     "welcomeTitle": "Welcome to ECAP for SMEs!",
     "welcomeDescription": "Your organization doesn't have any projects yet. Invite members or create your first project to get started.",
@@ -48,7 +59,8 @@
     "errorDescription": "Something went wrong loading the chart data. Please try again.",
     "emptyTitle": "No tasks yet",
     "emptyDescription": "The status chart will appear once there are tasks in the system.",
-    "unit": "tasks"
+    "unit": "tasks",
+    "ofTotal": "{{percent}}% of total"
   },
   "taskTrendChart": {
     "errorTitle": "Couldn't load task trend",
@@ -65,15 +77,28 @@
     "emptyTitle": "No activity yet",
     "emptyDescription": "New activity in your organization will appear here in real time.",
     "unknownActor": "A member",
+    "viewAll": "View all activity",
+    "collapse": "Collapse",
+    "eventCount": "{{count}} recent events",
+    "performedAction": "performed action",
+    "groups": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "earlier": "Earlier"
+    },
     "actions": {
       "iam_organization_registered": "registered a new organization",
       "iam_user_registered": "joined the organization",
       "iam_user_deactivated": "was deactivated",
       "task_created": "created a new task",
+      "task_updated": "updated a task",
       "task_status_changed": "updated a task's status",
       "task_assigned": "was assigned a task",
+      "task_deleted": "deleted a task",
       "project_created": "created a new project",
+      "project_updated": "updated a project",
       "project_completed": "completed a project",
+      "project_deleted": "deleted a project",
       "document_uploaded": "uploaded a document",
       "document_shared": "shared a document",
       "document_deleted": "deleted a document"

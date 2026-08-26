@@ -111,7 +111,7 @@ export function CustomFilterSelect({
               minWidth: position.width,
               ...(align === 'right' ? { right: position.right } : { left: position.left }),
             }}
-            className="z-40 animate-slide-up overflow-hidden rounded-xl border border-slate-200/90 bg-white/95 p-1 text-xs shadow-xl shadow-slate-200/70 backdrop-blur-md transition-all duration-300 ease-out"
+            className="z-40 animate-slide-up overflow-hidden rounded-xl border border-slate-200 bg-white p-1 text-xs shadow-lg shadow-slate-200/60 transition-all duration-200 ease-out"
           >
             <div className="max-h-60 overflow-y-auto py-0.5 space-y-0.5">
               {options.map((opt) => {

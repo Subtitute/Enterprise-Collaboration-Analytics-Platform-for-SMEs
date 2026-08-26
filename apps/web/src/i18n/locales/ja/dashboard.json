@@ -3,6 +3,17 @@
     "title": "ダッシュボード",
     "subtitle": "組織の活動状況の概要です。"
   },
+  "hero": {
+    "title": "組織全体のタスク概要",
+    "subtitle": "進行中の全プロジェクトにおける進捗状況とタスク完了率のサマリーです。",
+    "completionRateLabel": "全体の完了率",
+    "progressLabel": "進捗状況",
+    "progressUnit": "件",
+    "realtimeSyncHint": "全プロジェクトの最新状況とリアルタイム同期中",
+    "completedStatus": "完了済み",
+    "totalTasksStatus": "タスク総数",
+    "viewAllLink": "すべてのプロジェクトとタスクを見る →"
+  },
   "onboarding": {
     "welcomeTitle": "ECAP for SMEs へようこそ！",
     "welcomeDescription": "組織にはまだプロジェクトがありません。メンバーを招待するか、最初のプロジェクトを作成して始めましょう。",
@@ -48,7 +59,8 @@
     "errorDescription": "グラフデータの読み込み中にエラーが発生しました。もう一度お試しください。",
     "emptyTitle": "タスクがまだありません",
     "emptyDescription": "システムにタスクが登録されると、ステータスグラフが表示されます。",
-    "unit": "件"
+    "unit": "件",
+    "ofTotal": "全体の{{percent}}%"
   },
   "taskTrendChart": {
     "errorTitle": "タスクの推移を読み込めませんでした",
@@ -65,15 +77,28 @@
     "emptyTitle": "アクティビティはまだありません",
     "emptyDescription": "組織内の新しいアクティビティがここにリアルタイムで表示されます。",
     "unknownActor": "あるメンバー",
+    "viewAll": "すべてのアクティビティを表示",
+    "collapse": "折りたたむ",
+    "eventCount": "最近のイベント{{count}}件",
+    "performedAction": "操作を実行しました",
+    "groups": {
+      "today": "今日",
+      "yesterday": "昨日",
+      "earlier": "それ以前"
+    },
     "actions": {
       "iam_organization_registered": "新しい組織を登録しました",
       "iam_user_registered": "組織に参加しました",
       "iam_user_deactivated": "アカウントが無効化されました",
       "task_created": "新しいタスクを作成しました",
+      "task_updated": "タスクを更新しました",
       "task_status_changed": "タスクのステータスを更新しました",
       "task_assigned": "タスクを割り当てられました",
+      "task_deleted": "タスクを削除しました",
       "project_created": "新しいプロジェクトを作成しました",
+      "project_updated": "プロジェクトを更新しました",
       "project_completed": "プロジェクトを完了しました",
+      "project_deleted": "プロジェクトを削除しました",
       "document_uploaded": "ドキュメントをアップロードしました",
       "document_shared": "ドキュメントを共有しました",
       "document_deleted": "ドキュメントを削除しました"

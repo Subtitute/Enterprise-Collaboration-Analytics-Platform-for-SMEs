@@ -14,7 +14,8 @@ import type { TaskStatusBreakdownItem } from '@/types';
 import { t } from '@/i18n';
 
 function statusLabel(status: string) {
-  return t(`projects:enums.taskStatus.${status}`, { defaultValue: status });
+  const normalized = status === 'IN_PROGRESS' ? 'DOING' : status;
+  return t(`projects:enums.taskStatus.${normalized}`, { defaultValue: status === 'DOING' || status === 'IN_PROGRESS' ? 'Đang làm' : status });
 }
 
 function DonutTooltip({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; payload: { fill: string; status: string } }> }) {
@@ -62,26 +63,28 @@ export function TaskStatusDonut({ data, isLoading, isError, onRetry }: TaskStatu
       {total === 0 ? (
         <EmptyState title={t('dashboard:taskStatusDonut.emptyTitle')} description={t('dashboard:taskStatusDonut.emptyDescription')} />
       ) : (
-        <div className="flex flex-col items-center gap-4 sm:flex-row">
-          <div className="relative h-56 w-56 shrink-0">
+        <div className="flex flex-col 2xl:flex-row items-center justify-between gap-4 w-full min-w-0 overflow-hidden">
+          <div className="relative h-44 w-44 sm:h-48 sm:w-48 shrink-0 mx-auto">
             {/* Tương tác tâm (Center Text) nằm ở tầng nền z-0 với pointer-events-none tuyệt đối để chuột xuyên qua */}
-            <div className="pointer-events-none absolute inset-0 z-0 flex flex-col items-center justify-center text-center px-4 transition-all duration-200 select-none">
+            <div className="pointer-events-none absolute inset-0 z-0 flex flex-col items-center justify-center text-center px-2 transition-all duration-200 select-none">
               {activeItem ? (
                 <div className="animate-fade-in flex flex-col items-center">
-                  <span className="text-2xl font-bold tracking-tight tabular-nums text-slate-900">
+                  <span className="font-display text-2xl font-bold tracking-tight tabular-nums text-slate-900 leading-none">
                     {activeItem.count}
                   </span>
-                  <span className="text-[11px] font-semibold text-slate-600 truncate max-w-[110px]">
+                  <span className="text-[11px] font-semibold text-slate-600 truncate max-w-[90px] mt-0.5">
                     {statusLabel(activeItem.status)}
                   </span>
                   <span className="text-[10px] text-slate-400 font-medium">
-                    {total ? Math.round((activeItem.count / total) * 100) : 0}% tổng số
+                    {t('dashboard:taskStatusDonut.ofTotal', {
+                      percent: total ? Math.round((activeItem.count / total) * 100) : 0,
+                    })}
                   </span>
                 </div>
               ) : (
                 <div className="animate-fade-in flex flex-col items-center">
-                  <span className="text-2xl font-bold tracking-tight tabular-nums text-slate-900">{total}</span>
-                  <span className="text-xs text-slate-500 font-medium">{t('dashboard:taskStatusDonut.unit')}</span>
+                  <span className="font-display text-2xl font-bold tracking-tight tabular-nums text-slate-900 leading-none">{total}</span>
+                  <span className="text-xs text-slate-500 font-medium mt-0.5">{t('dashboard:taskStatusDonut.unit')}</span>
                 </div>
               )}
             </div>
@@ -94,8 +97,8 @@ export function TaskStatusDonut({ data, isLoading, isError, onRetry }: TaskStatu
                     data={chartData}
                     dataKey="count"
                     nameKey="status"
-                    innerRadius={68}
-                    outerRadius={96}
+                    innerRadius={56}
+                    outerRadius={80}
                     paddingAngle={3}
                     cornerRadius={6}
                     strokeWidth={0}
@@ -119,7 +122,7 @@ export function TaskStatusDonut({ data, isLoading, isError, onRetry }: TaskStatu
             </div>
           </div>
 
-          <ul className="w-full space-y-2">
+          <ul className="w-full min-w-0 flex-1">
             {chartData.map((d) => {
               const isHovered = hoveredStatus === d.status;
               return (
@@ -128,24 +131,32 @@ export function TaskStatusDonut({ data, isLoading, isError, onRetry }: TaskStatu
                   onMouseEnter={() => setHoveredStatus(d.status)}
                   onMouseLeave={() => setHoveredStatus(null)}
                   className={cn(
-                    'flex items-center justify-between gap-2 text-sm rounded-lg px-2 py-1.5 transition-all duration-150 cursor-pointer',
-                    isHovered ? 'bg-slate-100/90 font-medium shadow-sm' : 'hover:bg-slate-50',
+                    'flex items-center justify-between gap-2 text-xs sm:text-sm rounded-lg px-3 py-2 mb-2 border transition-all duration-150 cursor-pointer min-w-0',
+                    isHovered
+                      ? 'bg-slate-100/90 border-slate-300/80 shadow-xs scale-[1.01]'
+                      : 'bg-slate-50 border-slate-200/60 hover:bg-slate-100/60 hover:border-slate-300/50',
                   )}
                 >
-                  <span className="flex items-center gap-2 text-slate-700">
+                  <span className="flex items-center gap-2 text-slate-700 min-w-0 truncate">
                     <span
-                      className="h-2.5 w-2.5 rounded-full shadow-sm transition-transform duration-150"
+                      className="h-2.5 w-2.5 shrink-0 rounded-full shadow-xs transition-transform duration-150"
                       style={{
                         background: d.fill,
                         transform: isHovered ? 'scale(1.25)' : 'scale(1)',
                       }}
                     />
-                    <span className={cn(isHovered && 'text-slate-900 font-semibold')}>{statusLabel(d.status)}</span>
+                    <span className={cn('truncate font-medium text-slate-700', isHovered && 'text-slate-900 font-semibold')}>
+                      {statusLabel(d.status)}
+                    </span>
                   </span>
-                  <span className="font-semibold tabular-nums text-slate-900">
-                    {d.count}
-                    <span className="ml-1 font-normal text-slate-400">({total ? Math.round((d.count / total) * 100) : 0}%)</span>
-                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="font-bold tabular-nums text-slate-900 text-xs sm:text-sm">
+                      {d.count}
+                    </span>
+                    <span className="rounded bg-white px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-slate-500 border border-slate-200/60 shadow-2xs">
+                      {total ? Math.round((d.count / total) * 100) : 0}%
+                    </span>
+                  </div>
                 </li>
               );
             })}

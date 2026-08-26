@@ -73,8 +73,21 @@ export function useDeleteProject() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteProject(id),
-    onSuccess: () => {
+    onSuccess: (_, id) => {
+      try {
+        const meta = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
+        delete meta[id];
+        localStorage.setItem('ec_projects_metadata', JSON.stringify(meta));
+
+        const savedOrder: string[] = JSON.parse(localStorage.getItem('ec_projects_order') || '[]');
+        localStorage.setItem('ec_projects_order', JSON.stringify(savedOrder.filter((pId) => pId !== id)));
+        window.dispatchEvent(new Event('ec_projects_updated'));
+      } catch {
+        // Ignore
+      }
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
       toast.success(t('projects:toast.project.deleted'));
     },
     onError: (error) => toast.error(t('projects:toast.project.deleteError'), extractErrorMessage(error)),

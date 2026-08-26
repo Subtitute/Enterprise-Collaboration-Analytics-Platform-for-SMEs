@@ -199,7 +199,7 @@ export function NewProjectModal({ open, onClose }: { open: boolean; onClose: () 
                   }}
                   className="text-xs text-primary-600 hover:underline cursor-pointer font-medium"
                 >
-                  Đổi
+                  {t('projects:newProjectModal.changeLead')}
                 </button>
               </div>
             ) : (
@@ -229,7 +229,7 @@ export function NewProjectModal({ open, onClose }: { open: boolean; onClose: () 
                 />
                 <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl shadow-slate-200/80 animate-slide-up">
                   {filteredUsers.length === 0 ? (
-                    <p className="px-3 py-2 text-center text-xs text-slate-400">Không tìm thấy thành viên</p>
+                    <p className="px-3 py-2 text-center text-xs text-slate-400">{t('projects:newProjectModal.noMembersFound')}</p>
                   ) : (
                     filteredUsers.map((u) => (
                       <button

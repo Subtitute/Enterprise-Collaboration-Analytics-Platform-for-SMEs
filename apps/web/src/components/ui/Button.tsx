@@ -14,14 +14,14 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-700 hover:to-violet-700 hover:-translate-y-0.5 shadow-lg shadow-indigo-200 hover:shadow-xl hover:shadow-indigo-300/60 active:translate-y-0 focus-visible:ring-indigo-500',
+    'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-700 hover:to-violet-700 hover:-translate-y-0.5 shadow-lg shadow-indigo-200 hover:shadow-xl hover:shadow-indigo-300/60 active:scale-95 active:translate-y-0 focus-visible:ring-indigo-500',
   secondary:
-    'bg-slate-100 text-slate-900 hover:bg-slate-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-slate-200/50 active:translate-y-0 focus-visible:ring-slate-400',
+    'bg-slate-100 text-slate-900 hover:bg-slate-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-slate-200/50 active:scale-95 active:translate-y-0 focus-visible:ring-indigo-500',
   outline:
-    'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 hover:-translate-y-0.5 hover:shadow-md hover:shadow-slate-200/60 active:translate-y-0 focus-visible:ring-slate-400',
-  ghost: 'text-slate-600 hover:bg-slate-100 active:translate-y-0 focus-visible:ring-slate-400',
+    'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 hover:-translate-y-0.5 hover:shadow-md hover:shadow-slate-200/60 active:scale-95 active:translate-y-0 focus-visible:ring-indigo-500',
+  ghost: 'text-slate-600 hover:bg-slate-100 active:scale-95 active:translate-y-0 focus-visible:ring-indigo-500',
   danger:
-    'bg-rose-600 text-white hover:bg-rose-700 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-rose-500/30 active:translate-y-0 focus-visible:ring-rose-500 shadow-sm',
+    'bg-rose-600 text-white hover:bg-rose-700 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-rose-500/30 active:scale-95 active:translate-y-0 focus-visible:ring-rose-500 shadow-sm',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {

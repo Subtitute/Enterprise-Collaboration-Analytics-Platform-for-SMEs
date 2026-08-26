@@ -153,7 +153,7 @@ export function Topbar() {
   const navigate = useNavigate();
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 md:gap-5 border-b border-slate-200/70 bg-white/80 px-4 md:px-6 backdrop-blur-md">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 md:gap-5 border-b border-slate-200 bg-white px-4 md:px-6">
       {/* Nút menu mở Mobile Sidebar */}
       <button
         type="button"

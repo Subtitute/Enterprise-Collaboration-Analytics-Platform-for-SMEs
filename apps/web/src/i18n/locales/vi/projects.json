@@ -44,6 +44,7 @@
     "dueDate": "Hạn: {{date}}",
     "completeProject": "Hoàn thành dự án",
     "reopenProject": "Mở lại đang hoạt động",
+    "projectProgress": "Tiến độ dự án",
     "newTask": "Công việc mới",
     "tasksLoading": "Đang tải công việc…",
     "tasksErrorTitle": "Không thể tải công việc",
@@ -64,6 +65,8 @@
     "priorityRequired": "Vui lòng chọn độ ưu tiên",
     "leadLabel": "Người phụ trách",
     "searchMemberPlaceholder": "Tìm và chọn người phụ trách…",
+    "changeLead": "Đổi",
+    "noMembersFound": "Không tìm thấy thành viên",
     "priorities": {
       "LOW": "Thấp",
       "MEDIUM": "Trung bình",
@@ -93,6 +96,11 @@
     "markComplete": "Đánh dấu hoàn thành",
     "reopen": "Chuyển về đang hoạt động",
     "delete": "Xoá dự án",
+    "noDescription": "Không có mô tả",
+    "progressLabel": "Tiến độ",
+    "taskCountLabel": "{{completed}}/{{total}} việc",
+    "leadByTitle": "Phụ trách: {{name}}",
+    "memberUnit": "{{count}} TV",
     "memberCount": "{{count}} thành viên",
     "confirmDeleteTitle": "Xoá dự án này?",
     "confirmDeleteDescription": "Toàn bộ công việc thuộc \"{{name}}\" cũng có thể bị xoá. Hành động này không thể hoàn tác."

@@ -19,6 +19,13 @@
     "statusFilter": {
       "all": "すべてのステータス"
     },
+    "priorityFilter": {
+      "all": "すべての優先度",
+      "LOW": "優先度: 低",
+      "MEDIUM": "優先度: 中",
+      "HIGH": "優先度: 高",
+      "URGENT": "優先度: 緊急"
+    },
     "loading": "プロジェクトを読み込み中…",
     "errorTitle": "プロジェクトを読み込めませんでした",
     "errorDescription": "プロジェクト一覧の読み込み中にエラーが発生しました。もう一度お試しください。",
@@ -35,6 +42,8 @@
     "backToList": "プロジェクト一覧に戻る",
     "dueDate": "期限: {{date}}",
     "completeProject": "プロジェクトを完了にする",
+    "reopenProject": "進行中に戻す",
+    "projectProgress": "プロジェクト進捗",
     "newTask": "新規タスク",
     "tasksLoading": "タスクを読み込み中…",
     "tasksErrorTitle": "タスクを読み込めませんでした",
@@ -47,12 +56,28 @@
     "title": "新規プロジェクトを作成",
     "nameRequired": "プロジェクト名を入力してください",
     "nameLabel": "プロジェクト名",
-    "namePlaceholder": "例: 新しいウェブサイトの公開",
+    "namePlaceholder": "例: ホームページのリニューアル",
     "descriptionLabel": "説明",
-    "descriptionPlaceholder": "プロジェクトの目標や作業範囲…",
+    "descriptionPlaceholder": "プロジェクトの目標や業務範囲…",
     "dueDateLabel": "期限",
+    "priorityLabel": "優先度",
+    "priorityRequired": "優先度を選択してください",
+    "leadLabel": "プロジェクト担当者",
+    "searchMemberPlaceholder": "担当者を検索して選択…",
+    "changeLead": "変更",
+    "noMembersFound": "メンバーが見つかりません",
+    "priorities": {
+      "LOW": "低",
+      "MEDIUM": "中",
+      "HIGH": "高",
+      "URGENT": "緊急"
+    },
     "cancel": "キャンセル",
     "submit": "プロジェクトを作成"
+  },
+  "editProjectModal": {
+    "title": "プロジェクト情報の編集",
+    "submit": "変更を保存"
   },
   "newTaskModal": {
     "title": "新規タスクを作成",
@@ -66,8 +91,15 @@
   },
   "projectCard": {
     "optionsAriaLabel": "プロジェクトのオプション",
+    "edit": "情報を編集",
     "markComplete": "完了にする",
+    "reopen": "進行中に戻す",
     "delete": "プロジェクトを削除",
+    "noDescription": "説明がありません",
+    "progressLabel": "進捗",
+    "taskCountLabel": "{{completed}}/{{total}} 件",
+    "leadByTitle": "担当: {{name}}",
+    "memberUnit": "{{count}} 人",
     "memberCount": "メンバー{{count}}人",
     "confirmDeleteTitle": "このプロジェクトを削除しますか？",
     "confirmDeleteDescription": "「{{name}}」に属するすべてのタスクも削除される可能性があります。この操作は取り消せません。"

@@ -41,6 +41,17 @@ export function formatDate(value?: string | null): string {
   );
 }
 
+export function formatShortDate(value?: string | null): string {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat(currentIntlLocale(), {
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: 'Asia/Ho_Chi_Minh',
+  }).format(d);
+}
+
 export function formatDateTime(value?: string | null): string {
   if (!value) return '—';
   const d = new Date(value);

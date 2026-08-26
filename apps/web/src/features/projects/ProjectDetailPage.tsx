@@ -58,10 +58,10 @@ export function ProjectDetailPage() {
         : 'bg-slate-400 ring-slate-200';
 
   const priorityMeta = {
-    LOW: { label: 'Ưu tiên thấp', color: 'text-slate-600 bg-slate-50 border-slate-200' },
-    MEDIUM: { label: 'Trung bình', color: 'text-indigo-700 bg-indigo-50 border-indigo-200' },
-    HIGH: { label: 'Ưu tiên cao', color: 'text-amber-700 bg-amber-50 border-amber-200' },
-    URGENT: { label: 'Khẩn cấp', color: 'text-rose-700 bg-rose-50 border-rose-200' },
+    LOW: { label: t('projects:newProjectModal.priorities.LOW'), color: 'text-slate-600 bg-slate-50 border-slate-200' },
+    MEDIUM: { label: t('projects:newProjectModal.priorities.MEDIUM'), color: 'text-indigo-700 bg-indigo-50 border-indigo-200' },
+    HIGH: { label: t('projects:newProjectModal.priorities.HIGH'), color: 'text-amber-700 bg-amber-50 border-amber-200' },
+    URGENT: { label: t('projects:newProjectModal.priorities.URGENT'), color: 'text-rose-700 bg-rose-50 border-rose-200' },
   }[projectMeta.priority ?? 'MEDIUM'];
 
   return (
@@ -96,7 +96,7 @@ export function ProjectDetailPage() {
             <div className="flex items-center gap-3 bg-slate-50/80 border border-slate-200/70 px-3 py-1.5 rounded-xl min-w-[200px] max-w-xs shadow-2xs">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] font-semibold text-slate-600">Tiến độ dự án</span>
+                  <span className="text-[11px] font-semibold text-slate-600">{t('projects:detail.projectProgress')}</span>
                   <span className={cn(
                     "text-xs font-bold font-display",
                     progress >= 100 ? "text-emerald-600" : "text-primary-600"

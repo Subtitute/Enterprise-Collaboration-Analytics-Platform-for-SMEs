@@ -3,6 +3,17 @@
     "title": "Dashboard",
     "subtitle": "Tổng quan vận hành - Cập nhật dữ liệu kinh doanh mới nhất hôm nay."
   },
+  "hero": {
+    "title": "Tổng quan Công việc Toàn Doanh nghiệp",
+    "subtitle": "Tổng hợp tiến độ thực hiện và tỷ lệ hoàn thành công việc trên toàn bộ các dự án đang triển khai.",
+    "completionRateLabel": "Tỷ lệ hoàn thành chung",
+    "progressLabel": "Tiến độ thực hiện",
+    "progressUnit": "việc",
+    "realtimeSyncHint": "Tự động đồng bộ thời gian thực theo toàn bộ dự án",
+    "completedStatus": "Đã hoàn thành",
+    "totalTasksStatus": "Tổng công việc",
+    "viewAllLink": "Xem tất cả dự án & công việc →"
+  },
   "onboarding": {
     "welcomeTitle": "Chào mừng đến với ECAP for SMEs!",
     "welcomeDescription": "Tổ chức của bạn chưa có dự án nào. Mời thêm thành viên hoặc tạo dự án đầu tiên để bắt đầu.",
@@ -48,7 +59,8 @@
     "errorDescription": "Đã xảy ra lỗi khi tải dữ liệu biểu đồ. Vui lòng thử lại.",
     "emptyTitle": "Chưa có công việc nào",
     "emptyDescription": "Biểu đồ trạng thái sẽ hiển thị khi có công việc trong hệ thống.",
-    "unit": "công việc"
+    "unit": "công việc",
+    "ofTotal": "{{percent}}% tổng số"
   },
   "taskTrendChart": {
     "errorTitle": "Không thể tải xu hướng công việc",
@@ -67,6 +79,8 @@
     "unknownActor": "Một thành viên",
     "viewAll": "Xem tất cả hoạt động",
     "collapse": "Thu gọn bớt",
+    "eventCount": "{{count}} sự kiện gần đây",
+    "performedAction": "đã thực hiện thao tác",
     "groups": {
       "today": "Hôm nay",
       "yesterday": "Hôm qua",
@@ -77,10 +91,14 @@
       "iam_user_registered": "đã tham gia tổ chức",
       "iam_user_deactivated": "đã bị vô hiệu hóa tài khoản",
       "task_created": "đã tạo một công việc mới",
+      "task_updated": "đã cập nhật một công việc",
       "task_status_changed": "đã cập nhật trạng thái công việc",
       "task_assigned": "đã được giao một công việc",
+      "task_deleted": "đã xóa một công việc",
       "project_created": "đã tạo một dự án mới",
+      "project_updated": "đã cập nhật một dự án",
       "project_completed": "đã hoàn thành một dự án",
+      "project_deleted": "đã xóa một dự án",
       "document_uploaded": "đã tải lên một tài liệu",
       "document_shared": "đã chia sẻ một tài liệu",
       "document_deleted": "đã xóa một tài liệu"

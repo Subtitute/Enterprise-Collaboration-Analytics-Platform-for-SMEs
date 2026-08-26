@@ -50,7 +50,7 @@ export function ProjectsListPage() {
     setPage(1);
   }, [search, status, priorityFilter]);
 
-  const projectsQuery = useProjectsQuery({ page, limit: LIMIT, search: search || undefined, status: status || undefined });
+  const projectsQuery = useProjectsQuery({ page, limit: LIMIT, search: search || undefined });
   const tasksQuery = useAllTasksQuery();
 
   const rawProjects = projectsQuery.data?.data ?? [];
@@ -64,7 +64,7 @@ export function ProjectsListPage() {
     return () => window.removeEventListener('ec_projects_updated', handleUpdate);
   }, []);
 
-  // Đồng bộ danh sách dự án với thứ tự đã lưu trong localStorage và lọc theo độ ưu tiên
+  // Đồng bộ danh sách dự án với thứ tự đã lưu trong localStorage và lọc theo trạng thái + độ ưu tiên
   useEffect(() => {
     if (rawProjects.length === 0) {
       setOrderedProjects([]);
@@ -76,7 +76,15 @@ export function ProjectsListPage() {
 
       let list = [...rawProjects];
 
-      // Lọc theo độ ưu tiên (nếu có chọn)
+      // 1. Lọc theo TRẠNG THÁI thực tế (status filter)
+      if (status) {
+        list = list.filter((p) => {
+          const pStatus = metaStore[p.id]?.status ?? p.status;
+          return pStatus === status;
+        });
+      }
+
+      // 2. Lọc theo ĐỘ ƯU TIÊN (priority filter)
       if (priorityFilter) {
         list = list.filter((p) => {
           const pPriority = metaStore[p.id]?.priority ?? 'MEDIUM';
@@ -91,7 +99,7 @@ export function ProjectsListPage() {
         LOW: 1,
       };
 
-      // 1. Phân chia rõ ràng 2 nhóm: Đang hoạt động (activeList) và Đã hoàn thành (completedList)
+      // 3. Phân chia 2 nhóm: Đang hoạt động (activeList) và Đã hoàn thành (completedList)
       const activeList: typeof list = [];
       const completedList: typeof list = [];
 
@@ -104,8 +112,7 @@ export function ProjectsListPage() {
         }
       }
 
-      // 2. Sắp xếp danh sách ĐANG HOẠT ĐỘNG:
-      // Ưu tiên theo savedOrder nếu có, hoặc mặc định theo Độ ưu tiên giảm dần
+      // 4. Sắp xếp danh sách ĐANG HOẠT ĐỘNG & HOÀN THÀNH:
       const sortGroup = (group: typeof list) => {
         if (savedOrder.length > 0) {
           group.sort((a, b) => {
@@ -130,10 +137,10 @@ export function ProjectsListPage() {
       sortGroup(activeList);
       sortGroup(completedList);
 
-      // 3. Ghép danh sách: Toàn bộ ACTIVE ở trên, toàn bộ COMPLETED LUÔN NẰM DƯỚI CÙNG
-      let finalSorted = [...activeList, ...completedList];
+      // 5. Ghép danh sách: Toàn bộ ACTIVE ở trên, toàn bộ COMPLETED LUÔN NẰM DƯỚI CÙNG (nếu không lọc cụ thể 1 trạng thái)
+      let finalSorted = status ? list : [...activeList, ...completedList];
 
-      // 4. Nếu có tìm kiếm từ khóa, đưa các dự án khớp lên đầu
+      // 6. Nếu có tìm kiếm từ khóa, đưa các dự án khớp lên đầu
       if (search) {
         finalSorted.sort((a, b) => {
           const matchA = a.name.toLowerCase().includes(search.toLowerCase()) ? 0 : 1;
@@ -146,7 +153,7 @@ export function ProjectsListPage() {
     } catch {
       setOrderedProjects(rawProjects);
     }
-  }, [rawProjects, priorityFilter, search, updateTick]);
+  }, [rawProjects, status, priorityFilter, search, updateTick]);
 
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -191,17 +198,22 @@ export function ProjectsListPage() {
     setDragOverId(null);
   };
 
-  const progressByProject = useMemo(() => {
-    const map: Record<string, number> = {};
+  const { progressByProject, taskStatsByProject } = useMemo(() => {
+    const pMap: Record<string, number> = {};
+    const statsMap: Record<string, { total: number; completed: number }> = {};
     const tasks = tasksQuery.data ?? [];
     const byProject: Record<string, typeof tasks> = {};
     for (const task of tasks) {
       (byProject[task.projectId] ??= []).push(task);
     }
     for (const [projectId, list] of Object.entries(byProject)) {
-      map[projectId] = computeProgressFromTasks(list);
+      pMap[projectId] = computeProgressFromTasks(list);
+      statsMap[projectId] = {
+        total: list.length,
+        completed: list.filter((t) => t.status === 'DONE').length,
+      };
     }
-    return map;
+    return { progressByProject: pMap, taskStatsByProject: statsMap };
   }, [tasksQuery.data]);
 
   const meta = projectsQuery.data?.meta ?? { page: 1, limit: LIMIT, total: 0 };
@@ -306,6 +318,8 @@ export function ProjectsListPage() {
                       project={project}
                       progress={project.completionRate ?? project.progress ?? progressByProject[project.id] ?? 0}
                       memberCount={project.memberCount}
+                      taskCount={taskStatsByProject[project.id]?.total}
+                      completedTaskCount={taskStatsByProject[project.id]?.completed}
                     />
                   </div>
                 );
