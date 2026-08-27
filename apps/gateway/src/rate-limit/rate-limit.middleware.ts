@@ -47,13 +47,13 @@ export async function checkRateLimit(
   const key = buildRateLimitKey(ip, organizationId);
 
   try {
+    // 26/08/2026: fix loi MAJOR (ra soat bao mat) - truoc day INCR va EXPIRE (co dieu kien, chi khi
+    // vua tao key) la 2 lenh Redis RIENG BIET; mat ket noi giua 2 lenh do de lai key khong co TTL,
+    // khoa nguoi dung/to chuc do vao rate-limit VINH VIEN. Thay bang lenh incrWithExpire (Lua script
+    // EVALSHA, dang ky trong RedisService.onModuleInit()) thuc hien ca 2 buoc NGUYEN TU trong 1 lenh
+    // Redis duy nhat - xem chu thich chi tiet tai noi dang ky (redis.service.ts).
     const count = await withTimeout(
-      client.incr(key).then(async (value) => {
-        if (value === 1) {
-          await client.expire(key, windowSeconds);
-        }
-        return value;
-      }),
+      client.incrWithExpire(key, windowSeconds),
       RATE_LIMIT_TIMEOUT_MS,
       `Redis rate-limit check vuot qua ${RATE_LIMIT_TIMEOUT_MS}ms`,
     );

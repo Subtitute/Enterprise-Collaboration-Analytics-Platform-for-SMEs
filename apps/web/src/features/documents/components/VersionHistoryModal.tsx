@@ -6,7 +6,9 @@ import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ClockIcon, UploadIcon } from '@/components/ui/Icons';
 import { formatBytes, formatDateTime } from '@/lib/utils';
+import { toast } from '@/stores/toast.store';
 import { useFileQuery, useUploadNewVersion } from '../hooks';
+import { validateUploadFile } from '../api';
 import type { FileItem } from '@/types';
 
 export function VersionHistoryModal({ file, folderId, onClose }: { file: FileItem | null; folderId: string | null; onClose: () => void }) {
@@ -31,8 +33,21 @@ export function VersionHistoryModal({ file, folderId, onClose }: { file: FileIte
             className="hidden"
             onChange={(e) => {
               const selected = e.target.files?.[0];
-              if (selected && file) uploadVersion.mutate({ file: selected });
               e.target.value = '';
+              if (!selected || !file) return;
+              // 26/08/2026: Fix 7 - kiem tra validateUploadFile() TRUOC khi goi mutate() - truoc
+              // ban sua nay luong tai phien ban moi o day BO QUA hoan toan buoc kiem tra loai
+              // tep/kich thuoc ma UploadModal.tsx (tai tep MOI, khac file) da lam, nen 1 tep khong
+              // hop le (vd .exe, hoac > 25MB) van duoc gui thang len server thay vi bao loi ngay
+              // tren client - server van tu choi (400) nhung nguoi dung phai doi round-trip mang
+              // thay vi duoc bao ngay, dung cung 1 toast.error() pattern nhu cac loi khac trong
+              // features/documents/hooks.ts.
+              const error = validateUploadFile(selected);
+              if (error) {
+                toast.error(t('documents:versionHistoryModal.invalidFileTitle'), error);
+                return;
+              }
+              uploadVersion.mutate({ file: selected });
             }}
           />
         </div>
@@ -53,10 +68,15 @@ export function VersionHistoryModal({ file, folderId, onClose }: { file: FileIte
               <li key={v.id} className="flex items-center justify-between rounded-lg border border-slate-100 px-3.5 py-2.5 text-sm">
                 <div>
                   <p className="font-medium text-slate-800">{t('documents:versionHistoryModal.versionLabel', { version: v.version })}</p>
-                  <p className="text-xs text-slate-400">
-                    {formatDateTime(v.createdAt)}
-                    {v.uploadedByName ? ` · ${v.uploadedByName}` : ''}
-                  </p>
+                  {/* 26/08/2026: Fix 7 - bo hien thi v.uploadedByName - da doi chieu FileVersion
+                      entity (apps/document-service/src/entities/file-version.entity.ts) va
+                      FilesService (findOne()/uploadNewVersion()): backend CHI luu/tra ve
+                      uploadedByUserId (UUID tho), KHONG join sang ten nguoi dung nao ca - truong
+                      nay LUON la undefined tren FE (mapFileVersion() trong api.ts cung khong map
+                      no), nen dieu kien `v.uploadedByName ? ... : ''` truoc day la code chet, khong
+                      bao gio hien duoc gi. Se bo sung lai neu sau nay backend co API/join tra ve
+                      ten nguoi tai len. */}
+                  <p className="text-xs text-slate-400">{formatDateTime(v.createdAt)}</p>
                 </div>
                 {v.size !== undefined && <span className="text-xs text-slate-400">{formatBytes(v.size)}</span>}
               </li>

@@ -210,6 +210,8 @@ describe('FactWriterService', () => {
 
   // 28/07/2026: unit test MOI cho upsertUserDepartment() - ghi vao dim_user (bang lookup phong
   // ban, KHONG phai hypertable) tu event USER_REGISTERED/USER_DEPARTMENT_CHANGED.
+  // 26/08/2026: bo sung tham so occurredAt (Fix ordering - xem ghi chu tren upsertUserDepartment())
+  // va nhom test rieng kiem tra "guard" chong event den SAI THU TU (RETURNING rong -> bo qua).
   describe('upsertUserDepartment', () => {
     const registeredEvent: DomainEvent = {
       ...baseEvent,
@@ -217,15 +219,18 @@ describe('FactWriterService', () => {
       payload: { userId: 'user-1', email: 'a@example.com', departmentId: 'dept-1' },
     };
 
-    it('INSERT ... ON CONFLICT (user_id) DO UPDATE dung tham so tu payload USER_REGISTERED', async () => {
-      queryMock.mockResolvedValueOnce([]);
+    it('INSERT ... ON CONFLICT (user_id) DO UPDATE dung tham so tu payload USER_REGISTERED (kem occurredAt)', async () => {
+      queryMock.mockResolvedValueOnce([{ user_id: 'user-1' }]);
 
       await service.upsertUserDepartment(registeredEvent);
 
       const [sql, params] = queryMock.mock.calls[0];
       expect(sql).toContain('INSERT INTO dim_user');
       expect(sql).toContain('ON CONFLICT (user_id) DO UPDATE SET department_id = EXCLUDED.department_id');
-      expect(params).toEqual(['user-1', registeredEvent.organizationId, 'dept-1']);
+      // 26/08/2026: WHERE ngan UPDATE ap dung neu event den CU hon last_event_at da luu (xem ghi
+      // chu Fix ordering tren upsertUserDepartment()).
+      expect(sql).toContain('WHERE dim_user.last_event_at IS NULL OR EXCLUDED.last_event_at > dim_user.last_event_at');
+      expect(params).toEqual(['user-1', registeredEvent.organizationId, 'dept-1', registeredEvent.occurredAt]);
     });
 
     it('dung dung tham so tu payload USER_DEPARTMENT_CHANGED (departmentId co the la null khi user bi go khoi phong ban)', async () => {
@@ -234,28 +239,52 @@ describe('FactWriterService', () => {
         eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,
         payload: { userId: 'user-1', departmentId: null },
       };
-      queryMock.mockResolvedValueOnce([]);
+      queryMock.mockResolvedValueOnce([{ user_id: 'user-1' }]);
 
       await service.upsertUserDepartment(departmentChangedEvent);
 
       const [, params] = queryMock.mock.calls[0];
-      expect(params).toEqual(['user-1', departmentChangedEvent.organizationId, null]);
+      expect(params).toEqual([
+        'user-1',
+        departmentChangedEvent.organizationId,
+        null,
+        departmentChangedEvent.occurredAt,
+      ]);
     });
 
     it('mac dinh dung this.dataSource khi khong truyen runner', async () => {
+      queryMock.mockResolvedValueOnce([{ user_id: 'user-1' }]);
+
       await service.upsertUserDepartment(registeredEvent);
 
       expect(queryMock).toHaveBeenCalledTimes(1);
     });
 
     it('dung runner.query() (vd EntityManager cua 1 transaction) thay vi this.dataSource.query() khi duoc truyen vao', async () => {
-      const managerQueryMock = jest.fn().mockResolvedValue([]);
+      const managerQueryMock = jest.fn().mockResolvedValue([{ user_id: 'user-1' }]);
       const managerStub = { query: managerQueryMock };
 
       await service.upsertUserDepartment(registeredEvent, managerStub as unknown as DataSource);
 
       expect(managerQueryMock).toHaveBeenCalledTimes(1);
       expect(queryMock).not.toHaveBeenCalled();
+    });
+
+    // 26/08/2026: bo sung - Fix audit "dim_user upsert khong co guard chong event den SAI THU TU
+    // (replay/redeliver)". RETURNING rong nghia la menh de WHERE da chan UPDATE (event.occurredAt
+    // <= last_event_at da luu trong Postgres that) - ham phai bo qua EM DIU (khong throw).
+    it('bo qua (khong throw) khi Postgres bao RETURNING rong - event den CU hon last_event_at da luu', async () => {
+      queryMock.mockResolvedValueOnce([]);
+
+      await expect(service.upsertUserDepartment(registeredEvent)).resolves.toBeUndefined();
+    });
+
+    it('AP DUNG binh thuong (khong log canh bao gi khac ngoai debug) khi Postgres tra ve 1 hang - event moi hon hoac lan dau', async () => {
+      queryMock.mockResolvedValueOnce([{ user_id: 'user-1' }]);
+
+      await expect(service.upsertUserDepartment(registeredEvent)).resolves.toBeUndefined();
+
+      expect(queryMock).toHaveBeenCalledTimes(1);
     });
   });
 

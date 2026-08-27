@@ -165,6 +165,11 @@ describe('UsersService', () => {
       roleRepo.find.mockResolvedValue(newRoles);
       // 28/07/2026: update() gio boc save() vao dataSource.transaction() (xem users.service.ts) -
       // save() thuc te chay qua managerMock.save (khong con qua userRepo.save nhu truoc).
+      //
+      // 26/08/2026: fix race condition (pessimistic_write) - update() gio doc LAI ban ghi qua
+      // manager.findOneOrFail() BEN TRONG transaction (khong con mutate truc tiep object tra ve tu
+      // userRepo.findOne() nhu truoc), nen phai mock ca findOneOrFail tra ve dung entity nay.
+      managerMock.findOneOrFail.mockResolvedValue(existingUser);
       managerMock.save.mockImplementation(async (u: any) => u);
 
       const result = await service.update(ORG_ID, 'user-1', { roleIds: ['role-manager'] } as any, [
@@ -174,6 +179,12 @@ describe('UsersService', () => {
       expect(roleRepo.find).toHaveBeenCalledWith({
         where: { id: expect.anything(), organizationId: ORG_ID },
       });
+      // 26/08/2026: khoa row bang pessimistic_write truoc khi apply thay doi - mirror
+      // TasksService.updateStatus() (tasks.service.spec.ts), xem chu thich fix trong users.service.ts.
+      expect(managerMock.findOneOrFail).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ lock: { mode: 'pessimistic_write' } }),
+      );
       expect(result.roles).toEqual([{ id: 'role-manager', name: 'Manager' }]);
       // 28/07/2026: request nay khong dong truong departmentId -> khong duoc phat
       // USER_DEPARTMENT_CHANGED (xem 3 test rieng ben duoi cho hanh vi phat/khong phat event nay).
@@ -193,6 +204,9 @@ describe('UsersService', () => {
       };
       userRepo.findOne.mockResolvedValue(existingUser);
       departmentRepo.findOne.mockResolvedValue({ id: 'dept-new', organizationId: ORG_ID });
+      // 26/08/2026: xem chu thich tai test "cho phep khi nguoi goi co user:manage..." o tren - update()
+      // gio doc lai entity qua manager.findOneOrFail() (pessimistic_write) truoc khi mutate/save.
+      managerMock.findOneOrFail.mockResolvedValue(existingUser);
       managerMock.save.mockImplementation(async (u: any) => u);
 
       const result = await service.update(ORG_ID, 'user-1', { departmentId: 'dept-new' } as any, []);
@@ -215,6 +229,7 @@ describe('UsersService', () => {
         roles: [],
       };
       userRepo.findOne.mockResolvedValue(existingUser);
+      managerMock.findOneOrFail.mockResolvedValue(existingUser);
       managerMock.save.mockImplementation(async (u: any) => u);
 
       const result = await service.update(ORG_ID, 'user-1', { departmentId: null } as any, []);
@@ -239,6 +254,7 @@ describe('UsersService', () => {
         roles: [],
       };
       userRepo.findOne.mockResolvedValue(existingUser);
+      managerMock.findOneOrFail.mockResolvedValue(existingUser);
       managerMock.save.mockImplementation(async (u: any) => u);
 
       await service.update(ORG_ID, 'user-1', { fullName: 'Ten Moi' } as any, []);

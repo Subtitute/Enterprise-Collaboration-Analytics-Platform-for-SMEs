@@ -114,9 +114,10 @@ describe('createJwtAuthMiddleware', () => {
       options.blacklisted instanceof Error
         ? jest.fn().mockRejectedValue(options.blacklisted)
         : jest.fn().mockResolvedValue(options.blacklisted ?? false);
+    // 26/08/2026: incrWithExpire thay the incr+expire rieng biet (fix loi khong nguyen tu, xem
+    // rate-limit.middleware.ts) - mock lai cho khop tin hieu goi Redis moi cua checkRateLimit().
     const client = {
-      incr: jest.fn().mockResolvedValue(options.rateLimitCount ?? 1),
-      expire: jest.fn().mockResolvedValue(1),
+      incrWithExpire: jest.fn().mockResolvedValue(options.rateLimitCount ?? 1),
     };
     const redisService = {
       isUserBlacklisted,
@@ -206,6 +207,27 @@ describe('createJwtAuthMiddleware', () => {
     await middleware(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // 26/08/2026: fix loi MAJOR (ra soat bao mat) - nhanh "tai khoan bi blacklist" truoc day tra 401
+  // THANG, KHONG qua checkRateLimit() nhu 2 nhanh 401 con lai (thieu token/token khong hop le, xem
+  // 2 test 429 o tren) - ke tan cong biet 1 sub da bi blacklist co the flood token do ma khong bao
+  // gio bi 429. Test nay xac nhan nhanh blacklist gio DUNG chung checkRateLimit(), tra 429 thay vi
+  // 401 khi da vuot nguong - mirror chinh xac 2 test 429 o tren.
+  it('tra ve 429 (khong phai 401) khi tai khoan bi blacklist VA da vuot rate-limit', async () => {
+    const { jwtService, configService, redisService } = createDeps({
+      blacklisted: true,
+      rateLimitCount: 101,
+    });
+    const middleware = createJwtAuthMiddleware(jwtService, configService, redisService);
+    const req = createReq();
+    const res = createRes();
+    const next = jest.fn();
+
+    await middleware(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(429);
     expect(next).not.toHaveBeenCalled();
   });
 

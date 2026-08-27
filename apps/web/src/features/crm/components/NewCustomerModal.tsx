@@ -49,7 +49,16 @@ export function NewCustomerModal({ open, onClose }: { open: boolean; onClose: ()
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title={t('crm:newCustomerModal.title')}>
+    <Modal
+      open={open}
+      onClose={handleClose}
+      // 26/08/2026: modal nay cung o lai trong DOM (cha bat/tat qua prop `open`), mutate() ben tren
+      // goi onSuccess: handleClose (dong+reset form) - giong dung loi da sua hom qua o 4 modal khac
+      // (vd DepartmentModal.tsx): neu dong+mo lai modal trong luc mutation cu con dang bay,
+      // onSuccess cu se dong nham phien ban modal moi. Chan bang prop dung chung cua Modal.tsx.
+      preventCloseWhilePending={createCustomer.isPending}
+      title={t('crm:newCustomerModal.title')}
+    >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <FormField label={t('crm:newCustomerModal.fieldName')} htmlFor="customer-name" error={error} required>
           <Input
@@ -77,7 +86,11 @@ export function NewCustomerModal({ open, onClose }: { open: boolean; onClose: ()
           />
         </FormField>
         <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="outline" onClick={handleClose}>
+          {/* 26/08/2026: them disabled={createCustomer.isPending} - nut Huy nay truoc do goi thang
+              handleClose khong dieu kien, la 1 duong dong khong bi chan boi preventCloseWhilePending
+              (prop do chi chan X/Escape/backdrop trong Modal.tsx, khong bao trum nut tu viet trong
+              modal con) - mirror dung disabled đã co san o DepartmentModal.tsx/UploadModal.tsx. */}
+          <Button type="button" variant="outline" onClick={handleClose} disabled={createCustomer.isPending}>
             {t('crm:newCustomerModal.cancel')}
           </Button>
           <Button type="submit" isLoading={createCustomer.isPending}>

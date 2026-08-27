@@ -65,17 +65,26 @@ export function CustomFilterSelect({
       if (panelRef.current?.contains(e.target as Node)) return;
       setOpen(false);
     };
+    // 26/08/2026: sua loi ro ri bo lang nghe thuc te - addEventListener va removeEventListener
+    // truoc do moi ben truyen 1 ham arrow noi tuyen RIENG (2 tham chieu ham khac nhau), ma
+    // removeEventListener chi khop khi truyen DUNG CUNG 1 tham chieu ham da dung khi addEventListener
+    // (theo dung DOM spec) - nen lenh remove khong bao gio thuc su go duoc listener resize da gan,
+    // moi lan mo dropdown lai cong don them 1 listener "resize" moi vinh vien tren window (khong bao
+    // gio giai phong, tich luy khi component unmount/re-mount nhieu lan). Sua theo dung mau da dung
+    // dung o Dropdown.tsx (`close`/`onScroll` khai bao 1 lan, dung LAI CHINH tham chieu do cho ca
+    // 2 loi goi): tach handler thanh 1 hang so duy nhat, dung chung 1 tham chieu cho ca add va remove.
+    const handleResize = () => setOpen(false);
 
     document.addEventListener('mousedown', onClickOutside);
     document.addEventListener('keydown', onKeyDown);
     window.addEventListener('scroll', onScroll, true);
-    window.addEventListener('resize', () => setOpen(false));
+    window.addEventListener('resize', handleResize);
 
     return () => {
       document.removeEventListener('mousedown', onClickOutside);
       document.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('scroll', onScroll, true);
-      window.removeEventListener('resize', () => setOpen(false));
+      window.removeEventListener('resize', handleResize);
     };
   }, [open]);
 

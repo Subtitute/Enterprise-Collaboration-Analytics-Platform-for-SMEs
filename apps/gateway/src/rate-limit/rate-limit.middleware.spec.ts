@@ -32,15 +32,18 @@ describe('createRateLimitMiddleware', () => {
     jest.clearAllMocks();
   });
 
-  // withTimeout() + chuoi .then() long nhau (incr -> expire -> resolve cua Promise wrapper ->
-  // .then trong middleware) di qua NHIEU microtask hon 1-2 await Promise.resolve() co the flush
-  // dung het - dung setImmediate (macrotask) de dam bao TOAN BO microtask dang cho da chay xong.
+  // withTimeout() van di qua vai microtask (resolve cua Promise wrapper -> .then trong middleware)
+  // hon 1-2 await Promise.resolve() co the flush dung het - dung setImmediate (macrotask) de dam
+  // bao TOAN BO microtask dang cho da chay xong.
   function flushMicrotasks(): Promise<void> {
     return new Promise((resolve) => setImmediate(resolve));
   }
 
+  // 26/08/2026: incrWithExpire (Lua script EVALSHA, dang ky trong RedisService.onModuleInit()) thay
+  // the incr+expire rieng biet truoc day - fix loi khong nguyen tu (xem chu thich checkRateLimit()
+  // trong rate-limit.middleware.ts). Mock lai client theo dung 1 lenh Redis nay.
   it('duoi nguong: cho qua request (next() duoc goi)', async () => {
-    const client = { incr: jest.fn().mockResolvedValue(1), expire: jest.fn().mockResolvedValue(1) };
+    const client = { incrWithExpire: jest.fn().mockResolvedValue(1) };
     const redisService = { getClient: () => client } as never;
     const middleware = createRateLimitMiddleware(redisService, buildConfigService());
     const { req, res, next } = buildReqRes();
@@ -53,7 +56,7 @@ describe('createRateLimitMiddleware', () => {
   });
 
   it('vuot nguong: tu choi 429 qua sendErrorResponse, KHONG goi next()', async () => {
-    const client = { incr: jest.fn().mockResolvedValue(101), expire: jest.fn() };
+    const client = { incrWithExpire: jest.fn().mockResolvedValue(101) };
     const redisService = { getClient: () => client } as never;
     const middleware = createRateLimitMiddleware(redisService, buildConfigService());
     const { req, res, next } = buildReqRes();
@@ -74,7 +77,7 @@ describe('createRateLimitMiddleware', () => {
   });
 
   it('Redis tu choi ngay (mat ket noi ro rang): fail-open, van goi next()', async () => {
-    const client = { incr: jest.fn().mockRejectedValue(new Error('ECONNREFUSED')), expire: jest.fn() };
+    const client = { incrWithExpire: jest.fn().mockRejectedValue(new Error('ECONNREFUSED')) };
     const redisService = { getClient: () => client } as never;
     const middleware = createRateLimitMiddleware(redisService, buildConfigService());
     const { req, res, next } = buildReqRes();
@@ -89,10 +92,13 @@ describe('createRateLimitMiddleware', () => {
   // bao gio resolve/reject (mo phong hang doi lenh cua ioredis khi mat ket noi that,
   // `enableOfflineQueue: true` mac dinh) se lam middleware "treo" vo thoi han, next() KHONG BAO
   // GIO duoc goi. Dung fake timer de xac nhan sau RATE_LIMIT_TIMEOUT_MS, middleware van fail-open.
+  //
+  // 26/08/2026: cap nhat mock theo incrWithExpire (xem chu thich o cac test tren) - hanh vi "treo vo
+  // thoi han" duoc mo phong y het, chi khac ten lenh Redis duoc goi.
   it('Redis "treo" vo thoi han (khong resolve/reject - mo phong offline queue that su): van fail-open sau timeout, KHONG treo mai', async () => {
     jest.useFakeTimers();
     // Promise KHONG BAO GIO resolve/reject (mo phong hang doi lenh cua ioredis khi mat ket noi that) - co chu dich.
-    const client = { incr: jest.fn(() => new Promise<never>(() => undefined)), expire: jest.fn() };
+    const client = { incrWithExpire: jest.fn(() => new Promise<never>(() => undefined)) };
     const redisService = { getClient: () => client } as never;
     const middleware = createRateLimitMiddleware(redisService, buildConfigService());
     const { req, res, next } = buildReqRes();

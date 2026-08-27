@@ -12,7 +12,7 @@ import { QueryState } from '@/components/ui/QueryState';
 import { ChevronLeftIcon, PlusIcon, CheckCircleIcon, CalendarIcon, RefreshIcon } from '@/components/ui/Icons';
 import { formatDate } from '@/lib/utils';
 import { useProjectQuery, useTasksQuery, useCompleteProject, useReopenProject } from './hooks';
-import { projectStatusMeta, computeProgressFromTasks } from './utils';
+import { projectStatusMeta, computeProgressFromTasks, projectPriorityMeta } from './utils';
 import { KanbanBoard } from './components/KanbanBoard';
 import { NewTaskModal } from './components/NewTaskModal';
 import { TaskDetailModal } from './components/TaskDetailModal';
@@ -35,8 +35,12 @@ export function ProjectDetailPage() {
 
   const project = projectQuery.data;
 
-  // Đọc metadata mở rộng từ localStorage (priority, lead, status override)
-  const projectMeta: { priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'; leadId?: string; status?: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED' } = (() => {
+  // 26/08/2026 (fix code review, loi MAJOR - Fix 3): chi con doc `status` (override lac quan cua
+  // completeProject()/reopenProject(), xem api.ts) tu localStorage - `priority` truoc day cung doc
+  // tu day nhung GIO LA truong that tu server (project.priority, xem project.entity.ts) nen khong
+  // con override tu localStorage cho truong nay nua (moi trinh duyet/nguoi dung deu thay CUNG 1
+  // gia tri).
+  const projectMeta: { status?: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED' } = (() => {
     try {
       const meta = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
       return meta[project.id] ?? {};
@@ -57,12 +61,9 @@ export function ProjectDetailPage() {
         ? 'bg-primary-500 ring-primary-200'
         : 'bg-slate-400 ring-slate-200';
 
-  const priorityMeta = {
-    LOW: { label: 'Ưu tiên thấp', color: 'text-slate-600 bg-slate-50 border-slate-200' },
-    MEDIUM: { label: 'Trung bình', color: 'text-blue-700 bg-blue-50 border-blue-200' },
-    HIGH: { label: 'Ưu tiên cao', color: 'text-amber-700 bg-amber-50 border-amber-200' },
-    URGENT: { label: 'Khẩn cấp', color: 'text-rose-700 bg-rose-50 border-rose-200' },
-  }[projectMeta.priority ?? 'MEDIUM'];
+  // 26/08/2026: chuyen sang dung projectPriorityMeta() dung chung trong ./utils.ts (xem ghi chu tai
+  // do) thay vi tu khai bao object nhan cung dinh o day - fix check-hardcoded-vietnamese.js.
+  const priorityMeta = projectPriorityMeta(project.priority ?? 'MEDIUM');
 
   return (
     <div className="space-y-5">
@@ -74,7 +75,7 @@ export function ProjectDetailPage() {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-2xl font-bold tracking-tight text-slate-900">{project.name}</h1>
-            {projectMeta.priority && (
+            {project.priority && (
               <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-semibold border ${priorityMeta.color}`}>
                 {priorityMeta.label}
               </span>

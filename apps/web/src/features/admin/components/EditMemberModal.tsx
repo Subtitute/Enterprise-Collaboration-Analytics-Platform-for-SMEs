@@ -20,8 +20,20 @@ export function EditMemberModal({ user, onClose }: { user: User | null; onClose:
     setRoleIds((user?.roles ?? []).map((r) => r.id));
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const isPending = updateUser.isPending;
+
   return (
-    <Modal open={Boolean(user)} onClose={onClose} title={t('admin:editMemberModal.title', { fullName: user?.fullName ?? '' })}>
+    <Modal
+      open={Boolean(user)}
+      onClose={onClose}
+      // 26/08/2026: chuyen guard "khong cho dong modal khi dang co mutation pending" (viet tay hom
+      // qua ngay trong handleClose cua file nay) sang prop dung chung preventCloseWhilePending cua
+      // Modal.tsx - ly do goc van vay (mutation cu van chay ngam sau khi dong+mo lai modal cho user
+      // khac, xem Modal.tsx de biet chi tiet), chi khac la gio Modal tu chan ca 3 duong dong thay
+      // vi tung modal phai tu viet lai.
+      preventCloseWhilePending={isPending}
+      title={t('admin:editMemberModal.title', { fullName: user?.fullName ?? '' })}
+    >
       <div className="space-y-4">
         {/* 28/07/2026: them htmlFor/id "edit-member-department" (phat hien qua ra soat kha nang tiep
             can) - Label truoc do khong tro toi Select nao ca, giong loi da sua o TaskDetailModal/
@@ -41,12 +53,12 @@ export function EditMemberModal({ user, onClose }: { user: User | null; onClose:
           <RoleCheckboxList roles={rolesQuery.data ?? []} selectedIds={roleIds} onChange={setRoleIds} />
         </div>
         <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
             {t('admin:editMemberModal.cancel')}
           </Button>
           <Button
             type="button"
-            isLoading={updateUser.isPending}
+            isLoading={isPending}
             onClick={() => {
               if (!user) return;
               updateUser.mutate({ id: user.id, payload: { departmentId: departmentId || null, roleIds } }, { onSuccess: onClose });

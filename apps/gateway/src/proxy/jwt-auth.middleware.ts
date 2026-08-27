@@ -85,13 +85,30 @@ export function createJwtAuthMiddleware(
     // setup-gateway.ts) va tra 401 NGAY (khong goi next()) khi thieu/sai token, nen truoc ban sua
     // nay request loai nay KHONG BAO GIO toi duoc rate-limit middleware ben duoi - hoan toan khong
     // bi dem/chan boi gioi han nao, cho phep flood toc do bat ky. Tu kiem tra rate-limit IP-only
-    // (chua co req.user luc nay) TRUOC khi tra 401 cho 2 nhanh thieu/sai token duoi day; vuot
-    // nguong thi tra 429 thay vi 401 (dung nhu rate-limit middleware se lam neu request toi duoc).
+    // (chua co req.user luc nay) TRUOC khi tra loi cho MOI nhanh early-return duoi day; vuot nguong
+    // thi tra 429 thay vi status goc (dung nhu rate-limit middleware se lam neu request toi duoc).
     const ip = getClientIp(req);
-    async function sendUnauthorized(
+
+    // 26/08/2026: refactor cau truc - sau 3 lan RIENG LE (25/08/2026 x2 cho nhanh "thieu token" va
+    // "token khong hop le", 26/08/2026 cho nhanh "tai khoan blacklist") phat hien CUNG MOT loi (mot
+    // nhanh early-return moi "quen" goi checkRateLimit() truoc khi tra loi) o 3 nhanh khac nhau
+    // trong chinh file nay, toi ket luan van de khong nam o tung nhanh rieng le ma o CAU TRUC: khi
+    // moi nhanh phai TU NHO "opt-in" vao rate-limit (goi dung ham sendUnauthorized() thay vi
+    // sendErrorResponse() truc tiep), thi luon co the co nhanh moi (hoac nhanh cu bi sua lai) "quen"
+    // lam dieu do - dung nhu da xay ra 3 lan lien tiep. Gop TOAN BO nhanh early-return trong ham nay
+    // (ke ca nhanh loi noi bo 500 o cuoi, truoc day goi thang sendErrorResponse() ma khong qua
+    // rate-limit - xem comment o do) thanh DUY NHAT MOT diem thoat - sendGatedResponse() ben duoi -
+    // luon chay checkRateLimit() TRUOC TIEN roi moi gui status/message do noi goi chi dinh. Tu gio
+    // ve sau, muon tra ve bat ky response nao ma khong goi next() deu BAT BUOC phai qua ham nay vi
+    // day la duong DUY NHAT con lai de gui response trong pham vi middleware - khong con cach nao
+    // "quen" rate-limit duoc nua, loai bo han lop bug nay bang cau truc thay vi phai nho quy uoc.
+    async function sendGatedResponse(
+      status: number,
+      error: string,
       message: string,
       errorCode: string,
     ): Promise<void> {
+      if (res.headersSent) return;
       const decision = await checkRateLimit(redisService, configService, ip);
       if (!decision.allowed) {
         sendErrorResponse(
@@ -105,12 +122,17 @@ export function createJwtAuthMiddleware(
         );
         return;
       }
-      sendErrorResponse(res, 401, 'UnauthorizedException', message, req.originalUrl, errorCode, req);
+      sendErrorResponse(res, status, error, message, req.originalUrl, errorCode, req);
     }
 
     const token = extractBearerToken(req.headers.authorization);
     if (!token) {
-      await sendUnauthorized('Thieu token xac thuc, vui long dang nhap lai', ERROR_CODES.GATEWAY_MISSING_TOKEN);
+      await sendGatedResponse(
+        401,
+        'UnauthorizedException',
+        'Thieu token xac thuc, vui long dang nhap lai',
+        ERROR_CODES.GATEWAY_MISSING_TOKEN,
+      );
       return;
     }
 
@@ -118,7 +140,9 @@ export function createJwtAuthMiddleware(
     try {
       payload = await jwtService.verifyAsync<JwtAccessPayload>(token, { secret });
     } catch {
-      await sendUnauthorized(
+      await sendGatedResponse(
+        401,
+        'UnauthorizedException',
         'Token khong hop le hoac da het han, vui long dang nhap lai',
         ERROR_CODES.GATEWAY_INVALID_TOKEN,
       );
@@ -145,14 +169,15 @@ export function createJwtAuthMiddleware(
       }
 
       if (blacklisted) {
-        sendErrorResponse(
-          res,
+        // 26/08/2026: nhanh nay tung la nhanh 401 THU BA bi phat hien tra loi THANG qua
+        // sendErrorResponse() ma khong qua rate-limit (xem lich su day du o comment cua
+        // sendGatedResponse() phia tren) - gio dung chung sendGatedResponse() nhu moi nhanh khac
+        // trong file, khong con la truong hop dac biet phai tu nho opt-in nua.
+        await sendGatedResponse(
           401,
           'UnauthorizedException',
           'Tai khoan da bi vo hieu hoa, vui long dang nhap lai',
-          req.originalUrl,
           ERROR_CODES.GATEWAY_ACCOUNT_DISABLED,
-          req,
         );
         return;
       }
@@ -162,17 +187,16 @@ export function createJwtAuthMiddleware(
       logger.error(
         `Loi khong mong doi sau khi xac thuc JWT thanh cong: ${err instanceof Error ? err.message : String(err)}`,
       );
-      if (!res.headersSent) {
-        sendErrorResponse(
-          res,
-          500,
-          'INTERNAL_SERVER_ERROR',
-          'Da xay ra loi khong xac dinh, vui long thu lai sau',
-          req.originalUrl,
-          ERROR_CODES.INTERNAL_ERROR,
-          req,
-        );
-      }
+      // 26/08/2026: nhanh loi noi bo (500) nay TRUOC BAN REFACTOR nay goi thang sendErrorResponse(),
+      // la nhanh early-return DUY NHAT trong file khong qua rate-limit - gio cung di qua
+      // sendGatedResponse() (tu kiem tra res.headersSent ben trong) nhu moi nhanh khac, dam bao
+      // KHONG CON nhanh nao trong file nay co the gui response ma bo qua rate-limit.
+      await sendGatedResponse(
+        500,
+        'INTERNAL_SERVER_ERROR',
+        'Da xay ra loi khong xac dinh, vui long thu lai sau',
+        ERROR_CODES.INTERNAL_ERROR,
+      );
     }
   };
 }

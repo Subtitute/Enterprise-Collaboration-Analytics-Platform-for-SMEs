@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Avatar } from '@/components/ui/Avatar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Spinner } from '@/components/ui/Spinner';
@@ -15,34 +16,91 @@ interface ActionDisplay {
   dotColor: string;
 }
 
-function parseActionDetails(action: string): ActionDisplay {
+// 26/08/2026: Fix 4 - chuyen toan bo cau truc "hanh dong/doi tuong" hardcode tieng Viet sang i18n
+// (dashboard:recentActivityFeed.verbs.*/targets.*) - truoc ban sua nay ham nay la noi con sot lai
+// van ban tieng Viet co dinh du nguoi dung da chon ngon ngu khac (en/ja) o moi noi khac trong ung
+// dung. Nhan `t` qua tham so (thay vi import `t` khong qua hook tu '@/i18n') vi day la 1 ham thuan
+// o NGOAI component - khong the goi useTranslation() truc tiep (vi pham Rules of Hooks) - va dung
+// ban `t` cua component (tu useTranslation()) de component TU DONG re-render dung ngon ngu dang
+// chon, giu nguyen cau truc switch/case ban dau de giam thieu rui ro thay doi.
+function parseActionDetails(action: string, t: TFunction): ActionDisplay {
   const normalized = action.replace(/[._]/g, '_').toLowerCase();
 
   switch (normalized) {
     case 'iam_organization_registered':
-      return { verb: 'đã đăng ký', target: 'tổ chức mới', dotColor: 'bg-emerald-500 ring-emerald-100' };
+      return {
+        verb: t('dashboard:recentActivityFeed.verbs.iam_organization_registered'),
+        target: t('dashboard:recentActivityFeed.targets.iam_organization_registered'),
+        dotColor: 'bg-emerald-500 ring-emerald-100',
+      };
     case 'iam_user_registered':
-      return { verb: 'đã tham gia', target: 'tổ chức', dotColor: 'bg-blue-500 ring-blue-100' };
+      return {
+        verb: t('dashboard:recentActivityFeed.verbs.iam_user_registered'),
+        target: t('dashboard:recentActivityFeed.targets.iam_user_registered'),
+        dotColor: 'bg-blue-500 ring-blue-100',
+      };
     case 'iam_user_deactivated':
-      return { verb: 'đã vô hiệu hóa', target: 'tài khoản thành viên', dotColor: 'bg-rose-500 ring-rose-100' };
+      return {
+        verb: t('dashboard:recentActivityFeed.verbs.iam_user_deactivated'),
+        target: t('dashboard:recentActivityFeed.targets.iam_user_deactivated'),
+        dotColor: 'bg-rose-500 ring-rose-100',
+      };
     case 'task_created':
-      return { verb: 'đã tạo', target: 'công việc mới', dotColor: 'bg-amber-500 ring-amber-100' };
+      return {
+        verb: t('dashboard:recentActivityFeed.verbs.task_created'),
+        target: t('dashboard:recentActivityFeed.targets.task_created'),
+        dotColor: 'bg-amber-500 ring-amber-100',
+      };
     case 'task_status_changed':
-      return { verb: 'đã cập nhật trạng thái', target: 'công việc', dotColor: 'bg-indigo-500 ring-indigo-100' };
+      return {
+        verb: t('dashboard:recentActivityFeed.verbs.task_status_changed'),
+        target: t('dashboard:recentActivityFeed.targets.task_status_changed'),
+        dotColor: 'bg-indigo-500 ring-indigo-100',
+      };
     case 'task_assigned':
-      return { verb: 'đã được giao', target: 'công việc', dotColor: 'bg-sky-500 ring-sky-100' };
+      return {
+        verb: t('dashboard:recentActivityFeed.verbs.task_assigned'),
+        target: t('dashboard:recentActivityFeed.targets.task_assigned'),
+        dotColor: 'bg-sky-500 ring-sky-100',
+      };
     case 'project_created':
-      return { verb: 'đã khởi tạo', target: 'dự án mới', dotColor: 'bg-violet-500 ring-violet-100' };
+      return {
+        verb: t('dashboard:recentActivityFeed.verbs.project_created'),
+        target: t('dashboard:recentActivityFeed.targets.project_created'),
+        dotColor: 'bg-violet-500 ring-violet-100',
+      };
     case 'project_completed':
-      return { verb: 'đã hoàn thành', target: 'dự án', dotColor: 'bg-emerald-600 ring-emerald-100' };
+      return {
+        verb: t('dashboard:recentActivityFeed.verbs.project_completed'),
+        target: t('dashboard:recentActivityFeed.targets.project_completed'),
+        dotColor: 'bg-emerald-600 ring-emerald-100',
+      };
     case 'document_uploaded':
-      return { verb: 'đã tải lên', target: 'tài liệu mới', dotColor: 'bg-purple-500 ring-purple-100' };
+      return {
+        verb: t('dashboard:recentActivityFeed.verbs.document_uploaded'),
+        target: t('dashboard:recentActivityFeed.targets.document_uploaded'),
+        dotColor: 'bg-purple-500 ring-purple-100',
+      };
     case 'document_shared':
-      return { verb: 'đã chia sẻ', target: 'tài liệu', dotColor: 'bg-teal-500 ring-teal-100' };
+      return {
+        verb: t('dashboard:recentActivityFeed.verbs.document_shared'),
+        target: t('dashboard:recentActivityFeed.targets.document_shared'),
+        dotColor: 'bg-teal-500 ring-teal-100',
+      };
     case 'document_deleted':
-      return { verb: 'đã xóa', target: 'tài liệu', dotColor: 'bg-rose-500 ring-rose-100' };
+      return {
+        verb: t('dashboard:recentActivityFeed.verbs.document_deleted'),
+        target: t('dashboard:recentActivityFeed.targets.document_deleted'),
+        dotColor: 'bg-rose-500 ring-rose-100',
+      };
     default:
-      return { verb: 'đã thực hiện thao tác', target: action.replace(/[._]/g, ' '), dotColor: 'bg-slate-400 ring-slate-100' };
+      // Hanh dong khong nam trong danh sach da biet - target giu nguyen dang dong (tu chuoi action
+      // tho) vi khong the liet ke truoc het moi gia tri co the co; chi verb la co dinh nen dich duoc.
+      return {
+        verb: t('dashboard:recentActivityFeed.verbs.default'),
+        target: action.replace(/[._]/g, ' '),
+        dotColor: 'bg-slate-400 ring-slate-100',
+      };
   }
 }
 
@@ -100,7 +158,9 @@ export function RecentActivityFeed() {
           </span>
         </div>
         <span className="text-[11px] text-slate-400 font-normal">
-          {items.length} sự kiện gần đây
+          {/* 26/08/2026: Fix 4 - chuyen sang t() voi noi suy {{count}} thay vi ghep chuoi tieng
+              Viet co dinh "{items.length} sự kiện gần đây" */}
+          {t('dashboard:recentActivityFeed.activityCount', { count: items.length })}
         </span>
       </div>
 
@@ -128,7 +188,7 @@ export function RecentActivityFeed() {
               <div className="relative pl-6 space-y-4 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[1.5px] before:bg-slate-200/70">
                 {group.list.map((item) => {
                   const actorName = (item.actorId ? userNames[item.actorId] : undefined) ?? t('dashboard:recentActivityFeed.unknownActor');
-                  const { verb, target, dotColor } = parseActionDetails(item.action);
+                  const { verb, target, dotColor } = parseActionDetails(item.action, t);
 
                   return (
                     <div key={item.id} className="group relative flex items-start gap-3 transition-all duration-150">

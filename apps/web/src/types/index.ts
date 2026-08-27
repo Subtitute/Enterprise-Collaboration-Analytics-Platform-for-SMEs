@@ -92,6 +92,8 @@ export const TASK_STATUSES: TaskStatus[] = ['TODO', 'DOING', 'DONE'];
 
 export type ProjectStatus = 'ACTIVE' | 'COMPLETED' | 'ARCHIVED' | string;
 
+export type ProjectPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
 export interface Project {
   id: string;
   organizationId?: string;
@@ -104,6 +106,12 @@ export interface Project {
   completionRate?: number;
   /** So thanh vien dang tham gia du an (Dieu chinh 21/07/2026). */
   memberCount?: number;
+  /** 26/08/2026 (fix code review, loi MAJOR - Fix 3): truong that tu server (project.entity.ts,
+   *  project-task-service) - truoc do "do uu tien"/"nguoi phu trach" chi duoc luu rieng trong
+   *  localStorage['ec_projects_metadata'] cua tung trinh duyet (khong dong bo giua nguoi dung/thiet
+   *  bi). Optional vi cac ban ghi Project tra ve tu endpoint cu/mock co the chua co 2 truong nay. */
+  priority?: ProjectPriority;
+  leadUserId?: string | null;
   startDate?: string | null;
   dueDate?: string | null;
   createdAt: string;

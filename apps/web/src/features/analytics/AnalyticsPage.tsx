@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -34,6 +34,21 @@ export function AnalyticsPage() {
   // 28/07/2026: tinh nang "Nhan xet AI" - departmentName CHI de hien thi trong doan van AI sinh
   // ra (xem fetchAiInsight()), lay tu du lieu departmentsQuery da co san cho dropdown ben tren.
   const aiInsightMutation = useAiInsightMutation();
+
+  // 26/08/2026: Fix 5 - reset aiInsightMutation moi khi doi bo loc (range/departmentId) - truoc
+  // ban sua nay `aiInsightMutation.data` chi duoc TanStack Query cap nhat luc goi mutate() THANH
+  // CONG, khong bao gio tu xoa khi nguoi dung doi bo loc rieng biet; ket qua la doi "30 ngay qua"
+  // -> "Quý này" (hoac doi phong ban) van hien dung doan nhan xet AI + dong chu thich CU (sinh ra
+  // tu bo loc TRUOC do, xem `aiInsightMutation.variables` o CardContent ben duoi) cho toi khi bam
+  // lai nut "Nhận xét AI" - noi dung hien thi khong con khop voi bo loc dang chon. reset() xoa
+  // data/variables/isSuccess cua mutation, dua CardContent ve lai trang thai placeholder ban dau
+  // ngay khi bo loc thay doi. Chi phu thuoc [range, departmentId] (KHONG dua aiInsightMutation vao
+  // dependency array - object mutation doi tham chieu moi lan render, dua vao se chay lai vo ich).
+  useEffect(() => {
+    aiInsightMutation.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range, departmentId]);
+
   const selectedDepartmentName = departmentId
     ? (departmentsQuery.data ?? []).find((d) => d.id === departmentId)?.name
     : undefined;

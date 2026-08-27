@@ -96,7 +96,7 @@ export function formatBytes(bytes?: number): string {
 // Fail CLOSED khi khong/chua co du lieu vai tro (roles rong/undefined) - truoc day fail-open
 // (coi nhu la admin) la mot lo hong: bat ky user nao co roles=[] (vd du lieu dang tai dang do,
 // hoac user khong duoc gan role nao) se duoc coi la admin va vao duoc /admin/*.
-const ADMIN_ROLE_PATTERN = /admin|quản\s*trị|quan\s*tri|owner/i;
+const ADMIN_ROLE_PATTERN = /admin|quản\s*trị|quan\s*tri|owner/i; // i18n-lint-ignore: pattern doi chieu ten vai tro, khong phai chuoi hien thi
 
 export function hasAdminRole(roles?: Array<{ name: string }>): boolean {
   if (!roles || roles.length === 0) return false;
@@ -112,6 +112,7 @@ export function hasAdminRole(roles?: Array<{ name: string }>): boolean {
 // bat duoc hau het nguyen am co dau. "đ/Đ" la 1 chu cai La-tinh MO RONG rieng (khong phai chu cai
 // + dau ghep) nen NFD khong tach duoc, phai kiem tra rieng.
 export function containsVietnameseDiacritics(value: string): boolean {
+  // i18n-lint-ignore: 2 pattern doi chieu dau tieng Viet trong mat khau ngay duoi, khong phai chuoi hien thi
   return /[\u0300-\u036f]/.test(value.normalize('NFD')) || /[đĐ]/.test(value);
 }
 

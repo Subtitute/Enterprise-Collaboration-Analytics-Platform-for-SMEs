@@ -29,7 +29,8 @@
     "uploadNewVersion": "Upload New Version",
     "emptyTitle": "No version history yet",
     "emptyDescription": "Previous versions of the file will appear here after you upload an update.",
-    "versionLabel": "Version {{version}}"
+    "versionLabel": "Version {{version}}",
+    "invalidFileTitle": "Invalid file"
   },
   "fileTable": {
     "columns": {

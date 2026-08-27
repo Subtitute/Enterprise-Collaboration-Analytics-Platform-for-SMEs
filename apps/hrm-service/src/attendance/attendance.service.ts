@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, QueryFailedError, Repository } from 'typeorm';
+import { DataSource, IsNull, QueryFailedError, Repository } from 'typeorm';
 import {
   AttendanceCheckedInPayload,
   AttendanceCheckedOutPayload,
@@ -132,9 +132,25 @@ export class AttendanceService {
     verifyPhotoContentMatchesMimeType(file);
     const workDate = toGmt7DateString(new Date());
 
+    // 26/08/2026 (fix code review, loi MAJOR - ca lam viec vat qua nua dem GMT+7): `workDate` o
+    // tren duoc TINH LAI doc lap tai THOI DIEM checkout (toGmt7DateString(new Date())), khac voi
+    // workDate da LUU vao ban ghi Attendance tai THOI DIEM checkin (xem checkIn() o tren, cung ham
+    // toGmt7DateString nhung goi luc checkin). Voi ca lam viec vat qua nua dem (checkin luc 23h50
+    // ngay hom truoc, checkout luc 00h10 ngay hom sau, gio GMT+7), 2 gia tri workDate nay LECH NHAU
+    // 1 ngay -> truy van {organizationId, userId, workDate} (workDate tinh lai luc checkout) khong
+    // bao gio khop dung ban ghi ma checkIn() da tao, luon roi vao nhanh loi "chua checkin"
+    // (NOT_CHECKED_IN_YET) mac du nguoi dung DA checkin dung cach. Sua bang cach KHONG con dung
+    // workDate de TIM ban ghi nua (workDate o tren van GIU NGUYEN, chi con dung de dat ten object
+    // key anh checkout + outbox payload ben duoi, khong doi gi ca) - thay vao do tim TRUC TIEP ban
+    // ghi checkin dang MO (checkOutAt IS NULL) GAN DAY NHAT theo checkInAt cua chinh
+    // {organizationId, userId}, dung dung ban ghi ma checkIn() da tao bat ke workDate cua no la
+    // ngay nao.
+    const openCheckInWhere = { organizationId, userId, checkOutAt: IsNull() };
+    const openCheckInOrder = { checkInAt: 'DESC' as const };
+
     // Pre-check NGOAI transaction (khong khoa) - chi de tra loi nhanh 2 truong hop pho bien "chua
     // check-in"/"da check-out roi" ma khong can mo transaction. KHONG phai "chot" quyet dinh chinh.
-    const preCheck = await this.attendanceRepo.findOne({ where: { organizationId, userId, workDate } });
+    const preCheck = await this.attendanceRepo.findOne({ where: openCheckInWhere, order: openCheckInOrder });
     if (!preCheck) {
       throw new BadRequestException({
         message: 'Bạn chưa chấm công vào làm hôm nay, không thể chấm công ra về',
@@ -159,8 +175,12 @@ export class AttendanceService {
     // doc lai VOI khoa pessimistic_write BEN TRONG transaction va re-check `checkOutAt`, mirror
         // dung pattern LeaveRequestsService.decide() (apps/hrm-service/src/leave-requests) da dung.
     return this.dataSource.transaction(async (manager) => {
+      // 26/08/2026: doc lai bang CUNG dieu kien tim ban ghi checkin dang mo o pre-check tren
+      // (khong con theo workDate - xem giai thich chi tiet o tren), giu nguyen khoa
+      // pessimistic_write + re-check checkOutAt (Fix 22/08/2026) nhu cu.
       const attendance = await manager.findOne(Attendance, {
-        where: { organizationId, userId, workDate },
+        where: openCheckInWhere,
+        order: openCheckInOrder,
         lock: { mode: 'pessimistic_write' },
       });
       if (!attendance) {

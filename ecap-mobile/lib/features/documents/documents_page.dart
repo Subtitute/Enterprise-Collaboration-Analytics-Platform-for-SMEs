@@ -94,7 +94,10 @@ class _DocumentsPageState extends State<DocumentsPage> {
         fileName: picked.name,
         fields: {if (widget.folderId != null) 'folderId': widget.folderId!},
       );
-      await _load();
+      // 26/08/2026: xem giai thich mounted-guard tai notifications_page.dart/leave_requests_page.dart/
+      // tasks_page.dart (phat hien qua dot ra soat toan du an lan 3) - cung loi bo sot o day: _load()
+      // goi setState() ngay dong dau tien, widget co the da bi dispose trong luc cho upload file xong.
+      if (mounted) await _load();
     } on ApiException catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     } finally {

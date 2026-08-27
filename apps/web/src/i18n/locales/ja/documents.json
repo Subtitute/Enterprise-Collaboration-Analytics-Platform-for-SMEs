@@ -29,7 +29,8 @@
     "uploadNewVersion": "新しいバージョンをアップロード",
     "emptyTitle": "バージョン履歴はまだありません",
     "emptyDescription": "更新版をアップロードすると、ファイルの過去のバージョンがここに表示されます。",
-    "versionLabel": "バージョン {{version}}"
+    "versionLabel": "バージョン {{version}}",
+    "invalidFileTitle": "無効なファイル"
   },
   "fileTable": {
     "columns": {

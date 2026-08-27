@@ -103,16 +103,20 @@ class _AttendancePageState extends State<AttendancePage> {
         latitude: position?.latitude,
         longitude: position?.longitude,
       );
-      await _loadHistory();
+      // 26/08/2026: xem giai thich mounted-guard tai notifications_page.dart/leave_requests_page.dart/
+      // tasks_page.dart (phat hien qua dot ra soat toan du an lan 3) - cung loi bo sot o day:
+      // _loadHistory() goi setState() ngay dong dau tien, widget co the da bi dispose trong luc
+      // cho upload anh (postPhoto) xong, vd nguoi dung dieu huong di noi khac/dang xuat.
+      if (mounted) await _loadHistory();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(action == 'check-in' ? 'Chấm công vào làm thành công' : 'Chấm công ra về thành công')),
         );
       }
     } on ApiException catch (e) {
-      setState(() => _errorMessage = e.message);
+      if (mounted) setState(() => _errorMessage = e.message);
     } catch (_) {
-      setState(() => _errorMessage = 'Không thể truy cập camera, vui lòng kiểm tra quyền truy cập');
+      if (mounted) setState(() => _errorMessage = 'Không thể truy cập camera, vui lòng kiểm tra quyền truy cập');
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

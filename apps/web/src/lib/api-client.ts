@@ -105,7 +105,11 @@ interface ErrorResponseData {
  * tieng Viet cu (dang chua kip gan ma, hoac key dich con thieu) nen KHONG bao gio "vo" - hanh vi
  * cu (chi doc message) giu nguyen 100% khi khong co field moi nao.
  */
-export function extractErrorMessage(error: unknown, fallback = 'Đã xảy ra lỗi. Vui lòng thử lại.'): string {
+// 26/08/2026: fallback mac dinh chuyen sang t('common:genericError') thay vi chuoi tieng Viet
+// cung - phat hien qua script scripts/check-hardcoded-vietnamese.js (moi them). Gia tri mac dinh
+// cua tham so duoc tinh lai moi lan goi ham (khong phai 1 lan luc module load) nen luon bat dung
+// ngon ngu hien tai cua nguoi dung, khong bi "dong bang" o ngon ngu luc app khoi dong.
+export function extractErrorMessage(error: unknown, fallback = i18n.t('common:genericError')): string {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data as ErrorResponseData | undefined;
     // 22/08/2026: kiem tra them Array.isArray(data.details) - truoc day chi check "truthy" nen

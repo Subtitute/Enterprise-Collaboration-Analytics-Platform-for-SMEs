@@ -39,7 +39,17 @@ export function NewTaskModal({ projectId, open, onClose }: { projectId: string; 
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title={t('projects:newTaskModal.title')}>
+    <Modal
+      open={open}
+      onClose={handleClose}
+      // 26/08/2026: modal nay cung o lai trong DOM (component cha bat/tat qua prop `open`, xem
+      // ProjectDetailPage.tsx), mutate() ben tren goi onSuccess: handleClose (dong+reset form) -
+      // giong dung 3 loi da sua hom qua (DepartmentModal/EditMemberModal/InviteMemberModal): neu
+      // dong+mo lai modal trong luc mutation cu con dang bay, onSuccess cu se dong nham phien ban
+      // modal moi. Chan bang prop dung chung cua Modal.tsx thay vi tu viet lai guard.
+      preventCloseWhilePending={createTask.isPending}
+      title={t('projects:newTaskModal.title')}
+    >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <FormField label={t('projects:newTaskModal.titleLabel')} htmlFor="task-title" error={error} required>
           <Input
@@ -56,7 +66,11 @@ export function NewTaskModal({ projectId, open, onClose }: { projectId: string; 
           <Input id="task-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
         </FormField>
         <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="outline" onClick={handleClose}>
+          {/* 26/08/2026: them disabled={createTask.isPending} - nut Huy nay truoc do goi thang
+              handleClose khong dieu kien, la 1 duong dong khong bi chan boi preventCloseWhilePending
+              (prop do chi chan X/Escape/backdrop trong Modal.tsx, khong bao trum nut tu viet trong
+              modal con) - mirror dung disabled đã co san o DepartmentModal.tsx/UploadModal.tsx. */}
+          <Button type="button" variant="outline" onClick={handleClose} disabled={createTask.isPending}>
             {t('projects:newTaskModal.cancel')}
           </Button>
           <Button type="submit" isLoading={createTask.isPending}>

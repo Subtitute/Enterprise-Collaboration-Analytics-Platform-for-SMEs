@@ -48,7 +48,8 @@
     "errorDescription": "Something went wrong loading the chart data. Please try again.",
     "emptyTitle": "No tasks yet",
     "emptyDescription": "The status chart will appear once there are tasks in the system.",
-    "unit": "tasks"
+    "unit": "tasks",
+    "percentOfTotal": "{{percent}}% of total"
   },
   "taskTrendChart": {
     "errorTitle": "Couldn't load task trend",
@@ -65,6 +66,7 @@
     "emptyTitle": "No activity yet",
     "emptyDescription": "New activity in your organization will appear here in real time.",
     "unknownActor": "A member",
+    "activityCount": "{{count}} recent events",
     "actions": {
       "iam_organization_registered": "registered a new organization",
       "iam_user_registered": "joined the organization",
@@ -77,6 +79,33 @@
       "document_uploaded": "uploaded a document",
       "document_shared": "shared a document",
       "document_deleted": "deleted a document"
+    },
+    "verbs": {
+      "iam_organization_registered": "registered",
+      "iam_user_registered": "joined",
+      "iam_user_deactivated": "deactivated",
+      "task_created": "created",
+      "task_status_changed": "updated",
+      "task_assigned": "was assigned",
+      "project_created": "initiated",
+      "project_completed": "completed",
+      "document_uploaded": "uploaded",
+      "document_shared": "shared",
+      "document_deleted": "deleted",
+      "default": "performed an action on"
+    },
+    "targets": {
+      "iam_organization_registered": "a new organization",
+      "iam_user_registered": "the organization",
+      "iam_user_deactivated": "a member account",
+      "task_created": "a new task",
+      "task_status_changed": "a task's status",
+      "task_assigned": "a task",
+      "project_created": "a new project",
+      "project_completed": "a project",
+      "document_uploaded": "a new document",
+      "document_shared": "a document",
+      "document_deleted": "a document"
     }
   }
 }

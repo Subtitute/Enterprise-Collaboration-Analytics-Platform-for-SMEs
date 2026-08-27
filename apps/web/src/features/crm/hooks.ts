@@ -65,13 +65,6 @@ export function useDeleteCustomer() {
   });
 }
 
-/** Toan bo deal cua to chuc (khong loc customerId) - dung de dem so deal dang hoat dong tren
- *  danh sach khach hang ma khong phai goi API rieng cho tung khach hang (tranh N+1), mirror
- *  useAllTasksQuery (features/projects/hooks.ts). */
-export function useAllDealsQuery(options?: { enabled?: boolean }) {
-  return useQuery({ queryKey: ['deals', 'all'], queryFn: () => fetchDeals({}), staleTime: 60_000, enabled: options?.enabled });
-}
-
 export function useDealsQuery(customerId: string | undefined) {
   return useQuery({
     queryKey: ['deals', customerId],

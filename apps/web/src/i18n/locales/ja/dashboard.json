@@ -48,7 +48,8 @@
     "errorDescription": "グラフデータの読み込み中にエラーが発生しました。もう一度お試しください。",
     "emptyTitle": "タスクがまだありません",
     "emptyDescription": "システムにタスクが登録されると、ステータスグラフが表示されます。",
-    "unit": "件"
+    "unit": "件",
+    "percentOfTotal": "全体の{{percent}}%"
   },
   "taskTrendChart": {
     "errorTitle": "タスクの推移を読み込めませんでした",
@@ -65,6 +66,7 @@
     "emptyTitle": "アクティビティはまだありません",
     "emptyDescription": "組織内の新しいアクティビティがここにリアルタイムで表示されます。",
     "unknownActor": "あるメンバー",
+    "activityCount": "最近のイベント {{count}}件",
     "actions": {
       "iam_organization_registered": "新しい組織を登録しました",
       "iam_user_registered": "組織に参加しました",
@@ -77,6 +79,33 @@
       "document_uploaded": "ドキュメントをアップロードしました",
       "document_shared": "ドキュメントを共有しました",
       "document_deleted": "ドキュメントを削除しました"
+    },
+    "verbs": {
+      "iam_organization_registered": "登録しました",
+      "iam_user_registered": "参加しました",
+      "iam_user_deactivated": "無効化されました",
+      "task_created": "作成しました",
+      "task_status_changed": "更新しました",
+      "task_assigned": "割り当てられました",
+      "project_created": "立ち上げました",
+      "project_completed": "完了しました",
+      "document_uploaded": "アップロードしました",
+      "document_shared": "共有しました",
+      "document_deleted": "削除しました",
+      "default": "操作を行いました"
+    },
+    "targets": {
+      "iam_organization_registered": "新しい組織",
+      "iam_user_registered": "組織",
+      "iam_user_deactivated": "メンバーアカウント",
+      "task_created": "新しいタスク",
+      "task_status_changed": "タスクのステータス",
+      "task_assigned": "タスク",
+      "project_created": "新しいプロジェクト",
+      "project_completed": "プロジェクト",
+      "document_uploaded": "新しいドキュメント",
+      "document_shared": "ドキュメント",
+      "document_deleted": "ドキュメント"
     }
   }
 }

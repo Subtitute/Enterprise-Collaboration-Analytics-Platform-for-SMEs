@@ -10,7 +10,7 @@ import { CalendarIcon, CheckCircleIcon, EditIcon, MoreVerticalIcon, RefreshIcon,
 import { formatDate } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
 import { useOrgUsersQuery } from '@/hooks/useOrgUsers';
-import { projectStatusMeta } from '../utils';
+import { projectStatusMeta, projectPriorityMeta } from '../utils';
 import { useCompleteProject, useReopenProject, useDeleteProject } from '../hooks';
 import { EditProjectModal } from './EditProjectModal';
 import type { Project } from '@/types';
@@ -29,9 +29,13 @@ export function ProjectCard({ project, progress, memberCount }: ProjectCardProps
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  // Đọc metadata mở rộng từ localStorage (priority, lead, status override)
+  // 26/08/2026 (fix code review, loi MAJOR - Fix 3): chi con doc `status` (override lac quan cua
+  // completeProject()/reopenProject(), xem api.ts) tu localStorage - `priority`/`leadId` truoc day
+  // cung doc tu day nhung GIO LA truong that tu server (project.priority/project.leadUserId, xem
+  // project.entity.ts) nen khong con override tu localStorage cho 2 truong nay nua (moi trinh
+  // duyet/nguoi dung deu thay CUNG 1 gia tri).
   const usersQuery = useOrgUsersQuery();
-  const projectMeta: { priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'; leadId?: string; status?: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED' } = (() => {
+  const projectMeta: { status?: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED' } = (() => {
     try {
       const store = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
       return store[project.id] ?? {};
@@ -68,14 +72,11 @@ export function ProjectCard({ project, progress, memberCount }: ProjectCardProps
         ? 'bg-primary-600'
         : 'bg-amber-500';
 
-  const leadUser = usersQuery.data?.find((u) => u.id === projectMeta.leadId);
+  const leadUser = usersQuery.data?.find((u) => u.id === project.leadUserId);
 
-  const priorityMeta = {
-    LOW: { label: 'Ưu tiên thấp', color: 'text-slate-600 bg-slate-50 border-slate-200' },
-    MEDIUM: { label: 'Trung bình', color: 'text-blue-700 bg-blue-50 border-blue-200' },
-    HIGH: { label: 'Ưu tiên cao', color: 'text-amber-700 bg-amber-50 border-amber-200' },
-    URGENT: { label: 'Khẩn cấp', color: 'text-rose-700 bg-rose-50 border-rose-200' },
-  }[projectMeta.priority ?? 'MEDIUM'];
+  // 26/08/2026: chuyen sang dung projectPriorityMeta() dung chung trong ../utils.ts (xem ghi chu
+  // tai do) thay vi tu khai bao object nhan cung dinh o day - fix check-hardcoded-vietnamese.js.
+  const priorityMeta = projectPriorityMeta(project.priority ?? 'MEDIUM');
 
   return (
     <>
@@ -90,7 +91,7 @@ export function ProjectCard({ project, progress, memberCount }: ProjectCardProps
                 <p className="truncate text-sm font-bold text-slate-900 transition-colors group-hover:text-primary-600">
                   {project.name}
                 </p>
-                {projectMeta.priority && (
+                {project.priority && (
                   <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold border ${priorityMeta.color}`}>
                     {priorityMeta.label}
                   </span>
@@ -156,12 +157,12 @@ export function ProjectCard({ project, progress, memberCount }: ProjectCardProps
 
           {/* Mô tả luôn giữ chiều cao cố định min-h-[1.15rem] để các thẻ luôn cao bằng nhau */}
           <p className="mt-1 h-4 line-clamp-1 text-xs text-slate-500">
-            {project.description || <span className="italic text-slate-300">Không có mô tả</span>}
+            {project.description || <span className="italic text-slate-300">{t('projects:projectCard.noDescription')}</span>}
           </p>
 
           {/* Hàng Tiến độ: Nhãn "Tiến độ" + Thanh % + Số % trên cùng 1 dòng */}
           <div className="mt-2.5 flex items-center gap-2.5">
-            <span className="shrink-0 text-xs font-semibold text-slate-600">Tiến độ</span>
+            <span className="shrink-0 text-xs font-semibold text-slate-600">{t('common:progress')}</span>
             <div className="flex-1">
               <ProgressBar
                 value={progress}
@@ -192,7 +193,7 @@ export function ProjectCard({ project, progress, memberCount }: ProjectCardProps
             {leadUser && (
               <div
                 className="flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100 min-w-0 max-w-[100px]"
-                title={`Phụ trách: ${leadUser.fullName}`}
+                title={t('projects:projectCard.leadTooltip', { name: leadUser.fullName })}
               >
                 <Avatar name={leadUser.fullName} size="sm" className="h-3.5 w-3.5 shrink-0 text-[8px]" />
                 <span className="truncate text-[10px] font-medium text-slate-700">{leadUser.fullName}</span>

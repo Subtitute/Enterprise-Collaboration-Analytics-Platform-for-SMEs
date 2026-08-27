@@ -469,6 +469,173 @@ sách — chi tiết ở Technical_Spec.md §3.3.
 
 *Chi tiết: Technical_Spec.md, mục "2026-08-25 (merge nhánh frontend của Nguyễn Lê Tiến)".*
 
+## 2026-08-26 — Rà soát toàn dự án lần 4 (~30 phát hiện, đã sửa toàn bộ)
+
+Đợt rà soát chủ động thứ 4 (sau lần 1 kiến trúc/bảo mật/testing 21/07, lần 2 lỗi treo/sập 24/08,
+lần 3 mọi lỗi logic 25/08, cộng đợt bảo mật OWASP riêng 25/08) — 6 hướng song song (Gateway+IAM;
+Project-Task+CRM+rà lại 2 file vừa merge; Document+HRM; Notification+Analytics; toàn bộ Frontend
+web; Hạ tầng+gói dùng chung+`ecap-mobile`). Phát hiện ~30 lỗi mới — nhiều hơn hẳn 3 đợt trước cộng
+lại, tập trung ở khu vực vừa thay đổi gần đây nhất (tính năng Projects mới merge, các modal Admin).
+Toàn bộ đã được sửa (người dùng chủ động yêu cầu sửa hết, kể cả mức Nhẹ).
+
+**2 lỗi mức Nghiêm trọng:**
+- `apps/web/src/features/projects/api.ts`: `completeProject()`/`reopenProject()` nuốt mọi lỗi và
+  luôn fabricate 1 object `Project` giả coi như thành công — 1 request thất bại (403, mất mạng) vẫn
+  hiện toast thành công VÀ ghi đè trạng thái vào cache/localStorage vĩnh viễn, không bao giờ báo lỗi
+  thật. Sửa: ném lại lỗi thật; chỉ ghi localStorage SAU khi có phản hồi thành công thật sự. Trong
+  lúc sửa phát hiện thêm: nhánh fallback `PATCH {status:'ACTIVE'}` của `reopenProject()` (giữ lại
+  "phòng khi /reopen lỗi") tái tạo đúng lỗi vừa sửa — vì `status` đã bị bỏ khỏi `UpdateProjectDto`
+  (xem bên dưới) và `ValidationPipe` chỉ bật `whitelist: true` (không `forbidNonWhitelisted`), PATCH
+  này chỉ ÂM THẦM loại bỏ field lạ rồi trả về 200 với project KHÔNG ĐỔI trạng thái — hàm coi như
+  thành công, ghi đè localStorage sang ACTIVE dù server vẫn ARCHIVED. Bỏ hẳn fallback này.
+- `apps/document-service/src/folders/folders.service.ts`: `FoldersService.remove()` xoá file xuyên
+  thư mục mà không khoá `pessimistic_write` trước — cùng lỗi đã sửa ở `FilesService.remove()`
+  (25/08) nhưng bỏ sót ở đây, có thể mồ côi đối tượng MinIO khi đua với `uploadNewVersion()`.
+
+**~20 lỗi mức Nghiêm trọng vừa, đáng chú ý:**
+- Gateway: nhánh 401 tài khoản bị blacklist bỏ qua kiểm tra rate-limit (2 nhánh 401 khác đã được
+  sửa 25/08 nhưng nhánh này thì chưa).
+- Gateway + IAM: `INCR`/`EXPIRE` không nguyên tử — mất kết nối giữa 2 lệnh có thể để lại counter
+  không bao giờ hết hạn (khoá vĩnh viễn). Sửa bằng Lua script nguyên tử (`incrWithExpire`).
+- IAM `UsersService.update()`: không khoá — 2 admin sửa cùng 1 user đồng thời có thể âm thầm ghi đè
+  đổi role/phòng ban của nhau. Áp dụng `pessimistic_write` giống các service khác.
+- Project-Task: `PATCH /projects/:id` cho phép đổi `status` trực tiếp, bỏ qua khoá/state-machine/
+  Outbox event của `complete()`/`reopen()`/`archive()`. Bỏ field `status` khỏi `UpdateProjectDto`.
+  Phát hiện thêm khi sửa: `ProjectsService.complete()` có sẵn 1 test (viết 22/07/2026) mong đợi ném
+  `BadRequestException` khi request "thua cuộc" trong race condition, nhưng implementation lại âm
+  thầm `return` — 1 error code `PROJECT_ALREADY_COMPLETED` đã khai báo sẵn trong `common-dto` nhưng
+  chưa bao giờ được dùng (bằng chứng rõ đây là hồi quy, không phải thiết kế có chủ đích). Sửa cả 2
+  nhánh (pre-check + re-check trong transaction) của `complete()` để ném lỗi, đồng bộ với pattern đã
+  đúng sẵn ở `archive()`.
+- Document: `RESTRICTED` không kế thừa xuống thư mục con — thư mục con mới tạo luôn mặc định mở cho
+  cả tổ chức, bỏ qua hạn chế của thư mục cha.
+- HRM: `checkOut()` tính lại "hôm nay" độc lập với `checkIn()` — ca làm việc qua nửa đêm (GMT+7)
+  không thể check-out.
+- Notification: consumer DLQ riêng (`failed-events-consumer.service.ts`) chưa có cơ chế tự khởi
+  động lại sau CRASH như consumer chính (đã sửa 22/08).
+- Analytics: `dim_user` upsert không có bảo vệ thứ tự — 1 sự kiện resync khởi động lại (từ
+  `onApplicationBootstrap`) đến muộn có thể ghi đè 1 thay đổi phòng ban thật gần đây hơn, làm sai
+  KPI theo phòng ban.
+- Hạ tầng: mật khẩu Mongo không được encode trong `MONGO_URI` — mật khẩu chứa ký tự đặc biệt (đúng
+  theo khuyến cáo của chính `.env.example`) làm sập kết nối. Chuyển sang truyền field rời + mã hoá
+  qua `encodeURIComponent()`, giống pattern Postgres/Redis.
+- Frontend: `Sidebar.tsx` có 2 nút thu gọn/mở rộng trùng lặp (1 trong `SidebarHeader`, 1 riêng của
+  `Sidebar()`) — chỉ 1 nút được dịch đầy đủ qua các đợt i18n trước, nút còn lại luôn hiện tiếng
+  Việt. Gộp lại còn 1 nút duy nhất (giữ vị trí ở `SidebarHeader`).
+- Frontend: giá trị Priority/Lead của dự án CHỈ lưu localStorage từng trình duyệt, không bao giờ
+  gửi lên backend — vô hình với mọi thành viên khác dù đây là nền tảng cộng tác. Bổ sung cột thật
+  (`priority`, `leadUserId`) vào `Project` entity + DTO (project-task-service, `synchronize: true`
+  nên không cần migration thủ công), frontend gửi thẳng qua API thay vì localStorage.
+- `CustomFilterSelect.tsx`: resize listener add/remove dùng 2 function reference khác nhau — không
+  bao giờ gỡ đăng ký được, rò bộ nhớ khi mở/đóng bộ lọc nhiều lần.
+- `DatePicker.tsx`: hoàn toàn chưa được dịch (sót lại từ đợt rollout i18n), chấp nhận ngày không
+  hợp lệ (31/02 tự động lệch sang tháng 3), không có Escape/focus-trap/`aria-expanded`.
+- `CheckInCamera.tsx`: rò object URL mỗi lần check-in/out thành công; camera có thể "treo" không
+  tắt được nếu đóng modal đúng lúc đang xin quyền truy cập.
+- `LeaveRequestsPage.tsx`: 1 mutation object dùng chung cả danh sách — duyệt 1 đơn làm "đông cứng"
+  nút của mọi đơn khác.
+- `RecentActivityFeed.tsx`: câu mô tả hoạt động ("X đã tạo công việc mới") vẫn hardcode tiếng Việt
+  dù toàn bộ widget còn lại đã dịch.
+- `AnalyticsPage.tsx`: đổi bộ lọc sau khi đã có Nhận xét AI có thể để lại nội dung cũ hiển thị dưới
+  caption mới.
+- Các modal Admin (DepartmentModal/EditMemberModal/InviteMemberModal): closure `onSuccess` cũ có
+  thể đóng nhầm modal vừa mở lại/xoá dữ liệu đang nhập dở nếu request "đã huỷ" trước đó phản hồi
+  trễ. Sửa bằng cách chặn mọi đường đóng modal (kể cả Escape/backdrop, không chỉ nút Cancel) trong
+  lúc mutation đang chờ.
+- `NewProjectModal.tsx` (thực chất phát hiện lại ở `api.ts`, xem lỗi Nghiêm trọng #1) — ghi "ghim
+  dự án mới lên đầu" vào sai localStorage key, dead code, không bao giờ hoạt động.
+- `ecap-mobile`: 2 file còn sót (`attendance_page.dart`, `documents_page.dart`) chưa được áp dụng
+  guard `if (mounted)` sau `await`, cùng lỗi đã sửa ở 3 file khác 25/08.
+
+**Vài lỗi Nhẹ:** thiếu `depends_on: redis` cho notification-service trong docker-compose;
+`UploadModal`/`VersionHistoryModal` thiếu abort/validate khi upload; `LoginPage` bỏ qua lỗi
+clipboard; chuỗi "Đang tìm kiếm..." hardcode ở `Topbar`; hook `useAllDealsQuery` chết (không nơi
+nào gọi — tính năng đã được thay bằng aggregation phía backend, `customer.openDealCount`/
+`openDealValue`, từ trước) — xoá hẳn; JSX validate "priority required" không bao giờ render được
+(vì `priority` luôn có giá trị mặc định) — xoá.
+
+**Cố ý CHƯA sửa (ghi nhận):**
+- Bộ lọc độ ưu tiên trên danh sách Dự án chỉ lọc trong phạm vi 1 trang server-paginated (~20 mục)
+  — có thể khiến danh sách trông trống dù có kết quả khớp ở trang khác; sửa đúng cần chuyển bộ lọc
+  lên server (thêm tham số `priority` cho `GET /projects`), ngoài phạm vi đợt sửa lỗi frontend này.
+- Kéo-thả sắp xếp có thể xen lẫn nhóm "đang hoạt động"/"đã hoàn thành" cho tới lần tính lại kế tiếp
+  — hạn chế nhỏ, chỉ ảnh hưởng thứ tự hiển thị cục bộ, không ảnh hưởng dữ liệu thật.
+
+**Xác minh:** `npm run typecheck` (root, rebuild `packages/common-*` trước) sạch trên toàn bộ 8
+service + web; `npm run test --workspaces` toàn bộ pass — analytics-service 123/123, crm-service
+39/39, document-service 111/111, gateway 53/53, hrm-service 41/41, iam-service 55/55,
+notification-service 55/55, project-task-service 28/28 (bao gồm sửa lại đúng test `complete()` đã
+fail trước khi vá xong), web 18/18, common-dto 10/10, common-guard 35/35, common-metrics 5/5 —
+tổng 573 test, không còn thất bại nào ngoài workspace `e2e` (thiếu script `test`, giới hạn đã biết
+từ trước, không phải hồi quy). `flutter analyze` (`ecap-mobile`) sạch, 1 cảnh báo info-level có sẵn
+không liên quan tới các sửa đổi này.
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 26/08/2026.*
+
+## 2026-08-26 (bổ sung) — 5 đề xuất cải thiện sau lần rà soát 4, triển khai toàn bộ
+
+Sau khi tổng kết đợt rà soát lần 4 ở trên, tôi tự đưa ra 5 đề xuất cải thiện dựa trên các mẫu lỗi
+lặp lại quan sát được — và triển khai toàn bộ ngay (không chỉ dừng ở đề xuất), theo đúng tinh thần
+"phòng ngừa lỗi tái diễn" thay vì chỉ vá từng lỗi đơn lẻ khi bị phát hiện.
+
+**1. Rà lại toàn bộ `features/projects/` xem còn field nào khác kiểu "chỉ lưu localStorage" như
+priority/lead không.** Kết quả: KHÔNG có thêm — đã kiểm tra kỹ `ec_projects_metadata` (chỉ còn lại
+1 override "status" tạm thời SAU khi API thành công, đúng thiết kế, và 1 đường đọc fallback dữ
+liệu cũ trước khi có cột backend) và `ec_projects_custom_order` (thứ tự kéo-thả, cố ý chỉ lưu cục
+bộ, đã ghi nhận từ trước) — cả hai đều đúng thiết kế, không sửa gì.
+
+**2. Rà toàn bộ `features/*/api.ts` tìm mẫu lỗi "nuốt lỗi, tra ve gia tri gia" giống
+`completeProject()`/`reopenProject()` đã sửa.** Kết quả: KHÔNG tìm thấy thêm — toàn bộ 9 file
+`api.ts` còn lại không có khối `try/catch` nào (lỗi tự trôi thẳng lên React Query như thiết kế
+đúng); lỗi này có vẻ là điểm lỗi đơn lẻ, không phải mẫu lặp lại trong codebase.
+
+**3. Gộp toàn bộ điểm rời `jwt-auth.middleware.ts` (Gateway) về 1 checkpoint rate-limit duy nhất.**
+Lý do: 3 đợt rà soát riêng biệt (25/08, và 2 lần trong 26/08) đã lần lượt tìm ra 3 nhánh early-
+return khác nhau bị bỏ sót kiểm tra rate-limit — dấu hiệu cấu trúc file (mỗi nhánh phải TỰ nhớ gọi
+kiểm tra) dễ tái phát lỗi này. Khi rà lại lần này phát hiện thêm **nhánh thứ 4** (lỗi nội bộ 500
+sau khi xác thực thành công) cũng bỏ sót. Tái cấu trúc: mọi nhánh từ chối giờ đi qua đúng 1 hàm
+`sendGatedResponse()` luôn gọi `checkRateLimit()` trước khi phản hồi — về mặt cấu trúc, không còn
+cách nào thêm nhánh từ chối mới mà quên rate-limit được nữa (không chỉ đúng do soi kỹ tại thời điểm
+này). Không đổi ngưỡng/TTL/logic tăng nguyên tử đã sửa 26/08.
+
+**4. Tự động hoá việc phát hiện chuỗi tiếng Việt sót lại ngoài i18n.** Ba đợt review riêng biệt
+(DatePicker.tsx, RecentActivityFeed.tsx, Topbar.tsx) đều phải tìm lỗi này BẰNG TAY, SAU KHI đợt
+rollout i18n đã được coi là "hoàn tất" — dấu hiệu cần một công cụ tự động thay vì tiếp tục dựa vào
+rà soát thủ công mỗi lần. Viết `scripts/check-hardcoded-vietnamese.js` (quét `apps/web/src/**/*.
+{ts,tsx}`, bỏ comment, phát hiện ký tự có dấu tiếng Việt còn sót ngoài `t()`), thêm script
+`lint:i18n-strings` và 1 bước mới trong `.github/workflows/ci.yml` (chạy ngay sau ESLint). Chạy
+lần đầu phát hiện 26 dòng bị gắn cờ: 2 báo động giả từ pattern regex dò dấu tiếng Việt trong mật
+khẩu/tên vai trò (`lib/utils.ts` — đã ghi `i18n-lint-ignore` cho 2 dòng đó) và 24 vi phạm thật. Tự
+sửa 1 trong số đó (`extractErrorMessage()` trong `lib/api-client.ts` có tham số `fallback` mặc
+định là chuỗi tiếng Việt cứng — chuyển sang `i18n.t('common:genericError')`, key mới thêm cả 3
+ngôn ngữ) rồi giao 23 vi phạm còn lại (trải trên 7 file component) cho 1 đợt dịch riêng, đáng chú ý:
+`Sidebar.tsx` (2 chuỗi sót từ đợt fix i18n 25/08), `LoginPage.tsx` (5 chuỗi trong khối "Tài khoản
+Demo"), `TaskStatusDonut.tsx` (1), và **`ProjectCard.tsx`/`ProjectDetailPage.tsx`/
+`EditProjectModal.tsx`/`NewProjectModal.tsx` (13 chuỗi)** — phần lớn phát sinh MỚI từ chính tính
+năng priority/lead vừa chuyển sang backend hôm nay (mục 2 của đợt rà soát lần 4), xác nhận đúng lo
+ngại ban đầu: tính năng mới thường "quên" i18n trước khi có công cụ tự động bắt lỗi này. Đã dịch
+toàn bộ 23 chuỗi sang vi/en/ja; nhân tiện gộp 2 bản sao y hệt nhau của object nhãn priority (
+`ProjectCard.tsx`/`ProjectDetailPage.tsx`) thành 1 hàm `projectPriorityMeta()` dùng chung trong
+`features/projects/utils.ts`, mirror đúng `projectStatusMeta()` đã có sẵn cùng file.
+
+**5. Gộp guard "không cho đóng modal khi mutation đang chờ" vào `Modal.tsx` dùng chung.** 4 modal
+Admin/Upload đã tự viết guard riêng hôm 26/08 (đợt rà soát lần 4) — nếu modal mới nào sau này cũng
+cần guard này, người viết code dễ quên. Thêm prop `preventCloseWhilePending?: boolean` vào
+`Modal.tsx` (chặn Escape/backdrop/nút X khi bật), 4 modal cũ chuyển sang dùng prop này thay vì guard
+viết tay. Rà toàn bộ `<Modal` trong codebase tìm thêm chỗ có cùng rủi ro (mutation gọi `onSuccess:
+onClose` nhưng KHÔNG có guard nào) — tìm thấy **8 modal khác** cùng lỗ hổng y hệt
+(`NewTaskModal`, `NewLeaveRequestModal`, `ShareModal`, `NewCustomerModal`, `NewDealModal`,
+`NewFolderModal`, `EditProjectModal`, `NewProjectModal`) — áp dụng prop mới cho cả 8, cộng thêm
+`disabled` cho nút Cancel của từng modal (trước đó hoàn toàn không có, khác 4 modal gốc).
+
+**Xác minh cuối cùng (toàn bộ 5 mục cộng dồn):** `npm run typecheck` (root) sạch; `npm run test
+--workspaces` toàn bộ pass, vẫn đúng 573/573 test như đợt rà soát lần 4 (không hồi quy); `node
+scripts/check-hardcoded-vietnamese.js` thoát mã 0 ("Sạch — không còn chuỗi tiếng Việt có dấu nào
+ngoài comment trong 119 file đã quét"); toàn bộ file JSON locale đã sửa xác minh hợp lệ.
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 26/08/2026 (phần 5 đề xuất cải
+thiện, tiếp sau phần rà soát lần 4 cùng ngày ở trên).*
+
 ---
 
 ## Lịch sử thay đổi tài liệu này
@@ -484,3 +651,8 @@ sách — chi tiết ở Technical_Spec.md §3.3.
 - **2026-08-25 (bổ sung lần 2)** — Bổ sung mục "Merge nhánh frontend của Nguyễn Lê Tiến" — ghi
   nhận đóng góp của Tiến (sắp xếp tuỳ chỉnh danh sách Dự án) và cách giải quyết 2 xung đột merge
   với `Sidebar.tsx`/`ProjectsListPage.tsx`; lần đầu ghi nhận đủ tên 3 thành viên nhóm.
+- **2026-08-26** — Bổ sung mục "Rà soát toàn dự án lần 4" — ~30 phát hiện mới (2 Nghiêm trọng),
+  toàn bộ đã sửa theo yêu cầu chủ động của người dùng, gate cuối 573 test pass trên toàn workspace.
+- **2026-08-26 (bổ sung)** — Bổ sung mục "5 đề xuất cải thiện sau lần rà soát 4" — triển khai toàn
+  bộ 5 đề xuất (2 đợt rà soát không tìm thêm lỗi, 1 tái cấu trúc Gateway, 1 công cụ CI mới +
+  23 chuỗi i18n còn sót, 1 prop dùng chung cho Modal áp dụng cho 12 modal), gate cuối vẫn 573/573.

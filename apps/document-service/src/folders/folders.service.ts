@@ -223,8 +223,26 @@ export class FoldersService {
     // 25/07/2026: doc FileMeta/FileVersion bang `manager` (trong transaction), khong phai bang
     // `fileMetaRepo`/`fileVersionRepo` (ngoai transaction) nhu ban cu - xem giai thich day du o
     // docblock cua ham ngay tren.
+    //
+    // 26/08/2026 (fix code review, loi CRITICAL - cung nhom loi da sua 25/08/2026 o
+    // FilesService.remove()): doc FileMeta o day truoc do van con THIEU khoa pessimistic_write
+    // truoc khi doc FileVersion cua chung, dua vao THOI DIEM doc (READ COMMITTED), khong dong bo
+    // voi FilesService.uploadNewVersion() (ham do DA khoa pessimistic_write tren tung dong FileMeta
+    // truoc khi them FileVersion). Kich ban: uploadNewVersion() dang chay song song chen xong 1
+    // FileVersion moi (vd v4) cho 1 file thuoc thu muc nay va COMMIT ngay SAU khi remove() da doc
+    // xong danh sach FileVersion cu (v1..v3) nhung TRUOC khi remove() xoa FileMeta - row FileVersion
+    // v4 van bi FK CASCADE xoa theo FileMeta nhung object MinIO cua no KHONG nam trong `versions`
+    // da doc nen KHONG BAO GIO duoc goi removeObject() - mo coi VINH VIEN, hoan toan khong con dau
+    // vet DB de doi chieu lai. Sua bang CHINH XAC pattern cua FilesService.remove(): khoa
+    // pessimistic_write tren TOAN BO dong FileMeta thuoc cac thu muc nay TRUOC khi doc FileVersion -
+    // moi uploadNewVersion() dong thoi tren BAT KY file nao trong so nay se phai doi transaction nay
+    // commit/rollback xong (roi that bai voi 404 vi FileMeta da bi xoa) thay vi chen duoc 1
+    // FileVersion "mo coi" giua chung.
     const versions = await this.dataSource.transaction(async (manager) => {
-      const files = await manager.find(FileMeta, { where: { folderId: In(folderIds) } });
+      const files = await manager.find(FileMeta, {
+        where: { folderId: In(folderIds) },
+        lock: { mode: 'pessimistic_write' },
+      });
       const fileIds = files.map((f) => f.id);
       const versionsInTx =
         fileIds.length > 0 ? await manager.find(FileVersion, { where: { fileId: In(fileIds) } }) : [];

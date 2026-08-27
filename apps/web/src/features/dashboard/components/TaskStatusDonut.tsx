@@ -75,7 +75,13 @@ export function TaskStatusDonut({ data, isLoading, isError, onRetry }: TaskStatu
                     {statusLabel(activeItem.status)}
                   </span>
                   <span className="text-[10px] text-slate-400 font-medium">
-                    {total ? Math.round((activeItem.count / total) * 100) : 0}% tổng số
+                    {/* 26/08/2026: chuyen sang t() voi interpolation {{percent}} thay vi ghep chuoi
+                        JSX truc tiep - fix check-hardcoded-vietnamese.js, dong thoi cho phep ban
+                        dich tieng Nhat doi lai vi tri "全体の{{percent}}%" (dat truoc %) thay vi
+                        bi ep giu nguyen thu tu tieng Viet "{{percent}}% tổng số". */}
+                    {t('dashboard:taskStatusDonut.percentOfTotal', {
+                      percent: total ? Math.round((activeItem.count / total) * 100) : 0,
+                    })}
                   </span>
                 </div>
               ) : (

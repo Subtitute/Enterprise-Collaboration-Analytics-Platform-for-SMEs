@@ -458,10 +458,32 @@ services:
     depends_on:
       mongodb: { condition: service_healthy }
       kafka: { condition: service_healthy }
+      # 26/08/2026: fix ra soat - notification-service da dung Redis tu 25/08/2026
+      # (RedisService.isUserBlacklisted(), kiem tra tai khoan bi deactivate truoc khi cho ket noi
+      # WebSocket - xem apps/notification-service/src/redis/redis.service.ts) nhung truoc day
+      # THIEU khai bao phu thuoc "redis" o day, khac voi iam-service/gateway/analytics-service da
+      # co tu 25/07/2026 (xem 3 chu thich tuong ung ben tren/duoi) - phong thu theo lop (defense-
+      # in-depth, du code da co try/catch fail-open cho Redis) chong race luc "docker compose up"
+      # lan dau khi notification-service khoi dong truoc khi Redis san sang.
+      redis: { condition: service_healthy }
     environment:
       NODE_ENV: production
       PORT: 3004
-      MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGO_DATABASE}?authSource=admin
+      # 26/08/2026 (fix audit - Major): doi tu 1 bien MONGO_URI ghep san bang noi chuoi truc tiep
+      # (`mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/...`)
+      # sang 5 bien RIENG LE, dong bo mau Postgres cua cac service khac trong file nay (vd DB_HOST/
+      # DB_PORT/DB_USER/DB_PASSWORD/DB_NAME) - noi chuoi truc tiep KHONG encode khien 1 mat khau
+      # chua ky tu dac biet co y nghia cu phap URI (@ : / ? # [ ] %) pha vo ket noi (vd dau '@'
+      # trong mat khau bi nham la ranh gioi ket thuc credentials). configuration.ts (notification-
+      # service) gio tu xay dung URI tu 5 bien nay va encodeURIComponent() rieng MONGO_USER/
+      # MONGO_PASSWORD truoc khi noi chuoi. MONGO_INITDB_ROOT_USERNAME/PASSWORD/MONGO_DATABASE VAN
+      # GIU NGUYEN (dung chung cho ca env cua chinh container `mongodb` o tren LAN scripts/backup.js,
+      # restore.js) - chi doi CACH TRUYEN sang notification-service, khong doi ten/gia tri bien goc.
+      MONGO_HOST: mongodb
+      MONGO_PORT: 27017
+      MONGO_USER: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_DATABASE: ${MONGO_DATABASE}
       KAFKA_BROKER: kafka:29092
       REDIS_HOST: redis
       REDIS_PORT: 6379

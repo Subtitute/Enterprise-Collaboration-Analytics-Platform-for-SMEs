@@ -13,7 +13,7 @@ import {
   TaskStatus,
   paginate,
 } from '@app/common-dto';
-import { Project } from '../entities/project.entity';
+import { Project, ProjectPriority } from '../entities/project.entity';
 import { Task } from '../entities/task.entity';
 import { TaskAssignee } from '../entities/task-assignee.entity';
 import { OutboxService } from '../outbox/outbox.service';
@@ -105,6 +105,10 @@ export class ProjectsService {
           // khong co cot nay nen khong the gan gi ca - xem project.entity.ts/create-project.dto.ts).
           dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
           status: ProjectStatus.ACTIVE,
+          // 26/08/2026 (fix code review, loi MAJOR - Fix 3): wire priority/leadUserId tu DTO vao
+          // entity (truoc do khong co 2 cot nay nen khong the gan gi ca - xem project.entity.ts).
+          priority: dto.priority ?? ProjectPriority.MEDIUM,
+          leadUserId: dto.leadUserId ?? null,
           createdByUserId: actorId,
         }),
       );
@@ -133,7 +137,16 @@ export class ProjectsService {
     if (dto.description !== undefined) project.description = dto.description;
     // 22/07/2026 (fix code review, loi MINOR - Fix 8): wire dueDate tu DTO vao entity (cung ly do voi create()).
     if (dto.dueDate !== undefined) project.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
-    if (dto.status !== undefined) project.status = dto.status;
+    // 26/08/2026 (fix code review, loi MAJOR - Fix 3): wire priority/leadUserId tu DTO vao entity
+    // (cung ly do voi create()) - an toan de gan THANG (khong can lock/state-machine nhu status).
+    if (dto.priority !== undefined) project.priority = dto.priority;
+    if (dto.leadUserId !== undefined) project.leadUserId = dto.leadUserId;
+    // 26/08/2026 (fix code review, loi MAJOR): DA XOA nhanh `if (dto.status !== undefined)
+    // project.status = dto.status;` o day - UpdateProjectDto khong con field `status` (xem chu
+    // thich tai update-project.dto.ts). update() nay chi doc/ghi ma khong lock, khong kiem tra
+    // state-machine, khong ghi Outbox event nao ca, nen tuyet doi khong duoc phep dung de doi
+    // status - viec do phai di qua complete()/reopen()/archive() ben duoi (co day du 3 dieu kien
+    // tren).
     return this.projectRepo.save(project);
   }
 
@@ -151,8 +164,14 @@ export class ProjectsService {
   async complete(organizationId: string, id: string, actorId: string): Promise<Project> {
     const existing = await this.projectRepo.findOne({ where: { id, organizationId } });
     if (!existing) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
+    // 26/08/2026 (fix code review lan 4): truoc ban sua nay, ca pre-check nay LAN re-check ben
+    // trong transaction o duoi deu "return existing/project" am tham thay vi nem loi - le ra phai
+    // nem BadRequestException(PROJECT_ALREADY_COMPLETED) giong het pattern archive() (ma error code
+    // nay da duoc khai bao san trong packages/common-dto tu truoc nhung chua bao gio duoc dung o
+    // day) - lech voi chinh test rieng cho race condition nay (viet 22/07/2026, luon mong doi
+    // BadRequestException cho request "thua cuoc"). Sua ca 2 nhanh de nhat quan voi archive().
     if (existing.status === ProjectStatus.COMPLETED) {
-      return existing;
+      throw new BadRequestException({ message: 'Du an nay da hoan thanh', errorCode: ERROR_CODES.PROJECT_ALREADY_COMPLETED });
     }
 
     return this.dataSource.transaction(async (manager) => {
@@ -163,7 +182,7 @@ export class ProjectsService {
       if (!project) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
       // Re-check dua tren trang thai vua duoc khoa (khong dung bien `existing` da co the stale).
       if (project.status === ProjectStatus.COMPLETED) {
-        return project;
+        throw new BadRequestException({ message: 'Du an nay da hoan thanh', errorCode: ERROR_CODES.PROJECT_ALREADY_COMPLETED });
       }
 
       project.status = ProjectStatus.COMPLETED;

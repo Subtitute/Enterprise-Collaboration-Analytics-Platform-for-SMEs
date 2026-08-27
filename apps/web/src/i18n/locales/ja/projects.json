@@ -11,6 +11,12 @@
       "ARCHIVED": "アーカイブ済み"
     }
   },
+  "priority": {
+    "LOW": "優先度：低",
+    "MEDIUM": "中",
+    "HIGH": "優先度：高",
+    "URGENT": "緊急"
+  },
   "list": {
     "title": "プロジェクト・タスク",
     "subtitle": "プロジェクトを管理し、カンバンボードで進捗を追跡します。",
@@ -51,6 +57,8 @@
     "descriptionLabel": "説明",
     "descriptionPlaceholder": "プロジェクトの目標や作業範囲…",
     "dueDateLabel": "期限",
+    "changeLead": "変更",
+    "noMembersFound": "メンバーが見つかりません",
     "cancel": "キャンセル",
     "submit": "プロジェクトを作成"
   },
@@ -70,7 +78,9 @@
     "delete": "プロジェクトを削除",
     "memberCount": "メンバー{{count}}人",
     "confirmDeleteTitle": "このプロジェクトを削除しますか？",
-    "confirmDeleteDescription": "「{{name}}」に属するすべてのタスクも削除される可能性があります。この操作は取り消せません。"
+    "confirmDeleteDescription": "「{{name}}」に属するすべてのタスクも削除される可能性があります。この操作は取り消せません。",
+    "noDescription": "説明はありません",
+    "leadTooltip": "担当: {{name}}"
   },
   "taskCard": {
     "unknownAssignee": "メンバー"

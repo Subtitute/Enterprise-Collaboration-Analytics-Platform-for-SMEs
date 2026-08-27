@@ -67,22 +67,25 @@ export function NewProjectModal({ open, onClose }: { open: boolean; onClose: () 
       return;
     }
     createProject.mutate(
-      { name: name.trim(), description: description.trim() || undefined, dueDate: dueDate || undefined },
+      {
+        name: name.trim(),
+        description: description.trim() || undefined,
+        dueDate: dueDate || undefined,
+        // 26/08/2026 (fix code review, loi MAJOR - Fix 3): gui priority/leadUserId THANG len server
+        // (xem project.entity.ts/create-project.dto.ts, project-task-service) thay vi chi luu vao
+        // localStorage['ec_projects_metadata'] nhu truoc - gia tri nay truoc day CHI hien thi duoc
+        // tren dung trinh duyet da tao du an, nguoi dung/thiet bi khac khong bao gio thay.
+        priority,
+        leadUserId: leadId || undefined,
+      },
       {
         onSuccess: (newProject) => {
           if (newProject?.id) {
             try {
-              // 1. Đưa ID dự án mới lên đầu danh sách sắp xếp
+              // Đưa ID dự án mới lên đầu danh sách sắp xếp
               const savedOrder: string[] = JSON.parse(localStorage.getItem('ec_projects_custom_order') || '[]');
               const updatedOrder = [newProject.id, ...savedOrder.filter((id) => id !== newProject.id)];
               localStorage.setItem('ec_projects_custom_order', JSON.stringify(updatedOrder));
-
-              // 2. Lưu priority và leadId của dự án mới tạo vào metadata store
-              const metaStore: Record<string, { priority: string; leadId: string }> = JSON.parse(
-                localStorage.getItem('ec_projects_metadata') || '{}'
-              );
-              metaStore[newProject.id] = { priority, leadId };
-              localStorage.setItem('ec_projects_metadata', JSON.stringify(metaStore));
             } catch {
               // ignore
             }
@@ -101,7 +104,17 @@ export function NewProjectModal({ open, onClose }: { open: boolean; onClose: () 
   ] as const;
 
   return (
-    <Modal open={open} onClose={handleClose} title={t('projects:newProjectModal.title')} size="lg">
+    <Modal
+      open={open}
+      onClose={handleClose}
+      // 26/08/2026: modal nay cung o lai trong DOM (cha bat/tat qua prop `open`), createProject.mutate()
+      // ben tren goi onSuccess: (...) => { ...; handleClose(); } - giong dung loi da sua hom qua o
+      // 4 modal khac (vd DepartmentModal.tsx): neu dong+mo lai modal trong luc mutation cu con dang
+      // bay, onSuccess cu se dong nham phien ban modal moi. Chan bang prop dung chung cua Modal.tsx.
+      preventCloseWhilePending={createProject.isPending}
+      title={t('projects:newProjectModal.title')}
+      size="lg"
+    >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         {/* Tên dự án (Bắt buộc & Auto-focus) */}
         <FormField label={t('projects:newProjectModal.nameLabel')} htmlFor="project-name" error={error} required>
@@ -144,11 +157,10 @@ export function NewProjectModal({ open, onClose }: { open: boolean; onClose: () 
               <label className="text-xs font-semibold text-slate-700">
                 {t('projects:newProjectModal.priorityLabel')}
               </label>
-              {!priority && (
-                <span className="text-[11px] font-medium text-rose-500">
-                  {t('projects:newProjectModal.priorityRequired')}
-                </span>
-              )}
+              {/* 26/08/2026 (fix code review, loi MINOR - Fix 4): da xoa nhanh {!priority && ...}
+                  hien thong bao "bat buoc chon do uu tien" o day - khong bao gio render duoc vi
+                  `priority` duoc khoi tao = 'MEDIUM' va chi co the nhan 1 trong 4 gia tri enum
+                  (khong bao gio rong/falsy), dead code. */}
             </div>
             <div className="grid grid-cols-4 gap-1.5">
               {PRIORITY_OPTIONS.map((opt) => {
@@ -199,7 +211,7 @@ export function NewProjectModal({ open, onClose }: { open: boolean; onClose: () 
                   }}
                   className="text-xs text-primary-600 hover:underline cursor-pointer font-medium"
                 >
-                  Đổi
+                  {t('projects:newProjectModal.changeLead')}
                 </button>
               </div>
             ) : (
@@ -229,7 +241,7 @@ export function NewProjectModal({ open, onClose }: { open: boolean; onClose: () 
                 />
                 <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl shadow-slate-200/80 animate-slide-up">
                   {filteredUsers.length === 0 ? (
-                    <p className="px-3 py-2 text-center text-xs text-slate-400">Không tìm thấy thành viên</p>
+                    <p className="px-3 py-2 text-center text-xs text-slate-400">{t('projects:newProjectModal.noMembersFound')}</p>
                   ) : (
                     filteredUsers.map((u) => (
                       <button
@@ -261,7 +273,11 @@ export function NewProjectModal({ open, onClose }: { open: boolean; onClose: () 
 
         {/* Phân cấp rõ ràng nhóm nút hành động */}
         <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-3 mt-5">
-          <Button type="button" variant="outline" onClick={handleClose}>
+          {/* 26/08/2026: them disabled={createProject.isPending} - nut Huy nay truoc do goi thang
+              handleClose khong dieu kien, la 1 duong dong khong bi chan boi preventCloseWhilePending
+              (prop do chi chan X/Escape/backdrop trong Modal.tsx, khong bao trum nut tu viet trong
+              modal con) - mirror dung disabled đã co san o DepartmentModal.tsx/UploadModal.tsx. */}
+          <Button type="button" variant="outline" onClick={handleClose} disabled={createProject.isPending}>
             {t('projects:newProjectModal.cancel')}
           </Button>
           <Button type="submit" isLoading={createProject.isPending}>

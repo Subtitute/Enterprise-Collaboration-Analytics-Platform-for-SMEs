@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon, XIcon } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 
@@ -12,17 +13,31 @@ interface DatePickerProps {
   position?: 'top' | 'bottom';
 }
 
-const MONTH_NAMES = [
-  'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4',
-  'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8',
-  'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'
-];
+export function DatePicker({ id, value = '', onChange, placeholder, className, position = 'top' }: DatePickerProps) {
+  const { t } = useTranslation();
+  const errorId = useId();
 
-const WEEK_DAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  // 26/08/2026: Fix 1 - chuyen ten thang/thu sang i18n (common:datePicker.months/monthsShort/
+  // weekDays) thay vi hang so tieng Viet co dinh o dau file nhu truoc - DatePicker la noi DUY NHAT
+  // trong app con sot van ban tieng Viet cung du nguoi dung da chon ngon ngu khac (en/ja) o moi
+  // noi khac trong ung dung. Dung object voi khoa la chi so (0-11/0-6) thay vi mang JSON +
+  // `t(key, {returnObjects:true})` de t() luon tra ve string don gian, dung quy uoc i18next hien
+  // co trong toan repo (chua noi nao dung returnObjects truoc do).
+  const MONTH_NAMES = Array.from({ length: 12 }, (_, i) => t(`common:datePicker.months.${i}`));
+  const MONTH_NAMES_SHORT = Array.from({ length: 12 }, (_, i) => t(`common:datePicker.monthsShort.${i}`));
+  const WEEK_DAYS = Array.from({ length: 7 }, (_, i) => t(`common:datePicker.weekDays.${i}`));
+  // 26/08/2026: placeholder mac dinh chuyen vao i18n (common:datePicker.placeholder) - GIU NGUYEN
+  // dinh dang "DD/MM/YYYY" cho ca 3 ngon ngu (khong doi thanh YYYY/MM/DD cho tieng Nhat) de nhat
+  // quan voi quyet dinh da ghi trong lib/utils.ts (formatDate dung 'en-GB' thay vi 'en-US' - GIU
+  // NGUYEN thu tu ngay/thang bat ke ngon ngu, tranh nham lan khi nguoi dung chuyen doi ngon ngu).
+  const effectivePlaceholder = placeholder ?? t('common:datePicker.placeholder');
 
-export function DatePicker({ id, value = '', onChange, placeholder = 'DD/MM/YYYY', className, position = 'top' }: DatePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMonthYearPickerOpen, setIsMonthYearPickerOpen] = useState(false);
+  // 26/08/2026: Fix 2 - trang thai bao "chuoi da nhap dung dinh dang dd/mm/yyyy nhung ngay khong
+  // ton tai thuc te" (vd 31/02/2026) - component truoc day khong co bat ky trang thai loi nao cho
+  // input nhap tay.
+  const [inputError, setInputError] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Parse date value (YYYY-MM-DD)
@@ -43,7 +58,10 @@ export function DatePicker({ id, value = '', onChange, placeholder = 'DD/MM/YYYY
     return '';
   });
 
-  // Close when clicking outside
+  // 26/08/2026: Fix 3 - bo sung dong bang phim Escape (gop chung voi effect dong khi click ra
+  // ngoai co san) - truoc ban sua nay popover chi dong duoc bang click ra ngoai, KHONG co phim tat
+  // Escape nhu Dropdown.tsx/Modal.tsx da lam cho cac popover/dialog khac trong repo, nen nguoi dung
+  // dieu huong bang ban phim khong co cach nao dong nhanh popover nay.
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -51,10 +69,20 @@ export function DatePicker({ id, value = '', onChange, placeholder = 'DD/MM/YYYY
         setIsMonthYearPickerOpen(false);
       }
     }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+        setIsMonthYearPickerOpen(false);
+      }
+    }
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
     }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isOpen]);
 
   useEffect(() => {
@@ -70,6 +98,7 @@ export function DatePicker({ id, value = '', onChange, placeholder = 'DD/MM/YYYY
     } else {
       setTextInput('');
     }
+    setInputError(false);
   }, [value]);
 
   const handlePrevMonth = () => {
@@ -100,29 +129,57 @@ export function DatePicker({ id, value = '', onChange, placeholder = 'DD/MM/YYYY
     const formattedMonth = String(currentMonth + 1).padStart(2, '0');
     const formattedDay = String(day).padStart(2, '0');
     const dateStr = `${currentYear}-${formattedMonth}-${formattedDay}`;
+    setInputError(false);
     onChange(dateStr);
     setIsOpen(false);
   };
 
   const handleManualInput = (val: string) => {
     setTextInput(val);
-    const ddmmyyyy = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(val.trim());
+    const trimmed = val.trim();
+
+    if (!trimmed) {
+      setInputError(false);
+      onChange('');
+      return;
+    }
+
+    const ddmmyyyy = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(trimmed);
     if (ddmmyyyy) {
       const d = parseInt(ddmmyyyy[1], 10);
       const m = parseInt(ddmmyyyy[2], 10);
       const y = parseInt(ddmmyyyy[3], 10);
-      if (m >= 1 && m <= 12 && d >= 1 && d <= 31 && y >= 1900 && y <= 2100) {
+      const inRange = m >= 1 && m <= 12 && d >= 1 && d <= 31 && y >= 1900 && y <= 2100;
+      // 26/08/2026: Fix 2 - sua loi thuc te - truoc ban sua nay chi kiem tra khoang gia tri
+      // (ngay 1-31, thang 1-12) roi truyen thang vao `new Date()`; JS se TU DONG "tran" ngay khong
+      // hop le sang thang ke tiep thay vi bao loi (vd 31/02/2026 -> am tham thanh 03/03/2026), khien
+      // form cha nhan mot ngay hoan toan khac voi nhung gi nguoi dung go ma khong co canh bao nao.
+      // Sua bang cach doi chieu NGUOC LAI: dung Date(y, m-1, d) roi kiem tra .getFullYear()/
+      // .getMonth()/.getDate() co khop CHINH XAC voi (y, m, d) da nhap khong - neu JS da "tran"
+      // ngay thi it nhat 1 trong 3 gia tri se lech, luc do coi la khong hop le.
+      const check = new Date(y, m - 1, d);
+      const roundTrips = check.getFullYear() === y && check.getMonth() === m - 1 && check.getDate() === d;
+
+      if (inRange && roundTrips) {
+        setInputError(false);
         const formatted = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         onChange(formatted);
         return;
       }
+
+      // Du dinh dang dd/mm/yyyy nhung gia tri khong hop le (vd 31/02/2026, 32/01/2026) - bao loi
+      // inline, KHONG goi onChange de tranh luu nham mot ngay sai lech ma nguoi dung khong co y dinh.
+      setInputError(true);
+      return;
     }
-    if (!val.trim()) {
-      onChange('');
-    }
+
+    // Nguoi dung con dang go do (chua du dinh dang dd/mm/yyyy) - khong bao loi, cung khong goi
+    // onChange, giu nguyen hanh vi cu.
+    setInputError(false);
   };
 
   const handleClear = () => {
+    setInputError(false);
     onChange('');
     setTextInput('');
     setIsOpen(false);
@@ -132,6 +189,7 @@ export function DatePicker({ id, value = '', onChange, placeholder = 'DD/MM/YYYY
     const y = today.getFullYear();
     const m = String(today.getMonth() + 1).padStart(2, '0');
     const d = String(today.getDate()).padStart(2, '0');
+    setInputError(false);
     onChange(`${y}-${m}-${d}`);
     setIsOpen(false);
   };
@@ -147,19 +205,30 @@ export function DatePicker({ id, value = '', onChange, placeholder = 'DD/MM/YYYY
   return (
     <div ref={containerRef} className={cn('relative', className)}>
       {/* Ô Input: Text thuần bên trái + icon lịch bên phải */}
-      <div className="relative flex h-9 w-full items-center rounded-lg border border-slate-200 bg-white focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-100 transition-all">
+      <div
+        className={cn(
+          'relative flex h-9 w-full items-center rounded-lg border bg-white transition-all',
+          inputError
+            ? 'border-rose-300 focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-rose-100'
+            : 'border-slate-200 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-100',
+        )}
+      >
         <input
           id={id}
           type="text"
           value={textInput}
           onChange={(e) => handleManualInput(e.target.value)}
-          placeholder={placeholder}
+          placeholder={effectivePlaceholder}
+          aria-invalid={inputError || undefined}
+          aria-describedby={inputError ? errorId : undefined}
           className="h-full w-full rounded-l-lg bg-transparent pl-3 pr-2 text-xs font-medium text-slate-800 outline-none placeholder:text-slate-400"
         />
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          title="Mở bảng chọn lịch"
+          title={t('common:datePicker.openCalendarAria')}
+          aria-expanded={isOpen}
+          aria-haspopup="grid"
           className={cn(
             'flex h-full items-center justify-center border-l border-slate-200 px-2.5 text-slate-400 hover:bg-slate-50 hover:text-primary-600 transition-colors cursor-pointer rounded-r-lg',
             isOpen ? 'bg-primary-50 text-primary-600' : ''
@@ -168,6 +237,11 @@ export function DatePicker({ id, value = '', onChange, placeholder = 'DD/MM/YYYY
           <CalendarIcon className="h-4 w-4" />
         </button>
       </div>
+      {inputError && (
+        <p id={errorId} role="alert" className="mt-1 text-[11px] font-medium text-rose-600 animate-fade-in">
+          {t('common:datePicker.invalidDate')}
+        </p>
+      )}
 
       {/* Popover Calendar Card mở lên PHÍA TRÊN, thiết kế siêu gọn gàng không chạm Header */}
       {isOpen && (
@@ -193,7 +267,7 @@ export function DatePicker({ id, value = '', onChange, placeholder = 'DD/MM/YYYY
                 <button
                   type="button"
                   onClick={handlePrevMonth}
-                  title="Tháng trước"
+                  title={t('common:datePicker.prevMonthAria')}
                   className="rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
                 >
                   <ChevronLeftIcon className="h-3.5 w-3.5" />
@@ -201,7 +275,7 @@ export function DatePicker({ id, value = '', onChange, placeholder = 'DD/MM/YYYY
                 <button
                   type="button"
                   onClick={handleNextMonth}
-                  title="Tháng sau"
+                  title={t('common:datePicker.nextMonthAria')}
                   className="rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
                 >
                   <ChevronRightIcon className="h-3.5 w-3.5" />
@@ -213,11 +287,11 @@ export function DatePicker({ id, value = '', onChange, placeholder = 'DD/MM/YYYY
             {isMonthYearPickerOpen ? (
               <div className="space-y-2 py-1">
                 <div>
-                  <span className="block text-[10px] font-semibold text-slate-400 mb-1">Chọn tháng</span>
+                  <span className="block text-[10px] font-semibold text-slate-400 mb-1">{t('common:datePicker.selectMonth')}</span>
                   <div className="grid grid-cols-4 gap-1">
-                    {MONTH_NAMES.map((m, idx) => (
+                    {MONTH_NAMES_SHORT.map((m, idx) => (
                       <button
-                        key={m}
+                        key={idx}
                         type="button"
                         onClick={() => {
                           setCurrentMonth(idx);
@@ -228,14 +302,14 @@ export function DatePicker({ id, value = '', onChange, placeholder = 'DD/MM/YYYY
                           currentMonth === idx ? 'bg-primary-600 text-white' : 'hover:bg-slate-100 text-slate-700'
                         )}
                       >
-                        {m.replace('Tháng ', 'T')}
+                        {m}
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <span className="block text-[10px] font-semibold text-slate-400 mb-1">Chọn năm</span>
+                  <span className="block text-[10px] font-semibold text-slate-400 mb-1">{t('common:datePicker.selectYear')}</span>
                   <div className="grid grid-cols-4 gap-1 max-h-20 overflow-y-auto pr-1">
                     {YEARS.map((y) => (
                       <button
@@ -260,8 +334,8 @@ export function DatePicker({ id, value = '', onChange, placeholder = 'DD/MM/YYYY
               <>
                 {/* Thứ trong tuần */}
                 <div className="grid grid-cols-7 gap-0.5 text-center mb-0.5">
-                  {WEEK_DAYS.map((wd) => (
-                    <span key={wd} className="text-[9px] font-bold text-slate-400">
+                  {WEEK_DAYS.map((wd, idx) => (
+                    <span key={idx} className="text-[9px] font-bold text-slate-400">
                       {wd}
                     </span>
                   ))}
@@ -334,14 +408,14 @@ export function DatePicker({ id, value = '', onChange, placeholder = 'DD/MM/YYYY
               onClick={handleClear}
               className="text-[10px] font-semibold text-primary-600 hover:text-primary-700 transition-colors cursor-pointer"
             >
-              Clear
+              {t('common:datePicker.clear')}
             </button>
             <button
               type="button"
               onClick={handleToday}
               className="text-[10px] font-semibold text-primary-600 hover:text-primary-700 transition-colors cursor-pointer"
             >
-              Today
+              {t('common:datePicker.today')}
             </button>
           </div>
         </div>

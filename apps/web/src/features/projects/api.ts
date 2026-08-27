@@ -7,6 +7,11 @@ export interface CreateProjectPayload {
   description?: string;
   startDate?: string;
   dueDate?: string;
+  // 26/08/2026 (fix code review, loi MAJOR - Fix 3): 2 field moi - gio duoc gui THANG len server
+  // (xem project.entity.ts/create-project.dto.ts/update-project.dto.ts, project-task-service) thay
+  // vi chi luu rieng trong localStorage['ec_projects_metadata'] cua tung trinh duyet nhu truoc.
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  leadUserId?: string;
 }
 
 export interface FetchProjectsParams {
@@ -43,77 +48,68 @@ export async function deleteProject(id: string): Promise<void> {
   await apiClient.delete(`/projects/${id}`);
 }
 
-export async function completeProject(id: string): Promise<Project> {
-  // Lưu override vào localStorage và đẩy id này xuống CUỐI CÙNG của danh sách thứ tự (ec_projects_order)
+/** 26/08/2026 (fix code review, loi CRITICAL - Fix 1): helper dung chung cho completeProject()/
+ *  reopenProject() ben duoi - chi ghi de trang thai + thu tu hien thi vao localStorage SAU KHI da
+ *  nhan duoc phan hoi THANH CONG THAT SU tu server. Truoc ban sua nay ca 2 ham ghi "optimistic"
+ *  ngay tu dau ham, TRUOC CA khi goi API - neu request that bai (vd. 403 khong co quyen, mat mang)
+ *  thi override van nam lai trong localStorage va UI tiep tuc hien SAI trang thai (da "hoan
+ *  thanh"/"mo lai") mai mai, khong co duong nao tu phuc hoi ngoai xoa thu cong localStorage.
+ *  Nhan tien sua luon key thu tu: dung CHUNG 'ec_projects_custom_order' voi ORDER_STORAGE_KEY
+ *  (ProjectsListPage.tsx) va NewProjectModal.tsx - truoc day ham nay ghi NHAM vao key rieng
+ *  'ec_projects_order' ma khong noi nao doc, nen thu tu hien thi khong bao gio thuc su duoc cap
+ *  nhat sau khi hoan thanh/mo lai du an (dead code). */
+function persistProjectOrderOverride(id: string, status: 'ACTIVE' | 'COMPLETED', toFront: boolean) {
   try {
     const meta = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
-    meta[id] = { ...(meta[id] || {}), status: 'COMPLETED' };
+    meta[id] = { ...(meta[id] || {}), status };
     localStorage.setItem('ec_projects_metadata', JSON.stringify(meta));
 
-    const savedOrder: string[] = JSON.parse(localStorage.getItem('ec_projects_order') || '[]');
+    const savedOrder: string[] = JSON.parse(localStorage.getItem('ec_projects_custom_order') || '[]');
     const filtered = savedOrder.filter((pId) => pId !== id);
-    localStorage.setItem('ec_projects_order', JSON.stringify([...filtered, id]));
-    window.dispatchEvent(new Event('ec_projects_updated'));
+    localStorage.setItem('ec_projects_custom_order', JSON.stringify(toFront ? [id, ...filtered] : [...filtered, id]));
   } catch {
-    // Ignore
+    // Bo qua loi localStorage (vd. Safari private mode chan setItem/getItem) - khong anh huong ket qua API that.
   }
+}
 
+export async function completeProject(id: string): Promise<Project> {
   try {
     const { data } = await apiClient.post<Project>(`/projects/${id}/complete`);
+    persistProjectOrderOverride(id, 'COMPLETED', false);
     window.dispatchEvent(new Event('ec_projects_updated'));
     return data;
-  } catch {
-    // Fallback qua patch status nếu có
-    try {
-      const { data } = await apiClient.patch<Project>(`/projects/${id}`, { status: 'COMPLETED' as any });
-      window.dispatchEvent(new Event('ec_projects_updated'));
-      return data;
-    } catch {
-      window.dispatchEvent(new Event('ec_projects_updated'));
-      return { id, status: 'COMPLETED' } as Project;
-    }
+  } catch (err) {
+    // 26/08/2026 (fix code review, loi CRITICAL - Fix 1): truoc ban sua nay, khi POST
+    // /projects/:id/complete that bai, nhanh catch nay "nuot" loi va tra ve 1 object Project GIA
+    // (fabricate, coi nhu thanh cong) thay vi nem lai loi that. He qua: useCompleteProject()
+    // (hooks.ts).onError() KHONG BAO GIO duoc goi (khong toast loi that cho nguoi dung biet),
+    // trong khi onSuccess() van chay va patch cache React Query sang COMPLETED - UI hien SAI trang
+    // thai "da hoan thanh" du server chua he doi gi, cho toi khi tai lai trang. (Fallback PATCH
+    // /projects/:id { status: 'COMPLETED' } da bi bo hoan toan truoc do - xem update-project.dto.ts
+    // - vi BE khong con nhan field `status` qua endpoint nay nen fallback do se "thanh cong" ma
+    // khong doi status that, cang nguy hiem hon neu van giu.) Nem lai loi that de onError() chay dung.
+    throw err;
   }
 }
 
 export async function reopenProject(id: string): Promise<Project> {
-  // 1. Lưu override vào localStorage để đảm bảo UI hiển thị đúng trạng thái ACTIVE
   try {
-    const meta = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
-    meta[id] = { ...(meta[id] || {}), status: 'ACTIVE' };
-    localStorage.setItem('ec_projects_metadata', JSON.stringify(meta));
-
-    // Đưa dự án này lên đầu danh sách thứ tự (ORDER_STORAGE_KEY)
-    const savedOrder: string[] = JSON.parse(localStorage.getItem('ec_projects_order') || '[]');
-    const filtered = savedOrder.filter((pId) => pId !== id);
-    localStorage.setItem('ec_projects_order', JSON.stringify([id, ...filtered]));
-    window.dispatchEvent(new Event('ec_projects_updated'));
-  } catch {
-    // Ignore localStorage errors
-  }
-
-  // 1. Cập nhật qua PATCH /projects/:id (hỗ trợ status: 'ACTIVE')
-  try {
-    const { data } = await apiClient.patch<Project>(`/projects/${id}`, { status: 'ACTIVE' as any });
+    const { data } = await apiClient.post<Project>(`/projects/${id}/reopen`);
+    persistProjectOrderOverride(id, 'ACTIVE', true);
     window.dispatchEvent(new Event('ec_projects_updated'));
     return data;
-  } catch {
-    // 2. Thử qua POST /projects/:id/reopen
-    try {
-      const { data } = await apiClient.post<Project>(`/projects/${id}/reopen`);
-      window.dispatchEvent(new Event('ec_projects_updated'));
-      return data;
-    } catch {
-      window.dispatchEvent(new Event('ec_projects_updated'));
-      return {
-        id,
-        name: '',
-        status: 'ACTIVE',
-        organizationId: '',
-        createdByUserId: '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as Project;
-    }
+  } catch (err) {
+    // 26/08/2026 (fix code review, loi CRITICAL - Fix 1, tiep tuc sua sau khi phat hien qua doi
+    // chieu cuoi cung): ban sua truoc do (cung ngay) van giu 1 nhanh fallback PATCH /projects/:id
+    // { status: 'ACTIVE' } khi /reopen loi - nhung ValidationPipe cua service nay chi bat
+    // `whitelist: true`, KHONG bat `forbidNonWhitelisted`, nen field `status` (da bi bo khoi
+    // UpdateProjectDto o Fix "Project status bypass" cung dot sua nay) chi bi AM THAM LOAI BO
+    // khoi body thay vi bi tu choi 400 - PATCH do van tra ve 200 kem project KHONG DOI trang thai,
+    // khien ham nay coi nhu "thanh cong" va ghi de localStorage/dispatch event sang ACTIVE du server
+    // van con ARCHIVED - tai dung loi CRITICAL vua sua (UI hien sai trang thai vinh vien) qua chinh
+    // nhanh fallback duoc them de "phong ngua". Bo han fallback nay - /reopen la duong duy nhat co
+    // the thuc su doi trang thai, giong het completeProject() o tren (khong con fallback nao).
+    throw err;
   }
 }
 
