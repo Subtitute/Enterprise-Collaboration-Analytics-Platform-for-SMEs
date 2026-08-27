@@ -98,6 +98,7 @@
     "noDescription": "No description",
     "progressLabel": "Progress",
     "taskCountLabel": "{{completed}}/{{total}} tasks",
+    "leadLabel": "Lead",
     "leadByTitle": "Lead: {{name}}",
     "memberUnit": "{{count}} Mbrs",
     "memberCount": "{{count}} members",

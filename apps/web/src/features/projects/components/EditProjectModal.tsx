@@ -82,15 +82,24 @@ export function EditProjectModal({ open, onClose, project }: EditProjectModalPro
     }
 
     updateProject.mutate(
-      { name: name.trim(), description: description.trim() || undefined, dueDate: dueDate || undefined },
+      {
+        name: name.trim(),
+        description: description.trim(),
+        dueDate: dueDate || undefined,
+      },
       {
         onSuccess: () => {
           try {
-            const metaStore: Record<string, { priority: string; leadId: string }> = JSON.parse(
+            const metaStore: Record<string, { priority?: string; leadId?: string; status?: string }> = JSON.parse(
               localStorage.getItem('ec_projects_metadata') || '{}'
             );
-            metaStore[project.id] = { priority, leadId };
+            metaStore[project.id] = {
+              ...(metaStore[project.id] || {}),
+              priority,
+              leadId,
+            };
             localStorage.setItem('ec_projects_metadata', JSON.stringify(metaStore));
+            window.dispatchEvent(new Event('ec_projects_updated'));
           } catch {
             // ignore
           }

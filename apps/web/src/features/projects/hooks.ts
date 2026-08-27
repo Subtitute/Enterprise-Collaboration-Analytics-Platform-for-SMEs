@@ -215,11 +215,18 @@ export function useUpdateTaskStatus(projectId: string) {
       queryClient.setQueryData<Task[]>(queryKey, (old) => (old ?? []).map((task) => (task.id === taskId ? { ...task, status } : task)));
       return { previous };
     },
+    onSuccess: () => {
+      // Optimistic update đã cập nhật cache tức thời, không invalidate ngay làm giật animation thả của DnD
+    },
     onError: (error, _vars, context) => {
       if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
       toast.error(t('projects:toast.task.statusUpdateError'), extractErrorMessage(error));
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+    onSettled: () => {
+      // Invalidate các query khác như analytics nếu cần nhưng không làm flash tasks cache
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+    },
   });
 }
 

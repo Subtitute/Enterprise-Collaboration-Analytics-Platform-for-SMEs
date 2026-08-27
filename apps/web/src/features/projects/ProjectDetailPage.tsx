@@ -16,6 +16,7 @@ import { projectStatusMeta, computeProgressFromTasks } from './utils';
 import { KanbanBoard } from './components/KanbanBoard';
 import { NewTaskModal } from './components/NewTaskModal';
 import { TaskDetailModal } from './components/TaskDetailModal';
+import type { TaskStatus } from '@/types';
 
 export function ProjectDetailPage() {
   const { t } = useTranslation();
@@ -26,6 +27,7 @@ export function ProjectDetailPage() {
   const reopenProject = useReopenProject(projectId);
 
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
+  const [newTaskColumn, setNewTaskColumn] = useState<TaskStatus | undefined>(undefined);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   if (projectQuery.isLoading) return <FullPageSpinner label={t('projects:detail.loading')} />;
@@ -70,33 +72,65 @@ export function ProjectDetailPage() {
         <ChevronLeftIcon className="h-4 w-4" /> {t('projects:detail.backToList')}
       </Link>
 
-      <div className="flex flex-col justify-between gap-5 rounded-2xl border border-slate-200/80 bg-white p-6 sm:flex-row sm:items-center shadow-xs">
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="font-display text-2xl font-bold tracking-tight text-slate-900">{project.name}</h1>
-            {projectMeta.priority && (
-              <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-semibold border ${priorityMeta.color}`}>
-                {priorityMeta.label}
-              </span>
-            )}
-            <Badge variant={status.variant} className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold shadow-xs">
-              <span className={`h-1.5 w-1.5 rounded-full ring-2 ${statusDotColor}`} />
-              <span>{status.label}</span>
-            </Badge>
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
+        {/* Hàng 1: Tiêu đề, Badge độ ưu tiên, Badge trạng thái (bên trái) + 2 Nút hành động (bên phải) */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-display text-xl sm:text-2xl font-bold tracking-tight text-slate-900 break-words">{project.name}</h1>
+              {projectMeta.priority && (
+                <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-semibold border ${priorityMeta.color}`}>
+                  {priorityMeta.label}
+                </span>
+              )}
+              <Badge variant={status.variant} className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold shadow-xs">
+                <span className={`h-1.5 w-1.5 rounded-full ring-2 ${statusDotColor}`} />
+                <span>{status.label}</span>
+              </Badge>
+            </div>
+            {project.description && <p className="mt-1.5 max-w-2xl text-sm text-slate-500 break-words">{project.description}</p>}
           </div>
-          {project.description && <p className="mt-1.5 max-w-2xl text-sm text-slate-500">{project.description}</p>}
-          <div className="mt-4 flex flex-wrap items-center gap-4 sm:gap-6">
+
+          <div className="flex flex-wrap items-center gap-2 sm:shrink-0 w-full sm:w-auto">
+            {currentStatus !== 'COMPLETED' ? (
+              <Button variant="outline" className="flex-1 sm:flex-initial" onClick={() => completeProject.mutate()} isLoading={completeProject.isPending}>
+                <CheckCircleIcon className="h-4 w-4 text-emerald-600" /> {t('projects:detail.completeProject')}
+              </Button>
+            ) : (
+              <Button variant="outline" className="flex-1 sm:flex-initial" onClick={() => reopenProject.mutate()} isLoading={reopenProject.isPending}>
+                <RefreshIcon className="h-4 w-4 text-primary-600" /> {t('projects:detail.reopenProject')}
+              </Button>
+            )}
+            <Button className="flex-1 sm:flex-initial" onClick={() => setIsNewTaskOpen(true)}>
+              <PlusIcon className="h-4 w-4" /> {t('projects:detail.newTask')}
+            </Button>
+          </div>
+        </div>
+
+        {/* Hàng 2: Dải nền xám nhạt khóa đáy thẻ chứa 2 Widget (Hạn hoàn thành & Tiến độ dự án) */}
+        <div className="flex flex-wrap items-center gap-3 pt-1">
+          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 rounded-2xl bg-slate-50/90 border border-slate-200/60 p-2 shadow-2xs w-full sm:w-auto">
             {project.dueDate && (
-              <span className="flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-slate-50 border border-slate-200/60 px-2.5 py-1.5 rounded-lg">
-                <CalendarIcon className="h-3.5 w-3.5 text-slate-400" /> {t('projects:detail.dueDate', { date: formatDate(project.dueDate) })}
-              </span>
+              <div className="flex items-center gap-2.5 rounded-xl border border-slate-200/70 bg-white px-3.5 py-2 w-full sm:w-56 h-[52px] shadow-2xs">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 border border-slate-200/60 text-slate-500 shadow-2xs">
+                  <CalendarIcon className="h-4 w-4 text-slate-500" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className="block text-[11px] font-semibold text-slate-500 leading-tight">
+                    {t('projects:newProjectModal.dueDateLabel')}
+                  </span>
+                  <span className="block text-xs font-bold text-slate-800 truncate mt-0.5">
+                    {formatDate(project.dueDate)}
+                  </span>
+                </div>
+              </div>
             )}
             
-            {/* Widget tiến độ hoàn thành công việc hiện đại chuẩn SaaS */}
-            <div className="flex items-center gap-3 bg-slate-50/80 border border-slate-200/70 px-3 py-1.5 rounded-xl min-w-[200px] max-w-xs shadow-2xs">
+            {/* Widget tiến độ hoàn thành công việc */}
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200/70 bg-white px-3.5 py-2 w-full sm:w-56 h-[52px] shadow-2xs">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] font-semibold text-slate-600">{t('projects:detail.projectProgress')}</span>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] font-semibold text-slate-500 leading-tight">{t('projects:detail.projectProgress')}</span>
                   <span className={cn(
                     "text-xs font-bold font-display",
                     progress >= 100 ? "text-emerald-600" : "text-primary-600"
@@ -104,13 +138,13 @@ export function ProjectDetailPage() {
                     {progress}%
                   </span>
                 </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200/80">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 shadow-inner border border-slate-200/40">
                   <div
                     className={cn(
                       "h-full rounded-full transition-all duration-500 ease-out",
                       progress >= 100 
-                        ? "bg-gradient-to-r from-emerald-500 to-teal-500" 
-                        : "bg-gradient-to-r from-indigo-600 to-violet-600"
+                        ? "bg-emerald-500" 
+                        : "bg-primary-500"
                     )}
                     style={{ width: `${progress}%` }}
                   />
@@ -118,20 +152,6 @@ export function ProjectDetailPage() {
               </div>
             </div>
           </div>
-        </div>
-        <div className="flex shrink-0 items-center gap-2.5">
-          {currentStatus !== 'COMPLETED' ? (
-            <Button variant="outline" onClick={() => completeProject.mutate()} isLoading={completeProject.isPending}>
-              <CheckCircleIcon className="h-4 w-4 text-emerald-600" /> {t('projects:detail.completeProject')}
-            </Button>
-          ) : (
-            <Button variant="outline" onClick={() => reopenProject.mutate()} isLoading={reopenProject.isPending}>
-              <RefreshIcon className="h-4 w-4 text-primary-600" /> {t('projects:detail.reopenProject')}
-            </Button>
-          )}
-          <Button onClick={() => setIsNewTaskOpen(true)}>
-            <PlusIcon className="h-4 w-4" /> {t('projects:detail.newTask')}
-          </Button>
         </div>
       </div>
 
@@ -156,11 +176,27 @@ export function ProjectDetailPage() {
             action={<Button onClick={() => setIsNewTaskOpen(true)}>{t('projects:detail.createFirstTask')}</Button>}
           />
         ) : (
-          <KanbanBoard projectId={projectId} tasks={tasks} onTaskClick={(task) => setSelectedTaskId(task.id)} />
+          <KanbanBoard
+            projectId={projectId}
+            tasks={tasks}
+            onTaskClick={(task) => setSelectedTaskId(task.id)}
+            onQuickAdd={(status) => {
+              setNewTaskColumn(status);
+              setIsNewTaskOpen(true);
+            }}
+          />
         )}
       </QueryState>
 
-      <NewTaskModal projectId={projectId} open={isNewTaskOpen} onClose={() => setIsNewTaskOpen(false)} />
+      <NewTaskModal
+        projectId={projectId}
+        open={isNewTaskOpen}
+        defaultColumn={newTaskColumn}
+        onClose={() => {
+          setIsNewTaskOpen(false);
+          setNewTaskColumn(undefined);
+        }}
+      />
       <TaskDetailModal projectId={projectId} taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />
     </div>
   );

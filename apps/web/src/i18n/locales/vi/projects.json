@@ -99,6 +99,7 @@
     "noDescription": "Không có mô tả",
     "progressLabel": "Tiến độ",
     "taskCountLabel": "{{completed}}/{{total}} việc",
+    "leadLabel": "Phụ trách",
     "leadByTitle": "Phụ trách: {{name}}",
     "memberUnit": "{{count}} TV",
     "memberCount": "{{count}} thành viên",

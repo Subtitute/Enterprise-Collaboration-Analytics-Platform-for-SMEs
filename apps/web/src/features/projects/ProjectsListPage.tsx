@@ -259,18 +259,20 @@ export function ProjectsListPage() {
             className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100"
           />
         </div>
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           <CustomFilterSelect
             value={status}
             onChange={(val) => setStatus(val)}
             ariaLabel={t('projects:list.statusFilter.all')}
             options={STATUS_OPTIONS}
+            variant="subtle"
           />
           <CustomFilterSelect
             value={priorityFilter}
             onChange={(val) => setPriorityFilter(val)}
             ariaLabel={t('projects:list.priorityFilter.all')}
             options={PRIORITY_FILTER_OPTIONS}
+            variant="subtle"
           />
         </div>
       </div>

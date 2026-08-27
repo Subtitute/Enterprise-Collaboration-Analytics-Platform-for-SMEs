@@ -9,14 +9,16 @@ import { cn } from '@/lib/utils';
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
+
 interface ModalProps {
   open: boolean;
   onClose: () => void;
-  title?: string;
+  title?: React.ReactNode;
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: ModalSize;
 }
 
 const sizeClasses = {
@@ -82,6 +84,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
     document.addEventListener('keydown', onKeyDown);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+
     return () => {
       document.removeEventListener('keydown', onKeyDown);
       document.body.style.overflow = prevOverflow;
@@ -98,7 +101,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-label={typeof title === 'string' ? title : undefined}
         tabIndex={-1}
         className={cn(
           'relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl animate-slide-up',
@@ -107,8 +110,12 @@ export function Modal({ open, onClose, title, description, children, footer, siz
       >
         {title && (
           <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100/90 px-6 pt-6 pb-4.5 bg-slate-50/50">
-            <div className="pt-0.5">
-              <h2 className="font-display text-base font-bold text-slate-900">{title}</h2>
+            <div className="pt-0.5 flex-1 min-w-0">
+              {typeof title === 'string' ? (
+                <h2 className="font-display text-base font-bold text-slate-900 truncate">{title}</h2>
+              ) : (
+                title
+              )}
               {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
             </div>
             <button

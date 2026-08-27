@@ -201,20 +201,22 @@ export function DashboardPage() {
             </div>
           </div>
 
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100/90 pt-4 text-xs">
-            <div className="flex items-center gap-4 text-slate-500">
-              <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                {t('dashboard:hero.completedStatus')}: <strong className="text-slate-800 ml-0.5">{totalTasksCompleted}</strong>
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100/90 pt-4 text-xs sm:text-sm">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+              <span className="inline-flex items-center gap-2 rounded-xl bg-emerald-50/80 border border-emerald-200/60 px-3 py-1.5 text-xs font-semibold text-emerald-800 shadow-2xs">
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200" />
+                {t('dashboard:hero.completedStatus')}:
+                <strong className="text-sm sm:text-base font-bold text-emerald-900 ml-0.5">{totalTasksCompleted}</strong>
               </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-indigo-500" />
-                {t('dashboard:hero.totalTasksStatus')}: <strong className="text-slate-800 ml-0.5">{totalTasksCreated}</strong>
+              <span className="inline-flex items-center gap-2 rounded-xl bg-indigo-50/80 border border-indigo-200/60 px-3 py-1.5 text-xs font-semibold text-indigo-800 shadow-2xs">
+                <span className="h-2.5 w-2.5 rounded-full bg-indigo-500 ring-2 ring-indigo-200" />
+                {t('dashboard:hero.totalTasksStatus')}:
+                <strong className="text-sm sm:text-base font-bold text-indigo-900 ml-0.5">{totalTasksCreated}</strong>
               </span>
             </div>
             <Link
               to="/projects"
-              className="font-semibold text-primary-600 hover:text-primary-700 transition-colors inline-flex items-center gap-1"
+              className="font-semibold text-sm text-primary-600 hover:text-primary-700 transition-colors inline-flex items-center gap-1"
             >
               {t('dashboard:hero.viewAllLink')}
             </Link>

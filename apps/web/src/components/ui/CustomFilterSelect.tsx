@@ -15,6 +15,7 @@ interface CustomFilterSelectProps {
   ariaLabel?: string;
   className?: string;
   align?: 'left' | 'right';
+  variant?: 'default' | 'subtle';
 }
 
 export function CustomFilterSelect({
@@ -24,6 +25,7 @@ export function CustomFilterSelect({
   ariaLabel,
   className,
   align = 'left',
+  variant = 'default',
 }: CustomFilterSelectProps) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<{ top: number; left: number; right: number; width: number } | null>(null);
@@ -87,8 +89,11 @@ export function CustomFilterSelect({
         aria-label={ariaLabel}
         aria-expanded={open}
         className={cn(
-          'flex h-8 items-center justify-between gap-2 rounded-lg border border-slate-200/90 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 shadow-sm transition-all duration-200 hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
-          open && 'border-primary-500 ring-2 ring-primary-500/20 bg-slate-50/50',
+          'flex h-8 items-center justify-between gap-2 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500/20',
+          variant === 'subtle'
+            ? 'border border-transparent bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            : 'border border-slate-200/90 bg-white shadow-sm hover:border-slate-300 hover:bg-slate-50',
+          open && (variant === 'subtle' ? 'bg-slate-100 text-slate-900 ring-2 ring-slate-200' : 'border-primary-500 ring-2 ring-primary-500/20 bg-slate-50/50'),
         )}
       >
         <span className="truncate max-w-[140px] text-slate-800">{selectedOption?.label}</span>

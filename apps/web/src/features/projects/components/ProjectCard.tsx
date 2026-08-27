@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/Badge';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { ConfirmDialog } from '@/components/ui/Modal';
-import { CalendarIcon, CheckCircleIcon, EditIcon, MoreVerticalIcon, RefreshIcon, TrashIcon } from '@/components/ui/Icons';
+import { CalendarIcon, CheckCircleIcon, EditIcon, MoreVerticalIcon, RefreshIcon, TrashIcon, UsersIcon } from '@/components/ui/Icons';
 import { formatDate } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
 import { useOrgUsersQuery } from '@/hooks/useOrgUsers';
@@ -49,14 +49,6 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
   const reopen = useReopenProject(project.id);
   const del = useDeleteProject();
 
-  // Điểm nhấn viền trái theo trạng thái
-  const borderLeftColor =
-    currentStatus === 'COMPLETED'
-      ? 'border-l-emerald-500'
-      : currentStatus === 'ACTIVE'
-        ? 'border-l-primary-600'
-        : 'border-l-slate-400';
-
   const statusDotColor =
     currentStatus === 'COMPLETED'
       ? 'bg-emerald-500 ring-emerald-200'
@@ -64,12 +56,12 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
         ? 'bg-primary-500 ring-primary-200'
         : 'bg-slate-400 ring-slate-200';
 
-  const progressColor =
-    progress >= 100
-      ? 'bg-emerald-500'
-      : progress > 50
-        ? 'bg-primary-600'
-        : 'bg-amber-500';
+  const isProjectCompleted =
+    String(currentStatus).toUpperCase() === 'COMPLETED' ||
+    String(currentStatus).toUpperCase() === 'DONE' ||
+    progress >= 100;
+
+  const progressColor = isProjectCompleted ? 'bg-emerald-500' : 'bg-primary-500';
 
   const leadUser = usersQuery.data?.find((u) => u.id === projectMeta.leadId);
 
@@ -92,13 +84,13 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
           }
         }}
         onClick={() => navigate(`/projects/${project.id}`)}
-        className={`group relative flex h-full flex-col justify-between p-4 border-l-4 ${borderLeftColor} border-slate-200/80 transition-all duration-200 hover:shadow-lg hover:-translate-y-1 hover:border-slate-300 active:scale-[0.98] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 cursor-pointer select-none`}
+        className="group relative flex h-full flex-col justify-between p-4 border border-slate-200/60 bg-white shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300/80 active:scale-[0.98] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 cursor-pointer select-none"
       >
         <div>
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <p className="truncate text-sm font-bold text-slate-900 transition-colors group-hover:text-primary-600">
+              <div className="flex items-center gap-2 min-w-0">
+                <p className="truncate flex-1 min-w-0 text-sm font-bold text-slate-900 transition-colors group-hover:text-primary-600" title={project.name}>
                   {project.name}
                 </p>
                 {projectMeta.priority && (
@@ -108,15 +100,15 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
                 )}
               </div>
             </div>
-            <div onClick={(e) => e.stopPropagation()}>
+            <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center">
               <Dropdown
                 trigger={({ toggle }) => (
                   <button
                     onClick={toggle}
-                    className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+                    className="flex h-7 w-7 items-center justify-center -mr-1.5 rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
                     aria-label={t('projects:projectCard.optionsAriaLabel')}
                   >
-                    <MoreVerticalIcon className="h-5 w-5" />
+                    <MoreVerticalIcon className="h-4.5 w-4.5" />
                   </button>
                 )}
               >
@@ -170,30 +162,41 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
             {project.description || <span className="italic text-slate-300">{t('projects:projectCard.noDescription')}</span>}
           </p>
 
-          {/* Hàng Tiến độ: Nhãn "Tiến độ" + [Số việc hoàn thành/tổng] + Thanh % + Số % */}
-          <div className="mt-2.5 space-y-1">
+          {/* Người phụ trách (Leader) - Khu vực rộng rãi, trực quan ngay dưới mô tả */}
+          {leadUser ? (
+            <div className="mt-2.5 flex items-center gap-2">
+              <Avatar name={leadUser.fullName} size="sm" className="h-5 w-5 shrink-0 text-[10px] shadow-2xs ring-1 ring-slate-200/80" />
+              <p className="truncate text-xs font-medium text-slate-700">
+                <span className="text-slate-400">{t('projects:projectCard.leadLabel')}: </span>
+                <span className="font-semibold text-slate-800">{leadUser.fullName}</span>
+              </p>
+            </div>
+          ) : (
+            <div className="mt-2.5 h-5" />
+          )}
+
+          {/* Hàng Tiến độ chuẩn 'Thanh máu boss': Hàng trên chứa nhãn, số việc, con số %; Hàng dưới thanh ProgressBar kéo dài w-full */}
+          <div className="mt-2.5 space-y-1.5">
             <div className="flex items-center justify-between text-xs">
-              <span className="font-semibold text-slate-600">{t('projects:projectCard.progressLabel')}</span>
-              {typeof taskCount === 'number' && (
-                <span className="text-[11px] font-medium text-slate-500">
-                  {t('projects:projectCard.taskCountLabel', { completed: completedTaskCount ?? 0, total: taskCount })}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <ProgressBar
-                  value={progress}
-                  trackClassName="h-2 bg-slate-100/90 rounded-full"
-                  barClassName={`h-2 rounded-full ${progressColor} transition-all duration-300`}
-                />
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-slate-600">{t('projects:projectCard.progressLabel')}</span>
+                {typeof taskCount === 'number' && (
+                  <span className="text-[11px] font-medium text-slate-400">
+                    ({t('projects:projectCard.taskCountLabel', { completed: completedTaskCount ?? 0, total: taskCount })})
+                  </span>
+                )}
               </div>
-              <span className="shrink-0 text-xs font-bold tabular-nums text-slate-900">{Math.round(progress || 0)}%</span>
+              <span className="font-bold tabular-nums text-slate-900">{Math.round(progress || 0)}%</span>
             </div>
+            <ProgressBar
+              value={progress}
+              trackClassName="h-2 w-full bg-slate-100/90 rounded-full shadow-inner"
+              barClassName={`h-2 rounded-full ${progressColor} transition-all duration-300`}
+            />
           </div>
         </div>
 
-        {/* Hàng dưới cùng: Thẻ trạng thái & Ngày hạn bên trái + Người phụ trách & Số thành viên bên phải (Chống tràn) */}
+        {/* Hàng dưới cùng: Thẻ trạng thái & Ngày hạn bên trái + Số thành viên bên phải (Gọn gàng, thoáng đãng) */}
         <div className="mt-3 flex items-center justify-between gap-1.5 border-t border-slate-100/80 pt-2.5">
           <div className="flex items-center gap-1.5 min-w-0 shrink-0">
             <Badge variant={status.variant} className="inline-flex items-center gap-1.5 px-2 py-0.5 text-[11px] font-semibold shadow-xs">
@@ -202,26 +205,21 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
             </Badge>
 
             {project.dueDate && (
-              <span className="hidden xl:flex items-center gap-1 text-[11px] font-medium text-slate-400">
+              <span className="flex items-center gap-1 text-[11px] font-medium text-slate-400 ml-1">
                 <CalendarIcon className="h-3 w-3" /> {formatDate(project.dueDate)}
               </span>
             )}
           </div>
 
-          <div className="flex items-center gap-1.5 min-w-0 shrink">
-            {leadUser && (
-              <div
-                className="flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100 min-w-0 max-w-[100px]"
-                title={t('projects:projectCard.leadByTitle', { name: leadUser.fullName })}
-              >
-                <Avatar name={leadUser.fullName} size="sm" className="h-3.5 w-3.5 shrink-0 text-[8px]" />
-                <span className="truncate text-[10px] font-medium text-slate-700">{leadUser.fullName}</span>
-              </div>
-            )}
+          <div className="flex items-center gap-2 min-w-0 shrink">
             {typeof memberCount === 'number' && (
-              <span className="shrink-0 text-[10px] font-medium text-slate-500 bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100">
-                {t('projects:projectCard.memberUnit', { count: memberCount })}
-              </span>
+              <div
+                className="flex items-center gap-1.5 text-sm font-medium text-slate-500"
+                title={t('projects:projectCard.memberCount', { count: memberCount })}
+              >
+                <UsersIcon className="w-4 h-4 text-slate-400" />
+                <span className="tabular-nums font-semibold text-slate-700">{memberCount}</span>
+              </div>
             )}
           </div>
         </div>
