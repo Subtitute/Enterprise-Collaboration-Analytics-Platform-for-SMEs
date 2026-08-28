@@ -19,6 +19,7 @@
   },
   "loading": "読み込み中…",
   "loadingPage": "ページを読み込み中…",
+  "genericError": "エラーが発生しました。もう一度お試しください。",
   "skipToContent": "メインコンテンツへスキップ",
   "progress": "進捗",
   "password": {
@@ -57,8 +58,15 @@
     "profile": "プロフィール",
     "logout": "ログアウト"
   },
+  "sidebar": {
+    "expand": "サイドバーを展開",
+    "collapse": "サイドバーを折りたたむ",
+    "orgAriaLabel": "組織: {{orgName}}",
+    "subtitle": "企業・組織"
+  },
   "search": {
     "placeholder": "プロジェクト、ドキュメント、タスクを検索…",
+    "loading": "検索中…",
     "noResults": "「{{query}}」に一致する結果が見つかりませんでした。",
     "category": {
       "project": "プロジェクト",
@@ -80,5 +88,28 @@
     "notifications": "通知",
     "analytics": "レポート・分析",
     "admin": "管理"
+  },
+  "datePicker": {
+    "openCalendarAria": "カレンダーを開く",
+    "prevMonthAria": "前月へ",
+    "nextMonthAria": "翌月へ",
+    "selectMonth": "月を選択",
+    "selectYear": "年を選択",
+    "clear": "クリア",
+    "today": "今日",
+    "placeholder": "DD/MM/YYYY",
+    "invalidDate": "無効な日付です",
+    "months": {
+      "0": "1月", "1": "2月", "2": "3月", "3": "4月",
+      "4": "5月", "5": "6月", "6": "7月", "7": "8月",
+      "8": "9月", "9": "10月", "10": "11月", "11": "12月"
+    },
+    "monthsShort": {
+      "0": "1月", "1": "2月", "2": "3月", "3": "4月", "4": "5月", "5": "6月",
+      "6": "7月", "7": "8月", "8": "9月", "9": "10月", "10": "11月", "11": "12月"
+    },
+    "weekDays": {
+      "0": "月", "1": "火", "2": "水", "3": "木", "4": "金", "5": "土", "6": "日"
+    }
   }
 }

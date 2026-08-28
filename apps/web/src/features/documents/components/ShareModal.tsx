@@ -38,7 +38,17 @@ export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: 
   }
 
   return (
-    <Modal open={Boolean(file)} onClose={handleClose} title={t('documents:shareModal.title', { fileName: file?.name ?? '' })} size="sm">
+    <Modal
+      open={Boolean(file)}
+      onClose={handleClose}
+      // 26/08/2026: modal nay keyed theo `file` (giong het EditMemberModal keyed theo `user`) -
+      // share.mutate() ben duoi goi onSuccess: handleClose, nen dong+mo lai modal cho 1 file KHAC
+      // trong luc mutation cu con dang bay se bi onSuccess cu dong nham. Chan bang prop dung chung
+      // cua Modal.tsx, cung ly do da sua o EditMemberModal.tsx hom qua.
+      preventCloseWhilePending={share.isPending}
+      title={t('documents:shareModal.title', { fileName: file?.name ?? '' })}
+      size="sm"
+    >
       <div className="space-y-4">
         {/* 28/07/2026: cong tac dang segmented control - chuyen doi <Select> ben duoi giua danh sach
             thanh vien va danh sach phong ban, vi backend chi nhan DUNG 1 trong 2 truong
@@ -108,7 +118,11 @@ export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: 
           </Select>
         </FormField>
         <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="outline" onClick={handleClose}>
+          {/* 26/08/2026: them disabled={share.isPending} - nut Huy nay truoc do goi thang
+              handleClose khong dieu kien, la 1 duong dong khong bi chan boi preventCloseWhilePending
+              (prop do chi chan X/Escape/backdrop trong Modal.tsx, khong bao trum nut tu viet trong
+              modal con) - mirror dung disabled đã co san o DepartmentModal.tsx/UploadModal.tsx. */}
+          <Button type="button" variant="outline" onClick={handleClose} disabled={share.isPending}>
             {t('documents:shareModal.cancel')}
           </Button>
           <Button

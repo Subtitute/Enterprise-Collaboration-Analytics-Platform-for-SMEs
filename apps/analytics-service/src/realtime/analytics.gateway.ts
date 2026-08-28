@@ -8,7 +8,8 @@ import {
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { JwtAccessPayload } from '@app/common-dto';
+import { JwtAccessPayload, PERMISSIONS } from '@app/common-dto';
+import { RedisService } from '../redis/redis.service';
 
 /**
  * 25/07/2026 (audit - MINOR): doc danh sach origin duoc phep mo WebSocket handshake tu bien moi
@@ -55,6 +56,7 @@ export class AnalyticsGateway implements OnGatewayConnection, OnGatewayDisconnec
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
@@ -69,6 +71,40 @@ export class AnalyticsGateway implements OnGatewayConnection, OnGatewayDisconnec
       const payload = await this.jwtService.verifyAsync<JwtAccessPayload>(token, {
         secret: this.configService.get<string>('jwt.accessSecret'),
       });
+
+      // 25/08/2026: fix ra soat bao mat - REST qua Gateway da kiem tra blacklist tu 21/07/2026
+      // (jwt-auth.middleware.ts) nen 1 tai khoan vua bi deactivate mat quyen truy cap REST NGAY,
+      // nhung WebSocket khong di qua Gateway/InternalAuthGuard nen truoc ban sua nay hoan toan bo
+      // sot - 1 token con han (toi 15 phut) van mo duoc ket noi WS moi va tiep tuc nhan du lieu
+      // hoat dong real-time cua to chuc sau khi tai khoan da bi vo hieu hoa. Fail-open neu Redis
+      // loi (cung triet ly voi REST) - khong de 1 su co Redis chan ca tinh nang real-time.
+      let blacklisted = false;
+      try {
+        blacklisted = await this.redisService.isUserBlacklisted(payload.sub);
+      } catch (err) {
+        this.logger.warn(
+          `Kiem tra blacklist that bai, cho qua ket noi: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+      if (blacklisted) {
+        this.logger.warn(`Tu choi ket noi (tai khoan da bi vo hieu hoa): ${client.id}`);
+        client.disconnect(true);
+        return;
+      }
+
+      // 25/08/2026: fix ra soat bao mat - handleConnection() truoc day chi verify chu ky JWT
+      // (XAC THUC), khong kiem tra quyen `analytics:view` (UY QUYEN) nhu ban REST tuong duong da
+      // lam (@RequirePermissions(PERMISSIONS.ANALYTICS_VIEW) tren AnalyticsController - quyen nay
+      // KHONG co san o vai tro Employee mac dinh, xem packages/common-dto/src/enums/permission.enum.ts).
+      // Truoc ban sua nay, 1 nhan vien khong co quyen xem bao cao van bi chan o REST nhung van mo
+      // ket noi WS duoc va tho dong nhan feed hoat dong real-time (eventId/eventType/actorId) cua
+      // ca to chuc - lech chinh sach uy quyen giua 2 kenh cho CUNG 1 tinh nang.
+      if (!payload.permissions?.includes(PERMISSIONS.ANALYTICS_VIEW)) {
+        this.logger.warn(`Tu choi ket noi (thieu quyen analytics:view): ${client.id}`);
+        client.disconnect(true);
+        return;
+      }
+
       const room = `org:${payload.organizationId}`;
       await client.join(room);
       this.logger.log(`Client ${client.id} da tham gia phong ${room}`);

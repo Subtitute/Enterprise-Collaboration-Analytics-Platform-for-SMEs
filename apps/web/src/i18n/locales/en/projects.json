@@ -11,6 +11,12 @@
       "ARCHIVED": "Archived"
     }
   },
+  "priority": {
+    "LOW": "Low priority",
+    "MEDIUM": "Medium",
+    "HIGH": "High priority",
+    "URGENT": "Urgent"
+  },
   "list": {
     "title": "Projects & Tasks",
     "subtitle": "Manage projects and track progress with a Kanban board.",
@@ -103,7 +109,9 @@
     "memberUnit": "{{count}} Mbrs",
     "memberCount": "{{count}} members",
     "confirmDeleteTitle": "Delete this project?",
-    "confirmDeleteDescription": "All tasks belonging to \"{{name}}\" may also be deleted. This action cannot be undone."
+    "confirmDeleteDescription": "All tasks belonging to \"{{name}}\" may also be deleted. This action cannot be undone.",
+    "noDescription": "No description",
+    "leadTooltip": "Lead: {{name}}"
   },
   "taskCard": {
     "unknownAssignee": "Member"

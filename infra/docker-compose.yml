@@ -35,8 +35,18 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_IAM_PASSWORD}
     volumes:
       - postgres-iam-data:/var/lib/postgresql/data
+    # 25/08/2026: fix ra soat bao mat - cong host cua toan bo tang du lieu/quan sat (5 Postgres +
+    # TimescaleDB + MongoDB + Redis + Kafka + Prometheus + Alertmanager + Grafana) truoc day mo ra
+    # TOAN BO mang (cu phap "HOST:CONTAINER" tran, Docker tu binding 0.0.0.0) du comment trong file
+    # nay tu lau da noi ro y dinh la CHI de debug/xem tu chinh may host (vd dong 621-622 cu, ban
+    # goc "khong phai thiet ke cho moi truong co the truy cap tu ben ngoai"). Gioi han ve 127.0.0.1
+    # cho DUNG voi cau chu dinh do - van dung binh thuong tu may host (vd `psql -h localhost -p
+    # 5433`), chi khong con lo ra mang neu may nay tung dat tren 1 mang co the dinh tuyen duoc
+    # (VD/cloud demo) ma khong co firewall. KHONG ap dung cho `web`/`gateway` (thiet ke de truy cap
+    # tu ben ngoai) hay cong S3 API cua MinIO (9010 - trinh duyet/dien thoai that su can goi thang
+    # qua LAN/Cloudflare Tunnel de tai presigned URL, xem MINIO_PUBLIC_ENDPOINT).
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     networks: [internal-net]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_IAM_USER} -d ${POSTGRES_IAM_DB}"]
@@ -55,7 +65,7 @@ services:
     volumes:
       - postgres-pt-data:/var/lib/postgresql/data
     ports:
-      - "5434:5432"
+      - "127.0.0.1:5434:5432"
     networks: [internal-net]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_PT_USER} -d ${POSTGRES_PT_DB}"]
@@ -74,7 +84,7 @@ services:
     volumes:
       - postgres-doc-data:/var/lib/postgresql/data
     ports:
-      - "5435:5432"
+      - "127.0.0.1:5435:5432"
     networks: [internal-net]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_DOC_USER} -d ${POSTGRES_DOC_DB}"]
@@ -95,7 +105,7 @@ services:
     volumes:
       - postgres-crm-data:/var/lib/postgresql/data
     ports:
-      - "5438:5432"
+      - "127.0.0.1:5438:5432"
     networks: [internal-net]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_CRM_USER} -d ${POSTGRES_CRM_DB}"]
@@ -116,7 +126,7 @@ services:
     volumes:
       - postgres-hrm-data:/var/lib/postgresql/data
     ports:
-      - "5439:5432"
+      - "127.0.0.1:5439:5432"
     networks: [internal-net]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_HRM_USER} -d ${POSTGRES_HRM_DB}"]
@@ -139,7 +149,7 @@ services:
       - timescale-data:/var/lib/postgresql/data
       - ./timescale-init:/docker-entrypoint-initdb.d
     ports:
-      - "5436:5432"
+      - "127.0.0.1:5436:5432"
     networks: [internal-net]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${TIMESCALE_USER} -d ${TIMESCALE_DB}"]
@@ -158,7 +168,7 @@ services:
     volumes:
       - mongo-data:/data/db
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     networks: [internal-net]
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
@@ -177,7 +187,7 @@ services:
     # (du an rieng cua nguoi dung). Giao tiep NOI BO giua cac container van dung dung cong
     # 6379 qua ten service "redis" (khong bi anh huong boi viec doi cong host o day).
     ports:
-      - "6380:6379"
+      - "127.0.0.1:6380:6379"
     networks: [internal-net]
     healthcheck:
       # $$ (shell-expand trong container) khong hoat dong vi container KHONG co bien moi
@@ -200,9 +210,16 @@ services:
       - minio-data:/data
     # Host port 9010/9011 (khong phai 9000/9001 mac dinh) - may host da co MinIO khac dang
     # chay o do (du an rieng cua nguoi dung). Giao tiep NOI BO van dung dung cong 9000/9001.
+    # 25/08/2026: fix ra soat bao mat - cong 9011 (console quan tri MinIO, dang nhap bang
+    # MINIO_ROOT_USER/PASSWORD) truoc day mo ra TOAN BO mang (0.0.0.0), khac han quyet dinh co chu
+    # dich o cac service khac trong file nay (chi web/gateway duoc expose ra host, moi noi khac ghi
+    # ro ly do). Khong co ung dung nao trong he thong goi toi cong nay - chi con nguoi dung thu cong
+    # can, va chi tu chinh may host. Gioi han ve 127.0.0.1 - van dung duoc tu may host, khong con lo
+    # ra mang ngoai. Cong 9010 (S3 API) GIU NGUYEN mo toan mang vi trinh duyet/app di dong thuc su
+    # can goi truc tiep de tai file qua presigned URL (xem MINIO_PUBLIC_ENDPOINT ben duoi).
     ports:
       - "9010:9000"
-      - "9011:9001"
+      - "127.0.0.1:9011:9001"
     command: server /data --console-address ":9001"
     networks: [internal-net]
     healthcheck:
@@ -236,7 +253,7 @@ services:
     container_name: kafka
     restart: unless-stopped
     ports:
-      - "9092:9092"
+      - "127.0.0.1:9092:9092"
     volumes:
       - kafka-data:/var/lib/kafka/data
     networks: [internal-net]
@@ -413,7 +430,14 @@ services:
       # link tai file bi hong vi trinh duyet khong resolve duoc hostname "minio".
       MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost}
       MINIO_PUBLIC_PORT: ${MINIO_PUBLIC_PORT:-9010}
-      MINIO_PUBLIC_USE_SSL: "false"
+      # 25/08/2026: fix ra soat bao mat - truoc day gia tri nay bi HARDCODE "false" (khong giong 2
+      # bien MINIO_PUBLIC_* ngay ben tren, von dung dang co the ghi de qua .env) du code ung dung
+      # (configuration.ts) da ho tro doc tu env - khien nguoi van hanh KHONG THE bat HTTPS cho
+      # presigned URL (URL nay la 1 bearer credential 15 phut, ca URL lan noi dung file deu di qua
+      # HTTP thuan neu khong sua) ma khong sua tay file nay. Doi sang co the ghi de, mac dinh VAN LA
+      # false (khong doi hanh vi hien tai) - bat len that qua .env can them 1 reverse proxy TLS
+      # truoc MinIO hoac bat TLS native cua MinIO, ngoai pham vi sua doi nay.
+      MINIO_PUBLIC_USE_SSL: ${MINIO_PUBLIC_USE_SSL:-false}
       INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
     # ports: ["3003:3003"]  # go bo 21/07/2026 - khong expose ra host, chi Gateway/noi bo moi
     # goi duoc qua internal-net, tranh bypass Gateway/JWT/rate-limit (xem Technical_Spec.md muc 8).
@@ -434,10 +458,32 @@ services:
     depends_on:
       mongodb: { condition: service_healthy }
       kafka: { condition: service_healthy }
+      # 26/08/2026: fix ra soat - notification-service da dung Redis tu 25/08/2026
+      # (RedisService.isUserBlacklisted(), kiem tra tai khoan bi deactivate truoc khi cho ket noi
+      # WebSocket - xem apps/notification-service/src/redis/redis.service.ts) nhung truoc day
+      # THIEU khai bao phu thuoc "redis" o day, khac voi iam-service/gateway/analytics-service da
+      # co tu 25/07/2026 (xem 3 chu thich tuong ung ben tren/duoi) - phong thu theo lop (defense-
+      # in-depth, du code da co try/catch fail-open cho Redis) chong race luc "docker compose up"
+      # lan dau khi notification-service khoi dong truoc khi Redis san sang.
+      redis: { condition: service_healthy }
     environment:
       NODE_ENV: production
       PORT: 3004
-      MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/${MONGO_DATABASE}?authSource=admin
+      # 26/08/2026 (fix audit - Major): doi tu 1 bien MONGO_URI ghep san bang noi chuoi truc tiep
+      # (`mongodb://${MONGO_INITDB_ROOT_USERNAME}:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/...`)
+      # sang 5 bien RIENG LE, dong bo mau Postgres cua cac service khac trong file nay (vd DB_HOST/
+      # DB_PORT/DB_USER/DB_PASSWORD/DB_NAME) - noi chuoi truc tiep KHONG encode khien 1 mat khau
+      # chua ky tu dac biet co y nghia cu phap URI (@ : / ? # [ ] %) pha vo ket noi (vd dau '@'
+      # trong mat khau bi nham la ranh gioi ket thuc credentials). configuration.ts (notification-
+      # service) gio tu xay dung URI tu 5 bien nay va encodeURIComponent() rieng MONGO_USER/
+      # MONGO_PASSWORD truoc khi noi chuoi. MONGO_INITDB_ROOT_USERNAME/PASSWORD/MONGO_DATABASE VAN
+      # GIU NGUYEN (dung chung cho ca env cua chinh container `mongodb` o tren LAN scripts/backup.js,
+      # restore.js) - chi doi CACH TRUYEN sang notification-service, khong doi ten/gia tri bien goc.
+      MONGO_HOST: mongodb
+      MONGO_PORT: 27017
+      MONGO_USER: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_DATABASE: ${MONGO_DATABASE}
       KAFKA_BROKER: kafka:29092
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -559,7 +605,14 @@ services:
       MINIO_BUCKET: ${MINIO_HRM_BUCKET}
       MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost}
       MINIO_PUBLIC_PORT: ${MINIO_PUBLIC_PORT:-9010}
-      MINIO_PUBLIC_USE_SSL: "false"
+      # 25/08/2026: fix ra soat bao mat - truoc day gia tri nay bi HARDCODE "false" (khong giong 2
+      # bien MINIO_PUBLIC_* ngay ben tren, von dung dang co the ghi de qua .env) du code ung dung
+      # (configuration.ts) da ho tro doc tu env - khien nguoi van hanh KHONG THE bat HTTPS cho
+      # presigned URL (URL nay la 1 bearer credential 15 phut, ca URL lan noi dung file deu di qua
+      # HTTP thuan neu khong sua) ma khong sua tay file nay. Doi sang co the ghi de, mac dinh VAN LA
+      # false (khong doi hanh vi hien tai) - bat len that qua .env can them 1 reverse proxy TLS
+      # truoc MinIO hoac bat TLS native cua MinIO, ngoai pham vi sua doi nay.
+      MINIO_PUBLIC_USE_SSL: ${MINIO_PUBLIC_USE_SSL:-false}
       INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
       # 13/08/2026: toa do van phong cho co "on-site"/"off-site" (Technical_Spec.md muc 17) - de
       # trong (khong dat OFFICE_LATITUDE/OFFICE_LONGITUDE trong .env) nghia la TAT tinh nang nay
@@ -621,7 +674,7 @@ services:
     # Map ra host de xem truc tiep http://localhost:9090 (debug/demo cuc bo) - khong phai
     # thiet ke cho moi truong co the truy cap tu ben ngoai (giong cac container ha tang khac).
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     networks: [internal-net]
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9090/-/healthy"]
@@ -642,7 +695,7 @@ services:
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanager-data:/alertmanager
     ports:
-      - "9095:9093"
+      - "127.0.0.1:9095:9093"
     networks: [internal-net]
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9093/-/healthy"]
@@ -675,15 +728,18 @@ services:
     environment:
       # Dev only - doi gia tri that qua GRAFANA_ADMIN_PASSWORD trong infra/.env truoc khi dung
       # ngoai moi truong dev (cung quy uoc voi JWT_ACCESS_SECRET/INTERNAL_SHARED_SECRET).
+      # 25/08/2026: fix ra soat bao mat - gia tri du phong khi bien moi truong chua duoc dat truoc
+      # day la "admin" (trung mat khau mac dinh CHUAN cua chinh Grafana, dich quet tu dong dau
+      # tien) - doi dong bo voi gia tri vi du moi trong .env.example (xem ghi chu tai do).
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-grafana_admin_password}
       # Tat tinh nang dang ky/anonymous - chi 1 tai khoan admin duy nhat cho muc dich demo do an.
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
     ports:
-      - "3010:3000"
+      - "127.0.0.1:3010:3000"
     networks: [internal-net]
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]

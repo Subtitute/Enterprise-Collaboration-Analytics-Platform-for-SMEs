@@ -17,26 +17,33 @@ interface EditProjectModalProps {
   project: Project;
 }
 
+/** 26/08/2026 (fix code review, loi MAJOR - Fix 3): doc 1 LAN gia tri priority/leadId CU (neu co)
+ *  tu localStorage['ec_projects_metadata'] - CHI dung lam gia tri di truoc/migrate mot lan cho du
+ *  an DA TUNG duoc gan priority/lead truoc khi tinh nang nay chuyen sang luu server-side (xem
+ *  project.priority/project.leadUserId, project.entity.ts), phong khi truong server chua duoc gan
+ *  (vd. du an cu tao truoc khi BE trien khai 2 cot moi). KHONG con ghi gi vao key nay nua sau ban
+ *  sua nay - xem handleSubmit() ben duoi (gio gui priority/leadUserId THANG len server). */
+function readLegacyProjectMeta(projectId: string): { priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'; leadId?: string } {
+  try {
+    const store = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
+    return store[projectId] ?? {};
+  } catch {
+    return {};
+  }
+}
+
 export function EditProjectModal({ open, onClose, project }: EditProjectModalProps) {
   const { t } = useTranslation();
   const nameInputRef = useRef<HTMLInputElement>(null);
   const usersQuery = useOrgUsersQuery({ enabled: open });
 
-  // Đọc metadata hiện tại từ localStorage
-  const currentMeta = (() => {
-    try {
-      const store = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
-      return store[project.id] ?? {};
-    } catch {
-      return {};
-    }
-  })();
-
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description || '');
   const [dueDate, setDueDate] = useState(project.dueDate ? project.dueDate.slice(0, 10) : '');
-  const [priority, setPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'>(currentMeta.priority ?? 'MEDIUM');
-  const [leadId, setLeadId] = useState<string>(currentMeta.leadId ?? '');
+  const [priority, setPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'>(
+    project.priority ?? readLegacyProjectMeta(project.id).priority ?? 'MEDIUM',
+  );
+  const [leadId, setLeadId] = useState<string>(project.leadUserId ?? readLegacyProjectMeta(project.id).leadId ?? '');
   const [memberSearch, setMemberSearch] = useState('');
   const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);
   const [error, setError] = useState('');
@@ -48,16 +55,9 @@ export function EditProjectModal({ open, onClose, project }: EditProjectModalPro
       setName(project.name);
       setDescription(project.description || '');
       setDueDate(project.dueDate ? project.dueDate.slice(0, 10) : '');
-      const meta = (() => {
-        try {
-          const store = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
-          return store[project.id] ?? {};
-        } catch {
-          return {};
-        }
-      })();
-      setPriority(meta.priority ?? 'MEDIUM');
-      setLeadId(meta.leadId ?? '');
+      const legacyMeta = readLegacyProjectMeta(project.id);
+      setPriority(project.priority ?? legacyMeta.priority ?? 'MEDIUM');
+      setLeadId(project.leadUserId ?? legacyMeta.leadId ?? '');
       setError('');
       setTimeout(() => {
         nameInputRef.current?.focus();
@@ -117,7 +117,18 @@ export function EditProjectModal({ open, onClose, project }: EditProjectModalPro
   ] as const;
 
   return (
-    <Modal open={open} onClose={onClose} title={t('projects:editProjectModal.title')} size="lg">
+    <Modal
+      open={open}
+      onClose={onClose}
+      // 26/08/2026: modal nay cung o lai trong DOM (cha bat/tat qua prop `open`, giu nguyen prop
+      // `project` cua du an dang sua), updateProject.mutate() ben tren goi onSuccess: () => onClose()
+      // - giong dung loi da sua hom qua o 4 modal khac (vd DepartmentModal.tsx): neu dong+mo lai
+      // modal cho project KHAC trong luc mutation cu con dang bay, onSuccess cu se dong nham phien
+      // ban modal moi. Chan bang prop dung chung cua Modal.tsx.
+      preventCloseWhilePending={updateProject.isPending}
+      title={t('projects:editProjectModal.title')}
+      size="lg"
+    >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         {/* Tên dự án */}
         <FormField label={t('projects:newProjectModal.nameLabel')} htmlFor="edit-project-name" error={error} required>
@@ -160,11 +171,10 @@ export function EditProjectModal({ open, onClose, project }: EditProjectModalPro
               <label className="text-xs font-semibold text-slate-700">
                 {t('projects:newProjectModal.priorityLabel')}
               </label>
-              {!priority && (
-                <span className="text-[11px] font-medium text-rose-500">
-                  {t('projects:newProjectModal.priorityRequired')}
-                </span>
-              )}
+              {/* 26/08/2026 (fix code review, loi MINOR - Fix 4): da xoa nhanh {!priority && ...}
+                  hien thong bao "bat buoc chon do uu tien" o day - khong bao gio render duoc vi
+                  `priority` duoc khoi tao tu project.priority/legacy meta hoac mac dinh 'MEDIUM',
+                  chi co the nhan 1 trong 4 gia tri enum (khong bao gio rong/falsy), dead code. */}
             </div>
             <div className="grid grid-cols-4 gap-1.5">
               {PRIORITY_OPTIONS.map((opt) => {
@@ -216,6 +226,7 @@ export function EditProjectModal({ open, onClose, project }: EditProjectModalPro
                   className="text-xs text-primary-600 hover:underline cursor-pointer font-medium"
                 >
                   {t('projects:newProjectModal.changeLead')}
+                  {t('projects:newProjectModal.changeLead')}
                 </button>
               </div>
             ) : (
@@ -245,6 +256,7 @@ export function EditProjectModal({ open, onClose, project }: EditProjectModalPro
                 />
                 <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl shadow-slate-200/80 animate-slide-up">
                   {filteredUsers.length === 0 ? (
+                    <p className="px-3 py-2 text-center text-xs text-slate-400">{t('projects:newProjectModal.noMembersFound')}</p>
                     <p className="px-3 py-2 text-center text-xs text-slate-400">{t('projects:newProjectModal.noMembersFound')}</p>
                   ) : (
                     filteredUsers.map((u) => (
@@ -277,7 +289,11 @@ export function EditProjectModal({ open, onClose, project }: EditProjectModalPro
 
         {/* Cụm nút hành động */}
         <div className="flex items-center justify-end gap-3 border-t border-slate-100 pt-3 mt-5">
-          <Button type="button" variant="outline" onClick={onClose}>
+          {/* 26/08/2026: them disabled={updateProject.isPending} - nut Huy nay truoc do goi thang
+              onClose khong dieu kien, la 1 duong dong khong bi chan boi preventCloseWhilePending
+              (prop do chi chan X/Escape/backdrop trong Modal.tsx, khong bao trum nut tu viet trong
+              modal con) - mirror dung disabled đã co san o DepartmentModal.tsx/UploadModal.tsx. */}
+          <Button type="button" variant="outline" onClick={onClose} disabled={updateProject.isPending}>
             {t('projects:newProjectModal.cancel')}
           </Button>
           <Button type="submit" isLoading={updateProject.isPending}>

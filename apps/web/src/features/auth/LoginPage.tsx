@@ -47,10 +47,21 @@ export function LoginPage() {
     login.mutate({ email: email.trim(), password });
   }
 
-  const handleCopy = (text: string, field: 'email' | 'password') => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
+  const handleCopy = async (text: string, field: 'email' | 'password') => {
+    // 26/08/2026: Fix 7 - await navigator.clipboard.writeText() va chi hien trang thai "đã sao
+    // chép" khi THANH CONG - truoc ban sua nay goi writeText() (tra ve mot Promise) nhung KHONG
+    // doi/bat loi, roi hien icon check + trang thai "đã sao chép" NGAY LAP TUC bat ke thanh cong
+    // hay that bai (vd trinh duyet tu choi quyen Clipboard, trang khong chay tren context HTTPS,
+    // hoac API khong duoc ho tro) - nguoi dung thay dau "đã sao chép" GIA trong khi thuc te khong
+    // co gi duoc sao vao clipboard. Neu that bai thi im lang bo qua (day chi la tien ich phu cho
+    // tai khoan demo, khong phai luong nghiep vu chinh nen khong can toast loi rieng).
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch {
+      // Sao chep that bai - khong hien trang thai "đã sao chép" gia.
+    }
   };
 
   const handleFillDemo = () => {
@@ -111,14 +122,14 @@ export function LoginPage() {
         <div className="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-slate-100">
           <div className="flex items-center gap-1.5">
             <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-bold text-slate-900">Tài khoản Demo</span>
+            <span className="text-xs font-bold text-slate-900">{t('auth:loginPage.demoAccount.title')}</span>
           </div>
           <button
             type="button"
             onClick={handleFillDemo}
             className="text-[11px] font-semibold text-primary-600 hover:text-primary-700 hover:underline cursor-pointer"
           >
-            Tự điền nhanh
+            {t('auth:loginPage.demoAccount.autofill')}
           </button>
         </div>
 
@@ -131,7 +142,7 @@ export function LoginPage() {
             <button
               type="button"
               onClick={() => handleCopy(DEMO_CREDENTIALS.email, 'email')}
-              title="Sao chép Email"
+              title={t('auth:loginPage.demoAccount.copyEmailTitle')}
               className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-400 transition-colors hover:bg-slate-200/70 hover:text-slate-700 cursor-pointer"
             >
               {copiedField === 'email' ? (
@@ -144,13 +155,13 @@ export function LoginPage() {
 
           <div className="flex items-center justify-between gap-2 rounded-lg bg-slate-50/80 px-2.5 py-1.5 border border-slate-100">
             <div className="min-w-0 flex-1">
-              <span className="block text-[10px] text-slate-400 font-medium">Mật khẩu:</span>
+              <span className="block text-[10px] text-slate-400 font-medium">{t('auth:loginPage.demoAccount.passwordLabel')}</span>
               <span className="block truncate font-mono text-slate-800">{DEMO_CREDENTIALS.password}</span>
             </div>
             <button
               type="button"
               onClick={() => handleCopy(DEMO_CREDENTIALS.password, 'password')}
-              title="Sao chép Mật khẩu"
+              title={t('auth:loginPage.demoAccount.copyPasswordTitle')}
               className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-400 transition-colors hover:bg-slate-200/70 hover:text-slate-700 cursor-pointer"
             >
               {copiedField === 'password' ? (

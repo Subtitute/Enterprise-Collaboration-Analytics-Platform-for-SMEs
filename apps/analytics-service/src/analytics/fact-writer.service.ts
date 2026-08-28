@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { DomainEvent } from '@app/common-dto';
@@ -39,6 +39,8 @@ type QueryExecutor = Pick<DataSource, 'query'>;
  */
 @Injectable()
 export class FactWriterService {
+  private readonly logger = new Logger(FactWriterService.name);
+
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
   /**
@@ -148,16 +150,45 @@ export class FactWriterService {
    * lan phat DAU TIEN hay 1 ban RE-SYNC lap lai (an toan replay theo thiet ke cua IAM Service),
    * ket qua cuoi cung LUON la trang thai HIEN TAI cua user (last-write-wins) - dung y do, vi bang
    * nay chi luu SNAPSHOT hien tai chu khong phai 1 log lich su nhu cac fact table kia.
+   *
+   * 26/08/2026 (fix audit - Minor/Major, race co the xay ra): "last-write-wins" o tren truoc day
+   * la last-write-wins theo THU TU XU LY THUC TE (updated_at = now() luc consumer chay), KHONG
+   * phai theo THU TU PHAT SINH cua event (event.occurredAt) - neu 2 event USER_DEPARTMENT_CHANGED
+   * cho CUNG 1 user bi Kafka giao KHONG DUNG THU TU (vd retry/redeliver sau 1 loi tam thoi o
+   * KafkaConsumerService khien event cu hon duoc xu ly LAI sau event moi hon), ban ghi dim_user co
+   * the ket thuc voi phong ban SAI (tu event CU, ghi de len ket qua DUNG cua event MOI da ap dung
+   * truoc do). Them cot `last_event_at` (schema-bootstrap.ts, luu event.occurredAt CUA LAN GHI GAN
+   * NHAT - khac updated_at chi la thoi diem ghi theo dong ho he thong) va dung 1 CAU LENH SQL DUY
+   * NHAT "INSERT ... ON CONFLICT DO UPDATE ... WHERE" de kiem tra thu tu MOT CACH NGUYEN TU (atomic)
+   * ngay trong Postgres - tranh race giua "SELECT kiem tra truoc" va "UPDATE sau" neu tach thanh 2
+   * cau lenh rieng. Neu event.occurredAt CU HON hoac BANG last_event_at da luu, menh de WHERE sai
+   * nen UPDATE khong duoc ap dung (RETURNING khong tra ve hang nao) - log debug va bo qua, KHONG
+   * throw (day KHONG phai loi ha tang, chi la 1 event den KHONG DUNG THU TU, retry lai cung vo ich).
    */
   async upsertUserDepartment(event: DomainEvent, runner: QueryExecutor = this.dataSource): Promise<void> {
-    await runner.query(
+    const rows = await runner.query(
       `
-      INSERT INTO dim_user (user_id, organization_id, department_id, updated_at)
-      VALUES ($1, $2, $3, now())
-      ON CONFLICT (user_id) DO UPDATE SET department_id = EXCLUDED.department_id, updated_at = now()
+      INSERT INTO dim_user (user_id, organization_id, department_id, updated_at, last_event_at)
+      VALUES ($1, $2, $3, now(), $4)
+      ON CONFLICT (user_id) DO UPDATE SET department_id = EXCLUDED.department_id, updated_at = now(), last_event_at = EXCLUDED.last_event_at
+      WHERE dim_user.last_event_at IS NULL OR EXCLUDED.last_event_at > dim_user.last_event_at
+      RETURNING user_id
       `,
-      [extractString(event, 'userId'), event.organizationId, extractString(event, 'departmentId')],
+      [
+        extractString(event, 'userId'),
+        event.organizationId,
+        extractString(event, 'departmentId'),
+        event.occurredAt,
+      ],
     );
+    if (rows.length === 0) {
+      // 26/08/2026: xem ghi chu Fix ordering o tren - hang KHONG duoc UPDATE vi event.occurredAt
+      // cu hon/bang last_event_at da luu (event den KHONG DUNG THU TU, vd bi Kafka redeliver sau
+      // 1 event moi hon da xu ly truoc do).
+      this.logger.debug(
+        `Bo qua upsertUserDepartment cho event CU hon last_event_at da luu (userId=${extractString(event, 'userId')}, eventId=${event.eventId}, occurredAt=${event.occurredAt}).`,
+      );
+    }
   }
 }
 

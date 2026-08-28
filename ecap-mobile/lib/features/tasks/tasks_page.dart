@@ -61,7 +61,9 @@ class _TasksPageState extends State<TasksPage> {
     setState(() => _updatingTaskId = task.id);
     try {
       await widget.apiClient.patch('/tasks/${task.id}/status', {'status': taskStatusToJson(toStatus)});
-      await _load();
+      // 25/08/2026: xem giai thich mounted-guard tai notifications_page.dart/leave_requests_page.dart
+      // (phat hien qua dot ra soat toan du an lan 3) - cung ly do.
+      if (mounted) await _load();
     } on ApiException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));

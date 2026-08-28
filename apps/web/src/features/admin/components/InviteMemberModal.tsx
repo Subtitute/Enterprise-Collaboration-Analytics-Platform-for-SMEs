@@ -29,6 +29,10 @@ export function InviteMemberModal({ open, onClose }: { open: boolean; onClose: (
     setErrors({});
   }
 
+  // 26/08/2026: bo nhanh kiem tra "if (inviteUser.isPending) return" o day - gio Modal.tsx tu chan
+  // ca 3 duong dong (nut X, Escape, click ra ngoai overlay) qua prop preventCloseWhilePending
+  // truyen ben duoi, nen handleClose CHI con lo phan rieng cua modal nay: reset() du lieu form
+  // truoc khi dong (ly do can chan dong khi pending van giu nguyen - xem Modal.tsx).
   function handleClose() {
     reset();
     onClose();
@@ -56,7 +60,12 @@ export function InviteMemberModal({ open, onClose }: { open: boolean; onClose: (
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title={t('admin:inviteMemberModal.title')}>
+    <Modal
+      open={open}
+      onClose={handleClose}
+      preventCloseWhilePending={inviteUser.isPending}
+      title={t('admin:inviteMemberModal.title')}
+    >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <FormField label={t('admin:inviteMemberModal.emailLabel')} htmlFor="invite-email" error={errors.email} required>
           <Input
@@ -104,7 +113,7 @@ export function InviteMemberModal({ open, onClose }: { open: boolean; onClose: (
           <RoleCheckboxList roles={rolesQuery.data ?? []} selectedIds={roleIds} onChange={setRoleIds} />
         </div>
         <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="outline" onClick={handleClose}>
+          <Button type="button" variant="outline" onClick={handleClose} disabled={inviteUser.isPending}>
             {t('admin:inviteMemberModal.cancel')}
           </Button>
           <Button type="submit" isLoading={inviteUser.isPending}>

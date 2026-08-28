@@ -1,4 +1,4 @@
-import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ERROR_CODES } from '@app/common-dto';
 import {
@@ -63,6 +63,23 @@ export class AiInsightsService {
     departmentId?: string,
     departmentName?: string,
   ): Promise<AiInsightResult> {
+    // 25/08/2026: fix ra soat bao mat (High - "cross-tenant resource exhaustion") - `departmentId`
+    // truoc day chi duoc validate LA UUID (@IsUUID('4') tren DTO), khong kiem tra co THUC SU
+    // thuoc to chuc cua nguoi goi hay khong. Vi cacheKey nhung ben duoi bao gom nguyen van
+    // departmentId, 1 nguoi dung bat ky co quyen `analytics:view` (Manager/Org Admin mac dinh) co
+    // the goi lien tuc voi 1 UUID NGAU NHIEN moi lan -> LUON cache-miss -> luon roi xuong duong
+    // song goi API Gemini/Groq that (GEMINI_API_KEY/GROQ_API_KEY la 1 bien moi truong DUY NHAT
+    // dung chung TOAN NEN TANG, khong phai theo tung to chuc) - 1 nguoi dung o 1 to chuc co the
+    // don rieng het han ngach mien phi dung chung, lam gian doan tinh nang cho MOI to chuc khac.
+    // Chan som: tu choi 400 neu departmentId khong khop bat ky user nao cua DUNG to chuc nay
+    // trong dim_user (xem AnalyticsService.departmentExists()) - truoc khi cham toi cache/LLM.
+    if (departmentId && !(await this.analyticsService.departmentExists(organizationId, departmentId))) {
+      throw new BadRequestException({
+        message: 'Khong tim thay phong ban',
+        errorCode: ERROR_CODES.DEPARTMENT_NOT_FOUND,
+      });
+    }
+
     const cacheKey = departmentId
       ? `analytics:ai-insight:${organizationId}:${range}:dept:${departmentId}`
       : `analytics:ai-insight:${organizationId}:${range}`;

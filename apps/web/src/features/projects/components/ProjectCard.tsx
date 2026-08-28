@@ -10,7 +10,7 @@ import { CalendarIcon, CheckCircleIcon, EditIcon, MoreVerticalIcon, RefreshIcon,
 import { formatDate } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
 import { useOrgUsersQuery } from '@/hooks/useOrgUsers';
-import { projectStatusMeta } from '../utils';
+import { projectStatusMeta, projectPriorityMeta } from '../utils';
 import { useCompleteProject, useReopenProject, useDeleteProject } from '../hooks';
 import { EditProjectModal } from './EditProjectModal';
 import type { Project } from '@/types';
@@ -32,9 +32,13 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  // Đọc metadata mở rộng từ localStorage (priority, lead, status override)
+  // 26/08/2026 (fix code review, loi MAJOR - Fix 3): chi con doc `status` (override lac quan cua
+  // completeProject()/reopenProject(), xem api.ts) tu localStorage - `priority`/`leadId` truoc day
+  // cung doc tu day nhung GIO LA truong that tu server (project.priority/project.leadUserId, xem
+  // project.entity.ts) nen khong con override tu localStorage cho 2 truong nay nua (moi trinh
+  // duyet/nguoi dung deu thay CUNG 1 gia tri).
   const usersQuery = useOrgUsersQuery();
-  const projectMeta: { priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'; leadId?: string; status?: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED' } = (() => {
+  const projectMeta: { status?: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED' } = (() => {
     try {
       const store = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
       return store[project.id] ?? {};
@@ -93,7 +97,7 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
                 <p className="truncate flex-1 min-w-0 text-sm font-bold text-slate-900 transition-colors group-hover:text-primary-600" title={project.name}>
                   {project.name}
                 </p>
-                {projectMeta.priority && (
+                {project.priority && (
                   <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold border ${priorityMeta.color}`}>
                     {priorityMeta.label}
                   </span>

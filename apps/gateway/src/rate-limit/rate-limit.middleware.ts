@@ -5,7 +5,7 @@ import { ERROR_CODES, type JwtAccessPayload } from '@app/common-dto';
 import { RedisService } from '../redis/redis.service';
 import { sendErrorResponse } from '../common/send-error-response';
 import { withTimeout } from '../common/with-timeout.util';
-import { buildRateLimitKey, evaluateRateLimit, getClientIp } from './rate-limit.util';
+import { buildRateLimitKey, evaluateRateLimit, getClientIp, type RateLimitDecision } from './rate-limit.util';
 
 const logger = new Logger('RateLimitMiddleware');
 
@@ -26,6 +26,49 @@ type RequestWithUser = Request & { user?: JwtAccessPayload };
 const RATE_LIMIT_TIMEOUT_MS = 1000;
 
 /**
+ * 25/08/2026: fix ra soat bao mat - tach logic kiem tra rate-limit (INCR/EXPIRE + danh gia
+ * nguong) ra khoi middleware Express de jwt-auth.middleware.ts co the goi TRUC TIEP truoc khi tra
+ * 401 (thieu/sai token). Phat hien qua ra soat: jwt-auth chay TRUOC rate-limit trong pipeline (xem
+ * setup-gateway.ts), va middleware nay tra 401 NGAY (khong goi next()) khi thieu/sai token - nghia
+ * la request thieu/sai token KHONG BAO GIO toi duoc rate-limit middleware o duoi, hoan toan khong
+ * bi dem/chan boi bat ky gioi han nao. Ke tan cong co the flood 1 route bat ky voi token rong/gia
+ * o toc do tuy y ma khong bao gio bi 429 - vo hieu hoa lop bao ve chinh cua Gateway cho da so
+ * traffic doc hai thuc te (quet/flood), doc lap voi van de gia mao X-Real-IP.
+ */
+export async function checkRateLimit(
+  redisService: RedisService,
+  configService: ConfigService,
+  ip: string,
+  organizationId?: string,
+): Promise<RateLimitDecision> {
+  const max = configService.get<number>('rateLimit.max') ?? 100;
+  const windowSeconds = configService.get<number>('rateLimit.windowSeconds') ?? 60;
+  const client = redisService.getClient();
+  const key = buildRateLimitKey(ip, organizationId);
+
+  try {
+    // 26/08/2026: fix loi MAJOR (ra soat bao mat) - truoc day INCR va EXPIRE (co dieu kien, chi khi
+    // vua tao key) la 2 lenh Redis RIENG BIET; mat ket noi giua 2 lenh do de lai key khong co TTL,
+    // khoa nguoi dung/to chuc do vao rate-limit VINH VIEN. Thay bang lenh incrWithExpire (Lua script
+    // EVALSHA, dang ky trong RedisService.onModuleInit()) thuc hien ca 2 buoc NGUYEN TU trong 1 lenh
+    // Redis duy nhat - xem chu thich chi tiet tai noi dang ky (redis.service.ts).
+    const count = await withTimeout(
+      client.incrWithExpire(key, windowSeconds),
+      RATE_LIMIT_TIMEOUT_MS,
+      `Redis rate-limit check vuot qua ${RATE_LIMIT_TIMEOUT_MS}ms`,
+    );
+    return evaluateRateLimit(count, max);
+  } catch (err) {
+    // Redis loi -> fail-open (cho qua) de Gateway khong sap toan bo he thong chi vi
+    // rate limiter, chi ghi log canh bao. Day la lua chon co chu dich, khong phai bo sot.
+    logger.warn(
+      `Kiem tra rate-limit that bai, cho qua yeu cau: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return { allowed: true, count: 0, remaining: max };
+  }
+}
+
+/**
  * Rate limiting co ban theo IP (+ organizationId khi da biet) dung bo dem fixed-window
  * tren Redis (INCR + EXPIRE lan dau) - Technical_Spec.md muc 8.
  *
@@ -35,53 +78,32 @@ const RATE_LIMIT_TIMEOUT_MS = 1000;
  * Voi route cong khai (vd /api/v1/auth/login) - middleware xac thuc JWT bo qua hoan toan nen
  * KHONG gan req.user - rate-limit o day tu dong roi ve IP-only nhu thiet ke von co: van du
  * de chan brute-force dang nhap theo IP truoc khi nguoi dung co JWT hop le.
+ *
+ * Request thieu/sai token (khong toi duoc day - xem checkRateLimit() o tren) duoc
+ * jwt-auth.middleware.ts tu kiem tra IP-only TRUOC khi tra 401.
  */
 export function createRateLimitMiddleware(
   redisService: RedisService,
   configService: ConfigService,
 ): RequestHandler {
-  const max = configService.get<number>('rateLimit.max') ?? 100;
-  const windowSeconds = configService.get<number>('rateLimit.windowSeconds') ?? 60;
-
   return (req: Request, res: Response, next: NextFunction): void => {
-    const client = redisService.getClient();
     const ip = getClientIp(req);
     const organizationId = (req as RequestWithUser).user?.organizationId;
-    const key = buildRateLimitKey(ip, organizationId);
 
-    withTimeout(
-      client.incr(key).then(async (count) => {
-        if (count === 1) {
-          await client.expire(key, windowSeconds);
-        }
-        return count;
-      }),
-      RATE_LIMIT_TIMEOUT_MS,
-      `Redis rate-limit check vuot qua ${RATE_LIMIT_TIMEOUT_MS}ms`,
-    )
-      .then((count) => {
-        const decision = evaluateRateLimit(count, max);
-        if (!decision.allowed) {
-          sendErrorResponse(
-            res,
-            429,
-            'TooManyRequestsException',
-            'Ban da gui qua nhieu yeu cau, vui long thu lai sau it phut',
-            req.originalUrl,
-            ERROR_CODES.GATEWAY_RATE_LIMITED,
-            req,
-          );
-          return;
-        }
-        next();
-      })
-      .catch((err: unknown) => {
-        // Redis loi -> fail-open (cho qua) de Gateway khong sap toan bo he thong chi vi
-        // rate limiter, chi ghi log canh bao. Day la lua chon co chu dich, khong phai bo sot.
-        logger.warn(
-          `Kiem tra rate-limit that bai, cho qua yeu cau: ${err instanceof Error ? err.message : String(err)}`,
+    checkRateLimit(redisService, configService, ip, organizationId).then((decision) => {
+      if (!decision.allowed) {
+        sendErrorResponse(
+          res,
+          429,
+          'TooManyRequestsException',
+          'Ban da gui qua nhieu yeu cau, vui long thu lai sau it phut',
+          req.originalUrl,
+          ERROR_CODES.GATEWAY_RATE_LIMITED,
+          req,
         );
-        next();
-      });
+        return;
+      }
+      next();
+    });
   };
 }

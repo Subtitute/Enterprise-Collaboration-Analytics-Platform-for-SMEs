@@ -12,6 +12,7 @@
     "build:libs": "npm run build -w packages/common-dto -w packages/common-guard -w packages/common-metrics",
     "build": "npm run build:libs && npm run build --workspaces --if-present -w apps/gateway -w apps/iam-service -w apps/project-task-service -w apps/document-service -w apps/notification-service -w apps/analytics-service -w apps/crm-service -w apps/hrm-service -w apps/web",
     "lint": "npm run lint --workspaces --if-present",
+    "lint:i18n-strings": "node scripts/check-hardcoded-vietnamese.js",
     "typecheck": "npm run build:libs && tsc --noEmit -p apps/gateway/tsconfig.json && tsc --noEmit -p apps/iam-service/tsconfig.json && tsc --noEmit -p apps/project-task-service/tsconfig.json && tsc --noEmit -p apps/document-service/tsconfig.json && tsc --noEmit -p apps/notification-service/tsconfig.json && tsc --noEmit -p apps/analytics-service/tsconfig.json && tsc --noEmit -p apps/crm-service/tsconfig.json && tsc --noEmit -p apps/hrm-service/tsconfig.json && tsc --noEmit -p apps/web/tsconfig.json",
     "test": "npm run test --workspaces --if-present",
     "test:coverage": "npm run test --workspaces --if-present -- --coverage",

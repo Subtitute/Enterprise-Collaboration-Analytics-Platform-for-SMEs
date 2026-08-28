@@ -32,10 +32,27 @@ export function LeaveRequestsPage() {
   const pendingQuery = usePendingLeaveRequestsQuery();
   const approve = useApproveLeaveRequest();
   const reject = useRejectLeaveRequest();
+  // 26/08/2026: sua loi thuc te - `approve`/`reject` chi duoc goi 1 LAN cho ca trang va dung chung
+  // cho MOI dong trong danh sach cho duyet, nen `approve.isPending`/`reject.isPending` la trang thai
+  // DUNG CHUNG: duyet 1 don se lam nut Duyet/Tu choi cua TAT CA cac dong khac cung disable/quay spin
+  // theo, du chung khong lien quan gi den request dang xu ly. Theo doi rieng id cua request dang
+  // duoc mutate (`pendingRequestId`) va chi doi chieu isPending voi dong co id trung khop, de moi
+  // dong con lai khong bi anh huong.
+  const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
 
   // 403 (khong co PERMISSIONS.LEAVE_REQUEST_VIEW) la ket qua BINH THUONG cho Employee thuong -
   // coi nhu "khong ap dung", KHONG hien banner loi (xem ghi chu tai usePendingLeaveRequestsQuery).
   const canApprove = !pendingQuery.isError && (pendingQuery.data?.data.length ?? 0) >= 0 && pendingQuery.isSuccess;
+
+  function handleApprove(id: string) {
+    setPendingRequestId(id);
+    approve.mutate(id, { onSettled: () => setPendingRequestId(null) });
+  }
+
+  function handleReject(id: string) {
+    setPendingRequestId(id);
+    reject.mutate(id, { onSettled: () => setPendingRequestId(null) });
+  }
 
   return (
     <div className="space-y-5">
@@ -55,24 +72,42 @@ export function LeaveRequestsPage() {
             <CardTitle>{t('hrm:leaveRequestsPage.pending.cardTitle', { count: pendingQuery.data?.data.length })}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {pendingQuery.data?.data.map((request) => (
-              <div key={request.id} className="flex flex-col gap-2 rounded-lg border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-800">
-                    {formatDate(request.startDate)} — {formatDate(request.endDate)}
-                  </p>
-                  <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{request.reason}</p>
+            {pendingQuery.data?.data.map((request) => {
+              // 26/08/2026: sua loi thuc te - xem chu thich tai khai bao `pendingRequestId` o dau
+              // component: chi coi dong nay la "dang xu ly" khi no la dong dang duoc mutate, khong
+              // phai bat cu khi nao approve/reject dang isPending (vi 2 mutation nay dung chung cho
+              // toan bo danh sach).
+              const isRowBusy = pendingRequestId === request.id && (approve.isPending || reject.isPending);
+              return (
+                <div key={request.id} className="flex flex-col gap-2 rounded-lg border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-slate-800">
+                      {formatDate(request.startDate)} — {formatDate(request.endDate)}
+                    </p>
+                    <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{request.reason}</p>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleReject(request.id)}
+                      isLoading={isRowBusy && reject.isPending}
+                      disabled={isRowBusy}
+                    >
+                      <XIcon className="h-4 w-4" /> {t('hrm:leaveRequestsPage.pending.reject')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleApprove(request.id)}
+                      isLoading={isRowBusy && approve.isPending}
+                      disabled={isRowBusy}
+                    >
+                      <CheckIcon className="h-4 w-4" /> {t('hrm:leaveRequestsPage.pending.approve')}
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex shrink-0 gap-2">
-                  <Button size="sm" variant="outline" onClick={() => reject.mutate(request.id)} isLoading={reject.isPending}>
-                    <XIcon className="h-4 w-4" /> {t('hrm:leaveRequestsPage.pending.reject')}
-                  </Button>
-                  <Button size="sm" onClick={() => approve.mutate(request.id)} isLoading={approve.isPending}>
-                    <CheckIcon className="h-4 w-4" /> {t('hrm:leaveRequestsPage.pending.approve')}
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </CardContent>
         </Card>
       )}

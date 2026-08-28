@@ -46,6 +46,13 @@ jobs:
       - name: Lint (ESLint) — all workspaces
         run: npm run lint
 
+      # 26/08/2026: sau dot rollout i18n va sau do 3 lan rieng phai tu tay tim thu chuoi tieng Viet
+      # co dau con sot lai truc tiep trong ma nguon .ts/.tsx (DatePicker.tsx, RecentActivityFeed.tsx,
+      # Topbar.tsx - ca 3 deu lo ra SAU KHI dot rollout i18n da duoc coi la "hoan tat"), toi them
+      # buoc nay de CI tu bat loi nay ngay khi co PR moi, thay vi phai cho ra soat thu cong lan nua.
+      - name: Lint — hardcoded Vietnamese strings outside i18n (apps/web)
+        run: npm run lint:i18n-strings
+
       - name: Type-check (tsc --noEmit) — all workspaces
         run: npm run typecheck
 

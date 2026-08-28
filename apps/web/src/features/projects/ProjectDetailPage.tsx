@@ -12,7 +12,7 @@ import { QueryState } from '@/components/ui/QueryState';
 import { ChevronLeftIcon, PlusIcon, CheckCircleIcon, CalendarIcon, RefreshIcon } from '@/components/ui/Icons';
 import { formatDate, cn } from '@/lib/utils';
 import { useProjectQuery, useTasksQuery, useCompleteProject, useReopenProject } from './hooks';
-import { projectStatusMeta, computeProgressFromTasks } from './utils';
+import { projectStatusMeta, computeProgressFromTasks, projectPriorityMeta } from './utils';
 import { KanbanBoard } from './components/KanbanBoard';
 import { NewTaskModal } from './components/NewTaskModal';
 import { TaskDetailModal } from './components/TaskDetailModal';
@@ -37,8 +37,12 @@ export function ProjectDetailPage() {
 
   const project = projectQuery.data;
 
-  // Đọc metadata mở rộng từ localStorage (priority, lead, status override)
-  const projectMeta: { priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'; leadId?: string; status?: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED' } = (() => {
+  // 26/08/2026 (fix code review, loi MAJOR - Fix 3): chi con doc `status` (override lac quan cua
+  // completeProject()/reopenProject(), xem api.ts) tu localStorage - `priority` truoc day cung doc
+  // tu day nhung GIO LA truong that tu server (project.priority, xem project.entity.ts) nen khong
+  // con override tu localStorage cho truong nay nua (moi trinh duyet/nguoi dung deu thay CUNG 1
+  // gia tri).
+  const projectMeta: { status?: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED' } = (() => {
     try {
       const meta = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
       return meta[project.id] ?? {};

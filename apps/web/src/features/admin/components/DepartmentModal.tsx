@@ -52,6 +52,12 @@ export function DepartmentModal({
     <Modal
       open={open}
       onClose={onClose}
+      // 26/08/2026: chuyen guard "khong cho dong modal khi dang co mutation pending" (viet tay hom
+      // qua ngay trong handleClose cua file nay) sang prop dung chung preventCloseWhilePending cua
+      // Modal.tsx - ly do goc van vay (mutation cu van chay ngam sau khi dong+mo lai modal, xem
+      // Modal.tsx de biet chi tiet), chi khac la gio Modal tu chan ca 3 duong dong thay vi tung
+      // modal phai tu viet lai.
+      preventCloseWhilePending={isPending}
       title={isEditing ? t('admin:departmentModal.editTitle') : t('admin:departmentModal.createTitle')}
       size="sm"
     >
@@ -68,7 +74,7 @@ export function DepartmentModal({
           <Textarea id="department-description" value={description} onChange={(e) => setDescription(e.target.value)} />
         </FormField>
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
             {t('admin:departmentModal.cancel')}
           </Button>
           <Button type="submit" isLoading={isPending}>

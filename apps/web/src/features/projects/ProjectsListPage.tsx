@@ -72,7 +72,11 @@ export function ProjectsListPage() {
     }
     try {
       const savedOrder: string[] = JSON.parse(localStorage.getItem(ORDER_STORAGE_KEY) || '[]');
-      const metaStore: Record<string, { priority?: string; status?: string }> = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
+      // 26/08/2026 (fix code review, loi MAJOR - Fix 3): chi con doc `status` (override lac quan cua
+      // completeProject()/reopenProject(), xem api.ts) tu metaStore nay - `priority` truoc day cung
+      // doc tu day nhung GIO LA truong that tu server (p.priority, xem project.entity.ts) nen loc/
+      // sap xep ben duoi doc THANG tu server thay vi override rieng tung trinh duyet.
+      const metaStore: Record<string, { status?: string }> = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
 
       let list = [...rawProjects];
 
@@ -87,7 +91,7 @@ export function ProjectsListPage() {
       // 2. Lọc theo ĐỘ ƯU TIÊN (priority filter)
       if (priorityFilter) {
         list = list.filter((p) => {
-          const pPriority = metaStore[p.id]?.priority ?? 'MEDIUM';
+          const pPriority = p.priority ?? 'MEDIUM';
           return pPriority === priorityFilter;
         });
       }
@@ -121,14 +125,14 @@ export function ProjectsListPage() {
             if (idxA !== -1 && idxB !== -1) return idxA - idxB;
             if (idxA !== -1) return -1;
             if (idxB !== -1) return 1;
-            const weightA = PRIORITY_WEIGHT[metaStore[a.id]?.priority ?? 'MEDIUM'] ?? 2;
-            const weightB = PRIORITY_WEIGHT[metaStore[b.id]?.priority ?? 'MEDIUM'] ?? 2;
+            const weightA = PRIORITY_WEIGHT[a.priority ?? 'MEDIUM'] ?? 2;
+            const weightB = PRIORITY_WEIGHT[b.priority ?? 'MEDIUM'] ?? 2;
             return weightB - weightA;
           });
         } else {
           group.sort((a, b) => {
-            const weightA = PRIORITY_WEIGHT[metaStore[a.id]?.priority ?? 'MEDIUM'] ?? 2;
-            const weightB = PRIORITY_WEIGHT[metaStore[b.id]?.priority ?? 'MEDIUM'] ?? 2;
+            const weightA = PRIORITY_WEIGHT[a.priority ?? 'MEDIUM'] ?? 2;
+            const weightB = PRIORITY_WEIGHT[b.priority ?? 'MEDIUM'] ?? 2;
             return weightB - weightA;
           });
         }

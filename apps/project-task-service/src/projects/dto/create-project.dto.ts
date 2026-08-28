@@ -1,4 +1,5 @@
-import { IsDateString, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
+import { ProjectPriority } from '../../entities/project.entity';
 
 /** Tao du an moi - Technical_Spec.md muc 3.3, Wireframe.md muc 4. */
 export class CreateProjectDto {
@@ -16,4 +17,16 @@ export class CreateProjectDto {
   @IsOptional()
   @IsDateString({}, { message: 'Han hoan thanh du an phai la ngay hop le (ISO-8601)' })
   dueDate?: string;
+
+  // 26/08/2026 (fix code review, loi MAJOR - Fix 3): 2 field moi - truoc do frontend chi luu
+  // priority/leadId vao localStorage (rieng tung trinh duyet, khong dong bo giua nguoi dung). Xem
+  // chu thich chi tiet tai project.entity.ts (cot moi `priority`/`lead_user_id`) va
+  // projects.service.ts (create()).
+  @IsOptional()
+  @IsEnum(ProjectPriority, { message: 'Do uu tien du an khong hop le' })
+  priority?: ProjectPriority;
+
+  @IsOptional()
+  @IsUUID('4', { message: 'leadUserId phai la UUID hop le' })
+  leadUserId?: string;
 }

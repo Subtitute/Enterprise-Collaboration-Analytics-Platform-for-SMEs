@@ -11,6 +11,12 @@
       "ARCHIVED": "Lưu trữ"
     }
   },
+  "priority": {
+    "LOW": "Ưu tiên thấp",
+    "MEDIUM": "Trung bình",
+    "HIGH": "Ưu tiên cao",
+    "URGENT": "Khẩn cấp"
+  },
   "list": {
     "title": "Dự án & Công việc",
     "subtitle": "Theo dõi tiến độ và quản lý công việc nhóm trực quan.",
@@ -62,7 +68,6 @@
     "descriptionPlaceholder": "Mục tiêu, phạm vi công việc của dự án…",
     "dueDateLabel": "Hạn hoàn thành",
     "priorityLabel": "Độ ưu tiên",
-    "priorityRequired": "Vui lòng chọn độ ưu tiên",
     "leadLabel": "Người phụ trách",
     "searchMemberPlaceholder": "Tìm và chọn người phụ trách…",
     "changeLead": "Đổi",
@@ -104,7 +109,9 @@
     "memberUnit": "{{count}} TV",
     "memberCount": "{{count}} thành viên",
     "confirmDeleteTitle": "Xoá dự án này?",
-    "confirmDeleteDescription": "Toàn bộ công việc thuộc \"{{name}}\" cũng có thể bị xoá. Hành động này không thể hoàn tác."
+    "confirmDeleteDescription": "Toàn bộ công việc thuộc \"{{name}}\" cũng có thể bị xoá. Hành động này không thể hoàn tác.",
+    "noDescription": "Không có mô tả",
+    "leadTooltip": "Phụ trách: {{name}}"
   },
   "taskCard": {
     "unknownAssignee": "Thành viên"

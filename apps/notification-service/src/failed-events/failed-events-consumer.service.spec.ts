@@ -65,4 +65,94 @@ describe('FailedEventsConsumerService', () => {
 
     expect(failedEventsServiceMock.record).not.toHaveBeenCalled();
   });
+
+  // 26/08/2026: bo sung - fix audit "consumer DLQ rieng nay khong co consumer.on(CRASH,...) nao,
+  // khac voi KafkaConsumerService chinh da duoc fix 22/08/2026". Mirror y het bo test tuong ung
+  // trong kafka-consumer.service.spec.ts (gan truc tiep 1 mock consumer vao field private
+  // `consumer` thay vi goi onModuleInit() that, von tao ket noi Kafka that).
+  describe('registerCrashHandler/restartWithBackoff (fix audit "consumer DLQ khong xu ly CRASH")', () => {
+    function createMockConsumer() {
+      const handlers = new Map<string, (event: unknown) => void>();
+      return {
+        events: { CRASH: 'consumer.crash' },
+        on: jest.fn((event: string, handler: (event: unknown) => void) => handlers.set(event, handler)),
+        connect: jest.fn().mockResolvedValue(undefined),
+        subscribe: jest.fn().mockResolvedValue(undefined),
+        run: jest.fn().mockResolvedValue(undefined),
+        triggerCrash(payload: { error: Error; restart: boolean }) {
+          handlers.get('consumer.crash')?.({ payload });
+        },
+      };
+    }
+
+    afterEach(() => jest.useRealTimers());
+
+    it('dang ky handler tren event CRASH cua consumer khi khoi tao', () => {
+      const mockConsumer = createMockConsumer();
+      service['consumer'] = mockConsumer as never;
+
+      service['registerCrashHandler']();
+
+      expect(mockConsumer.on).toHaveBeenCalledWith('consumer.crash', expect.any(Function));
+    });
+
+    it('KHONG tu khoi dong lai khi kafkajs tu bao se tu restart (payload.restart=true)', () => {
+      const mockConsumer = createMockConsumer();
+      service['consumer'] = mockConsumer as never;
+      service['registerCrashHandler']();
+
+      mockConsumer.triggerCrash({ error: new Error('loi tam thoi'), restart: true });
+
+      expect(mockConsumer.connect).not.toHaveBeenCalled();
+    });
+
+    it('tu khoi dong lai (goi lai connect/subscribe/run) sau backoff khi kafkajs KHONG tu restart (payload.restart=false)', async () => {
+      jest.useFakeTimers();
+      const mockConsumer = createMockConsumer();
+      service['consumer'] = mockConsumer as never;
+      service['registerCrashHandler']();
+
+      mockConsumer.triggerCrash({ error: new Error('Kafka mat ket noi keo dai'), restart: false });
+      expect(mockConsumer.connect).not.toHaveBeenCalled();
+
+      // Backoff lan dau: 1000 * 2^1 = 2000ms (xem restartWithBackoff()).
+      await jest.advanceTimersByTimeAsync(2000);
+
+      expect(mockConsumer.connect).toHaveBeenCalledTimes(1);
+      expect(mockConsumer.subscribe).toHaveBeenCalledTimes(1);
+      expect(mockConsumer.run).toHaveBeenCalledTimes(1);
+    });
+
+    it('thu lai voi backoff TANG DAN neu lan khoi dong lai truoc do cung that bai', async () => {
+      jest.useFakeTimers();
+      const mockConsumer = createMockConsumer();
+      mockConsumer.connect
+        .mockRejectedValueOnce(new Error('van chua ket noi duoc'))
+        .mockResolvedValueOnce(undefined);
+      service['consumer'] = mockConsumer as never;
+      service['registerCrashHandler']();
+
+      mockConsumer.triggerCrash({ error: new Error('Kafka mat ket noi keo dai'), restart: false });
+      await jest.advanceTimersByTimeAsync(2000); // lan thu 1: that bai
+      await jest.advanceTimersByTimeAsync(4000); // lan thu 2 (backoff 1000*2^2=4000ms): thanh cong
+
+      expect(mockConsumer.connect).toHaveBeenCalledTimes(2);
+      expect(service['restartAttempt']).toBe(0); // ve 0 sau khi thanh cong
+    });
+
+    it('onModuleDestroy() huy timer backoff dang cho - KHONG tu ket noi lai "ma" sau khi da tat', async () => {
+      jest.useFakeTimers();
+      const mockConsumer = createMockConsumer();
+      service['consumer'] = { ...mockConsumer, disconnect: jest.fn().mockResolvedValue(undefined) } as never;
+      service['registerCrashHandler']();
+
+      mockConsumer.triggerCrash({ error: new Error('Kafka mat ket noi keo dai'), restart: false });
+      // Dang "ngu" giua backoff (2000ms) thi module bi pha huy (vd container redeploy).
+      await service.onModuleDestroy();
+
+      await jest.advanceTimersByTimeAsync(30_000); // du de moi backoff toi da (30s) da troi qua.
+
+      expect(mockConsumer.connect).not.toHaveBeenCalled();
+    });
+  });
 });

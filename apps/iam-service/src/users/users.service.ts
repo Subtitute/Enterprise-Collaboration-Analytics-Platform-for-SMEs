@@ -83,7 +83,11 @@ export class UsersService {
     dto: InviteUserDto,
     callerPermissions: string[],
   ): Promise<PublicUser> {
-    const existing = await this.userRepo.findOne({ where: { email: dto.email } });
+    // 25/08/2026: fix ra soat bao mat - chuan hoa email (trim + chu thuong) TRUOC kiem tra trung,
+    // cung ly do voi AuthService.registerOrganization() (xem comment tai do) - tranh tao duoc 2
+    // tai khoan nhin-giong-het nhau chi khac hoa/thuong (vd "Bob@Corp.vn" vs "bob@corp.vn").
+    const normalizedEmail = dto.email.trim().toLowerCase();
+    const existing = await this.userRepo.findOne({ where: { email: normalizedEmail } });
     if (existing) throw new ConflictException({ message: 'Email da duoc su dung', errorCode: ERROR_CODES.EMAIL_ALREADY_USED });
 
     // 25/07/2026: RBAC bypass CRITICAL (review 25/07/2026) - truoc day dto.roleIds duoc gan THANG
@@ -135,7 +139,7 @@ export class UsersService {
         const user = await manager.save(
           manager.create(User, {
             organizationId,
-            email: dto.email,
+            email: normalizedEmail,
             fullName: dto.fullName,
             departmentId: dto.departmentId ?? null,
             passwordHash,
@@ -174,8 +178,11 @@ export class UsersService {
     dto: UpdateUserDto,
     callerPermissions: string[],
   ): Promise<PublicUser> {
-    const user = await this.userRepo.findOne({ where: { id, organizationId } });
-    if (!user) throw new NotFoundException({ message: 'Khong tim thay nguoi dung', errorCode: ERROR_CODES.USER_NOT_FOUND });
+    // 26/08/2026: fix loi MAJOR (race condition ghi de dong thoi) - pre-check bang findOne() o day
+    // chi de fail-fast (tra 404 nhanh cho id chua tung ton tai/sai to chuc), KHONG con duoc dung de
+    // mutate/save nua (xem giai thich chi tiet o transaction ben duoi).
+    const existing = await this.userRepo.findOne({ where: { id, organizationId } });
+    if (!existing) throw new NotFoundException({ message: 'Khong tim thay nguoi dung', errorCode: ERROR_CODES.USER_NOT_FOUND });
 
     // 25/07/2026: cung 1 lo hong RBAC nhu invite() o tren, ap dung cho "canh cua" thu 2 - PATCH
     // /users/:id doi vai tro cua 1 tai khoan DA TON TAI. Controller hien tai da gate ca endpoint
@@ -191,7 +198,6 @@ export class UsersService {
       });
     }
 
-    if (dto.fullName !== undefined) user.fullName = dto.fullName;
     // 28/07/2026: ghi nho TRUOC khi gan vao `user` xem request nay co thuc su dong truong
     // departmentId hay khong (`dto.departmentId !== undefined`) - dung de quyet dinh co phat outbox
     // event USER_DEPARTMENT_CHANGED o cuoi ham hay khong (xem transaction ben duoi). Phai chup lai
@@ -201,31 +207,52 @@ export class UsersService {
     // "request khong dong truong departmentId" (KHONG phat event) chi bang cach doc lai
     // `user.departmentId` sau do.
     const departmentIdInRequest = dto.departmentId !== undefined;
-    if (dto.departmentId !== undefined) {
+    if (departmentIdInRequest && dto.departmentId !== null) {
       // 22/07/2026: xac thuc departmentId thuoc dung to chuc truoc khi gan - cung 1 lo hong nhu
       // invite() o tren (xem chu thich chi tiet tai do). `null` (bo phong ban) khong can tra cuu.
-      if (dto.departmentId !== null) {
-        const department = await this.departmentRepo.findOne({
-          where: { id: dto.departmentId, organizationId },
-        });
-        if (!department) throw new NotFoundException({ message: 'Khong tim thay phong ban', errorCode: ERROR_CODES.DEPARTMENT_NOT_FOUND });
-      }
-      user.departmentId = dto.departmentId;
+      const department = await this.departmentRepo.findOne({
+        where: { id: dto.departmentId, organizationId },
+      });
+      if (!department) throw new NotFoundException({ message: 'Khong tim thay phong ban', errorCode: ERROR_CODES.DEPARTMENT_NOT_FOUND });
     }
-    if (dto.roleIds) {
-      user.roles = await this.roleRepo.find({ where: { id: In(dto.roleIds), organizationId } });
-    }
+    // 26/08/2026: tra cuu roles moi (neu co) truoc khi vao transaction - giong departmentId o tren,
+    // day la tra cuu Role/Department theo organizationId, KHONG phu thuoc vao trang thai cua chinh
+    // ban ghi User dang sua nen khong can nam trong pham vi khoa ben duoi.
+    const newRoles = dto.roleIds
+      ? await this.roleRepo.find({ where: { id: In(dto.roleIds), organizationId } })
+      : undefined;
 
-    // 28/07/2026: boc save() vao 1 transaction va phat outbox event USER_DEPARTMENT_CHANGED CUNG
-    // luc khi request co thay doi departmentId (ke ca truong hop go phong ban ve null) - truoc day
-    // update() chi goi thang `this.userRepo.save(user)` NGOAI transaction, khong co event nao bao
-    // cho Analytics Service biet phong ban cua user vua doi de gop KPI theo phong ban (tinh nang
-    // moi - xem UserDepartmentChangedPayload trong packages/common-dto). Mau
-    // outbox-emission-trong-transaction nay lay dung theo deactivate()/invite() o tren: ghi
-    // outbox_events CUNG transaction voi thay doi nghiep vu de tranh outbox record va DB update bi
-    // lech nhau khi 1 trong 2 thao tac that bai giua chung.
+    // 26/08/2026: fix loi MAJOR (race condition, phat hien qua ra soat) - ban truoc day doc `user`
+    // bang findOne() KHONG KHOA o dau ham, sua truc tiep len object do, roi save() no BEN NGOAI
+    // transaction. 2 request PATCH dong thoi cho CUNG 1 user (vd request A doi roleIds, request B
+    // doi departmentId) co the cung doc trung 1 snapshot cu truoc khi ben nao commit - moi request
+    // chi sua field minh quan tam tren snapshot RIENG cua no, nhung `manager.save()` cua TypeORM ghi
+    // de TOAN BO trang thai in-memory cua entity (bao gom ca quan he `roles` eager-load), KHONG chi
+    // ghi field da doi. Request commit SAU se am tham "xoa" thay doi cua request commit TRUOC ma
+    // khong loi gi ca (lost update). Sua dung EXACT pattern pessimistic_write da dung o
+    // TasksService.updateStatus()/remove() (xem apps/project-task-service/src/tasks/tasks.service.ts):
+    // doc LAI ban ghi BEN TRONG transaction voi khoa ghi (pessimistic_write) - buoc request B phai
+    // doi request A commit va nha khoa truoc khi doc, dam bao B luon apply thay doi cua no LEN TREN
+    // trang thai MOI NHAT (da bao gom thay doi cua A) thay vi de len snapshot cu.
     const saved = await this.dataSource.transaction(async (manager) => {
+      const user = await manager.findOneOrFail(User, {
+        where: { id, organizationId },
+        lock: { mode: 'pessimistic_write' },
+      });
+
+      if (dto.fullName !== undefined) user.fullName = dto.fullName;
+      if (departmentIdInRequest) user.departmentId = dto.departmentId ?? null;
+      if (newRoles) user.roles = newRoles;
+
       const updated = await manager.save(user);
+      // 28/07/2026: boc save() vao 1 transaction va phat outbox event USER_DEPARTMENT_CHANGED CUNG
+      // luc khi request co thay doi departmentId (ke ca truong hop go phong ban ve null) - truoc day
+      // update() chi goi thang `this.userRepo.save(user)` NGOAI transaction, khong co event nao bao
+      // cho Analytics Service biet phong ban cua user vua doi de gop KPI theo phong ban (tinh nang
+      // moi - xem UserDepartmentChangedPayload trong packages/common-dto). Mau
+      // outbox-emission-trong-transaction nay lay dung theo deactivate()/invite() o tren: ghi
+      // outbox_events CUNG transaction voi thay doi nghiep vu de tranh outbox record va DB update bi
+      // lech nhau khi 1 trong 2 thao tac that bai giua chung.
       if (departmentIdInRequest) {
         const payload: UserDepartmentChangedPayload = {
           userId: updated.id,

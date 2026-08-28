@@ -35,6 +35,12 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   // 22/08/2026: dem so lan da thu khoi dong lai LIEN TIEP sau 1 lan CRASH - dung tinh backoff mu
   // dan, ve 0 ngay khi khoi dong lai thanh cong. Xem registerCrashHandler()/restartWithBackoff().
   private restartAttempt = 0;
+  // 25/08/2026: fix code review Minor - truoc day onModuleDestroy() khong huy timer backoff dang
+  // cho cua restartWithBackoff(), nen neu module bi pha huy (vd container redeploy) DUNG luc dang
+  // "ngu" giua 1 lan backoff, timer do van fire sau khi service da tat, tu goi lai startConsuming()
+  // tren 1 consumer da bi disconnect() - ket noi lai "ma" sau khi qua trinh tat may da coi la xong.
+  private restartTimer?: ReturnType<typeof setTimeout>;
+  private destroyed = false;
 
   constructor(
     private readonly configService: ConfigService,
@@ -55,6 +61,8 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
+    this.destroyed = true;
+    if (this.restartTimer) clearTimeout(this.restartTimer);
     await this.consumer?.disconnect();
   }
 
@@ -116,10 +124,14 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async restartWithBackoff(): Promise<void> {
+    if (this.destroyed) return;
     this.restartAttempt += 1;
     const delayMs = Math.min(30_000, 1000 * 2 ** this.restartAttempt);
     this.logger.warn(`Se thu khoi dong lai Kafka consumer sau ${delayMs}ms (lan thu ${this.restartAttempt})...`);
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    await new Promise<void>((resolve) => {
+      this.restartTimer = setTimeout(resolve, delayMs);
+    });
+    if (this.destroyed) return;
     try {
       await this.startConsuming();
       this.logger.log('Kafka consumer da khoi dong lai thanh cong sau CRASH.');
@@ -166,8 +178,13 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     // ha tang tam thoi ben duoi, khien kafkajs redeliver MAI MAI cung 1 "poison pill" va wedge
     // ca partition. Log kem noi dung message goc de debug, roi BO QUA (khong throw).
     if (!isValidDomainEventEnvelope(event)) {
+      // 25/08/2026: fix ra soat bao mat - truoc day dong log nay nhung nguyen van noi dung message
+      // (message.value.toString()) - 1 so payload (vd USER_REGISTERED) mang theo email nguoi dung,
+      // bi ghi lap thua vao log server dang van ban thuan trong khi ban sao BEN VUNG that su can
+      // giu lai (de replay) da co san trong `rawPayload` cua ban ghi DLQ ben duoi. Chi log
+      // eventId/eventType/organizationId (co the doc duoc, khong nhay cam) thay vi toan bo noi dung.
       this.logger.error(
-        `Bo qua message KHONG HOP LE tu topic ${topic} (thieu truong bat buoc eventId/eventType/organizationId/payload): ${message.value.toString()}`,
+        `Bo qua message KHONG HOP LE tu topic ${topic} (thieu truong bat buoc eventId/eventType/organizationId/payload) - chi tiet xem KAFKA_TOPICS.DLQ`,
       );
       // 28/07/2026: day vao DLQ, lay lai best-effort cac truong eventId/eventType/organizationId
       // NEU co (vd chi thieu 1 truong trong so 4 truong bat buoc) - `event` o day co the la bat ky

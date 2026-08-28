@@ -5,7 +5,7 @@
 // con thieu do, cong voi test cho 2 fix MOI trong dot audit nay: MAJOR 1 (ep disposition=attachment
 // cho mimeType khong the doi chieu magic-byte trong getDownloadUrl()) va MAJOR 2 (validate folderId
 // o FilesController.upload() truoc khi xuong service).
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { FilesService } from './files.service';
 import { FilesController } from './files.controller';
 import { AccessContext } from '../folders/folder-access.service';
@@ -515,6 +515,78 @@ describe('FilesService.remove - kiem soat truy cap (28/07/2026)', () => {
     const ctx: AccessContext = { userId: 'stranger-1', departmentId: null, isOrgAdmin: false };
 
     await expect(service.remove('org-1', 'stranger-1', 'file-1', ctx)).rejects.toThrow(ForbiddenException);
+  });
+});
+
+// 25/08/2026: fix code review Major (phat hien qua dot ra soat toan du an lan 3) - remove() truoc
+// ban sua nay doc FileVersion TRONG transaction nhung KHONG khoa FileMeta, nen van dua vao THOI
+// DIEM doc, khong dong bo voi uploadNewVersion() (ham do khoa pessimistic_write tren cung row).
+describe('FilesService.remove - khoa pessimistic_write dong bo voi uploadNewVersion() (25/08/2026)', () => {
+  const organizationId = 'org-1';
+  const actorId = 'actor-1';
+  const fileId = 'file-1';
+  const ctx: AccessContext = { userId: actorId, departmentId: null, isOrgAdmin: false };
+  const rootFileMeta = { id: fileId, organizationId, folderId: null, fileName: 'a.pdf' };
+
+  function buildService(lockedFileMeta: Record<string, unknown> | null, versions: Record<string, unknown>[]) {
+    const fileMetaRepoMock = { findOne: jest.fn().mockResolvedValue(rootFileMeta) };
+    const managerMock = {
+      findOne: jest.fn().mockResolvedValue(lockedFileMeta),
+      find: jest.fn().mockResolvedValue(versions),
+      remove: jest.fn().mockResolvedValue(undefined),
+    };
+    const dataSourceMock = { transaction: jest.fn((cb: (m: typeof managerMock) => unknown) => cb(managerMock)) };
+    const outboxServiceMock = { record: jest.fn().mockResolvedValue(undefined) };
+    const minioServiceMock = { removeObject: jest.fn().mockResolvedValue(undefined) };
+
+    const service = new FilesService(
+      dataSourceMock as never,
+      fileMetaRepoMock as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      outboxServiceMock as never,
+      minioServiceMock as never,
+      {} as never,
+    );
+    return { service, managerMock, outboxServiceMock, minioServiceMock };
+  }
+
+  it('doc lai FileMeta VOI lock pessimistic_write TRUOC khi doc FileVersion (dam bao dong bo voi uploadNewVersion())', async () => {
+    const { service, managerMock } = buildService(rootFileMeta, []);
+
+    await service.remove(organizationId, actorId, fileId, ctx);
+
+    expect(managerMock.findOne).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        where: { id: fileId, organizationId },
+        lock: { mode: 'pessimistic_write' },
+      }),
+    );
+    // FileVersion chi duoc doc SAU khi da khoa (thu tu goi: findOne truoc, find sau).
+    const findOneOrder = managerMock.findOne.mock.invocationCallOrder[0];
+    const findOrder = managerMock.find.mock.invocationCallOrder[0];
+    expect(findOneOrder).toBeLessThan(findOrder);
+  });
+
+  it('nem NotFoundException neu FileMeta bi xoa GIUA luc pre-check va luc khoa (race that su, khong con doc duoc row)', async () => {
+    const { service, managerMock } = buildService(null, []);
+
+    await expect(service.remove(organizationId, actorId, fileId, ctx)).rejects.toThrow(NotFoundException);
+    expect(managerMock.remove).not.toHaveBeenCalled();
+  });
+
+  it('xoa dung toan bo FileVersion doc duoc TRONG transaction (sau khi khoa) qua MinIO', async () => {
+    const versions = [{ objectKey: 'org-1/file-1/v1' }, { objectKey: 'org-1/file-1/v2' }];
+    const { service, managerMock, minioServiceMock } = buildService(rootFileMeta, versions);
+
+    await service.remove(organizationId, actorId, fileId, ctx);
+
+    expect(managerMock.remove).toHaveBeenCalledWith(rootFileMeta);
+    expect(minioServiceMock.removeObject).toHaveBeenCalledTimes(2);
+    expect(minioServiceMock.removeObject).toHaveBeenCalledWith('org-1/file-1/v1');
+    expect(minioServiceMock.removeObject).toHaveBeenCalledWith('org-1/file-1/v2');
   });
 });
 

@@ -25,6 +25,14 @@ const logger = new Logger('SchemaBootstrap');
  *
  * dim_user la bang lookup THUAN (user_id -> phong ban HIEN TAI), KHONG phai hypertable - KHONG
  * goi create_hypertable() cho bang nay vi no khong co chieu thoi gian (time dimension).
+ *
+ * 26/08/2026 (fix audit - Minor/Major, dim_user upsert khong co "guard" chong event den SAI THU
+ * TU): bo sung cot `last_event_at` (luu event.occurredAt cua lan upsert GAN NHAT ap dung THANH
+ * CONG - khac `updated_at` van la thoi diem ghi theo dong ho he thong) - xem ghi chu chi tiet tai
+ * FactWriterService.upsertUserDepartment() (fact-writer.service.ts). Dung ALTER TABLE ADD COLUMN
+ * IF NOT EXISTS (khong phai CREATE TABLE lai) vi dim_user co the DA TON TAI tu truoc ban fix nay
+ * tren moi truong dev/staging dang chay - dong bo voi cach fact_task_events.assignee_id da duoc
+ * them ben duoi.
  */
 export async function bootstrapDepartmentKpiSchema(dataSource: DataSource): Promise<void> {
   await dataSource.query(`
@@ -38,10 +46,17 @@ export async function bootstrapDepartmentKpiSchema(dataSource: DataSource): Prom
   await dataSource.query(`
     CREATE INDEX IF NOT EXISTS idx_dim_user_org ON dim_user (organization_id)
   `);
+  // 26/08/2026: xem ghi chu Fix ordering o tren - dung NULLABLE (khong DEFAULT now()) vi cac hang
+  // dim_user DA TON TAI truoc ban fix nay chua tung co 1 event.occurredAt nao duoc ghi nhan; NULL
+  // duoc upsertUserDepartment() coi la "chua co moc so sanh" nen event tiep theo bat ky LUON duoc
+  // ap dung (tuong duong hanh vi last-write-wins CU cho toi khi co it nhat 1 lan ghi MOI).
+  await dataSource.query(`
+    ALTER TABLE dim_user ADD COLUMN IF NOT EXISTS last_event_at TIMESTAMPTZ
+  `);
   await dataSource.query(`
     ALTER TABLE fact_task_events ADD COLUMN IF NOT EXISTS assignee_id UUID
   `);
   logger.log(
-    'Da kiem tra/tao xong schema KPI theo phong ban (dim_user, fact_task_events.assignee_id).',
+    'Da kiem tra/tao xong schema KPI theo phong ban (dim_user + dim_user.last_event_at, fact_task_events.assignee_id).',
   );
 }

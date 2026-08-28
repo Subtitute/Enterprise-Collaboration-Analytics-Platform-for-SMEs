@@ -97,7 +97,11 @@ function GlobalSearchBox() {
           {isLoading && (
             <div className="flex items-center justify-center py-8 text-primary-600 animate-fade-in">
               <Spinner size="sm" />
-              <span className="ml-2 text-xs font-medium text-slate-400">Đang tìm kiếm...</span>
+              {/* 26/08/2026: sua loi hardcode tieng Viet - text nay truoc do go cung trong JSX,
+                  khong qua t() nhu moi chuoi khac trong file (vd search.placeholder, search.noResults
+                  ben duoi), nen giao dien luon hien tieng Viet du nguoi dung dang chon en/ja. Chuyen
+                  sang key moi `common:search.loading` (cung namespace/nhom voi cac key search.* da co). */}
+              <span className="ml-2 text-xs font-medium text-slate-400">{t('common:search.loading')}</span>
             </div>
           )}
           {!isLoading && results.length === 0 && (

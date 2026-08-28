@@ -29,7 +29,8 @@
     "uploadNewVersion": "Tải lên phiên bản mới",
     "emptyTitle": "Chưa có lịch sử phiên bản",
     "emptyDescription": "Các phiên bản trước của tệp sẽ hiển thị tại đây sau khi bạn tải lên bản cập nhật.",
-    "versionLabel": "Phiên bản {{version}}"
+    "versionLabel": "Phiên bản {{version}}",
+    "invalidFileTitle": "Tệp không hợp lệ"
   },
   "fileTable": {
     "columns": {

@@ -8,6 +8,7 @@ import { AllExceptionsFilter, InternalAuthGuard, PermissionsGuard } from '@app/c
 // packages/common-metrics/src/index.ts.
 import { HttpMetricsInterceptor, MetricsController, MetricsService } from '@app/common-metrics';
 import configuration from './config/configuration';
+import { RedisModule } from './redis/redis.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { KafkaModule } from './kafka/kafka.module';
@@ -28,6 +29,7 @@ import { FailedEventsModule } from './failed-events/failed-events.module';
     // 22/08/2026: fix audit "/health liveness-only" - TerminusModule cung cap HealthCheckService
     // + MongooseHealthIndicator (dung that connection Mongoose mac dinh o tren) cho HealthController.
     TerminusModule,
+    RedisModule,
     RealtimeModule,
     NotificationsModule,
     KafkaModule,

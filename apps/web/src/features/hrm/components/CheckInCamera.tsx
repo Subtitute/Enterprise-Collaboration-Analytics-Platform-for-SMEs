@@ -66,6 +66,10 @@ export function CheckInCamera({
   // lam cham luc gui - ket qua (co the la undefined, xem getCurrentLocationSoft()) duoc doc lai
   // trong handleConfirm().
   const locationRef = useRef<Promise<CheckInLocation | undefined>>(Promise.resolve(undefined));
+  // 26/08/2026: Fix 6b - co "con dang mo modal" doc ngay SAU khi getUserMedia() resolve (xem
+  // startCamera() ben duoi) - dat true khi effect vong doi mo camera chay, dat false trong cleanup
+  // cua CHINH effect do (khi `open` chuyen ve false HOAC component unmount).
+  const isOpenRef = useRef(false);
   const [status, setStatus] = useState<CameraStatus>('requesting');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
@@ -73,6 +77,22 @@ export function CheckInCamera({
   function stopStream() {
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
+  }
+
+  // 26/08/2026: Fix 6a - gom logic "xoa preview" vao 1 ham duy nhat, LUON thu hoi Object URL truoc
+  // khi xoa - truoc ban sua nay chi handleRetake() thu hoi URL.revokeObjectURL(previewUrl), con
+  // nhanh `!open` cua effect vong doi ben duoi lai xoa thang previewUrl (setPreviewUrl(null)) MA
+  // KHONG thu hoi - RO RI 1 blob URL moi lan modal dong sau khi chup anh (bao gom ca luong cham
+  // cong THANH CONG: onConfirm() la ham dong bo do component cha truyen vao, cha xu ly mutation
+  // roi tu dong `open=false` de dong modal - dan thang qua nhanh `!open` bi ro ri nay). Dung dang
+  // ham cap nhat cua setState (prev => ...) de LUON doc dung gia tri previewUrl MOI NHAT tai thoi
+  // diem chay, tranh phu thuoc closure cu trong dependency array [open] cua effect.
+  function clearPreview() {
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setPreviewBlob(null);
   }
 
   async function startCamera() {
@@ -83,6 +103,18 @@ export function CheckInCamera({
         return;
       }
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      // 26/08/2026: Fix 6b - sua loi thuc te - getUserMedia() la async, khong co gi dam bao modal
+      // VAN CON MO luc no resolve (nguoi dung co the da dong modal trong luc trinh duyet dang cho
+      // nguoi dung cap quyen camera, co the mat vai giay). Truoc ban sua nay, stream tra ve luon
+      // duoc gan thang vao streamRef.current du modal da dong tu truoc - tao ra 1 camera stream
+      // "mo coi" khong ai dung/khong ai biet de tat (den bao camera cua may van sang lien tuc), va
+      // lan mo modal KE TIEP se GHI DE streamRef.current bang stream MOI ma khong dung stream cu
+      // (stream mo coi khong bao gio duoc stop()). Kiem tra isOpenRef NGAY SAU khi resolve - neu
+      // modal da dong, dung ngay track cua stream VUA nhan duoc thay vi gan vao streamRef.current.
+      if (!isOpenRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -102,13 +134,16 @@ export function CheckInCamera({
   useEffect(() => {
     if (!open) {
       stopStream();
-      setPreviewUrl(null);
-      setPreviewBlob(null);
+      clearPreview();
       return;
     }
+    isOpenRef.current = true;
     startCamera();
     locationRef.current = getCurrentLocationSoft();
-    return () => stopStream();
+    return () => {
+      isOpenRef.current = false;
+      stopStream();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -136,9 +171,7 @@ export function CheckInCamera({
   }
 
   function handleRetake() {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
-    setPreviewBlob(null);
+    clearPreview();
     startCamera();
   }
 

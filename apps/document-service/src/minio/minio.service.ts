@@ -27,6 +27,12 @@ function withTimeout<T>(promise: Promise<T>, ms: number, timeoutMessage: string)
 }
 
 const CHECK_CONNECTION_TIMEOUT_MS = 2000;
+// 25/08/2026: fix code review Major (phat hien qua dot ra soat toan du an lan 3) - removeObject()
+// truoc day KHONG duoc boc timeout nhu putObject()/checkConnection() (cung 1 SDK, cung khong dat
+// timeout tren HTTP call, xem chu thich dau file), dan goi tu files.service.ts SAU KHI transaction
+// DB da commit (xoa file / don ban cu) - neu MinIO "treo" mang, request DELETE/upload van cho VO
+// THOI HAN du DB da xong viec, du du lieu that su khong con lien quan.
+const REMOVE_OBJECT_TIMEOUT_MS = 10_000;
 // putObject co the that su can vai chuc giay cho file lon (toi da MAX_FILE_SIZE_BYTES, xem
 // files.service.ts) tren mang cham nhung VAN CO TIEN TRIEN - 30s la tran an toan chi de chan
 // truong hop "treo" THAT SU (0 thong luong, khong phai cham), khong phai gioi han thoi gian upload
@@ -85,7 +91,11 @@ export class MinioService implements OnModuleInit {
   }
 
   async removeObject(objectKey: string): Promise<void> {
-    await this.client.removeObject(this.bucket, objectKey);
+    await withTimeout(
+      this.client.removeObject(this.bucket, objectKey),
+      REMOVE_OBJECT_TIMEOUT_MS,
+      `Xoa object MinIO vuot qua ${REMOVE_OBJECT_TIMEOUT_MS}ms (object: ${objectKey})`,
+    );
   }
 
   /**

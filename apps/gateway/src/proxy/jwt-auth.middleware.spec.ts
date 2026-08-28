@@ -81,6 +81,7 @@ describe('createJwtAuthMiddleware', () => {
       path: '/api/v1/users',
       originalUrl: '/api/v1/users',
       headers: { authorization: 'Bearer valid.token' },
+      socket: { remoteAddress: '1.2.3.4' },
       ...overrides,
     } as unknown as Request;
   }
@@ -92,18 +93,36 @@ describe('createJwtAuthMiddleware', () => {
     return res;
   }
 
-  function createDeps(options: { blacklisted?: boolean | Error; verifyError?: boolean } = {}) {
+  // 25/08/2026: xem chu thich checkRateLimit() trong rate-limit.middleware.ts - jwt-auth gio tu
+  // goi ham nay TRUOC khi tra 401 (thieu/sai token), nen redisService mock can them getClient()
+  // (truoc day chi can isUserBlacklisted()) va configService can tra ve gia tri hop le (khong phai
+  // chuoi co dinh 'test-secret') cho 'rateLimit.max'/'rateLimit.windowSeconds', neu khong
+  // evaluateRateLimit() so sanh count <= 'test-secret' se luon false, lam MOI request bi coi la
+  // vuot nguong.
+  function createDeps(
+    options: { blacklisted?: boolean | Error; verifyError?: boolean; rateLimitCount?: number } = {},
+  ) {
     const jwtService = {
       verifyAsync: options.verifyError
         ? jest.fn().mockRejectedValue(new Error('token het han'))
         : jest.fn().mockResolvedValue(PAYLOAD),
     } as unknown as JwtService;
-    const configService = { get: jest.fn().mockReturnValue('test-secret') } as unknown as ConfigService;
+    const configService = {
+      get: jest.fn((key: string) => (key === 'jwt.accessSecret' ? 'test-secret' : undefined)),
+    } as unknown as ConfigService;
     const isUserBlacklisted =
       options.blacklisted instanceof Error
         ? jest.fn().mockRejectedValue(options.blacklisted)
         : jest.fn().mockResolvedValue(options.blacklisted ?? false);
-    const redisService = { isUserBlacklisted } as unknown as RedisService;
+    // 26/08/2026: incrWithExpire thay the incr+expire rieng biet (fix loi khong nguyen tu, xem
+    // rate-limit.middleware.ts) - mock lai cho khop tin hieu goi Redis moi cua checkRateLimit().
+    const client = {
+      incrWithExpire: jest.fn().mockResolvedValue(options.rateLimitCount ?? 1),
+    };
+    const redisService = {
+      isUserBlacklisted,
+      getClient: () => client,
+    } as unknown as RedisService;
     return { jwtService, configService, redisService };
   }
 
@@ -147,6 +166,37 @@ describe('createJwtAuthMiddleware', () => {
     expect(next).not.toHaveBeenCalled();
   });
 
+  // 25/08/2026: fix code review HIGH-adjacent (phat hien qua dot ra soat bao mat) - truoc ban sua
+  // nay, request thieu/sai token TRA VE 401 NGAY (khong goi next()), nen KHONG BAO GIO toi duoc
+  // rate-limit middleware dang ky SAU no trong pipeline - hoan toan khong bi dem/chan du flood toc
+  // do bat ky. 2 test duoi day xac nhan jwt-auth gio tu kiem tra rate-limit IP-only truoc khi tra
+  // 401, va tra 429 thay vi 401 khi da vuot nguong.
+  it('tra ve 429 (khong phai 401) khi thieu token VA da vuot rate-limit IP', async () => {
+    const { jwtService, configService, redisService } = createDeps({ rateLimitCount: 101 });
+    const middleware = createJwtAuthMiddleware(jwtService, configService, redisService);
+    const req = createReq({ headers: {} });
+    const res = createRes();
+    const next = jest.fn();
+
+    await middleware(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(429);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it('tra ve 429 (khong phai 401) khi token khong hop le VA da vuot rate-limit IP', async () => {
+    const { jwtService, configService, redisService } = createDeps({ verifyError: true, rateLimitCount: 101 });
+    const middleware = createJwtAuthMiddleware(jwtService, configService, redisService);
+    const req = createReq();
+    const res = createRes();
+    const next = jest.fn();
+
+    await middleware(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(429);
+    expect(next).not.toHaveBeenCalled();
+  });
+
   it('tra ve 401 khi tai khoan da bi blacklist', async () => {
     const { jwtService, configService, redisService } = createDeps({ blacklisted: true });
     const middleware = createJwtAuthMiddleware(jwtService, configService, redisService);
@@ -157,6 +207,27 @@ describe('createJwtAuthMiddleware', () => {
     await middleware(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(401);
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  // 26/08/2026: fix loi MAJOR (ra soat bao mat) - nhanh "tai khoan bi blacklist" truoc day tra 401
+  // THANG, KHONG qua checkRateLimit() nhu 2 nhanh 401 con lai (thieu token/token khong hop le, xem
+  // 2 test 429 o tren) - ke tan cong biet 1 sub da bi blacklist co the flood token do ma khong bao
+  // gio bi 429. Test nay xac nhan nhanh blacklist gio DUNG chung checkRateLimit(), tra 429 thay vi
+  // 401 khi da vuot nguong - mirror chinh xac 2 test 429 o tren.
+  it('tra ve 429 (khong phai 401) khi tai khoan bi blacklist VA da vuot rate-limit', async () => {
+    const { jwtService, configService, redisService } = createDeps({
+      blacklisted: true,
+      rateLimitCount: 101,
+    });
+    const middleware = createJwtAuthMiddleware(jwtService, configService, redisService);
+    const req = createReq();
+    const res = createRes();
+    const next = jest.fn();
+
+    await middleware(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(429);
     expect(next).not.toHaveBeenCalled();
   });
 

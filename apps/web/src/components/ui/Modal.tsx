@@ -28,7 +28,16 @@ const sizeClasses = {
   xl: 'max-w-4xl',
 };
 
-export function Modal({ open, onClose, title, description, children, footer, size = 'md' }: ModalProps) {
+export function Modal({
+  open,
+  onClose,
+  title,
+  description,
+  children,
+  footer,
+  size = 'md',
+  preventCloseWhilePending,
+}: ModalProps) {
   const { t } = useTranslation();
   const dialogRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
@@ -44,6 +53,21 @@ export function Modal({ open, onClose, title, description, children, footer, siz
   // dependency array nua - chi con phu thuoc `open` (dung nhu y dinh: chay 1 lan khi modal MO).
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  // 26/08/2026: cung ly do nhu onCloseRef ngay tren - handler Escape dang ky trong effect chi phu
+  // thuoc `open` (khong muon effect focus-trap chay lai moi lan cha re-render), nen phai doc
+  // preventCloseWhilePending qua ref cap nhat moi render, khong the dua thang bien props vao vi
+  // closure cua effect se giu gia tri CU tai thoi diem effect chay (luc modal vua mo, isPending
+  // luc do luon la false).
+  const preventCloseRef = useRef(preventCloseWhilePending);
+  preventCloseRef.current = preventCloseWhilePending;
+
+  // 26/08/2026: ham dong duy nhat cho nut X o header va click ra ngoai overlay (2 duong con lai
+  // ngoai Escape) - chan tai day khi preventCloseWhilePending=true, xem giai thich tai khai bao
+  // prop nay trong ModalProps.
+  function requestClose() {
+    if (preventCloseWhilePending) return;
+    onClose();
+  }
 
   // 28/07/2026: bo sung quan ly focus (phat hien qua ra soat kha nang tiep can) - truoc do Modal
   // KHONG chuyen focus vao trong dialog khi mo (nguoi dung ban phim van dang o phan tu vua bam mo
@@ -62,6 +86,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        if (preventCloseRef.current) return;
         onCloseRef.current();
         return;
       }
@@ -96,7 +121,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 animate-fade-in bg-slate-900/40 backdrop-blur-sm" onClick={onClose} aria-hidden />
+      <div className="absolute inset-0 animate-fade-in bg-slate-900/40 backdrop-blur-sm" onClick={requestClose} aria-hidden />
       <div
         ref={dialogRef}
         role="dialog"
@@ -120,7 +145,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
             </div>
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
               aria-label={t('common:actions.close')}
               className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
             >

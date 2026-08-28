@@ -71,9 +71,11 @@ function SidebarHeader({
   onToggle?: () => void;
   onNavigate?: () => void;
 }) {
+  const { t } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const orgName = user?.organizationName || 'Demo SME Platform';
   const orgInitial = orgName.trim().charAt(0).toUpperCase() || 'O';
+  const toggleLabel = t(collapsed ? 'common:sidebar.expand' : 'common:sidebar.collapse');
 
   return (
     <div
@@ -85,7 +87,7 @@ function SidebarHeader({
       <Link
         to="/"
         onClick={onNavigate}
-        aria-label={`Tổ chức: ${orgName}`}
+        aria-label={t('common:sidebar.orgAriaLabel', { orgName })}
         className="group flex min-w-0 items-center rounded-lg p-1 transition-colors hover:bg-slate-50 overflow-hidden"
       >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-sm font-bold text-white shadow-sm shadow-primary-500/20 transition-transform duration-150 group-hover:scale-105">
@@ -105,8 +107,8 @@ function SidebarHeader({
         <button
           type="button"
           onClick={onToggle}
-          title={collapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
-          aria-label={collapsed ? 'Mở rộng thanh bên' : 'Thu gọn thanh bên'}
+          title={toggleLabel}
+          aria-label={toggleLabel}
           className={cn(
             'flex items-center justify-center rounded-lg text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700',
             collapsed ? 'h-6 w-full py-0.5 text-slate-500 hover:bg-slate-100' : 'h-7 w-7 shrink-0',
@@ -131,6 +133,11 @@ export function Sidebar() {
         collapsed ? 'w-[68px]' : 'w-60',
       )}
     >
+      {/* 26/08/2026: fix ra soat lan 4 - SidebarHeader da tu co 1 nut thu gon/mo rong rieng (dung
+          chung onToggle nay); truoc do Sidebar() con rieng 1 nut thu gon/mo rong THU HAI o duoi
+          cung, lam cung 1 viec voi nut cua SidebarHeader, va nut o day khong bao gio duoc phat
+          hien la trung lap qua cac dot rieng ra soat i18n/accessibility (moi dot chi sua rieng le
+          tung nut, khong doi chieu ca 2). Bo nut thu hai, chi giu 1 nut duy nhat o SidebarHeader. */}
       <SidebarHeader collapsed={collapsed} onToggle={toggle} />
       <SidebarLinks collapsed={collapsed} />
     </aside>

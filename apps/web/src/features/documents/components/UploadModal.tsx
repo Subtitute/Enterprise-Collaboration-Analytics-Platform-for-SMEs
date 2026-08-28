@@ -23,6 +23,10 @@ export function UploadModal({ folderId, open, onClose }: { folderId: string | nu
     setFileError(validateUploadFile(next));
   }
 
+  // 26/08/2026: bo nhanh kiem tra "if (upload.isPending) return" o day (Fix 7 hom qua) - gio
+  // Modal.tsx tu chan ca 3 duong dong (nut X, Escape, click ra ngoai overlay) qua prop
+  // preventCloseWhilePending truyen ben duoi, nen handleClose CHI con lo phan rieng cua modal
+  // nay: don dep state file/loi/tien do truoc khi dong.
   function handleClose() {
     setFile(null);
     setFileError(null);
@@ -43,7 +47,12 @@ export function UploadModal({ folderId, open, onClose }: { folderId: string | nu
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title={t('documents:uploadModal.title')}>
+    <Modal
+      open={open}
+      onClose={handleClose}
+      preventCloseWhilePending={upload.isPending}
+      title={t('documents:uploadModal.title')}
+    >
       <div className="space-y-4">
         {!file ? (
           <div

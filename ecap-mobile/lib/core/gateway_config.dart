@@ -31,7 +31,19 @@ class GatewayConfig {
 
     final fetched = await _fetchRemote(remoteUrl);
     if (fetched != null) {
-      await cacheFile.writeAsString(fetched);
+      // 25/08/2026: fix code review Major (phat hien qua dot ra soat toan du an lan 3) - ghi cache
+      // truoc day KHONG boc try/catch, trong khi ca _fetchRemote()/_readCache() ben duoi deu co.
+      // Neu writeAsString that bai (het dung luong, quyen ghi bi thu hoi giua chung...), loi thoat
+      // ra khoi resolveBaseUrl() ma main.dart's _bootstrap() (goi ham nay) KHONG co try/catch nao
+      // boc ngoai - setState() gan _apiClient khong bao gio chay, man hinh spinner khoi dong TREO
+      // VINH VIEN, dung 1 lop loi voi TypeError da sua o api_client.dart nhung tai vi tri khac. Ghi
+      // cache la buoc "best-effort tang toc lan mo sau", that bai KHONG duoc chan viec tra ve dia
+      // chi vua fetch thanh cong cua LAN NAY.
+      try {
+        await cacheFile.writeAsString(fetched);
+      } catch (_) {
+        // Bo qua - van tra ve `fetched` binh thuong, chi la lan mo app sau se khong co cache moi.
+      }
       return fetched;
     }
     return cached ?? AppConfig.fallbackGatewayBaseUrl;
