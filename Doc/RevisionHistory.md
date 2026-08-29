@@ -733,6 +733,51 @@ khi push GitHub thất bại).*
 
 ---
 
+## 2026-08-29 — Unit test thất bại sau khi lint đã sạch: `coverageThreshold` "branches" của
+`notification-service` không đạt (không phải lỗi assertion)
+
+Sau khi lỗi lint ngày 27/08 đã sửa xong, lượt push tiếp theo báo "unit test thất bại" dù `npm run
+lint` đã sạch. Chạy trực tiếp đúng lệnh CI dùng (`npm run test:coverage` = `jest --coverage` từng
+workspace) cho kết quả: **toàn bộ 573 assertion cũ vẫn pass 100%** — lỗi thật là Jest tự thoát mã 1
+vì ngưỡng `coverageThreshold.global.branches` (55%, khai ở `apps/notification-service/
+package.json`) không đạt, thực đo chỉ 49.57%. Đây là kiểu lỗi dễ gây hiểu lầm "test bị hỏng" trong
+khi đúng ra là "test pass nhưng coverage tụt dưới sàn đã đặt" — 2 khái niệm khác nhau nhưng cùng
+làm `jest` thoát mã khác 0.
+
+**Nguyên nhân gốc:** đợt bổ sung cơ chế tự khởi động lại Kafka consumer sau CRASH (26/08/2026, mục
+"5 đề xuất cải thiện") thêm code mới vào `failed-events-consumer.service.ts` — file này vốn nhỏ
+(ít nhánh rẽ sẵn có) nên phần logic mới (dù đã có test khá đầy đủ cho `registerCrashHandler`/
+`restartWithBackoff`) vẫn kéo tỷ lệ nhánh của riêng file xuống 57%, cộng dồn với 2 khoảng trống
+nhánh rẽ **có từ trước, không liên quan đợt sửa gần đây**, kéo tổng thể toàn service xuống dưới
+ngưỡng:
+- `event-notification-builder.ts` (30.76% nhánh) — 3 case switch thêm từ CRM-lite/HRM-lite
+  (04-05/08/2026: `deal.stage_changed`, `leave_request.approved`, `leave_request.rejected`) **chưa
+  từng có bất kỳ test nào** kể từ khi thêm.
+- `notifications.service.ts` (73.33% nhánh) — `markAsRead()`/`markAllAsRead()` (endpoint đánh dấu
+  đã đọc) **chưa từng có test nào** dù đã tồn tại từ lâu.
+- `redis.service.ts` (0% nhánh) — nhánh reject thật của `withTimeout()` (khi Redis tự trả lỗi
+  trước khi kịp hết hạn timeout) chưa được test, chỉ mới test nhánh "treo" (timeout) và nhánh
+  thành công.
+
+**Đã sửa bằng cách bổ sung 14 test mới** (không đổi bất kỳ dòng code sản phẩm nào — đây thuần tuý
+là lấp khoảng trống test có sẵn, không phải vá lỗi hành vi):
+- `event-notification-builder.spec.ts`: +7 test (3 case CRM/HRM còn thiếu × nhánh sinh thông báo
+  thành công + nhánh trả `null` khi thiếu field bắt buộc/không đúng điều kiện).
+- `notifications.service.spec.ts`: +5 test cho `markAsRead` (id không hợp lệ, không tìm thấy, đã
+  đọc sẵn thì no-op, chưa đọc thì đánh dấu+lưu+phát WebSocket) và `markAllAsRead`.
+- `redis.service.spec.ts` (notification-service): +2 test cho nhánh reject thật của `withTimeout`
+  (Error thật được ném nguyên vẹn; giá trị reject không phải Error được bọc thành 1 Error mới).
+
+**Xác minh:** `jest --coverage` riêng `notification-service` — nhánh từ 49.57% → 60.68% (qua
+ngưỡng 55%), 69/69 test pass (55 cũ + 14 mới). `npm run test:coverage` (root, đúng lệnh CI dùng) —
+cả 12 workspace pass, không còn lỗi ngưỡng coverage nào. `npm run lint` và `npm run typecheck`
+(root) chạy lại sau khi thêm test — sạch, không phát sinh lỗi/warning mới.
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 29/08/2026 (phần "recheck sau khi
+unit test thất bại dù lint đã sạch").*
+
+---
+
 ## Lịch sử thay đổi tài liệu này
 
 - **2026-08-24** — Khởi tạo file, gộp lại toàn bộ lịch sử rà soát/sửa lỗi từ 18/07/2026 (khởi tạo
@@ -758,3 +803,7 @@ khi push GitHub thất bại).*
 - **2026-08-27 (bổ sung)** — Bổ sung mục "Push GitHub thất bại" — `npm run lint` thực sự có 5 lỗi
   (không chỉ warning) do 2 đợt sửa gần đây chưa từng chạy lint làm gate xác minh, chỉ chạy
   typecheck+test. Đã sửa cả 3 nguồn lỗi, cập nhật quy trình: gate cuối từ nay luôn gồm cả lint.
+- **2026-08-29** — Bổ sung mục "Unit test thất bại sau khi lint đã sạch" — hoá ra không phải test
+  hỏng mà là `coverageThreshold.branches` của `notification-service` tụt dưới ngưỡng (55%, thực đo
+  49.57%); lấp bằng 14 test mới cho 3 khoảng trống coverage có sẵn (2 từ trước, 1 từ đợt CRASH-
+  recovery 26/08), không đổi code sản phẩm nào.
