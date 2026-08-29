@@ -146,7 +146,7 @@ export function ProjectsListPage() {
       sortGroup(completedList);
 
       // 3. Ghép danh sách: Toàn bộ ACTIVE ở trên, toàn bộ COMPLETED LUÔN NẰM DƯỚI CÙNG
-      let finalSorted = [...activeList, ...completedList];
+      const finalSorted = [...activeList, ...completedList];
 
       // 4. Nếu có tìm kiếm từ khóa, đưa các dự án khớp lên đầu
       if (search) {

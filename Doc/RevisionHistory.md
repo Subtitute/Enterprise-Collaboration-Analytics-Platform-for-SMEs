@@ -703,6 +703,34 @@ UI (loại `errors.json` theo thiết kế).
 
 *Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 27/08/2026.*
 
+## 2026-08-27 (bổ sung) — Push GitHub thất bại: `npm run lint` có lỗi thật, không chỉ warning
+
+Push lên GitHub thất bại — nguyên nhân là `npm run lint` (bước bắt buộc trong CI, `.github/
+workflows/ci.yml`) thực sự có **5 lỗi (error)**, không phải chỉ warning. Bài học quan trọng: suốt
+2 đợt sửa lỗi gần đây (26-27/08), gate xác minh chỉ chạy `typecheck` + `test --workspaces`, CHƯA
+BAO GIỜ chạy `npm run lint` — TypeScript type-check và ESLint là 2 công cụ khác nhau, qua cái này
+không đảm bảo qua cái kia. Từ nay gate cuối phải luôn gồm cả 3: `typecheck` + `test` + `lint`.
+
+**3 lỗi thật, cả 3 đều do chính các đợt sửa gần đây gây ra:**
+- `apps/web/src/features/projects/api.ts` (`no-useless-catch`) — `completeProject()`/
+  `reopenProject()` (sửa 26/08, Fix CRITICAL 1) còn giữ khối `try { ... } catch (err) { throw err;
+  }` chỉ để đính kèm bình luận giải thích — ESLint đúng khi coi đây là catch vô nghĩa (async
+  function tự động ném lại lỗi qua Promise rejection, không cần bắt rồi ném lại). Sửa: bỏ hẳn
+  try/catch, chuyển toàn bộ bình luận lên trước hàm.
+- `apps/web/src/features/projects/ProjectsListPage.tsx` (`prefer-const`) — `let finalSorted = ...`
+  (code gốc từ nhánh merge của Tiến, 25/08) không bao giờ được gán lại (chỉ `.sort()` tại chỗ) —
+  đổi sang `const`.
+- `apps/web/src/features/dashboard/components/RecentActivityFeed.tsx`
+  (`react/no-unescaped-entities`) — dấu `"` thẳng đặt trực tiếp trong JSX text (bọc quanh
+  `{target}`) phải escape thành `&quot;`.
+
+**Xác minh:** `npm run lint` (root) từ 5 lỗi + nhiều warning → 0 lỗi (chỉ còn warning, không chặn
+build — xác nhận qua exit code 0 dù ESLint vẫn in ra danh sách warning). `npm run typecheck -w
+apps/web` và `npm run test -w apps/web` (18/18) vẫn sạch sau khi sửa.
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 27/08/2026 (phần kiểm tra lint sau
+khi push GitHub thất bại).*
+
 ---
 
 ## Lịch sử thay đổi tài liệu này
@@ -727,3 +755,6 @@ UI (loại `errors.json` theo thiết kế).
   hiện 25 key i18n sót từ trước (dashboard/projects), 1 hướng bảo mật riêng (sạch, 1 ghi nhận Nhẹ),
   sửa 1 lỗi Nghiêm trọng vừa trong chính công cụ CI mới hôm qua (regex literal làm mất nội dung
   dòng), sửa lại đúng `AttendanceService.checkOut()`, gate cuối vẫn 573/573.
+- **2026-08-27 (bổ sung)** — Bổ sung mục "Push GitHub thất bại" — `npm run lint` thực sự có 5 lỗi
+  (không chỉ warning) do 2 đợt sửa gần đây chưa từng chạy lint làm gate xác minh, chỉ chạy
+  typecheck+test. Đã sửa cả 3 nguồn lỗi, cập nhật quy trình: gate cuối từ nay luôn gồm cả lint.

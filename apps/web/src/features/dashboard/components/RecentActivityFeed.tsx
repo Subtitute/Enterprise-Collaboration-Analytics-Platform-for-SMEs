@@ -203,7 +203,7 @@ export function RecentActivityFeed() {
                         <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
                           <span className="font-bold text-slate-900">{actorName}</span>{' '}
                           <span className="text-slate-600">{verb}</span>{' '}
-                          {target && <span className="font-semibold text-slate-800">"{target}"</span>}
+                          {target && <span className="font-semibold text-slate-800">&quot;{target}&quot;</span>}
                         </p>
                         <p className="mt-0.5 text-[11px] text-slate-400 font-medium">{formatRelativeTime(item.createdAt)}</p>
                       </div>

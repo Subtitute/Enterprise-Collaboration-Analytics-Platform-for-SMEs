@@ -72,45 +72,38 @@ function persistProjectOrderOverride(id: string, status: 'ACTIVE' | 'COMPLETED',
   }
 }
 
+// 26/08/2026 (fix code review, loi CRITICAL - Fix 1): truoc ban sua nay, completeProject() bat
+// loi tu POST /projects/:id/complete roi tra ve 1 object Project GIA (fabricate, coi nhu thanh
+// cong) thay vi nem lai loi that. He qua: useCompleteProject() (hooks.ts).onError() KHONG BAO GIO
+// duoc goi (khong toast loi that cho nguoi dung biet), trong khi onSuccess() van chay va patch
+// cache React Query sang COMPLETED - UI hien SAI trang thai "da hoan thanh" du server chua he doi
+// gi, cho toi khi tai lai trang. (Fallback PATCH /projects/:id { status: 'COMPLETED' } da bi bo
+// hoan toan truoc do - xem update-project.dto.ts - vi BE khong con nhan field `status` qua endpoint
+// nay nen fallback do se "thanh cong" ma khong doi status that, cang nguy hiem hon neu van giu.)
+// Sua bang cach KHONG bat loi nua - async function tu dong nem lai loi that qua Promise rejection,
+// khong can try/catch chi de rethrow (ESLint no-useless-catch cung xac nhan dieu nay).
 export async function completeProject(id: string): Promise<Project> {
-  try {
-    const { data } = await apiClient.post<Project>(`/projects/${id}/complete`);
-    persistProjectOrderOverride(id, 'COMPLETED', false);
-    window.dispatchEvent(new Event('ec_projects_updated'));
-    return data;
-  } catch (err) {
-    // 26/08/2026 (fix code review, loi CRITICAL - Fix 1): truoc ban sua nay, khi POST
-    // /projects/:id/complete that bai, nhanh catch nay "nuot" loi va tra ve 1 object Project GIA
-    // (fabricate, coi nhu thanh cong) thay vi nem lai loi that. He qua: useCompleteProject()
-    // (hooks.ts).onError() KHONG BAO GIO duoc goi (khong toast loi that cho nguoi dung biet),
-    // trong khi onSuccess() van chay va patch cache React Query sang COMPLETED - UI hien SAI trang
-    // thai "da hoan thanh" du server chua he doi gi, cho toi khi tai lai trang. (Fallback PATCH
-    // /projects/:id { status: 'COMPLETED' } da bi bo hoan toan truoc do - xem update-project.dto.ts
-    // - vi BE khong con nhan field `status` qua endpoint nay nen fallback do se "thanh cong" ma
-    // khong doi status that, cang nguy hiem hon neu van giu.) Nem lai loi that de onError() chay dung.
-    throw err;
-  }
+  const { data } = await apiClient.post<Project>(`/projects/${id}/complete`);
+  persistProjectOrderOverride(id, 'COMPLETED', false);
+  window.dispatchEvent(new Event('ec_projects_updated'));
+  return data;
 }
 
+// 26/08/2026 (fix code review, loi CRITICAL - Fix 1, tiep tuc sua sau khi phat hien qua doi chieu
+// cuoi cung): ban sua truoc do (cung ngay) van giu 1 nhanh fallback PATCH /projects/:id
+// { status: 'ACTIVE' } khi /reopen loi - nhung ValidationPipe cua service nay chi bat
+// `whitelist: true`, KHONG bat `forbidNonWhitelisted`, nen field `status` (da bi bo khoi
+// UpdateProjectDto o Fix "Project status bypass" cung dot sua nay) chi bi AM THAM LOAI BO khoi
+// body thay vi bi tu choi 400 - PATCH do van tra ve 200 kem project KHONG DOI trang thai, khien ham
+// nay coi nhu "thanh cong" va ghi de localStorage/dispatch event sang ACTIVE du server van con
+// ARCHIVED - tai dung loi CRITICAL vua sua (UI hien sai trang thai vinh vien) qua chinh nhanh
+// fallback duoc them de "phong ngua". Bo han fallback nay - /reopen la duong duy nhat co the thuc
+// su doi trang thai, giong het completeProject() o tren (khong con try/catch/fallback nao).
 export async function reopenProject(id: string): Promise<Project> {
-  try {
-    const { data } = await apiClient.post<Project>(`/projects/${id}/reopen`);
-    persistProjectOrderOverride(id, 'ACTIVE', true);
-    window.dispatchEvent(new Event('ec_projects_updated'));
-    return data;
-  } catch (err) {
-    // 26/08/2026 (fix code review, loi CRITICAL - Fix 1, tiep tuc sua sau khi phat hien qua doi
-    // chieu cuoi cung): ban sua truoc do (cung ngay) van giu 1 nhanh fallback PATCH /projects/:id
-    // { status: 'ACTIVE' } khi /reopen loi - nhung ValidationPipe cua service nay chi bat
-    // `whitelist: true`, KHONG bat `forbidNonWhitelisted`, nen field `status` (da bi bo khoi
-    // UpdateProjectDto o Fix "Project status bypass" cung dot sua nay) chi bi AM THAM LOAI BO
-    // khoi body thay vi bi tu choi 400 - PATCH do van tra ve 200 kem project KHONG DOI trang thai,
-    // khien ham nay coi nhu "thanh cong" va ghi de localStorage/dispatch event sang ACTIVE du server
-    // van con ARCHIVED - tai dung loi CRITICAL vua sua (UI hien sai trang thai vinh vien) qua chinh
-    // nhanh fallback duoc them de "phong ngua". Bo han fallback nay - /reopen la duong duy nhat co
-    // the thuc su doi trang thai, giong het completeProject() o tren (khong con fallback nao).
-    throw err;
-  }
+  const { data } = await apiClient.post<Project>(`/projects/${id}/reopen`);
+  persistProjectOrderOverride(id, 'ACTIVE', true);
+  window.dispatchEvent(new Event('ec_projects_updated'));
+  return data;
 }
 
 export interface FetchTasksParams {
