@@ -98,7 +98,7 @@ function SidebarHeader({
             <span className="truncate text-sm font-bold text-slate-900 transition-colors group-hover:text-primary-600" title={orgName}>
               {orgName}
             </span>
-            <span className="truncate text-[10px] font-medium text-slate-400">Doanh nghiệp / Tổ chức</span>
+            <span className="truncate text-[10px] font-medium text-slate-400">{t('common:sidebar.subtitle')}</span>
           </div>
         )}
       </Link>

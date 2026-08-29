@@ -63,12 +63,7 @@ export function ProjectDetailPage() {
         ? 'bg-primary-500 ring-primary-200'
         : 'bg-slate-400 ring-slate-200';
 
-  const priorityMeta = {
-    LOW: { label: t('projects:newProjectModal.priorities.LOW'), color: 'text-slate-600 bg-slate-50 border-slate-200' },
-    MEDIUM: { label: t('projects:newProjectModal.priorities.MEDIUM'), color: 'text-indigo-700 bg-indigo-50 border-indigo-200' },
-    HIGH: { label: t('projects:newProjectModal.priorities.HIGH'), color: 'text-amber-700 bg-amber-50 border-amber-200' },
-    URGENT: { label: t('projects:newProjectModal.priorities.URGENT'), color: 'text-rose-700 bg-rose-50 border-rose-200' },
-  }[projectMeta.priority ?? 'MEDIUM'];
+  const priorityMeta = projectPriorityMeta(project.priority ?? 'MEDIUM');
 
   return (
     <div className="space-y-5">
@@ -82,7 +77,7 @@ export function ProjectDetailPage() {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-display text-xl sm:text-2xl font-bold tracking-tight text-slate-900 break-words">{project.name}</h1>
-              {projectMeta.priority && (
+              {project.priority && (
                 <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-semibold border ${priorityMeta.color}`}>
                   {priorityMeta.label}
                 </span>

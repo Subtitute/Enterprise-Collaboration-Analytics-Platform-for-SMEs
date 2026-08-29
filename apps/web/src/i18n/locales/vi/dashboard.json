@@ -102,33 +102,6 @@
       "document_uploaded": "đã tải lên một tài liệu",
       "document_shared": "đã chia sẻ một tài liệu",
       "document_deleted": "đã xóa một tài liệu"
-    },
-    "verbs": {
-      "iam_organization_registered": "đã đăng ký",
-      "iam_user_registered": "đã tham gia",
-      "iam_user_deactivated": "đã vô hiệu hóa",
-      "task_created": "đã tạo",
-      "task_status_changed": "đã cập nhật trạng thái",
-      "task_assigned": "đã được giao",
-      "project_created": "đã khởi tạo",
-      "project_completed": "đã hoàn thành",
-      "document_uploaded": "đã tải lên",
-      "document_shared": "đã chia sẻ",
-      "document_deleted": "đã xóa",
-      "default": "đã thực hiện thao tác"
-    },
-    "targets": {
-      "iam_organization_registered": "tổ chức mới",
-      "iam_user_registered": "tổ chức",
-      "iam_user_deactivated": "tài khoản thành viên",
-      "task_created": "công việc mới",
-      "task_status_changed": "công việc",
-      "task_assigned": "công việc",
-      "project_created": "dự án mới",
-      "project_completed": "dự án",
-      "document_uploaded": "tài liệu mới",
-      "document_shared": "tài liệu",
-      "document_deleted": "tài liệu"
     }
   }
 }

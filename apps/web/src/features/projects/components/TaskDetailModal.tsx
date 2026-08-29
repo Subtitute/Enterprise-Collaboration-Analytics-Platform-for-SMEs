@@ -124,7 +124,7 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
         <div
           onClick={() => setIsEditingTitle(true)}
           className="group flex items-center gap-2 cursor-pointer rounded-lg py-0.5 px-1.5 -ml-1.5 hover:bg-slate-100/80 transition-colors flex-1 min-w-0"
-          title="Nhấp để đổi tên công việc"
+          title={t('projects:taskDetail.renameHint')}
         >
           <h2 className="font-display text-base font-bold text-slate-900 truncate">
             {task?.title ?? t('projects:taskDetail.fallbackTitle')}

@@ -778,6 +778,84 @@ unit test thất bại dù lint đã sạch").*
 
 ---
 
+## 2026-08-29 (bổ sung) — Merge nhánh `frontend` của Nguyễn Lê Tiến (lần 2) — 7 file conflict +
+4 hồi quy ngữ nghĩa "im lặng" (không có dấu conflict nhưng vẫn sai)
+
+Người dùng merge lại nhánh `frontend` của Tiến vào nhánh chính, phát sinh conflict Git thật (đánh
+dấu `<<<<<<< HEAD` / `=======` / `>>>>>>> origin/frontend`) ở **7 file**: `components/ui/Modal.tsx`,
+`features/projects/ProjectsListPage.tsx`, `features/dashboard/components/RecentActivityFeed.tsx`,
+và 4 file JSON i18n (`en/dashboard.json`, `ja/dashboard.json`, `en/projects.json`, `ja/projects.json`).
+Git không có sẵn trong môi trường CLI này nên xử lý trực tiếp trên nội dung file (grep dấu
+conflict, đọc/so sánh 2 phía, không dùng `git merge`/`git status`).
+
+**Quyết định thiết kế đáng chú ý nhất**: `RecentActivityFeed.tsx` — 2 bên có 2 cách hiện thực
+KHÁC NHAU cho cùng 1 tính năng (dịch dòng hoạt động gần đây), độc lập nhau, cùng lúc: bản của tôi
+(`parseActionDetails` + key `verbs.*`/`targets.*`, tách riêng động từ/đối tượng) và bản của Tiến
+(`getActionDisplay` + key `actions.*`/`performedAction`, gộp thành 1 câu + hiển thị dạng "badge"
+màu theo loại hành động - tạo/sửa/xoá). Chọn giữ bản của Tiến (UI trực quan hơn, đã dịch đầy đủ cả
+3 ngôn ngữ), xoá hẳn `verbs`/`targets`/`activityCount` (key chết, không còn nơi nào dùng) khỏi cả
+3 file `dashboard.json`. Nhân tiện dọn 1 lỗi trùng key JSON có từ trước (`projectCard.noDescription`
+khai báo 2 lần trong `projects.json` cả 3 ngôn ngữ - JSON không báo lỗi nhưng giá trị đầu bị đè âm
+thầm) và 4 cặp chuỗi lệch nhau giữa 2 bên (`priorityFilter`/`editProjectModal.title`/`leadLabel`/
+`reopenProject`...) — đối chiếu với bản `vi/*.json` (đã tự merge sạch, dùng làm "trọng tài") để
+chọn cách diễn đạt nhất quán, bỏ hẳn `priorityRequired` (key Tiến thêm nhưng không nơi nào gọi tới,
+`vi` cũng không có).
+
+**4 hồi quy ngữ nghĩa nghiêm trọng hơn — KHÔNG có dấu conflict nào** (Git 3-way merge không phát
+hiện vì 2 bên sửa dòng khác nhau, không chồng lấn dòng-với-dòng, nhưng SAI về mặt logic khi đứng
+cạnh nhau) — phát hiện qua `npm run lint`/`npm run typecheck`/`npm run lint:i18n-strings` báo lỗi
+thật, không phải tự rà thủ công hết 101 file:
+1. **`EditProjectModal.tsx`** — merge tự động (không đánh dấu) đã LẶP ĐÔI y hệt 2 đoạn JSX (nút
+   "Đổi" hiển thị 2 lần; đoạn "Không tìm thấy thành viên" lặp 2 lần trong cùng 1 nhánh ternary) —
+   lỗi thứ 2 phá cú pháp JSX thật sự (`error TS2657: JSX expressions must have one parent element`),
+   chặn cả `lint` lẫn `typecheck`. Xoá bản lặp.
+2. **`ProjectCard.tsx`/`ProjectDetailPage.tsx`** — bị merge "lùi" về đúng logic ĐÃ TỪNG SỬA ở lỗi
+   MAJOR Fix 3 (26/08/2026): đọc `priority`/`leadUserId` từ `localStorage['ec_projects_metadata']`
+   (hệ thống CŨ) thay vì trực tiếp từ `project.priority`/`project.leadUserId` (trường thật từ
+   server) — chú thích 26/08 vẫn còn nguyên trong code (nói đúng là "giờ đọc thẳng từ server") NHƯNG
+   đoạn code bên dưới lại làm ngược lại chú thích đó. Đồng thời cả 2 file tự khai báo lại 1 object
+   `priorityMeta` y hệt nhau thay vì gọi `projectPriorityMeta()` dùng chung (`utils.ts`) — về đúng
+   lỗi trùng lặp mà hàm này được tạo ra để xoá bỏ. Phát hiện qua ESLint cảnh báo
+   `'projectPriorityMeta' is defined but never used` (dấu hiệu hàm dùng chung bị bỏ rơi).
+3. **`EditProjectModal.tsx` `handleSubmit()`** — hồi quy CÙNG LỚP LỖI nghiêm trọng hơn: `mutate()`
+   chỉ gửi `name`/`description`/`dueDate` lên server, còn `priority`/`leadUserId` NGƯỜI DÙNG VỪA
+   CHỌN chỉ được ghi vào `localStorage` (hệ thống CŨ, đã bỏ) — sửa dự án qua modal này trước khi vá
+   sẽ báo "Lưu thay đổi" thành công nhưng KHÔNG BAO GIỜ thực sự đổi độ ưu tiên/người phụ trách trên
+   server. Sửa bằng cách gửi thẳng `priority`/`leadUserId: leadId || undefined` trong payload
+   `mutate()` (đúng mẫu đã dùng ở `NewProjectModal.tsx`), bỏ hẳn nhánh ghi localStorage/tự phát sự
+   kiện (`useUpdateProject()` đã tự `invalidateQueries(['projects'])`/`['project', id]` khi thành
+   công, không cần cơ chế đồng bộ thủ công riêng nữa).
+4. **4 chuỗi tiếng Việt có dấu hardcode sót lại** (`lint:i18n-strings` bắt được): `Sidebar.tsx`
+   ("Doanh nghiệp / Tổ chức" — key `common:sidebar.subtitle` đã có sẵn, chỉ chưa gọi `t()`),
+   `TaskCard.tsx` ("Quá hạn" trong tooltip chấm ưu tiên — tính năng mới của Tiến, thêm key
+   `projects:taskCard.overdue`), `TaskDetailModal.tsx` ("Nhấp để đổi tên công việc" — tính năng đổi
+   tên tại chỗ mới của Tiến, thêm key `projects:taskDetail.renameHint`), `TaskStatusDonut.tsx`
+   (`defaultValue` hardcode tiếng Việt cho nhánh DOING dù key thật `projects:enums.taskStatus.DOING`
+   luôn tồn tại nên nhánh đó không bao giờ chạy tới — đơn giản hoá về `defaultValue: status`).
+5. **`DashboardPage.tsx`** (phát hiện qua `typecheck`, không phải `lint:i18n-strings`) — `daysMap`
+   dùng khoá `'90d'`/`'1y'` trong khi `DateRangeOption` (type dùng chung, `types/index.ts`) đã đổi
+   thành `'7d' | '30d' | 'quarter'` từ trước (khớp đúng bộ giá trị backend chấp nhận —
+   `analytics-service` từ chối `'1y'` bằng `BadRequestException`, xác nhận qua
+   `range.util.spec.ts`) — 2 bên sửa 2 nơi khác nhau (type ở 1 file, object dùng type ở file khác)
+   nên Git không phát hiện được. Sửa `daysMap` về đúng `{'7d': 7, '30d': 30, quarter: 90}`.
+
+**Xác minh:** `npm run lint` (root) sạch (0 lỗi, chỉ còn warning nền cũ không đổi). `npm run
+lint:i18n-strings` sạch (0 vi phạm, từ 4 xuống 0). `npm run typecheck` (root) sạch (từ 2 lỗi biên
+dịch xuống 0). `npm run test --workspace=apps/web` 18/18 pass. `npm run test:coverage` (root, đúng
+lệnh CI) — cả 12 workspace pass, không lỗi ngưỡng coverage. Toàn bộ 4 file JSON hợp lệ cú pháp
+(`ConvertFrom-Json` xác nhận).
+
+**Bài học quy trình**: chỉ tìm dấu `<<<<<<<`/`=======`/`>>>>>>>` là KHÔNG ĐỦ để merge an toàn — Git
+tự động gộp (không báo conflict) những vùng 2 bên sửa mà không chồng dòng, kể cả khi kết quả sai về
+logic (đọc sai nguồn dữ liệu, gọi nhầm namespace i18n, dùng type/enum đã đổi ở nơi khác). Bắt buộc
+chạy đủ `lint` + `lint:i18n-strings` + `typecheck` + `test` NGAY sau khi resolve conflict, không chỉ
+xoá dấu conflict rồi coi là xong — 3/4 lỗi ở trên (Fix 2, 3, 5) không hề có dấu conflict nào.
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 29/08/2026 (phần "merge nhánh
+frontend của Tiến lần 2").*
+
+---
+
 ## Lịch sử thay đổi tài liệu này
 
 - **2026-08-24** — Khởi tạo file, gộp lại toàn bộ lịch sử rà soát/sửa lỗi từ 18/07/2026 (khởi tạo
@@ -807,3 +885,8 @@ unit test thất bại dù lint đã sạch").*
   hỏng mà là `coverageThreshold.branches` của `notification-service` tụt dưới ngưỡng (55%, thực đo
   49.57%); lấp bằng 14 test mới cho 3 khoảng trống coverage có sẵn (2 từ trước, 1 từ đợt CRASH-
   recovery 26/08), không đổi code sản phẩm nào.
+- **2026-08-29 (bổ sung)** — Bổ sung mục "Merge nhánh frontend của Tiến (lần 2)" — 7 file conflict
+  Git thật + 5 hồi quy ngữ nghĩa "im lặng" không có dấu conflict (2 lỗi cùng lớp MAJOR Fix 3 26/08
+  tái xuất hiện ở `ProjectCard.tsx`/`ProjectDetailPage.tsx`/`EditProjectModal.tsx`, 1 lỗi cú pháp
+  JSX do merge tự lặp đôi nội dung, 4 chuỗi tiếng Việt hardcode mới, 1 lỗi type `DateRangeOption`
+  lệch giữa 2 nhánh) — bài học: chỉ tìm dấu conflict là không đủ, phải chạy đủ lint+typecheck+test.

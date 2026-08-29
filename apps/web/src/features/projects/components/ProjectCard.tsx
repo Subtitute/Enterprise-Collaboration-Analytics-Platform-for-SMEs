@@ -67,14 +67,8 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
 
   const progressColor = isProjectCompleted ? 'bg-emerald-500' : 'bg-primary-500';
 
-  const leadUser = usersQuery.data?.find((u) => u.id === projectMeta.leadId);
-
-  const priorityMeta = {
-    LOW: { label: t('projects:newProjectModal.priorities.LOW'), color: 'text-slate-600 bg-slate-50 border-slate-200' },
-    MEDIUM: { label: t('projects:newProjectModal.priorities.MEDIUM'), color: 'text-indigo-700 bg-indigo-50 border-indigo-200' },
-    HIGH: { label: t('projects:newProjectModal.priorities.HIGH'), color: 'text-amber-700 bg-amber-50 border-amber-200' },
-    URGENT: { label: t('projects:newProjectModal.priorities.URGENT'), color: 'text-rose-700 bg-rose-50 border-rose-200' },
-  }[projectMeta.priority ?? 'MEDIUM'];
+  const leadUser = usersQuery.data?.find((u) => u.id === project.leadUserId);
+  const priorityMeta = projectPriorityMeta(project.priority ?? 'MEDIUM');
 
   return (
     <>
