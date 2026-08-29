@@ -130,21 +130,25 @@ export class AttendanceService {
     longitude?: number,
   ): Promise<Attendance> {
     verifyPhotoContentMatchesMimeType(file);
-    const workDate = toGmt7DateString(new Date());
 
-    // 26/08/2026 (fix code review, loi MAJOR - ca lam viec vat qua nua dem GMT+7): `workDate` o
-    // tren duoc TINH LAI doc lap tai THOI DIEM checkout (toGmt7DateString(new Date())), khac voi
-    // workDate da LUU vao ban ghi Attendance tai THOI DIEM checkin (xem checkIn() o tren, cung ham
-    // toGmt7DateString nhung goi luc checkin). Voi ca lam viec vat qua nua dem (checkin luc 23h50
-    // ngay hom truoc, checkout luc 00h10 ngay hom sau, gio GMT+7), 2 gia tri workDate nay LECH NHAU
-    // 1 ngay -> truy van {organizationId, userId, workDate} (workDate tinh lai luc checkout) khong
-    // bao gio khop dung ban ghi ma checkIn() da tao, luon roi vao nhanh loi "chua checkin"
-    // (NOT_CHECKED_IN_YET) mac du nguoi dung DA checkin dung cach. Sua bang cach KHONG con dung
-    // workDate de TIM ban ghi nua (workDate o tren van GIU NGUYEN, chi con dung de dat ten object
-    // key anh checkout + outbox payload ben duoi, khong doi gi ca) - thay vao do tim TRUC TIEP ban
-    // ghi checkin dang MO (checkOutAt IS NULL) GAN DAY NHAT theo checkInAt cua chinh
-    // {organizationId, userId}, dung dung ban ghi ma checkIn() da tao bat ke workDate cua no la
-    // ngay nao.
+    // 26/08/2026 (fix code review, loi MAJOR - ca lam viec vat qua nua dem GMT+7): truoc ban vay
+    // TIM ban ghi qua {organizationId, userId, workDate} voi `workDate` TINH LAI doc lap tai THOI
+    // DIEM checkout (toGmt7DateString(new Date())), khac voi workDate da LUU vao ban ghi Attendance
+    // tai THOI DIEM checkin (xem checkIn() o tren). Voi ca lam viec vat qua nua dem (checkin luc
+    // 23h50 ngay hom truoc, checkout luc 00h10 ngay hom sau, gio GMT+7), 2 gia tri workDate nay
+    // LECH NHAU 1 ngay -> truy van khong bao gio khop dung ban ghi ma checkIn() da tao, luon roi
+    // vao nhanh loi "chua checkin" (NOT_CHECKED_IN_YET) mac du nguoi dung DA checkin dung cach. Sua
+    // bang cach tim TRUC TIEP ban ghi checkin dang MO (checkOutAt IS NULL) GAN DAY NHAT theo
+    // checkInAt cua chinh {organizationId, userId}, dung dung ban ghi ma checkIn() da tao bat ke
+    // workDate cua no la ngay nao.
+    //
+    // 27/08/2026 (bo sung, phat hien qua ra soat lai): ban vay 26/08 con giu 1 bien `workDate` rieng
+    // tinh o day (tai thoi diem checkout) chi de dat ten object key anh + outbox payload ben duoi -
+    // van la CUNG 1 loi "workDate sai ngay" nhu tren, chi la khong con anh huong toi viec TIM ban
+    // ghi nua nen chua bi phat hien khi kiem thu (chua co consumer nao thuc su doc field nay). Bo
+    // han bien `workDate` rieng - dung THANG `workDate` cua ban ghi Attendance da tim/khoa duoc
+    // (preCheck ben duoi cho object key, `attendance` trong transaction cho outbox payload) - luon
+    // dung ngay ma ca lam viec do THAT SU thuoc ve, bat ke checkout dien ra vao ngay nao.
     const openCheckInWhere = { organizationId, userId, checkOutAt: IsNull() };
     const openCheckInOrder = { checkInAt: 'DESC' as const };
 
@@ -161,7 +165,7 @@ export class AttendanceService {
       throw new BadRequestException({ message: 'Bạn đã chấm công ra về hôm nay rồi', errorCode: ERROR_CODES.ALREADY_CHECKED_OUT_TODAY });
     }
 
-    const objectKey = buildAttendancePhotoObjectKey(organizationId, userId, workDate, 'checkout', file.mimetype);
+    const objectKey = buildAttendancePhotoObjectKey(organizationId, userId, preCheck.workDate, 'checkout', file.mimetype);
     await this.minioService.putObject(objectKey, file.buffer, file.size, file.mimetype);
     const isOnSite = this.computeIsOnSite(latitude, longitude);
 
@@ -200,7 +204,7 @@ export class AttendanceService {
       attendance.checkOutIsOnSite = isOnSite;
       const updated = await manager.save(attendance);
 
-      const payload: AttendanceCheckedOutPayload = { attendanceId: updated.id, userId, workDate };
+      const payload: AttendanceCheckedOutPayload = { attendanceId: updated.id, userId, workDate: attendance.workDate };
       await this.outboxService.record(manager, {
         eventType: EVENT_TYPES.ATTENDANCE_CHECKED_OUT,
         organizationId,

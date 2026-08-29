@@ -21,9 +21,17 @@
     "title": "Projects & Tasks",
     "subtitle": "Manage projects and track progress with a Kanban board.",
     "newProject": "New project",
+    "viewAll": "View all",
     "searchPlaceholder": "Search projects…",
     "statusFilter": {
       "all": "All statuses"
+    },
+    "priorityFilter": {
+      "all": "All priorities",
+      "LOW": "Priority: Low",
+      "MEDIUM": "Priority: Medium",
+      "HIGH": "Priority: High",
+      "URGENT": "Priority: Urgent"
     },
     "loading": "Loading projects…",
     "errorTitle": "Couldn't load projects",
@@ -41,6 +49,7 @@
     "backToList": "Back to projects",
     "dueDate": "Due: {{date}}",
     "completeProject": "Complete project",
+    "reopenProject": "Reopen as active",
     "newTask": "New task",
     "tasksLoading": "Loading tasks…",
     "tasksErrorTitle": "Couldn't load tasks",
@@ -57,10 +66,23 @@
     "descriptionLabel": "Description",
     "descriptionPlaceholder": "Project goals, scope of work…",
     "dueDateLabel": "Due date",
+    "priorityLabel": "Priority",
+    "leadLabel": "Lead",
+    "searchMemberPlaceholder": "Search and select a lead…",
     "changeLead": "Change",
     "noMembersFound": "No members found",
+    "priorities": {
+      "LOW": "Low",
+      "MEDIUM": "Medium",
+      "HIGH": "High",
+      "URGENT": "Urgent"
+    },
     "cancel": "Cancel",
     "submit": "Create project"
+  },
+  "editProjectModal": {
+    "title": "Edit project",
+    "submit": "Save changes"
   },
   "newTaskModal": {
     "title": "Create new task",
@@ -74,7 +96,9 @@
   },
   "projectCard": {
     "optionsAriaLabel": "Project options",
+    "edit": "Edit details",
     "markComplete": "Mark as complete",
+    "reopen": "Reopen as active",
     "delete": "Delete project",
     "memberCount": "{{count}} members",
     "confirmDeleteTitle": "Delete this project?",
@@ -127,7 +151,9 @@
       "deleted": "Project deleted",
       "deleteError": "Couldn't delete project",
       "completed": "Project marked as complete",
-      "completeError": "Couldn't complete project"
+      "completeError": "Couldn't complete project",
+      "reopened": "Project reopened as active",
+      "reopenError": "Couldn't reopen project"
     },
     "task": {
       "created": "Task created",

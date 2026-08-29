@@ -636,6 +636,73 @@ ngoài comment trong 119 file đã quét"); toàn bộ file JSON locale đã s�
 *Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 26/08/2026 (phần 5 đề xuất cải
 thiện, tiếp sau phần rà soát lần 4 cùng ngày ở trên).*
 
+## 2026-08-27 — Rà soát riêng phần vừa triển khai (lần 4 + 5 đề xuất) + kiểm tra bảo mật
+
+Theo yêu cầu chủ động: rà soát lại CHỈ những phần vừa thay đổi ở 2 mục trên (không lặp lại toàn bộ
+dự án — đã qua 4 lần rà soát tổng thể, không còn nhiều giá trị lặp lại lần 5), tách riêng 1 hướng
+tập trung vào bảo mật cho khu vực rủi ro cao nhất (Gateway rate-limit vừa tái cấu trúc, script Lua
+nguyên tử, xử lý mật khẩu Mongo).
+
+**Tự kiểm tra trước (không qua agent):** viết 1 script Node đối chiếu key + placeholder giữa
+vi/en/ja cho toàn bộ 12 namespace i18n (loại `errors.json` khỏi so sánh — file này CỐ TÌNH lệch
+theo thiết kế đã ghi nhận từ trước). Phát hiện **25 key sót từ trước** (không phải do đợt sửa hôm
+qua) chỉ có ở `vi` mà thiếu ở cả `en` lẫn `ja`: 5 key trong `dashboard:recentActivityFeed`
+(`viewAll`, `collapse`, `groups.today/yesterday/earlier`) và 20 key trong `projects.json`
+(`list.viewAll`, `list.priorityFilter.*`, `detail.reopenProject`, `newProjectModal.priorityLabel/
+leadLabel/searchMemberPlaceholder/priorities.*`, `editProjectModal` cả khối, `projectCard.edit/
+reopen`, `toast.project.reopened/reopenError`) — đã được 1 agent hôm qua tự phát hiện và chủ động
+ghi chú "out of scope, để đó" trong báo cáo, nhưng tôi đọc lướt báo cáo tổng hợp và bỏ sót không
+theo dõi tiếp. Đã dịch bổ sung toàn bộ 25 key vào en/ja (giữ đúng nghĩa/văn phong đã dùng cho các
+key lân cận). Bài học: từ nay đối chiếu key bằng script thay vì chỉ tin báo cáo tóm tắt của agent.
+
+**5 hướng rà soát song song, chỉ nhắm đúng các file vừa đổi:**
+
+1. **Bảo mật** (Gateway `jwt-auth.middleware.ts`/`redis.service.ts`, IAM `redis.service.ts`/
+   `users.service.ts`, `infra/docker-compose.yml`, Mongo URI, field `leadUserId` mới) — sạch, chỉ 1
+   ghi nhận Nhẹ: `leadUserId` không xác minh thuộc đúng tổ chức trước khi lưu — cùng hạn chế (cùng
+   lý do: chưa có HTTP client nội bộ giữa các service) đã ghi nhận từ 25/07/2026 tại
+   `TasksService.assign()`. Bổ sung chú thích tương tự tại `ProjectsService.create()`/`update()`
+   để nhất quán, không sửa hành vi (mức độ nghiêm trọng thấp, đã có lý do kỹ thuật rõ ràng).
+2. **Backend logic** (`ProjectsService.complete()`/`update()`, `FoldersService.remove()`,
+   `AttendanceService.checkOut()`, `failed-events-consumer.service.ts`, `fact-writer.service.ts`)
+   — sạch, 1 lỗi Nhẹ còn sót: `checkOut()` (sửa 26/08 để tìm đúng bản ghi check-in đang mở) vẫn giữ
+   riêng 1 biến `workDate` tính lại tại thời điểm checkout (thay vì lấy từ bản ghi thật) để đặt tên
+   object key ảnh + outbox payload — cùng lỗi "sai ngày qua nửa đêm" như bản gốc, chỉ là không còn
+   ảnh hưởng tới việc TÌM bản ghi nữa nên không lộ ra khi test. Sửa: dùng thẳng `workDate` của bản
+   ghi Attendance đã tìm/khoá được (`preCheck.workDate` cho object key, `attendance.workDate` cho
+   outbox payload), bỏ hẳn biến tính riêng.
+3. **Frontend Projects** (`api.ts`, `utils.ts`, `ProjectCard`/`EditProjectModal`/`NewProjectModal`/
+   `ProjectDetailPage`, `Sidebar.tsx`) — sạch, không phát hiện gì mới.
+4. **`Modal.tsx` + 12 modal dùng `preventCloseWhilePending`** — triển khai đúng và đầy đủ theo
+   phạm vi đã định. 2 ghi nhận Nhẹ không sửa: `ConfirmDialog` (cùng file) chưa có prop này nhưng
+   hiện vô hại (mọi nơi gọi đều đóng đồng bộ trong `onConfirm`, không qua `onSuccess` trễ); và một
+   đánh đổi có chủ đích chưa từng được ghi chú — nếu request treo vô thời hạn (`apiClient` không
+   đặt `timeout`, mutation cấu hình `retry: 0`), người dùng không có cách nào đóng modal từ trong
+   app cho tới khi request thật sự trả về. Bổ sung chú thích ghi nhận đánh đổi này ngay tại khai báo
+   prop trong `Modal.tsx`, không sửa hành vi (lợi ích tránh mất dữ liệu/đóng nhầm modal lớn hơn rủi
+   ro request treo thật sự hiếm gặp).
+5. **`scripts/check-hardcoded-vietnamese.js` (công cụ mới hôm qua) + các sửa đổi liên quan** — phát
+   hiện 1 lỗi Nghiêm trọng vừa trong chính công cụ: bộ xoá comment không nhận biết regex literal, 1
+   pattern như `/^https?:\/\//` (dấu `/` thoát trong regex) bị hiểu nhầm là bắt đầu comment `//`
+   ngay giữa chừng, làm MẤT toàn bộ phần còn lại của dòng đó — kể cả chuỗi tiếng Việt thật sự nằm
+   sau nó — mà không báo lỗi gì (sai lệch theo hướng "bỏ sót", nguy hiểm hơn báo động giả). Chưa
+   từng bị kích hoạt (chưa có regex nào dạng này trong `apps/web/src` tại thời điểm viết), nhưng sẽ
+   âm thầm vô hiệu hoá công cụ ngay khi ai đó thêm 1 pattern kiểm tra URL kiểu này. Sửa: thêm nhận
+   diện regex literal dựa theo ký tự/từ khoá ngay trước dấu `/` (heuristic phổ biến của tokenizer
+   JS đơn giản — sau `)]}`/identifier/số là phép chia, sau toán tử/dấu câu/từ khoá như `return` là
+   regex), "ẩn" nguyên nội dung regex y hệt cách đã làm với string/template literal. Đã viết test
+   riêng xác nhận đúng ca lỗi gốc (`urlRe = /^https?:\/\//` không còn nuốt chuỗi tiếng Việt phía
+   sau) mà không phá vỡ hành vi cũ (comment `//`/`/* */` vẫn bị xoá đúng, 2 dòng regex đã đánh dấu
+   `i18n-lint-ignore` trong `lib/utils.ts` vẫn được bỏ qua đúng). Các mục còn lại (CI YAML,
+   `extractErrorMessage()` fallback, 2 marker `i18n-lint-ignore`, JSON locale mới) đều sạch.
+
+**Xác minh cuối cùng:** `npm run typecheck` (root) sạch; `npm run test --workspaces` vẫn 573/573
+(không hồi quy từ các sửa đổi trên); `node scripts/check-hardcoded-vietnamese.js` thoát mã 0; script
+đối chiếu key/placeholder i18n riêng (viết hôm nay) xác nhận sạch tuyệt đối trên cả 11 namespace
+UI (loại `errors.json` theo thiết kế).
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 27/08/2026.*
+
 ---
 
 ## Lịch sử thay đổi tài liệu này
@@ -656,3 +723,7 @@ thiện, tiếp sau phần rà soát lần 4 cùng ngày ở trên).*
 - **2026-08-26 (bổ sung)** — Bổ sung mục "5 đề xuất cải thiện sau lần rà soát 4" — triển khai toàn
   bộ 5 đề xuất (2 đợt rà soát không tìm thêm lỗi, 1 tái cấu trúc Gateway, 1 công cụ CI mới +
   23 chuỗi i18n còn sót, 1 prop dùng chung cho Modal áp dụng cho 12 modal), gate cuối vẫn 573/573.
+- **2026-08-27** — Bổ sung mục "Rà soát riêng phần vừa triển khai + kiểm tra bảo mật" — tự phát
+  hiện 25 key i18n sót từ trước (dashboard/projects), 1 hướng bảo mật riêng (sạch, 1 ghi nhận Nhẹ),
+  sửa 1 lỗi Nghiêm trọng vừa trong chính công cụ CI mới hôm qua (regex literal làm mất nội dung
+  dòng), sửa lại đúng `AttendanceService.checkOut()`, gate cuối vẫn 573/573.

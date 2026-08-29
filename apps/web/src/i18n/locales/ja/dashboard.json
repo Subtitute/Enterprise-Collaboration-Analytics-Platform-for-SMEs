@@ -66,7 +66,14 @@
     "emptyTitle": "アクティビティはまだありません",
     "emptyDescription": "組織内の新しいアクティビティがここにリアルタイムで表示されます。",
     "unknownActor": "あるメンバー",
+    "viewAll": "すべての活動を表示",
+    "collapse": "折りたたむ",
     "activityCount": "最近のイベント {{count}}件",
+    "groups": {
+      "today": "今日",
+      "yesterday": "昨日",
+      "earlier": "それ以前"
+    },
     "actions": {
       "iam_organization_registered": "新しい組織を登録しました",
       "iam_user_registered": "組織に参加しました",

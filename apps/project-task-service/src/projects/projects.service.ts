@@ -107,6 +107,15 @@ export class ProjectsService {
           status: ProjectStatus.ACTIVE,
           // 26/08/2026 (fix code review, loi MAJOR - Fix 3): wire priority/leadUserId tu DTO vao
           // entity (truoc do khong co 2 cot nay nen khong the gan gi ca - xem project.entity.ts).
+          //
+          // 27/08/2026 (ghi nhan qua ra soat lai, KHONG sua): `leadUserId` khong duoc xac minh thuc
+          // su thuoc `organizationId` cua nguoi goi - CUNG mot han che (cung ly do) da ghi nhan tai
+          // TasksService.assign() (apps/project-task-service/src/tasks/tasks.service.ts): repo nay
+          // chua co co che goi HTTP noi bo giua cac service de tra cuu du lieu user/org cua IAM
+          // Service. Muc do NGHIEM TRONG THAP: khong lam lo du lieu to chuc khac (khong doc/ghi gi
+          // ngoai Project cua chinh organizationId nay), chi cho phep gan leadUserId "ao" khong
+          // thuc su thuoc to chuc - frontend chi resolve ten nguoi phu trach qua danh sach
+          // GET /users (da loc theo to chuc) nen 1 id ao se don gian khong hien ten ai ca.
           priority: dto.priority ?? ProjectPriority.MEDIUM,
           leadUserId: dto.leadUserId ?? null,
           createdByUserId: actorId,
@@ -139,6 +148,7 @@ export class ProjectsService {
     if (dto.dueDate !== undefined) project.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
     // 26/08/2026 (fix code review, loi MAJOR - Fix 3): wire priority/leadUserId tu DTO vao entity
     // (cung ly do voi create()) - an toan de gan THANG (khong can lock/state-machine nhu status).
+    // leadUserId khong xac minh thuoc dung to chuc - xem giai thich chi tiet tai create() o tren.
     if (dto.priority !== undefined) project.priority = dto.priority;
     if (dto.leadUserId !== undefined) project.leadUserId = dto.leadUserId;
     // 26/08/2026 (fix code review, loi MAJOR): DA XOA nhanh `if (dto.status !== undefined)

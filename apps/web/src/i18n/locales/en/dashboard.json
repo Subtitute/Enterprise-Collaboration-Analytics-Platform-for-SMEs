@@ -66,7 +66,14 @@
     "emptyTitle": "No activity yet",
     "emptyDescription": "New activity in your organization will appear here in real time.",
     "unknownActor": "A member",
+    "viewAll": "View all activity",
+    "collapse": "Collapse",
     "activityCount": "{{count}} recent events",
+    "groups": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "earlier": "Earlier"
+    },
     "actions": {
       "iam_organization_registered": "registered a new organization",
       "iam_user_registered": "joined the organization",

@@ -21,9 +21,17 @@
     "title": "プロジェクト・タスク",
     "subtitle": "プロジェクトを管理し、カンバンボードで進捗を追跡します。",
     "newProject": "新規プロジェクト",
+    "viewAll": "すべて表示",
     "searchPlaceholder": "プロジェクトを検索…",
     "statusFilter": {
       "all": "すべてのステータス"
+    },
+    "priorityFilter": {
+      "all": "すべての優先度",
+      "LOW": "優先度：低",
+      "MEDIUM": "優先度：中",
+      "HIGH": "優先度：高",
+      "URGENT": "優先度：緊急"
     },
     "loading": "プロジェクトを読み込み中…",
     "errorTitle": "プロジェクトを読み込めませんでした",
@@ -41,6 +49,7 @@
     "backToList": "プロジェクト一覧に戻る",
     "dueDate": "期限: {{date}}",
     "completeProject": "プロジェクトを完了にする",
+    "reopenProject": "進行中に戻す",
     "newTask": "新規タスク",
     "tasksLoading": "タスクを読み込み中…",
     "tasksErrorTitle": "タスクを読み込めませんでした",
@@ -57,10 +66,23 @@
     "descriptionLabel": "説明",
     "descriptionPlaceholder": "プロジェクトの目標や作業範囲…",
     "dueDateLabel": "期限",
+    "priorityLabel": "優先度",
+    "leadLabel": "担当者",
+    "searchMemberPlaceholder": "担当者を検索して選択…",
     "changeLead": "変更",
     "noMembersFound": "メンバーが見つかりません",
+    "priorities": {
+      "LOW": "低",
+      "MEDIUM": "中",
+      "HIGH": "高",
+      "URGENT": "緊急"
+    },
     "cancel": "キャンセル",
     "submit": "プロジェクトを作成"
+  },
+  "editProjectModal": {
+    "title": "プロジェクト情報を編集",
+    "submit": "変更を保存"
   },
   "newTaskModal": {
     "title": "新規タスクを作成",
@@ -74,7 +96,9 @@
   },
   "projectCard": {
     "optionsAriaLabel": "プロジェクトのオプション",
+    "edit": "情報を編集",
     "markComplete": "完了にする",
+    "reopen": "進行中に戻す",
     "delete": "プロジェクトを削除",
     "memberCount": "メンバー{{count}}人",
     "confirmDeleteTitle": "このプロジェクトを削除しますか？",
@@ -127,7 +151,9 @@
       "deleted": "プロジェクトを削除しました",
       "deleteError": "プロジェクトを削除できませんでした",
       "completed": "プロジェクトを完了にしました",
-      "completeError": "プロジェクトを完了にできませんでした"
+      "completeError": "プロジェクトを完了にできませんでした",
+      "reopened": "プロジェクトを進行中に戻しました",
+      "reopenError": "プロジェクトを再開できませんでした"
     },
     "task": {
       "created": "タスクを作成しました",
