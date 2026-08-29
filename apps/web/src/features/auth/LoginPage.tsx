@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth.store';
 import { useLogin } from './hooks';
@@ -18,6 +18,7 @@ const DEMO_CREDENTIALS = {
 
 export function LoginPage() {
   const { t } = useTranslation();
+  const location = useLocation();
   const accessToken = useAuthStore((s) => s.accessToken);
   const login = useLogin();
 
@@ -26,7 +27,10 @@ export function LoginPage() {
   const [errorKeys, setErrorKeys] = useState<{ email?: 'emailRequired' | 'emailInvalid'; password?: 'passwordRequired' }>({});
   const [copiedField, setCopiedField] = useState<'email' | 'password' | null>(null);
 
-  if (accessToken) return <Navigate to="/dashboard" replace />;
+  const from = (location.state as { from?: { pathname: string; search?: string } })?.from;
+  const redirectTarget = from ? `${from.pathname}${from.search || ''}` : '/dashboard';
+
+  if (accessToken) return <Navigate to={redirectTarget} replace />;
 
   function validate() {
     const next: typeof errorKeys = {};

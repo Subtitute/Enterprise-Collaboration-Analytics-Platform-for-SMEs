@@ -19,12 +19,13 @@ interface KpiCardProps {
   isError?: boolean;
   /** Goi lai query khi bam nut thu lai trong the - bo qua thi nut se khong hien. */
   onRetry?: () => void;
+  className?: string;
 }
 
-export function KpiCard({ label, value, hint, icon, accentClassName, isLoading, isError, onRetry }: KpiCardProps) {
+export function KpiCard({ label, value, hint, icon, accentClassName, isLoading, isError, onRetry, className }: KpiCardProps) {
   const { t } = useTranslation();
   return (
-    <Card className="group flex items-start justify-between gap-2 p-4 sm:p-5 sm:gap-3 transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border-slate-200/80 hover:border-slate-300">
+    <Card className={cn("group flex items-start justify-between gap-2 p-5 sm:gap-3 border-slate-200/60 bg-white shadow-sm hover:shadow-md transition-all duration-200", className)}>
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs sm:text-sm font-medium text-slate-500 group-hover:text-slate-700 transition-colors">{label}</p>
         {isError ? (
@@ -43,16 +44,16 @@ export function KpiCard({ label, value, hint, icon, accentClassName, isLoading, 
             )}
           </div>
         ) : isLoading ? (
-          <div className="mt-2 h-7 w-16 animate-pulse rounded bg-slate-100" />
+          <div className="mt-2 h-9 w-20 animate-pulse rounded-lg bg-slate-100" />
         ) : (
-          <p className="mt-1 text-xl sm:text-2xl font-bold tracking-tight tabular-nums text-slate-900">{value}</p>
+          <p className="mt-1 font-display text-3xl sm:text-4xl font-bold tracking-tight tabular-nums text-slate-900">{value}</p>
         )}
-        {hint && !isError && <p className="mt-1 truncate text-[11px] sm:text-xs text-slate-400">{hint}</p>}
+        {hint && !isError && <p className="mt-1 truncate text-[11px] sm:text-xs font-medium text-slate-400">{hint}</p>}
       </div>
       <div
         className={cn(
-          'flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-lg sm:rounded-xl shadow-sm transition-transform duration-200 group-hover:scale-105',
-          accentClassName ?? 'bg-blue-50 text-blue-600 border border-blue-100/60',
+          'flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl shadow-xs transition-transform duration-200 group-hover:scale-105',
+          accentClassName ?? 'bg-indigo-100 text-indigo-600',
         )}
       >
         {icon}

@@ -1,6 +1,8 @@
+import { useState, useEffect, useRef } from 'react';
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
 import { useTranslation } from 'react-i18next';
+import { PlusIcon } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import { TASK_STATUSES } from '@/types';
 import type { Task, TaskStatus } from '@/types';
@@ -13,35 +15,169 @@ const COLUMN_ACCENT: Record<TaskStatus, string> = {
   DONE: 'bg-emerald-500',
 };
 
-export function KanbanBoard({ projectId, tasks, onTaskClick }: { projectId: string; tasks: Task[]; onTaskClick: (task: Task) => void }) {
+interface KanbanBoardProps {
+  projectId: string;
+  tasks: Task[];
+  onTaskClick: (task: Task) => void;
+  onQuickAdd?: (status: TaskStatus) => void;
+}
+
+export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd }: KanbanBoardProps) {
   const { t } = useTranslation();
   const updateStatus = useUpdateTaskStatus(projectId);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const orderStorageKey = `ec_project_${projectId}_tasks_order`;
+
+  // Xử lý giữ trỏ chuột trái để kéo cuộn ngang bảng Kanban (Mouse Drag-to-scroll)
+  const isMouseDownRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+
+  function handleMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    // Chỉ kích hoạt khi click vào nền trống (không phải click vào nút bấm hay thẻ Draggable đang kéo)
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('[data-rfd-draggable-id]') || target.closest('input')) {
+      return;
+    }
+    if (!scrollContainerRef.current) return;
+    isMouseDownRef.current = true;
+    startXRef.current = e.pageX - scrollContainerRef.current.offsetLeft;
+    scrollLeftRef.current = scrollContainerRef.current.scrollLeft;
+  }
+
+  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    if (!isMouseDownRef.current || !scrollContainerRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - scrollContainerRef.current.offsetLeft;
+    const walk = (x - startXRef.current) * 1.2; // Tốc độ trượt
+    scrollContainerRef.current.scrollLeft = scrollLeftRef.current - walk;
+  }
+
+  function handleMouseUpOrLeave() {
+    isMouseDownRef.current = false;
+  }
+
+  // Khởi tạo và đồng bộ danh sách tasks theo từng cột dựa trên taskOrder lưu trữ
+  const [columns, setColumns] = useState<Record<TaskStatus, Task[]>>(() => {
+    const savedOrder: string[] = (() => {
+      try {
+        return JSON.parse(localStorage.getItem(orderStorageKey) || '[]');
+      } catch {
+        return [];
+      }
+    })();
+
+    const result: Record<TaskStatus, Task[]> = { TODO: [], DOING: [], DONE: [] };
+    TASK_STATUSES.forEach((status) => {
+      const colTasks = tasks.filter((t) => t.status === status);
+      result[status] = [...colTasks].sort((a, b) => {
+        const idxA = savedOrder.indexOf(a.id);
+        const idxB = savedOrder.indexOf(b.id);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return 0;
+      });
+    });
+    return result;
+  });
+
+  // Đồng bộ lại khi danh sách tasks từ server/parent thay đổi
+  useEffect(() => {
+    const savedOrder: string[] = (() => {
+      try {
+        return JSON.parse(localStorage.getItem(orderStorageKey) || '[]');
+      } catch {
+        return [];
+      }
+    })();
+
+    const result: Record<TaskStatus, Task[]> = { TODO: [], DOING: [], DONE: [] };
+    TASK_STATUSES.forEach((status) => {
+      const colTasks = tasks.filter((t) => t.status === status);
+      result[status] = [...colTasks].sort((a, b) => {
+        const idxA = savedOrder.indexOf(a.id);
+        const idxB = savedOrder.indexOf(b.id);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return 0;
+      });
+    });
+    setColumns(result);
+  }, [tasks, projectId]);
 
   function handleDragEnd(result: DropResult) {
     const { destination, source, draggableId } = result;
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
-    const newStatus = destination.droppableId as TaskStatus;
-    if (newStatus !== source.droppableId) {
-      updateStatus.mutate({ taskId: draggableId, status: newStatus });
+    const sourceStatus = source.droppableId as TaskStatus;
+    const destStatus = destination.droppableId as TaskStatus;
+
+    const sourceList = Array.from(columns[sourceStatus]);
+    const destList = sourceStatus === destStatus ? sourceList : Array.from(columns[destStatus]);
+
+    const [movedTask] = sourceList.splice(source.index, 1);
+    if (!movedTask) return;
+
+    const updatedTask = { ...movedTask, status: destStatus };
+    destList.splice(destination.index, 0, updatedTask);
+
+    const newColumns = {
+      ...columns,
+      [sourceStatus]: sourceList,
+      [destStatus]: destList,
+    };
+
+    // Cập nhật State Cục bộ NGAY LẬP TỨC để thẻ rơi trúng đích 100% không bị nhảy vị trí
+    setColumns(newColumns);
+
+    // Lưu thứ tự hiển thị toàn bộ vào localStorage
+    const allTaskIds = [
+      ...newColumns.TODO.map((t) => t.id),
+      ...newColumns.DOING.map((t) => t.id),
+      ...newColumns.DONE.map((t) => t.id),
+    ];
+    try {
+      localStorage.setItem(orderStorageKey, JSON.stringify(allTaskIds));
+    } catch {
+      // ignore
+    }
+
+    // Nếu chuyển cột thì gọi API cập nhật Backend
+    if (sourceStatus !== destStatus) {
+      updateStatus.mutate({ taskId: draggableId, status: destStatus });
     }
   }
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      {/* Duoi 768px: cuon ngang theo cot (moi cot rong co dinh) thay vi xep doc - dung theo dung
-          yeu cau "bang Kanban cuon ngang theo cot" o Wireframe.md muc 10. Tu md tro len chuyen
-          sang grid 3 cot nhu cu (khong cuon). */}
-      <div className="flex gap-4 overflow-x-auto pb-1 md:grid md:grid-cols-3 md:overflow-visible md:pb-0">
+      <div
+        ref={scrollContainerRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUpOrLeave}
+        onMouseLeave={handleMouseUpOrLeave}
+        className="flex w-full gap-4 overflow-x-auto pb-3 pt-1 cursor-grab active:cursor-grabbing select-none lg:grid lg:grid-cols-3 lg:gap-5 lg:overflow-visible lg:pb-0"
+      >
         {TASK_STATUSES.map((status) => {
-          const columnTasks = tasks.filter((task) => task.status === status);
+          const columnTasks = columns[status] ?? [];
+
           return (
-            <div key={status} className="flex w-72 shrink-0 flex-col rounded-xl border border-slate-200 bg-slate-50/60 md:w-auto md:shrink">
-              <div className="flex items-center gap-2 border-b border-slate-200 px-3.5 py-2.5">
-                <span className={cn('h-2.5 w-2.5 rounded-full', COLUMN_ACCENT[status])} />
-                <p className="text-sm font-semibold text-slate-700">{t(`projects:enums.taskStatus.${status}`)}</p>
-                <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs font-medium text-slate-500 ring-1 ring-slate-200">
+            <div key={status} className="flex w-[82vw] min-w-[280px] max-w-[340px] shrink-0 flex-col rounded-2xl bg-slate-100/90 lg:w-auto lg:max-w-none lg:shrink">
+              <div
+                className={cn(
+                  'flex items-center gap-2 px-4 py-3.5 border-b-2',
+                  status === 'TODO' && 'border-b-slate-200/80',
+                  status === 'DOING' && 'border-b-primary-500/50',
+                  status === 'DONE' && 'border-b-emerald-500/50',
+                )}
+              >
+                <span className={cn('h-2.5 w-2.5 rounded-full ring-2 ring-white', COLUMN_ACCENT[status])} />
+                <p className="text-sm font-bold text-slate-800">{t(`projects:enums.taskStatus.${status}`)}</p>
+                <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs font-bold text-slate-700 border border-slate-200/80 shadow-2xs">
                   {columnTasks.length}
                 </span>
               </div>
@@ -50,7 +186,7 @@ export function KanbanBoard({ projectId, tasks, onTaskClick }: { projectId: stri
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={cn('flex-1 space-y-2.5 p-3 transition-colors', snapshot.isDraggingOver && 'bg-primary-50/50')}
+                    className={cn('flex-1 p-3 transition-colors', snapshot.isDraggingOver && 'bg-primary-50/50')}
                     style={{ minHeight: 120 }}
                   >
                     {columnTasks.map((task, index) => (
@@ -60,6 +196,20 @@ export function KanbanBoard({ projectId, tasks, onTaskClick }: { projectId: stri
                   </div>
                 )}
               </Droppable>
+
+              {/* Nút thêm nhanh công việc ở đáy cột (Trello UX) - Chỉ hiển thị cho TODO và DOING */}
+              {status !== 'DONE' && (
+                <div className="p-2.5 pt-0">
+                  <button
+                    type="button"
+                    onClick={() => onQuickAdd?.(status)}
+                    className="flex w-full items-center justify-start gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 transition-all duration-150 hover:bg-white hover:text-slate-900 hover:shadow-2xs active:scale-[0.98]"
+                  >
+                    <PlusIcon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    <span>{t('projects:detail.newTask')}</span>
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}

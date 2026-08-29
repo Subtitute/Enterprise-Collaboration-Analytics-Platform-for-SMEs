@@ -6,16 +6,16 @@ import { cn } from '@/lib/utils';
 // @hello-pangea/dnd truc tiep vao node DOM thuc su - neu khong forwardRef, ref se khong gan
 // duoc va tinh nang keo-tha se hong.
 export const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn('rounded-xl border border-slate-200 bg-white shadow-card', className)} {...props} />
+  <div ref={ref} className={cn('rounded-2xl border border-slate-200/60 bg-white shadow-sm transition-all duration-200', className)} {...props} />
 ));
 Card.displayName = 'Card';
 
 export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4', className)} {...props} />;
+  return <div className={cn('flex items-center justify-between gap-3 border-b border-slate-100/90 px-6 pt-5 pb-4', className)} {...props} />;
 }
 
 export function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn('text-sm font-semibold text-slate-900', className)} {...props} />;
+  return <h3 className={cn('font-display text-sm font-bold text-slate-900', className)} {...props} />;
 }
 
 export function CardDescription({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
@@ -23,9 +23,9 @@ export function CardDescription({ className, ...props }: HTMLAttributes<HTMLPara
 }
 
 export function CardContent({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('px-5 py-4', className)} {...props} />;
+  return <div className={cn('px-6 py-5', className)} {...props} />;
 }
 
 export function CardFooter({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-3', className)} {...props} />;
+  return <div className={cn('flex items-center justify-end gap-2.5 border-t border-slate-100/90 px-6 py-3.5', className)} {...props} />;
 }

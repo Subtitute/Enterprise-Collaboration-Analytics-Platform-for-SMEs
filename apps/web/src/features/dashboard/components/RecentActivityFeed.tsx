@@ -11,97 +11,53 @@ import { useRecentActivityFeed } from '../hooks';
 import type { RecentActivityItem } from '@/types';
 
 interface ActionDisplay {
-  verb: string;
-  target?: string;
+  fullText: string;
   dotColor: string;
+  badgeColor: string;
 }
 
-// 26/08/2026: Fix 4 - chuyen toan bo cau truc "hanh dong/doi tuong" hardcode tieng Viet sang i18n
-// (dashboard:recentActivityFeed.verbs.*/targets.*) - truoc ban sua nay ham nay la noi con sot lai
-// van ban tieng Viet co dinh du nguoi dung da chon ngon ngu khac (en/ja) o moi noi khac trong ung
-// dung. Nhan `t` qua tham so (thay vi import `t` khong qua hook tu '@/i18n') vi day la 1 ham thuan
-// o NGOAI component - khong the goi useTranslation() truc tiep (vi pham Rules of Hooks) - va dung
-// ban `t` cua component (tu useTranslation()) de component TU DONG re-render dung ngon ngu dang
-// chon, giu nguyen cau truc switch/case ban dau de giam thieu rui ro thay doi.
-function parseActionDetails(action: string, t: TFunction): ActionDisplay {
+function getActionDisplay(action: string, t: TFunction): ActionDisplay {
   const normalized = action.replace(/[._]/g, '_').toLowerCase();
 
-  switch (normalized) {
-    case 'iam_organization_registered':
-      return {
-        verb: t('dashboard:recentActivityFeed.verbs.iam_organization_registered'),
-        target: t('dashboard:recentActivityFeed.targets.iam_organization_registered'),
-        dotColor: 'bg-emerald-500 ring-emerald-100',
-      };
-    case 'iam_user_registered':
-      return {
-        verb: t('dashboard:recentActivityFeed.verbs.iam_user_registered'),
-        target: t('dashboard:recentActivityFeed.targets.iam_user_registered'),
-        dotColor: 'bg-blue-500 ring-blue-100',
-      };
-    case 'iam_user_deactivated':
-      return {
-        verb: t('dashboard:recentActivityFeed.verbs.iam_user_deactivated'),
-        target: t('dashboard:recentActivityFeed.targets.iam_user_deactivated'),
-        dotColor: 'bg-rose-500 ring-rose-100',
-      };
-    case 'task_created':
-      return {
-        verb: t('dashboard:recentActivityFeed.verbs.task_created'),
-        target: t('dashboard:recentActivityFeed.targets.task_created'),
-        dotColor: 'bg-amber-500 ring-amber-100',
-      };
-    case 'task_status_changed':
-      return {
-        verb: t('dashboard:recentActivityFeed.verbs.task_status_changed'),
-        target: t('dashboard:recentActivityFeed.targets.task_status_changed'),
-        dotColor: 'bg-indigo-500 ring-indigo-100',
-      };
-    case 'task_assigned':
-      return {
-        verb: t('dashboard:recentActivityFeed.verbs.task_assigned'),
-        target: t('dashboard:recentActivityFeed.targets.task_assigned'),
-        dotColor: 'bg-sky-500 ring-sky-100',
-      };
-    case 'project_created':
-      return {
-        verb: t('dashboard:recentActivityFeed.verbs.project_created'),
-        target: t('dashboard:recentActivityFeed.targets.project_created'),
-        dotColor: 'bg-violet-500 ring-violet-100',
-      };
-    case 'project_completed':
-      return {
-        verb: t('dashboard:recentActivityFeed.verbs.project_completed'),
-        target: t('dashboard:recentActivityFeed.targets.project_completed'),
-        dotColor: 'bg-emerald-600 ring-emerald-100',
-      };
-    case 'document_uploaded':
-      return {
-        verb: t('dashboard:recentActivityFeed.verbs.document_uploaded'),
-        target: t('dashboard:recentActivityFeed.targets.document_uploaded'),
-        dotColor: 'bg-purple-500 ring-purple-100',
-      };
-    case 'document_shared':
-      return {
-        verb: t('dashboard:recentActivityFeed.verbs.document_shared'),
-        target: t('dashboard:recentActivityFeed.targets.document_shared'),
-        dotColor: 'bg-teal-500 ring-teal-100',
-      };
-    case 'document_deleted':
-      return {
-        verb: t('dashboard:recentActivityFeed.verbs.document_deleted'),
-        target: t('dashboard:recentActivityFeed.targets.document_deleted'),
-        dotColor: 'bg-rose-500 ring-rose-100',
-      };
-    default:
-      // Hanh dong khong nam trong danh sach da biet - target giu nguyen dang dong (tu chuoi action
-      // tho) vi khong the liet ke truoc het moi gia tri co the co; chi verb la co dinh nen dich duoc.
-      return {
-        verb: t('dashboard:recentActivityFeed.verbs.default'),
-        target: action.replace(/[._]/g, ' '),
-        dotColor: 'bg-slate-400 ring-slate-100',
-      };
+  // Phân loại ngữ cảnh hành động:
+  // - Xóa (Delete): Đỏ (Red/Rose)
+  // - Tạo mới (Create/Upload/Register): Xanh lá (Emerald/Green)
+  // - Cập nhật / Đổi trạng thái / Giao việc (Update/Status/Assign): Xanh dương (Blue/Sky) hoặc Cam (Amber)
+  const isDelete = normalized.includes('delete') || normalized.includes('deactivate') || normalized.includes('remove');
+  const isCreate = normalized.includes('created') || normalized.includes('registered') || normalized.includes('upload');
+  const isUpdate = normalized.includes('update') || normalized.includes('status') || normalized.includes('assign') || normalized.includes('share') || normalized.includes('complete');
+
+  let dotColor = 'bg-slate-400 ring-slate-100';
+  let badgeColor = 'bg-slate-100 text-slate-700';
+
+  if (isDelete) {
+    dotColor = 'bg-rose-500 ring-rose-100';
+    badgeColor = 'bg-rose-50 text-rose-700 border-rose-200/60';
+  } else if (isCreate) {
+    dotColor = 'bg-emerald-500 ring-emerald-100';
+    badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200/60';
+  } else if (isUpdate) {
+    dotColor = 'bg-blue-500 ring-blue-100';
+    badgeColor = 'bg-blue-50 text-blue-700 border-blue-200/60';
   }
+
+  const key = `dashboard:recentActivityFeed.actions.${normalized}`;
+  const translated = t(key);
+  const hasTranslation = translated && translated !== key && !translated.endsWith(`.${normalized}`);
+
+  if (hasTranslation) {
+    return {
+      fullText: translated,
+      dotColor,
+      badgeColor,
+    };
+  }
+
+  return {
+    fullText: `${t('dashboard:recentActivityFeed.performedAction')} "${action.replace(/[._]/g, ' ')}"`,
+    dotColor,
+    badgeColor,
+  };
 }
 
 function getTimeGroup(dateStr: string): 'today' | 'yesterday' | 'earlier' {
@@ -158,9 +114,7 @@ export function RecentActivityFeed() {
           </span>
         </div>
         <span className="text-[11px] text-slate-400 font-normal">
-          {/* 26/08/2026: Fix 4 - chuyen sang t() voi noi suy {{count}} thay vi ghep chuoi tieng
-              Viet co dinh "{items.length} sự kiện gần đây" */}
-          {t('dashboard:recentActivityFeed.activityCount', { count: items.length })}
+          {t('dashboard:recentActivityFeed.eventCount', { count: items.length })}
         </span>
       </div>
 
@@ -188,11 +142,11 @@ export function RecentActivityFeed() {
               <div className="relative pl-6 space-y-4 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[1.5px] before:bg-slate-200/70">
                 {group.list.map((item) => {
                   const actorName = (item.actorId ? userNames[item.actorId] : undefined) ?? t('dashboard:recentActivityFeed.unknownActor');
-                  const { verb, target, dotColor } = parseActionDetails(item.action, t);
+                  const { fullText, dotColor, badgeColor } = getActionDisplay(item.action, t);
 
                   return (
                     <div key={item.id} className="group relative flex items-start gap-3 transition-all duration-150">
-                      {/* Chấm tròn Timeline định vị */}
+                      {/* Chấm tròn Timeline định vị theo ngữ cảnh */}
                       <span
                         className={`absolute -left-[19px] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-white shadow-sm transition-transform duration-200 group-hover:scale-125 ${dotColor}`}
                       />
@@ -200,10 +154,11 @@ export function RecentActivityFeed() {
                       <Avatar name={actorName} size="sm" className="h-7 w-7 shrink-0 text-xs shadow-sm ring-1 ring-slate-100" />
 
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
-                          <span className="font-bold text-slate-900">{actorName}</span>{' '}
-                          <span className="text-slate-600">{verb}</span>{' '}
-                          {target && <span className="font-semibold text-slate-800">&quot;{target}&quot;</span>}
+                        <p className="text-xs sm:text-sm text-slate-700 leading-relaxed flex flex-wrap items-center gap-1.5">
+                          <span className="font-bold text-slate-900">{actorName}</span>
+                          <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium border ${badgeColor}`}>
+                            {fullText}
+                          </span>
                         </p>
                         <p className="mt-0.5 text-[11px] text-slate-400 font-medium">{formatRelativeTime(item.createdAt)}</p>
                       </div>

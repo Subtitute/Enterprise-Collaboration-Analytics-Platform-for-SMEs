@@ -28,7 +28,7 @@ export function ProgressBar({ value, className, trackClassName, barClassName, sh
     >
       <div className={cn('h-2 w-full flex-1 overflow-hidden rounded-full bg-slate-100', trackClassName)}>
         <div
-          className={cn('h-full rounded-full bg-primary-500 transition-all', barClassName)}
+          className={cn('h-full rounded-full transition-all', barClassName || 'bg-primary-500')}
           style={{ width: `${clamped}%` }}
         />
       </div>

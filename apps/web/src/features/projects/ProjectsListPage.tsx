@@ -50,19 +50,8 @@ export function ProjectsListPage() {
     setPage(1);
   }, [search, status, priorityFilter]);
 
-  const projectsQuery = useProjectsQuery({ page, limit: LIMIT, search: search || undefined, status: status || undefined });
+  const projectsQuery = useProjectsQuery({ page, limit: LIMIT, search: search || undefined });
   const tasksQuery = useAllTasksQuery();
-
-  // 22/08/2026: xoa du an lam giam tong so ket qua co the khien trang hien tai vuot qua trang cuoi
-  // cung (vd. dang o trang cuoi chi con 1 du an, xoa xong) - BE khong tu dong dieu chinh, chi tra
-  // ve data: [] cho trang khong con hop le nua, nen can tu clamp ve trang cuoi cung hop le o day.
-  useEffect(() => {
-    const newTotal = projectsQuery.data?.meta.total;
-    if (newTotal === undefined) return;
-    if (page > 1 && (page - 1) * LIMIT >= newTotal) {
-      setPage(Math.max(1, Math.ceil(newTotal / LIMIT)));
-    }
-  }, [projectsQuery.data, page]);
 
   const rawProjects = projectsQuery.data?.data ?? [];
 
@@ -75,7 +64,7 @@ export function ProjectsListPage() {
     return () => window.removeEventListener('ec_projects_updated', handleUpdate);
   }, []);
 
-  // Đồng bộ danh sách dự án với thứ tự đã lưu trong localStorage và lọc theo độ ưu tiên
+  // Đồng bộ danh sách dự án với thứ tự đã lưu trong localStorage và lọc theo trạng thái + độ ưu tiên
   useEffect(() => {
     if (rawProjects.length === 0) {
       setOrderedProjects([]);
@@ -91,7 +80,15 @@ export function ProjectsListPage() {
 
       let list = [...rawProjects];
 
-      // Lọc theo độ ưu tiên (nếu có chọn)
+      // 1. Lọc theo TRẠNG THÁI thực tế (status filter)
+      if (status) {
+        list = list.filter((p) => {
+          const pStatus = metaStore[p.id]?.status ?? p.status;
+          return pStatus === status;
+        });
+      }
+
+      // 2. Lọc theo ĐỘ ƯU TIÊN (priority filter)
       if (priorityFilter) {
         list = list.filter((p) => {
           const pPriority = p.priority ?? 'MEDIUM';
@@ -106,7 +103,7 @@ export function ProjectsListPage() {
         LOW: 1,
       };
 
-      // 1. Phân chia rõ ràng 2 nhóm: Đang hoạt động (activeList) và Đã hoàn thành (completedList)
+      // 3. Phân chia 2 nhóm: Đang hoạt động (activeList) và Đã hoàn thành (completedList)
       const activeList: typeof list = [];
       const completedList: typeof list = [];
 
@@ -119,8 +116,7 @@ export function ProjectsListPage() {
         }
       }
 
-      // 2. Sắp xếp danh sách ĐANG HOẠT ĐỘNG:
-      // Ưu tiên theo savedOrder nếu có, hoặc mặc định theo Độ ưu tiên giảm dần
+      // 4. Sắp xếp danh sách ĐANG HOẠT ĐỘNG & HOÀN THÀNH:
       const sortGroup = (group: typeof list) => {
         if (savedOrder.length > 0) {
           group.sort((a, b) => {
@@ -145,10 +141,13 @@ export function ProjectsListPage() {
       sortGroup(activeList);
       sortGroup(completedList);
 
-      // 3. Ghép danh sách: Toàn bộ ACTIVE ở trên, toàn bộ COMPLETED LUÔN NẰM DƯỚI CÙNG
+      // 5. Ghép danh sách: Toàn bộ ACTIVE ở trên, toàn bộ COMPLETED LUÔN NẰM DƯỚI CÙNG. Luôn ghép
+      // qua activeList/completedList (đã sắp xếp ở bước 4) thay vì dùng thẳng `list` khi có lọc
+      // trạng thái - `list` giữ nguyên thứ tự trả về từ server, dùng thẳng sẽ MẤT sắp xếp theo độ
+      // ưu tiên/thứ tự đã lưu ngay khi người dùng bật bộ lọc trạng thái.
       const finalSorted = [...activeList, ...completedList];
 
-      // 4. Nếu có tìm kiếm từ khóa, đưa các dự án khớp lên đầu
+      // 6. Nếu có tìm kiếm từ khóa, đưa các dự án khớp lên đầu
       if (search) {
         finalSorted.sort((a, b) => {
           const matchA = a.name.toLowerCase().includes(search.toLowerCase()) ? 0 : 1;
@@ -161,7 +160,7 @@ export function ProjectsListPage() {
     } catch {
       setOrderedProjects(rawProjects);
     }
-  }, [rawProjects, priorityFilter, search, updateTick]);
+  }, [rawProjects, status, priorityFilter, search, updateTick]);
 
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -206,17 +205,22 @@ export function ProjectsListPage() {
     setDragOverId(null);
   };
 
-  const progressByProject = useMemo(() => {
-    const map: Record<string, number> = {};
+  const { progressByProject, taskStatsByProject } = useMemo(() => {
+    const pMap: Record<string, number> = {};
+    const statsMap: Record<string, { total: number; completed: number }> = {};
     const tasks = tasksQuery.data ?? [];
     const byProject: Record<string, typeof tasks> = {};
     for (const task of tasks) {
       (byProject[task.projectId] ??= []).push(task);
     }
     for (const [projectId, list] of Object.entries(byProject)) {
-      map[projectId] = computeProgressFromTasks(list);
+      pMap[projectId] = computeProgressFromTasks(list);
+      statsMap[projectId] = {
+        total: list.length,
+        completed: list.filter((t) => t.status === 'DONE').length,
+      };
     }
-    return map;
+    return { progressByProject: pMap, taskStatsByProject: statsMap };
   }, [tasksQuery.data]);
 
   const meta = projectsQuery.data?.meta ?? { page: 1, limit: LIMIT, total: 0 };
@@ -262,18 +266,20 @@ export function ProjectsListPage() {
             className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100"
           />
         </div>
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           <CustomFilterSelect
             value={status}
             onChange={(val) => setStatus(val)}
             ariaLabel={t('projects:list.statusFilter.all')}
             options={STATUS_OPTIONS}
+            variant="subtle"
           />
           <CustomFilterSelect
             value={priorityFilter}
             onChange={(val) => setPriorityFilter(val)}
             ariaLabel={t('projects:list.priorityFilter.all')}
             options={PRIORITY_FILTER_OPTIONS}
+            variant="subtle"
           />
         </div>
       </div>
@@ -321,6 +327,8 @@ export function ProjectsListPage() {
                       project={project}
                       progress={project.completionRate ?? project.progress ?? progressByProject[project.id] ?? 0}
                       memberCount={project.memberCount}
+                      taskCount={taskStatsByProject[project.id]?.total}
+                      completedTaskCount={taskStatsByProject[project.id]?.completed}
                     />
                   </div>
                 );

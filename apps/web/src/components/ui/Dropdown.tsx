@@ -135,7 +135,7 @@ export function Dropdown({ trigger, children, align = 'right', panelClassName }:
             // dialogRef trong Modal.tsx.
             tabIndex={-1}
             style={{ position: 'fixed', top: position.top, ...(align === 'right' ? { right: position.right } : { left: position.left }) }}
-            className={cn('z-40 animate-slide-up overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl', panelClassName)}
+            className={cn('z-[60] animate-slide-up overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl', panelClassName)}
           >
             {children({ close: () => setOpen(false) })}
           </div>,

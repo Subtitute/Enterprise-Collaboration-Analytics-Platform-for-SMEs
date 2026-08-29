@@ -3,6 +3,17 @@
     "title": "ダッシュボード",
     "subtitle": "組織の活動状況の概要です。"
   },
+  "hero": {
+    "title": "組織全体のタスク概要",
+    "subtitle": "進行中の全プロジェクトにおける進捗状況とタスク完了率のサマリーです。",
+    "completionRateLabel": "全体の完了率",
+    "progressLabel": "進捗状況",
+    "progressUnit": "件",
+    "realtimeSyncHint": "全プロジェクトの最新状況とリアルタイム同期中",
+    "completedStatus": "完了済み",
+    "totalTasksStatus": "タスク総数",
+    "viewAllLink": "すべてのプロジェクトとタスクを見る →"
+  },
   "onboarding": {
     "welcomeTitle": "ECAP for SMEs へようこそ！",
     "welcomeDescription": "組織にはまだプロジェクトがありません。メンバーを招待するか、最初のプロジェクトを作成して始めましょう。",
@@ -49,7 +60,7 @@
     "emptyTitle": "タスクがまだありません",
     "emptyDescription": "システムにタスクが登録されると、ステータスグラフが表示されます。",
     "unit": "件",
-    "percentOfTotal": "全体の{{percent}}%"
+    "ofTotal": "全体の{{percent}}%"
   },
   "taskTrendChart": {
     "errorTitle": "タスクの推移を読み込めませんでした",
@@ -66,9 +77,10 @@
     "emptyTitle": "アクティビティはまだありません",
     "emptyDescription": "組織内の新しいアクティビティがここにリアルタイムで表示されます。",
     "unknownActor": "あるメンバー",
-    "viewAll": "すべての活動を表示",
+    "viewAll": "すべてのアクティビティを表示",
     "collapse": "折りたたむ",
-    "activityCount": "最近のイベント {{count}}件",
+    "eventCount": "最近のイベント{{count}}件",
+    "performedAction": "操作を実行しました",
     "groups": {
       "today": "今日",
       "yesterday": "昨日",
@@ -79,40 +91,17 @@
       "iam_user_registered": "組織に参加しました",
       "iam_user_deactivated": "アカウントが無効化されました",
       "task_created": "新しいタスクを作成しました",
+      "task_updated": "タスクを更新しました",
       "task_status_changed": "タスクのステータスを更新しました",
       "task_assigned": "タスクを割り当てられました",
+      "task_deleted": "タスクを削除しました",
       "project_created": "新しいプロジェクトを作成しました",
+      "project_updated": "プロジェクトを更新しました",
       "project_completed": "プロジェクトを完了しました",
+      "project_deleted": "プロジェクトを削除しました",
       "document_uploaded": "ドキュメントをアップロードしました",
       "document_shared": "ドキュメントを共有しました",
       "document_deleted": "ドキュメントを削除しました"
-    },
-    "verbs": {
-      "iam_organization_registered": "登録しました",
-      "iam_user_registered": "参加しました",
-      "iam_user_deactivated": "無効化されました",
-      "task_created": "作成しました",
-      "task_status_changed": "更新しました",
-      "task_assigned": "割り当てられました",
-      "project_created": "立ち上げました",
-      "project_completed": "完了しました",
-      "document_uploaded": "アップロードしました",
-      "document_shared": "共有しました",
-      "document_deleted": "削除しました",
-      "default": "操作を行いました"
-    },
-    "targets": {
-      "iam_organization_registered": "新しい組織",
-      "iam_user_registered": "組織",
-      "iam_user_deactivated": "メンバーアカウント",
-      "task_created": "新しいタスク",
-      "task_status_changed": "タスクのステータス",
-      "task_assigned": "タスク",
-      "project_created": "新しいプロジェクト",
-      "project_completed": "プロジェクト",
-      "document_uploaded": "新しいドキュメント",
-      "document_shared": "ドキュメント",
-      "document_deleted": "ドキュメント"
     }
   }
 }

@@ -84,15 +84,28 @@ export function EditProjectModal({ open, onClose, project }: EditProjectModalPro
     updateProject.mutate(
       {
         name: name.trim(),
-        description: description.trim() || undefined,
+        description: description.trim(),
         dueDate: dueDate || undefined,
-        // 26/08/2026 (fix code review, loi MAJOR - Fix 3): gui priority/leadUserId THANG len server
-        // (xem project.entity.ts/update-project.dto.ts, project-task-service) thay vi chi ghi vao
-        // localStorage['ec_projects_metadata'] nhu truoc - xem ghi chu tai readLegacyProjectMeta().
-        priority,
-        leadUserId: leadId || undefined,
       },
-      { onSuccess: () => onClose() },
+      {
+        onSuccess: () => {
+          try {
+            const metaStore: Record<string, { priority?: string; leadId?: string; status?: string }> = JSON.parse(
+              localStorage.getItem('ec_projects_metadata') || '{}'
+            );
+            metaStore[project.id] = {
+              ...(metaStore[project.id] || {}),
+              priority,
+              leadId,
+            };
+            localStorage.setItem('ec_projects_metadata', JSON.stringify(metaStore));
+            window.dispatchEvent(new Event('ec_projects_updated'));
+          } catch {
+            // ignore
+          }
+          onClose();
+        },
+      },
     );
   }
 
@@ -213,6 +226,7 @@ export function EditProjectModal({ open, onClose, project }: EditProjectModalPro
                   className="text-xs text-primary-600 hover:underline cursor-pointer font-medium"
                 >
                   {t('projects:newProjectModal.changeLead')}
+                  {t('projects:newProjectModal.changeLead')}
                 </button>
               </div>
             ) : (
@@ -242,6 +256,7 @@ export function EditProjectModal({ open, onClose, project }: EditProjectModalPro
                 />
                 <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl shadow-slate-200/80 animate-slide-up">
                   {filteredUsers.length === 0 ? (
+                    <p className="px-3 py-2 text-center text-xs text-slate-400">{t('projects:newProjectModal.noMembersFound')}</p>
                     <p className="px-3 py-2 text-center text-xs text-slate-400">{t('projects:newProjectModal.noMembersFound')}</p>
                   ) : (
                     filteredUsers.map((u) => (

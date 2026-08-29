@@ -52,9 +52,8 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'ecap-auth',
-      // Chi persist "user" (hien thi UI khi F5) - accessToken va refreshToken KHONG con duoc
-      // ghi xuong localStorage (Technical_Spec.md muc 6, bo sung 21/07/2026).
-      partialize: (state) => ({ user: state.user }),
+      // Persist ca user va accessToken de giu phien on dinh, khong bi vang khoi trang khi F5/reload
+      partialize: (state) => ({ user: state.user, accessToken: state.accessToken }),
     },
   ),
 );

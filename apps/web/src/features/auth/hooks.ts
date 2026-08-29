@@ -31,7 +31,10 @@ export function useLogin() {
     onSuccess: (data) => {
       queryClient.clear();
       setSession(data);
-      navigate('/dashboard', { replace: true });
+      // Neu co trang redirect tu state cua window.history thi dieu huong ve do, mac dinh ve /dashboard
+      const from = (window.history.state?.usr as { from?: { pathname: string; search?: string } })?.from;
+      const redirectTarget = from ? `${from.pathname}${from.search || ''}` : '/dashboard';
+      navigate(redirectTarget, { replace: true });
     },
     onError: (error) => {
       toast.error(t('auth:hooks.login.errorTitle'), extractErrorMessage(error, t('auth:hooks.login.errorFallback')));

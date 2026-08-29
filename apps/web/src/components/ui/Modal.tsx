@@ -9,14 +9,16 @@ import { cn } from '@/lib/utils';
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
+
 interface ModalProps {
   open: boolean;
   onClose: () => void;
-  title?: string;
+  title?: React.ReactNode;
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
-  size?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: ModalSize;
   // 26/08/2026: prop moi - gom "chan dong modal khi dang co mutation pending" VE MOT CHO DUY NHAT
   // trong Modal.tsx, thay vi de tung modal con tu viet 1 ham handleClose rieng kiem tra isPending
   // truoc khi goi onClose (DepartmentModal/EditMemberModal/InviteMemberModal/UploadModal hom qua
@@ -122,6 +124,7 @@ export function Modal({
     document.addEventListener('keydown', onKeyDown);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+
     return () => {
       document.removeEventListener('keydown', onKeyDown);
       document.body.style.overflow = prevOverflow;
@@ -138,31 +141,35 @@ export function Modal({
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-label={typeof title === 'string' ? title : undefined}
         tabIndex={-1}
         className={cn(
-          'relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden rounded-xl bg-white shadow-xl animate-slide-up',
+          'relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl animate-slide-up',
           sizeClasses[size],
         )}
       >
         {title && (
-          <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 px-5 py-4">
-            <div>
-              <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-              {description && <p className="mt-0.5 text-sm text-slate-500">{description}</p>}
+          <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100/90 px-6 pt-6 pb-4.5 bg-slate-50/50">
+            <div className="pt-0.5 flex-1 min-w-0">
+              {typeof title === 'string' ? (
+                <h2 className="font-display text-base font-bold text-slate-900 truncate">{title}</h2>
+              ) : (
+                title
+              )}
+              {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
             </div>
             <button
               type="button"
               onClick={requestClose}
               aria-label={t('common:actions.close')}
-              className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
             >
               <CloseIcon />
             </button>
           </div>
         )}
-        <div className="overflow-y-auto px-5 py-4">{children}</div>
-        {footer && <div className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-100 px-5 py-3">{footer}</div>}
+        <div className="overflow-y-auto px-6 py-5">{children}</div>
+        {footer && <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-slate-100 px-6 py-3.5 bg-slate-50/30">{footer}</div>}
       </div>
     </div>,
     document.body,

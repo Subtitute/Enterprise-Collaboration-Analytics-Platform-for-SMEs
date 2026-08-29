@@ -4,11 +4,17 @@
 
 @layer base {
   html {
+    scrollbar-gutter: stable;
     @apply h-full;
   }
 
   body {
+    font-family: 'Roboto', sans-serif;
     @apply h-full bg-slate-50 text-slate-900 antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Roboto', sans-serif;
   }
 
   #root {
@@ -42,10 +48,13 @@
 }
 
 @layer utilities {
-  .scrollbar-none {
+  .scrollbar-none,
+  .scrollbar-hide {
     scrollbar-width: none;
+    -ms-overflow-style: none;
   }
-  .scrollbar-none::-webkit-scrollbar {
+  .scrollbar-none::-webkit-scrollbar,
+  .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
 }
