@@ -11,6 +11,7 @@ import { useAllTasksQuery, useProjectsQuery } from './hooks';
 import { ProjectCard } from './components/ProjectCard';
 import { NewProjectModal } from './components/NewProjectModal';
 import { computeProgressFromTasks } from './utils';
+import { matchesVietnameseSearch } from '@/lib/utils';
 import type { Project } from '@/types';
 
 const LIMIT = 20;
@@ -76,7 +77,7 @@ export function ProjectsListPage() {
       // completeProject()/reopenProject(), xem api.ts) tu metaStore nay - `priority` truoc day cung
       // doc tu day nhung GIO LA truong that tu server (p.priority, xem project.entity.ts) nen loc/
       // sap xep ben duoi doc THANG tu server thay vi override rieng tung trinh duyet.
-      const metaStore: Record<string, { status?: string }> = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
+      const metaStore: Record<string, { status?: string; priority?: string }> = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
 
       let list = [...rawProjects];
 
@@ -91,7 +92,7 @@ export function ProjectsListPage() {
       // 2. Lọc theo ĐỘ ƯU TIÊN (priority filter)
       if (priorityFilter) {
         list = list.filter((p) => {
-          const pPriority = p.priority ?? 'MEDIUM';
+          const pPriority = p.priority ?? metaStore[p.id]?.priority ?? 'MEDIUM';
           return pPriority === priorityFilter;
         });
       }
@@ -144,13 +145,9 @@ export function ProjectsListPage() {
       // 5. Ghép danh sách: Toàn bộ ACTIVE ở trên, toàn bộ COMPLETED LUÔN NẰM DƯỚI CÙNG (nếu không lọc cụ thể 1 trạng thái)
       let finalSorted = status ? list : [...activeList, ...completedList];
 
-      // 6. Nếu có tìm kiếm từ khóa, đưa các dự án khớp lên đầu
+      // 6. Nếu có tìm kiếm từ khóa, lọc và sắp xếp theo độ khớp tiếng Việt (có dấu hoặc không dấu)
       if (search) {
-        finalSorted.sort((a, b) => {
-          const matchA = a.name.toLowerCase().includes(search.toLowerCase()) ? 0 : 1;
-          const matchB = b.name.toLowerCase().includes(search.toLowerCase()) ? 0 : 1;
-          return matchA - matchB;
-        });
+        finalSorted = finalSorted.filter((p) => matchesVietnameseSearch(p.name, search) || matchesVietnameseSearch(p.description, search));
       }
 
       setOrderedProjects(finalSorted);

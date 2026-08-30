@@ -42,7 +42,7 @@ export function ProjectDetailPage() {
   // tu day nhung GIO LA truong that tu server (project.priority, xem project.entity.ts) nen khong
   // con override tu localStorage cho truong nay nua (moi trinh duyet/nguoi dung deu thay CUNG 1
   // gia tri).
-  const projectMeta: { status?: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED' } = (() => {
+  const projectMeta: { status?: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED'; priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT' } = (() => {
     try {
       const meta = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
       return meta[project.id] ?? {};
@@ -52,6 +52,7 @@ export function ProjectDetailPage() {
   })();
 
   const currentStatus = projectMeta.status ?? project.status;
+  const currentPriority = project.priority ?? projectMeta.priority ?? 'MEDIUM';
   const status = projectStatusMeta(currentStatus);
   const tasks = tasksQuery.data ?? [];
   const progress = project.progress ?? computeProgressFromTasks(tasks);
@@ -68,7 +69,7 @@ export function ProjectDetailPage() {
     MEDIUM: { label: t('projects:newProjectModal.priorities.MEDIUM'), color: 'text-indigo-700 bg-indigo-50 border-indigo-200' },
     HIGH: { label: t('projects:newProjectModal.priorities.HIGH'), color: 'text-amber-700 bg-amber-50 border-amber-200' },
     URGENT: { label: t('projects:newProjectModal.priorities.URGENT'), color: 'text-rose-700 bg-rose-50 border-rose-200' },
-  }[projectMeta.priority ?? 'MEDIUM'];
+  }[currentPriority];
 
   return (
     <div className="space-y-5">

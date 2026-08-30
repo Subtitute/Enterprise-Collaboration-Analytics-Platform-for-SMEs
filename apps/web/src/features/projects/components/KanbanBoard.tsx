@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
 import { useTranslation } from 'react-i18next';
-import { PlusIcon } from '@/components/ui/Icons';
+import { PlusIcon, ChevronLeftIcon, ChevronRightIcon } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import { TASK_STATUSES } from '@/types';
 import type { Task, TaskStatus } from '@/types';
@@ -26,6 +26,21 @@ export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd }: Kanba
   const { t } = useTranslation();
   const updateStatus = useUpdateTaskStatus(projectId);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  function checkScroll() {
+    if (!scrollContainerRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+    setCanScrollLeft(scrollLeft > 10);
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+  }
+
+  function scrollByAmount(offset: number) {
+    if (!scrollContainerRef.current) return;
+    scrollContainerRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+  }
 
   const orderStorageKey = `ec_project_${projectId}_tasks_order`;
 
@@ -52,6 +67,7 @@ export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd }: Kanba
     const x = e.pageX - scrollContainerRef.current.offsetLeft;
     const walk = (x - startXRef.current) * 1.2; // Tốc độ trượt
     scrollContainerRef.current.scrollLeft = scrollLeftRef.current - walk;
+    checkScroll();
   }
 
   function handleMouseUpOrLeave() {
@@ -106,7 +122,14 @@ export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd }: Kanba
       });
     });
     setColumns(result);
-  }, [tasks, projectId]);
+    checkScroll();
+  }, [tasks, orderStorageKey]);
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener('resize', checkScroll);
+    return () => window.removeEventListener('resize', checkScroll);
+  }, []);
 
   function handleDragEnd(result: DropResult) {
     const { destination, source, draggableId } = result;
@@ -154,65 +177,92 @@ export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd }: Kanba
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div
-        ref={scrollContainerRef}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUpOrLeave}
-        onMouseLeave={handleMouseUpOrLeave}
-        className="flex w-full gap-4 overflow-x-auto pb-3 pt-1 cursor-grab active:cursor-grabbing select-none lg:grid lg:grid-cols-3 lg:gap-5 lg:overflow-visible lg:pb-0"
-      >
-        {TASK_STATUSES.map((status) => {
-          const columnTasks = columns[status] ?? [];
+      <div className="relative group/kanban">
+        {/* Nút mũi tên cuộn trái cho màn hình nhỏ */}
+        {canScrollLeft && (
+          <button
+            type="button"
+            onClick={() => scrollByAmount(-300)}
+            className="lg:hidden absolute left-1 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-lg border border-slate-200 hover:bg-white hover:text-indigo-600 hover:scale-110 active:scale-95 transition-all cursor-pointer"
+            aria-label="Cuộn sang trái"
+          >
+            <ChevronLeftIcon className="h-5 w-5" />
+          </button>
+        )}
 
-          return (
-            <div key={status} className="flex w-[82vw] min-w-[280px] max-w-[340px] shrink-0 flex-col rounded-2xl bg-slate-100/90 lg:w-auto lg:max-w-none lg:shrink">
-              <div
-                className={cn(
-                  'flex items-center gap-2 px-4 py-3.5 border-b-2',
-                  status === 'TODO' && 'border-b-slate-200/80',
-                  status === 'DOING' && 'border-b-primary-500/50',
-                  status === 'DONE' && 'border-b-emerald-500/50',
-                )}
-              >
-                <span className={cn('h-2.5 w-2.5 rounded-full ring-2 ring-white', COLUMN_ACCENT[status])} />
-                <p className="text-sm font-bold text-slate-800">{t(`projects:enums.taskStatus.${status}`)}</p>
-                <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs font-bold text-slate-700 border border-slate-200/80 shadow-2xs">
-                  {columnTasks.length}
-                </span>
-              </div>
-              <Droppable droppableId={status}>
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className={cn('flex-1 p-3 transition-colors', snapshot.isDraggingOver && 'bg-primary-50/50')}
-                    style={{ minHeight: 120 }}
-                  >
-                    {columnTasks.map((task, index) => (
-                      <TaskCard key={task.id} task={task} index={index} onClick={() => onTaskClick(task)} />
-                    ))}
-                    {provided.placeholder}
+        {/* Nút mũi tên cuộn phải (Báo hiệu còn nội dung bên phải) */}
+        {canScrollRight && (
+          <button
+            type="button"
+            onClick={() => scrollByAmount(300)}
+            className="lg:hidden absolute right-1 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-lg border border-slate-200 hover:bg-white hover:text-indigo-600 hover:scale-110 active:scale-95 transition-all cursor-pointer animate-pulse hover:animate-none"
+            aria-label="Cuộn sang phải"
+          >
+            <ChevronRightIcon className="h-5 w-5" />
+          </button>
+        )}
+
+        <div
+          ref={scrollContainerRef}
+          onScroll={checkScroll}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUpOrLeave}
+          onMouseLeave={handleMouseUpOrLeave}
+          className="flex w-full gap-4 overflow-x-auto pb-3 pt-1 cursor-grab active:cursor-grabbing select-none lg:grid lg:grid-cols-3 lg:gap-5 lg:overflow-visible lg:pb-0 scroll-smooth"
+        >
+          {TASK_STATUSES.map((status) => {
+            const columnTasks = columns[status] ?? [];
+
+            return (
+              <div key={status} className="flex w-[82vw] min-w-[280px] max-w-[340px] shrink-0 flex-col rounded-2xl bg-slate-100/90 lg:w-auto lg:max-w-none lg:shrink">
+                <div
+                  className={cn(
+                    'flex items-center gap-2 px-4 py-3.5 border-b-2',
+                    status === 'TODO' && 'border-b-slate-200/80',
+                    status === 'DOING' && 'border-b-primary-500/50',
+                    status === 'DONE' && 'border-b-emerald-500/50',
+                  )}
+                >
+                  <span className={cn('h-2.5 w-2.5 rounded-full ring-2 ring-white', COLUMN_ACCENT[status])} />
+                  <p className="text-sm font-bold text-slate-800">{t(`projects:enums.taskStatus.${status}`)}</p>
+                  <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs font-bold text-slate-700 border border-slate-200/80 shadow-2xs">
+                    {columnTasks.length}
+                  </span>
+                </div>
+                <Droppable droppableId={status}>
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className={cn('flex-1 p-3 transition-colors', snapshot.isDraggingOver && 'bg-primary-50/50')}
+                      style={{ minHeight: 120 }}
+                    >
+                      {columnTasks.map((task, index) => (
+                        <TaskCard key={task.id} task={task} index={index} onClick={() => onTaskClick(task)} />
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+
+                {/* Nút thêm nhanh công việc ở đáy cột (Trello UX) - Chỉ hiển thị cho TODO và DOING */}
+                {status !== 'DONE' && (
+                  <div className="p-2.5 pt-0">
+                    <button
+                      type="button"
+                      onClick={() => onQuickAdd?.(status)}
+                      className="flex w-full items-center justify-start gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 transition-all duration-150 hover:bg-white hover:text-slate-900 hover:shadow-2xs active:scale-[0.98]"
+                    >
+                      <PlusIcon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                      <span>{t('projects:detail.newTask')}</span>
+                    </button>
                   </div>
                 )}
-              </Droppable>
-
-              {/* Nút thêm nhanh công việc ở đáy cột (Trello UX) - Chỉ hiển thị cho TODO và DOING */}
-              {status !== 'DONE' && (
-                <div className="p-2.5 pt-0">
-                  <button
-                    type="button"
-                    onClick={() => onQuickAdd?.(status)}
-                    className="flex w-full items-center justify-start gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 transition-all duration-150 hover:bg-white hover:text-slate-900 hover:shadow-2xs active:scale-[0.98]"
-                  >
-                    <PlusIcon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                    <span>{t('projects:detail.newTask')}</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          );
-        })}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </DragDropContext>
   );

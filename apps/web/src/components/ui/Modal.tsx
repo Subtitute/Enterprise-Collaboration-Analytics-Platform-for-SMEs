@@ -19,6 +19,7 @@ interface ModalProps {
   children: ReactNode;
   footer?: ReactNode;
   size?: ModalSize;
+  preventCloseWhilePending?: boolean;
 }
 
 const sizeClasses = {
@@ -153,7 +154,7 @@ export function Modal({
             </button>
           </div>
         )}
-        <div className="overflow-y-auto px-6 py-5">{children}</div>
+        <div className="overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] max-h-[calc(90vh-140px)] px-6 py-5">{children}</div>
         {footer && <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-slate-100 px-6 py-3.5 bg-slate-50/30">{footer}</div>}
       </div>
     </div>,

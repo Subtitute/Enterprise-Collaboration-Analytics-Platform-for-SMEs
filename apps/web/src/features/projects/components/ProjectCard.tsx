@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
@@ -31,6 +31,13 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
   const navigate = useNavigate();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [, setUpdateTick] = useState(0);
+
+  useEffect(() => {
+    const handleUpdate = () => setUpdateTick((t) => t + 1);
+    window.addEventListener('ec_projects_updated', handleUpdate);
+    return () => window.removeEventListener('ec_projects_updated', handleUpdate);
+  }, []);
 
   // 26/08/2026 (fix code review, loi MAJOR - Fix 3): chi con doc `status` (override lac quan cua
   // completeProject()/reopenProject(), xem api.ts) tu localStorage - `priority`/`leadId` truoc day
@@ -38,7 +45,7 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
   // project.entity.ts) nen khong con override tu localStorage cho 2 truong nay nua (moi trinh
   // duyet/nguoi dung deu thay CUNG 1 gia tri).
   const usersQuery = useOrgUsersQuery();
-  const projectMeta: { status?: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED' } = (() => {
+  const projectMeta: { status?: 'ACTIVE' | 'COMPLETED' | 'ARCHIVED'; priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'; leadId?: string } = (() => {
     try {
       const store = JSON.parse(localStorage.getItem('ec_projects_metadata') || '{}');
       return store[project.id] ?? {};
@@ -48,6 +55,9 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
   })();
 
   const currentStatus = projectMeta.status ?? project.status;
+  const currentPriority = project.priority ?? projectMeta.priority ?? 'MEDIUM';
+  const currentLeadId = project.leadUserId ?? projectMeta.leadId;
+
   const status = projectStatusMeta(currentStatus);
   const complete = useCompleteProject(project.id);
   const reopen = useReopenProject(project.id);
@@ -67,14 +77,14 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
 
   const progressColor = isProjectCompleted ? 'bg-emerald-500' : 'bg-primary-500';
 
-  const leadUser = usersQuery.data?.find((u) => u.id === projectMeta.leadId);
+  const leadUser = usersQuery.data?.find((u) => u.id === currentLeadId);
 
   const priorityMeta = {
     LOW: { label: t('projects:newProjectModal.priorities.LOW'), color: 'text-slate-600 bg-slate-50 border-slate-200' },
     MEDIUM: { label: t('projects:newProjectModal.priorities.MEDIUM'), color: 'text-indigo-700 bg-indigo-50 border-indigo-200' },
     HIGH: { label: t('projects:newProjectModal.priorities.HIGH'), color: 'text-amber-700 bg-amber-50 border-amber-200' },
     URGENT: { label: t('projects:newProjectModal.priorities.URGENT'), color: 'text-rose-700 bg-rose-50 border-rose-200' },
-  }[projectMeta.priority ?? 'MEDIUM'];
+  }[currentPriority];
 
   return (
     <>
@@ -88,7 +98,7 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
           }
         }}
         onClick={() => navigate(`/projects/${project.id}`)}
-        className="group relative flex h-full flex-col justify-between p-4 border border-slate-200/60 bg-white shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 hover:border-slate-300/80 active:scale-[0.98] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 cursor-pointer select-none"
+        className="group relative flex h-full flex-col justify-between p-4 border border-slate-200/60 bg-white shadow-sm transition-all duration-200 hover:shadow-md hover:border-indigo-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 cursor-pointer select-none"
       >
         <div>
           <div className="flex items-center justify-between gap-2">
@@ -97,11 +107,9 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
                 <p className="truncate flex-1 min-w-0 text-sm font-bold text-slate-900 transition-colors group-hover:text-primary-600" title={project.name}>
                   {project.name}
                 </p>
-                {project.priority && (
-                  <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold border ${priorityMeta.color}`}>
-                    {priorityMeta.label}
-                  </span>
-                )}
+                <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold border ${priorityMeta.color}`}>
+                  {priorityMeta.label}
+                </span>
               </div>
             </div>
             <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center">
@@ -168,12 +176,10 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
 
           {/* Người phụ trách (Leader) - Khu vực rộng rãi, trực quan ngay dưới mô tả */}
           {leadUser ? (
-            <div className="mt-2.5 flex items-center gap-2">
-              <Avatar name={leadUser.fullName} size="sm" className="h-5 w-5 shrink-0 text-[10px] shadow-2xs ring-1 ring-slate-200/80" />
-              <p className="truncate text-xs font-medium text-slate-700">
-                <span className="text-slate-400">{t('projects:projectCard.leadLabel')}: </span>
-                <span className="font-semibold text-slate-800">{leadUser.fullName}</span>
-              </p>
+            <div className="mt-2.5 flex items-center gap-1.5 min-w-0">
+              <span className="shrink-0 text-xs font-medium text-slate-400">{t('projects:projectCard.leadLabel')}:</span>
+              <Avatar name={leadUser.fullName} size="sm" className="h-4.5 w-4.5 shrink-0 text-[9px] shadow-2xs ring-1 ring-slate-200/80" />
+              <span className="truncate text-xs font-semibold text-slate-800">{leadUser.fullName}</span>
             </div>
           ) : (
             <div className="mt-2.5 h-5" />

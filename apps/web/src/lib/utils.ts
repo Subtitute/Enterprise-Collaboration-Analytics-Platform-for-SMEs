@@ -52,6 +52,17 @@ export function formatShortDate(value?: string | null): string {
   }).format(d);
 }
 
+export function formatTime(value?: string | null): string {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  return new Intl.DateTimeFormat(currentIntlLocale(), {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Asia/Ho_Chi_Minh',
+  }).format(d);
+}
+
 export function formatDateTime(value?: string | null): string {
   if (!value) return '—';
   const d = new Date(value);
@@ -152,4 +163,37 @@ export function stringToColorClass(seed: string): string {
     hash |= 0;
   }
   return palette[Math.abs(hash) % palette.length];
+}
+
+/**
+ * Loại bỏ dấu tiếng Việt và chuẩn hóa chuỗi về dạng chữ thường không dấu:
+ * - Chuẩn hóa ký tự Đ/đ -> d
+ * - Tách tổ hợp dấu Unicode NFD và loại bỏ các ký tự dấu
+ * - Ví dụ: "Tiến" -> "tien", "Đồ án" -> "do an"
+ */
+export function removeVietnameseTones(str?: string | null): string {
+  if (!str) return '';
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
+    .trim();
+}
+
+/**
+ * Kiểm tra xem chuỗi nguồn (target) có chứa từ khóa tìm kiếm (searchQuery) hay không:
+ * - So khớp cả trường hợp có dấu lẫn không dấu, không phân biệt hoa thường.
+ * - Ví dụ: "Dự án Website" khớp với "du an", "dự", "website", "Tiến" khớp với "tien", "Tien", "tiến".
+ */
+export function matchesVietnameseSearch(target?: string | null, searchQuery?: string | null): boolean {
+  if (!searchQuery || !searchQuery.trim()) return true;
+  if (!target) return false;
+  const normalizedTarget = removeVietnameseTones(target);
+  const normalizedQuery = removeVietnameseTones(searchQuery);
+  return (
+    target.toLowerCase().includes(searchQuery.toLowerCase().trim()) ||
+    normalizedTarget.includes(normalizedQuery)
+  );
 }

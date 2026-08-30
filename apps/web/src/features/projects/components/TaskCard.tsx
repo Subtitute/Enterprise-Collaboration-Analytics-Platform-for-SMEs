@@ -50,8 +50,8 @@ export function TaskCard({ task, index, onClick }: { task: Task; index: number; 
               'relative cursor-pointer rounded-xl border p-3 shadow-sm shadow-slate-900/5 transition-all duration-150',
               // Giao diện mặc định & Hiệu ứng chìm cho task đã Hoàn thành
               isDone
-                ? 'border-slate-200/60 bg-slate-50/80 text-slate-500 opacity-80 hover:opacity-100 hover:bg-slate-50 hover:border-slate-300'
-                : 'border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]',
+                ? 'border-slate-200/60 bg-slate-50/80 text-slate-500 opacity-80 hover:opacity-100 hover:bg-slate-50 hover:border-indigo-300'
+                : 'border-slate-200/80 bg-white hover:border-indigo-300 hover:shadow-md active:scale-[0.98]',
               snapshot.isDragging && '!shadow-xl !border-primary-400 ring-2 ring-primary-500/20 !opacity-100',
             )}
           >

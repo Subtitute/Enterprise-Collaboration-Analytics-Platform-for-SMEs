@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -6,6 +6,7 @@ import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { Pagination } from '@/components/ui/Pagination';
 import { BriefcaseIcon, PlusIcon, SearchIcon } from '@/components/ui/Icons';
+import { matchesVietnameseSearch } from '@/lib/utils';
 import { useCustomersQuery } from './hooks';
 import { CustomerCard } from './components/CustomerCard';
 import { NewCustomerModal } from './components/NewCustomerModal';
@@ -21,9 +22,9 @@ export function CustomersListPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
-  // Debounce 400ms de khong goi API lien tuc theo tung ky tu go, mirror ProjectsListPage.tsx.
+  // Debounce 300ms de khong goi API lien tuc theo tung ky tu go, mirror ProjectsListPage.tsx.
   useEffect(() => {
-    const timer = setTimeout(() => setSearch(searchInput.trim()), 400);
+    const timer = setTimeout(() => setSearch(searchInput.trim()), 300);
     return () => clearTimeout(timer);
   }, [searchInput]);
 
@@ -32,22 +33,40 @@ export function CustomersListPage() {
     setPage(1);
   }, [search]);
 
-  const customersQuery = useCustomersQuery({ page, limit: LIMIT, search: search || undefined });
+  // Lấy dữ liệu với limit lớn hơn khi tìm kiếm để hỗ trợ tìm kiếm tiếng Việt không dấu client-side toàn diện
+  const customersQuery = useCustomersQuery({ page: search ? 1 : page, limit: search ? 200 : LIMIT });
+
+  const rawCustomers = customersQuery.data?.data ?? [];
+
+  const filteredCustomers = useMemo(() => {
+    if (!search) return rawCustomers;
+    return rawCustomers.filter(
+      (c) =>
+        matchesVietnameseSearch(c.name, search) ||
+        matchesVietnameseSearch(c.company, search) ||
+        matchesVietnameseSearch(c.notes, search) ||
+        matchesVietnameseSearch(c.email, search) ||
+        matchesVietnameseSearch(c.phone, search)
+    );
+  }, [rawCustomers, search]);
+
+  const totalFiltered = search ? filteredCustomers.length : (customersQuery.data?.meta.total ?? 0);
+  const displayedCustomers = useMemo(() => {
+    if (!search) return filteredCustomers;
+    const start = (page - 1) * LIMIT;
+    return filteredCustomers.slice(start, start + LIMIT);
+  }, [filteredCustomers, page, search]);
 
   // 22/08/2026: xoa khach hang lam giam tong so ket qua co the khien trang hien tai vuot qua trang
   // cuoi cung (vd. dang o trang cuoi chi con 1 khach hang, xoa xong) - BE khong tu dong dieu chinh,
   // chi tra ve data: [] cho trang khong con hop le nua, nen can tu clamp ve trang cuoi cung hop le
   // o day, mirror ProjectsListPage.tsx.
   useEffect(() => {
-    const newTotal = customersQuery.data?.meta.total;
-    if (newTotal === undefined) return;
-    if (page > 1 && (page - 1) * LIMIT >= newTotal) {
-      setPage(Math.max(1, Math.ceil(newTotal / LIMIT)));
+    if (page > 1 && (page - 1) * LIMIT >= totalFiltered) {
+      setPage(Math.max(1, Math.ceil(totalFiltered / LIMIT)));
     }
-  }, [customersQuery.data, page]);
+  }, [totalFiltered, page]);
 
-  const customers = customersQuery.data?.data ?? [];
-  const meta = customersQuery.data?.meta ?? { page: 1, limit: LIMIT, total: 0 };
   const hasFilters = Boolean(search);
 
   return (
@@ -82,7 +101,7 @@ export function CustomersListPage() {
         errorTitle={t('crm:customersListPage.errorTitle')}
         errorDescription={t('crm:customersListPage.errorDescription')}
       >
-        {customers.length === 0 ? (
+        {displayedCustomers.length === 0 ? (
           <EmptyState
             icon={<BriefcaseIcon className="h-10 w-10" />}
             title={hasFilters ? t('crm:customersListPage.emptyFilteredTitle') : t('crm:customersListPage.emptyTitle')}
@@ -96,11 +115,11 @@ export function CustomersListPage() {
         ) : (
           <>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {customers.map((customer) => (
+              {displayedCustomers.map((customer) => (
                 <CustomerCard key={customer.id} customer={customer} />
               ))}
             </div>
-            <Pagination page={meta.page} limit={meta.limit} total={meta.total} onPageChange={setPage} />
+            <Pagination page={page} limit={LIMIT} total={totalFiltered} onPageChange={setPage} />
           </>
         )}
       </QueryState>

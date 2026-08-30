@@ -3,6 +3,7 @@ import { useAllProjectsQuery } from '@/hooks/useOrgProjects';
 import { useAllTasksQuery } from '@/features/projects/hooks';
 import { useOrgUsersQuery } from '@/hooks/useOrgUsers';
 import { useFoldersQuery } from '@/features/documents/hooks';
+import { matchesVietnameseSearch } from '@/lib/utils';
 
 export interface SearchResult {
   id: string;
@@ -64,9 +65,8 @@ export function useGlobalSearch(rawQuery: string, hasInteracted: boolean) {
 
   const results = useMemo<SearchResult[]>(() => {
     if (query.length < 1) return [];
-    const needle = query.toLowerCase();
     const matches = (...values: Array<string | undefined | null>) =>
-      values.some((v) => v && v.toLowerCase().includes(needle));
+      values.some((v) => matchesVietnameseSearch(v, query));
 
     const projects = (projectsQuery.data ?? [])
       .filter((p) => matches(p.name))

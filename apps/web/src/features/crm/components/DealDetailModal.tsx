@@ -5,6 +5,7 @@ import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { FormField, Input } from '@/components/ui/Input';
+import { DatePicker } from '@/components/ui/DatePicker';
 import { TrashIcon } from '@/components/ui/Icons';
 import type { Deal } from '@/types';
 import { dealStageBadgeVariant } from '../utils';
@@ -36,18 +37,33 @@ export function DealDetailModal({
   useEffect(() => {
     if (!deal) return;
     setTitle(deal.title);
-    setValue(String(deal.value ?? 0));
+    if (deal.value !== undefined && deal.value !== null) {
+      setValue(new Intl.NumberFormat('vi-VN').format(Number(deal.value)));
+    } else {
+      setValue('');
+    }
     setExpectedCloseDate(deal.expectedCloseDate ? deal.expectedCloseDate.slice(0, 10) : '');
   }, [deal]);
 
   if (!deal) return null;
 
+  function handleValueChange(inputVal: string) {
+    const rawNumber = inputVal.replace(/\D/g, '');
+    if (!rawNumber) {
+      setValue('');
+      return;
+    }
+    const formatted = new Intl.NumberFormat('vi-VN').format(Number(rawNumber));
+    setValue(formatted);
+  }
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
+    const cleanNumber = value ? Number(value.replace(/\./g, '')) : undefined;
     updateDeal.mutate({
       title: title.trim(),
-      value: value ? Number(value) : undefined,
+      value: cleanNumber,
       expectedCloseDate: expectedCloseDate || undefined,
     });
   }
@@ -71,14 +87,28 @@ export function DealDetailModal({
             <Input id="deal-detail-title" value={title} onChange={(e) => setTitle(e.target.value)} />
           </FormField>
           <FormField label={t('crm:dealDetailModal.fieldValue')} htmlFor="deal-detail-value">
-            <Input id="deal-detail-value" type="number" min="0" value={value} onChange={(e) => setValue(e.target.value)} />
+            <div className="relative">
+              <Input
+                id="deal-detail-value"
+                type="text"
+                inputMode="numeric"
+                value={value}
+                onChange={(e) => handleValueChange(e.target.value)}
+                placeholder="0"
+                className="pr-10"
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
+                VND
+              </span>
+            </div>
           </FormField>
           <FormField label={t('crm:dealDetailModal.fieldExpectedCloseDate')} htmlFor="deal-detail-expected-close-date">
-            <Input
+            <DatePicker
               id="deal-detail-expected-close-date"
-              type="date"
               value={expectedCloseDate}
-              onChange={(e) => setExpectedCloseDate(e.target.value)}
+              onChange={setExpectedCloseDate}
+              position="top"
+              placeholder="DD/MM/YYYY"
             />
           </FormField>
           <div className="flex justify-end gap-2 pt-1">

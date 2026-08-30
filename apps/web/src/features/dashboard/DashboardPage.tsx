@@ -95,8 +95,7 @@ export function DashboardPage() {
     const daysMap: Record<DateRangeOption, number> = {
       '7d': 7,
       '30d': 30,
-      '90d': 90,
-      '1y': 365,
+      quarter: 90,
     };
     const days = daysMap[range] ?? 30;
     const cutoffDate = new Date();

@@ -20,7 +20,7 @@
       "notCheckedIn": "Bạn chưa chấm công vào làm hôm nay.",
       "checkedInPrefix": "Đã vào làm lúc",
       "checkInLabel": "Vào làm",
-      "checkOutLabel": "· Ra về",
+      "checkOutLabel": "Ra về",
       "checkInButton": "Check-in",
       "checkOutButton": "Check-out",
       "doneToday": "Đã hoàn tất hôm nay"

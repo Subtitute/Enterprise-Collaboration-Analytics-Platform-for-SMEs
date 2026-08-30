@@ -20,7 +20,7 @@
       "notCheckedIn": "本日はまだ出勤していません。",
       "checkedInPrefix": "出勤時刻",
       "checkInLabel": "出勤",
-      "checkOutLabel": "・退勤",
+      "checkOutLabel": "退勤",
       "checkInButton": "出勤",
       "checkOutButton": "退勤",
       "doneToday": "本日の勤怠は完了しました"

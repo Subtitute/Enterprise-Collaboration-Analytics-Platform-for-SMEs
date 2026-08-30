@@ -131,18 +131,17 @@ export function TaskStatusDonut({ data, isLoading, isError, onRetry }: TaskStatu
                   onMouseEnter={() => setHoveredStatus(d.status)}
                   onMouseLeave={() => setHoveredStatus(null)}
                   className={cn(
-                    'flex items-center justify-between gap-2 text-xs sm:text-sm rounded-lg px-3 py-2 mb-2 border transition-all duration-150 cursor-pointer min-w-0',
+                    'flex items-center justify-between gap-2 text-xs sm:text-sm rounded-lg px-3 py-2 mb-2 border transition-colors duration-150 cursor-pointer min-w-0',
                     isHovered
-                      ? 'bg-slate-100/90 border-slate-300/80 shadow-xs scale-[1.01]'
+                      ? 'bg-slate-100 border-slate-300 shadow-2xs'
                       : 'bg-slate-50 border-slate-200/60 hover:bg-slate-100/60 hover:border-slate-300/50',
                   )}
                 >
                   <span className="flex items-center gap-2 text-slate-700 min-w-0 truncate">
                     <span
-                      className="h-2.5 w-2.5 shrink-0 rounded-full shadow-xs transition-transform duration-150"
+                      className="h-2.5 w-2.5 shrink-0 rounded-full shadow-2xs"
                       style={{
                         background: d.fill,
-                        transform: isHovered ? 'scale(1.25)' : 'scale(1)',
                       }}
                     />
                     <span className={cn('truncate font-medium text-slate-700', isHovered && 'text-slate-900 font-semibold')}>

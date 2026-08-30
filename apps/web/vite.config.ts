@@ -27,6 +27,11 @@ export default defineConfig({
         target: 'http://localhost:3000',
         changeOrigin: true,
         ws: true,
+        configure: (proxy) => {
+          proxy.on('error', (_err, _req, _res) => {
+            // Dập tắt log socket hang up do backend gateway hoặc client refresh/reconnect
+          });
+        },
       },
     },
   },
