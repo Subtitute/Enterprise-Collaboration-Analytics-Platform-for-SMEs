@@ -636,6 +636,224 @@ ngoài comment trong 119 file đã quét"); toàn bộ file JSON locale đã s�
 *Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 26/08/2026 (phần 5 đề xuất cải
 thiện, tiếp sau phần rà soát lần 4 cùng ngày ở trên).*
 
+## 2026-08-27 — Rà soát riêng phần vừa triển khai (lần 4 + 5 đề xuất) + kiểm tra bảo mật
+
+Theo yêu cầu chủ động: rà soát lại CHỈ những phần vừa thay đổi ở 2 mục trên (không lặp lại toàn bộ
+dự án — đã qua 4 lần rà soát tổng thể, không còn nhiều giá trị lặp lại lần 5), tách riêng 1 hướng
+tập trung vào bảo mật cho khu vực rủi ro cao nhất (Gateway rate-limit vừa tái cấu trúc, script Lua
+nguyên tử, xử lý mật khẩu Mongo).
+
+**Tự kiểm tra trước (không qua agent):** viết 1 script Node đối chiếu key + placeholder giữa
+vi/en/ja cho toàn bộ 12 namespace i18n (loại `errors.json` khỏi so sánh — file này CỐ TÌNH lệch
+theo thiết kế đã ghi nhận từ trước). Phát hiện **25 key sót từ trước** (không phải do đợt sửa hôm
+qua) chỉ có ở `vi` mà thiếu ở cả `en` lẫn `ja`: 5 key trong `dashboard:recentActivityFeed`
+(`viewAll`, `collapse`, `groups.today/yesterday/earlier`) và 20 key trong `projects.json`
+(`list.viewAll`, `list.priorityFilter.*`, `detail.reopenProject`, `newProjectModal.priorityLabel/
+leadLabel/searchMemberPlaceholder/priorities.*`, `editProjectModal` cả khối, `projectCard.edit/
+reopen`, `toast.project.reopened/reopenError`) — đã được 1 agent hôm qua tự phát hiện và chủ động
+ghi chú "out of scope, để đó" trong báo cáo, nhưng tôi đọc lướt báo cáo tổng hợp và bỏ sót không
+theo dõi tiếp. Đã dịch bổ sung toàn bộ 25 key vào en/ja (giữ đúng nghĩa/văn phong đã dùng cho các
+key lân cận). Bài học: từ nay đối chiếu key bằng script thay vì chỉ tin báo cáo tóm tắt của agent.
+
+**5 hướng rà soát song song, chỉ nhắm đúng các file vừa đổi:**
+
+1. **Bảo mật** (Gateway `jwt-auth.middleware.ts`/`redis.service.ts`, IAM `redis.service.ts`/
+   `users.service.ts`, `infra/docker-compose.yml`, Mongo URI, field `leadUserId` mới) — sạch, chỉ 1
+   ghi nhận Nhẹ: `leadUserId` không xác minh thuộc đúng tổ chức trước khi lưu — cùng hạn chế (cùng
+   lý do: chưa có HTTP client nội bộ giữa các service) đã ghi nhận từ 25/07/2026 tại
+   `TasksService.assign()`. Bổ sung chú thích tương tự tại `ProjectsService.create()`/`update()`
+   để nhất quán, không sửa hành vi (mức độ nghiêm trọng thấp, đã có lý do kỹ thuật rõ ràng).
+2. **Backend logic** (`ProjectsService.complete()`/`update()`, `FoldersService.remove()`,
+   `AttendanceService.checkOut()`, `failed-events-consumer.service.ts`, `fact-writer.service.ts`)
+   — sạch, 1 lỗi Nhẹ còn sót: `checkOut()` (sửa 26/08 để tìm đúng bản ghi check-in đang mở) vẫn giữ
+   riêng 1 biến `workDate` tính lại tại thời điểm checkout (thay vì lấy từ bản ghi thật) để đặt tên
+   object key ảnh + outbox payload — cùng lỗi "sai ngày qua nửa đêm" như bản gốc, chỉ là không còn
+   ảnh hưởng tới việc TÌM bản ghi nữa nên không lộ ra khi test. Sửa: dùng thẳng `workDate` của bản
+   ghi Attendance đã tìm/khoá được (`preCheck.workDate` cho object key, `attendance.workDate` cho
+   outbox payload), bỏ hẳn biến tính riêng.
+3. **Frontend Projects** (`api.ts`, `utils.ts`, `ProjectCard`/`EditProjectModal`/`NewProjectModal`/
+   `ProjectDetailPage`, `Sidebar.tsx`) — sạch, không phát hiện gì mới.
+4. **`Modal.tsx` + 12 modal dùng `preventCloseWhilePending`** — triển khai đúng và đầy đủ theo
+   phạm vi đã định. 2 ghi nhận Nhẹ không sửa: `ConfirmDialog` (cùng file) chưa có prop này nhưng
+   hiện vô hại (mọi nơi gọi đều đóng đồng bộ trong `onConfirm`, không qua `onSuccess` trễ); và một
+   đánh đổi có chủ đích chưa từng được ghi chú — nếu request treo vô thời hạn (`apiClient` không
+   đặt `timeout`, mutation cấu hình `retry: 0`), người dùng không có cách nào đóng modal từ trong
+   app cho tới khi request thật sự trả về. Bổ sung chú thích ghi nhận đánh đổi này ngay tại khai báo
+   prop trong `Modal.tsx`, không sửa hành vi (lợi ích tránh mất dữ liệu/đóng nhầm modal lớn hơn rủi
+   ro request treo thật sự hiếm gặp).
+5. **`scripts/check-hardcoded-vietnamese.js` (công cụ mới hôm qua) + các sửa đổi liên quan** — phát
+   hiện 1 lỗi Nghiêm trọng vừa trong chính công cụ: bộ xoá comment không nhận biết regex literal, 1
+   pattern như `/^https?:\/\//` (dấu `/` thoát trong regex) bị hiểu nhầm là bắt đầu comment `//`
+   ngay giữa chừng, làm MẤT toàn bộ phần còn lại của dòng đó — kể cả chuỗi tiếng Việt thật sự nằm
+   sau nó — mà không báo lỗi gì (sai lệch theo hướng "bỏ sót", nguy hiểm hơn báo động giả). Chưa
+   từng bị kích hoạt (chưa có regex nào dạng này trong `apps/web/src` tại thời điểm viết), nhưng sẽ
+   âm thầm vô hiệu hoá công cụ ngay khi ai đó thêm 1 pattern kiểm tra URL kiểu này. Sửa: thêm nhận
+   diện regex literal dựa theo ký tự/từ khoá ngay trước dấu `/` (heuristic phổ biến của tokenizer
+   JS đơn giản — sau `)]}`/identifier/số là phép chia, sau toán tử/dấu câu/từ khoá như `return` là
+   regex), "ẩn" nguyên nội dung regex y hệt cách đã làm với string/template literal. Đã viết test
+   riêng xác nhận đúng ca lỗi gốc (`urlRe = /^https?:\/\//` không còn nuốt chuỗi tiếng Việt phía
+   sau) mà không phá vỡ hành vi cũ (comment `//`/`/* */` vẫn bị xoá đúng, 2 dòng regex đã đánh dấu
+   `i18n-lint-ignore` trong `lib/utils.ts` vẫn được bỏ qua đúng). Các mục còn lại (CI YAML,
+   `extractErrorMessage()` fallback, 2 marker `i18n-lint-ignore`, JSON locale mới) đều sạch.
+
+**Xác minh cuối cùng:** `npm run typecheck` (root) sạch; `npm run test --workspaces` vẫn 573/573
+(không hồi quy từ các sửa đổi trên); `node scripts/check-hardcoded-vietnamese.js` thoát mã 0; script
+đối chiếu key/placeholder i18n riêng (viết hôm nay) xác nhận sạch tuyệt đối trên cả 11 namespace
+UI (loại `errors.json` theo thiết kế).
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 27/08/2026.*
+
+## 2026-08-27 (bổ sung) — Push GitHub thất bại: `npm run lint` có lỗi thật, không chỉ warning
+
+Push lên GitHub thất bại — nguyên nhân là `npm run lint` (bước bắt buộc trong CI, `.github/
+workflows/ci.yml`) thực sự có **5 lỗi (error)**, không phải chỉ warning. Bài học quan trọng: suốt
+2 đợt sửa lỗi gần đây (26-27/08), gate xác minh chỉ chạy `typecheck` + `test --workspaces`, CHƯA
+BAO GIỜ chạy `npm run lint` — TypeScript type-check và ESLint là 2 công cụ khác nhau, qua cái này
+không đảm bảo qua cái kia. Từ nay gate cuối phải luôn gồm cả 3: `typecheck` + `test` + `lint`.
+
+**3 lỗi thật, cả 3 đều do chính các đợt sửa gần đây gây ra:**
+- `apps/web/src/features/projects/api.ts` (`no-useless-catch`) — `completeProject()`/
+  `reopenProject()` (sửa 26/08, Fix CRITICAL 1) còn giữ khối `try { ... } catch (err) { throw err;
+  }` chỉ để đính kèm bình luận giải thích — ESLint đúng khi coi đây là catch vô nghĩa (async
+  function tự động ném lại lỗi qua Promise rejection, không cần bắt rồi ném lại). Sửa: bỏ hẳn
+  try/catch, chuyển toàn bộ bình luận lên trước hàm.
+- `apps/web/src/features/projects/ProjectsListPage.tsx` (`prefer-const`) — `let finalSorted = ...`
+  (code gốc từ nhánh merge của Tiến, 25/08) không bao giờ được gán lại (chỉ `.sort()` tại chỗ) —
+  đổi sang `const`.
+- `apps/web/src/features/dashboard/components/RecentActivityFeed.tsx`
+  (`react/no-unescaped-entities`) — dấu `"` thẳng đặt trực tiếp trong JSX text (bọc quanh
+  `{target}`) phải escape thành `&quot;`.
+
+**Xác minh:** `npm run lint` (root) từ 5 lỗi + nhiều warning → 0 lỗi (chỉ còn warning, không chặn
+build — xác nhận qua exit code 0 dù ESLint vẫn in ra danh sách warning). `npm run typecheck -w
+apps/web` và `npm run test -w apps/web` (18/18) vẫn sạch sau khi sửa.
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 27/08/2026 (phần kiểm tra lint sau
+khi push GitHub thất bại).*
+
+---
+
+## 2026-08-29 — Unit test thất bại sau khi lint đã sạch: `coverageThreshold` "branches" của
+`notification-service` không đạt (không phải lỗi assertion)
+
+Sau khi lỗi lint ngày 27/08 đã sửa xong, lượt push tiếp theo báo "unit test thất bại" dù `npm run
+lint` đã sạch. Chạy trực tiếp đúng lệnh CI dùng (`npm run test:coverage` = `jest --coverage` từng
+workspace) cho kết quả: **toàn bộ 573 assertion cũ vẫn pass 100%** — lỗi thật là Jest tự thoát mã 1
+vì ngưỡng `coverageThreshold.global.branches` (55%, khai ở `apps/notification-service/
+package.json`) không đạt, thực đo chỉ 49.57%. Đây là kiểu lỗi dễ gây hiểu lầm "test bị hỏng" trong
+khi đúng ra là "test pass nhưng coverage tụt dưới sàn đã đặt" — 2 khái niệm khác nhau nhưng cùng
+làm `jest` thoát mã khác 0.
+
+**Nguyên nhân gốc:** đợt bổ sung cơ chế tự khởi động lại Kafka consumer sau CRASH (26/08/2026, mục
+"5 đề xuất cải thiện") thêm code mới vào `failed-events-consumer.service.ts` — file này vốn nhỏ
+(ít nhánh rẽ sẵn có) nên phần logic mới (dù đã có test khá đầy đủ cho `registerCrashHandler`/
+`restartWithBackoff`) vẫn kéo tỷ lệ nhánh của riêng file xuống 57%, cộng dồn với 2 khoảng trống
+nhánh rẽ **có từ trước, không liên quan đợt sửa gần đây**, kéo tổng thể toàn service xuống dưới
+ngưỡng:
+- `event-notification-builder.ts` (30.76% nhánh) — 3 case switch thêm từ CRM-lite/HRM-lite
+  (04-05/08/2026: `deal.stage_changed`, `leave_request.approved`, `leave_request.rejected`) **chưa
+  từng có bất kỳ test nào** kể từ khi thêm.
+- `notifications.service.ts` (73.33% nhánh) — `markAsRead()`/`markAllAsRead()` (endpoint đánh dấu
+  đã đọc) **chưa từng có test nào** dù đã tồn tại từ lâu.
+- `redis.service.ts` (0% nhánh) — nhánh reject thật của `withTimeout()` (khi Redis tự trả lỗi
+  trước khi kịp hết hạn timeout) chưa được test, chỉ mới test nhánh "treo" (timeout) và nhánh
+  thành công.
+
+**Đã sửa bằng cách bổ sung 14 test mới** (không đổi bất kỳ dòng code sản phẩm nào — đây thuần tuý
+là lấp khoảng trống test có sẵn, không phải vá lỗi hành vi):
+- `event-notification-builder.spec.ts`: +7 test (3 case CRM/HRM còn thiếu × nhánh sinh thông báo
+  thành công + nhánh trả `null` khi thiếu field bắt buộc/không đúng điều kiện).
+- `notifications.service.spec.ts`: +5 test cho `markAsRead` (id không hợp lệ, không tìm thấy, đã
+  đọc sẵn thì no-op, chưa đọc thì đánh dấu+lưu+phát WebSocket) và `markAllAsRead`.
+- `redis.service.spec.ts` (notification-service): +2 test cho nhánh reject thật của `withTimeout`
+  (Error thật được ném nguyên vẹn; giá trị reject không phải Error được bọc thành 1 Error mới).
+
+**Xác minh:** `jest --coverage` riêng `notification-service` — nhánh từ 49.57% → 60.68% (qua
+ngưỡng 55%), 69/69 test pass (55 cũ + 14 mới). `npm run test:coverage` (root, đúng lệnh CI dùng) —
+cả 12 workspace pass, không còn lỗi ngưỡng coverage nào. `npm run lint` và `npm run typecheck`
+(root) chạy lại sau khi thêm test — sạch, không phát sinh lỗi/warning mới.
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 29/08/2026 (phần "recheck sau khi
+unit test thất bại dù lint đã sạch").*
+
+---
+
+## 2026-08-29 (bổ sung) — Merge nhánh `frontend` của Nguyễn Lê Tiến (lần 2) — 7 file conflict +
+4 hồi quy ngữ nghĩa "im lặng" (không có dấu conflict nhưng vẫn sai)
+
+Người dùng merge lại nhánh `frontend` của Tiến vào nhánh chính, phát sinh conflict Git thật (đánh
+dấu `<<<<<<< HEAD` / `=======` / `>>>>>>> origin/frontend`) ở **7 file**: `components/ui/Modal.tsx`,
+`features/projects/ProjectsListPage.tsx`, `features/dashboard/components/RecentActivityFeed.tsx`,
+và 4 file JSON i18n (`en/dashboard.json`, `ja/dashboard.json`, `en/projects.json`, `ja/projects.json`).
+Git không có sẵn trong môi trường CLI này nên xử lý trực tiếp trên nội dung file (grep dấu
+conflict, đọc/so sánh 2 phía, không dùng `git merge`/`git status`).
+
+**Quyết định thiết kế đáng chú ý nhất**: `RecentActivityFeed.tsx` — 2 bên có 2 cách hiện thực
+KHÁC NHAU cho cùng 1 tính năng (dịch dòng hoạt động gần đây), độc lập nhau, cùng lúc: bản của tôi
+(`parseActionDetails` + key `verbs.*`/`targets.*`, tách riêng động từ/đối tượng) và bản của Tiến
+(`getActionDisplay` + key `actions.*`/`performedAction`, gộp thành 1 câu + hiển thị dạng "badge"
+màu theo loại hành động - tạo/sửa/xoá). Chọn giữ bản của Tiến (UI trực quan hơn, đã dịch đầy đủ cả
+3 ngôn ngữ), xoá hẳn `verbs`/`targets`/`activityCount` (key chết, không còn nơi nào dùng) khỏi cả
+3 file `dashboard.json`. Nhân tiện dọn 1 lỗi trùng key JSON có từ trước (`projectCard.noDescription`
+khai báo 2 lần trong `projects.json` cả 3 ngôn ngữ - JSON không báo lỗi nhưng giá trị đầu bị đè âm
+thầm) và 4 cặp chuỗi lệch nhau giữa 2 bên (`priorityFilter`/`editProjectModal.title`/`leadLabel`/
+`reopenProject`...) — đối chiếu với bản `vi/*.json` (đã tự merge sạch, dùng làm "trọng tài") để
+chọn cách diễn đạt nhất quán, bỏ hẳn `priorityRequired` (key Tiến thêm nhưng không nơi nào gọi tới,
+`vi` cũng không có).
+
+**4 hồi quy ngữ nghĩa nghiêm trọng hơn — KHÔNG có dấu conflict nào** (Git 3-way merge không phát
+hiện vì 2 bên sửa dòng khác nhau, không chồng lấn dòng-với-dòng, nhưng SAI về mặt logic khi đứng
+cạnh nhau) — phát hiện qua `npm run lint`/`npm run typecheck`/`npm run lint:i18n-strings` báo lỗi
+thật, không phải tự rà thủ công hết 101 file:
+1. **`EditProjectModal.tsx`** — merge tự động (không đánh dấu) đã LẶP ĐÔI y hệt 2 đoạn JSX (nút
+   "Đổi" hiển thị 2 lần; đoạn "Không tìm thấy thành viên" lặp 2 lần trong cùng 1 nhánh ternary) —
+   lỗi thứ 2 phá cú pháp JSX thật sự (`error TS2657: JSX expressions must have one parent element`),
+   chặn cả `lint` lẫn `typecheck`. Xoá bản lặp.
+2. **`ProjectCard.tsx`/`ProjectDetailPage.tsx`** — bị merge "lùi" về đúng logic ĐÃ TỪNG SỬA ở lỗi
+   MAJOR Fix 3 (26/08/2026): đọc `priority`/`leadUserId` từ `localStorage['ec_projects_metadata']`
+   (hệ thống CŨ) thay vì trực tiếp từ `project.priority`/`project.leadUserId` (trường thật từ
+   server) — chú thích 26/08 vẫn còn nguyên trong code (nói đúng là "giờ đọc thẳng từ server") NHƯNG
+   đoạn code bên dưới lại làm ngược lại chú thích đó. Đồng thời cả 2 file tự khai báo lại 1 object
+   `priorityMeta` y hệt nhau thay vì gọi `projectPriorityMeta()` dùng chung (`utils.ts`) — về đúng
+   lỗi trùng lặp mà hàm này được tạo ra để xoá bỏ. Phát hiện qua ESLint cảnh báo
+   `'projectPriorityMeta' is defined but never used` (dấu hiệu hàm dùng chung bị bỏ rơi).
+3. **`EditProjectModal.tsx` `handleSubmit()`** — hồi quy CÙNG LỚP LỖI nghiêm trọng hơn: `mutate()`
+   chỉ gửi `name`/`description`/`dueDate` lên server, còn `priority`/`leadUserId` NGƯỜI DÙNG VỪA
+   CHỌN chỉ được ghi vào `localStorage` (hệ thống CŨ, đã bỏ) — sửa dự án qua modal này trước khi vá
+   sẽ báo "Lưu thay đổi" thành công nhưng KHÔNG BAO GIỜ thực sự đổi độ ưu tiên/người phụ trách trên
+   server. Sửa bằng cách gửi thẳng `priority`/`leadUserId: leadId || undefined` trong payload
+   `mutate()` (đúng mẫu đã dùng ở `NewProjectModal.tsx`), bỏ hẳn nhánh ghi localStorage/tự phát sự
+   kiện (`useUpdateProject()` đã tự `invalidateQueries(['projects'])`/`['project', id]` khi thành
+   công, không cần cơ chế đồng bộ thủ công riêng nữa).
+4. **4 chuỗi tiếng Việt có dấu hardcode sót lại** (`lint:i18n-strings` bắt được): `Sidebar.tsx`
+   ("Doanh nghiệp / Tổ chức" — key `common:sidebar.subtitle` đã có sẵn, chỉ chưa gọi `t()`),
+   `TaskCard.tsx` ("Quá hạn" trong tooltip chấm ưu tiên — tính năng mới của Tiến, thêm key
+   `projects:taskCard.overdue`), `TaskDetailModal.tsx` ("Nhấp để đổi tên công việc" — tính năng đổi
+   tên tại chỗ mới của Tiến, thêm key `projects:taskDetail.renameHint`), `TaskStatusDonut.tsx`
+   (`defaultValue` hardcode tiếng Việt cho nhánh DOING dù key thật `projects:enums.taskStatus.DOING`
+   luôn tồn tại nên nhánh đó không bao giờ chạy tới — đơn giản hoá về `defaultValue: status`).
+5. **`DashboardPage.tsx`** (phát hiện qua `typecheck`, không phải `lint:i18n-strings`) — `daysMap`
+   dùng khoá `'90d'`/`'1y'` trong khi `DateRangeOption` (type dùng chung, `types/index.ts`) đã đổi
+   thành `'7d' | '30d' | 'quarter'` từ trước (khớp đúng bộ giá trị backend chấp nhận —
+   `analytics-service` từ chối `'1y'` bằng `BadRequestException`, xác nhận qua
+   `range.util.spec.ts`) — 2 bên sửa 2 nơi khác nhau (type ở 1 file, object dùng type ở file khác)
+   nên Git không phát hiện được. Sửa `daysMap` về đúng `{'7d': 7, '30d': 30, quarter: 90}`.
+
+**Xác minh:** `npm run lint` (root) sạch (0 lỗi, chỉ còn warning nền cũ không đổi). `npm run
+lint:i18n-strings` sạch (0 vi phạm, từ 4 xuống 0). `npm run typecheck` (root) sạch (từ 2 lỗi biên
+dịch xuống 0). `npm run test --workspace=apps/web` 18/18 pass. `npm run test:coverage` (root, đúng
+lệnh CI) — cả 12 workspace pass, không lỗi ngưỡng coverage. Toàn bộ 4 file JSON hợp lệ cú pháp
+(`ConvertFrom-Json` xác nhận).
+
+**Bài học quy trình**: chỉ tìm dấu `<<<<<<<`/`=======`/`>>>>>>>` là KHÔNG ĐỦ để merge an toàn — Git
+tự động gộp (không báo conflict) những vùng 2 bên sửa mà không chồng dòng, kể cả khi kết quả sai về
+logic (đọc sai nguồn dữ liệu, gọi nhầm namespace i18n, dùng type/enum đã đổi ở nơi khác). Bắt buộc
+chạy đủ `lint` + `lint:i18n-strings` + `typecheck` + `test` NGAY sau khi resolve conflict, không chỉ
+xoá dấu conflict rồi coi là xong — 3/4 lỗi ở trên (Fix 2, 3, 5) không hề có dấu conflict nào.
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 29/08/2026 (phần "merge nhánh
+frontend của Tiến lần 2").*
+
 ---
 
 ## Lịch sử thay đổi tài liệu này
@@ -656,3 +874,19 @@ thiện, tiếp sau phần rà soát lần 4 cùng ngày ở trên).*
 - **2026-08-26 (bổ sung)** — Bổ sung mục "5 đề xuất cải thiện sau lần rà soát 4" — triển khai toàn
   bộ 5 đề xuất (2 đợt rà soát không tìm thêm lỗi, 1 tái cấu trúc Gateway, 1 công cụ CI mới +
   23 chuỗi i18n còn sót, 1 prop dùng chung cho Modal áp dụng cho 12 modal), gate cuối vẫn 573/573.
+- **2026-08-27** — Bổ sung mục "Rà soát riêng phần vừa triển khai + kiểm tra bảo mật" — tự phát
+  hiện 25 key i18n sót từ trước (dashboard/projects), 1 hướng bảo mật riêng (sạch, 1 ghi nhận Nhẹ),
+  sửa 1 lỗi Nghiêm trọng vừa trong chính công cụ CI mới hôm qua (regex literal làm mất nội dung
+  dòng), sửa lại đúng `AttendanceService.checkOut()`, gate cuối vẫn 573/573.
+- **2026-08-27 (bổ sung)** — Bổ sung mục "Push GitHub thất bại" — `npm run lint` thực sự có 5 lỗi
+  (không chỉ warning) do 2 đợt sửa gần đây chưa từng chạy lint làm gate xác minh, chỉ chạy
+  typecheck+test. Đã sửa cả 3 nguồn lỗi, cập nhật quy trình: gate cuối từ nay luôn gồm cả lint.
+- **2026-08-29** — Bổ sung mục "Unit test thất bại sau khi lint đã sạch" — hoá ra không phải test
+  hỏng mà là `coverageThreshold.branches` của `notification-service` tụt dưới ngưỡng (55%, thực đo
+  49.57%); lấp bằng 14 test mới cho 3 khoảng trống coverage có sẵn (2 từ trước, 1 từ đợt CRASH-
+  recovery 26/08), không đổi code sản phẩm nào.
+- **2026-08-29 (bổ sung)** — Bổ sung mục "Merge nhánh frontend của Tiến (lần 2)" — 7 file conflict
+  Git thật + 5 hồi quy ngữ nghĩa "im lặng" không có dấu conflict (2 lỗi cùng lớp MAJOR Fix 3 26/08
+  tái xuất hiện ở `ProjectCard.tsx`/`ProjectDetailPage.tsx`/`EditProjectModal.tsx`, 1 lỗi cú pháp
+  JSX do merge tự lặp đôi nội dung, 4 chuỗi tiếng Việt hardcode mới, 1 lỗi type `DateRangeOption`
+  lệch giữa 2 nhánh) — bài học: chỉ tìm dấu conflict là không đủ, phải chạy đủ lint+typecheck+test.

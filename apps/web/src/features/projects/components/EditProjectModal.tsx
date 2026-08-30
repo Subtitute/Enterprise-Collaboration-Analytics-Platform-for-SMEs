@@ -81,30 +81,24 @@ export function EditProjectModal({ open, onClose, project }: EditProjectModalPro
       return;
     }
 
+    // 29/08/2026 (khoi phuc sau merge nhanh frontend cua Tien - loi cung lop MAJOR Fix 3 26/08/2026
+    // bi tai xuat hien do merge tu dong khong danh dau conflict): truoc ban sua nay, mutate() chi
+    // gui name/description/dueDate len server roi ghi priority/leadId vao localStorage nhu he thong
+    // CU - sua thong tin qua modal nay se KHONG BAO GIO thuc su doi priority/leadUserId tren server,
+    // du modal bao "Luu thay doi" thanh cong. priority/leadUserId gio la truong that (project.entity.ts),
+    // phai gui THANG len server giong het createProject() (NewProjectModal.tsx). useUpdateProject()
+    // da tu invalidate ['projects']/['project', id] khi thanh cong nen khong con can ghi localStorage/
+    // tu phat event 'ec_projects_updated' nua.
     updateProject.mutate(
       {
         name: name.trim(),
         description: description.trim(),
         dueDate: dueDate || undefined,
+        priority,
+        leadUserId: leadId || undefined,
       },
       {
-        onSuccess: () => {
-          try {
-            const metaStore: Record<string, { priority?: string; leadId?: string; status?: string }> = JSON.parse(
-              localStorage.getItem('ec_projects_metadata') || '{}'
-            );
-            metaStore[project.id] = {
-              ...(metaStore[project.id] || {}),
-              priority,
-              leadId,
-            };
-            localStorage.setItem('ec_projects_metadata', JSON.stringify(metaStore));
-            window.dispatchEvent(new Event('ec_projects_updated'));
-          } catch {
-            // ignore
-          }
-          onClose();
-        },
+        onSuccess: () => onClose(),
       },
     );
   }

@@ -19,6 +19,20 @@ interface ModalProps {
   children: ReactNode;
   footer?: ReactNode;
   size?: ModalSize;
+  // 26/08/2026: prop moi - gom "chan dong modal khi dang co mutation pending" VE MOT CHO DUY NHAT
+  // trong Modal.tsx, thay vi de tung modal con tu viet 1 ham handleClose rieng kiem tra isPending
+  // truoc khi goi onClose (DepartmentModal/EditMemberModal/InviteMemberModal/UploadModal hom qua
+  // moi noi lam 1 kieu, de sot la lai bi lo - xem UploadModal.tsx ban truoc, Fix 7). Khi true: ca
+  // 3 duong dong hien co (nut X o header, phim Escape, click ra ngoai overlay) deu bi Modal tu
+  // chan (no-op), modal con CHI can truyen preventCloseWhilePending={mutation.isPending}.
+  //
+  // 27/08/2026 (ghi nhan qua ra soat lai, KHONG sua): danh doi co chu dich - neu request hang vo
+  // thoi han (apiClient khong dat `timeout`, moi mutation cau hinh `retry: 0`), nguoi dung se KHONG
+  // co cach nao dong modal nay tu trong app (ca 3 duong dong deu bi chan) toi khi request that su
+  // tra ve (thanh cong/loi) hoac nguoi dung tu tai lai trang. Chap nhan danh doi nay vi loi ich
+  // (tranh mat du lieu dang nhap dang do/dong nham modal do closure `onSuccess` cu) lon hon rui ro
+  // (request hang that su hiem, va van co loi thoat tho bang F5). Neu sau nay can xu ly triet de
+  // hon, them `timeout` cho apiClient (apps/web/src/lib/api-client.ts) la huong sua dung goc re.
   preventCloseWhilePending?: boolean;
 }
 

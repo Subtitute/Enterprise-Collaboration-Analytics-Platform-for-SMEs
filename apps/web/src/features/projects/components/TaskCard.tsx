@@ -1,6 +1,5 @@
 import { Draggable } from '@hello-pangea/dnd';
 import { useTranslation } from 'react-i18next';
-import { Card } from '@/components/ui/Card';
 import { AvatarStack } from '@/components/ui/Avatar';
 import { CalendarIcon } from '@/components/ui/Icons';
 import { cn, formatDate } from '@/lib/utils';
@@ -59,7 +58,7 @@ export function TaskCard({ task, index, onClick }: { task: Task; index: number; 
             {priorityColor && !isDone && (
               <span
                 className={cn('absolute top-3 right-3 h-1.5 w-1.5 rounded-full ring-2 shrink-0', priorityColor)}
-                title={rawPriority || (overdue ? 'Quá hạn' : undefined)}
+                title={rawPriority || (overdue ? t('projects:taskCard.overdue') : undefined)}
               />
             )}
 

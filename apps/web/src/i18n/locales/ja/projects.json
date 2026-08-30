@@ -21,16 +21,17 @@
     "title": "プロジェクト・タスク",
     "subtitle": "プロジェクトを管理し、カンバンボードで進捗を追跡します。",
     "newProject": "新規プロジェクト",
+    "viewAll": "すべて表示",
     "searchPlaceholder": "プロジェクトを検索…",
     "statusFilter": {
       "all": "すべてのステータス"
     },
     "priorityFilter": {
       "all": "すべての優先度",
-      "LOW": "優先度: 低",
-      "MEDIUM": "優先度: 中",
-      "HIGH": "優先度: 高",
-      "URGENT": "優先度: 緊急"
+      "LOW": "優先度：低",
+      "MEDIUM": "優先度：中",
+      "HIGH": "優先度：高",
+      "URGENT": "優先度：緊急"
     },
     "loading": "プロジェクトを読み込み中…",
     "errorTitle": "プロジェクトを読み込めませんでした",
@@ -67,8 +68,7 @@
     "descriptionPlaceholder": "プロジェクトの目標や業務範囲…",
     "dueDateLabel": "期限",
     "priorityLabel": "優先度",
-    "priorityRequired": "優先度を選択してください",
-    "leadLabel": "プロジェクト担当者",
+    "leadLabel": "担当者",
     "searchMemberPlaceholder": "担当者を検索して選択…",
     "changeLead": "変更",
     "noMembersFound": "メンバーが見つかりません",
@@ -82,7 +82,7 @@
     "submit": "プロジェクトを作成"
   },
   "editProjectModal": {
-    "title": "プロジェクト情報の編集",
+    "title": "プロジェクト情報を編集",
     "submit": "変更を保存"
   },
   "newTaskModal": {
@@ -110,11 +110,11 @@
     "memberCount": "メンバー{{count}}人",
     "confirmDeleteTitle": "このプロジェクトを削除しますか？",
     "confirmDeleteDescription": "「{{name}}」に属するすべてのタスクも削除される可能性があります。この操作は取り消せません。",
-    "noDescription": "説明はありません",
     "leadTooltip": "担当: {{name}}"
   },
   "taskCard": {
-    "unknownAssignee": "メンバー"
+    "unknownAssignee": "メンバー",
+    "overdue": "期限超過"
   },
   "assigneePicker": {
     "allAssigned": "すべてのメンバーが割り当て済みです。",
@@ -125,6 +125,7 @@
   "taskDetail": {
     "unknownMember": "メンバー",
     "fallbackTitle": "タスク",
+    "renameHint": "クリックしてタスク名を変更",
     "loadErrorTitle": "タスクを読み込めませんでした",
     "loadErrorDescription": "このタスクの読み込み中にエラーが発生しました。もう一度お試しください。",
     "notFoundTitle": "タスクが見つかりません",
@@ -158,7 +159,9 @@
       "deleted": "プロジェクトを削除しました",
       "deleteError": "プロジェクトを削除できませんでした",
       "completed": "プロジェクトを完了にしました",
-      "completeError": "プロジェクトを完了にできませんでした"
+      "completeError": "プロジェクトを完了にできませんでした",
+      "reopened": "プロジェクトを進行中に戻しました",
+      "reopenError": "プロジェクトを再開できませんでした"
     },
     "task": {
       "created": "タスクを作成しました",

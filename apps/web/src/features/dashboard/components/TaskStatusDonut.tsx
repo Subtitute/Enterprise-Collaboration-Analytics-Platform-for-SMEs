@@ -15,7 +15,7 @@ import { t } from '@/i18n';
 
 function statusLabel(status: string) {
   const normalized = status === 'IN_PROGRESS' ? 'DOING' : status;
-  return t(`projects:enums.taskStatus.${normalized}`, { defaultValue: status === 'DOING' || status === 'IN_PROGRESS' ? 'Đang làm' : status });
+  return t(`projects:enums.taskStatus.${normalized}`, { defaultValue: status });
 }
 
 function DonutTooltip({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; payload: { fill: string; status: string } }> }) {

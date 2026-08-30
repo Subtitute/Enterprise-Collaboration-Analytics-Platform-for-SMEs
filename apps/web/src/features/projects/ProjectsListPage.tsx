@@ -142,8 +142,11 @@ export function ProjectsListPage() {
       sortGroup(activeList);
       sortGroup(completedList);
 
-      // 5. Ghép danh sách: Toàn bộ ACTIVE ở trên, toàn bộ COMPLETED LUÔN NẰM DƯỚI CÙNG (nếu không lọc cụ thể 1 trạng thái)
-      let finalSorted = status ? list : [...activeList, ...completedList];
+      // 5. Ghép danh sách: Toàn bộ ACTIVE ở trên, toàn bộ COMPLETED LUÔN NẰM DƯỚI CÙNG. Luôn ghép
+      // qua activeList/completedList (đã sắp xếp ở bước 4) thay vì dùng thẳng `list` khi có lọc
+      // trạng thái - `list` giữ nguyên thứ tự trả về từ server, dùng thẳng sẽ MẤT sắp xếp theo độ
+      // ưu tiên/thứ tự đã lưu ngay khi người dùng bật bộ lọc trạng thái.
+      const finalSorted = [...activeList, ...completedList];
 
       // 6. Nếu có tìm kiếm từ khóa, lọc và sắp xếp theo độ khớp tiếng Việt (có dấu hoặc không dấu)
       if (search) {

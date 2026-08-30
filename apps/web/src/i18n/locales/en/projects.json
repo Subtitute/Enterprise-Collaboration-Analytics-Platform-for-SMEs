@@ -21,6 +21,7 @@
     "title": "Projects & Tasks",
     "subtitle": "Manage projects and track progress with a Kanban board.",
     "newProject": "New project",
+    "viewAll": "View all",
     "searchPlaceholder": "Search projects…",
     "statusFilter": {
       "all": "All statuses"
@@ -67,9 +68,8 @@
     "descriptionPlaceholder": "Goals and scope of this project…",
     "dueDateLabel": "Due date",
     "priorityLabel": "Priority",
-    "priorityRequired": "Please select a priority",
-    "leadLabel": "Project lead",
-    "searchMemberPlaceholder": "Search and assign project lead…",
+    "leadLabel": "Lead",
+    "searchMemberPlaceholder": "Search and select a lead…",
     "changeLead": "Change",
     "noMembersFound": "No members found",
     "priorities": {
@@ -82,7 +82,7 @@
     "submit": "Create project"
   },
   "editProjectModal": {
-    "title": "Edit project details",
+    "title": "Edit project",
     "submit": "Save changes"
   },
   "newTaskModal": {
@@ -97,7 +97,7 @@
   },
   "projectCard": {
     "optionsAriaLabel": "Project options",
-    "edit": "Edit project details",
+    "edit": "Edit details",
     "markComplete": "Mark as complete",
     "reopen": "Reopen to active",
     "delete": "Delete project",
@@ -110,11 +110,11 @@
     "memberCount": "{{count}} members",
     "confirmDeleteTitle": "Delete this project?",
     "confirmDeleteDescription": "All tasks belonging to \"{{name}}\" may also be deleted. This action cannot be undone.",
-    "noDescription": "No description",
     "leadTooltip": "Lead: {{name}}"
   },
   "taskCard": {
-    "unknownAssignee": "Member"
+    "unknownAssignee": "Member",
+    "overdue": "Overdue"
   },
   "assigneePicker": {
     "allAssigned": "All members have been assigned.",
@@ -125,6 +125,7 @@
   "taskDetail": {
     "unknownMember": "Member",
     "fallbackTitle": "Task",
+    "renameHint": "Click to rename task",
     "loadErrorTitle": "Couldn't load task",
     "loadErrorDescription": "An error occurred while loading this task. Please try again.",
     "notFoundTitle": "Task not found",
@@ -158,7 +159,9 @@
       "deleted": "Project deleted",
       "deleteError": "Couldn't delete project",
       "completed": "Project marked as complete",
-      "completeError": "Couldn't complete project"
+      "completeError": "Couldn't complete project",
+      "reopened": "Project reopened as active",
+      "reopenError": "Couldn't reopen project"
     },
     "task": {
       "created": "Task created",

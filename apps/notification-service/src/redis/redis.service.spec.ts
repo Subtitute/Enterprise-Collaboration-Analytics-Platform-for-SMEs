@@ -37,4 +37,20 @@ describe('RedisService.isUserBlacklisted (Notification Service)', () => {
     await jest.advanceTimersByTimeAsync(1000);
     await assertion;
   });
+
+  // 29/08/2026: bo sung 2 nhanh reject cua withTimeout() (nhanh resolve va nhanh timeout o tren
+  // da co, thieu nhanh Redis tu no reject THAT SU truoc khi het 1000ms) - gop phan vao nguyen nhan
+  // coverageThreshold "branches" (55%) cua notification-service khong dat (thuc te 49.57%).
+  it('nem lai dung Error goc khi client.get() tu reject truoc khi het timeout', async () => {
+    const redisError = new Error('Redis connection closed');
+    const service = createService({ get: jest.fn().mockRejectedValue(redisError) });
+
+    await expect(service.isUserBlacklisted('user-1')).rejects.toBe(redisError);
+  });
+
+  it('boc gia tri reject KHONG PHAI Error thanh 1 Error moi (vd client.get() reject 1 chuoi)', async () => {
+    const service = createService({ get: jest.fn().mockRejectedValue('ECONNRESET') });
+
+    await expect(service.isUserBlacklisted('user-1')).rejects.toThrow('ECONNRESET');
+  });
 });

@@ -16,7 +16,7 @@ interface ActionDisplay {
   badgeColor: string;
 }
 
-function getActionDisplay(action: string, t: (key: string, options?: any) => string): ActionDisplay {
+function getActionDisplay(action: string, t: TFunction): ActionDisplay {
   const normalized = action.replace(/[._]/g, '_').toLowerCase();
 
   // Phân loại ngữ cảnh hành động:
@@ -114,7 +114,7 @@ export function RecentActivityFeed() {
           </span>
         </div>
         <span className="text-[11px] text-slate-400 font-normal">
-          {t('dashboard:recentActivityFeed.eventCount', { count: items.length, defaultValue: `${items.length} sự kiện gần đây` })}
+          {t('dashboard:recentActivityFeed.eventCount', { count: items.length })}
         </span>
       </div>
 

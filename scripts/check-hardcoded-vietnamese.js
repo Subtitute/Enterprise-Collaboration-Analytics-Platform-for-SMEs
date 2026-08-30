@@ -26,6 +26,32 @@ const EXCLUDE_SUFFIXES = ['.test.ts', '.test.tsx', '.spec.ts', '.spec.tsx', '.d.
 
 /** Bo comment (// va /* *\/) nhung giu nguyen noi dung chuoi/template literal va giu nguyen so
  *  dong (thay noi dung comment bi xoa bang khoang trang/xuong dong) de bao cao dung so dong. */
+
+// 27/08/2026 (phat hien qua ra soat lai): thieu nhan biet regex literal - 1 pattern nhu
+// /^https?:\/\// (dau `/` thoat trong regex) se bi hieu nham la bat dau comment `//` ngay giua
+// chung, lam MAT toan bo phan con lai cua dong (bao gom ca chuoi tieng Viet that su sau do) ma
+// khong bao loi/canh bao gi - sai lech theo huong "bo sot", nguy hiem hon false positive. Them ham
+// nay de nhan dien dau `/` nao THUC SU la mo dau regex (dua theo ky tu/tu khoa ngay truoc no, cung
+// heuristic pho bien cua cac tokenizer JS don gian) roi "an" nguyen noi dung regex y het cach da
+// lam voi string/template literal.
+const REGEX_PRECEDING_KEYWORDS = new Set([
+  'return', 'typeof', 'instanceof', 'case', 'delete', 'void', 'throw', 'new', 'in', 'of', 'yield', 'await', 'else', 'do',
+]);
+
+function regexLiteralAllowedHere(result) {
+  let i = result.length - 1;
+  while (i >= 0 && /\s/.test(result[i])) i--;
+  if (i < 0) return true; // dau file
+  const lastChar = result[i];
+  if (/[)\]}]/.test(lastChar)) return false; // sau gia tri (goi ham/mang/khoi) -> '/' la phep chia
+  if (/[\w$]/.test(lastChar)) {
+    let j = i;
+    while (j >= 0 && /[\w$]/.test(result[j])) j--;
+    return REGEX_PRECEDING_KEYWORDS.has(result.slice(j + 1, i + 1));
+  }
+  return true; // sau toan tu/dau cau khac (=, (, ,, !, &&, ?, :, ...) -> co the la regex
+}
+
 function stripComments(code) {
   let result = '';
   let i = 0;
@@ -65,6 +91,25 @@ function stripComments(code) {
         i++;
       }
       continue;
+    }
+    if (c === '/' && regexLiteralAllowedHere(result)) {
+      let j = i + 1;
+      let inCharClass = false;
+      let closed = false;
+      while (j < n && code[j] !== '\n') {
+        if (code[j] === '\\') { j += 2; continue; }
+        if (code[j] === '[') { inCharClass = true; j++; continue; }
+        if (code[j] === ']') { inCharClass = false; j++; continue; }
+        if (code[j] === '/' && !inCharClass) { j++; closed = true; break; }
+        j++;
+      }
+      if (closed) {
+        result += code.slice(i, j); // an noi dung regex (khong quet dau tieng Viet ben trong)
+        i = j;
+        while (i < n && /[a-z]/i.test(code[i])) { result += code[i]; i++; } // flags (vd /gi)
+        continue;
+      }
+      // Khong tim thay dau '/' dong hop le tren cung dong - khong phai regex, coi la '/' thuong.
     }
     result += c;
     i++;

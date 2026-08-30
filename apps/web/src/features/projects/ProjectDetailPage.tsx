@@ -83,7 +83,7 @@ export function ProjectDetailPage() {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-display text-xl sm:text-2xl font-bold tracking-tight text-slate-900 break-words">{project.name}</h1>
-              {projectMeta.priority && (
+              {project.priority && (
                 <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-semibold border ${priorityMeta.color}`}>
                   {priorityMeta.label}
                 </span>

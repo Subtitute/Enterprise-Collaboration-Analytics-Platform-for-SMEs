@@ -1,4 +1,5 @@
 import { Model } from 'mongoose';
+import { NotFoundException } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { NotificationDocument } from './schemas/notification.schema';
 import { NotificationsGateway } from '../realtime/notifications.gateway';
@@ -161,6 +162,67 @@ describe('NotificationsService', () => {
         isRead: false,
         type: 'document.shared',
       });
+    });
+  });
+
+  // 29/08/2026: bo sung - markAsRead()/markAllAsRead() chua tung co test nao (0% branch coverage),
+  // la 1 trong nhung nguyen nhan chinh khien coverageThreshold "branches" (55%) cua
+  // notification-service khong dat (thuc te 49.57%), lam that bai buoc "Unit tests" tren CI
+  // (Technical_Spec.md muc 11) du moi assertion hien co van pass.
+  describe('markAsRead', () => {
+    const validId = '507f1f77bcf86cd799439011';
+
+    it('nem NotFoundException neu id truyen vao khong phai ObjectId hop le', async () => {
+      await expect(service.markAsRead('org-1', 'user-1', 'not-a-valid-id')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(modelMock.findOne).not.toHaveBeenCalled();
+    });
+
+    it('nem NotFoundException neu khong tim thay notification thuoc dung organization/user', async () => {
+      modelMock.findOne.mockResolvedValue(null);
+
+      await expect(service.markAsRead('org-1', 'user-1', validId)).rejects.toThrow(NotFoundException);
+      expect(modelMock.findOne).toHaveBeenCalledWith({ _id: validId, organizationId: 'org-1', userId: 'user-1' });
+    });
+
+    it('khong goi save()/emitUnreadCount neu notification DA doc san (no-op)', async () => {
+      const notificationMock = { isRead: true, save: jest.fn() };
+      modelMock.findOne.mockResolvedValue(notificationMock);
+
+      const result = await service.markAsRead('org-1', 'user-1', validId);
+
+      expect(notificationMock.save).not.toHaveBeenCalled();
+      expect(gatewayMock.emitUnreadCount).not.toHaveBeenCalled();
+      expect(result).toBe(notificationMock);
+    });
+
+    it('danh dau da doc, luu lai va day emitUnreadCount khi notification dang CHUA doc', async () => {
+      const notificationMock = { isRead: false, save: jest.fn().mockResolvedValue(undefined) };
+      modelMock.findOne.mockResolvedValue(notificationMock);
+      modelMock.countDocuments.mockReturnValue({ exec: jest.fn().mockResolvedValue(3) });
+
+      const result = await service.markAsRead('org-1', 'user-1', validId);
+
+      expect(notificationMock.isRead).toBe(true);
+      expect(notificationMock.save).toHaveBeenCalledTimes(1);
+      expect(gatewayMock.emitUnreadCount).toHaveBeenCalledWith('user-1', 3);
+      expect(result).toBe(notificationMock);
+    });
+  });
+
+  describe('markAllAsRead', () => {
+    it('danh dau tat ca notification chua doc thanh da doc va day emitUnreadCount(0)', async () => {
+      modelMock.updateMany.mockResolvedValue({ modifiedCount: 5 });
+
+      const result = await service.markAllAsRead('org-1', 'user-1');
+
+      expect(modelMock.updateMany).toHaveBeenCalledWith(
+        { organizationId: 'org-1', userId: 'user-1', isRead: false },
+        { $set: { isRead: true } },
+      );
+      expect(gatewayMock.emitUnreadCount).toHaveBeenCalledWith('user-1', 0);
+      expect(result).toEqual({ modifiedCount: 5 });
     });
   });
 });
