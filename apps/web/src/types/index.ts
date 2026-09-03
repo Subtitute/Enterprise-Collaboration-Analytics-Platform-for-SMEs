@@ -218,6 +218,7 @@ export interface AppNotification {
   type?: NotificationType;
   isRead: boolean;
   link?: string | null;
+  payload?: Record<string, unknown>;
   createdAt: string;
 }
 

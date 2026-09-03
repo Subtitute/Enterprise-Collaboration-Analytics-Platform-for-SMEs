@@ -11,9 +11,10 @@ interface DatePickerProps {
   className?: string;
   minDate?: string;
   position?: 'top' | 'bottom';
+  align?: 'left' | 'right';
 }
 
-export function DatePicker({ id, value = '', onChange, placeholder, className, position = 'top' }: DatePickerProps) {
+export function DatePicker({ id, value = '', onChange, placeholder, className, position = 'top', align = 'left' }: DatePickerProps) {
   const { t } = useTranslation();
   const errorId = useId();
 
@@ -152,7 +153,7 @@ export function DatePicker({ id, value = '', onChange, placeholder, className, p
       const inRange = m >= 1 && m <= 12 && d >= 1 && d <= 31 && y >= 1900 && y <= 2100;
       // 26/08/2026: Fix 2 - sua loi thuc te - truoc ban sua nay chi kiem tra khoang gia tri
       // (ngay 1-31, thang 1-12) roi truyen thang vao `new Date()`; JS se TU DONG "tran" ngay khong
-      // hop le sang thang ke tiep thay vi bao loi (vd 31/02/2026 -> am tham thanh 03/03/2026), khien
+      // hop le sang thang ke tiep thay vi bao loi (vd 31/02/2026 -> am thanh thanh 03/03/2026), khien
       // form cha nhan mot ngay hoan toan khac voi nhung gi nguoi dung go ma khong co canh bao nao.
       // Sua bang cach doi chieu NGUOC LAI: dung Date(y, m-1, d) roi kiem tra .getFullYear()/
       // .getMonth()/.getDate() co khop CHINH XAC voi (y, m, d) da nhap khong - neu JS da "tran"
@@ -201,6 +202,8 @@ export function DatePicker({ id, value = '', onChange, placeholder, className, p
     position === 'top'
       ? 'bottom-full mb-1.5'
       : 'top-full mt-1.5';
+  
+  const popoverAlignClass = align === 'right' ? 'right-0' : 'left-0';
 
   return (
     <div ref={containerRef} className={cn('relative', className)}>
@@ -247,7 +250,8 @@ export function DatePicker({ id, value = '', onChange, placeholder, className, p
       {isOpen && (
         <div
           className={cn(
-            'absolute left-0 z-50 w-60 rounded-xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-400/30 animate-slide-up select-none flex flex-col justify-between',
+            'absolute z-50 w-60 rounded-xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-400/30 animate-slide-up select-none flex flex-col justify-between',
+            popoverAlignClass,
             popoverPositionClass
           )}
         >

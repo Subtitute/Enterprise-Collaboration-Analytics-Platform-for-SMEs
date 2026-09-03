@@ -197,3 +197,38 @@ export function matchesVietnameseSearch(target?: string | null, searchQuery?: st
     normalizedTarget.includes(normalizedQuery)
   );
 }
+
+/**
+ * Tính toán tổng số ngày làm việc giữa 2 mốc ngày (loại trừ Thứ Bảy và Chủ Nhật).
+ * Nếu khoảng ngày rơi vào cuối tuần hoặc cùng ngày, tính tối thiểu số ngày làm việc tương ứng.
+ */
+export function calculateWorkingDays(startDateStr?: string | null, endDateStr?: string | null): number {
+  if (!startDateStr || !endDateStr) return 0;
+  const startParts = startDateStr.split('T')[0].split('-').map(Number);
+  const endParts = endDateStr.split('T')[0].split('-').map(Number);
+  if (startParts.length < 3 || endParts.length < 3) return 0;
+
+  const start = new Date(startParts[0], startParts[1] - 1, startParts[2]);
+  const end = new Date(endParts[0], endParts[1] - 1, endParts[2]);
+
+  if (start > end) return 0;
+
+  let count = 0;
+  const cur = new Date(start);
+  while (cur <= end) {
+    const dayOfWeek = cur.getDay();
+    // 0 = Chủ nhật, 6 = Thứ bảy
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      count++;
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  // Trường hợp chọn trong ngày cuối tuần: trả về số ngày thực tế chênh lệch để không bị hiển thị 0 ngày
+  if (count === 0 && start <= end) {
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  }
+
+  return count;
+}

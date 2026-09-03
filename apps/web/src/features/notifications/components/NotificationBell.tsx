@@ -6,6 +6,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatRelativeTime, cn } from '@/lib/utils';
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useUnreadNotificationsPreview } from '../hooks';
+import { cleanNotificationMessage, getNotificationVisualConfig } from '../utils';
 import type { AppNotification } from '@/types';
 
 export function NotificationBell() {
@@ -60,33 +61,47 @@ export function NotificationBell() {
               </div>
             ) : (
               <ul className="divide-y divide-slate-100">
-                {data.data.map((n: AppNotification) => (
-                  <li key={n.id}>
-                    <button
-                      onClick={() => {
-                        markRead.mutate(n.id);
-                        close();
-                      }}
-                      className={cn(
-                        'flex w-full items-start gap-2 px-4 py-3 text-left hover:bg-slate-50',
-                        !n.isRead && 'bg-primary-50/40',
-                      )}
-                    >
-                      <span
-                        aria-hidden
+                {data.data.map((n: AppNotification) => {
+                  const visual = getNotificationVisualConfig(n);
+                  const cleanedMessage = cleanNotificationMessage(n.message);
+
+                  return (
+                    <li key={n.id}>
+                      <button
+                        onClick={() => {
+                          markRead.mutate(n.id);
+                          close();
+                          if (visual.linkUrl) {
+                            window.location.href = visual.linkUrl;
+                          }
+                        }}
                         className={cn(
-                          'mt-1.5 h-2 w-2 shrink-0 rounded-full',
-                          n.isRead ? 'border border-slate-300 bg-white' : 'bg-primary-500',
+                          'flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors cursor-pointer',
+                          !n.isRead && 'bg-primary-50/40',
                         )}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-slate-900">{n.title}</p>
-                        <p className="mt-0.5 line-clamp-2 text-xs text-slate-500">{n.message}</p>
-                        <p className="mt-1 text-[11px] text-slate-400">{formatRelativeTime(n.createdAt)}</p>
-                      </div>
-                    </button>
-                  </li>
-                ))}
+                      >
+                        <div className="relative shrink-0 pt-0.5">
+                          <div className={cn('flex h-8 w-8 items-center justify-center rounded-full text-xs shadow-2xs', visual.bgColor)}>
+                            {visual.icon}
+                          </div>
+                          {!n.isRead && (
+                            <span
+                              className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary-600 ring-2 ring-white"
+                              title="Chưa đọc"
+                            />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-1">
+                            <p className="text-sm font-semibold text-slate-900 line-clamp-1">{n.title}</p>
+                            <span className="text-[10px] text-slate-400 shrink-0">{formatRelativeTime(n.createdAt)}</span>
+                          </div>
+                          <p className="mt-0.5 line-clamp-2 text-xs text-slate-600 leading-normal">{cleanedMessage}</p>
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>

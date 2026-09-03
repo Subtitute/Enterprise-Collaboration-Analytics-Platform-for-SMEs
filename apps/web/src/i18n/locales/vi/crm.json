@@ -5,8 +5,8 @@
       "CONTACTED": "Đã liên hệ",
       "PROPOSAL": "Đề xuất",
       "NEGOTIATION": "Đàm phán",
-      "WON": "Thắng",
-      "LOST": "Thua"
+      "WON": "Thành công",
+      "LOST": "Thất bại"
     }
   },
   "customersListPage": {

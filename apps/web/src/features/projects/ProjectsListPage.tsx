@@ -146,7 +146,7 @@ export function ProjectsListPage() {
       // qua activeList/completedList (đã sắp xếp ở bước 4) thay vì dùng thẳng `list` khi có lọc
       // trạng thái - `list` giữ nguyên thứ tự trả về từ server, dùng thẳng sẽ MẤT sắp xếp theo độ
       // ưu tiên/thứ tự đã lưu ngay khi người dùng bật bộ lọc trạng thái.
-      const finalSorted = [...activeList, ...completedList];
+      let finalSorted = [...activeList, ...completedList];
 
       // 6. Nếu có tìm kiếm từ khóa, lọc và sắp xếp theo độ khớp tiếng Việt (có dấu hoặc không dấu)
       if (search) {

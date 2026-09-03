@@ -25,7 +25,7 @@ interface KpiCardProps {
 export function KpiCard({ label, value, hint, icon, accentClassName, isLoading, isError, onRetry, className }: KpiCardProps) {
   const { t } = useTranslation();
   return (
-    <Card className={cn("group flex items-start justify-between gap-2 p-5 sm:gap-3 border-slate-200/60 bg-white shadow-sm hover:shadow-md transition-all duration-200", className)}>
+    <Card className={cn("group flex items-start justify-between gap-2 p-5 sm:gap-3 border-slate-200/60 bg-white shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-200", className)}>
       <div className="min-w-0 flex-1">
         <p className="truncate text-xs sm:text-sm font-medium text-slate-500 group-hover:text-slate-700 transition-colors">{label}</p>
         {isError ? (

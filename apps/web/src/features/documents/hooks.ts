@@ -140,6 +140,7 @@ export function useUploadFile(folderId: string | null) {
     mutationFn: ({ file, onProgress }: { file: File; onProgress?: (pct: number) => void }) => uploadFile(folderId, file, onProgress),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['files', folderId] });
+      queryClient.invalidateQueries({ queryKey: ['analytics', 'summary'] });
       toast.success(t('documents:hooks.uploadSuccess'));
     },
     onError: (error) => toast.error(t('documents:hooks.uploadError'), extractErrorMessage(error)),
@@ -153,6 +154,7 @@ export function useUploadNewVersion(fileId: string, folderId: string | null) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['files', folderId] });
       queryClient.invalidateQueries({ queryKey: ['file', fileId] });
+      queryClient.invalidateQueries({ queryKey: ['analytics', 'summary'] });
       toast.success(t('documents:hooks.newVersionUploaded'));
     },
     onError: (error) => toast.error(t('documents:hooks.newVersionUploadError'), extractErrorMessage(error)),
@@ -186,6 +188,7 @@ export function useDeleteFile(folderId: string | null) {
     mutationFn: (id: string) => deleteFile(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['files', folderId] });
+      queryClient.invalidateQueries({ queryKey: ['analytics', 'summary'] });
       toast.success(t('documents:hooks.fileDeleted'));
     },
     onError: (error) => toast.error(t('documents:hooks.fileDeleteError'), extractErrorMessage(error)),

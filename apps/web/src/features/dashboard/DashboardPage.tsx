@@ -24,7 +24,7 @@ import { useOrgUsersQuery } from '@/hooks/useOrgUsers';
 
 export function DashboardPage() {
   const { t } = useTranslation();
-  const [range, setRange] = useState<DateRangeOption>('30d');
+  const [range, setRange] = useState<DateRangeOption>('7d');
   const [departmentId, setDepartmentId] = useState('');
   const departmentsQuery = useDepartmentsQuery();
   const summaryQuery = useAnalyticsSummary(range, departmentId || undefined);
@@ -165,7 +165,7 @@ export function DashboardPage() {
           - Hàng 2: Biểu đồ đường AreaChart (8/12 cols) + Biểu đồ tròn Donut (4/12 cols). */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         {/* Thẻ Hero Lớn: Điểm nhấn Tổng quan Hiệu suất & Tiến độ Toàn Doanh nghiệp */}
-        <Card className="flex flex-col justify-between p-6 border-slate-200/60 bg-white shadow-sm lg:col-span-8 group hover:shadow-md transition-all duration-200">
+        <Card className="flex flex-col justify-between p-6 border-slate-200/60 bg-white shadow-sm lg:col-span-8 group hover:shadow-md hover:border-indigo-300 transition-all duration-200">
           <div>
             <h3 className="font-display text-lg font-bold text-slate-900">
               {t('dashboard:hero.title')}

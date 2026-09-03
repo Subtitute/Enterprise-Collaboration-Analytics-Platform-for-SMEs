@@ -70,6 +70,13 @@
   },
   "newLeaveRequestModal": {
     "title": "Tạo yêu cầu nghỉ phép",
+    "typeLabel": "Loại nghỉ phép",
+    "typePlaceholder": "Vui lòng chọn loại nghỉ phép",
+    "types": {
+      "ANNUAL": "Nghỉ phép năm (Có lương)",
+      "SICK": "Nghỉ ốm",
+      "UNPAID": "Nghỉ việc riêng (Không lương)"
+    },
     "startDateLabel": "Ngày bắt đầu",
     "endDateLabel": "Ngày kết thúc",
     "reasonLabel": "Lý do",
@@ -78,6 +85,7 @@
     "submitButton": "Gửi yêu cầu",
     "errors": {
       "missingDates": "Vui lòng chọn ngày bắt đầu và kết thúc",
+      "missingType": "Vui lòng chọn loại nghỉ phép",
       "missingReason": "Vui lòng nhập lý do nghỉ phép"
     }
   },

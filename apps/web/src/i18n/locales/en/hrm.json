@@ -70,6 +70,13 @@
   },
   "newLeaveRequestModal": {
     "title": "Create leave request",
+    "typeLabel": "Leave type",
+    "typePlaceholder": "Please select a leave type",
+    "types": {
+      "ANNUAL": "Annual leave (Paid)",
+      "SICK": "Sick leave",
+      "UNPAID": "Personal leave (Unpaid)"
+    },
     "startDateLabel": "Start date",
     "endDateLabel": "End date",
     "reasonLabel": "Reason",
@@ -78,6 +85,7 @@
     "submitButton": "Submit request",
     "errors": {
       "missingDates": "Please select a start and end date",
+      "missingType": "Please select a leave type",
       "missingReason": "Please enter a reason for the leave"
     }
   },

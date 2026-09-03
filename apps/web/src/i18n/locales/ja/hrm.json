@@ -70,6 +70,13 @@
   },
   "newLeaveRequestModal": {
     "title": "休暇申請を作成",
+    "typeLabel": "休暇の種類",
+    "typePlaceholder": "休暇の種類を選択してください",
+    "types": {
+      "ANNUAL": "年次有給休暇（有給）",
+      "SICK": "病気休暇",
+      "UNPAID": "私用休暇（無給）"
+    },
     "startDateLabel": "開始日",
     "endDateLabel": "終了日",
     "reasonLabel": "理由",
@@ -78,6 +85,7 @@
     "submitButton": "申請を送信",
     "errors": {
       "missingDates": "開始日と終了日を選択してください",
+      "missingType": "休暇の種類を選択してください",
       "missingReason": "休暇の理由を入力してください"
     }
   },
