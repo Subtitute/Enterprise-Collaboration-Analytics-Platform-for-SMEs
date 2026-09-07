@@ -345,3 +345,35 @@ export const DollarSignIcon = (p: IconProps) => (
   </svg>
 );
 
+export const TrendingUpIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+    <polyline points="17 6 23 6 23 12" />
+  </svg>
+);
+
+export const TrendingDownIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" />
+    <polyline points="17 18 23 18 23 12" />
+  </svg>
+);
+
+export const FileStackIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M16 2v4h4" />
+    <path d="M21 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h9l5 6z" />
+    <path d="M3 6v14a2 2 0 0 0 2 2h12" />
+  </svg>
+);
+
+export const HelpCircleIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+    <line x1="12" y1="17" x2="12.01" y2="17" />
+  </svg>
+);
+
+
+

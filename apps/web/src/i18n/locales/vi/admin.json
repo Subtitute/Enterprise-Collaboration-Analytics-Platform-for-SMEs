@@ -1,6 +1,7 @@
 {
   "adminPage": {
     "title": "Quản trị",
+    "subtitle": "Quản lý thành viên, phòng ban và phân quyền truy cập hệ thống.",
     "description": "Quản lý thành viên, phòng ban và phân quyền truy cập hệ thống.",
     "tabs": {
       "members": "Thành viên",
@@ -19,9 +20,12 @@
     "columns": {
       "name": "Tên phòng ban",
       "description": "Mô tả",
+      "manager": "Trưởng bộ phận / Phụ trách",
       "memberCount": "Số thành viên",
       "actions": "Hành động"
     },
+    "membersCountLabel": "{{count}} nhân sự",
+    "noManager": "Chưa bổ nhiệm",
     "actionsMenu": {
       "edit": "Chỉnh sửa",
       "delete": "Xoá"
@@ -35,6 +39,14 @@
   "membersPage": {
     "description": "Quản lý thành viên, phòng ban và phân quyền truy cập trong tổ chức.",
     "inviteMember": "Mời thành viên",
+    "searchPlaceholder": "Tìm theo tên hoặc email…",
+    "allDepartments": "Tất cả phòng ban",
+    "allStatuses": "Tất cả trạng thái",
+    "filterDepartmentAria": "Lọc theo phòng ban",
+    "filterStatusAria": "Lọc theo trạng thái",
+    "noMatchTitle": "Không tìm thấy thành viên phù hợp",
+    "noMatchDescription": "Vui lòng thử tìm kiếm với từ khóa hoặc bộ lọc khác.",
+    "clearFilters": "Xóa bộ lọc",
     "loading": "Đang tải danh sách thành viên…",
     "errorTitle": "Không thể tải danh sách thành viên",
     "emptyTitle": "Chưa có thành viên nào",
@@ -67,8 +79,23 @@
     "errorTitle": "Không thể tải dữ liệu vai trò/phân quyền",
     "emptyTitle": "Chưa có dữ liệu vai trò hoặc quyền",
     "hint": "Tick vào ô tương ứng để cấp/thu hồi quyền cho từng vai trò. Thay đổi được lưu ngay lập tức.",
-    "permissionColumn": "Quyền",
-    "checkboxAriaLabel": "{{roleName}} - {{permissionLabel}}"
+    "permissionColumn": "Quyền & Chức năng",
+    "selectAll": "Chọn tất cả",
+    "selectAllModule": "Chọn tất cả module",
+    "lockedNotice": "Cố định",
+    "lockedTooltip": "Quyền của Quản trị viên tối cao được khóa cố định để đảm bảo an toàn hệ thống.",
+    "checkboxAriaLabel": "{{roleName}} - {{permissionLabel}}",
+    "moduleSelectAllAria": "{{roleName}} - Chọn tất cả quyền thuộc {{groupName}}",
+    "roleSelectAllAria": "{{roleName}} - Chọn tất cả quyền trong hệ thống",
+    "groups": {
+      "hrm": "Chấm công & Nghỉ phép",
+      "crm": "Khách hàng & Bán hàng",
+      "project": "Dự án & Công việc",
+      "document": "Tài liệu & Lưu trữ",
+      "analytics": "Báo cáo & Phân tích",
+      "iam": "Tổ chức & Phân quyền",
+      "system": "Hạ tầng & Hệ thống"
+    }
   },
   "failedEventsPage": {
     "description": "Danh sách các sự kiện xử lý nội bộ (Kafka) đã thất bại vĩnh viễn hoặc hết lượt thử lại tự động - đây không phải lỗi do người dùng gây ra, mà là dữ liệu phục vụ chẩn đoán sự cố hệ thống. Danh sách chỉ để xem, không có thao tác thử lại từ giao diện này.",

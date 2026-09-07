@@ -160,6 +160,7 @@
       "deleteError": "Couldn't delete project",
       "completed": "Project marked as complete",
       "completeError": "Couldn't complete project",
+      "incompleteTasksError": "Project incomplete: All tasks must be 100% completed before marking the project as finished.",
       "reopened": "Project reopened as active",
       "reopenError": "Couldn't reopen project"
     },

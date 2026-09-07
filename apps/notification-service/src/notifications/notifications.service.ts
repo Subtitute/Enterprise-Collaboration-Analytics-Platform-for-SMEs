@@ -81,7 +81,8 @@ export class NotificationsService {
       filter.isRead = query.isRead;
     }
     if (query.type !== undefined) {
-      filter.type = query.type;
+      // Hỗ trợ lọc theo tiền tố loại (vd 'leave_request' khớp 'leave_request.approved', 'leave_request.rejected'...)
+      filter.type = new RegExp(`^${query.type.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i') as unknown as string;
     }
 
     const skip = (query.page - 1) * query.limit;

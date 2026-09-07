@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -9,9 +9,10 @@ import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { Pagination } from '@/components/ui/Pagination';
 import { FullPageSpinner } from '@/components/ui/Spinner';
-import { EditIcon, MoreVerticalIcon, PlusIcon, RefreshIcon, UserIcon } from '@/components/ui/Icons';
+import { EditIcon, MoreVerticalIcon, PlusIcon, RefreshIcon, SearchIcon, UserIcon } from '@/components/ui/Icons';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
+import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { useDeactivateUser, useDepartmentsQuery, useReactivateUser, useUsersQuery } from './hooks';
 import { InviteMemberModal } from './components/InviteMemberModal';
 import { EditMemberModal } from './components/EditMemberModal';
@@ -19,12 +20,43 @@ import type { User } from '@/types';
 
 const LIMIT = 15;
 
+/**
+ * Chuẩn hóa nhãn và màu sắc ngữ cảnh cho Role Badge:
+ * - Admin (Quản trị viên): bg-indigo-50 text-indigo-700 border-indigo-200/60
+ * - Employee (Nhân viên): bg-slate-100 text-slate-700 border-slate-200/60
+ */
+function getRoleBadgeConfig(roleName: string) {
+  const lower = roleName.trim().toLowerCase();
+  if (lower.includes('admin') || lower.includes('quản trị')) {
+    const label = lower === 'admin' ? 'Quản trị viên' : roleName.replace(/admin/i, 'Quản trị viên');
+    return {
+      label,
+      className: 'bg-indigo-50 text-indigo-700 border border-indigo-200/70 font-medium',
+    };
+  }
+  if (lower === 'employee' || lower === 'nhân viên' || lower.includes('employee')) {
+    return {
+      label: 'Nhân viên',
+      className: 'bg-slate-100 text-slate-700 border border-slate-200 font-medium',
+    };
+  }
+  return {
+    label: roleName,
+    className: 'bg-slate-100 text-slate-700 border border-slate-200 font-medium',
+  };
+}
+
 export function MembersPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deactivatingUser, setDeactivatingUser] = useState<User | null>(null);
+
+  // Bộ lọc nhanh (Toolbar)
+  const [search, setSearch] = useState('');
+  const [selectedDept, setSelectedDept] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
 
   const usersQuery = useUsersQuery({ page, limit: LIMIT });
   const departmentsQuery = useDepartmentsQuery();
@@ -37,13 +69,93 @@ export function MembersPage() {
   const users = usersQuery.data?.data ?? [];
   const meta = usersQuery.data?.meta ?? { page: 1, limit: LIMIT, total: 0 };
 
+  // Lọc theo từ khóa tìm kiếm (tên / email), phòng ban, và trạng thái hoạt động
+  const filteredUsers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return users.filter((u) => {
+      if (q) {
+        const matchName = (u.fullName ?? '').toLowerCase().includes(q);
+        const matchEmail = (u.email ?? '').toLowerCase().includes(q);
+        if (!matchName && !matchEmail) return false;
+      }
+      if (selectedDept && u.departmentId !== selectedDept) {
+        return false;
+      }
+      if (selectedStatus === 'ACTIVE' && u.isActive === false) {
+        return false;
+      }
+      if (selectedStatus === 'INACTIVE' && u.isActive !== false) {
+        return false;
+      }
+      return true;
+    });
+  }, [users, search, selectedDept, selectedStatus]);
+
+  const isFiltering = Boolean(search.trim() || selectedDept || selectedStatus !== 'ALL');
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
+      {/* Header dòng mô tả và nút mời thành viên */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-slate-500">{t('admin:membersPage.description')}</p>
         <Button onClick={() => setIsInviteOpen(true)}>
           <PlusIcon className="h-4 w-4" /> {t('admin:membersPage.inviteMember')}
         </Button>
+      </div>
+
+      {/* Thanh công cụ quản trị (Toolbar): Tìm kiếm + Lọc Phòng ban + Lọc Trạng thái */}
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200/80 bg-white p-3 shadow-2xs">
+        {/* Ô tìm kiếm theo tên hoặc email */}
+        <div className="relative min-w-[240px] flex-1">
+          <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('admin:membersPage.searchPlaceholder')}
+            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+          />
+        </div>
+
+        {/* Dropdown lọc theo Phòng ban */}
+        <CustomFilterSelect
+          value={selectedDept}
+          onChange={(val) => setSelectedDept(val)}
+          ariaLabel={t('admin:membersPage.filterDepartmentAria')}
+          options={[
+            { value: '', label: t('admin:membersPage.allDepartments') },
+            ...(departmentsQuery.data ?? []).map((d) => ({
+              value: d.id,
+              label: d.name,
+            })),
+          ]}
+        />
+
+        {/* Dropdown lọc theo Trạng thái hoạt động */}
+        <CustomFilterSelect
+          value={selectedStatus}
+          onChange={(val) => setSelectedStatus(val)}
+          ariaLabel={t('admin:membersPage.filterStatusAria')}
+          options={[
+            { value: 'ALL', label: t('admin:membersPage.allStatuses') },
+            { value: 'ACTIVE', label: t('admin:membersPage.status.active') },
+            { value: 'INACTIVE', label: t('admin:membersPage.status.inactive') },
+          ]}
+        />
+
+        {isFiltering && (
+          <button
+            type="button"
+            onClick={() => {
+              setSearch('');
+              setSelectedDept('');
+              setSelectedStatus('ALL');
+            }}
+            className="text-xs font-medium text-indigo-600 hover:text-indigo-700 px-2 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors"
+          >
+            {t('admin:membersPage.clearFilters')}
+          </button>
+        )}
       </div>
 
       <Card>
@@ -58,6 +170,27 @@ export function MembersPage() {
           <div className="p-6">
             <EmptyState icon={<UserIcon className="h-8 w-8" />} title={t('admin:membersPage.emptyTitle')} />
           </div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="p-6">
+            <EmptyState
+              icon={<SearchIcon className="h-8 w-8" />}
+              title={t('admin:membersPage.noMatchTitle')}
+              description={t('admin:membersPage.noMatchDescription')}
+              action={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearch('');
+                    setSelectedDept('');
+                    setSelectedStatus('ALL');
+                  }}
+                >
+                  {t('admin:membersPage.clearFilters')}
+                </Button>
+              }
+            />
+          </div>
         ) : (
           <>
             <Table>
@@ -71,7 +204,7 @@ export function MembersPage() {
                 </tr>
               </TableHead>
               <TableBody>
-                {users.map((u) => (
+                {filteredUsers.map((u) => (
                   <TableRow key={u.id}>
                     <TableCell label={t('admin:membersPage.columns.member')}>
                       <div className="flex items-center gap-2.5">
@@ -90,11 +223,17 @@ export function MembersPage() {
                         {(u.roles ?? []).length === 0 ? (
                           <span className="text-xs text-slate-400">—</span>
                         ) : (
-                          (u.roles ?? []).map((r) => (
-                            <Badge key={r.id} variant="outline">
-                              {r.name}
-                            </Badge>
-                          ))
+                          (u.roles ?? []).map((r) => {
+                            const badgeCfg = getRoleBadgeConfig(r.name);
+                            return (
+                              <span
+                                key={r.id}
+                                className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs ${badgeCfg.className}`}
+                              >
+                                {badgeCfg.label}
+                              </span>
+                            );
+                          })
                         )}
                       </div>
                     </TableCell>
@@ -158,7 +297,7 @@ export function MembersPage() {
                 ))}
               </TableBody>
             </Table>
-            <Pagination page={meta.page} limit={meta.limit} total={meta.total} onPageChange={setPage} />
+            <Pagination page={meta.page} limit={meta.limit} total={isFiltering ? filteredUsers.length : meta.total} onPageChange={setPage} />
           </>
         )}
         </QueryState>

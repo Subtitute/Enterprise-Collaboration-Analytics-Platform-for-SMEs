@@ -13,6 +13,7 @@ import { useOrgUsersQuery } from '@/hooks/useOrgUsers';
 import { projectStatusMeta, projectPriorityMeta } from '../utils';
 import { useCompleteProject, useReopenProject, useDeleteProject } from '../hooks';
 import { EditProjectModal } from './EditProjectModal';
+import { toast } from '@/stores/toast.store';
 import type { Project } from '@/types';
 
 interface ProjectCardProps {
@@ -138,6 +139,16 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
                     {currentStatus !== 'COMPLETED' ? (
                       <DropdownItem
                         onClick={() => {
+                          const total = taskCount ?? 0;
+                          const completedCount = completedTaskCount ?? 0;
+                          const isFullyDone = total > 0 ? completedCount >= total : progress >= 100;
+
+                          if (!isFullyDone) {
+                            toast.error(t('projects:toast.project.incompleteTasksError'));
+                            close();
+                            return;
+                          }
+
                           complete.mutate();
                           close();
                         }}

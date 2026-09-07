@@ -13,8 +13,10 @@
     },
     "typeFilter": {
       "all": "Tất cả loại",
-      "task": "Task",
-      "document": "Document",
+      "task": "Công việc",
+      "deal": "Bán hàng (Deal)",
+      "leave_request": "Nghỉ phép",
+      "document": "Tài liệu",
       "system": "Hệ thống"
     }
   },

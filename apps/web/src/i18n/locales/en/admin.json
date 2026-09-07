@@ -1,6 +1,7 @@
 {
   "adminPage": {
     "title": "Administration",
+    "subtitle": "Manage members, departments, and system access permissions.",
     "description": "Manage members, departments, and system access permissions.",
     "tabs": {
       "members": "Members",
@@ -19,9 +20,12 @@
     "columns": {
       "name": "Department name",
       "description": "Description",
+      "manager": "Head of Dept / Manager",
       "memberCount": "Members",
       "actions": "Actions"
     },
+    "membersCountLabel": "{{count}} members",
+    "noManager": "Unassigned",
     "actionsMenu": {
       "edit": "Edit",
       "delete": "Delete"
@@ -35,6 +39,14 @@
   "membersPage": {
     "description": "Manage members, departments, and access permissions within your organization.",
     "inviteMember": "Invite member",
+    "searchPlaceholder": "Search by name or email…",
+    "allDepartments": "All departments",
+    "allStatuses": "All statuses",
+    "filterDepartmentAria": "Filter by department",
+    "filterStatusAria": "Filter by status",
+    "noMatchTitle": "No matching members found",
+    "noMatchDescription": "Try adjusting your search or filters.",
+    "clearFilters": "Clear filters",
     "loading": "Loading members…",
     "errorTitle": "Couldn't load members",
     "emptyTitle": "No members yet",
@@ -67,8 +79,23 @@
     "errorTitle": "Couldn't load role/permission data",
     "emptyTitle": "No role or permission data yet",
     "hint": "Check a box to grant or revoke a permission for a role. Changes are saved immediately.",
-    "permissionColumn": "Permission",
-    "checkboxAriaLabel": "{{roleName}} - {{permissionLabel}}"
+    "permissionColumn": "Permissions & Features",
+    "selectAll": "Select all",
+    "selectAllModule": "Select all in module",
+    "lockedNotice": "Fixed",
+    "lockedTooltip": "Permissions for Org Admin are permanently locked for system security.",
+    "checkboxAriaLabel": "{{roleName}} - {{permissionLabel}}",
+    "moduleSelectAllAria": "{{roleName}} - Select all permissions in {{groupName}}",
+    "roleSelectAllAria": "{{roleName}} - Select all permissions in the system",
+    "groups": {
+      "hrm": "Attendance & Leave",
+      "crm": "Customers & Sales",
+      "project": "Projects & Tasks",
+      "document": "Documents & Files",
+      "analytics": "Reports & Analytics",
+      "iam": "Organization & Roles",
+      "system": "System & Diagnostics"
+    }
   },
   "failedEventsPage": {
     "description": "Internal processing events (Kafka) that failed permanently or exhausted their automatic retries - these aren't user-caused errors, but diagnostic data for troubleshooting system issues. This list is read-only; there's no retry action from this interface.",

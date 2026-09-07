@@ -14,6 +14,8 @@
     "typeFilter": {
       "all": "すべての種類",
       "task": "タスク",
+      "deal": "案件（Deal）",
+      "leave_request": "休暇申請",
       "document": "ドキュメント",
       "system": "システム"
     }

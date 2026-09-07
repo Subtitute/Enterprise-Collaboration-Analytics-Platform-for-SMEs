@@ -9,12 +9,23 @@
     "departmentAriaLabel": "部署",
     "allDepartments": "すべての部署"
   },
+  "kpiCards": {
+    "activeProjects": "進行中のプロジェクト",
+    "avgProgress": "平均進捗率",
+    "newDocuments": "新規ドキュメント量",
+    "completedDeals": "成約売上 / 獲得案件",
+    "comparedToPrevious": "前期比",
+    "stable": "安定",
+    "filesCount": "{{count}} 件",
+    "projectsCount": "{{count}} 件"
+  },
   "aiInsight": {
-    "title": "AIインサイト",
-    "generateButton": "AIインサイトを生成",
+    "title": "社内分析アシスタント",
+    "badge": "経営分析",
+    "generateButton": "報告書の要約を作成",
     "summaryWithDepartment": "{{range}}のデータに基づく · {{department}}部署",
     "summaryAllOrg": "{{range}}のデータに基づく · 組織全体",
-    "placeholder": "「AIインサイトを生成」をクリックすると、表示中のデータについてAIが作成した簡潔な要約を確認できます。"
+    "placeholder": "「報告書の要約を作成」をクリックすると、社内分析アシスタントが運用ハイライト、潜在的リスク、迅速な改善提案を提示します。"
   },
   "charts": {
     "projectProgressTitle": "プロジェクト進捗比較",
@@ -44,7 +55,8 @@
       "name": "プロジェクト",
       "progress": "進捗",
       "completedTasks": "完了",
-      "totalTasks": "タスク総数"
+      "totalTasks": "タスク総数",
+      "deadline": "期日"
     }
   },
   "hooks": {

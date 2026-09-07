@@ -269,14 +269,12 @@ export function ProjectsListPage() {
             onChange={(val) => setStatus(val)}
             ariaLabel={t('projects:list.statusFilter.all')}
             options={STATUS_OPTIONS}
-            variant="subtle"
           />
           <CustomFilterSelect
             value={priorityFilter}
             onChange={(val) => setPriorityFilter(val)}
             ariaLabel={t('projects:list.priorityFilter.all')}
             options={PRIORITY_FILTER_OPTIONS}
-            variant="subtle"
           />
         </div>
       </div>

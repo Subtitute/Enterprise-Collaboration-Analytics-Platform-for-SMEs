@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { NavLink, Link } from 'react-router-dom';
+import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn, hasAdminRole } from '@/lib/utils';
 import { NAV_ITEMS } from './nav-items';
@@ -14,50 +14,61 @@ interface SidebarContentProps {
 
 function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
   const { t } = useTranslation();
+  const location = useLocation();
   const roles = useAuthStore((s) => s.user?.roles);
   const canSeeAdmin = hasAdminRole(roles);
   const items = NAV_ITEMS.filter((item) => !item.adminOnly || canSeeAdmin);
 
   return (
     <nav className="flex-1 space-y-1 overflow-x-hidden overflow-y-auto px-2.5 py-2">
-      {items.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          onClick={onNavigate}
-          title={collapsed ? t(item.labelKey) : undefined}
-          aria-label={t(item.labelKey)}
-          className={({ isActive }) =>
-            cn(
-              'group relative flex h-10 items-center rounded-lg px-2.5 text-sm font-medium transition-colors duration-150',
-              isActive
-                ? 'bg-primary-50/80 text-primary-700 font-semibold shadow-sm shadow-primary-500/5'
-                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
-            )
-          }
-        >
-          {({ isActive }) => (
-            <>
-              {isActive && (
-                <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r bg-primary-600 animate-fade-in" />
-              )}
-              <div className="flex h-5 w-5 shrink-0 items-center justify-center">
-                <item.icon
-                  className={cn(
-                    'h-5 w-5 transition-colors duration-150',
-                    isActive ? 'text-primary-600' : 'text-slate-400 group-hover:text-slate-600',
-                  )}
-                />
-              </div>
-              {!collapsed && (
-                <div className="flex-1 min-w-0 overflow-hidden ml-3">
-                  <span className="block truncate">{t(item.labelKey)}</span>
+      {items.map((item) => {
+        // Kiểm tra trạng thái đang được chọn (Active)
+        // Đối với mục Quản trị (/admin/members), nếu đang ở bất kỳ tab nào của /admin/*
+        // (như /admin/departments, /admin/roles, /admin/failed-events) thì vẫn giữ active style
+        const isItemActive =
+          item.to === '/admin/members'
+            ? location.pathname.startsWith('/admin')
+            : location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(`${item.to}/`));
+
+        return (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            onClick={onNavigate}
+            title={collapsed ? t(item.labelKey) : undefined}
+            aria-label={t(item.labelKey)}
+            className={() =>
+              cn(
+                'group relative flex h-10 items-center rounded-lg px-2.5 text-sm font-medium transition-colors duration-150',
+                isItemActive
+                  ? 'bg-primary-50/80 text-primary-700 font-semibold shadow-sm shadow-primary-500/5'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+              )
+            }
+          >
+            {() => (
+              <>
+                {isItemActive && (
+                  <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r bg-primary-600 animate-fade-in" />
+                )}
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+                  <item.icon
+                    className={cn(
+                      'h-5 w-5 transition-colors duration-150',
+                      isItemActive ? 'text-primary-600' : 'text-slate-400 group-hover:text-slate-600',
+                    )}
+                  />
                 </div>
-              )}
-            </>
-          )}
-        </NavLink>
-      ))}
+                {!collapsed && (
+                  <div className="flex-1 min-w-0 overflow-hidden ml-3">
+                    <span className="block truncate">{t(item.labelKey)}</span>
+                  </div>
+                )}
+              </>
+            )}
+          </NavLink>
+        );
+      })}
     </nav>
   );
 }

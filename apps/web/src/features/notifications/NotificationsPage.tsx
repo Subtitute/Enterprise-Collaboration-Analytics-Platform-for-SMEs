@@ -1,14 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Tabs } from '@/components/ui/Tabs';
-import { Select } from '@/components/ui/Input';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner, Spinner } from '@/components/ui/Spinner';
-import { BellIcon } from '@/components/ui/Icons';
+import { BellIcon, ChevronDownIcon, CheckIcon } from '@/components/ui/Icons';
 import { cn, formatDateTime } from '@/lib/utils';
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotificationsQuery } from './hooks';
 import { cleanNotificationMessage, extractEntityHash, getNotificationVisualConfig } from './utils';
@@ -20,13 +19,17 @@ export function NotificationsPage() {
   const { t } = useTranslation();
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const [typeFilter, setTypeFilter] = useState('');
+  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
+  const typeDropdownRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
   const [accumulatedItems, setAccumulatedItems] = useState<AppNotification[]>([]);
 
   const typeOptions: { value: string; label: string }[] = [
     { value: '', label: t('notifications:page.typeFilter.all') },
-    { value: 'TASK', label: t('notifications:page.typeFilter.task') },
-    { value: 'DOCUMENT', label: t('notifications:page.typeFilter.document') },
+    { value: 'task.assigned', label: t('notifications:page.typeFilter.task') },
+    { value: 'deal.stage_changed', label: t('notifications:page.typeFilter.deal') },
+    { value: 'leave_request', label: t('notifications:page.typeFilter.leave_request') },
+    { value: 'document.shared', label: t('notifications:page.typeFilter.document') },
     { value: 'SYSTEM', label: t('notifications:page.typeFilter.system') },
   ];
 
@@ -42,7 +45,22 @@ export function NotificationsPage() {
   const currentData = query.data?.data ?? [];
   const meta = query.data?.meta ?? { page: 1, limit: LIMIT, total: 0 };
 
-  // Tích lũy danh sách thông báo khi bấm "Tải thêm" (Load more)
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (typeDropdownRef.current && !typeDropdownRef.current.contains(e.target as Node)) {
+        setIsTypeDropdownOpen(false);
+      }
+    }
+    if (isTypeDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isTypeDropdownOpen]);
+
+  // Tích lũy danh sách thông báo khi bấm "Tải thêm" (Load more), reset khi thay đổi bộ lọc
   useEffect(() => {
     if (page === 1) {
       setAccumulatedItems(currentData);
@@ -53,7 +71,7 @@ export function NotificationsPage() {
         return [...prev, ...newItems];
       });
     }
-  }, [currentData, page]);
+  }, [currentData, page, filter, typeFilter]);
 
   function handleFilterChange(value: string) {
     setFilter(value as 'all' | 'unread');
@@ -63,6 +81,7 @@ export function NotificationsPage() {
 
   function handleTypeChange(value: string) {
     setTypeFilter(value);
+    setIsTypeDropdownOpen(false);
     setPage(1);
     setAccumulatedItems([]);
   }
@@ -72,6 +91,27 @@ export function NotificationsPage() {
   }
 
   const hasMore = accumulatedItems.length < meta.total;
+  const currentTypeOption = typeOptions.find((opt) => opt.value === typeFilter) ?? typeOptions[0];
+
+  // Lọc hiển thị đảm bảo độ chính xác tuyệt đối (client-side fallback nếu backend trả về tập hợp rộng)
+  const displayedItems = accumulatedItems.filter((n) => {
+    if (!typeFilter) return true;
+    const itemType = (n.type || '').toLowerCase();
+
+    if (typeFilter === 'leave_request') {
+      return itemType.includes('leave') || n.title?.toLowerCase().includes('nghỉ phép');
+    }
+    if (typeFilter === 'deal.stage_changed') {
+      return itemType.includes('deal') || n.title?.toLowerCase().includes('deal');
+    }
+    if (typeFilter === 'task.assigned') {
+      return itemType.includes('task') || n.title?.toLowerCase().includes('công việc');
+    }
+    if (typeFilter === 'document.shared') {
+      return itemType.includes('document') || n.title?.toLowerCase().includes('tài liệu');
+    }
+    return true;
+  });
 
   return (
     <div className="space-y-5">
@@ -95,18 +135,53 @@ export function NotificationsPage() {
               { value: 'unread', label: t('notifications:page.tabs.unread') },
             ]}
           />
-          <Select
-            value={typeFilter}
-            onChange={(e) => handleTypeChange(e.target.value)}
-            className="mb-1 text-sm"
-            style={{ width: 'auto' }}
-          >
-            {typeOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </Select>
+
+          {/* Custom Dropdown chọn loại thông báo với phong cách đồng bộ website */}
+          <div className="relative mb-1" ref={typeDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsTypeDropdownOpen(!isTypeDropdownOpen)}
+              className={cn(
+                'flex h-9 items-center justify-between gap-2.5 rounded-lg border bg-white px-3 py-1.5 text-xs font-semibold shadow-2xs transition-all cursor-pointer min-w-[150px]',
+                isTypeDropdownOpen
+                  ? 'border-indigo-500 ring-2 ring-indigo-500/20 text-indigo-900'
+                  : 'border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50/70',
+              )}
+            >
+              <span className="truncate">{currentTypeOption.label}</span>
+              <ChevronDownIcon
+                className={cn(
+                  'h-3.5 w-3.5 text-slate-400 shrink-0 transition-transform duration-200',
+                  isTypeDropdownOpen && 'rotate-180 text-indigo-600',
+                )}
+              />
+            </button>
+
+            {/* Menu options xuất hiện ở dưới khi bấm */}
+            {isTypeDropdownOpen && (
+              <div className="absolute right-0 top-full z-30 mt-1 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-400/20 animate-slide-up space-y-0.5">
+                {typeOptions.map((opt) => {
+                  const isSelected = typeFilter === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => handleTypeChange(opt.value)}
+                      className={cn(
+                        'flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-xs font-medium transition-colors cursor-pointer text-left',
+                        isSelected
+                          ? 'bg-indigo-50/80 text-indigo-900 font-semibold'
+                          : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900',
+                      )}
+                    >
+                      <span className="truncate">{opt.label}</span>
+                      {isSelected && <CheckIcon className="h-3.5 w-3.5 text-indigo-600 shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         <QueryState
@@ -116,13 +191,13 @@ export function NotificationsPage() {
           errorTitle={t('notifications:page.loadError')}
           loadingFallback={<FullPageSpinner label={t('notifications:page.loading')} />}
         >
-          {accumulatedItems.length === 0 ? (
+          {displayedItems.length === 0 ? (
             <div className="p-6">
               <EmptyState icon={<BellIcon className="h-8 w-8" />} title={t('notifications:page.empty')} />
             </div>
           ) : (
             <ul className="divide-y divide-slate-100">
-              {accumulatedItems.map((n: AppNotification) => {
+              {displayedItems.map((n: AppNotification) => {
                 const visual = getNotificationVisualConfig(n);
                 const entityHash = extractEntityHash(n);
 

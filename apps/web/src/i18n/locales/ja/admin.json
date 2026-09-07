@@ -1,6 +1,7 @@
 {
   "adminPage": {
     "title": "管理",
+    "subtitle": "メンバー、部署、システムのアクセス権限を管理します。",
     "description": "メンバー、部署、システムのアクセス権限を管理します。",
     "tabs": {
       "members": "メンバー",
@@ -19,9 +20,12 @@
     "columns": {
       "name": "部署名",
       "description": "説明",
+      "manager": "部門長 / 担当者",
       "memberCount": "メンバー数",
       "actions": "操作"
     },
+    "membersCountLabel": "{{count}} 名",
+    "noManager": "未任用",
     "actionsMenu": {
       "edit": "編集",
       "delete": "削除"
@@ -35,7 +39,15 @@
   "membersPage": {
     "description": "組織内のメンバー、部署、アクセス権限を管理します。",
     "inviteMember": "メンバーを招待",
-    "loading": "メンバー一覧を読み込み中…",
+    "searchPlaceholder": "名前またはメールアドレスで検索…",
+    "allDepartments": "すべての部署",
+    "allStatuses": "すべてのステータス",
+    "filterDepartmentAria": "部署で絞り込み",
+    "filterStatusAria": "ステータスで絞り込み",
+    "noMatchTitle": "該当するメンバーが見つかりません",
+    "noMatchDescription": "検索キーワードや絞り込み条件を変更してください。",
+    "clearFilters": "フィルターをクリア",
+    "loading": "メンバーを読み込み中…",
     "errorTitle": "メンバー一覧を読み込めませんでした",
     "emptyTitle": "メンバーがまだいません",
     "optionsAria": "メンバーのオプション",
@@ -67,8 +79,23 @@
     "errorTitle": "ロール・権限データを読み込めませんでした",
     "emptyTitle": "ロールまたは権限のデータがまだありません",
     "hint": "チェックボックスのオン/オフで、各ロールへの権限の付与・取り消しができます。変更はすぐに保存されます。",
-    "permissionColumn": "権限",
-    "checkboxAriaLabel": "{{roleName}} - {{permissionLabel}}"
+    "permissionColumn": "権限と機能",
+    "selectAll": "すべて選択",
+    "selectAllModule": "モジュール内すべて選択",
+    "lockedNotice": "固定",
+    "lockedTooltip": "組織管理者の権限はシステムの安全のため固定されています。",
+    "checkboxAriaLabel": "{{roleName}} - {{permissionLabel}}",
+    "moduleSelectAllAria": "{{roleName}} - {{groupName}}の全権限を選択",
+    "roleSelectAllAria": "{{roleName}} - システム全体の全権限を選択",
+    "groups": {
+      "hrm": "勤怠・休暇管理",
+      "crm": "顧客・案件管理",
+      "project": "プロジェクト・タスク",
+      "document": "ドキュメント・ファイル",
+      "analytics": "レポート・分析",
+      "iam": "組織・権限管理",
+      "system": "システム・診断"
+    }
   },
   "failedEventsPage": {
     "description": "内部処理イベント(Kafka)のうち、永続的に失敗したか自動リトライの上限に達したものの一覧です。これらはユーザー起因のエラーではなく、システム障害を診断するためのデータです。この一覧は閲覧専用であり、この画面から再試行を行うことはできません。",

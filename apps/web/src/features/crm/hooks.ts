@@ -73,6 +73,14 @@ export function useDealsQuery(customerId: string | undefined) {
   });
 }
 
+export function useAllDealsQuery() {
+  return useQuery({
+    queryKey: ['deals', 'all'],
+    queryFn: () => fetchDeals({}),
+    staleTime: 60_000,
+  });
+}
+
 export function useCreateDeal(customerId: string) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
