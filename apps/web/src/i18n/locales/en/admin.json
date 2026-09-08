@@ -95,6 +95,40 @@
       "analytics": "Reports & Analytics",
       "iam": "Organization & Roles",
       "system": "System & Diagnostics"
+    },
+    "permissions": {
+      "attendance_checkin": "Time Tracking (Check-in / Check-out)",
+      "attendance_view": "View company-wide attendance",
+      "leave_request_create": "Create leave request",
+      "leave_request_view": "View leave request list",
+      "leave_request_approve": "Approve / Reject leave requests",
+      "customer_view": "View customer directory",
+      "customer_create": "Create new customer profile",
+      "customer_update": "Update customer information",
+      "customer_delete": "Delete customer profile",
+      "deal_view": "View sales pipeline (Deals)",
+      "deal_create": "Create new sales opportunity",
+      "deal_update": "Update deal stage / value",
+      "deal_delete": "Delete sales opportunity",
+      "project_view": "View project list & details",
+      "project_create": "Create new project",
+      "project_update": "Update project information / status",
+      "project_delete": "Archive / Delete project",
+      "task_view": "View task board (Kanban & List)",
+      "task_create": "Assign / Create new task",
+      "task_update": "Update task progress / drag-and-drop",
+      "task_delete": "Delete task",
+      "document_view": "View & download documents",
+      "document_upload": "Upload documents & create folders",
+      "document_share": "Share documents internally / generate links",
+      "document_delete": "Delete documents / folders",
+      "analytics_view": "View KPI reports & executive analytics",
+      "user_invite": "Invite new organization members",
+      "user_manage": "Manage accounts (Roles, deactivation)",
+      "department_manage": "Manage departmental structure",
+      "role_manage": "Manage role permission matrix",
+      "organization_manage": "Manage organization settings",
+      "system_manage": "Infrastructure diagnostics & DLQ monitoring"
     }
   },
   "failedEventsPage": {
@@ -179,5 +213,10 @@
     "departmentDeleted": "Department deleted",
     "departmentDeleteFailed": "Couldn't delete department",
     "permissionsUpdateFailed": "Couldn't update permissions"
+  },
+  "roles": {
+    "orgAdmin": "Organization Admin",
+    "manager": "Manager",
+    "employee": "Employee"
   }
 }

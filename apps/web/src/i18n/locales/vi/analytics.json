@@ -17,7 +17,12 @@
     "comparedToPrevious": "so với kỳ trước",
     "stable": "Ổn định",
     "filesCount": "{{count}} tệp",
-    "projectsCount": "{{count}} dự án"
+    "projectsCount": "{{count}} dự án",
+    "trends": {
+      "vsLastWeek": "{{percent}} so với tuần trước",
+      "vsLastMonth": "{{percent}} so với tháng trước",
+      "vsLastQuarter": "{{percent}} so với quý trước"
+    }
   },
   "aiInsight": {
     "title": "Trợ lý phân tích nội bộ",

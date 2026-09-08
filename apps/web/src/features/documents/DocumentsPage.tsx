@@ -210,7 +210,7 @@ export function DocumentsPage() {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm kiếm thư mục, tệp tin…"
+            placeholder={t('documents:documentsPage.searchPlaceholder')}
             className="h-9 w-full rounded-xl border border-slate-200/80 bg-slate-50/70 pl-9 pr-3.5 text-xs text-slate-700 placeholder:text-slate-400 transition-all focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-100"
           />
           {searchTerm && (
@@ -234,10 +234,10 @@ export function DocumentsPage() {
                 ? 'bg-white text-slate-900 shadow-2xs font-bold'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
-            title="Chế độ xem Lưới"
+            title={t('documents:documentsPage.viewGridTitle')}
           >
             <GridIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Lưới</span>
+            <span className="hidden sm:inline">{t('documents:documentsPage.viewGrid')}</span>
           </button>
           <button
             type="button"
@@ -247,10 +247,10 @@ export function DocumentsPage() {
                 ? 'bg-white text-slate-900 shadow-2xs font-bold'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
-            title="Chế độ xem Danh sách"
+            title={t('documents:documentsPage.viewListTitle')}
           >
             <ListIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Danh sách</span>
+            <span className="hidden sm:inline">{t('documents:documentsPage.viewList')}</span>
           </button>
         </div>
       </div>

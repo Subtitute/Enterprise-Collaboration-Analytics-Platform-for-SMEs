@@ -95,6 +95,40 @@
       "analytics": "レポート・分析",
       "iam": "組織・権限管理",
       "system": "システム・診断"
+    },
+    "permissions": {
+      "attendance_checkin": "勤怠打刻（出勤 / 退勤）",
+      "attendance_view": "全社勤怠データの閲覧",
+      "leave_request_create": "休暇申請の作成",
+      "leave_request_view": "休暇申請一覧の閲覧",
+      "leave_request_approve": "休暇申請の承認 / 却下",
+      "customer_view": "顧客一覧の閲覧",
+      "customer_create": "顧客カルテの新規作成",
+      "customer_update": "顧客情報の更新",
+      "customer_delete": "顧客データの削除",
+      "deal_view": "商談パイプライン（Deal）の閲覧",
+      "deal_create": "新規商談・案件の登録",
+      "deal_update": "商談フェーズ / 金額の更新",
+      "deal_delete": "商談・案件の削除",
+      "project_view": "プロジェクト一覧と詳細の閲覧",
+      "project_create": "新規プロジェクトの立ち上げ",
+      "project_update": "プロジェクト情報・進捗ステータスの更新",
+      "project_delete": "プロジェクトのアーカイブ / 削除",
+      "task_view": "タスクボードの閲覧（カンバン・リスト）",
+      "task_create": "タスクの新規作成と担当割り当て",
+      "task_update": "タスク進捗の更新・ドラッグ＆ドロップ",
+      "task_delete": "タスクの削除",
+      "document_view": "ドキュメントの閲覧とダウンロード",
+      "document_upload": "ドキュメントのアップロードとフォルダ作成",
+      "document_share": "社内ドキュメントの共有 / リンク発行",
+      "document_delete": "ドキュメント・フォルダの削除",
+      "analytics_view": "経営KPIレポートと総合分析の閲覧",
+      "user_invite": "新規組織メンバーの招待",
+      "user_manage": "アカウント管理（権限変更・無効化）",
+      "department_manage": "部署構造と編成の管理",
+      "role_manage": "ロール別権限マトリクスの設定管理",
+      "organization_manage": "組織・企業プロファイルの管理",
+      "system_manage": "システム診断とDLQ（デッドレター）監視"
     }
   },
   "failedEventsPage": {
@@ -179,5 +213,10 @@
     "departmentDeleted": "部署を削除しました",
     "departmentDeleteFailed": "部署を削除できませんでした",
     "permissionsUpdateFailed": "権限を更新できませんでした"
+  },
+  "roles": {
+    "orgAdmin": "組織管理者",
+    "manager": "マネージャー",
+    "employee": "従業員"
   }
 }

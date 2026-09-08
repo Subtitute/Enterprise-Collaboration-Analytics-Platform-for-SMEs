@@ -238,7 +238,7 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, viewMode
                 </div>
 
                 <div className="mt-3 flex items-center justify-between border-t border-slate-100/90 pt-2.5 text-[11px] text-slate-400">
-                  <span>Cập nhật {formatDateTime(file.updatedAt)}</span>
+                  <span>{t('documents:fileTable.updatedAt', { time: formatDateTime(file.updatedAt) })}</span>
                 </div>
               </div>
             );
@@ -257,7 +257,7 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, viewMode
                   }}
                   onChange={toggleSelectAll}
                   className="h-4 w-4 rounded-md border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
-                  aria-label="Chọn tất cả tệp"
+                  aria-label={t('documents:fileTable.selectAllAria')}
                 />
               </TableHeadCell>
               <TableHeadCell>{t('documents:fileTable.columns.name')}</TableHeadCell>
@@ -280,7 +280,7 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, viewMode
                       onClick={(e) => toggleSelectFile(file.id, e)}
                       onChange={() => {}}
                       className="h-4 w-4 rounded-md border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
-                      aria-label={`Chọn tệp ${file.name}`}
+                      aria-label={t('documents:fileTable.selectFileAria', { name: file.name })}
                     />
                   </TableCell>
                   <TableCell label={t('documents:fileTable.columns.name')}>

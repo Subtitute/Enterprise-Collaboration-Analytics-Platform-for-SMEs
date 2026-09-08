@@ -26,13 +26,30 @@ const STATUS_BADGE_VARIANT: Record<LeaveRequestStatus, BadgeVariant> = {
   REJECTED: 'danger',
 };
 
-/** Tách loại nghỉ phép và lý do thực tế từ chuỗi reason đã lưu (VD: "[Nghỉ phép năm (Có lương)] Lý do...") */
-function parseLeaveReason(rawReason?: string | null) {
+/** Tách loại nghỉ phép và lý do thực tế từ chuỗi reason đã lưu (hỗ trợ cả key enum ANNUAL/SICK/UNPAID và text cũ) */
+function parseLeaveReason(rawReason: string | undefined | null, t: (key: string, options?: any) => string) {
   if (!rawReason) return { leaveType: null, cleanReason: '' };
   const match = rawReason.match(/^\[(.*?)\]\s*(.*)$/);
   if (match) {
+    const rawType = match[1];
+    // Nếu là mã type (ANNUAL, SICK, UNPAID)
+    if (rawType === 'ANNUAL' || rawType === 'SICK' || rawType === 'UNPAID') {
+      return {
+        leaveType: t(`hrm:newLeaveRequestModal.types.${rawType}`),
+        cleanReason: match[2],
+      };
+    }
+    // Đối với các đơn cũ đã lưu text tiếng Việt hoặc ngôn ngữ khác
+    let translatedType = rawType;
+    if (rawType.includes('Nghỉ phép năm') || rawType.includes('Annual leave') || rawType.includes('年次有給休暇')) {
+      translatedType = t('hrm:newLeaveRequestModal.types.ANNUAL');
+    } else if (rawType.includes('Nghỉ ốm') || rawType.includes('Sick leave') || rawType.includes('病気休暇')) {
+      translatedType = t('hrm:newLeaveRequestModal.types.SICK');
+    } else if (rawType.includes('Nghỉ việc riêng') || rawType.includes('Personal leave') || rawType.includes('私用休暇')) {
+      translatedType = t('hrm:newLeaveRequestModal.types.UNPAID');
+    }
     return {
-      leaveType: match[1],
+      leaveType: translatedType,
       cleanReason: match[2],
     };
   }
@@ -104,7 +121,7 @@ export function LeaveRequestsPage() {
                 const isRowBusy = pendingRequestId === request.id && (approve.isPending || reject.isPending);
                 const days = calculateWorkingDays(request.startDate, request.endDate);
                 const employeeName = userNameMap[request.userId] || 'Nhân viên';
-                const { leaveType, cleanReason } = parseLeaveReason(request.reason);
+                const { leaveType, cleanReason } = parseLeaveReason(request.reason, t);
 
                 return (
                   <div key={request.id} className="flex flex-col gap-3 rounded-lg border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between bg-white shadow-2xs hover:border-slate-300 transition-colors">
@@ -121,7 +138,7 @@ export function LeaveRequestsPage() {
                           {formatDate(request.startDate)} — {formatDate(request.endDate)}
                           {days > 0 && (
                             <span className="ml-1.5 text-slate-500 font-semibold text-xs sm:text-sm">
-                              • {days} ngày
+                              • {t('hrm:leaveRequestsPage.daysCount', { count: days })}
                             </span>
                           )}
                         </p>
@@ -193,7 +210,7 @@ export function LeaveRequestsPage() {
               <div className="space-y-4">
                 {myRequestsQuery.data?.data.map((request) => {
                   const days = calculateWorkingDays(request.startDate, request.endDate);
-                  const { leaveType, cleanReason } = parseLeaveReason(request.reason);
+                  const { leaveType, cleanReason } = parseLeaveReason(request.reason, t);
                   return (
                     <div key={request.id} className="flex flex-col gap-2 rounded-lg border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between bg-white shadow-2xs hover:border-slate-300 transition-colors">
                       <div className="min-w-0 space-y-1.5">
@@ -203,7 +220,7 @@ export function LeaveRequestsPage() {
                             {formatDate(request.startDate)} — {formatDate(request.endDate)}
                             {days > 0 && (
                               <span className="ml-1.5 text-slate-500 font-semibold text-xs sm:text-sm">
-                                • {days} ngày
+                                • {t('hrm:leaveRequestsPage.daysCount', { count: days })}
                               </span>
                             )}
                           </p>

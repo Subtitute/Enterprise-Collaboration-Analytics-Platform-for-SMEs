@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { Checkbox } from '@/components/ui/Input';
+import { cn } from '@/lib/utils';
+import { CheckIcon, ShieldIcon } from '@/components/ui/Icons';
 import type { Role } from '@/types';
 
 export function RoleCheckboxList({
@@ -22,13 +23,72 @@ export function RoleCheckboxList({
   }
 
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-2 rounded-lg border border-slate-200 p-3">
-      {roles.map((role) => (
-        <label key={role.id} className="flex items-center gap-2 text-sm text-slate-700">
-          <Checkbox checked={selectedIds.includes(role.id)} onChange={() => toggle(role.id)} />
-          {role.name}
-        </label>
-      ))}
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+      {roles.map((role) => {
+        const isSelected = selectedIds.includes(role.id);
+        const lower = role.name.trim().toLowerCase();
+        const isAdmin = lower.includes('admin') || lower.includes('quản trị');
+        const isManager = lower.includes('manager') || lower.includes('quản lý');
+        const isEmployee = lower.includes('employee') || lower.includes('nhân viên');
+        const roleLabel = isAdmin
+          ? t('admin:roles.orgAdmin')
+          : isManager
+          ? t('admin:roles.manager')
+          : isEmployee
+          ? t('admin:roles.employee')
+          : role.name;
+
+        return (
+          <div
+            key={role.id}
+            onClick={() => toggle(role.id)}
+            className={cn(
+              'group relative flex items-center justify-between gap-3 rounded-xl border p-3 cursor-pointer transition-all duration-200 select-none shadow-2xs',
+              isSelected
+                ? 'border-indigo-500/80 bg-indigo-50/40 ring-1 ring-indigo-500/20 shadow-xs'
+                : 'border-slate-200/90 bg-white hover:border-slate-300 hover:bg-slate-50/60',
+            )}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span
+                className={cn(
+                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors',
+                  isSelected
+                    ? 'border-indigo-200 bg-indigo-100/70 text-indigo-700'
+                    : 'border-slate-200/80 bg-slate-50 text-slate-500 group-hover:text-slate-700',
+                )}
+              >
+                <ShieldIcon className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <span
+                  className={cn(
+                    'block text-xs font-bold leading-tight transition-colors truncate',
+                    isSelected ? 'text-indigo-950' : 'text-slate-800',
+                  )}
+                >
+                  {roleLabel}
+                </span>
+                <span className="block text-[11px] text-slate-400 truncate mt-0.5">
+                  {role.name !== roleLabel ? role.name : t('admin:rolesPermissionsPage.groups.iam')}
+                </span>
+              </div>
+            </div>
+
+            {/* Custom Checkbox indicator */}
+            <div
+              className={cn(
+                'flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all duration-150',
+                isSelected
+                  ? 'border-indigo-600 bg-indigo-600 text-white shadow-xs'
+                  : 'border-slate-300 bg-white group-hover:border-slate-400',
+              )}
+            >
+              {isSelected && <CheckIcon className="h-3.5 w-3.5 stroke-[2.5]" />}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

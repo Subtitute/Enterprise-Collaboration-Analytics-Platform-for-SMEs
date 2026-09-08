@@ -8,6 +8,11 @@
     "loading": "Đang tải tài liệu…",
     "errorTitle": "Không thể tải tài liệu",
     "errorDescription": "Đã xảy ra lỗi khi tải thư mục/tệp. Vui lòng thử lại.",
+    "searchPlaceholder": "Tìm kiếm thư mục, tệp tin…",
+    "viewGrid": "Lưới",
+    "viewList": "Danh sách",
+    "viewGridTitle": "Chế độ xem Lưới",
+    "viewListTitle": "Chế độ xem Danh sách",
     "emptyState": {
       "title": "Thư mục trống",
       "description": "Tạo thư mục con hoặc tải lên tài liệu đầu tiên.",
@@ -47,6 +52,9 @@
     "share": "Chia sẻ",
     "versionHistory": "Lịch sử phiên bản",
     "delete": "Xoá tệp",
+    "updatedAt": "Cập nhật {{time}}",
+    "selectAllAria": "Chọn tất cả tệp",
+    "selectFileAria": "Chọn tệp {{name}}",
     "deleteConfirm": {
       "title": "Xoá tệp này?",
       "description": "\"{{name}}\" sẽ bị xoá khỏi hệ thống.",
@@ -97,6 +105,8 @@
     "submit": "Chia sẻ"
   },
   "folderGrid": {
+    "loading": "Đang tải…",
+    "meta": "{{count}} tệp • Cập nhật {{time}}",
     "restrictedTooltip": "Thư mục hạn chế truy cập",
     "optionsAria": "Tùy chọn thư mục",
     "rename": "Đổi tên",

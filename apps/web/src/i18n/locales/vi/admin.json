@@ -95,6 +95,40 @@
       "analytics": "Báo cáo & Phân tích",
       "iam": "Tổ chức & Phân quyền",
       "system": "Hạ tầng & Hệ thống"
+    },
+    "permissions": {
+      "attendance_checkin": "Chấm công (Check-in / Check-out)",
+      "attendance_view": "Xem bảng chấm công toàn công ty",
+      "leave_request_create": "Tạo đơn xin nghỉ phép",
+      "leave_request_view": "Xem danh sách đơn nghỉ phép",
+      "leave_request_approve": "Duyệt / Từ chối đơn nghỉ phép",
+      "customer_view": "Xem danh sách khách hàng",
+      "customer_create": "Tạo mới hồ sơ khách hàng",
+      "customer_update": "Cập nhật thông tin khách hàng",
+      "customer_delete": "Xóa khách hàng",
+      "deal_view": "Xem cơ hội bán hàng (Deal pipeline)",
+      "deal_create": "Tạo cơ hội bán hàng mới",
+      "deal_update": "Cập nhật giai đoạn / giá trị deal",
+      "deal_delete": "Xóa cơ hội bán hàng",
+      "project_view": "Xem danh sách & chi tiết dự án",
+      "project_create": "Khởi tạo dự án mới",
+      "project_update": "Cập nhật thông tin / trạng thái dự án",
+      "project_delete": "Lưu trữ / Xóa dự án",
+      "task_view": "Xem bảng công việc (Kanban & List)",
+      "task_create": "Giao việc / Tạo mới công việc",
+      "task_update": "Cập nhật tiến độ / kéo thả trạng thái việc",
+      "task_delete": "Xóa công việc",
+      "document_view": "Xem & tải xuống tài liệu",
+      "document_upload": "Tải lên tài liệu & tạo thư mục",
+      "document_share": "Chia sẻ tài liệu nội bộ / liên kết",
+      "document_delete": "Xóa tài liệu / thư mục",
+      "analytics_view": "Xem báo cáo KPI & phân tích tổng hợp",
+      "user_invite": "Mời thành viên mới vào tổ chức",
+      "user_manage": "Quản lý tài khoản (Đổi quyền, vô hiệu hóa)",
+      "department_manage": "Quản lý cơ cấu phòng ban",
+      "role_manage": "Quản lý & cấu hình ma trận phân quyền",
+      "organization_manage": "Quản lý thông tin tổ chức / doanh nghiệp",
+      "system_manage": "Chẩn đoán hạ tầng & theo dõi Dead Letter Queue"
     }
   },
   "failedEventsPage": {
@@ -179,5 +213,10 @@
     "departmentDeleted": "Đã xoá phòng ban",
     "departmentDeleteFailed": "Không thể xoá phòng ban",
     "permissionsUpdateFailed": "Không thể cập nhật quyền"
+  },
+  "roles": {
+    "orgAdmin": "Quản trị viên tổ chức",
+    "manager": "Quản lý",
+    "employee": "Nhân viên"
   }
 }

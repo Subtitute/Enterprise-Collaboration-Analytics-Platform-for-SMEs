@@ -85,6 +85,23 @@ function isOrgAdminRole(roleName: string): boolean {
   return lower.includes('org admin') || lower === 'admin' || lower.includes('quản trị viên tối cao') || lower.includes('organization admin');
 }
 
+/**
+ * Định dạng tên vai trò theo ngôn ngữ hiện hành
+ */
+function formatRoleName(roleName: string, t: (key: string) => string): string {
+  const lower = roleName.trim().toLowerCase();
+  if (lower.includes('admin') || lower.includes('quản trị')) {
+    return t('admin:roles.orgAdmin');
+  }
+  if (lower.includes('manager') || lower.includes('quản lý')) {
+    return t('admin:roles.manager');
+  }
+  if (lower.includes('employee') || lower.includes('nhân viên')) {
+    return t('admin:roles.employee');
+  }
+  return roleName;
+}
+
 export function RolesPermissionsPage() {
   const { t } = useTranslation();
   const rolesQuery = useRolesQuery();
@@ -200,12 +217,13 @@ export function RolesPermissionsPage() {
                   </th>
                   {roles.map((r) => {
                     const isLocked = isOrgAdminRole(r.name);
+                    const localizedRoleName = formatRoleName(r.name, t);
 
                     return (
                       <th key={r.id} className="px-4 py-4 text-center text-xs font-semibold uppercase tracking-wider text-slate-700">
                         <div className="flex w-full items-center justify-center text-center">
                           <span className="inline-flex items-center justify-center gap-1.5 font-bold text-slate-800">
-                            {r.name}
+                            {localizedRoleName}
                             {isLocked && (
                               <span title={t('admin:rolesPermissionsPage.lockedTooltip')}>
                                 <LockIcon className="h-3.5 w-3.5 text-slate-500" />
@@ -281,7 +299,9 @@ export function RolesPermissionsPage() {
                     {/* Các dòng quyền cụ thể trong module: typography thoáng, viền border-b nhẹ */}
                     {mod.permissions.map((p) => {
                       const meta = PERMISSION_META[p.key];
-                      const displayTitle = meta?.label ?? p.description ?? p.key;
+                      const safeKey = p.key.replace(':', '_');
+                      const translationKey = `admin:rolesPermissionsPage.permissions.${safeKey}`;
+                      const displayTitle = t(translationKey, { defaultValue: meta?.label ?? p.description ?? p.key });
 
                       return (
                         <tr key={p.key} className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors">

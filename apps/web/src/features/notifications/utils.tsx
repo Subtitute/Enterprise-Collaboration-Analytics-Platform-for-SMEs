@@ -8,6 +8,7 @@ export interface NotificationVisualConfig {
   textColor: string;
   linkUrl: string | null;
   targetName: string;
+  targetKey: 'leave_request' | 'deal' | 'task' | 'document' | 'system';
 }
 
 /**
@@ -55,6 +56,63 @@ export function cleanNotificationMessage(message: string): string {
 }
 
 /**
+ * Định dạng tiêu đề thông báo theo đa ngôn ngữ dựa trên type hoặc nội dung gốc:
+ */
+export function formatNotificationTitle(notification: AppNotification, t?: (key: string) => string): string {
+  if (!t) return notification.title || '';
+
+  const type = notification.type?.toLowerCase() || '';
+  const rawTitle = (notification.title || '').trim().toLowerCase();
+
+  // 1. Nghỉ phép đã duyệt
+  if (
+    type === 'leave_request.approved' ||
+    rawTitle.includes('yêu cầu nghỉ phép đã được duyệt') ||
+    rawTitle.includes('leave request approved')
+  ) {
+    return t('notifications:page.titles.leaveApproved');
+  }
+
+  // 2. Nghỉ phép bị từ chối
+  if (
+    type === 'leave_request.rejected' ||
+    rawTitle.includes('yêu cầu nghỉ phép đã bị từ chối') ||
+    rawTitle.includes('leave request rejected')
+  ) {
+    return t('notifications:page.titles.leaveRejected');
+  }
+
+  // 3. Deal chốt thành công
+  if (
+    type === 'deal.stage_changed' ||
+    rawTitle.includes('deal đã chốt thành công') ||
+    rawTitle.includes('deal successfully closed')
+  ) {
+    return t('notifications:page.titles.dealWon');
+  }
+
+  // 4. Giao công việc mới
+  if (
+    type === 'task.assigned' ||
+    rawTitle.includes('bạn được giao công việc mới') ||
+    rawTitle.includes('assigned a new task')
+  ) {
+    return t('notifications:page.titles.taskAssigned');
+  }
+
+  // 5. Tài liệu được chia sẻ
+  if (
+    type === 'document.shared' ||
+    rawTitle.includes('tài liệu đã được chia sẻ') ||
+    rawTitle.includes('document has been shared')
+  ) {
+    return t('notifications:page.titles.documentShared');
+  }
+
+  return notification.title || '';
+}
+
+/**
  * Lấy cấu hình thị giác hóa danh mục và màu sắc ngữ cảnh (Semantic Colors) theo kết quả sự kiện:
  * - Phê duyệt / Thành công: Màu xanh lá (emerald)
  * - Từ chối / Cảnh báo: Màu đỏ hồng (rose)
@@ -62,7 +120,7 @@ export function cleanNotificationMessage(message: string): string {
  * - Công việc (Task): Màu xanh da trời (sky)
  * - Tài liệu: Màu tím nhạt / slate
  */
-export function getNotificationVisualConfig(notification: AppNotification): NotificationVisualConfig {
+export function getNotificationVisualConfig(notification: AppNotification, t?: (key: string) => string): NotificationVisualConfig {
   const type = notification.type?.toLowerCase() || '';
   const title = notification.title?.toLowerCase() || '';
   const message = notification.message?.toLowerCase() || '';
@@ -71,28 +129,30 @@ export function getNotificationVisualConfig(notification: AppNotification): Noti
   // 1. Nghiệp vụ Nghỉ phép - TỪ CHỐI (Màu đỏ hồng - Rose)
   if (
     type.includes('leave_request.rejected') ||
-    (type.includes('leave') && (title.includes('từ chối') || message.includes('từ chối')))
+    (type.includes('leave') && (title.includes('từ chối') || message.includes('từ chối') || title.includes('reject')))
   ) {
     return {
       icon: <CalendarIcon className="h-4 w-4" />,
       bgColor: 'bg-rose-100 text-rose-700 ring-1 ring-rose-600/20',
       textColor: 'text-rose-700',
       linkUrl: '/leave-requests',
-      targetName: 'Nghỉ phép',
+      targetName: t ? t('notifications:page.targets.leave_request') : 'Nghỉ phép',
+      targetKey: 'leave_request',
     };
   }
 
   // 2. Nghiệp vụ Nghỉ phép - ĐÃ DUYỆT / PHÊ DUYỆT (Màu xanh lá - Emerald)
   if (
     type.includes('leave_request.approved') ||
-    (type.includes('leave') && (title.includes('duyệt') || message.includes('duyệt') || title.includes('phê duyệt')))
+    (type.includes('leave') && (title.includes('duyệt') || message.includes('duyệt') || title.includes('phê duyệt') || title.includes('approv')))
   ) {
     return {
       icon: <CalendarIcon className="h-4 w-4" />,
       bgColor: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-600/20',
       textColor: 'text-emerald-700',
       linkUrl: '/leave-requests',
-      targetName: 'Nghỉ phép',
+      targetName: t ? t('notifications:page.targets.leave_request') : 'Nghỉ phép',
+      targetKey: 'leave_request',
     };
   }
 
@@ -103,7 +163,8 @@ export function getNotificationVisualConfig(notification: AppNotification): Noti
       bgColor: 'bg-amber-100 text-amber-700 ring-1 ring-amber-600/20',
       textColor: 'text-amber-700',
       linkUrl: '/leave-requests',
-      targetName: 'Nghỉ phép',
+      targetName: t ? t('notifications:page.targets.leave_request') : 'Nghỉ phép',
+      targetKey: 'leave_request',
     };
   }
 
@@ -115,7 +176,8 @@ export function getNotificationVisualConfig(notification: AppNotification): Noti
       bgColor: 'bg-indigo-100 text-indigo-700 ring-1 ring-indigo-600/20',
       textColor: 'text-indigo-700',
       linkUrl: customerId ? `/customers/${customerId}` : '/customers',
-      targetName: 'Bán hàng (Deal)',
+      targetName: t ? t('notifications:page.targets.deal') : 'Bán hàng (Deal)',
+      targetKey: 'deal',
     };
   }
 
@@ -127,7 +189,8 @@ export function getNotificationVisualConfig(notification: AppNotification): Noti
       bgColor: 'bg-sky-100 text-sky-700 ring-1 ring-sky-600/20',
       textColor: 'text-sky-700',
       linkUrl: projectId ? `/projects/${projectId}` : '/projects',
-      targetName: 'Công việc',
+      targetName: t ? t('notifications:page.targets.task') : 'Công việc',
+      targetKey: 'task',
     };
   }
 
@@ -138,7 +201,8 @@ export function getNotificationVisualConfig(notification: AppNotification): Noti
       bgColor: 'bg-slate-100 text-slate-700 ring-1 ring-slate-400/20',
       textColor: 'text-slate-700',
       linkUrl: '/documents',
-      targetName: 'Tài liệu',
+      targetName: t ? t('notifications:page.targets.document') : 'Tài liệu',
+      targetKey: 'document',
     };
   }
 
@@ -148,6 +212,7 @@ export function getNotificationVisualConfig(notification: AppNotification): Noti
     bgColor: 'bg-slate-100 text-slate-600 ring-1 ring-slate-400/20',
     textColor: 'text-slate-600',
     linkUrl: null,
-    targetName: 'Hệ thống',
+    targetName: t ? t('notifications:page.targets.system') : 'Hệ thống',
+    targetKey: 'system',
   };
 }

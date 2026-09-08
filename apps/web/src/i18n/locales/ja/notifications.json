@@ -18,6 +18,23 @@
       "leave_request": "休暇申請",
       "document": "ドキュメント",
       "system": "システム"
+    },
+    "viewDetails": "詳細を見る →",
+    "unreadBadge": "未読",
+    "loadMore": "通知をもっと読み込む ({{current}}/{{total}})",
+    "targets": {
+      "leave_request": "休暇申請",
+      "deal": "案件（Deal）",
+      "task": "タスク",
+      "document": "ドキュメント",
+      "system": "システム"
+    },
+    "titles": {
+      "taskAssigned": "新しいタスクが割り当てられました",
+      "documentShared": "ドキュメントが共有されました",
+      "dealWon": "案件の受注が完了しました",
+      "leaveApproved": "休暇申請が承認されました",
+      "leaveRejected": "休暇申請が却下されました"
     }
   },
   "bell": {
@@ -25,7 +42,8 @@
     "title": "通知",
     "markAllRead": "すべて既読にする",
     "empty": "新しい通知はありません",
-    "viewAll": "すべての通知を見る"
+    "viewAll": "すべての通知を見る",
+    "unreadBadge": "未読"
   },
   "toast": {
     "updateError": "通知を更新できませんでした"

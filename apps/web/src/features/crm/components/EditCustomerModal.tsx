@@ -59,7 +59,7 @@ export function EditCustomerModal({
       open={open}
       onClose={onClose}
       preventCloseWhilePending={updateCustomer.isPending}
-      title="Chỉnh sửa thông tin khách hàng"
+      title={t('crm:editCustomerModal.title')}
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <FormField label={t('crm:newCustomerModal.fieldName')} htmlFor="edit-customer-name" error={error} required>
@@ -92,7 +92,7 @@ export function EditCustomerModal({
             {t('crm:newCustomerModal.cancel')}
           </Button>
           <Button type="submit" isLoading={updateCustomer.isPending}>
-            Lưu thay đổi
+            {t('crm:editCustomerModal.save')}
           </Button>
         </div>
       </form>

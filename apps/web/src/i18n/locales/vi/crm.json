@@ -5,7 +5,7 @@
       "CONTACTED": "Đã liên hệ",
       "PROPOSAL": "Đề xuất",
       "NEGOTIATION": "Đàm phán",
-      "WON": "Thành công",
+      "WON": "Hoàn thành",
       "LOST": "Thất bại"
     }
   },
@@ -62,10 +62,16 @@
   },
   "customerCard": {
     "optionsAriaLabel": "Tùy chọn khách hàng",
+    "editCustomer": "Chỉnh sửa thông tin",
     "deleteCustomer": "Xoá khách hàng",
+    "interaction": "Tương tác: {{time}}",
     "openDeals": "{{count}} deal đang hoạt động",
     "deleteConfirmTitle": "Xoá khách hàng này?",
     "deleteConfirmDescription": "Toàn bộ deal thuộc \"{{name}}\" cũng sẽ bị xoá. Hành động này không thể hoàn tác."
+  },
+  "editCustomerModal": {
+    "title": "Chỉnh sửa thông tin khách hàng",
+    "save": "Lưu thay đổi"
   },
   "dealDetailModal": {
     "title": "Chi tiết deal",

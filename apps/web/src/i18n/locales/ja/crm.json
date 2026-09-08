@@ -62,10 +62,16 @@
   },
   "customerCard": {
     "optionsAriaLabel": "顧客のオプション",
+    "editCustomer": "情報を編集",
     "deleteCustomer": "顧客を削除",
+    "interaction": "最終対応: {{time}}",
     "openDeals": "進行中の商談 {{count}}件",
     "deleteConfirmTitle": "この顧客を削除しますか?",
     "deleteConfirmDescription": "「{{name}}」に属するすべての商談も削除されます。この操作は取り消せません。"
+  },
+  "editCustomerModal": {
+    "title": "顧客情報の編集",
+    "save": "変更を保存"
   },
   "dealDetailModal": {
     "title": "商談の詳細",

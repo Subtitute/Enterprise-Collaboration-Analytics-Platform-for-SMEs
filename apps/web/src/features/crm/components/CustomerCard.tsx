@@ -68,7 +68,7 @@ export function CustomerCard({ customer }: { customer: Customer }) {
                       close();
                     }}
                   >
-                    <EditIcon className="h-4 w-4 text-slate-500" /> Chỉnh sửa thông tin
+                    <EditIcon className="h-4 w-4 text-slate-500" /> {t('crm:customerCard.editCustomer')}
                   </DropdownItem>
                   <DropdownItem
                     className="text-rose-600 hover:bg-rose-50"
@@ -99,7 +99,7 @@ export function CustomerCard({ customer }: { customer: Customer }) {
 
         <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
           <span className="text-xs text-slate-400 italic">
-            Tương tác: {lastInteraction}
+            {t('crm:customerCard.interaction', { time: lastInteraction })}
           </span>
           <span
             className={

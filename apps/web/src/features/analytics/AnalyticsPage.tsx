@@ -138,28 +138,37 @@ export function AnalyticsPage() {
     const wonDeals = allDeals.filter((d) => d.stage === 'WON');
     const totalWonValue = wonDeals.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
 
-    // Chỉ số so sánh định lượng theo kỳ lọc
-    const trendTextMap: Record<DateRangeOption, { proj: string; prog: string; doc: string; deal: string }> = {
+    // Chỉ số so sánh định lượng theo kỳ lọc (đa ngôn ngữ)
+    const trendConfigMap: Record<DateRangeOption, { trendKey: string; projPct: string; progPct: string; docPct: string; dealPct: string }> = {
       '7d': {
-        proj: '+12% so với tuần trước',
-        prog: '+4.5% so với tuần trước',
-        doc: '+18% so với tuần trước',
-        deal: '+8.2% so với tuần trước',
+        trendKey: 'vsLastWeek',
+        projPct: '+12%',
+        progPct: '+4.5%',
+        docPct: '+18%',
+        dealPct: '+8.2%',
       },
       '30d': {
-        proj: '+12% so với tháng trước',
-        prog: '+6.2% so với tháng trước',
-        doc: '+24% so với tháng trước',
-        deal: '+15.4% so với tháng trước',
+        trendKey: 'vsLastMonth',
+        projPct: '+12%',
+        progPct: '+6.2%',
+        docPct: '+24%',
+        dealPct: '+15.4%',
       },
       quarter: {
-        proj: '+15% so với quý trước',
-        prog: '+11.0% so với quý trước',
-        doc: '+35% so với quý trước',
-        deal: '+22.6% so với quý trước',
+        trendKey: 'vsLastQuarter',
+        projPct: '+15%',
+        progPct: '+11.0%',
+        docPct: '+35%',
+        dealPct: '+22.6%',
       },
     };
-    const currentTrend = trendTextMap[range] ?? trendTextMap['30d'];
+    const config = trendConfigMap[range] ?? trendConfigMap['30d'];
+    const currentTrend = {
+      proj: t(`analytics:kpiCards.trends.${config.trendKey}`, { percent: config.projPct }),
+      prog: t(`analytics:kpiCards.trends.${config.trendKey}`, { percent: config.progPct }),
+      doc: t(`analytics:kpiCards.trends.${config.trendKey}`, { percent: config.docPct }),
+      deal: t(`analytics:kpiCards.trends.${config.trendKey}`, { percent: config.dealPct }),
+    };
 
     return {
       totalProjects,
@@ -169,7 +178,7 @@ export function AnalyticsPage() {
       totalWonValue,
       trend: currentTrend,
     };
-  }, [progressRows, activityQuery.data, dealsQuery.data, range]);
+  }, [progressRows, activityQuery.data, dealsQuery.data, range, t]);
 
   return (
     <div className="space-y-6">

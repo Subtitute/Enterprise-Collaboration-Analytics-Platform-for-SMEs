@@ -23,7 +23,22 @@
       "checkOutLabel": "Check out",
       "checkInButton": "Check in",
       "checkOutButton": "Check out",
-      "doneToday": "Done for today"
+      "doneToday": "Done for today",
+      "checkedInBadge": "Checked In",
+      "notCheckedInBadge": "Not Checked In",
+      "standardTime": "System Standard Time (GMT+7)",
+      "notRecorded": "Not recorded",
+      "completedShift": "✓ You have completed your work shift for today!"
+    },
+    "statuses": {
+      "onTime": "On time",
+      "late": "Late",
+      "forgotCheckOut": "Forgot check-out"
+    },
+    "filter": {
+      "ariaLabel": "Select month for attendance filter",
+      "allTime": "All time",
+      "monthLabel": "Month {{month}}/{{year}}"
     },
     "history": {
       "cardTitle": "Attendance history",
@@ -32,20 +47,46 @@
       "errorDescription": "Something went wrong loading the data. Please try again.",
       "emptyTitle": "No attendance history yet",
       "emptyDescription": "Your data will appear after your first check-in.",
+      "emptyFiltered": "No attendance records found for {{month}}",
       "columns": {
         "date": "Date",
         "checkIn": "Check in",
-        "checkOut": "Check out"
-      }
+        "checkOut": "Check out",
+        "totalHours": "Total hours",
+        "status": "Status"
+      },
+      "viewProofIn": "View check-in photo proof",
+      "viewProofOut": "View check-out photo proof"
     },
     "allAttendance": {
       "cardTitle": "Organization-wide attendance",
+      "loading": "Loading organization attendance…",
+      "errorTitle": "Couldn't load attendance data",
+      "errorDescription": "Something went wrong loading the data. Please try again.",
+      "emptyTitle": "No attendance data",
+      "emptyDescription": "No employees have checked in yet.",
+      "emptyFiltered": "No organization attendance records found for {{month}}",
       "columns": {
         "employee": "Employee",
         "date": "Date",
         "checkIn": "Check in",
-        "checkOut": "Check out"
-      }
+        "checkOut": "Check out",
+        "totalHours": "Total hours",
+        "status": "Status"
+      },
+      "viewProofInOf": "View check-in photo proof of {{name}}",
+      "viewProofOutOf": "View check-out photo proof of {{name}}"
+    },
+    "hoursUnit": "{{hours}} hrs",
+    "photoModal": {
+      "title": "{{action}} Photo Proof",
+      "actionCheckIn": "Check-in",
+      "actionCheckOut": "Check-out",
+      "personal": "Personal",
+      "loading": "Loading photo proof…",
+      "error": "Unable to load photo proof or link has expired.",
+      "imageAlt": "Attendance photo proof",
+      "close": "Close"
     }
   },
   "leaveRequestsPage": {
@@ -66,7 +107,8 @@
       "emptyDescription": "Create your first request when you need time off.",
       "createFirstButton": "Create new request",
       "decisionNote": "Note: {{note}}"
-    }
+    },
+    "daysCount": "{{count}} days"
   },
   "newLeaveRequestModal": {
     "title": "Create leave request",
@@ -83,6 +125,8 @@
     "reasonPlaceholder": "Reason for the leave request…",
     "cancelButton": "Cancel",
     "submitButton": "Submit request",
+    "daysCount": "{{count}} days",
+    "totalWorkingDays": "Total: {{count}} days (excluding weekends)",
     "errors": {
       "missingDates": "Please select a start and end date",
       "missingType": "Please select a leave type",

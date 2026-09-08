@@ -8,6 +8,11 @@
     "loading": "Loading documents…",
     "errorTitle": "Couldn't load documents",
     "errorDescription": "Something went wrong loading folders/files. Please try again.",
+    "searchPlaceholder": "Search folders, files…",
+    "viewGrid": "Grid",
+    "viewList": "List",
+    "viewGridTitle": "Grid view",
+    "viewListTitle": "List view",
     "emptyState": {
       "title": "Folder is empty",
       "description": "Create a subfolder or upload your first document.",
@@ -47,6 +52,9 @@
     "share": "Share",
     "versionHistory": "Version history",
     "delete": "Delete file",
+    "updatedAt": "Updated {{time}}",
+    "selectAllAria": "Select all files",
+    "selectFileAria": "Select file {{name}}",
     "deleteConfirm": {
       "title": "Delete this file?",
       "description": "\"{{name}}\" will be removed from the system.",
@@ -97,6 +105,8 @@
     "submit": "Share"
   },
   "folderGrid": {
+    "loading": "Loading…",
+    "meta": "{{count}} files • Updated {{time}}",
     "restrictedTooltip": "Restricted folder",
     "optionsAria": "Folder options",
     "rename": "Rename",

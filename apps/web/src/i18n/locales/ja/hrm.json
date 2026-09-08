@@ -23,7 +23,22 @@
       "checkOutLabel": "退勤",
       "checkInButton": "出勤",
       "checkOutButton": "退勤",
-      "doneToday": "本日の勤怠は完了しました"
+      "doneToday": "本日の勤怠は完了しました",
+      "checkedInBadge": "出勤済み",
+      "notCheckedInBadge": "未出勤",
+      "standardTime": "システム標準時 (GMT+7)",
+      "notRecorded": "未記録",
+      "completedShift": "✓ 本日の勤務打刻がすべて完了しました！"
+    },
+    "statuses": {
+      "onTime": "定刻",
+      "late": "遅刻",
+      "forgotCheckOut": "退勤未打刻"
+    },
+    "filter": {
+      "ariaLabel": "勤怠フィルターの月を選択",
+      "allTime": "全期間",
+      "monthLabel": "{{year}}年{{month}}月"
     },
     "history": {
       "cardTitle": "勤怠履歴",
@@ -32,20 +47,46 @@
       "errorDescription": "データの読み込み中にエラーが発生しました。もう一度お試しください。",
       "emptyTitle": "勤怠履歴がありません",
       "emptyDescription": "最初の出勤打刻の後にデータが表示されます。",
+      "emptyFiltered": "{{month}}の勤怠データはありません",
       "columns": {
         "date": "日付",
         "checkIn": "出勤",
-        "checkOut": "退勤"
-      }
+        "checkOut": "退勤",
+        "totalHours": "合計時間",
+        "status": "状態"
+      },
+      "viewProofIn": "出勤証明写真を表示",
+      "viewProofOut": "退勤証明写真を表示"
     },
     "allAttendance": {
       "cardTitle": "組織全体の勤怠",
+      "loading": "組織全体の勤怠データを読み込み中…",
+      "errorTitle": "勤怠データを読み込めませんでした",
+      "errorDescription": "データの読み込み中にエラーが発生しました。もう一度お試しください。",
+      "emptyTitle": "勤怠データがありません",
+      "emptyDescription": "出勤した従業員はまだいません。",
+      "emptyFiltered": "{{month}}の組織全体の勤怠データはありません",
       "columns": {
         "employee": "従業員",
         "date": "日付",
         "checkIn": "出勤",
-        "checkOut": "退勤"
-      }
+        "checkOut": "退勤",
+        "totalHours": "合計時間",
+        "status": "状態"
+      },
+      "viewProofInOf": "{{name}}の出勤証明写真を表示",
+      "viewProofOutOf": "{{name}}の退勤証明写真を表示"
+    },
+    "hoursUnit": "{{hours}} 時間",
+    "photoModal": {
+      "title": "{{action}}証明写真",
+      "actionCheckIn": "出勤",
+      "actionCheckOut": "退勤",
+      "personal": "個人",
+      "loading": "証明写真を読み込み中…",
+      "error": "証明写真を読み込めないか、リンクの有効期限が切れています。",
+      "imageAlt": "勤怠証明写真",
+      "close": "閉じる"
     }
   },
   "leaveRequestsPage": {
@@ -66,7 +107,8 @@
       "emptyDescription": "休暇が必要な際は、最初の申請を作成してください。",
       "createFirstButton": "新規申請を作成",
       "decisionNote": "メモ: {{note}}"
-    }
+    },
+    "daysCount": "{{count}} 日間"
   },
   "newLeaveRequestModal": {
     "title": "休暇申請を作成",
@@ -83,6 +125,8 @@
     "reasonPlaceholder": "休暇の理由を入力…",
     "cancelButton": "キャンセル",
     "submitButton": "申請を送信",
+    "daysCount": "{{count}} 日間",
+    "totalWorkingDays": "合計: {{count}} 日間（土日を除く）",
     "errors": {
       "missingDates": "開始日と終了日を選択してください",
       "missingType": "休暇の種類を選択してください",

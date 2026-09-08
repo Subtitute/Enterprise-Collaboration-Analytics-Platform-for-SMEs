@@ -8,6 +8,11 @@
     "loading": "ドキュメントを読み込み中…",
     "errorTitle": "ドキュメントを読み込めませんでした",
     "errorDescription": "フォルダ/ファイルの読み込み中にエラーが発生しました。もう一度お試しください。",
+    "searchPlaceholder": "フォルダ、ファイルを検索…",
+    "viewGrid": "グリッド",
+    "viewList": "リスト",
+    "viewGridTitle": "グリッド表示",
+    "viewListTitle": "リスト表示",
     "emptyState": {
       "title": "フォルダは空です",
       "description": "サブフォルダを作成するか、最初のドキュメントをアップロードしてください。",
@@ -47,6 +52,9 @@
     "share": "共有",
     "versionHistory": "バージョン履歴",
     "delete": "ファイルを削除",
+    "updatedAt": "更新: {{time}}",
+    "selectAllAria": "すべてのファイルを選択",
+    "selectFileAria": "ファイル「{{name}}」を選択",
     "deleteConfirm": {
       "title": "このファイルを削除しますか？",
       "description": "「{{name}}」はシステムから削除されます。",
@@ -97,6 +105,8 @@
     "submit": "共有"
   },
   "folderGrid": {
+    "loading": "読み込み中…",
+    "meta": "{{count}}件のファイル • 更新: {{time}}",
     "restrictedTooltip": "アクセス制限のあるフォルダ",
     "optionsAria": "フォルダオプション",
     "rename": "名前を変更",

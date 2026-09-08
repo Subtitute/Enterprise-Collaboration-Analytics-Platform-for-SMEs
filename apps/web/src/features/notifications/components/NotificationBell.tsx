@@ -6,7 +6,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatRelativeTime, cn } from '@/lib/utils';
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useUnreadNotificationsPreview } from '../hooks';
-import { cleanNotificationMessage, getNotificationVisualConfig } from '../utils';
+import { cleanNotificationMessage, getNotificationVisualConfig, formatNotificationTitle } from '../utils';
 import type { AppNotification } from '@/types';
 
 export function NotificationBell() {
@@ -18,18 +18,18 @@ export function NotificationBell() {
 
   return (
     <Dropdown
-      align="right"
-      panelClassName="w-80"
+      align="end"
+      contentClassName="w-80 p-0"
       trigger={({ toggle }) => (
         <button
           type="button"
           onClick={toggle}
           aria-label={t('notifications:bell.ariaLabel')}
-          className="relative flex h-9 w-9 items-center justify-center rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+          className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer"
         >
           <BellIcon className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white">
+            <span className="absolute top-1.5 right-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-primary-600 px-1 text-[10px] font-semibold text-white">
               {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
@@ -37,14 +37,13 @@ export function NotificationBell() {
       )}
     >
       {({ close }) => (
-        <div className="flex max-h-[26rem] flex-col">
+        <div className="flex max-h-[420px] flex-col">
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-            <p className="text-sm font-semibold text-slate-900">{t('notifications:bell.title')}</p>
+            <h3 className="text-sm font-semibold text-slate-900">{t('notifications:bell.title')}</h3>
             {unreadCount > 0 && (
               <button
                 onClick={() => markAllRead.mutate()}
-                className="text-xs font-medium text-primary-600 hover:text-primary-700 disabled:opacity-50"
-                disabled={markAllRead.isPending}
+                className="text-xs text-primary-600 hover:underline cursor-pointer"
               >
                 {t('notifications:bell.markAllRead')}
               </button>
@@ -62,8 +61,9 @@ export function NotificationBell() {
             ) : (
               <ul className="divide-y divide-slate-100">
                 {data.data.map((n: AppNotification) => {
-                  const visual = getNotificationVisualConfig(n);
+                  const visual = getNotificationVisualConfig(n, t);
                   const cleanedMessage = cleanNotificationMessage(n.message);
+                  const notificationTitle = formatNotificationTitle(n, t);
 
                   return (
                     <li key={n.id}>
@@ -87,13 +87,13 @@ export function NotificationBell() {
                           {!n.isRead && (
                             <span
                               className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary-600 ring-2 ring-white"
-                              title="Chưa đọc"
+                              title={t('notifications:bell.unreadBadge')}
                             />
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-1">
-                            <p className="text-sm font-semibold text-slate-900 line-clamp-1">{n.title}</p>
+                            <p className="text-sm font-semibold text-slate-900 line-clamp-1">{notificationTitle}</p>
                             <span className="text-[10px] text-slate-400 shrink-0">{formatRelativeTime(n.createdAt)}</span>
                           </div>
                           <p className="mt-0.5 line-clamp-2 text-xs text-slate-600 leading-normal">{cleanedMessage}</p>

@@ -21,22 +21,31 @@ import type { User } from '@/types';
 const LIMIT = 15;
 
 /**
- * Chuẩn hóa nhãn và màu sắc ngữ cảnh cho Role Badge:
- * - Admin (Quản trị viên): bg-indigo-50 text-indigo-700 border-indigo-200/60
+ * Chuẩn hóa nhãn và màu sắc ngữ cảnh cho Role Badge (hỗ trợ đa ngôn ngữ):
+ * - Admin (Quản trị viên / Org Admin): bg-indigo-50 text-indigo-700 border-indigo-200/60
+ * - Manager (Quản lý): bg-purple-50 text-purple-700 border-purple-200/60
  * - Employee (Nhân viên): bg-slate-100 text-slate-700 border-slate-200/60
  */
-function getRoleBadgeConfig(roleName: string) {
+function getRoleBadgeConfig(roleName: string, t?: (key: string) => string) {
   const lower = roleName.trim().toLowerCase();
   if (lower.includes('admin') || lower.includes('quản trị')) {
-    const label = lower === 'admin' ? 'Quản trị viên' : roleName.replace(/admin/i, 'Quản trị viên');
+    const label = t ? t('admin:roles.orgAdmin') : 'Quản trị viên tổ chức';
     return {
       label,
       className: 'bg-indigo-50 text-indigo-700 border border-indigo-200/70 font-medium',
     };
   }
-  if (lower === 'employee' || lower === 'nhân viên' || lower.includes('employee')) {
+  if (lower.includes('manager') || lower.includes('quản lý')) {
+    const label = t ? t('admin:roles.manager') : 'Quản lý';
     return {
-      label: 'Nhân viên',
+      label,
+      className: 'bg-purple-50 text-purple-700 border border-purple-200/70 font-medium',
+    };
+  }
+  if (lower.includes('employee') || lower.includes('nhân viên')) {
+    const label = t ? t('admin:roles.employee') : 'Nhân viên';
+    return {
+      label,
       className: 'bg-slate-100 text-slate-700 border border-slate-200 font-medium',
     };
   }
@@ -224,7 +233,7 @@ export function MembersPage() {
                           <span className="text-xs text-slate-400">—</span>
                         ) : (
                           (u.roles ?? []).map((r) => {
-                            const badgeCfg = getRoleBadgeConfig(r.name);
+                            const badgeCfg = getRoleBadgeConfig(r.name, t);
                             return (
                               <span
                                 key={r.id}

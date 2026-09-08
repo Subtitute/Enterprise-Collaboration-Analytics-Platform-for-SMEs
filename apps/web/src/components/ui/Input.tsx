@@ -2,7 +2,7 @@ import { cloneElement, forwardRef, isValidElement, useId, useState } from 'react
 import type { InputHTMLAttributes, LabelHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes, ReactElement, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn, containsVietnameseDiacritics } from '@/lib/utils';
-import { AlertCircleIcon, EyeIcon, EyeOffIcon } from './Icons';
+import { AlertCircleIcon, EyeIcon, EyeOffIcon, ChevronDownIcon } from './Icons';
 
 const fieldBase =
   'block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 ' +
@@ -67,9 +67,22 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
 Textarea.displayName = 'Textarea';
 
 export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(({ className, children, ...props }, ref) => (
-  <select ref={ref} className={cn(fieldBase, 'pr-8', className)} {...props}>
-    {children}
-  </select>
+  <div className="relative w-full">
+    <select
+      ref={ref}
+      className={cn(
+        fieldBase,
+        'appearance-none pr-9 text-slate-800 bg-white cursor-pointer transition-colors hover:border-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20',
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </select>
+    <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
+      <ChevronDownIcon className="h-4 w-4" />
+    </div>
+  </div>
 ));
 Select.displayName = 'Select';
 

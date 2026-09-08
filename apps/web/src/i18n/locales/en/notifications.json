@@ -18,6 +18,23 @@
       "leave_request": "Leave request",
       "document": "Document",
       "system": "System"
+    },
+    "viewDetails": "View details →",
+    "unreadBadge": "Unread",
+    "loadMore": "Load more notifications ({{current}}/{{total}})",
+    "targets": {
+      "leave_request": "Leave request",
+      "deal": "Sales (Deal)",
+      "task": "Task",
+      "document": "Document",
+      "system": "System"
+    },
+    "titles": {
+      "taskAssigned": "You have been assigned a new task",
+      "documentShared": "A document has been shared with you",
+      "dealWon": "Deal successfully closed",
+      "leaveApproved": "Leave request approved",
+      "leaveRejected": "Leave request rejected"
     }
   },
   "bell": {
@@ -25,7 +42,8 @@
     "title": "Notifications",
     "markAllRead": "Mark all as read",
     "empty": "No new notifications",
-    "viewAll": "View all notifications"
+    "viewAll": "View all notifications",
+    "unreadBadge": "Unread"
   },
   "toast": {
     "updateError": "Couldn't update notification"

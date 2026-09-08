@@ -23,7 +23,22 @@
       "checkOutLabel": "Ra về",
       "checkInButton": "Check-in",
       "checkOutButton": "Check-out",
-      "doneToday": "Đã hoàn tất hôm nay"
+      "doneToday": "Đã hoàn tất hôm nay",
+      "checkedInBadge": "Đã Check-in",
+      "notCheckedInBadge": "Chưa Check-in",
+      "standardTime": "Giờ chuẩn hệ thống (GMT+7)",
+      "notRecorded": "Chưa ghi nhận",
+      "completedShift": "✓ Bạn đã hoàn thành chấm công ca làm việc hôm nay!"
+    },
+    "statuses": {
+      "onTime": "Đúng giờ",
+      "late": "Đi muộn",
+      "forgotCheckOut": "Quên check-out"
+    },
+    "filter": {
+      "ariaLabel": "Chọn tháng lọc chấm công",
+      "allTime": "Tất cả thời gian",
+      "monthLabel": "Tháng {{month}}/{{year}}"
     },
     "history": {
       "cardTitle": "Lịch sử chấm công",
@@ -32,20 +47,46 @@
       "errorDescription": "Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại.",
       "emptyTitle": "Chưa có lịch sử chấm công",
       "emptyDescription": "Dữ liệu sẽ xuất hiện sau lần chấm công đầu tiên.",
+      "emptyFiltered": "Không có dữ liệu chấm công trong {{month}}",
       "columns": {
         "date": "Ngày",
         "checkIn": "Vào làm",
-        "checkOut": "Ra về"
-      }
+        "checkOut": "Ra về",
+        "totalHours": "Tổng giờ",
+        "status": "Trạng thái"
+      },
+      "viewProofIn": "Xem ảnh bằng chứng vào làm",
+      "viewProofOut": "Xem ảnh bằng chứng ra về"
     },
     "allAttendance": {
       "cardTitle": "Chấm công toàn tổ chức",
+      "loading": "Đang tải dữ liệu chấm công toàn tổ chức…",
+      "errorTitle": "Không thể tải dữ liệu chấm công",
+      "errorDescription": "Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại.",
+      "emptyTitle": "Chưa có dữ liệu chấm công",
+      "emptyDescription": "Chưa có nhân viên nào chấm công.",
+      "emptyFiltered": "Không có dữ liệu chấm công toàn tổ chức trong {{month}}",
       "columns": {
         "employee": "Nhân viên",
         "date": "Ngày",
         "checkIn": "Vào làm",
-        "checkOut": "Ra về"
-      }
+        "checkOut": "Ra về",
+        "totalHours": "Tổng giờ",
+        "status": "Trạng thái"
+      },
+      "viewProofInOf": "Xem ảnh bằng chứng vào làm của {{name}}",
+      "viewProofOutOf": "Xem ảnh bằng chứng ra về của {{name}}"
+    },
+    "hoursUnit": "{{hours}} giờ",
+    "photoModal": {
+      "title": "Ảnh chấm công {{action}}",
+      "actionCheckIn": "Vào làm",
+      "actionCheckOut": "Ra về",
+      "personal": "Cá nhân",
+      "loading": "Đang tải ảnh bằng chứng…",
+      "error": "Không thể tải ảnh bằng chứng hoặc liên kết đã hết hạn.",
+      "imageAlt": "Ảnh chụp chấm công",
+      "close": "Đóng"
     }
   },
   "leaveRequestsPage": {
@@ -66,7 +107,8 @@
       "emptyDescription": "Tạo yêu cầu đầu tiên khi bạn cần nghỉ phép.",
       "createFirstButton": "Tạo yêu cầu mới",
       "decisionNote": "Ghi chú: {{note}}"
-    }
+    },
+    "daysCount": "{{count}} ngày"
   },
   "newLeaveRequestModal": {
     "title": "Tạo yêu cầu nghỉ phép",
@@ -83,6 +125,8 @@
     "reasonPlaceholder": "Lý do xin nghỉ phép…",
     "cancelButton": "Hủy",
     "submitButton": "Gửi yêu cầu",
+    "daysCount": "{{count}} ngày",
+    "totalWorkingDays": "Tổng cộng: {{count}} ngày (không tính cuối tuần)",
     "errors": {
       "missingDates": "Vui lòng chọn ngày bắt đầu và kết thúc",
       "missingType": "Vui lòng chọn loại nghỉ phép",

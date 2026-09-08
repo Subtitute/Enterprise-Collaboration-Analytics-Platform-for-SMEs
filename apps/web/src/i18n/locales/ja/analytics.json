@@ -17,7 +17,12 @@
     "comparedToPrevious": "前期比",
     "stable": "安定",
     "filesCount": "{{count}} 件",
-    "projectsCount": "{{count}} 件"
+    "projectsCount": "{{count}} 件",
+    "trends": {
+      "vsLastWeek": "先週比 {{percent}}",
+      "vsLastMonth": "先月比 {{percent}}",
+      "vsLastQuarter": "前四半期比 {{percent}}"
+    }
   },
   "aiInsight": {
     "title": "社内分析アシスタント",

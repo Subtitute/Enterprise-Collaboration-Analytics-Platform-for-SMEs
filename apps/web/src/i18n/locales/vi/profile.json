@@ -1,19 +1,53 @@
 {
   "page": {
     "title": "Hồ sơ cá nhân",
-    "subtitle": "Thông tin tài khoản của bạn trong tổ chức.",
+    "subtitle": "Quản lý thông tin định danh và thiết lập an toàn tài khoản.",
     "loading": "Đang tải hồ sơ…",
     "loadError": "Không thể tải hồ sơ cá nhân",
     "status": {
       "active": "Đang hoạt động",
       "inactive": "Đã vô hiệu hoá"
     },
-    "fields": {
-      "email": "Email",
-      "department": "Phòng ban",
-      "roles": "Vai trò",
-      "joinedAt": "Ngày tham gia"
+    "sections": {
+      "personalInfo": "Thông tin cá nhân",
+      "personalInfoDesc": "Thông tin nhân sự và liên hệ cơ bản trong tổ chức.",
+      "security": "Bảo mật tài khoản",
+      "securityDesc": "Cập nhật mật khẩu để duy trì tính an toàn cho tài khoản."
     },
-    "contactAdminNote": "Để đổi phòng ban hoặc vai trò, vui lòng liên hệ quản trị viên tổ chức (Quản trị > Thành viên)."
+    "fields": {
+      "fullName": "Họ và tên",
+      "fullNamePlaceholder": "Nhập họ và tên",
+      "employeeId": "Mã nhân viên",
+      "department": "Phòng ban",
+      "phone": "Số điện thoại liên hệ",
+      "phonePlaceholder": "Ví dụ: 0912 345 678",
+      "roles": "Vai trò đảm nhiệm",
+      "joinedAt": "Ngày gia nhập",
+      "currentPassword": "Mật khẩu hiện tại",
+      "currentPasswordPlaceholder": "Nhập mật khẩu hiện tại",
+      "newPassword": "Mật khẩu mới",
+      "newPasswordPlaceholder": "Nhập mật khẩu mới (tối thiểu 8 ký tự)",
+      "confirmPassword": "Xác nhận mật khẩu mới",
+      "confirmPasswordPlaceholder": "Nhập lại mật khẩu mới"
+    },
+    "buttons": {
+      "uploadAvatar": "Tải ảnh lên",
+      "saveProfile": "Lưu thay đổi",
+      "updatePassword": "Cập nhật mật khẩu"
+    },
+    "roles": {
+      "orgAdmin": "Quản trị viên tổ chức",
+      "manager": "Quản lý",
+      "employee": "Nhân viên"
+    },
+    "contactAdminCallout": "Để thay đổi phòng ban, mã nhân sự hoặc vai trò hệ thống, vui lòng liên hệ Ban quản trị tổ chức.",
+    "toasts": {
+      "avatarSimulated": "Đã tải ảnh đại diện thành công!",
+      "profileUpdated": "Cập nhật thông tin cá nhân thành công!",
+      "passwordSuccess": "Đổi mật khẩu thành công!",
+      "passwordMismatch": "Mật khẩu xác nhận không khớp.",
+      "passwordTooShort": "Mật khẩu mới phải có tối thiểu 8 ký tự.",
+      "missingCurrentPassword": "Vui lòng nhập mật khẩu hiện tại."
+    }
   }
 }

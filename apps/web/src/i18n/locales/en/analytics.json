@@ -17,7 +17,12 @@
     "comparedToPrevious": "vs previous period",
     "stable": "Stable",
     "filesCount": "{{count}} files",
-    "projectsCount": "{{count}} projects"
+    "projectsCount": "{{count}} projects",
+    "trends": {
+      "vsLastWeek": "{{percent}} vs last week",
+      "vsLastMonth": "{{percent}} vs last month",
+      "vsLastQuarter": "{{percent}} vs last quarter"
+    }
   },
   "aiInsight": {
     "title": "Internal Analytical Assistant",

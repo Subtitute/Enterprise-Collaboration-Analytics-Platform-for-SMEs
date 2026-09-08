@@ -95,7 +95,7 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
       return;
     }
 
-    const typePrefix = `[${t(`hrm:newLeaveRequestModal.types.${leaveType}`)}]`;
+    const typePrefix = `[${leaveType}]`;
     const fullReason = `${typePrefix} ${reason.trim()}`;
 
     createLeaveRequest.mutate(
@@ -153,7 +153,7 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
 
         {totalWorkingDays > 0 && (
           <div className="flex items-center gap-1.5 -mt-2 text-xs font-medium text-slate-500">
-            <span>• Tổng cộng: <strong className="text-indigo-600 font-semibold">{totalWorkingDays} ngày</strong> (không tính cuối tuần)</span>
+            <span>• {t('hrm:newLeaveRequestModal.totalWorkingDays', { count: totalWorkingDays })}</span>
           </div>
         )}
 

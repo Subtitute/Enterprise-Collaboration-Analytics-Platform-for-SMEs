@@ -10,7 +10,7 @@ import { FullPageSpinner, Spinner } from '@/components/ui/Spinner';
 import { BellIcon, ChevronDownIcon, CheckIcon } from '@/components/ui/Icons';
 import { cn, formatDateTime } from '@/lib/utils';
 import { useMarkAllNotificationsRead, useMarkNotificationRead, useNotificationsQuery } from './hooks';
-import { cleanNotificationMessage, extractEntityHash, getNotificationVisualConfig } from './utils';
+import { cleanNotificationMessage, extractEntityHash, getNotificationVisualConfig, formatNotificationTitle } from './utils';
 import type { AppNotification } from '@/types';
 
 const LIMIT = 15;
@@ -198,8 +198,9 @@ export function NotificationsPage() {
           ) : (
             <ul className="divide-y divide-slate-100">
               {displayedItems.map((n: AppNotification) => {
-                const visual = getNotificationVisualConfig(n);
+                const visual = getNotificationVisualConfig(n, t);
                 const entityHash = extractEntityHash(n);
+                const notificationTitle = formatNotificationTitle(n, t);
 
                 return (
                   <li
@@ -227,7 +228,7 @@ export function NotificationsPage() {
                         {!n.isRead && (
                           <span
                             className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-indigo-600 ring-2 ring-white"
-                            title="Chưa đọc"
+                            title={t('notifications:page.unreadBadge')}
                           />
                         )}
                       </div>
@@ -236,19 +237,7 @@ export function NotificationsPage() {
                       <div className="min-w-0 flex-1 space-y-1">
                         {/* Tầng 1: Tiêu đề thông báo + Nhãn phân loại nghiệp vụ (Tag) */}
                         <div className="flex flex-wrap items-center gap-2">
-                          {visual.linkUrl ? (
-                            <Link
-                              to={visual.linkUrl}
-                              onClick={() => {
-                                if (!n.isRead) markRead.mutate(n.id);
-                              }}
-                              className="text-sm font-semibold text-slate-900 hover:text-indigo-600 hover:underline transition-colors truncate max-w-xl"
-                            >
-                              {n.title}
-                            </Link>
-                          ) : (
-                            <p className="text-sm font-semibold text-slate-900 truncate max-w-xl">{n.title}</p>
-                          )}
+                          <p className="text-sm font-semibold text-slate-900 truncate max-w-xl">{notificationTitle}</p>
                           <span className="inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold bg-slate-100/90 text-slate-600 border border-slate-200/60 shrink-0">
                             {visual.targetName}
                           </span>
@@ -275,7 +264,7 @@ export function NotificationsPage() {
                                 }}
                                 className="font-semibold text-indigo-600 hover:text-indigo-700 hover:underline transition-colors"
                               >
-                                Xem chi tiết →
+                                {t('notifications:page.viewDetails')}
                               </Link>
                             </>
                           )}
@@ -314,7 +303,7 @@ export function NotificationsPage() {
                   <Spinner size="sm" /> {t('common:loading')}
                 </span>
               ) : (
-                `Tải thêm thông báo (${accumulatedItems.length}/${meta.total})`
+                t('notifications:page.loadMore', { current: accumulatedItems.length, total: meta.total })
               )}
             </Button>
           </div>
