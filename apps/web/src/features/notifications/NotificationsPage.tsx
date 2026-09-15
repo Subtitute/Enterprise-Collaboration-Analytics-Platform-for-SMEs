@@ -35,7 +35,10 @@ export function NotificationsPage() {
 
   const query = useNotificationsQuery({
     isRead: filter === 'unread' ? false : undefined,
-    type: typeFilter || undefined,
+    // Lưu ý: Backend notification-service lưu type là 'leave_request.approved' / 'leave_request.rejected'
+    // và query exact match { type: query.type }. Nếu gửi 'leave_request', backend trả về [] rỗng.
+    // Vì vậy ta fetch danh sách tổng hợp (type: undefined) và để client-side filter hiển thị toàn bộ chính xác.
+    type: typeFilter === 'leave_request' ? undefined : (typeFilter || undefined),
     page,
     limit: LIMIT,
   });

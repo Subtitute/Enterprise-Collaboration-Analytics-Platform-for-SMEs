@@ -130,7 +130,9 @@
     "errors": {
       "missingDates": "Please select a start and end date",
       "missingType": "Please select a leave type",
-      "missingReason": "Please enter a reason for the leave"
+      "missingReason": "Please enter a reason for the leave",
+      "pastStartDate": "Start date cannot be in the past",
+      "invalidDateRange": "End date cannot be earlier than start date"
     }
   },
   "checkInCamera": {

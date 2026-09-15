@@ -56,11 +56,34 @@
     "openMenu": "Open menu",
     "accountMenu": "Account menu",
     "profile": "My profile",
-    "logout": "Log out"
+    "logout": "Log out",
+    "logoutConfirmTitle": "Confirm Logout",
+    "logoutConfirmDescription": "Are you sure you want to log out of your current session?",
+    "quickCreate": "Create"
+  },
+  "quickCreate": {
+    "button": "Create",
+    "tooltip": "Create (Shortcut: C)",
+    "createTask": "Create Task",
+    "createTaskDesc": "Quickly assign work to project",
+    "createTaskTitle": "Create New Task",
+    "createProject": "Create Project",
+    "createProjectDesc": "Start a new project",
+    "createCustomer": "Add Customer",
+    "createCustomerDesc": "Manage deals & customers",
+    "requestLeave": "Submit Leave Request",
+    "requestLeaveDesc": "Request time off",
+    "projectLabel": "Project",
+    "assigneeLabel": "Assignee",
+    "unassigned": "Unassigned",
+    "noProjectsAvailable": "No projects available (please create a project first)",
+    "selectProjectRequired": "Please select a project",
+    "descriptionPlaceholder": "Optional task description..."
   },
   "sidebar": {
     "expand": "Expand sidebar",
     "collapse": "Collapse sidebar",
+    "collapseMenu": "Collapse menu",
     "orgAriaLabel": "Organization: {{orgName}}",
     "subtitle": "Business / Organization"
   },

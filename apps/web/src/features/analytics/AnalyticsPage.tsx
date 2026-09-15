@@ -47,19 +47,29 @@ export function AnalyticsPage() {
   // ra (xem fetchAiInsight()), lay tu du lieu departmentsQuery da co san cho dropdown ben tren.
   const aiInsightMutation = useAiInsightMutation();
 
-  // 26/08/2026: Fix 5 - reset aiInsightMutation moi khi doi bo loc (range/departmentId) - truoc
-  // ban sua nay `aiInsightMutation.data` chi duoc TanStack Query cap nhat luc goi mutate() THANH
-  // CONG, khong bao gio tu xoa khi nguoi dung doi bo loc rieng biet; ket qua la doi "30 ngay qua"
-  // -> "Quý này" (hoac doi phong ban) van hien dung doan nhan xet AI + dong chu thich CU (sinh ra
-  // tu bo loc TRUOC do, xem `aiInsightMutation.variables` o CardContent ben duoi) cho toi khi bam
-  // lai nut "Nhận xét AI" - noi dung hien thi khong con khop voi bo loc dang chon. reset() xoa
-  // data/variables/isSuccess cua mutation, dua CardContent ve lai trang thai placeholder ban dau
-  // ngay khi bo loc thay doi. Chi phu thuoc [range, departmentId] (KHONG dua aiInsightMutation vao
-  // dependency array - object mutation doi tham chieu moi lan render, dua vao se chay lai vo ich).
+  // State cho bộ lọc chu kỳ nhận xét AI độc lập (Tuần, Tháng, Quý, Năm)
+  const [aiPeriod, setAiPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
+
+  // Ánh xạ chu kỳ AI sang param range gửi cho Backend (7d, 30d, quarter)
+  const aiRange: DateRangeOption = useMemo(() => {
+    switch (aiPeriod) {
+      case 'week':
+        return '7d';
+      case 'month':
+        return '30d';
+      case 'quarter':
+      case 'year':
+        return 'quarter';
+      default:
+        return '30d';
+    }
+  }, [aiPeriod]);
+
+  // 26/08/2026: Fix 5 - reset aiInsightMutation khi đổi bộ lọc hoặc chu kỳ nhận xét
   useEffect(() => {
     aiInsightMutation.reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [range, departmentId]);
+  }, [aiPeriod, departmentId]);
 
   const selectedDepartmentName = departmentId
     ? (departmentsQuery.data ?? []).find((d) => d.id === departmentId)?.name
@@ -321,27 +331,43 @@ export function AnalyticsPage() {
               <p className="text-xs text-slate-500">
                 {selectedDepartmentName
                   ? t('analytics:aiInsight.summaryWithDepartment', {
-                      range: t(`common:enums.dateRange.${range}`).toLowerCase(),
+                      period: t(`analytics:aiInsight.periods.${aiPeriod}`).toLowerCase(),
                       department: selectedDepartmentName,
                     })
                   : t('analytics:aiInsight.summaryAllOrg', {
-                      range: t(`common:enums.dateRange.${range}`).toLowerCase(),
+                      period: t(`analytics:aiInsight.periods.${aiPeriod}`).toLowerCase(),
                     })}
               </p>
             </div>
           </div>
 
-          <Button
-            size="sm"
-            isLoading={aiInsightMutation.isPending}
-            onClick={() =>
-              aiInsightMutation.mutate({ range, departmentId: departmentId || undefined, departmentName: selectedDepartmentName })
-            }
-            className="shrink-0 bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs cursor-pointer"
-          >
-            <BarChartIcon className="h-4 w-4" />
-            {t('analytics:aiInsight.generateButton')}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {/* Dropdown chọn chu kỳ nhận xét: Tuần / Tháng / Quý / Năm */}
+            <CustomFilterSelect
+              value={aiPeriod}
+              onChange={(val) => setAiPeriod(val as 'week' | 'month' | 'quarter' | 'year')}
+              ariaLabel={t('analytics:aiInsight.periodAriaLabel')}
+              options={[
+                { value: 'week', label: t('analytics:aiInsight.periods.week') },
+                { value: 'month', label: t('analytics:aiInsight.periods.month') },
+                { value: 'quarter', label: t('analytics:aiInsight.periods.quarter') },
+                { value: 'year', label: t('analytics:aiInsight.periods.year') },
+              ]}
+              className="min-w-[170px]"
+            />
+
+            <Button
+              size="sm"
+              isLoading={aiInsightMutation.isPending}
+              onClick={() =>
+                aiInsightMutation.mutate({ range: aiRange, departmentId: departmentId || undefined, departmentName: selectedDepartmentName })
+              }
+              className="bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs cursor-pointer"
+            >
+              <BarChartIcon className="h-4 w-4" />
+              {t('analytics:aiInsight.generateButton')}
+            </Button>
+          </div>
         </div>
 
         <div className="mt-4 pt-3.5 border-t border-indigo-100/60">

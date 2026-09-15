@@ -28,9 +28,16 @@
     "title": "Internal Analytical Assistant",
     "badge": "Executive Analysis",
     "generateButton": "Generate Executive Summary",
-    "summaryWithDepartment": "Summary based on {{range}} data · {{department}} department",
-    "summaryAllOrg": "Summary based on {{range}} data · Organization-wide",
-    "placeholder": "Click “Generate Executive Summary” for an executive briefing of operating highlights, bottlenecks, and recommendations."
+    "summaryWithDepartment": "Summary based on {{period}} data · {{department}} department",
+    "summaryAllOrg": "Summary based on {{period}} data · Organization-wide",
+    "placeholder": "Click “Generate Executive Summary” for an executive briefing of operating highlights, bottlenecks, and recommendations.",
+    "periodAriaLabel": "Report period",
+    "periods": {
+      "week": "Weekly (Last 7 days)",
+      "month": "Monthly (Last 30 days)",
+      "quarter": "Quarterly (This quarter)",
+      "year": "Yearly (This year)"
+    }
   },
   "charts": {
     "projectProgressTitle": "Project Progress Comparison",

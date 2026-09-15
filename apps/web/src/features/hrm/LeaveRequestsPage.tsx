@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -62,7 +63,16 @@ function parseLeaveReason(rawReason: string | undefined | null, t: (key: string,
 /** Trang Nghỉ phép (HRM-lite) - Technical_Spec.md muc 17, Wireframe.md muc 13. */
 export function LeaveRequestsPage() {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isNewOpen, setIsNewOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'create') {
+      setIsNewOpen(true);
+      searchParams.delete('action');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   const myRequestsQuery = useMyLeaveRequestsQuery({ limit: 20 });
   const pendingQuery = usePendingLeaveRequestsQuery();
   const { map: userNameMap } = useUserNameMap();

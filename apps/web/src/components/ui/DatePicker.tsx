@@ -14,7 +14,16 @@ interface DatePickerProps {
   align?: 'left' | 'right';
 }
 
-export function DatePicker({ id, value = '', onChange, placeholder, className, position = 'top', align = 'left' }: DatePickerProps) {
+export function DatePicker({
+  id,
+  value = '',
+  onChange,
+  placeholder,
+  className,
+  minDate,
+  position = 'top',
+  align = 'left',
+}: DatePickerProps) {
   const { t } = useTranslation();
   const errorId = useId();
 
@@ -162,8 +171,12 @@ export function DatePicker({ id, value = '', onChange, placeholder, className, p
       const roundTrips = check.getFullYear() === y && check.getMonth() === m - 1 && check.getDate() === d;
 
       if (inRange && roundTrips) {
-        setInputError(false);
         const formatted = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        if (minDate && formatted < minDate) {
+          setInputError(true);
+          return;
+        }
+        setInputError(false);
         onChange(formatted);
         return;
       }
@@ -360,6 +373,12 @@ export function DatePicker({ id, value = '', onChange, placeholder, className, p
                   {/* Ngày tháng hiện tại */}
                   {Array.from({ length: daysInMonth }).map((_, i) => {
                     const day = i + 1;
+                    const formattedMonth = String(currentMonth + 1).padStart(2, '0');
+                    const formattedDay = String(day).padStart(2, '0');
+                    const dateStr = `${currentYear}-${formattedMonth}-${formattedDay}`;
+
+                    const isDisabled = minDate ? dateStr < minDate : false;
+
                     const isSelected =
                       parsedDate &&
                       !isNaN(parsedDate.getTime()) &&
@@ -376,14 +395,17 @@ export function DatePicker({ id, value = '', onChange, placeholder, className, p
                       <button
                         key={`cur-${day}`}
                         type="button"
-                        onClick={() => handleSelectDay(day)}
+                        disabled={isDisabled}
+                        onClick={() => !isDisabled && handleSelectDay(day)}
                         className={cn(
-                          'flex h-5.5 w-full items-center justify-center rounded text-[10px] font-semibold transition-all duration-150 cursor-pointer',
-                          isSelected
-                            ? 'bg-slate-800 text-white font-bold shadow-xs'
-                            : isToday
-                              ? 'bg-primary-50 text-primary-700 font-bold border border-primary-300 hover:bg-primary-100'
-                              : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                          'flex h-5.5 w-full items-center justify-center rounded text-[10px] font-semibold transition-all duration-150',
+                          isDisabled
+                            ? 'text-slate-300 cursor-not-allowed bg-slate-50/40 line-through decoration-slate-300'
+                            : isSelected
+                              ? 'bg-slate-800 text-white font-bold shadow-xs cursor-pointer'
+                              : isToday
+                                ? 'bg-primary-50 text-primary-700 font-bold border border-primary-300 hover:bg-primary-100 cursor-pointer'
+                                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 cursor-pointer',
                         )}
                       >
                         {day}

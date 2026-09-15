@@ -56,11 +56,34 @@
     "openMenu": "メニューを開く",
     "accountMenu": "アカウントメニュー",
     "profile": "プロフィール",
-    "logout": "ログアウト"
+    "logout": "ログアウト",
+    "logoutConfirmTitle": "ログアウトの確認",
+    "logoutConfirmDescription": "現在のセッションからログアウトしてもよろしいですか？",
+    "quickCreate": "新規作成"
+  },
+  "quickCreate": {
+    "button": "新規作成",
+    "tooltip": "新規作成 (ショートカット: C)",
+    "createTask": "タスクを作成",
+    "createTaskDesc": "プロジェクトにタスクを割り当て",
+    "createTaskTitle": "新しいタスクを作成",
+    "createProject": "プロジェクトを作成",
+    "createProjectDesc": "新しいプロジェクトを開始",
+    "createCustomer": "顧客を追加",
+    "createCustomerDesc": "顧客と商談を管理",
+    "requestLeave": "休暇申請を提出",
+    "requestLeaveDesc": "有給・休暇の申請",
+    "projectLabel": "プロジェクト",
+    "assigneeLabel": "担当者",
+    "unassigned": "未割り当て",
+    "noProjectsAvailable": "プロジェクトがありません (先にプロジェクトを作成してください)",
+    "selectProjectRequired": "プロジェクトを選択してください",
+    "descriptionPlaceholder": "タスクの詳細説明 (任意)..."
   },
   "sidebar": {
     "expand": "サイドバーを展開",
     "collapse": "サイドバーを折りたたむ",
+    "collapseMenu": "メニューを折りたたむ",
     "orgAriaLabel": "組織: {{orgName}}",
     "subtitle": "企業・組織"
   },

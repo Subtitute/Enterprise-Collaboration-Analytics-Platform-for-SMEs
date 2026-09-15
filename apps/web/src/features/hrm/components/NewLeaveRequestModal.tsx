@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
@@ -43,6 +43,11 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
   const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Ngày hiện tại GMT+7 định dạng YYYY-MM-DD
+  const todayStr = useMemo(() => {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+  }, []);
+
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [reason, setReason] = useState('');
@@ -86,6 +91,14 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
       setError(t('hrm:newLeaveRequestModal.errors.missingDates'));
       return;
     }
+    if (startDate < todayStr) {
+      setError(t('hrm:newLeaveRequestModal.errors.pastStartDate'));
+      return;
+    }
+    if (endDate < startDate) {
+      setError(t('hrm:newLeaveRequestModal.errors.invalidDateRange'));
+      return;
+    }
     if (!leaveType) {
       setError(t('hrm:newLeaveRequestModal.errors.missingType'));
       return;
@@ -127,6 +140,7 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
             <DatePicker
               id="leave-start-date"
               value={startDate}
+              minDate={todayStr}
               onChange={(val) => {
                 setStartDate(val);
                 if (error) setError('');
@@ -141,6 +155,7 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
             <DatePicker
               id="leave-end-date"
               value={endDate}
+              minDate={startDate || todayStr}
               onChange={(val) => {
                 setEndDate(val);
                 if (error) setError('');

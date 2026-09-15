@@ -56,11 +56,34 @@
     "openMenu": "Mở menu",
     "accountMenu": "Menu tài khoản",
     "profile": "Hồ sơ cá nhân",
-    "logout": "Đăng xuất"
+    "logout": "Đăng xuất",
+    "logoutConfirmTitle": "Xác nhận đăng xuất",
+    "logoutConfirmDescription": "Bạn có chắc chắn muốn đăng xuất khỏi phiên làm việc hiện tại không?",
+    "quickCreate": "Tạo mới"
+  },
+  "quickCreate": {
+    "button": "Tạo mới",
+    "tooltip": "Tạo mới (Phím tắt: C)",
+    "createTask": "Tạo công việc",
+    "createTaskDesc": "Giao việc nhanh cho dự án",
+    "createTaskTitle": "Tạo công việc mới",
+    "createProject": "Tạo dự án mới",
+    "createProjectDesc": "Khởi tạo dự án công việc",
+    "createCustomer": "Thêm khách hàng",
+    "createCustomerDesc": "Quản lý cơ hội và khách hàng",
+    "requestLeave": "Gửi đơn nghỉ phép",
+    "requestLeaveDesc": "Yêu cầu nghỉ phép cá nhân",
+    "projectLabel": "Dự án",
+    "assigneeLabel": "Người thực hiện",
+    "unassigned": "Chưa giao cho ai",
+    "noProjectsAvailable": "Chưa có dự án nào (vui lòng tạo dự án trước)",
+    "selectProjectRequired": "Vui lòng chọn một dự án",
+    "descriptionPlaceholder": "Mô tả chi tiết công việc nếu có..."
   },
   "sidebar": {
     "expand": "Mở rộng thanh bên",
     "collapse": "Thu gọn thanh bên",
+    "collapseMenu": "Thu gọn menu",
     "orgAriaLabel": "Tổ chức: {{orgName}}",
     "subtitle": "Doanh nghiệp / Tổ chức"
   },

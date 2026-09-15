@@ -3,7 +3,7 @@ import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn, hasAdminRole } from '@/lib/utils';
 import { NAV_ITEMS } from './nav-items';
-import { ChevronLeftIcon, ChevronRightIcon } from '@/components/ui/Icons';
+import { ChevronLeftIcon, ChevronRightIcon, LayersIcon } from '@/components/ui/Icons';
 import { useUIStore } from '@/stores/ui.store';
 import { useAuthStore } from '@/stores/auth.store';
 
@@ -59,11 +59,14 @@ function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
                     )}
                   />
                 </div>
-                {!collapsed && (
-                  <div className="flex-1 min-w-0 overflow-hidden ml-3">
-                    <span className="block truncate">{t(item.labelKey)}</span>
-                  </div>
-                )}
+                <div
+                  className={cn(
+                    'overflow-hidden transition-all duration-150 ease-in-out whitespace-nowrap ml-3',
+                    collapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[160px] opacity-100',
+                  )}
+                >
+                  <span className="block truncate">{t(item.labelKey)}</span>
+                </div>
               </>
             )}
           </NavLink>
@@ -83,50 +86,65 @@ function SidebarHeader({
   onNavigate?: () => void;
 }) {
   const { t } = useTranslation();
-  const user = useAuthStore((s) => s.user);
-  const orgName = user?.organizationName || 'Demo SME Platform';
-  const orgInitial = orgName.trim().charAt(0).toUpperCase() || 'O';
   const toggleLabel = t(collapsed ? 'common:sidebar.expand' : 'common:sidebar.collapse');
 
   return (
     <div
       className={cn(
-        'border-b border-slate-100 mb-2',
-        collapsed ? 'flex flex-col items-center gap-2 py-3 px-2' : 'flex h-16 items-center justify-between px-3 pt-3 pb-3',
+        'border-b border-slate-100 flex h-14 items-center overflow-hidden transition-all duration-150',
+        collapsed ? 'justify-center px-2' : 'justify-between px-3.5',
       )}
     >
-      <Link
-        to="/"
-        onClick={onNavigate}
-        aria-label={t('common:sidebar.orgAriaLabel', { orgName })}
-        className="group flex min-w-0 items-center rounded-lg p-1 transition-colors hover:bg-slate-50 overflow-hidden"
-      >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-sm font-bold text-white shadow-sm shadow-primary-500/20 transition-transform duration-150 group-hover:scale-105">
-          {orgInitial}
-        </span>
-        {!collapsed && (
-          <div className="flex flex-col min-w-0 overflow-hidden ml-2.5">
-            <span className="truncate text-sm font-bold text-slate-900 transition-colors group-hover:text-primary-600" title={orgName}>
-              {orgName}
+      {!collapsed ? (
+        <>
+          <Link
+            to="/"
+            onClick={onNavigate}
+            aria-label="ECAP for SMEs"
+            title="ECAP for SMEs"
+            className="flex items-center rounded-lg p-1 transition-colors hover:bg-slate-50 cursor-pointer overflow-hidden min-w-0"
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-xs transition-transform duration-150 group-hover:scale-105">
+              <LayersIcon className="w-4 h-4 text-white" />
             </span>
-            <span className="truncate text-[10px] font-medium text-slate-400">{t('common:sidebar.subtitle')}</span>
-          </div>
-        )}
-      </Link>
+            <div className="overflow-hidden whitespace-nowrap ml-2.5 max-w-[130px]">
+              <span className="block truncate text-sm font-bold text-slate-900 tracking-tight">
+                ECAP for SMEs
+              </span>
+            </div>
+          </Link>
 
-      {onToggle && (
-        <button
-          type="button"
-          onClick={onToggle}
-          title={toggleLabel}
-          aria-label={toggleLabel}
-          className={cn(
-            'flex items-center justify-center rounded-lg text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700',
-            collapsed ? 'h-6 w-full py-0.5 text-slate-500 hover:bg-slate-100' : 'h-7 w-7 shrink-0',
+          {onToggle && (
+            <button
+              type="button"
+              onClick={onToggle}
+              title={toggleLabel}
+              aria-label={toggleLabel}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+            >
+              <ChevronLeftIcon className="w-4 h-4" />
+            </button>
           )}
-        >
-          {collapsed ? <ChevronRightIcon className="h-4 w-4" /> : <ChevronLeftIcon className="h-4 w-4" />}
-        </button>
+        </>
+      ) : (
+        onToggle && (
+          <button
+            type="button"
+            onClick={onToggle}
+            title={toggleLabel}
+            aria-label={toggleLabel}
+            className="group relative flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-150 cursor-pointer focus:outline-none"
+          >
+            {/* Logo nền tảng mặc định luôn hiển thị rõ ràng */}
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-xs transition-opacity duration-150 group-hover:opacity-0">
+              <LayersIcon className="w-4 h-4 text-white" />
+            </span>
+            {/* Khi di chuột vào, chuyển thành nút mũi tên mở rộng trực quan */}
+            <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-slate-100 text-indigo-600 opacity-0 transition-opacity duration-150 group-hover:opacity-100 shadow-2xs">
+              <ChevronRightIcon className="w-5 h-5" />
+            </span>
+          </button>
+        )
       )}
     </div>
   );
@@ -144,11 +162,6 @@ export function Sidebar() {
         collapsed ? 'w-[68px]' : 'w-60',
       )}
     >
-      {/* 26/08/2026: fix ra soat lan 4 - SidebarHeader da tu co 1 nut thu gon/mo rong rieng (dung
-          chung onToggle nay); truoc do Sidebar() con rieng 1 nut thu gon/mo rong THU HAI o duoi
-          cung, lam cung 1 viec voi nut cua SidebarHeader, va nut o day khong bao gio duoc phat
-          hien la trung lap qua cac dot rieng ra soat i18n/accessibility (moi dot chi sua rieng le
-          tung nut, khong doi chieu ca 2). Bo nut thu hai, chi giu 1 nut duy nhat o SidebarHeader. */}
       <SidebarHeader collapsed={collapsed} onToggle={toggle} />
       <SidebarLinks collapsed={collapsed} />
     </aside>

@@ -73,6 +73,14 @@ export const ShieldIcon = (p: IconProps) => (
   </svg>
 );
 
+export const LayersIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <polygon points="12 2 2 7 12 12 22 7 12 2" />
+    <polyline points="2 17 12 22 22 17" />
+    <polyline points="2 12 12 17 22 12" />
+  </svg>
+);
+
 export const MenuIcon = (p: IconProps) => (
   <svg {...base(p)}>
     <path d="M4 7h16M4 12h16M4 17h16" />
@@ -94,6 +102,13 @@ export const ChevronRightIcon = (p: IconProps) => (
 export const ChevronDownIcon = (p: IconProps) => (
   <svg {...base(p)}>
     <path d="M6 9l6 6 6-6" />
+  </svg>
+);
+
+export const ChevronUpDownIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M7 15l5 5 5-5" />
+    <path d="M7 9l5-5 5-5" />
   </svg>
 );
 

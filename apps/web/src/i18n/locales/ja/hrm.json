@@ -130,7 +130,9 @@
     "errors": {
       "missingDates": "開始日と終了日を選択してください",
       "missingType": "休暇の種類を選択してください",
-      "missingReason": "休暇の理由を入力してください"
+      "missingReason": "休暇の理由を入力してください",
+      "pastStartDate": "開始日に過去の日付を指定することはできません",
+      "invalidDateRange": "終了日は開始日以降の日付を指定してください"
     }
   },
   "checkInCamera": {

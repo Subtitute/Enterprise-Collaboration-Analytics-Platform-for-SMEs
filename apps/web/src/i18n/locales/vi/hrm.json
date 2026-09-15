@@ -130,7 +130,9 @@
     "errors": {
       "missingDates": "Vui lòng chọn ngày bắt đầu và kết thúc",
       "missingType": "Vui lòng chọn loại nghỉ phép",
-      "missingReason": "Vui lòng nhập lý do nghỉ phép"
+      "missingReason": "Vui lòng nhập lý do nghỉ phép",
+      "pastStartDate": "Ngày bắt đầu nghỉ không được ở trong quá khứ",
+      "invalidDateRange": "Ngày kết thúc không được trước ngày bắt đầu"
     }
   },
   "checkInCamera": {
