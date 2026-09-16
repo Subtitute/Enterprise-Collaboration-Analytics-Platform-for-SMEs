@@ -300,6 +300,20 @@ export interface FailedEvent {
   createdAt: string;
 }
 
+// 15/09/2026: Lich cong ty (HRM-lite mo rong, theo yeu cau GVHD) - Technical_Spec.md "Lich cong ty".
+export type CalendarEventType = 'HOLIDAY' | 'EVENT';
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string | null;
+  type: CalendarEventType;
+  startDate: string;
+  endDate: string;
+  createdByUserId: string;
+  createdAt: string;
+}
+
 // 04/08/2026: CRM-lite (khach hang, co hoi ban hang) - Technical_Spec.md muc 16.
 export interface Customer {
   id: string;

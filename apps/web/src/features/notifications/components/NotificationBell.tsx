@@ -87,7 +87,7 @@ export function NotificationBell() {
                           {!n.isRead && (
                             <span
                               className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary-600 ring-2 ring-white"
-                              title="Chưa đọc"
+                              title={t('notifications:bell.unreadTitle')}
                             />
                           )}
                         </div>

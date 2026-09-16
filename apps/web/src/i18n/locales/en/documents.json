@@ -13,6 +13,23 @@
       "description": "Create a subfolder or upload your first document.",
       "newFolder": "New Folder",
       "uploadFile": "Upload Document"
+    },
+    "dropzone": {
+      "title": "Drop file here to upload",
+      "description": "The file will be uploaded directly into the folder",
+      "multipleFilesTitle": "Only 1 file can be uploaded at a time",
+      "multipleFilesDescription": "The first file you dropped was selected; the other files were not uploaded."
+    },
+    "searchPlaceholder": "Search folders, files…",
+    "viewMode": {
+      "grid": "Grid",
+      "gridTitle": "Grid view",
+      "list": "List",
+      "listTitle": "List view"
+    },
+    "filteredEmpty": {
+      "title": "No matching documents or folders found",
+      "description": "Try searching with different keywords"
     }
   },
   "newFolderModal": {
@@ -51,6 +68,18 @@
       "title": "Delete this file?",
       "description": "\"{{name}}\" will be removed from the system.",
       "confirmLabel": "Delete File"
+    },
+    "selectFileAria": "Select file {{name}}",
+    "selectAllAria": "Select all files",
+    "updatedLabel": "Updated {{date}}",
+    "selectedLabel": "Selected",
+    "batchDownload": "Bulk Download",
+    "batchDelete": "Bulk Delete",
+    "deselectAll": "Deselect",
+    "batchDeleteConfirm": {
+      "title": "Delete files in bulk",
+      "description": "Are you sure you want to delete {{count}} selected file(s)? This action cannot be undone.",
+      "confirmLabel": "Confirm Delete"
     }
   },
   "uploadModal": {
@@ -60,6 +89,11 @@
     "removeFileAria": "Remove selected file",
     "cancel": "Cancel",
     "submit": "Upload"
+  },
+  "shareTargetPicker": {
+    "change": "Change",
+    "noMembersFound": "No members found",
+    "noDepartmentsFound": "No departments found"
   },
   "folderShareModal": {
     "title": "Manage Sharing for \"{{folderName}}\"",
@@ -97,6 +131,8 @@
     "submit": "Share"
   },
   "folderGrid": {
+    "loadingFileCount": "Loading…",
+    "metaSummary": "{{count}} files • Updated {{time}}",
     "restrictedTooltip": "Restricted folder",
     "optionsAria": "Folder options",
     "rename": "Rename",

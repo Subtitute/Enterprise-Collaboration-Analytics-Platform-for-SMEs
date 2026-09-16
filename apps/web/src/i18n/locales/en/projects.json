@@ -85,6 +85,10 @@
     "title": "Edit project",
     "submit": "Save changes"
   },
+  "kanban": {
+    "scrollLeftAriaLabel": "Scroll left",
+    "scrollRightAriaLabel": "Scroll right"
+  },
   "newTaskModal": {
     "title": "Create new task",
     "titleRequired": "Please enter a task title",

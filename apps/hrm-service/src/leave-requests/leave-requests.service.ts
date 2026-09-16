@@ -13,6 +13,7 @@ import {
 } from '@app/common-dto';
 import { LeaveRequest } from '../entities/leave-request.entity';
 import { OutboxService } from '../outbox/outbox.service';
+import { toGmt7DateString } from '../attendance/attendance-date.util';
 import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
 import { DecideLeaveRequestDto } from './dto/decide-leave-request.dto';
 import { LeaveRequestQueryDto } from './dto/leave-request-query.dto';
@@ -30,6 +31,17 @@ export class LeaveRequestsService {
   async create(organizationId: string, userId: string, dto: CreateLeaveRequestDto): Promise<LeaveRequest> {
     if (new Date(dto.startDate) > new Date(dto.endDate)) {
       throw new BadRequestException({ message: 'Ngày bắt đầu không được sau ngày kết thúc', errorCode: ERROR_CODES.LEAVE_DATE_RANGE_INVALID });
+    }
+    // 15/09/2026 (sua loi thuc te - phan hoi cua GVHD): truoc ban sua nay KHONG co kiem tra nao ca -
+    // co the tao yeu cau nghi phep cho 1 ngay DA QUA. So sanh dang chuoi 'YYYY-MM-DD' (ca dto.startDate
+    // - da qua @IsDateString - lan toGmt7DateString deu cung dinh dang, zero-pad co dinh) thay vi
+    // parse ve Date object de so sanh, tranh moi rui ro lech gio/timezone; dto.startDate co the mang
+    // theo phan gio (ISO datetime) nen cat lay 10 ky tu dau truoc khi so sanh. Chan o day (server) la
+    // lop xac thuc THAT SU - DatePicker.tsx/NewLeaveRequestModal.tsx (frontend) chi la lop chan dau
+    // tien cho trai nghiem nguoi dung, khong the tin tuong don phuong.
+    const todayGmt7 = toGmt7DateString(new Date());
+    if (dto.startDate.slice(0, 10) < todayGmt7) {
+      throw new BadRequestException({ message: 'Ngày bắt đầu không được ở trong quá khứ', errorCode: ERROR_CODES.LEAVE_START_DATE_IN_PAST });
     }
 
     return this.dataSource.transaction(async (manager) => {

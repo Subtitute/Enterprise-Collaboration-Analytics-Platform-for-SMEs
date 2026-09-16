@@ -1,4 +1,12 @@
-import { ConflictException, HttpException, HttpStatus, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -7,11 +15,15 @@ import * as bcrypt from 'bcryptjs';
 import { User } from '../entities/user.entity';
 import { Organization } from '../entities/organization.entity';
 import { RefreshToken } from '../entities/refresh-token.entity';
+import { PasswordResetToken } from '../entities/password-reset-token.entity';
 import { OutboxService } from '../outbox/outbox.service';
 import { RolesService } from '../roles/roles.service';
 import { RedisService } from '../redis/redis.service';
+import { EmailService } from '../email/email.service';
 import { RegisterOrganizationDto } from './dto/register-organization.dto';
 import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { isPostgresUniqueViolation } from '../common/db-errors.util';
 import {
   DefaultRoleName,
@@ -19,6 +31,7 @@ import {
   EVENT_TYPES,
   JwtAccessPayload,
   JwtRefreshPayload,
+  JwtResetPayload,
   OrganizationRegisteredPayload,
   UserRegisteredPayload,
 } from '@app/common-dto';
@@ -101,11 +114,14 @@ export class AuthService {
     @InjectDataSource() private readonly dataSource: DataSource,
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     @InjectRepository(RefreshToken) private readonly refreshTokenRepo: Repository<RefreshToken>,
+    @InjectRepository(PasswordResetToken)
+    private readonly passwordResetTokenRepo: Repository<PasswordResetToken>,
     private readonly outboxService: OutboxService,
     private readonly rolesService: RolesService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
+    private readonly emailService: EmailService,
   ) {}
 
   async registerOrganization(dto: RegisterOrganizationDto) {
@@ -350,6 +366,93 @@ export class AuthService {
       // Token da khong hop le / da bi thu hoi tu truoc (vd revokeRefreshToken nem loi vi affected
       // = 0) - coi nhu da dang xuat, khong can bao loi cho client.
     }
+  }
+
+  /**
+   * 15/09/2026: "Quen mat khau" - endpoint CONG KHAI (khong dang nhap), BAT BUOC luon tra ve thanh
+   * cong chung chung bat ke email co ton tai trong he thong hay khong, mirror dung triet ly chong
+   * do email da ap dung cho registerOrganization()/login() (DUMMY_PASSWORD_HASH, chuan hoa email...
+   * xem chu thich dau file) - khong duoc phep tra loi khac nhau (hay tra loi nhanh/cham khac nhau
+   * ro ret) giua "email khong ton tai" va "email ton tai, da gui mail" vi se lo cho ke tan cong do
+   * quet xem 1 email co dang ky trong he thong hay khong.
+   */
+  async forgotPassword(dto: ForgotPasswordDto): Promise<{ success: true }> {
+    const emailKey = dto.email.trim().toLowerCase();
+    const user = await this.userRepo.findOne({ where: { email: emailKey } });
+
+    if (user && user.isActive) {
+      const resetExpiresIn = this.configService.get<string>('jwt.resetExpiresIn')!;
+      const expiresAt = new Date(Date.now() + parseDurationMs(resetExpiresIn));
+      const tokenRecord = await this.passwordResetTokenRepo.save(
+        this.passwordResetTokenRepo.create({ userId: user.id, expiresAt }),
+      );
+
+      const resetPayload: JwtResetPayload = { sub: user.id, tokenId: tokenRecord.id };
+      const resetToken = await this.jwtService.signAsync(resetPayload, {
+        secret: this.configService.get<string>('jwt.resetSecret'),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expiresIn: resetExpiresIn as any,
+      });
+
+      const frontendUrl = this.configService.get<string>('frontendUrl');
+      const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
+      // EmailService.sendPasswordResetEmail() tu no da nuot moi loi (xem chu thich tai do) - khong
+      // can try/catch o day, nhung KHONG duoc await-throw len tren du sao di nua.
+      await this.emailService.sendPasswordResetEmail(user.email, resetLink);
+    }
+
+    // Luon tra ve thanh cong, ke ca khi khong tim thay user/user bi vo hieu hoa - xem chu thich dau ham.
+    return { success: true };
+  }
+
+  /**
+   * 15/09/2026: dat lai mat khau bang token nhan qua email. Dung 1 ma loi CHUNG DUY NHAT
+   * (PASSWORD_RESET_TOKEN_INVALID) cho ca 3 truong hop token sai chu ky/da het han/da dung roi -
+   * xem chu thich ERROR_CODES.PASSWORD_RESET_TOKEN_INVALID (packages/common-dto) ve ly do khong
+   * tach rieng tung nguyen nhan tren 1 endpoint CONG KHAI.
+   */
+  async resetPassword(dto: ResetPasswordDto): Promise<{ success: true }> {
+    let payload: JwtResetPayload;
+    try {
+      payload = await this.jwtService.verifyAsync<JwtResetPayload>(dto.token, {
+        secret: this.configService.get<string>('jwt.resetSecret'),
+      });
+    } catch {
+      throw new BadRequestException({
+        message: 'Lien ket dat lai mat khau khong hop le hoac da het han',
+        errorCode: ERROR_CODES.PASSWORD_RESET_TOKEN_INVALID,
+      });
+    }
+
+    const tokenRecord = await this.passwordResetTokenRepo.findOne({ where: { id: payload.tokenId } });
+    if (!tokenRecord || tokenRecord.usedAt || tokenRecord.expiresAt.getTime() < Date.now()) {
+      throw new BadRequestException({
+        message: 'Lien ket dat lai mat khau khong hop le hoac da het han',
+        errorCode: ERROR_CODES.PASSWORD_RESET_TOKEN_INVALID,
+      });
+    }
+
+    const user = await this.userRepo.findOne({ where: { id: payload.sub } });
+    if (!user || !user.isActive) {
+      throw new BadRequestException({
+        message: 'Lien ket dat lai mat khau khong hop le hoac da het han',
+        errorCode: ERROR_CODES.PASSWORD_RESET_TOKEN_INVALID,
+      });
+    }
+
+    user.passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    tokenRecord.usedAt = new Date();
+    await this.dataSource.transaction(async (manager) => {
+      await manager.save(user);
+      await manager.save(tokenRecord);
+      // Thu hoi TOAN BO refresh token hien co cua user nay - dat lai mat khau xong thi moi phien
+      // dang nhap cu (vd tren thiet bi ke tan cong da chiem duoc truoc do) deu phai dang nhap lai.
+      // Xoa thang ban ghi Postgres (nguon su that chinh cua RefreshToken, xem chu thich
+      // revokeRefreshToken() ben duoi) la du, khong can ghi them Redis blacklist tung token.
+      await manager.delete(RefreshToken, { userId: user.id });
+    });
+
+    return { success: true };
   }
 
   /**

@@ -141,7 +141,11 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
                   }}
                   className="text-xs text-primary-600 hover:underline cursor-pointer font-medium"
                 >
-                  Thay đổi
+                  {/* 15/09/2026: dung chung key documents:shareTargetPicker.* voi ShareModal.tsx -
+                      2 modal nay dung y het 1 khoi UI target-picker (segmented control + search +
+                      nut "Thay doi"/thong bao "khong tim thay"), tach rieng key theo tung modal se
+                      tao 2 ban dich trung lap phai sua doi cho ca 2 moi khi wording thay doi. */}
+                  {t('documents:shareTargetPicker.change')}
                 </button>
               </div>
             ) : targetType === 'department' && selectedDept && !isDropdownOpen ? (
@@ -163,7 +167,7 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
                   }}
                   className="text-xs text-primary-600 hover:underline cursor-pointer font-medium"
                 >
-                  Thay đổi
+                  {t('documents:shareTargetPicker.change')}
                 </button>
               </div>
             ) : (
@@ -194,7 +198,7 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
                 <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-44 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl shadow-slate-200/80">
                   {targetType === 'user' ? (
                     filteredUsers.length === 0 ? (
-                      <p className="px-3 py-2 text-center text-xs text-slate-400">Không tìm thấy thành viên</p>
+                      <p className="px-3 py-2 text-center text-xs text-slate-400">{t('documents:shareTargetPicker.noMembersFound')}</p>
                     ) : (
                       filteredUsers.map((u) => (
                         <button
@@ -219,7 +223,7 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
                       ))
                     )
                   ) : filteredDepts.length === 0 ? (
-                    <p className="px-3 py-2 text-center text-xs text-slate-400">Không tìm thấy phòng ban</p>
+                    <p className="px-3 py-2 text-center text-xs text-slate-400">{t('documents:shareTargetPicker.noDepartmentsFound')}</p>
                   ) : (
                     filteredDepts.map((d) => (
                       <button

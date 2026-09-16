@@ -10,6 +10,8 @@ export * from './enums/permission.enum';
 export * from './enums/deal-stage.enum';
 // 05/08/2026: HRM-lite - xem enums/leave-request-status.enum.ts.
 export * from './enums/leave-request-status.enum';
+// 15/09/2026: Lich cong ty (HRM-lite mo rong) - xem enums/calendar-event-type.enum.ts.
+export * from './enums/calendar-event-type.enum';
 export * from './interfaces/auth-context.interface';
 export * from './constants/public-routes';
 // 22/07/2026: export hang so bi mat noi bo dung chung (xem constants/internal-shared-secret.constant.ts)

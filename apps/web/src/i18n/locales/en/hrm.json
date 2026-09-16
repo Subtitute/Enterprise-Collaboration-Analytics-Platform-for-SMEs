@@ -9,6 +9,21 @@
   "attendancePage": {
     "title": "Attendance",
     "subtitle": "Check in and out with a photo as proof.",
+    "totalHoursValue": "{{hours}} hours",
+    "columns": {
+      "totalHours": "Total hours",
+      "status": "Status"
+    },
+    "statusBadge": {
+      "missingCheckOut": "Missed check-out",
+      "late": "Late",
+      "onTime": "On time"
+    },
+    "monthFilter": {
+      "allTime": "All time",
+      "monthYear": "Month {{month}}/{{year}}",
+      "ariaLabel": "Select month to filter attendance"
+    },
     "onSiteBadge": {
       "onSiteTitle": "GPS location is within the office radius",
       "offSiteTitle": "GPS location is outside the office radius",
@@ -23,7 +38,12 @@
       "checkOutLabel": "Check out",
       "checkInButton": "Check in",
       "checkOutButton": "Check out",
-      "doneToday": "Done for today"
+      "doneToday": "Done for today",
+      "checkedInBadge": "Checked in",
+      "notCheckedInBadge": "Not checked in",
+      "systemTimeLabel": "System standard time (GMT+7)",
+      "notRecorded": "Not recorded",
+      "completedMessage": "You've completed your attendance for today's shift!"
     },
     "history": {
       "cardTitle": "Attendance history",
@@ -32,6 +52,9 @@
       "errorDescription": "Something went wrong loading the data. Please try again.",
       "emptyTitle": "No attendance history yet",
       "emptyDescription": "Your data will appear after your first check-in.",
+      "emptyFilteredDescription": "No attendance data in {{month}}",
+      "viewCheckInProofTitle": "View check-in photo proof",
+      "viewCheckOutProofTitle": "View check-out photo proof",
       "columns": {
         "date": "Date",
         "checkIn": "Check in",
@@ -40,6 +63,14 @@
     },
     "allAttendance": {
       "cardTitle": "Organization-wide attendance",
+      "loading": "Loading organization-wide attendance…",
+      "errorTitle": "Couldn't load organization-wide attendance",
+      "errorDescription": "Something went wrong loading the data. Please try again.",
+      "emptyTitle": "No organization-wide attendance yet",
+      "emptyDescription": "Data will appear once employees check in.",
+      "emptyFilteredDescription": "No organization-wide attendance data in {{month}}",
+      "viewCheckInProofTitle": "View {{name}}'s check-in photo proof",
+      "viewCheckOutProofTitle": "View {{name}}'s check-out photo proof",
       "columns": {
         "employee": "Employee",
         "date": "Date",
@@ -48,14 +79,24 @@
       }
     }
   },
+  "photoProofModal": {
+    "title": "{{kind}} photo",
+    "anonymousUser": "Personal",
+    "loadingPhoto": "Loading proof photo…",
+    "loadError": "Couldn't load the proof photo, or the link has expired.",
+    "photoAlt": "Attendance photo"
+  },
   "leaveRequestsPage": {
     "title": "Leave Requests",
     "subtitle": "Create and track your leave requests.",
     "newRequestButton": "New request",
+    "daysCount": "{{count}} days",
     "pending": {
       "cardTitle": "Pending ({{count}})",
       "reject": "Reject",
-      "approve": "Approve"
+      "approve": "Approve",
+      "emptyMessage": "No requests pending approval",
+      "unknownEmployee": "Employee"
     },
     "myRequests": {
       "cardTitle": "My requests",
@@ -79,12 +120,17 @@
     },
     "startDateLabel": "Start date",
     "endDateLabel": "End date",
+    "totalDaysPrefix": "Total:",
+    "totalDaysValue": "{{count}} days",
+    "totalDaysSuffix": "(weekends excluded)",
     "reasonLabel": "Reason",
     "reasonPlaceholder": "Reason for the leave request…",
     "cancelButton": "Cancel",
     "submitButton": "Submit request",
     "errors": {
       "missingDates": "Please select a start and end date",
+      "startDateInPast": "The start date cannot be in the past",
+      "endDateBeforeStart": "The end date cannot be before the start date",
       "missingType": "Please select a leave type",
       "missingReason": "Please enter a reason for the leave"
     }

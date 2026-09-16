@@ -8,6 +8,9 @@ import type { Deal } from '@/types';
 export function DealCard({ deal, index, onClick }: { deal: Deal; index: number; onClick: () => void }) {
   // Tính toán trạng thái sát hạn (<= 3 ngày) hoặc quá hạn
   const isUrgentOrOverdue = (() => {
+    // 15/09/2026: bo qua deal da o trang thai cuoi (WON/LOST) - deal da chot xong thi ngay du kien
+    // chot cu (co the da qua) khong con y nghia "sap qua han" nua, tranh hien nham mau do canh bao.
+    if (deal.stage === 'WON' || deal.stage === 'LOST') return false;
     if (!deal.expectedCloseDate) return false;
     // Chuẩn hóa chuỗi ngày dạng YYYY-MM-DD
     const rawDateStr = deal.expectedCloseDate.includes('T')

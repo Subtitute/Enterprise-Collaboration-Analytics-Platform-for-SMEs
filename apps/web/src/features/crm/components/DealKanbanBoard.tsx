@@ -99,7 +99,7 @@ export function DealKanbanBoard({ customerId, deals, onDealClick }: { customerId
             type="button"
             onClick={() => scrollByAmount(-280)}
             className="absolute left-1 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-lg border border-slate-200 hover:bg-white hover:text-indigo-600 hover:scale-110 active:scale-95 transition-all cursor-pointer"
-            aria-label="Cuộn sang trái"
+            aria-label={t('crm:kanban.scrollLeftAriaLabel')}
           >
             <ChevronLeftIcon className="h-5 w-5" />
           </button>
@@ -111,7 +111,7 @@ export function DealKanbanBoard({ customerId, deals, onDealClick }: { customerId
             type="button"
             onClick={() => scrollByAmount(280)}
             className="absolute right-1 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-lg border border-slate-200 hover:bg-white hover:text-indigo-600 hover:scale-110 active:scale-95 transition-all cursor-pointer animate-pulse hover:animate-none"
-            aria-label="Cuộn sang phải"
+            aria-label={t('crm:kanban.scrollRightAriaLabel')}
           >
             <ChevronRightIcon className="h-5 w-5" />
           </button>
@@ -148,7 +148,7 @@ export function DealKanbanBoard({ customerId, deals, onDealClick }: { customerId
                     >
                       {columnDeals.length === 0 && !snapshot.isDraggingOver ? (
                         <div className="flex h-24 items-center justify-center rounded-xl border-2 border-dashed border-slate-200 text-xs text-slate-400">
-                          Trống
+                          {t('crm:kanban.emptyColumn')}
                         </div>
                       ) : (
                         columnDeals.map((deal, index) => (

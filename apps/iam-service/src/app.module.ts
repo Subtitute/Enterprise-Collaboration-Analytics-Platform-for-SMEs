@@ -15,6 +15,7 @@ import { User } from './entities/user.entity';
 import { Role } from './entities/role.entity';
 import { Permission } from './entities/permission.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
+import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { OutboxEvent } from './entities/outbox-event.entity';
 import { KafkaModule } from './kafka/kafka.module';
 import { RedisModule } from './redis/redis.module';
@@ -37,7 +38,16 @@ import { HealthController } from './health/health.controller';
         username: config.get<string>('db.user'),
         password: config.get<string>('db.password'),
         database: config.get<string>('db.name'),
-        entities: [Organization, Department, User, Role, Permission, RefreshToken, OutboxEvent],
+        entities: [
+          Organization,
+          Department,
+          User,
+          Role,
+          Permission,
+          RefreshToken,
+          PasswordResetToken,
+          OutboxEvent,
+        ],
         // MVP: dung synchronize thay vi migration thu cong - Technical_Spec.md muc 14 (gioi han da biet).
         synchronize: true,
       }),

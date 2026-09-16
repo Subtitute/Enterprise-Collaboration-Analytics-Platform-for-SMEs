@@ -70,9 +70,9 @@ function FolderCardItem({
             </div>
             <p className="mt-0.5 truncate text-[11px] font-normal text-slate-500">
               {folderFilesQuery.isLoading ? (
-                <span className="text-slate-400">Đang tải…</span>
+                <span className="text-slate-400">{t('documents:folderGrid.loadingFileCount')}</span>
               ) : (
-                `${fileCount} tệp • Cập nhật ${updatedTimeText}`
+                t('documents:folderGrid.metaSummary', { count: fileCount, time: updatedTimeText })
               )}
             </p>
           </div>
@@ -273,9 +273,9 @@ function FolderCardItem({
         {/* Siêu dữ liệu Metadata Tiếng Việt có dấu: Số lượng tệp tin & Thời gian cập nhật */}
         <p className="mt-1 truncate text-xs font-normal text-slate-500">
           {folderFilesQuery.isLoading ? (
-            <span className="text-slate-400">Đang tải…</span>
+            <span className="text-slate-400">{t('documents:folderGrid.loadingFileCount')}</span>
           ) : (
-            `${fileCount} tệp • Cập nhật ${updatedTimeText}`
+            t('documents:folderGrid.metaSummary', { count: fileCount, time: updatedTimeText })
           )}
         </p>
       </div>

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { FormField, Textarea } from '@/components/ui/Input';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { ChevronDownIcon, CheckIcon } from '@/components/ui/Icons';
-import { calculateWorkingDays, cn } from '@/lib/utils';
+import { calculateWorkingDays, cn, getTodayGmt7DateString } from '@/lib/utils';
 import { useCreateLeaveRequest } from '../hooks';
 
 export type LeaveTypeOption = 'ANNUAL' | 'SICK' | 'UNPAID';
@@ -50,6 +50,11 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
   const createLeaveRequest = useCreateLeaveRequest();
 
   const totalWorkingDays = calculateWorkingDays(startDate, endDate);
+  // 15/09/2026 (sua loi thuc te - phan hoi cua GVHD): truoc ban sua nay khong co bat ky rang buoc
+  // nao chan chon ngay nghi phep trong QUA KHU - nguoi dung van tao duoc yeu cau nghi phep cho 1
+  // ngay da qua. `minDate` chi la lop chan dau tien (UI) - server (LeaveRequestsService.create())
+  // la nguon xac thuc that, xem chi tiet o do.
+  const todayGmt7 = getTodayGmt7DateString();
 
   // Đóng dropdown khi click ra ngoài
   useEffect(() => {
@@ -84,6 +89,14 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
     e.preventDefault();
     if (!startDate || !endDate) {
       setError(t('hrm:newLeaveRequestModal.errors.missingDates'));
+      return;
+    }
+    if (startDate < todayGmt7) {
+      setError(t('hrm:newLeaveRequestModal.errors.startDateInPast'));
+      return;
+    }
+    if (endDate < startDate) {
+      setError(t('hrm:newLeaveRequestModal.errors.endDateBeforeStart'));
       return;
     }
     if (!leaveType) {
@@ -131,6 +144,7 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
                 setStartDate(val);
                 if (error) setError('');
               }}
+              minDate={todayGmt7}
               position="bottom"
             />
           </div>
@@ -145,6 +159,9 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
                 setEndDate(val);
                 if (error) setError('');
               }}
+              // 15/09/2026: ngay ket thuc khong the truoc ngay bat dau (da chon) HOAC truoc hom nay
+              // (chua chon ngay bat dau) - tien loi phu, backend van la nguon xac thuc that.
+              minDate={startDate || todayGmt7}
               position="bottom"
               align="right"
             />
@@ -153,7 +170,13 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
 
         {totalWorkingDays > 0 && (
           <div className="flex items-center gap-1.5 -mt-2 text-xs font-medium text-slate-500">
-            <span>• Tổng cộng: <strong className="text-indigo-600 font-semibold">{totalWorkingDays} ngày</strong> (không tính cuối tuần)</span>
+            <span>
+              • {t('hrm:newLeaveRequestModal.totalDaysPrefix')}{' '}
+              <strong className="text-indigo-600 font-semibold">
+                {t('hrm:newLeaveRequestModal.totalDaysValue', { count: totalWorkingDays })}
+              </strong>{' '}
+              {t('hrm:newLeaveRequestModal.totalDaysSuffix')}
+            </span>
           </div>
         )}
 

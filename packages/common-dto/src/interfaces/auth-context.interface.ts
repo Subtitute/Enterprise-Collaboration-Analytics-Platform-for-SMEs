@@ -38,6 +38,14 @@ export interface JwtRefreshPayload {
   exp?: number;
 }
 
+/** 15/09/2026: "Quen mat khau" - ky rieng bang jwt.resetSecret (KHAC access/refresh secret). */
+export interface JwtResetPayload {
+  sub: string; // userId
+  tokenId: string; // id cua ban ghi PasswordResetToken, dung de xac minh CHUA dung + chua het han
+  iat?: number;
+  exp?: number;
+}
+
 export const INTERNAL_AUTH_HEADERS = {
   ORG_ID: 'x-org-id',
   USER_ID: 'x-user-id',

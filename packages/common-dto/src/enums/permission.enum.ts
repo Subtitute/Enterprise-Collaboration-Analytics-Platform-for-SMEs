@@ -53,6 +53,15 @@ export const PERMISSIONS = {
   // dong bao gom quyen moi nay) - day la moi quan tam van hanh/ha tang, khong phai nghiep vu, nen
   // KHONG dua vao danh sach Manager/Employee.
   SYSTEM_MANAGE: 'system:manage',
+
+  // 15/09/2026: Lich cong ty (HRM-lite mo rong, theo yeu cau GVHD) - thiet lap ngay le/su kien
+  // dung chung toan to chuc. Mirror dung SYSTEM_MANAGE ngay tren: 1 quyen DUY NHAT cho ca xem lan
+  // quan ly (khong tach CALENDAR_VIEW rieng) vi trang nay dat trong khu vuc Quan tri (chi Org
+  // Admin thay duoc) - xem General_idea.md muc 4 ("Org Admin" la vai tro quan tri DUY NHAT thuc su
+  // ton tai). Chi Org Admin duoc cap (qua DEFAULT_ROLE_PERMISSIONS.ORG_ADMIN ben duoi), KHONG dua
+  // vao danh sach Manager/Employee - ngay le/su kien cong ty la thiet lap cap to chuc, khong phai
+  // nghiep vu hang ngay cua tung phong ban.
+  CALENDAR_MANAGE: 'calendar:manage',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

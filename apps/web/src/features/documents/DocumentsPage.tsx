@@ -17,6 +17,7 @@ import { ShareModal } from './components/ShareModal';
 import { FolderShareModal } from './components/FolderShareModal';
 import { VersionHistoryModal } from './components/VersionHistoryModal';
 import { matchesVietnameseSearch } from '@/lib/utils';
+import { toast } from '@/stores/toast.store';
 import type { FileItem, Folder } from '@/types';
 
 export function DocumentsPage() {
@@ -119,6 +120,12 @@ export function DocumentsPage() {
       setIsWindowDragging(false);
       const droppedFiles = e.dataTransfer?.files;
       if (droppedFiles && droppedFiles.length > 0) {
+        // 15/09/2026: UploadModal chi nhan 1 file/lan (thiet ke co chu dich) - truoc ban sua nay,
+        // keo nhieu file cung luc vao day se AM THAM chi lay file dau tien, cac file con lai mat
+        // khong dau vet, khong bao gi cho nguoi dung biet. Bao mot toast thong bao khi bi cat bot.
+        if (droppedFiles.length > 1) {
+          toast.info(t('documents:documentsPage.dropzone.multipleFilesTitle'), t('documents:documentsPage.dropzone.multipleFilesDescription'));
+        }
         setDroppedFile(droppedFiles[0]);
         setIsUploadOpen(true);
       }
@@ -145,11 +152,11 @@ export function DocumentsPage() {
           <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white shadow-2xl text-primary-600 mb-4 animate-bounce">
             <UploadIcon className="h-10 w-10" />
           </div>
-          <h3 className="font-display text-2xl font-bold text-white tracking-tight">Thả tệp vào đây để tải lên</h3>
+          <h3 className="font-display text-2xl font-bold text-white tracking-tight">{t('documents:documentsPage.dropzone.title')}</h3>
           <p className="mt-2 text-sm text-slate-200 max-w-md">
-            Tệp sẽ được tự động tải trực tiếp vào thư mục{' '}
+            {t('documents:documentsPage.dropzone.description')}{' '}
             <span className="font-bold text-primary-300">
-              {breadcrumb.length > 0 ? breadcrumb[breadcrumb.length - 1].name : 'Tất cả tài liệu'}
+              {breadcrumb.length > 0 ? breadcrumb[breadcrumb.length - 1].name : t('documents:documentsPage.breadcrumbRoot')}
             </span>
           </p>
         </div>
@@ -210,7 +217,7 @@ export function DocumentsPage() {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm kiếm thư mục, tệp tin…"
+            placeholder={t('documents:documentsPage.searchPlaceholder')}
             className="h-9 w-full rounded-xl border border-slate-200/80 bg-slate-50/70 pl-9 pr-3.5 text-xs text-slate-700 placeholder:text-slate-400 transition-all focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-100"
           />
           {searchTerm && (
@@ -234,10 +241,10 @@ export function DocumentsPage() {
                 ? 'bg-white text-slate-900 shadow-2xs font-bold'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
-            title="Chế độ xem Lưới"
+            title={t('documents:documentsPage.viewMode.gridTitle')}
           >
             <GridIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Lưới</span>
+            <span className="hidden sm:inline">{t('documents:documentsPage.viewMode.grid')}</span>
           </button>
           <button
             type="button"
@@ -247,10 +254,10 @@ export function DocumentsPage() {
                 ? 'bg-white text-slate-900 shadow-2xs font-bold'
                 : 'text-slate-500 hover:text-slate-800'
             }`}
-            title="Chế độ xem Danh sách"
+            title={t('documents:documentsPage.viewMode.listTitle')}
           >
             <ListIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">Danh sách</span>
+            <span className="hidden sm:inline">{t('documents:documentsPage.viewMode.list')}</span>
           </button>
         </div>
       </div>
@@ -282,8 +289,8 @@ export function DocumentsPage() {
           />
         ) : isFilteredEmpty ? (
           <div className="rounded-2xl border border-slate-200/80 bg-white p-10 text-center">
-            <p className="text-sm font-semibold text-slate-700">Không tìm thấy tài liệu hoặc thư mục phù hợp</p>
-            <p className="mt-1 text-xs text-slate-400">Hãy thử tìm kiếm với từ khóa khác</p>
+            <p className="text-sm font-semibold text-slate-700">{t('documents:documentsPage.filteredEmpty.title')}</p>
+            <p className="mt-1 text-xs text-slate-400">{t('documents:documentsPage.filteredEmpty.description')}</p>
           </div>
         ) : (
           <div className="space-y-4">

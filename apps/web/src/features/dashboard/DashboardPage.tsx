@@ -32,7 +32,19 @@ export function DashboardPage() {
   const breakdownQuery = useTaskStatusBreakdown(range, undefined, departmentId || undefined);
 
   // Lấy danh sách toàn bộ dự án, tasks và người dùng để tính toán số liệu khớp tuyệt đối với bộ lọc
-  const allProjectsQuery = useProjectsQuery({ limit: 100 });
+  // 15/09/2026: nhan lai khoi tinh toan nay khong co chu thich nao - ghi lai ly do de lan sau khoi
+  // phai doan: cac endpoint /analytics/summary|task-status-breakdown|task-trend van duoc goi (2
+  // query o tren) va van la nguon du lieu chinh cho trang Bao cao & Phan tich rieng, nhung Dashboard
+  // (trang dau tien nguoi dung thay) tu tinh lai completionRate/2 bieu do NGAY tren du lieu REST tho
+  // (allTasksQuery/allProjectsQuery/allUsersQuery) khi da tai xong, ghi de len ket qua tu Analytics
+  // Service - danh doi lay so lieu "dung tuyet doi ngay luc xem" (khop dung 1 trong so giai han da
+  // biet: /analytics/summary dem DISTINCT task_id con continuous aggregate dem theo dong su kien,
+  // xem Technical_Spec.md muc 14) doi lay chi phi tai toan bo project/task/user moi lan vao trang
+  // thay vi 1 lenh goi tong hop san - khong phai loi, nhung can luu y neu so lieu Dashboard va trang
+  // Bao cao & Phan tich lech nhau, va can xem lai neu to chuc co rat nhieu task/du an/nguoi dung.
+  // limit: 500 (khong phai 100 nhu truoc) de khop tran toi da cua PaginationQueryDto - gioi han 100
+  // cu se lam existingProjectIds thieu du an cho to chuc co hon 100 du an, undercount so lieu ben tren.
+  const allProjectsQuery = useProjectsQuery({ limit: 500 });
   const allTasksQuery = useAllTasksQuery();
   const allUsersQuery = useOrgUsersQuery();
 
@@ -266,10 +278,14 @@ export function DashboardPage() {
                   label: t(`common:enums.dateRange.${key}`),
                 }))}
               />
-              {/* 28/07/2026: bo loc "Phong ban" moi cho khoi KPI cua Dashboard (KHONG anh huong
-                  bieu do "Xu hướng hoàn thành công việc" ben duoi - GET /analytics/task-trend
-                  chua ho tro departmentId, xem Technical_Spec.md). Dat canh Select khoang thoi
-                  gian de dung chung mot vi tri quen thuoc tren trang. */}
+              {/* 28/07/2026: bo loc "Phong ban" moi cho khoi KPI cua Dashboard. Dat canh Select
+                  khoang thoi gian de dung chung mot vi tri quen thuoc tren trang.
+                  15/09/2026 (sua lai cho dung): dong ghi chu cu o day noi bo loc nay "KHONG anh
+                  huong bieu do Xu huong" vi GET /analytics/task-trend chua ho tro departmentId -
+                  dieu do van dung cho CHINH endpoint do, nhung tu khi co khoi tinh lai phia client
+                  (dynamicTaskTrend, xem chu thich tai allProjectsQuery/allTasksQuery/allUsersQuery
+                  o tren) thi bieu do Xu huong hien THUC SU co loc theo phong ban - chi la tinh o
+                  client tren du lieu task tho, khong phai do server tinh ho. */}
               <CustomFilterSelect
                 value={departmentId}
                 onChange={(val) => setDepartmentId(val)}

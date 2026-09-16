@@ -6,8 +6,8 @@ import { disconnectAnalyticsSocket, disconnectNotificationSocket } from '@/lib/s
 import { extractErrorMessage } from '@/lib/api-client';
 import { queryClient } from '@/lib/query-client';
 import { toast } from '@/stores/toast.store';
-import { login, logout as logoutApi, registerOrganization } from './api';
-import type { LoginPayload, RegisterOrganizationPayload } from './api';
+import { forgotPassword, login, logout as logoutApi, registerOrganization, resetPassword } from './api';
+import type { ForgotPasswordPayload, LoginPayload, RegisterOrganizationPayload, ResetPasswordPayload } from './api';
 
 // 20/08/2026: sua loi bao mat thuc te (phat hien qua kiem thu da to chuc trong CUNG 1 tab trinh
 // duyet) - `queryClient` la 1 THE DUY NHAT song suot phien lam viec cua tab (khoi tao 1 lan o
@@ -64,6 +64,39 @@ export function useRegisterOrganization() {
     },
     onError: (error) => {
       toast.error(t('auth:hooks.register.errorTitle'), extractErrorMessage(error));
+    },
+  });
+}
+
+/**
+ * 15/09/2026: "Quen mat khau" (phan hoi GVHD, muc 4) - forgotPassword() BACKEND luon tra ve thanh
+ * cong chung chung (chong do email, xem chu thich AuthService.forgotPassword()) nen o day KHONG
+ * co nhanh loi "nghiep vu" nao de hien thi - chi con loi MANG/HA TANG that su (vd Gateway sap,
+ * mat ket noi) can bao cho nguoi dung, dung extractErrorMessage() nhu moi mutation khac.
+ */
+export function useForgotPassword() {
+  const { t } = useTranslation();
+
+  return useMutation({
+    mutationFn: (payload: ForgotPasswordPayload) => forgotPassword(payload),
+    onError: (error) => {
+      toast.error(t('auth:hooks.forgotPassword.errorTitle'), extractErrorMessage(error));
+    },
+  });
+}
+
+export function useResetPassword() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  return useMutation({
+    mutationFn: (payload: ResetPasswordPayload) => resetPassword(payload),
+    onSuccess: () => {
+      toast.success(t('auth:hooks.resetPassword.successTitle'), t('auth:hooks.resetPassword.successDescription'));
+      navigate('/login', { replace: true });
+    },
+    onError: (error) => {
+      toast.error(t('auth:hooks.resetPassword.errorTitle'), extractErrorMessage(error, t('auth:hooks.resetPassword.errorFallback')));
     },
   });
 }

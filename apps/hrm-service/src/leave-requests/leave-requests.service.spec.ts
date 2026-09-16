@@ -20,6 +20,17 @@ describe('LeaveRequestsService', () => {
   const leaveRequestId = 'lr-1';
   const approverId = 'approver-1';
 
+  // 15/09/2026: tinh ngay TUONG DOI voi "hom nay" thay vi hardcode 1 chuoi ngay co dinh - test cu
+  // dung '2026-09-01' hardcode se tu dong tro thanh "qua khu" va bat dau FAIL sau ngay do (dung
+  // hop kinh dien: da xay ra ngay khi them validation moi cho loi nay - '2026-09-01' luc viet test
+  // ban dau la tuong lai, nhung nay da la qua khu thuc su theo dong ho he thong). Dung +N ngay ke
+  // tu hom nay de test luon dung bat ke chay vao thoi diem nao.
+  function futureDateStr(daysFromNow: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() + daysFromNow);
+    return d.toISOString().slice(0, 10);
+  }
+
   function pendingRequest(overrides: Record<string, unknown> = {}) {
     return {
       id: leaveRequestId,
@@ -63,8 +74,8 @@ describe('LeaveRequestsService', () => {
     it('tao yeu cau nghi phep moi thanh cong voi trang thai PENDING, ghi outbox event LEAVE_REQUEST_CREATED', async () => {
       const { service, outboxServiceMock } = createService();
       const dto: CreateLeaveRequestDto = {
-        startDate: '2026-09-01',
-        endDate: '2026-09-03',
+        startDate: futureDateStr(1),
+        endDate: futureDateStr(3),
         reason: 'Nghi kham benh',
       };
 
@@ -79,12 +90,33 @@ describe('LeaveRequestsService', () => {
       );
     });
 
+    it('tao yeu cau nghi phep thanh cong khi ngay bat dau la HOM NAY (bien, khong phai "qua khu")', async () => {
+      const { service } = createService();
+      const dto: CreateLeaveRequestDto = { startDate: futureDateStr(0), endDate: futureDateStr(0), reason: 'x' };
+
+      const result = await service.create(organizationId, userId, dto);
+
+      expect(result.status).toBe(LeaveRequestStatus.PENDING);
+    });
+
     it('tu choi khi ngay bat dau sau ngay ket thuc, khong mo transaction', async () => {
       const { service, dataSourceMock } = createService();
-      const dto: CreateLeaveRequestDto = { startDate: '2026-09-05', endDate: '2026-09-01', reason: 'x' };
+      const dto: CreateLeaveRequestDto = { startDate: futureDateStr(5), endDate: futureDateStr(1), reason: 'x' };
 
       await expect(service.create(organizationId, userId, dto)).rejects.toMatchObject({
         response: expect.objectContaining({ errorCode: ERROR_CODES.LEAVE_DATE_RANGE_INVALID }),
+      });
+      expect(dataSourceMock.transaction).not.toHaveBeenCalled();
+    });
+
+    // 15/09/2026 (sua loi thuc te - phan hoi cua GVHD): "chon nghi phep cho 1 ngay DA QUA van tao
+    // duoc yeu cau" - truoc ban sua service.ts khong co kiem tra nao, test nay se FAIL tren code cu.
+    it('tu choi khi ngay bat dau o QUA KHU, khong mo transaction', async () => {
+      const { service, dataSourceMock } = createService();
+      const dto: CreateLeaveRequestDto = { startDate: '2020-01-01', endDate: '2020-01-03', reason: 'x' };
+
+      await expect(service.create(organizationId, userId, dto)).rejects.toMatchObject({
+        response: expect.objectContaining({ errorCode: ERROR_CODES.LEAVE_START_DATE_IN_PAST }),
       });
       expect(dataSourceMock.transaction).not.toHaveBeenCalled();
     });

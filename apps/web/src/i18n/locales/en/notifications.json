@@ -4,6 +4,9 @@
     "subtitle": "All notifications related to your activity.",
     "markAllRead": "Mark all as read",
     "markRead": "Mark as read",
+    "unreadTitle": "Unread",
+    "viewDetails": "View details →",
+    "loadMoreButton": "Load more notifications ({{loaded}}/{{total}})",
     "loading": "Loading notifications…",
     "loadError": "Couldn't load notifications",
     "empty": "No notifications",
@@ -22,8 +25,16 @@
     "ariaLabel": "Notifications",
     "title": "Notifications",
     "markAllRead": "Mark all as read",
+    "unreadTitle": "Unread",
     "empty": "No new notifications",
     "viewAll": "View all notifications"
+  },
+  "visual": {
+    "leave": "Leave",
+    "dealSales": "Sales (Deal)",
+    "task": "Task",
+    "document": "Document",
+    "system": "System"
   },
   "toast": {
     "updateError": "Couldn't update notification"

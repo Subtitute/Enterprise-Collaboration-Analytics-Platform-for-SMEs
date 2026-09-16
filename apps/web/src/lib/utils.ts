@@ -77,6 +77,18 @@ export function formatDateTime(value?: string | null): string {
   }).format(d);
 }
 
+/**
+ * 15/09/2026: ngay hom nay 'YYYY-MM-DD' THEO LICH GMT+7 - dung Intl.DateTimeFormat voi
+ * timeZone: 'Asia/Ho_Chi_Minh' (khong dung `new Date().toISOString()` hay `.getFullYear()` truc
+ * tiep - ca 2 deu phu thuoc UTC/timezone TRINH DUYET nguoi xem, sai lech vao khung gio 00:00-07:00
+ * GMT+7 - mirror dung `toGmt7DateString()` phia backend, apps/hrm-service/src/attendance/
+ * attendance-date.util.ts). So sanh voi chuoi date khac ('YYYY-MM-DD') dung duoc bang so sanh
+ * chuoi thong thuong vi da zero-pad co dinh.
+ */
+export function getTodayGmt7DateString(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+}
+
 // 20/08/2026: chuyen sang Intl.RelativeTimeFormat (co san node/trinh duyet, du lieu CLDR chinh
 // thuc) thay vi tu ghep chuoi tieng Viet tay - da xac minh truc tiep: Intl.RelativeTimeFormat('vi',
 // {numeric:'auto'}) tra ve DUNG "5 giây trước"/"3 phút trước"/... khop 100% voi chuoi cu, nen doi
@@ -176,7 +188,7 @@ export function removeVietnameseTones(str?: string | null): string {
   return str
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
+    .replace(/đ/g, 'd') // i18n-lint-ignore: 2 pattern doi chieu ky tu, khong phai chuoi hien thi
     .replace(/Đ/g, 'D')
     .toLowerCase()
     .trim();

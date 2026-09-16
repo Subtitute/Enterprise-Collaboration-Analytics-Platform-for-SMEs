@@ -4,6 +4,9 @@
     "subtitle": "Toàn bộ thông báo liên quan đến hoạt động của bạn.",
     "markAllRead": "Đánh dấu tất cả đã đọc",
     "markRead": "Đánh dấu đã đọc",
+    "unreadTitle": "Chưa đọc",
+    "viewDetails": "Xem chi tiết →",
+    "loadMoreButton": "Tải thêm thông báo ({{loaded}}/{{total}})",
     "loading": "Đang tải thông báo…",
     "loadError": "Không thể tải thông báo",
     "empty": "Không có thông báo",
@@ -22,8 +25,16 @@
     "ariaLabel": "Thông báo",
     "title": "Thông báo",
     "markAllRead": "Đánh dấu tất cả đã đọc",
+    "unreadTitle": "Chưa đọc",
     "empty": "Không có thông báo mới",
     "viewAll": "Xem tất cả thông báo"
+  },
+  "visual": {
+    "leave": "Nghỉ phép",
+    "dealSales": "Bán hàng (Deal)",
+    "task": "Công việc",
+    "document": "Tài liệu",
+    "system": "Hệ thống"
   },
   "toast": {
     "updateError": "Không thể cập nhật thông báo"

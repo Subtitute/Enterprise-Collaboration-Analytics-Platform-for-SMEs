@@ -152,7 +152,7 @@ export function NotificationsPage() {
                         {!n.isRead && (
                           <span
                             className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-indigo-600 ring-2 ring-white"
-                            title="Chưa đọc"
+                            title={t('notifications:page.unreadTitle')}
                           />
                         )}
                       </div>
@@ -200,7 +200,7 @@ export function NotificationsPage() {
                                 }}
                                 className="font-semibold text-indigo-600 hover:text-indigo-700 hover:underline transition-colors"
                               >
-                                Xem chi tiết →
+                                {t('notifications:page.viewDetails')}
                               </Link>
                             </>
                           )}
@@ -239,7 +239,7 @@ export function NotificationsPage() {
                   <Spinner size="sm" /> {t('common:loading')}
                 </span>
               ) : (
-                `Tải thêm thông báo (${accumulatedItems.length}/${meta.total})`
+                t('notifications:page.loadMoreButton', { loaded: accumulatedItems.length, total: meta.total })
               )}
             </Button>
           </div>

@@ -85,6 +85,10 @@
     "title": "プロジェクト情報を編集",
     "submit": "変更を保存"
   },
+  "kanban": {
+    "scrollLeftAriaLabel": "左にスクロール",
+    "scrollRightAriaLabel": "右にスクロール"
+  },
   "newTaskModal": {
     "title": "新規タスクを作成",
     "titleRequired": "タスクのタイトルを入力してください",

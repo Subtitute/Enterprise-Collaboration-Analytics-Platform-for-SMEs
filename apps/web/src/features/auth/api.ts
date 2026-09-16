@@ -54,3 +54,25 @@ export async function fetchMe(): Promise<AuthUser> {
   const { data } = await apiClient.get<AuthUser>('/auth/me');
   return data;
 }
+
+export interface ForgotPasswordPayload {
+  email: string;
+}
+
+export interface ResetPasswordPayload {
+  token: string;
+  newPassword: string;
+}
+
+// 15/09/2026: "Quen mat khau" (phan hoi GVHD, muc 4) - dung authClient (khong interceptor gan
+// Authorization), giong login()/registerOrganization() o tren: day la 2 endpoint CONG KHAI, chua
+// dang nhap nen khong co accessToken de gan vao header.
+export async function forgotPassword(payload: ForgotPasswordPayload): Promise<{ success: true }> {
+  const { data } = await authClient.post<{ success: true }>('/auth/forgot-password', payload);
+  return data;
+}
+
+export async function resetPassword(payload: ResetPasswordPayload): Promise<{ success: true }> {
+  const { data } = await authClient.post<{ success: true }>('/auth/reset-password', payload);
+  return data;
+}

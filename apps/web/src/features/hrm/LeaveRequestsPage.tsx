@@ -93,7 +93,7 @@ export function LeaveRequestsPage() {
           <CardContent className="space-y-4">
             {(pendingQuery.data?.data.length ?? 0) === 0 ? (
               <div className="border-dashed border-2 border-slate-200 py-6 text-center text-slate-400 text-sm rounded-lg">
-                Không có yêu cầu chờ duyệt
+                {t('hrm:leaveRequestsPage.pending.emptyMessage')}
               </div>
             ) : (
               pendingQuery.data?.data.map((request) => {
@@ -103,7 +103,7 @@ export function LeaveRequestsPage() {
                 // toan bo danh sach).
                 const isRowBusy = pendingRequestId === request.id && (approve.isPending || reject.isPending);
                 const days = calculateWorkingDays(request.startDate, request.endDate);
-                const employeeName = userNameMap[request.userId] || 'Nhân viên';
+                const employeeName = userNameMap[request.userId] || t('hrm:leaveRequestsPage.pending.unknownEmployee');
                 const { leaveType, cleanReason } = parseLeaveReason(request.reason);
 
                 return (
@@ -121,7 +121,7 @@ export function LeaveRequestsPage() {
                           {formatDate(request.startDate)} — {formatDate(request.endDate)}
                           {days > 0 && (
                             <span className="ml-1.5 text-slate-500 font-semibold text-xs sm:text-sm">
-                              • {days} ngày
+                              • {t('hrm:leaveRequestsPage.daysCount', { count: days })}
                             </span>
                           )}
                         </p>
@@ -203,7 +203,7 @@ export function LeaveRequestsPage() {
                             {formatDate(request.startDate)} — {formatDate(request.endDate)}
                             {days > 0 && (
                               <span className="ml-1.5 text-slate-500 font-semibold text-xs sm:text-sm">
-                                • {days} ngày
+                                • {t('hrm:leaveRequestsPage.daysCount', { count: days })}
                               </span>
                             )}
                           </p>

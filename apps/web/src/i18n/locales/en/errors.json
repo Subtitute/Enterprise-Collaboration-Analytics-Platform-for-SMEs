@@ -22,6 +22,7 @@
   "REFRESH_TOKEN_REVOKED": "This refresh token has been revoked.",
   "USER_INACTIVE_OR_MISSING": "This user does not exist or has been deactivated.",
   "REFRESH_TOKEN_NOT_FOUND_OR_REVOKED": "This refresh token does not exist or has already been revoked.",
+  "PASSWORD_RESET_TOKEN_INVALID": "This password reset link is invalid or has expired. Please request a new one.",
 
   "ROLE_NOT_FOUND": "Role not found.",
 
@@ -50,6 +51,7 @@
   "MISSING_CHECKIN_PHOTO": "Missing attendance photo.",
   "INVALID_PHOTO_KIND": "kind must be \"checkin\" or \"checkout\".",
   "LEAVE_DATE_RANGE_INVALID": "The start date must not be after the end date.",
+  "LEAVE_START_DATE_IN_PAST": "The start date cannot be in the past.",
   "LEAVE_REQUEST_NOT_FOUND": "Leave request not found.",
   "LEAVE_REQUEST_ALREADY_DECIDED": "This leave request has already been processed.",
   "ALREADY_CHECKED_IN_TODAY": "You have already checked in today.",
@@ -60,6 +62,9 @@
   "ATTENDANCE_PHOTO_MISSING": "No photo is available for this action yet.",
   "INVALID_COORDINATE": "{{field}} is invalid.",
   "PHOTO_CONTENT_MISMATCH": "The photo content does not match the declared type ({{mimeType}}).",
+
+  "CALENDAR_EVENT_NOT_FOUND": "Calendar entry not found.",
+  "CALENDAR_EVENT_DATE_RANGE_INVALID": "The start date must not be after the end date.",
 
   "CUSTOMER_NOT_FOUND_IN_ORG": "Customer not found in your organization.",
   "DEAL_STAGE_TRANSITION_INVALID": "Cannot move the deal from stage {{from}} to {{to}}.",

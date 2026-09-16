@@ -9,6 +9,21 @@
   "attendancePage": {
     "title": "勤怠",
     "subtitle": "写真を証拠として出勤・退勤を記録します。",
+    "totalHoursValue": "{{hours}}時間",
+    "columns": {
+      "totalHours": "合計時間",
+      "status": "ステータス"
+    },
+    "statusBadge": {
+      "missingCheckOut": "退勤未記録",
+      "late": "遅刻",
+      "onTime": "定時"
+    },
+    "monthFilter": {
+      "allTime": "すべての期間",
+      "monthYear": "{{year}}年{{month}}月",
+      "ariaLabel": "勤怠をフィルタする月を選択してください"
+    },
     "onSiteBadge": {
       "onSiteTitle": "GPS位置がオフィスの範囲内です",
       "offSiteTitle": "GPS位置がオフィスの範囲外です",
@@ -23,7 +38,12 @@
       "checkOutLabel": "退勤",
       "checkInButton": "出勤",
       "checkOutButton": "退勤",
-      "doneToday": "本日の勤怠は完了しました"
+      "doneToday": "本日の勤怠は完了しました",
+      "checkedInBadge": "出勤済みです",
+      "notCheckedInBadge": "未出勤です",
+      "systemTimeLabel": "システム標準時刻（GMT+7）",
+      "notRecorded": "未記録です",
+      "completedMessage": "本日の勤務の勤怠打刻が完了しました！"
     },
     "history": {
       "cardTitle": "勤怠履歴",
@@ -32,6 +52,9 @@
       "errorDescription": "データの読み込み中にエラーが発生しました。もう一度お試しください。",
       "emptyTitle": "勤怠履歴がありません",
       "emptyDescription": "最初の出勤打刻の後にデータが表示されます。",
+      "emptyFilteredDescription": "{{month}}の勤怠データがありません",
+      "viewCheckInProofTitle": "出勤の証拠写真を見る",
+      "viewCheckOutProofTitle": "退勤の証拠写真を見る",
       "columns": {
         "date": "日付",
         "checkIn": "出勤",
@@ -40,6 +63,14 @@
     },
     "allAttendance": {
       "cardTitle": "組織全体の勤怠",
+      "loading": "組織全体の勤怠を読み込み中…",
+      "errorTitle": "組織全体の勤怠を読み込めませんでした",
+      "errorDescription": "データの読み込み中にエラーが発生しました。もう一度お試しください。",
+      "emptyTitle": "組織全体の勤怠データがまだありません",
+      "emptyDescription": "従業員が出勤を記録すると表示されます。",
+      "emptyFilteredDescription": "{{month}}の組織全体の勤怠データがありません",
+      "viewCheckInProofTitle": "{{name}}さんの出勤の証拠写真を見る",
+      "viewCheckOutProofTitle": "{{name}}さんの退勤の証拠写真を見る",
       "columns": {
         "employee": "従業員",
         "date": "日付",
@@ -48,14 +79,24 @@
       }
     }
   },
+  "photoProofModal": {
+    "title": "{{kind}}の写真",
+    "anonymousUser": "本人",
+    "loadingPhoto": "証拠写真を読み込み中…",
+    "loadError": "証拠写真を読み込めないか、リンクの有効期限が切れています。",
+    "photoAlt": "勤怠の写真"
+  },
   "leaveRequestsPage": {
     "title": "休暇申請",
     "subtitle": "休暇申請を作成し、状況を確認できます。",
     "newRequestButton": "新規申請",
+    "daysCount": "{{count}}日",
     "pending": {
       "cardTitle": "承認待ち（{{count}}件）",
       "reject": "却下",
-      "approve": "承認"
+      "approve": "承認",
+      "emptyMessage": "承認待ちの申請はありません",
+      "unknownEmployee": "従業員"
     },
     "myRequests": {
       "cardTitle": "自分の申請",
@@ -79,12 +120,17 @@
     },
     "startDateLabel": "開始日",
     "endDateLabel": "終了日",
+    "totalDaysPrefix": "合計:",
+    "totalDaysValue": "{{count}}日",
+    "totalDaysSuffix": "（週末を除く）",
     "reasonLabel": "理由",
     "reasonPlaceholder": "休暇の理由を入力…",
     "cancelButton": "キャンセル",
     "submitButton": "申請を送信",
     "errors": {
       "missingDates": "開始日と終了日を選択してください",
+      "startDateInPast": "開始日を過去の日付にすることはできません",
+      "endDateBeforeStart": "終了日を開始日より前にすることはできません",
       "missingType": "休暇の種類を選択してください",
       "missingReason": "休暇の理由を入力してください"
     }

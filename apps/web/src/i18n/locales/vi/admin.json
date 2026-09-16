@@ -6,6 +6,7 @@
       "members": "Thành viên",
       "departments": "Phòng ban",
       "roles": "Vai trò & Quyền",
+      "calendar": "Lịch công ty",
       "failedEvents": "Sự kiện lỗi hệ thống"
     }
   },
@@ -69,6 +70,37 @@
     "hint": "Tick vào ô tương ứng để cấp/thu hồi quyền cho từng vai trò. Thay đổi được lưu ngay lập tức.",
     "permissionColumn": "Quyền",
     "checkboxAriaLabel": "{{roleName}} - {{permissionLabel}}"
+  },
+  "calendarPage": {
+    "description": "Thiết lập ngày lễ và sự kiện/đặt lịch dùng chung cho toàn tổ chức. Bấm vào 1 ngày để tạo mục mới, bấm vào 1 mục có sẵn để sửa.",
+    "newEntry": "Mục mới",
+    "loading": "Đang tải lịch…",
+    "errorTitle": "Không thể tải lịch công ty",
+    "moreEntries": "+{{count}} mục khác",
+    "deleteConfirm": {
+      "title": "Xoá mục lịch này?",
+      "description": "\"{{title}}\" sẽ bị xoá khỏi lịch công ty. Hành động này không thể hoàn tác."
+    }
+  },
+  "calendarEventModal": {
+    "createTitle": "Thêm mục lịch mới",
+    "editTitle": "Sửa mục lịch",
+    "type": {
+      "HOLIDAY": "Ngày lễ",
+      "EVENT": "Sự kiện"
+    },
+    "titleLabel": "Tiêu đề",
+    "titlePlaceholder": "Ví dụ: Nghỉ Tết Nguyên Đán",
+    "titleRequiredError": "Vui lòng nhập tiêu đề",
+    "startDateLabel": "Ngày bắt đầu",
+    "endDateLabel": "Ngày kết thúc",
+    "startDateRequiredError": "Vui lòng chọn ngày bắt đầu",
+    "endDateBeforeStartError": "Ngày kết thúc không được trước ngày bắt đầu",
+    "descriptionLabel": "Mô tả",
+    "cancel": "Huỷ",
+    "create": "Tạo mục lịch",
+    "saveChanges": "Lưu thay đổi",
+    "delete": "Xoá"
   },
   "failedEventsPage": {
     "description": "Danh sách các sự kiện xử lý nội bộ (Kafka) đã thất bại vĩnh viễn hoặc hết lượt thử lại tự động - đây không phải lỗi do người dùng gây ra, mà là dữ liệu phục vụ chẩn đoán sự cố hệ thống. Danh sách chỉ để xem, không có thao tác thử lại từ giao diện này.",
@@ -151,6 +183,12 @@
     "departmentUpdateFailed": "Không thể cập nhật phòng ban",
     "departmentDeleted": "Đã xoá phòng ban",
     "departmentDeleteFailed": "Không thể xoá phòng ban",
-    "permissionsUpdateFailed": "Không thể cập nhật quyền"
+    "permissionsUpdateFailed": "Không thể cập nhật quyền",
+    "calendarEventCreated": "Đã thêm mục lịch mới",
+    "calendarEventCreateFailed": "Không thể thêm mục lịch",
+    "calendarEventUpdated": "Đã cập nhật mục lịch",
+    "calendarEventUpdateFailed": "Không thể cập nhật mục lịch",
+    "calendarEventDeleted": "Đã xoá mục lịch",
+    "calendarEventDeleteFailed": "Không thể xoá mục lịch"
   }
 }

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -39,13 +40,13 @@ function OnSiteBadge({ isOnSite }: { isOnSite?: boolean | null }) {
 /**
  * Tính tổng số giờ làm việc giữa check-in và check-out (Ví dụ: 8.5 giờ)
  */
-function formatTotalHours(checkInAt?: string | null, checkOutAt?: string | null): string {
+function formatTotalHours(t: TFunction, checkInAt?: string | null, checkOutAt?: string | null): string {
   if (!checkInAt || !checkOutAt) return '—';
   const start = new Date(checkInAt).getTime();
   const end = new Date(checkOutAt).getTime();
   if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return '—';
   const diffHours = (end - start) / (1000 * 60 * 60);
-  return `${diffHours.toFixed(1)} giờ`;
+  return t('hrm:attendancePage.totalHoursValue', { hours: diffHours.toFixed(1) });
 }
 
 /**
@@ -58,6 +59,7 @@ function PhotoProofModal({
   target: { id: string; kind: 'checkin' | 'checkout'; time: string; userName?: string; isOnSite?: boolean | null } | null;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(false);
@@ -99,7 +101,7 @@ function PhotoProofModal({
       title={
         <div className="flex items-center gap-2 text-base font-bold text-slate-900">
           <CameraIcon className="h-5 w-5 text-primary-600" />
-          <span>Ảnh chấm công {target.kind === 'checkin' ? 'Vào làm' : 'Ra về'}</span>
+          <span>{t('hrm:photoProofModal.title', { kind: target.kind === 'checkin' ? t('hrm:attendancePage.today.checkInLabel') : t('hrm:attendancePage.today.checkOutLabel') })}</span>
         </div>
       }
       size="sm"
@@ -107,7 +109,7 @@ function PhotoProofModal({
       <div className="space-y-3">
         <div className="flex items-center justify-between text-xs text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
           <div>
-            <span className="font-semibold text-slate-700">{target.userName || 'Cá nhân'}</span>
+            <span className="font-semibold text-slate-700">{target.userName || t('hrm:photoProofModal.anonymousUser')}</span>
             <div className="font-mono text-slate-900 font-bold mt-0.5">{target.time}</div>
           </div>
           <OnSiteBadge isOnSite={target.isOnSite} />
@@ -117,22 +119,22 @@ function PhotoProofModal({
           {isLoading && (
             <div className="flex flex-col items-center gap-2 text-slate-300">
               <Spinner />
-              <span className="text-xs text-slate-400">Đang tải ảnh bằng chứng…</span>
+              <span className="text-xs text-slate-400">{t('hrm:photoProofModal.loadingPhoto')}</span>
             </div>
           )}
           {error && (
             <div className="p-4 text-center text-xs text-rose-400">
-              Không thể tải ảnh bằng chứng hoặc liên kết đã hết hạn.
+              {t('hrm:photoProofModal.loadError')}
             </div>
           )}
           {photoUrl && !isLoading && (
-            <img src={photoUrl} alt="Ảnh chụp chấm công" className="h-full w-full object-cover" />
+            <img src={photoUrl} alt={t('hrm:photoProofModal.photoAlt')} className="h-full w-full object-cover" />
           )}
         </div>
 
         <div className="flex justify-end pt-2">
           <Button type="button" variant="outline" size="sm" onClick={onClose}>
-            Đóng
+            {t('common:actions.close')}
           </Button>
         </div>
       </div>
@@ -147,10 +149,22 @@ function PhotoProofModal({
  * - Quên check-out (bg-rose-100 text-rose-600)
  */
 function AttendanceStatusBadge({ record, today }: { record: { workDate: string; checkInAt: string; checkOutAt?: string | null }; today: string }) {
+  const { t } = useTranslation();
   const checkInDate = new Date(record.checkInAt);
-  // Giờ check-in tính theo GMT+7
-  const checkInHour = checkInDate.getHours();
-  const checkInMinute = checkInDate.getMinutes();
+  // 15/09/2026 (sua loi thuc te): dong comment cu "Gio check-in tinh theo GMT+7" o day tung SAI -
+  // Date.getHours()/getMinutes() doc gio theo timezone cua TRINH DUYET nguoi xem, khong phai GMT+7
+  // - dung 1 nguoi xem trang tu may dat timezone khac VN se bi tinh sai "di muon"/"dung gio" du
+  // du lieu server dung. Day chinh la loi da duoc ghi nhan va sua toan bo du an ngay 22/07/2026
+  // (xem formatDate/formatTime trong lib/utils.ts) nhung tai xuat hien o component moi nay - dung
+  // Intl.DateTimeFormat voi timeZone: 'Asia/Ho_Chi_Minh' de doc dung gio hien thi GMT+7.
+  const gmt7Parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hour: 'numeric',
+    minute: 'numeric',
+    hourCycle: 'h23',
+  }).formatToParts(checkInDate);
+  const checkInHour = Number(gmt7Parts.find((p) => p.type === 'hour')?.value ?? 0);
+  const checkInMinute = Number(gmt7Parts.find((p) => p.type === 'minute')?.value ?? 0);
   const isLate = checkInHour > 8 || (checkInHour === 8 && checkInMinute > 30); // Giờ chuẩn vào ca 8:30
   const isPastDay = record.workDate < today;
   const isMissingCheckOut = !record.checkOutAt && isPastDay;
@@ -158,7 +172,7 @@ function AttendanceStatusBadge({ record, today }: { record: { workDate: string; 
   if (isMissingCheckOut) {
     return (
       <span className="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-600 whitespace-nowrap">
-        Quên check-out
+        {t('hrm:attendancePage.statusBadge.missingCheckOut')}
       </span>
     );
   }
@@ -166,14 +180,14 @@ function AttendanceStatusBadge({ record, today }: { record: { workDate: string; 
   if (isLate) {
     return (
       <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700 whitespace-nowrap">
-        Đi muộn
+        {t('hrm:attendancePage.statusBadge.late')}
       </span>
     );
   }
 
   return (
     <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 whitespace-nowrap">
-      Đúng giờ
+      {t('hrm:attendancePage.statusBadge.onTime')}
     </span>
   );
 }
@@ -198,16 +212,16 @@ export function AttendancePage() {
 
   // Tạo danh sách 6 tháng gần nhất để lựa chọn nhanh
   const monthOptions = useMemo(() => {
-    const options = [{ value: 'all', label: 'Tất cả thời gian' }];
+    const options = [{ value: 'all', label: t('hrm:attendancePage.monthFilter.allTime') }];
     const now = new Date();
     for (let i = 0; i < 6; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const lbl = `Tháng ${d.getMonth() + 1}/${d.getFullYear()}`;
+      const lbl = t('hrm:attendancePage.monthFilter.monthYear', { month: d.getMonth() + 1, year: d.getFullYear() });
       options.push({ value: val, label: lbl });
     }
     return options;
-  }, []);
+  }, [t]);
 
   // Đồng hồ chạy thời gian thực (Live Digital Clock)
   useEffect(() => {
@@ -272,10 +286,10 @@ export function AttendancePage() {
                   <Badge variant="success">{t('hrm:attendancePage.today.doneToday')}</Badge>
                 ) : todayRecord ? (
                   <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700 whitespace-nowrap">
-                    Đã Check-in
+                    {t('hrm:attendancePage.today.checkedInBadge')}
                   </span>
                 ) : (
-                  <Badge variant="outline">Chưa Check-in</Badge>
+                  <Badge variant="outline">{t('hrm:attendancePage.today.notCheckedInBadge')}</Badge>
                 )}
               </div>
             </CardHeader>
@@ -286,7 +300,7 @@ export function AttendancePage() {
                   {timeString}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 font-medium">Giờ chuẩn hệ thống (GMT+7)</p>
+              <p className="text-xs text-slate-400 font-medium">{t('hrm:attendancePage.today.systemTimeLabel')}</p>
 
               {/* Trạng thái chấm công trong ngày */}
               <div className="mt-5 w-full rounded-xl bg-slate-50/80 p-3.5 border border-slate-100/90 text-left text-xs space-y-2">
@@ -301,7 +315,7 @@ export function AttendancePage() {
                       <OnSiteBadge isOnSite={todayRecord.checkInIsOnSite} />
                     </span>
                   ) : (
-                    <span className="text-slate-400 italic">Chưa ghi nhận</span>
+                    <span className="text-slate-400 italic">{t('hrm:attendancePage.today.notRecorded')}</span>
                   )}
                 </div>
 
@@ -316,7 +330,7 @@ export function AttendancePage() {
                       <OnSiteBadge isOnSite={todayRecord.checkOutIsOnSite} />
                     </span>
                   ) : (
-                    <span className="text-slate-400 italic">Chưa ghi nhận</span>
+                    <span className="text-slate-400 italic">{t('hrm:attendancePage.today.notRecorded')}</span>
                   )}
                 </div>
               </div>
@@ -335,7 +349,7 @@ export function AttendancePage() {
                 )}
                 {todayRecord?.checkOutAt && (
                   <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 text-xs font-semibold text-emerald-700 text-center">
-                    ✓ Bạn đã hoàn thành chấm công ca làm việc hôm nay!
+                    ✓ {t('hrm:attendancePage.today.completedMessage')}
                   </div>
                 )}
               </div>
@@ -385,7 +399,7 @@ export function AttendancePage() {
                     value={selectedMonth}
                     options={monthOptions}
                     onChange={setSelectedMonth}
-                    ariaLabel="Chọn tháng lọc chấm công"
+                    ariaLabel={t('hrm:attendancePage.monthFilter.ariaLabel')}
                     className="min-w-[150px]"
                   />
                 </div>
@@ -404,7 +418,7 @@ export function AttendancePage() {
                   {filteredMyRecords.length === 0 ? (
                     <EmptyState
                       title={t('hrm:attendancePage.history.emptyTitle')}
-                      description={selectedMonth !== 'all' ? `Không có dữ liệu chấm công trong ${monthOptions.find((m) => m.value === selectedMonth)?.label}` : t('hrm:attendancePage.history.emptyDescription')}
+                      description={selectedMonth !== 'all' ? t('hrm:attendancePage.history.emptyFilteredDescription', { month: monthOptions.find((m) => m.value === selectedMonth)?.label }) : t('hrm:attendancePage.history.emptyDescription')}
                     />
                   ) : (
                     <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
@@ -414,8 +428,8 @@ export function AttendancePage() {
                             <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.date')}</th>
                             <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.checkIn')}</th>
                             <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.checkOut')}</th>
-                            <th className="py-2.5 pr-4 bg-white">Tổng giờ</th>
-                            <th className="py-2.5 pr-4 bg-white">Trạng thái</th>
+                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.columns.totalHours')}</th>
+                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.columns.status')}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -437,8 +451,8 @@ export function AttendancePage() {
                                       })
                                     }
                                     className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
-                                    title="Xem ảnh bằng chứng vào làm"
-                                    aria-label="Xem ảnh bằng chứng vào làm"
+                                    title={t('hrm:attendancePage.history.viewCheckInProofTitle')}
+                                    aria-label={t('hrm:attendancePage.history.viewCheckInProofTitle')}
                                   >
                                     <CameraIcon className="h-3 w-3" />
                                   </button>
@@ -460,19 +474,19 @@ export function AttendancePage() {
                                         })
                                       }
                                       className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
-                                      title="Xem ảnh bằng chứng ra về"
-                                      aria-label="Xem ảnh bằng chứng ra về"
+                                      title={t('hrm:attendancePage.history.viewCheckOutProofTitle')}
+                                      aria-label={t('hrm:attendancePage.history.viewCheckOutProofTitle')}
                                     >
                                       <CameraIcon className="h-3 w-3" />
                                     </button>
                                   </div>
                                 ) : (
-                                  <span className="text-slate-400 italic">Chưa ghi nhận</span>
+                                  <span className="text-slate-400 italic">{t('hrm:attendancePage.today.notRecorded')}</span>
                                 )}
                               </td>
                               <td className="py-2.5 pr-4 text-slate-700 font-medium whitespace-nowrap tabular-nums">
                                 <span className={record.checkOutAt ? 'font-semibold text-slate-900' : 'text-slate-400 font-normal'}>
-                                  {formatTotalHours(record.checkInAt, record.checkOutAt)}
+                                  {formatTotalHours(t, record.checkInAt, record.checkOutAt)}
                                 </span>
                               </td>
                               <td className="py-2.5 pr-4 whitespace-nowrap">
@@ -497,7 +511,7 @@ export function AttendancePage() {
                   {filteredAllRecords.length === 0 ? (
                     <EmptyState
                       title={t('hrm:attendancePage.allAttendance.emptyTitle')}
-                      description={selectedMonth !== 'all' ? `Không có dữ liệu chấm công toàn tổ chức trong ${monthOptions.find((m) => m.value === selectedMonth)?.label}` : t('hrm:attendancePage.allAttendance.emptyDescription')}
+                      description={selectedMonth !== 'all' ? t('hrm:attendancePage.allAttendance.emptyFilteredDescription', { month: monthOptions.find((m) => m.value === selectedMonth)?.label }) : t('hrm:attendancePage.allAttendance.emptyDescription')}
                     />
                   ) : (
                     <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
@@ -508,8 +522,8 @@ export function AttendancePage() {
                             <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.date')}</th>
                             <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.checkIn')}</th>
                             <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.checkOut')}</th>
-                            <th className="py-2.5 pr-4 bg-white">Tổng giờ</th>
-                            <th className="py-2.5 pr-4 bg-white">Trạng thái</th>
+                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.columns.totalHours')}</th>
+                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.columns.status')}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -540,8 +554,8 @@ export function AttendancePage() {
                                         })
                                       }
                                       className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
-                                      title={`Xem ảnh bằng chứng vào làm của ${name}`}
-                                      aria-label={`Xem ảnh bằng chứng vào làm của ${name}`}
+                                      title={t('hrm:attendancePage.allAttendance.viewCheckInProofTitle', { name })}
+                                      aria-label={t('hrm:attendancePage.allAttendance.viewCheckInProofTitle', { name })}
                                     >
                                       <CameraIcon className="h-3 w-3" />
                                     </button>
@@ -564,19 +578,19 @@ export function AttendancePage() {
                                           })
                                         }
                                         className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
-                                        title={`Xem ảnh bằng chứng ra về của ${name}`}
-                                        aria-label={`Xem ảnh bằng chứng ra về của ${name}`}
+                                        title={t('hrm:attendancePage.allAttendance.viewCheckOutProofTitle', { name })}
+                                        aria-label={t('hrm:attendancePage.allAttendance.viewCheckOutProofTitle', { name })}
                                       >
                                         <CameraIcon className="h-3 w-3" />
                                       </button>
                                     </div>
                                   ) : (
-                                    <span className="text-slate-400 italic">Chưa ghi nhận</span>
+                                    <span className="text-slate-400 italic">{t('hrm:attendancePage.today.notRecorded')}</span>
                                   )}
                                 </td>
                                 <td className="py-2.5 pr-4 text-slate-700 font-medium whitespace-nowrap tabular-nums">
                                   <span className={record.checkOutAt ? 'font-semibold text-slate-900' : 'text-slate-400 font-normal'}>
-                                    {formatTotalHours(record.checkInAt, record.checkOutAt)}
+                                    {formatTotalHours(t, record.checkInAt, record.checkOutAt)}
                                   </span>
                                 </td>
                                 <td className="py-2.5 pr-4 whitespace-nowrap">

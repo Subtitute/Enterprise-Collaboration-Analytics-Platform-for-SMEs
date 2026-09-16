@@ -13,6 +13,23 @@
       "description": "サブフォルダを作成するか、最初のドキュメントをアップロードしてください。",
       "newFolder": "新規フォルダ",
       "uploadFile": "ドキュメントをアップロード"
+    },
+    "dropzone": {
+      "title": "ここにファイルをドロップしてアップロード",
+      "description": "ファイルは自動的に次のフォルダへアップロードされます",
+      "multipleFilesTitle": "一度にアップロードできるファイルは1つだけです",
+      "multipleFilesDescription": "ドロップした最初のファイルが選択されました。他のファイルはアップロードされていません。"
+    },
+    "searchPlaceholder": "フォルダ、ファイルを検索…",
+    "viewMode": {
+      "grid": "グリッド",
+      "gridTitle": "グリッド表示",
+      "list": "リスト",
+      "listTitle": "リスト表示"
+    },
+    "filteredEmpty": {
+      "title": "該当するドキュメントやフォルダが見つかりません",
+      "description": "別のキーワードで検索してみてください"
     }
   },
   "newFolderModal": {
@@ -51,6 +68,18 @@
       "title": "このファイルを削除しますか？",
       "description": "「{{name}}」はシステムから削除されます。",
       "confirmLabel": "ファイルを削除"
+    },
+    "selectFileAria": "ファイル「{{name}}」を選択",
+    "selectAllAria": "すべてのファイルを選択",
+    "updatedLabel": "更新: {{date}}",
+    "selectedLabel": "選択済み",
+    "batchDownload": "一括ダウンロード",
+    "batchDelete": "一括削除",
+    "deselectAll": "選択解除",
+    "batchDeleteConfirm": {
+      "title": "ファイルの一括削除",
+      "description": "選択した{{count}}件のファイルを削除してもよろしいですか？この操作は取り消せません。",
+      "confirmLabel": "削除を確認"
     }
   },
   "uploadModal": {
@@ -60,6 +89,11 @@
     "removeFileAria": "選択したファイルを解除",
     "cancel": "キャンセル",
     "submit": "アップロード"
+  },
+  "shareTargetPicker": {
+    "change": "変更",
+    "noMembersFound": "メンバーが見つかりません",
+    "noDepartmentsFound": "部署が見つかりません"
   },
   "folderShareModal": {
     "title": "「{{folderName}}」の共有を管理",
@@ -97,6 +131,8 @@
     "submit": "共有"
   },
   "folderGrid": {
+    "loadingFileCount": "読み込み中…",
+    "metaSummary": "{{count}}件のファイル • 更新: {{time}}",
     "restrictedTooltip": "アクセス制限のあるフォルダ",
     "optionsAria": "フォルダオプション",
     "rename": "名前を変更",

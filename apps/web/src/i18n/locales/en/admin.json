@@ -6,6 +6,7 @@
       "members": "Members",
       "departments": "Departments",
       "roles": "Roles & Permissions",
+      "calendar": "Company Calendar",
       "failedEvents": "System Failed Events"
     }
   },
@@ -69,6 +70,37 @@
     "hint": "Check a box to grant or revoke a permission for a role. Changes are saved immediately.",
     "permissionColumn": "Permission",
     "checkboxAriaLabel": "{{roleName}} - {{permissionLabel}}"
+  },
+  "calendarPage": {
+    "description": "Set up organization-wide holidays and events/reservations. Click a day to create a new entry, or click an existing entry to edit it.",
+    "newEntry": "New entry",
+    "loading": "Loading calendar…",
+    "errorTitle": "Couldn't load the company calendar",
+    "moreEntries": "+{{count}} more",
+    "deleteConfirm": {
+      "title": "Delete this calendar entry?",
+      "description": "\"{{title}}\" will be removed from the company calendar. This action cannot be undone."
+    }
+  },
+  "calendarEventModal": {
+    "createTitle": "Add calendar entry",
+    "editTitle": "Edit calendar entry",
+    "type": {
+      "HOLIDAY": "Holiday",
+      "EVENT": "Event"
+    },
+    "titleLabel": "Title",
+    "titlePlaceholder": "e.g. Lunar New Year break",
+    "titleRequiredError": "Please enter a title",
+    "startDateLabel": "Start date",
+    "endDateLabel": "End date",
+    "startDateRequiredError": "Please select a start date",
+    "endDateBeforeStartError": "The end date cannot be before the start date",
+    "descriptionLabel": "Description",
+    "cancel": "Cancel",
+    "create": "Create entry",
+    "saveChanges": "Save changes",
+    "delete": "Delete"
   },
   "failedEventsPage": {
     "description": "Internal processing events (Kafka) that failed permanently or exhausted their automatic retries - these aren't user-caused errors, but diagnostic data for troubleshooting system issues. This list is read-only; there's no retry action from this interface.",
@@ -151,6 +183,12 @@
     "departmentUpdateFailed": "Couldn't update department",
     "departmentDeleted": "Department deleted",
     "departmentDeleteFailed": "Couldn't delete department",
-    "permissionsUpdateFailed": "Couldn't update permissions"
+    "permissionsUpdateFailed": "Couldn't update permissions",
+    "calendarEventCreated": "Calendar entry added",
+    "calendarEventCreateFailed": "Couldn't add calendar entry",
+    "calendarEventUpdated": "Calendar entry updated",
+    "calendarEventUpdateFailed": "Couldn't update calendar entry",
+    "calendarEventDeleted": "Calendar entry deleted",
+    "calendarEventDeleteFailed": "Couldn't delete calendar entry"
   }
 }

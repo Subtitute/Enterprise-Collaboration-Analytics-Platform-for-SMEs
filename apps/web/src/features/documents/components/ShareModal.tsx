@@ -140,7 +140,9 @@ export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: 
                   }}
                   className="text-xs text-primary-600 hover:underline cursor-pointer font-medium"
                 >
-                  Thay đổi
+                  {/* 15/09/2026: dung chung key documents:shareTargetPicker.* voi FolderShareModal.tsx
+                      (xem chu thich tai do) - tranh 2 ban dich trung lap cho cung 1 khoi UI. */}
+                  {t('documents:shareTargetPicker.change')}
                 </button>
               </div>
             ) : targetType === 'department' && selectedDept && !isDropdownOpen ? (
@@ -162,7 +164,7 @@ export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: 
                   }}
                   className="text-xs text-primary-600 hover:underline cursor-pointer font-medium"
                 >
-                  Thay đổi
+                  {t('documents:shareTargetPicker.change')}
                 </button>
               </div>
             ) : (
@@ -193,7 +195,7 @@ export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: 
                 <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-44 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl shadow-slate-200/80">
                   {targetType === 'user' ? (
                     filteredUsers.length === 0 ? (
-                      <p className="px-3 py-2 text-center text-xs text-slate-400">Không tìm thấy thành viên</p>
+                      <p className="px-3 py-2 text-center text-xs text-slate-400">{t('documents:shareTargetPicker.noMembersFound')}</p>
                     ) : (
                       filteredUsers.map((u) => (
                         <button
@@ -218,7 +220,7 @@ export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: 
                       ))
                     )
                   ) : filteredDepts.length === 0 ? (
-                    <p className="px-3 py-2 text-center text-xs text-slate-400">Không tìm thấy phòng ban</p>
+                    <p className="px-3 py-2 text-center text-xs text-slate-400">{t('documents:shareTargetPicker.noDepartmentsFound')}</p>
                   ) : (
                     filteredDepts.map((d) => (
                       <button

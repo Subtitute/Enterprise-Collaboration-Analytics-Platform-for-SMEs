@@ -102,6 +102,14 @@ export function LoginPage() {
               }}
             />
           </FormField>
+          <div className="-mt-2 text-right">
+            <Link
+              to="/forgot-password"
+              className="inline-block text-xs font-medium text-primary-600 transition-all duration-200 hover:text-primary-700 hover:underline"
+            >
+              {t('auth:loginPage.forgotPasswordLink')}
+            </Link>
+          </div>
           <Button type="submit" className="w-full" isLoading={login.isPending}>
             {t('auth:loginPage.submit')}
           </Button>
