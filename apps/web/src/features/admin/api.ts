@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api-client';
-import type { Department, FailedEvent, PaginatedResponse, Permission, RoleWithPermissions, User } from '@/types';
+import type { CalendarEvent, CalendarEventType, Department, FailedEvent, PaginatedResponse, Permission, RoleWithPermissions, User } from '@/types';
 
 export interface InviteUserPayload {
   email: string;
@@ -85,4 +85,34 @@ export async function updateRolePermissions(roleId: string, permissionKeys: stri
 export async function fetchFailedEvents(params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<FailedEvent>> {
   const { data } = await apiClient.get<PaginatedResponse<FailedEvent>>('/failed-events', { params });
   return data;
+}
+
+export interface CalendarEventPayload {
+  title: string;
+  description?: string;
+  type: CalendarEventType;
+  startDate: string;
+  endDate?: string;
+}
+
+// 15/09/2026: Lich cong ty (HRM-lite mo rong) - CRUD ngay le/su kien, chi Org Admin
+// (PERMISSIONS.CALENDAR_MANAGE). GET khong phan trang - xem chu thich tai CalendarEventQueryDto
+// (hrm-service) - tra ve TOAN BO muc lich chong lan voi khoang [startDate, endDate] dang xem.
+export async function fetchCalendarEvents(params: { startDate?: string; endDate?: string } = {}): Promise<CalendarEvent[]> {
+  const { data } = await apiClient.get<CalendarEvent[]>('/calendar-events', { params });
+  return data;
+}
+
+export async function createCalendarEvent(payload: CalendarEventPayload): Promise<CalendarEvent> {
+  const { data } = await apiClient.post<CalendarEvent>('/calendar-events', payload);
+  return data;
+}
+
+export async function updateCalendarEvent(id: string, payload: Partial<CalendarEventPayload>): Promise<CalendarEvent> {
+  const { data } = await apiClient.patch<CalendarEvent>(`/calendar-events/${id}`, payload);
+  return data;
+}
+
+export async function deleteCalendarEvent(id: string): Promise<void> {
+  await apiClient.delete(`/calendar-events/${id}`);
 }

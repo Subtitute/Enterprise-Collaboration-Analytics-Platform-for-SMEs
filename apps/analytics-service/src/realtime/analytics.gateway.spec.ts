@@ -19,6 +19,9 @@ describe('AnalyticsGateway.handleConnection', () => {
     sub: 'user-1',
     organizationId: 'org-1',
     departmentId: null,
+    // 16/09/2026: bo sung isSuperAdmin - truong bat buoc tu JwtAccessPayload sau tinh nang moi
+    // "Super Admin" (xem auth-context.interface.ts), thieu truong nay lam tsc --noEmit that bai.
+    isSuperAdmin: false,
     email: 'user@example.com',
     roles: ['manager'],
     permissions: [PERMISSIONS.ANALYTICS_VIEW],

@@ -126,6 +126,11 @@ describe('NotificationsService', () => {
       return { sortMock, skipMock, limitMock, execMock };
     }
 
+    // 16/09/2026: cap nhat lai test theo dung hanh vi that cua findForUser() hien tai - service
+    // xay `filter.type` thanh 1 RegExp khop TIEN TO (vd 'leave_request' khop ca
+    // 'leave_request.approved'/'leave_request.rejected'), khong con so sanh chuoi tuyet doi nhu
+    // truoc - test cu (mong doi `type: 'task.assigned'` dang chuoi) da loi thoi so voi code, phat
+    // hien qua chay lai toan bo test suite sau khi merge nhanh frontend cua Tien.
     it('loc theo `type` khi query.type duoc truyen (GET /notifications?type=...)', async () => {
       mockFindChain([]);
 
@@ -134,8 +139,12 @@ describe('NotificationsService', () => {
       expect(modelMock.find).toHaveBeenCalledWith({
         organizationId: 'org-1',
         userId: 'user-1',
-        type: 'task.assigned',
+        type: expect.any(RegExp),
       });
+      const filterArg = modelMock.find.mock.calls[0][0] as { type: RegExp };
+      expect(filterArg.type.test('task.assigned')).toBe(true);
+      expect(filterArg.type.test('task.assigned.extra')).toBe(true);
+      expect(filterArg.type.test('other.task.assigned')).toBe(false);
     });
 
     it('khong them dieu kien `type` vao filter khi query.type = undefined', async () => {
@@ -146,6 +155,8 @@ describe('NotificationsService', () => {
       expect(modelMock.find).toHaveBeenCalledWith({ organizationId: 'org-1', userId: 'user-1' });
     });
 
+    // 16/09/2026: cung ly do cap nhat voi test "loc theo type" o tren - filter.type gio la RegExp
+    // khop tien to, khong con la chuoi tuyet doi.
     it('ket hop dong thoi `type` va `isRead` trong filter', async () => {
       mockFindChain([]);
 
@@ -160,8 +171,10 @@ describe('NotificationsService', () => {
         organizationId: 'org-1',
         userId: 'user-1',
         isRead: false,
-        type: 'document.shared',
+        type: expect.any(RegExp),
       });
+      const filterArg = modelMock.find.mock.calls[0][0] as { type: RegExp };
+      expect(filterArg.type.test('document.shared')).toBe(true);
     });
   });
 

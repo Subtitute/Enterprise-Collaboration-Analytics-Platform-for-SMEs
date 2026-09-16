@@ -174,6 +174,15 @@ export function Topbar() {
 
   // Phân quyền hiển thị: Admin hoặc Manager có thêm quyền tạo Dự án & Khách hàng
   const canManageProjectsOrCRM = useMemo(() => {
+    if (!user?.roles || user.roles.length === 0) return false;
+    return user.roles.some((r) => {
+      const name = r.name.toLowerCase();
+      // 16/09/2026: bo nhanh khop 'quản lý' - Role.name luon la tieng Anh ('Org Admin'/'Manager'/
+      // 'Employee', xem DefaultRoleName trong packages/common-dto) vi seedDefaultRoles() la duy
+      // nhat tao Role va khong co endpoint doi ten vai tro nao ca, nen nhanh nay khong bao gio
+      // khop (dead code) va vi pham linter hardcode tieng Viet.
+      return name.includes('admin') || name.includes('manager');
+    });
     return canManageProjects(user?.roles);
   }, [user?.roles]);
 

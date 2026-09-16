@@ -9,6 +9,12 @@ interface DatePickerProps {
   onChange: (val: string) => void;
   placeholder?: string;
   className?: string;
+  /** 15/09/2026 (fix loi thuc te): chan chon ngay < minDate (chuoi 'YYYY-MM-DD', so sanh dang
+   *  chuoi la du chinh xac vi da co dang zero-pad co dinh, khong can parse Date). Prop nay TUNG khai
+   *  bao san trong type nhung KHONG duoc dung o dau trong than component - moi noi goi DatePicker
+   *  (vd NewLeaveRequestModal.tsx) truyen minDate tuong nhu co tac dung nhung thuc te bi bo qua hoan
+   *  toan, dan tuc lich su phat hien tu ke chi cua khach hang: chon 1 ngay nghi phep trong QUA KHU
+   *  van tao duoc yeu cau. Nay da lien ket that voi luoi ngay + input go tay. */
   minDate?: string;
   position?: 'top' | 'bottom';
   align?: 'left' | 'right';
@@ -139,6 +145,9 @@ export function DatePicker({
     const formattedMonth = String(currentMonth + 1).padStart(2, '0');
     const formattedDay = String(day).padStart(2, '0');
     const dateStr = `${currentYear}-${formattedMonth}-${formattedDay}`;
+    // 15/09/2026: phong thu - nut ngay bi disabled da chan click qua thuoc tinh `disabled`, nhung
+    // kiem tra lai o day de ham nay an toan du goi tu dau (khong phu thuoc hoan toan vao UI).
+    if (minDate && dateStr < minDate) return;
     setInputError(false);
     onChange(dateStr);
     setIsOpen(false);
@@ -170,6 +179,8 @@ export function DatePicker({
       const check = new Date(y, m - 1, d);
       const roundTrips = check.getFullYear() === y && check.getMonth() === m - 1 && check.getDate() === d;
 
+      // 15/09/2026: ap dung minDate cho ca nhap tay - truoc ban sua nay chi luoi ngay bi chan, go
+      // thang 1 ngay qua khu hop le dinh dang van lot qua duoc.
       if (inRange && roundTrips) {
         const formatted = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         if (minDate && formatted < minDate) {
@@ -181,8 +192,9 @@ export function DatePicker({
         return;
       }
 
-      // Du dinh dang dd/mm/yyyy nhung gia tri khong hop le (vd 31/02/2026, 32/01/2026) - bao loi
-      // inline, KHONG goi onChange de tranh luu nham mot ngay sai lech ma nguoi dung khong co y dinh.
+      // Du dinh dang dd/mm/yyyy nhung gia tri khong hop le (vd 31/02/2026, 32/01/2026) hoac truoc
+      // minDate - bao loi inline, KHONG goi onChange de tranh luu nham mot ngay sai lech/khong hop
+      // le ma nguoi dung khong co y dinh.
       setInputError(true);
       return;
     }
@@ -375,9 +387,11 @@ export function DatePicker({
                     const day = i + 1;
                     const formattedMonth = String(currentMonth + 1).padStart(2, '0');
                     const formattedDay = String(day).padStart(2, '0');
+                    // 15/09/2026: so sanh dang chuoi 'YYYY-MM-DD' zero-pad - dung thu tu tu dien
+                    // khop dung thu tu thoi gian, khong can dung Date object (tranh moi rui ro lech
+                    // gio/timezone khi so sanh 2 Date truc tiep).
                     const dateStr = `${currentYear}-${formattedMonth}-${formattedDay}`;
-
-                    const isDisabled = minDate ? dateStr < minDate : false;
+                    const isDisabled = Boolean(minDate) && dateStr < minDate!;
 
                     const isSelected =
                       parsedDate &&

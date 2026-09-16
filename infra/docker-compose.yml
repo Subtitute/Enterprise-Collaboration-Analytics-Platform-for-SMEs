@@ -198,6 +198,25 @@ services:
       timeout: 5s
       retries: 10
 
+  # 15/09/2026: "Quen mat khau" (phan hoi GVHD, muc 4) - SMTP gia lap cho dev/demo, KHONG gui email
+  # ra ngoai that su (an toan tuyet doi, khong the "gui nham" email demo toi nguoi dung that). Co
+  # giao dien web (127.0.0.1:8025) xem lai moi email da "gui" - cho phep bam thang vao link dat lai
+  # mat khau trong email de demo TRON VEN luong "Quen mat khau", khong can tai khoan Gmail/SendGrid
+  # that. Xem chu thich day du tai apps/iam-service/src/email/email.service.ts. Doi sang SMTP that
+  # (san xuat) chi can doi SMTP_HOST/PORT/USER/PASSWORD trong iam-service ben duoi, khong doi code.
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: mailhog
+    restart: unless-stopped
+    networks: [internal-net]
+    # Chi map Web UI (8025) ra host de xem lai email - cung quy uoc 127.0.0.1 voi Prometheus/
+    # Grafana/Alertmanager o duoi. Cong SMTP (1025) KHONG map ra host, chi iam-service goi noi bo
+    # qua internal-net. Anh nay la binary Go toi gian, khong co shell/wget de khai bao healthcheck
+    # (cung ly do voi kafka-exporter o duoi) - iam-service tu fail-open neu goi SMTP that bai (xem
+    # chu thich EmailService), nen khong service nao can cho mailhog "healthy" truoc khi khoi dong.
+    ports:
+      - "127.0.0.1:8025:8025"
+
   minio:
     # 22/08/2026: pin theo digest - mirror ly do o timescaledb (tranh tag "latest" troi).
     image: minio/minio:latest@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
@@ -294,6 +313,10 @@ services:
       # race luc khoi dong lanh khi iam-service goi Redis truoc khi Redis healthy. Bo sung de
       # phong thu theo lop (defense-in-depth) du code da co try/catch fail-open cho Redis.
       redis: { condition: service_healthy }
+      # 15/09/2026: "Quen mat khau" - khong dat condition: service_healthy (mailhog khong co
+      # healthcheck, xem chu thich tai do) - chi dam bao mailhog duoc KHOI DONG truoc, iam-service
+      # tu fail-open (ghi log link reset) neu goi SMTP that bai bat ke ly do gi.
+      mailhog: { condition: service_started }
     environment:
       NODE_ENV: production
       PORT: 3001
@@ -310,6 +333,22 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN}
+      # 15/09/2026: "Quen mat khau" (phan hoi GVHD, muc 4) - xem chu thich configuration.ts
+      # (iam-service) ve ly do tach secret rieng + SMTP_HOST tro thang toi container mailhog o tren.
+      JWT_RESET_SECRET: ${JWT_RESET_SECRET}
+      JWT_RESET_EXPIRES_IN: ${JWT_RESET_EXPIRES_IN:-30m}
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_FROM: ${SMTP_FROM:-noreply@ecap-demo.local}
+      # web duoc map ra host qua cong 80 (xem service "web" ben duoi) - day la URL nguoi dung That
+      # se bam vao tu email, khac voi VITE_API_BASE_URL (duong dan noi bo goi API).
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
+      # 16/09/2026: "Super Admin" (tinh nang moi) - de trong ca 2 bien la TAT hoan toan buoc
+      # bootstrap tai khoan quan tri nen tang (xem bootstrap/super-admin-bootstrap.service.ts).
+      # Gia tri demo duoi day cho phep dang nhap thu ngay sau "docker compose up" lan dau.
+      SUPER_ADMIN_EMAIL: ${SUPER_ADMIN_EMAIL:-superadmin@ecap-platform.local}
+      SUPER_ADMIN_PASSWORD: ${SUPER_ADMIN_PASSWORD:-SuperAdmin123!}
+      SUPER_ADMIN_FULL_NAME: ${SUPER_ADMIN_FULL_NAME:-Super Admin}
       INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
       CORS_ORIGIN: ${CORS_ORIGIN}
     # ports: ["3001:3001"]  # go bo 21/07/2026 - khong expose ra host, chi Gateway/noi bo moi

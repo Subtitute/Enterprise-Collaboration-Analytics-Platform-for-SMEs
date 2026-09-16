@@ -10,7 +10,9 @@ export interface RestProxyRouteGroup {
 
 export const REST_PROXY_ROUTES: RestProxyRouteGroup[] = [
   {
-    prefixes: ['/api/v1/auth', '/api/v1/users', '/api/v1/departments', '/api/v1/roles'],
+    // 16/09/2026: them '/api/v1/platform-admin' (tinh nang moi "Super Admin") - cung iam-service,
+    // noi giu Organization/User (xem platform-admin module).
+    prefixes: ['/api/v1/auth', '/api/v1/users', '/api/v1/departments', '/api/v1/roles', '/api/v1/platform-admin'],
     targetConfigKey: 'services.iam',
   },
   {
@@ -40,7 +42,8 @@ export const REST_PROXY_ROUTES: RestProxyRouteGroup[] = [
   },
   {
     // 05/08/2026: HRM-lite Service (Technical_Spec.md muc 17).
-    prefixes: ['/api/v1/attendance', '/api/v1/leave-requests'],
+    // 15/09/2026: them '/api/v1/calendar-events' (Lich cong ty, cung service hrm-service).
+    prefixes: ['/api/v1/attendance', '/api/v1/leave-requests', '/api/v1/calendar-events'],
     targetConfigKey: 'services.hrm',
   },
 ];

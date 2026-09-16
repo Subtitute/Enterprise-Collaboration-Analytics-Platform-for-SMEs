@@ -64,14 +64,19 @@
     "optionsAriaLabel": "Tùy chọn khách hàng",
     "editCustomer": "Chỉnh sửa thông tin",
     "deleteCustomer": "Xoá khách hàng",
-    "interaction": "Tương tác: {{time}}",
     "openDeals": "{{count}} deal đang hoạt động",
+    "lastInteraction": "Tương tác: {{time}}",
     "deleteConfirmTitle": "Xoá khách hàng này?",
     "deleteConfirmDescription": "Toàn bộ deal thuộc \"{{name}}\" cũng sẽ bị xoá. Hành động này không thể hoàn tác."
   },
   "editCustomerModal": {
     "title": "Chỉnh sửa thông tin khách hàng",
     "save": "Lưu thay đổi"
+  },
+  "kanban": {
+    "scrollLeftAriaLabel": "Cuộn sang trái",
+    "scrollRightAriaLabel": "Cuộn sang phải",
+    "emptyColumn": "Trống"
   },
   "dealDetailModal": {
     "title": "Chi tiết deal",

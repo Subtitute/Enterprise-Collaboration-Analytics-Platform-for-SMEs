@@ -110,6 +110,10 @@ export class InternalAuthGuard implements CanActivate {
       // 28/07/2026: xem ghi chu departmentId tai AuthContext (@app/common-dto) - `undefined`
       // (header vang mat, vd nguoi dung chua duoc gan phong ban) duoc chuan hoa ve `null`.
       departmentId: readHeader(req.headers[INTERNAL_AUTH_HEADERS.DEPARTMENT_ID]) ?? null,
+      // 16/09/2026: "Super Admin" - header vang mat (moi service/route KHONG di qua Gateway moi -
+      // vd request test cu chua duoc cap nhat) duoc coi la false, giu nguyen hanh vi cu cho MOI
+      // nguoi dung thuong.
+      isSuperAdmin: readHeader(req.headers[INTERNAL_AUTH_HEADERS.IS_SUPER_ADMIN]) === 'true',
     };
     req.user = authContext;
     return true;

@@ -173,3 +173,24 @@ export interface LeaveRequestRejectedPayload {
   userId: string;
   actorId: string;
 }
+
+/**
+ * 15/09/2026: Lich cong ty (HRM-lite mo rong). `type` la CalendarEventType (HOLIDAY|EVENT) -
+ * khong import truc tiep enum de tranh vong lap phu thuoc trong file event schema thuan tuy nay
+ * (mirror cach DealStageChangedPayload ben tren dung `string` cho `toStage`/`fromStage` thay vi
+ * import DealStage).
+ */
+export interface CalendarEventCreatedPayload {
+  calendarEventId: string;
+  title: string;
+  type: string;
+  startDate: string;
+  endDate: string;
+  actorId: string;
+}
+
+export interface CalendarEventDeletedPayload {
+  calendarEventId: string;
+  title: string;
+  actorId: string;
+}

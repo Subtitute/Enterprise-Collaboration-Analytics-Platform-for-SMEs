@@ -17,12 +17,32 @@ export interface AuthUser {
   organizationName?: string;
   departmentId: string | null;
   roles: Role[];
+  // 16/09/2026: "Super Admin" (tinh nang moi) - true CHI VOI tai khoan quan tri nen tang. Dung de
+  // dieu huong dung khu vuc (/platform-admin thay vi /dashboard, xem ProtectedRoute.tsx).
+  isSuperAdmin: boolean;
 }
 
 export interface Organization {
   id: string;
   name: string;
   taxCode?: string | null;
+}
+
+// 16/09/2026: "Super Admin" (tinh nang moi) - to chuc (tenant) nhin tu goc do quan tri nen tang,
+// KHAC voi `Organization` o tren (thong tin toi thieu 1 user tu doc ve chinh to chuc cua ho).
+export interface PlatformOrganization {
+  id: string;
+  name: string;
+  taxCode: string | null;
+  isActive: boolean;
+  userCount: number;
+  createdAt: string;
+}
+
+export interface PlatformStats {
+  totalOrganizations: number;
+  activeOrganizations: number;
+  totalUsers: number;
 }
 
 export interface PaginationMeta {
@@ -297,6 +317,20 @@ export interface FailedEvent {
   attempts: number;
   rawPayload: string;
   failedAt: string;
+  createdAt: string;
+}
+
+// 15/09/2026: Lich cong ty (HRM-lite mo rong, theo yeu cau GVHD) - Technical_Spec.md "Lich cong ty".
+export type CalendarEventType = 'HOLIDAY' | 'EVENT';
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string | null;
+  type: CalendarEventType;
+  startDate: string;
+  endDate: string;
+  createdByUserId: string;
   createdAt: string;
 }
 

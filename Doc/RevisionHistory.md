@@ -856,6 +856,517 @@ frontend của Tiến lần 2").*
 
 ---
 
+## 2026-09-15 — Rà soát lại sau khoảng nghỉ 2 tuần: 102 chuỗi tiếng Việt hardcode + 5 lỗi thật từ
+một đợt code mới của Tiến chưa từng qua kiểm tra
+
+Quay lại dự án sau ~2 tuần không có phiên làm việc nào (tài liệu dừng đúng ở mục 29/08 phía trên).
+Đọc lại toàn bộ `Doc/*.md` (trừ `GraduationReport.tex`) để nắm lại bối cảnh, sau đó chạy đủ gate
+`lint` + `lint:i18n-strings` + `typecheck` + `test:coverage` để xác nhận "mọi thứ vẫn ổn" theo yêu
+cầu của người dùng. `lint:i18n-strings` thất bại: **102 chuỗi tiếng Việt có dấu hardcode ngoài
+i18n, trải trên 16 file** (Documents: `FileTable.tsx`/`FolderGrid.tsx`/`FolderShareModal.tsx`/
+`ShareModal.tsx`/`DocumentsPage.tsx`; HRM: `AttendancePage.tsx`/`NewLeaveRequestModal.tsx`/
+`LeaveRequestsPage.tsx`; CRM: `CustomerCard.tsx`/`DealKanbanBoard.tsx`/`EditCustomerModal.tsx`;
+Notifications: `NotificationBell.tsx`/`NotificationsPage.tsx`/`utils.tsx`; Projects:
+`KanbanBoard.tsx`). Đối chiếu timestamp file (toàn bộ ~35 file `apps/web` đổi cùng 1 giây, kể cả
+nhiều file bản thân tôi đã tự sửa xong ở đợt 29/08 và nội dung không hề đổi) xác nhận đây là dấu
+hiệu checkout lại repo, KHÔNG phải chỉnh sửa thật mới toàn bộ — nội dung thật sự mới chỉ nằm ở 16
+file bị gắn cờ (một đợt code mới của Tiến, thuần frontend, không đụng backend, merge sạch không có
+dấu conflict Git nào — khác hẳn 2 lần merge có conflict trước đó 25/08 và 29/08).
+
+**Dịch toàn bộ 102 chuỗi** bằng 3 agent chạy song song theo khu vực tính năng (Documents; HRM;
+CRM+Notifications+Projects gộp chung 1 agent vì mỗi khu vực nhỏ) — mỗi agent tự đọc quy ước namespace
+`i18n` hiện có, thêm khoá mới vào cả `vi`/`en`/`ja`, tái sử dụng khoá khi 2 nơi dùng chung UI (vd
+`documents:shareTargetPicker.*` dùng chung giữa `FolderShareModal.tsx`/`ShareModal.tsx` — 2 modal
+này cố ý thiết kế song song từ 28/07/2026, không phải trùng lặp do merge lỗi). `lib/utils.ts` có 2
+dòng báo động giả (`removeVietnameseTones()`, hàm chuẩn hoá tìm kiếm mới — pattern regex `/đ/g`/`/Đ/g`
+chứa ký tự có dấu làm PATTERN, không phải chuỗi hiển thị) — gắn `i18n-lint-ignore`, cùng quy ước 2
+điểm đã có sẵn trong file này từ trước.
+
+**5 lỗi thật phát hiện qua chính quá trình dịch (đọc kỹ từng file để thêm `t()`), đã sửa:**
+1. **`DealCard.tsx`** (CRM) — tính năng mới "cảnh báo deal sắp/đã quá hạn chốt" (tô đỏ ngày dự kiến
+   chốt nếu ≤ 3 ngày hoặc đã qua) không loại trừ deal đã ở trạng thái cuối (`WON`/`LOST`) — 1 deal
+   đã chốt xong từ lâu, có `expectedCloseDate` trong quá khứ, vẫn hiện màu đỏ cảnh báo dù không còn
+   gì "sắp quá hạn" nữa. Sửa: bỏ qua nhánh tô màu khi `deal.stage` là `WON`/`LOST`.
+2. **`DashboardPage.tsx`** — phát hiện 1 khối tính toán KPI/2 biểu đồ lại HOÀN TOÀN phía client (từ
+   `allTasksQuery`/`allProjectsQuery`/`allUsersQuery`) đè lên kết quả từ Analytics Service, không có
+   bất kỳ chú thích ngày tháng nào giải thích lý do (vi phạm ClaudeRule.md mục 7) — đã bổ sung chú
+   thích ghi lại lý do khả dĩ nhất (số liệu "đúng tuyệt đối ngay lúc xem" đổi lấy chi phí tải toàn bộ
+   task/project/user mỗi lần vào trang, thay vì 1 lệnh gọi tổng hợp sẵn) để lần sau không phải đoán
+   lại. Trong lúc đọc kỹ khối này phát hiện thêm 2 vấn đề nhỏ: `allProjectsQuery` cứng `limit: 100`
+   (đúng lớp lỗi "trần 100 làm mất dữ liệu" đã sửa ở Tier 1 22/08/2026 cho trang danh sách Dự án —
+   tái diễn ở đây cho tổ chức có > 100 dự án) — nâng lên `limit: 500` khớp trần `PaginationQueryDto`;
+   và 1 dòng chú thích cũ (28/07/2026) khẳng định bộ lọc phòng ban "KHÔNG ảnh hưởng biểu đồ Xu hướng"
+   nay đã SAI (khối tính lại phía client khiến biểu đồ Xu hướng thực sự có lọc theo phòng ban) — sửa
+   lại nội dung chú thích cho đúng thực tế hiện tại.
+3. **`FileTable.tsx`** (Documents, tính năng chọn nhiều tệp/thao tác hàng loạt mới) — `selectedFileIds`
+   không được xoá khi đổi thư mục (component không unmount lại khi đổi `folderId`) — chọn tệp ở thư
+   mục A rồi chuyển sang thư mục B vẫn giữ "đã chọn" các id không còn thuộc `files` hiện tại, khiến
+   thanh hành động hàng loạt (tải về/xoá) có thể âm thầm thao tác trên tệp không còn hiển thị trên
+   màn hình. Sửa: `useEffect` xoá `selectedFileIds` mỗi khi `folderId` đổi.
+4. **`DocumentsPage.tsx`** (tính năng kéo-thả tải lên toàn màn hình mới) — kéo nhiều tệp cùng lúc
+   vào vùng thả chỉ âm thầm lấy `droppedFiles[0]`, các tệp còn lại mất không dấu vết, không thông
+   báo gì (đúng thiết kế `UploadModal` chỉ nhận 1 tệp/lần, nhưng người dùng không biết vì sao các
+   tệp kia "biến mất"). Sửa: thêm toast thông báo khi thả > 1 tệp cùng lúc.
+5. **`AttendancePage.tsx`** (HRM, badge "Đi muộn"/"Đúng giờ" mới) — tính giờ check-in bằng
+   `Date.getHours()/getMinutes()` (đọc theo timezone TRÌNH DUYỆT người xem), dù dòng chú thích ngay
+   cạnh khẳng định "tính theo GMT+7" — đúng lớp lỗi đã được rà soát và sửa TOÀN DỰ ÁN ngày 22/07/2026
+   (xem `formatDate`/`formatTime`, `lib/utils.ts`) nhưng tái diễn ở component mới này: người xem đặt
+   múi giờ máy khác GMT+7 sẽ bị tính sai "đi muộn"/"đúng giờ" dù dữ liệu server đúng. Sửa bằng
+   `Intl.DateTimeFormat` với `timeZone: 'Asia/Ho_Chi_Minh'`, cùng cách `formatDate` đã làm.
+
+**Vài phát hiện khác, cố ý ghi nhận KHÔNG sửa** (mức Nhẹ, rủi ro thấp hoặc không phải lỗi thật):
+- `FileTable.tsx` xoá hàng loạt gọi `deleteFile.mutate(id)` cho từng id mà không đợi/gộp kết quả rồi
+  đóng hộp thoại xác nhận ngay — nhưng `useDeleteFile()` đã có sẵn `onError` báo toast riêng cho MỖI
+  lần gọi thất bại (không phải thất bại hoàn toàn im lặng như báo cáo ban đầu), chỉ là hộp thoại xác
+  nhận đóng lạc quan trước khi biết kết quả thật — đánh đổi UX chấp nhận được, không sửa.
+- `notifications/utils.tsx` (`getNotificationVisualConfig`) so khớp chuỗi con tiếng Việt
+  ("từ chối"/"duyệt"/"nghỉ phép"...) trực tiếp trên `title`/`message` do BACKEND sinh sẵn (không phải
+  chuỗi UI tĩnh) để suy ra icon/màu hiển thị — đúng hành vi hiện tại (backend luôn sinh tiếng Việt,
+  xem giới hạn đã ghi nhận ở `Technical_Spec.md` §18.2), nhưng sẽ âm thầm sai nếu sau này backend
+  dịch nội dung thông báo sang Anh/Nhật — ghi nhận, không thuộc phạm vi sửa lỗi hiện tại.
+- `AttendancePage.tsx`: giờ tổng công (`formatTotalHours`) không giới hạn/cảnh báo khi quên
+  check-out qua đêm (khoảng cách giờ lớn bất thường); bộ lọc tháng chỉ liệt kê 6 tháng gần nhất
+  (không có cách chọn tháng cũ hơn ngoài "Tất cả thời gian") — cả 2 là hạn chế nhỏ, không phải lỗi
+  đúng-sai, để dành cho đợt sau nếu cần.
+- `FolderShareModal.tsx` thiếu prop `preventCloseWhilePending` mà `ShareModal.tsx` (thiết kế song
+  song, cùng khối UI) đã có — nhưng khác `ShareModal.tsx`, mutation của `FolderShareModal.tsx` KHÔNG
+  tự gọi `onClose` khi thành công (chỉ `setTargetId('')`), nên đúng lớp lỗi "đóng nhầm modal vừa mở
+  lại cho đối tượng khác" mà prop này chặn KHÔNG áp dụng được ở đây — chỉ là 1 điểm thiếu nhất quán
+  vô hại, không sửa.
+
+**Xác minh cuối:** `npm run lint:i18n-strings` từ 102 vi phạm → 0 (sạch trên cả 121 file quét, xác
+nhận bởi cả 3 agent lẫn lượt chạy lại cuối cùng của tôi sau khi tự sửa `lib/utils.ts` và 5 lỗi thật
+ở trên). `npm run lint` (root) sạch. `npm run typecheck` (root) sạch. `npm run test:coverage` (root,
+đúng lệnh CI dùng) — cả 12 workspace pass, không lỗi ngưỡng coverage nào, không hồi quy số lượng test
+so với lần chạy cuối 29/08/2026.
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 15/09/2026.*
+
+---
+
+## 2026-09-15 (phản hồi GVHD) — 4 góp ý của giảng viên hướng dẫn sau khi xem báo cáo/demo
+
+Người dùng chuyển tiếp 4 góp ý từ GVHD kèm phê duyệt triển khai cả 4 trong cùng 1 lượt làm việc,
+độc lập hoàn toàn với đợt "rà soát lại sau khoảng nghỉ 2 tuần" ngay phía trên (đợt đó là tự rà soát
+chủ động, đợt này là phản hồi bên ngoài từ giảng viên).
+
+### 1. Lỗi logic "Nghỉ phép" — vẫn tạo được yêu cầu cho ngày đã qua
+
+**Nguyên nhân gốc:** `apps/web/src/components/ui/DatePicker.tsx` đã khai báo prop `minDate` trong
+kiểu (interface) từ trước, và `NewLeaveRequestModal.tsx` đã TRUYỀN prop này vào — nhưng thân
+component `DatePicker` chưa từng đọc/dùng tới `minDate` ở bất kỳ đâu (dead prop, "trông như đã cài
+đặt" nhưng thực chất không làm gì). Không ô ngày nào bị khoá trên lưới chọn ngày; gõ tay ngày quá
+khứ vào ô input cũng không bị chặn. Backend (`LeaveRequestsService.create()`, hrm-service) trước đó
+chỉ kiểm tra `startDate <= endDate`, không kiểm tra so với ngày hiện tại — nên kể cả khi vá riêng
+frontend, gọi thẳng API (Postman, hoặc `ecap-mobile`) vẫn tạo được yêu cầu nghỉ phép cho ngày quá
+khứ.
+
+**Sửa ở cả 2 tầng** (đúng nguyên tắc đã áp dụng xuyên suốt dự án — validate ở UI chỉ là tiện ích,
+backend luôn là "chốt" quyết định cuối cùng vì không thể tin dữ liệu từ client):
+- `DatePicker.tsx`: nối `minDate` vào 3 nơi — (a) vòng lặp render lưới ngày, tính `isDisabled =
+  Boolean(minDate) && dayStr < minDate!` rồi áp `disabled`+CSS làm mờ; (b) `handleSelectDay()` —
+  thêm `if (minDate && dateStr < minDate) return;` chặn click trực tiếp (phòng trường hợp lưới chưa
+  kịp re-render disable); (c) `handleManualInput()` — thêm điều kiện `(!minDate || formatted >=
+  minDate)` vào nhánh chấp nhận giá trị gõ tay, để gõ thẳng 1 ngày quá khứ vào ô input cũng bị từ
+  chối giống hệt click chuột.
+- `apps/web/src/lib/utils.ts`: thêm hàm mới `getTodayGmt7DateString()` — dùng
+  `new Intl.DateTimeFormat('en-CA', {timeZone:'Asia/Ho_Chi_Minh'}).format(new Date())` để lấy ngày
+  hôm nay THEO ĐÚNG múi giờ GMT+7 của hệ thống (định dạng `en-CA` cho ra thẳng chuỗi `YYYY-MM-DD`),
+  mirror đúng hàm `toGmt7DateString()` đã có sẵn ở backend (`attendance-date.util.ts`, dùng từ đợt
+  sửa lỗi múi giờ toàn dự án 22/07/2026) — **cố ý không dùng `new Date().getFullYear()`/`.getMonth()`
+  /`.getDate()` của trình duyệt**, vì các hàm đó trả về theo múi giờ CỤC BỘ của máy người dùng, có
+  thể lệch hẳn với GMT+7 (ví dụ máy đặt UTC hoặc múi giờ khác) — đúng lớp lỗi đã bị cấm dùng từ đợt
+  rà soát 22/07/2026.
+- `NewLeaveRequestModal.tsx`: tính `todayGmt7 = getTodayGmt7DateString()` 1 lần khi mount, truyền
+  `minDate={todayGmt7}` cho `DatePicker` ngày bắt đầu và `minDate={startDate || todayGmt7}` cho
+  ngày kết thúc (không cho chọn ngày kết thúc trước ngày bắt đầu VỪA chọn, không chỉ trước hôm nay);
+  thêm 2 kiểm tra đầu `handleSubmit()`: `startDate < todayGmt7` và `endDate < startDate`, có thông
+  báo lỗi riêng (`hrm:newLeaveRequestModal.errors.startDateInPast`/`.endDateBeforeStart`, đã dịch cả
+  3 ngôn ngữ).
+- `LeaveRequestsService.create()` (hrm-service): thêm sau kiểm tra khoảng ngày hiện có —
+  `const todayGmt7 = toGmt7DateString(new Date()); if (dto.startDate.slice(0,10) < todayGmt7) throw
+  new BadRequestException({..., errorCode: ERROR_CODES.LEAVE_START_DATE_IN_PAST})` — so sánh CHUỖI
+  ISO trực tiếp (`'YYYY-MM-DD' < 'YYYY-MM-DD'`), không parse sang `Date` object, đúng quy ước so
+  sánh ngày-tháng đã dùng nhất quán trong toàn dự án (thứ tự lexicographic của chuỗi zero-pad trùng
+  khớp thứ tự thời gian thật, tránh mọi rắc rối múi giờ khi parse). Mã lỗi mới
+  `LEAVE_START_DATE_IN_PAST` thêm vào `packages/common-dto/src/constants/error-codes.constant.ts`
+  (đã dịch `en`/`ja` trong `errors.json`, `vi` để trống theo đúng quy ước hiện có — xem đợt i18n
+  20-21/08/2026).
+
+**Phát hiện phụ khi viết test:** test thành công có sẵn của `leave-requests.service.spec.ts` hardcode
+`startDate: '2026-09-01'` — do đồng hồ hệ thống thật của môi trường làm việc đã tiến tới khoảng
+09/2026 (xác nhận qua `LastWriteTime` của file), giá trị này đã ÂM THẦM trở thành 1 ngày QUÁ KHỨ
+thật tính đến lúc viết bản vá này, và sẽ bị chính kiểm tra mới thêm vào chặn nhầm ngay khi merge —
+không phải lỗi của bản vá, mà là 1 test vốn đã "mục ruỗng" theo thời gian chờ sẵn để lộ ra. Sửa bằng
+helper `futureDateStr(daysFromNow: number)` tính ngày tương lai tương đối lúc TEST CHẠY (không phải
+lúc code được viết), áp dụng cho mọi test cần 1 ngày "chắc chắn còn ở tương lai"; giữ nguyên
+`'2020-01-01'` (hardcode, nhưng là ngày quá khứ VĨNH VIỄN an toàn) cho test mới kiểm tra đúng nhánh
+từ chối.
+
+**Xác minh:** `npx jest leave-requests.service.spec.ts` (hrm-service) — 10/10 pass (8 test cũ + 2
+test mới: tạo thành công khi `startDate` là HÔM NAY, từ chối khi `startDate` ở quá khứ với đúng
+`errorCode`).
+
+### 2. Nhầm lẫn RBAC — "Admin" so với "Org Admin"
+
+GVHD hiểu rằng có "admin" và "employee", nhưng báo cáo lại nhắc tới 1 vai trò khác tên "org-admin"
+mà GVHD đoán là lớn hơn "admin" — dấu hiệu cho thấy tài liệu (không phải code) đang mô tả không rõ
+ràng. Rà soát trực tiếp mã nguồn (không suy đoán từ tài liệu cũ) để xác nhận sự thật:
+- `packages/common-dto/src/enums/permission.enum.ts` (`DefaultRoleName`) — chỉ khai báo 3 giá trị:
+  `ORG_ADMIN`, `MANAGER`, `EMPLOYEE`. Không có `ADMIN` độc lập.
+- `apps/iam-service/src/roles/roles.service.ts` (`seedDefaultRoles()`) — hàm được gọi tự động cho
+  MỌI tổ chức mới đăng ký (`AuthService.registerOrganization()`), chỉ tạo đúng 3 bản ghi `Role` ứng
+  với 3 giá trị trên. Không có đường nào trong toàn bộ mã nguồn tạo ra 1 vai trò tên "Admin" khác.
+- Nhãn "Quản trị" xuất hiện trên giao diện (mục menu Topbar dẫn tới `/admin/*`) là tên của KHU VỰC
+  TRANG (route group `AdminPage.tsx` và các trang con), không phải tên 1 vai trò — đây chính là
+  nguồn gốc thực sự của nhầm lẫn: người đọc báo cáo thấy chữ "Quản trị"/"Admin" ở menu và tự nhiên
+  liên tưởng nó là 1 vai trò riêng, tách biệt với "Org Admin" đang thấy ở nơi khác (ma trận Vai trò
+  & Phân quyền), trong khi thực ra là cùng 1 khái niệm.
+- "Super Admin" — có mặt trong bảng vai trò gốc của `General_idea.md` §4 từ lúc khởi tạo tài liệu
+  (18/07/2026) như 1 khái niệm ĐỊNH HƯỚNG (quản trị nhiều tổ chức, dành cho đội phát triển nền
+  tảng) — nhưng CHƯA TỪNG được lập trình ở bất kỳ đợt triển khai nào sau đó. Xác nhận qua rà soát
+  trực tiếp: không có bảng `super_admins`, không có `DefaultRoleName.SUPER_ADMIN`, không có logic
+  phân quyền nào tham chiếu khái niệm này trong toàn bộ `apps/*`/`packages/*`.
+
+**Kết luận: không phải lỗi code, mà là bảng vai trò ban đầu trong tài liệu không phân biệt rõ "đã
+lập trình" và "định hướng tương lai/chưa triển khai", khiến người đọc báo cáo (GVHD) hiểu nhầm có 4
+vai trò đang hoạt động thay vì 3.** Sửa bằng cách làm rõ tài liệu, không sửa mã nguồn:
+- `Doc/General_idea.md` §4 — thêm đoạn giải thích ngay đầu mục (dẫn chiếu rõ "làm rõ 15/09/2026, sau
+  phản hồi của GVHD"), thêm cột "Trạng thái" (✅ Đã lập trình / ⏳ Chưa lập trình) vào bảng vai trò,
+  thêm ghi chú tách bạch 2 khái niệm dễ nhầm: "đa tổ chức" (nhiều SME dùng chung 1 lần triển khai —
+  ĐÃ có, qua `organizationId` trên mọi bảng nghiệp vụ) khác với "Super Admin nhìn xuyên nhiều tổ
+  chức" (CHƯA có — mọi guard/middleware hiện tại đều lọc cứng theo `organizationId` của chính người
+  gọi, kể cả Org Admin).
+- Thêm bullet mới vào chính mục "Lịch sử thay đổi tài liệu" của `General_idea.md`, trỏ ngược lại
+  đúng mục này.
+
+### 3. Lịch công ty (ngày lễ + sự kiện) cho Org Admin
+
+Yêu cầu gốc khá mở ("1 cái lịch để đặt chỗ, thiết lập ngày lễ..."), thu hẹp phạm vi thành 1 MVP cụ
+thể trước khi triển khai (đã nêu quyết định thiết kế trực tiếp trong hội thoại thay vì hỏi lại,
+theo đúng tinh thần "cứ làm, người dùng đã phê duyệt trước"): 1 tính năng "Lịch công ty" với 2 loại
+mục — `HOLIDAY` (ngày lễ) và `EVENT` (sự kiện/đặt chỗ nội bộ), chỉ Org Admin quản lý được (đúng với
+văn cảnh câu hỏi gốc "org-admin's and admin's function" — thực chất là 1 vai trò duy nhất, xem mục
+2 ở trên).
+
+**Thiết kế:**
+- 1 permission DUY NHẤT `PERMISSIONS.CALENDAR_MANAGE` (`calendar:manage`) — cố ý KHÔNG tách riêng
+  quyền VIEW/MANAGE (mọi CRUD/xem đều yêu cầu permission này) vì chỉ Org Admin cần dùng tính năng
+  này trong MVP hiện tại; Org Admin kế thừa quyền này TỰ ĐỘNG qua cơ chế có sẵn
+  (`Object.values(PERMISSIONS)` — vai trò Org Admin luôn có TOÀN BỘ permission hệ thống, không cần
+  liệt kê thủ công), còn Manager/Employee không được thêm permission này vào mảng quyền mặc định
+  của họ (`DEFAULT_ROLE_PERMISSIONS`).
+- Entity mới `CalendarEvent` (`apps/hrm-service/src/entities/calendar-event.entity.ts`) — đặt
+  trong `hrm-service` thay vì tạo 1 service hoàn toàn mới: tính năng này cùng nhóm "HRM-lite" với
+  chấm công/nghỉ phép đã có (quản lý thời gian/lịch trình con người), tái dùng hạ tầng Outbox +
+  module NestJS sẵn có thay vì nhân bản hạ tầng cho 1 tính năng nhỏ. Field: `organizationId` (index),
+  `title` (varchar 200), `description?` (text, optional), `type: CalendarEventType` (enum mới
+  `HOLIDAY | EVENT`, mặc định `EVENT`), `startDate`/`endDate` (kiểu `date`, `startDate` có index),
+  `createdByUserId`.
+- CRUD đầy đủ theo đúng khuôn mẫu 7 lớp đã dùng nhất quán cho mọi module trong dự án: entity → DTO
+  (`create-calendar-event.dto.ts`/`update-...`/`calendar-event-query.dto.ts`, mirror validation của
+  `leave-requests`) → service (`calendar-events.service.ts` — `findAll()` lọc chồng lấn khoảng ngày
+  bằng `LessThanOrEqual`/`MoreThanOrEqual` của TypeORM, `create()`/`delete()` theo transaction Outbox
+  pattern) → controller (4 route, tất cả gate bằng `@RequirePermissions(PERMISSIONS.CALENDAR_MANAGE)`)
+  → module → event Kafka (`CALENDAR_EVENT_CREATED`/`CALENDAR_EVENT_DELETED`, topic `KAFKA_TOPICS.HRM`
+  — chỉ PHÁT, chưa có consumer nào tiêu thụ; để ngỏ cho 1 tính năng thông báo tương lai, không phải
+  thiếu sót) → route Gateway (`/api/v1/calendar-events` thêm vào nhóm proxy `hrm-service` có sẵn) →
+  frontend (`api.ts`/`hooks.ts` trong `features/admin/`, `CalendarEventModal.tsx` mới,
+  `CalendarPage.tsx` mới — lưới tháng, route `/admin/calendar`, tab mới trong `AdminPage.tsx`).
+- 2 mã lỗi mới: `CALENDAR_EVENT_NOT_FOUND`, `CALENDAR_EVENT_DATE_RANGE_INVALID` (đã dịch en/ja).
+
+**Giới hạn đã biết (ghi nhận, không phải thiếu sót):** tổ chức đã tồn tại TRƯỚC khi tính năng này
+triển khai (kể cả tổ chức demo tạo qua `npm run seed`) sẽ KHÔNG tự động có `calendar:manage` trên
+vai trò Org Admin của họ — đúng tiền lệ đã có từ các đợt bổ sung permission mới cho CRM-lite/HRM-lite
+trước đây (05/08/2026): permission mới không tự "vá ngược" vào role đã seed sẵn trong DB, chỉ áp
+dụng cho tổ chức đăng ký MỚI sau thời điểm triển khai. Cần gọi `PATCH /roles/:id/permissions` thủ
+công 1 lần (qua giao diện Quản trị > Vai trò & Phân quyền) nếu muốn bật tính năng này cho tổ chức
+demo cũ.
+
+**Xác minh:** `calendar-events.service.spec.ts` mới — 10/10 test (create/findAll/update/delete +
+validate biên). `npx tsc --noEmit` sạch cho `hrm-service`/`gateway`/`apps/web`. Toàn bộ `hrm-service`
+(`npx jest`) — 9 suite/53 test pass, `--coverage` không rớt ngưỡng.
+
+### 4. "Quên mật khẩu" — trang + logic hoàn chỉnh
+
+Tính năng hoàn toàn chưa tồn tại trước đó — kể cả hạ tầng gửi email cũng chưa có trong dự án. Thiết
+kế theo đúng 2 tiền lệ bảo mật đã thiết lập từ trước, nêu rõ trong hội thoại trước khi triển khai:
+
+**Chống dò email (anti-enumeration)** — mirror `DUMMY_PASSWORD_HASH`/chuẩn hoá email đã áp dụng cho
+`login()` từ đợt review 22/07-25/08/2026: `AuthController.forgotPassword()` LUÔN trả về `{success:
+true}` bất kể email có tồn tại trong hệ thống hay không, không phân biệt được qua response hay thời
+gian phản hồi (nhánh "không tìm thấy user"/"user đã bị vô hiệu hoá" không làm gì thêm, trả cùng 1
+response như nhánh thành công thật).
+
+**Cấu hình ngoài tuỳ chọn, rỗng là trạng thái hợp lệ** — mirror `GEMINI_API_KEY`/`GROQ_API_KEY`
+(analytics-service): `EmailService` (`apps/iam-service/src/email/email.service.ts`, dùng
+`nodemailer`) chỉ dựng transporter SMTP thật khi `SMTP_HOST` khác rỗng; khi rỗng (mặc định dev nếu
+chưa cấu hình), `sendPasswordResetEmail()` chỉ GHI LOG link reset thẳng ra log server thay vì gửi
+thật — vẫn demo được TRỌN VẸN luồng "Quên mật khẩu" (bấm link thật, đặt lại mật khẩu thật) mà không
+cần tài khoản Gmail/SendGrid thật. **Khác với Gemini/Groq** ở 1 điểm quan trọng: SMTP chưa cấu hình
+hoặc gửi thất bại KHÔNG được phép làm `forgotPassword()` thất bại (sẽ phá vỡ đúng nguyên tắc chống
+dò email ở trên) — `sendPasswordResetEmail()` bọc try/catch nuốt mọi lỗi gửi mail, chỉ log lại.
+
+**Thiết kế token:** entity mới `PasswordResetToken` (`apps/iam-service/src/entities/password-reset-
+token.entity.ts`) mirror gần như y hệt `RefreshToken` đã có (id của bản ghi CHÍNH LÀ `tokenId` nhúng
+trong JWT, xác minh bằng cách tra cứu bản ghi Postgres theo id đó) — khác 2 điểm: (a) ký bằng
+secret RIÊNG `jwt.resetSecret`/`JWT_RESET_SECRET` (khác hẳn access secret VÀ refresh secret — nếu 1
+trong 2 secret kia từng bị lộ, kẻ tấn công vẫn không giả mạo được token reset mật khẩu, và ngược
+lại); (b) dùng ĐƯỢC ĐÚNG 1 LẦN qua cột `usedAt` (không xoay vòng như refresh token), không cần Redis
+blacklist vì token sống rất ngắn (mặc định 30 phút, `JWT_RESET_EXPIRES_IN`) và không có khái niệm
+"thu hồi sớm" như logout().
+
+**`AuthService.forgotPassword(dto)`:** chuẩn hoá email (`.trim().toLowerCase()`, đúng pattern đã
+dùng ở `login()`/`registerOrganization()`) → tra user → nếu tìm thấy VÀ đang active: lưu 1
+`PasswordResetToken` (lấy id sinh ra), ký JWT nhúng `tokenId` đó, dựng `resetLink =
+${frontendUrl}/reset-password?token=${jwt}`, gọi `emailService.sendPasswordResetEmail()` — nhưng dù
+nhánh nào cũng LUÔN return `{success: true}` giống hệt nhau.
+
+**`AuthService.resetPassword(dto)`:** verify JWT bằng `jwt.resetSecret` → tra `PasswordResetToken`
+theo `tokenId` trong payload → từ chối nếu KHÔNG tìm thấy / đã `usedAt` / đã hết hạn / user gắn với
+token không còn active — dùng 1 MÃ LỖI CHUNG DUY NHẤT `PASSWORD_RESET_TOKEN_INVALID` cho TẤT CẢ các
+nhánh từ chối này (không tách riêng "sai chữ ký"/"hết hạn"/"đã dùng rồi" như đã tách `REFRESH_TOKEN_
+INVALID` vs `REFRESH_TOKEN_REVOKED`) — cố ý, vì đây là 1 endpoint CÔNG KHAI (không đăng nhập), tiết
+lộ chính xác lý do thất bại giúp kẻ tấn công đoán được trạng thái token/tài khoản. Khi thành công:
+hash mật khẩu mới (`bcrypt.hash(..., 10)`, khớp `login()`), đánh dấu `usedAt`, và **xoá TOÀN BỘ
+`RefreshToken` hiện có của user** trong cùng 1 transaction — đăng xuất khỏi MỌI thiết bị sau khi đặt
+lại mật khẩu (phòng trường hợp kẻ tấn công đã chiếm được 1 phiên đăng nhập từ trước) — chỉ cần xoá
+bản ghi Postgres (nguồn sự thật chính của `RefreshToken`, không cần ghi thêm Redis blacklist từng
+token, đúng thiết kế `revokeRefreshToken()` có sẵn).
+
+**Hạ tầng:** thêm service `mailhog` mới vào `infra/docker-compose.yml` — SMTP giả lập
+(`mailhog/mailhog:v1.0.1`), cổng SMTP (1025) chỉ nội bộ `internal-net`, cổng Web UI (8025) map ra
+`127.0.0.1` để xem lại email đã "gửi" (không gửi ra ngoài thật, an toàn tuyệt đối cho demo/dev,
+cùng quy ước giới hạn `127.0.0.1` đã áp dụng cho Prometheus/Grafana/Alertmanager). `iam-service`
+trong compose trỏ sẵn `SMTP_HOST=mailhog` — không cần cấu hình gì thêm để demo được luồng đầy đủ.
+Thêm `JWT_RESET_SECRET`/`JWT_RESET_EXPIRES_IN`/`SMTP_FROM`/`FRONTEND_URL` vào `infra/.env.example`
+và `apps/iam-service/.env.example`.
+
+**Frontend:** `ForgotPasswordPage.tsx` (route `/forgot-password`) — form 1 trường email, sau khi
+submit LUÔN chuyển sang màn xác nhận "đã gửi (nếu email tồn tại)" bất kể thực tế thế nào (đúng thiết
+kế backend, không có cách nào phân biệt được từ frontend); `ResetPasswordPage.tsx` (route `/reset-
+password?token=...`) — đọc `token` từ query string qua `useSearchParams`, thiếu token thì hiện
+hướng dẫn "yêu cầu liên kết mới" thay vì 1 form chắc chắn sẽ lỗi khi submit; liên kết "Quên mật
+khẩu?" mới thêm vào `LoginPage.tsx` ngay dưới ô mật khẩu. Cả 2 trang dùng lại `AuthLayout.tsx`/
+`FormField`/`PasswordInput` có sẵn, không tạo layout mới. i18n đầy đủ vi/en/ja (`auth.json`, thêm
+namespace `forgotPasswordPage`/`resetPasswordPage` + 2 mục `hooks.forgotPassword`/`hooks.
+resetPassword`).
+
+**Xác minh:** `auth.service.spec.ts` — bổ sung 19 test mới cho `forgotPassword`/`resetPassword` (3
+case forgotPassword: user active/không tồn tại/đã vô hiệu hoá — cả 3 đều assert response ra ngoài
+GIỐNG HỆT nhau; 6 case resetPassword: thành công + 5 nhánh từ chối) — tổng `auth.service.spec.ts`
+19/19 pass. Toàn bộ `iam-service` (`npx jest --coverage`) — 11 suite/64 test pass, không rớt ngưỡng
+coverage (`coverageThreshold.global` 45%/35%/15%/45%, thực đo cao hơn nhiều ở mọi chỉ số). Khởi động
+Vite dev server thật, xác nhận cả 3 route `/login`/`/forgot-password`/`/reset-password?token=abc`
+đều trả `200` (không xác nhận được bằng mắt do môi trường CLI không có trình duyệt tương tác được —
+ghi nhận rõ giới hạn này thay vì khẳng định đã "xem qua trình duyệt").
+
+### Gate cuối cho cả 4 mục
+
+`npm run build:libs` (root) sạch. `npm run typecheck` (root, cả 9 service backend + `apps/web`)
+sạch. `npm run lint` (root) — 0 lỗi (32 warning còn lại đều là nền cũ, không liên quan 4 file/module
+mới thêm — đã đối chiếu từng file trong output lint, không có file nào của đợt này xuất hiện).
+`npm run lint:i18n-strings` — sạch, 125 file quét (không hồi quy so với 121 file của đợt 15/09 phía
+trên — 4 file `apps/web` mới thêm đều tuân thủ i18n ngay từ đầu, không phát sinh vi phạm mới).
+`npm run test` (root, dùng `--if-present` nên tự bỏ qua workspace `e2e` — không có script `test`
+riêng từ trước, xem ghi chú 26/08/2026) — toàn bộ 12 workspace pass, không hồi quy số lượng test so
+với lần chạy cuối 15/09/2026 (rà soát lại sau khoảng nghỉ). `npm run build -w apps/web` (production)
+thành công — 2 chunk mới `ForgotPasswordPage`/`ResetPasswordPage` được Vite tự tách riêng đúng theo
+`React.lazy()` đã khai báo ở `App.tsx`, không gộp chung vào bundle chính.
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 15/09/2026 (phần "phản hồi GVHD").*
+
+---
+
+## 2026-09-16 — Merge nhánh `frontend` của Nguyễn Lê Tiến (lần 3) — 23 file conflict Git thật + 1 hồi quy ngữ nghĩa "im lặng"
+
+Người dùng tự merge nhánh `frontend` của Tiến vào nhánh chính bằng công cụ Git riêng (môi trường
+CLI này không có `git`), để lại dấu conflict (`<<<<<<< HEAD` / `=======` / `>>>>>>> origin/frontend`)
+trong **23 file**, toàn bộ đều trong `apps/web` — 69 khối conflict: `i18n/locales/{vi,en,ja}/
+{hrm,documents,crm,admin}.json` (12 file, 1-3 khối/file), `components/ui/DatePicker.tsx` (3),
+`features/hrm/{AttendancePage.tsx (23!), LeaveRequestsPage.tsx (1), components/
+NewLeaveRequestModal.tsx (2)}`, `features/documents/{DocumentsPage.tsx (2), components/
+FileTable.tsx (1), components/FolderGrid.tsx (2)}`, `features/crm/components/CustomerCard.tsx (2)`,
+`features/notifications/{utils.tsx (9), NotificationsPage.tsx (2), components/
+NotificationBell.tsx (1)}`.
+
+**Cách xử lý**: `admin.json` (3 file, 1 khối/file) + `DatePicker.tsx`/`NewLeaveRequestModal.tsx` (5
+khối, gắn trực tiếp với bản vá "Nghỉ phép chọn được ngày quá khứ" 15/09/2026 của chính tôi) tự giải
+quyết trực tiếp; 4 nhóm còn lại (HRM, Documents, CRM, Notifications — 61 khối) giao cho 4 agent chạy
+song song, mỗi agent 1 khu vực tính năng, cùng bộ hướng dẫn: đọc CẢ HAI phía đầy đủ (không chỉ vài
+dòng đánh dấu), phân biệt "cả 2 phía cùng sửa 1 bug độc lập" (chọn 1 bản, xoá bản trùng) với "cả 2
+phía cùng thêm tính năng khác nhau" (gộp cả 2), và đặc biệt canh chừng hiện tượng đã biết từ 2 lần
+merge Tiến trước (29/08, đợt "rà soát lại" 15/09): Git 3-way merge có thể gộp SẠCH (không báo
+conflict) 2 đoạn thêm khác dòng nhưng cùng ý — để lại `const` trùng tên trong cùng scope hoặc key
+JSON trùng trong cùng object (giá trị đầu bị đè âm thầm).
+
+**Phát hiện qua chính tôi** (`DatePicker.tsx`, ngoài vùng conflict được đánh dấu): cả 2 phía độc lập
+thêm cơ chế disable ô ngày `< minDate` (đúng bản vá 15/09/2026 của tôi, và Tiến làm y hệt) — merge
+gộp sạch phần tính `isDisabled`, để lại **2 lần khai báo `const isDisabled`** trong cùng 1 vòng lặp
+render (`dateStr`/`formattedMonth`/`formattedDay` của Tiến VÀ `dayStr` của tôi, tính ra CÙNG 1 giá
+trị) — lỗi biên dịch thật nếu không gộp lại. Giữ 1 bản tính duy nhất (dùng tên `dateStr` của Tiến,
+giữ chú thích lý do so sánh chuỗi của tôi), giữ kiểu tô màu ô bị khoá đẹp hơn của Tiến
+(`line-through`/nền mờ) thay vì bản đơn giản của tôi.
+
+**Phát hiện qua 4 agent** (đầy đủ trong báo cáo từng agent, tóm tắt):
+- **HRM** (33 khối — lớn nhất): `AttendancePage.tsx` 23 khối hoá ra CHỈ 1 nguyên nhân lặp lại nhiều
+  lần — cả 2 phía độc lập đặt tên khác nhau cho CÙNG khái niệm (`statusBadge`/`statuses`,
+  `monthFilter`/`filter`, `photoModal`/`photoProofModal`, `viewProofIn`/`viewCheckInProofTitle`...)
+  — agent giữ bản khớp đúng quy ước đặt tên sẵn có của file, xoá bản trùng khỏi cả 3 locale.
+  **Bug thật tìm thấy** ở `LeaveRequestsPage.tsx` (1 khối): bản merge của tôi gọi
+  `parseLeaveReason(request.reason)` THIẾU tham số bắt buộc thứ 2 (`t`) — sẽ ném lỗi runtime
+  "t is not a function" ngay khi có 1 đơn nghỉ phép nào đó có `reason` đúng định dạng
+  `[ANNUAL] ...`; bản của Tiến gọi đúng đủ tham số nhưng lại hardcode fallback tên nhân viên
+  `'Nhân viên'` thay vì dùng key i18n có sẵn. Gộp đúng nửa tốt của mỗi bên.
+- **Documents** (8 khối): cùng lớp "2 tên cho 1 khái niệm" (`viewMode.*`/`viewGrid*`,
+  `updatedLabel`/`updatedAt`, `loadingFileCount`/`loading`) + phát hiện phụ 2 cặp key JSON trùng
+  lặp cơ học thật (`documentsPage.searchPlaceholder`, `fileTable.selectFileAria`/`selectAllAria`
+  mỗi key khai báo 2 lần, cùng giá trị — vô hại nhưng dọn cho sạch).
+- **CRM** (8 khối): cùng lớp đặt tên trùng (`editCustomer`/`edit`, `lastInteraction`/`interaction`)
+  + xác nhận `DealKanbanBoard.tsx` cần đúng section `kanban` từ phía tôi (Tiến bỏ sót khi merge thủ
+  công đoạn đó), giữ lại đúng.
+- **Notifications** (12 khối): gộp 2 cách viết `getNotificationVisualConfig` (giữ điều kiện match
+  cả 2 phía cộng lại), gộp `targetName`/`targetKey` theo cấu trúc bắt buộc của Tiến (HEAD thiếu hẳn
+  field `targetKey` — sẽ lỗi kiểu TypeScript nếu giữ nguyên). **Bug thật tìm thấy** (ngoài vùng
+  conflict): `cleanNotificationMessage()` gọi `.toUpperCase()` lên CHÍNH CHUỖI PATTERN thay vì lên
+  kết quả khớp được (`'(#$1)'.toUpperCase()` là no-op vì không ký tự nào trong `(#$1)` có
+  hoa/thường) — mã hash UUID được "dọn" khỏi thông báo đáng lẽ phải viết hoa nhưng vẫn giữ nguyên
+  chữ thường; sửa bằng callback `.replace(pattern, (_m, hex) => `(#${hex.toUpperCase()})`)`.
+
+**Hồi quy phát hiện SAU khi gộp xong (chạy lại toàn bộ gate, không phải trong vùng conflict nào)**:
+1. `NotificationBell.tsx` — `<Dropdown align="end" contentClassName="...">`: cả 2 prop đều SAI so
+   với API thật của `Dropdown.tsx` (`align?: 'left'|'right'` — không có `'end'`; tên prop đúng là
+   `panelClassName`, không phải `contentClassName`) — lỗi biên dịch thật, phát hiện qua
+   `npm run typecheck`. Đây là code của Tiến, chưa từng qua conflict nên chưa ai đọc lại — sửa
+   thành `align="right"` (khớp mặc định), `panelClassName`.
+2. `apps/notification-service/src/notifications/notifications.service.spec.ts` — 2 test kỳ vọng
+   `filter.type` là chuỗi tuyệt đối (`'task.assigned'`), nhưng `NotificationsService.findForUser()`
+   thực tế đã xây `filter.type` thành 1 `RegExp` khớp TIỀN TỐ (cho phép lọc `'leave_request'` khớp
+   cả `'leave_request.approved'`/`'leave_request.rejected'`) — tính năng có chủ đích (có chú thích
+   giải thích rõ trong service), test chỉ đơn giản chưa được cập nhật theo. Không phải file
+   `apps/web` nên KHÔNG nằm trong 23 file có dấu conflict — merge sạch, chỉ lộ ra khi chạy lại toàn
+   bộ `npm run test`. Sửa lại test để so khớp bằng `RegExp`/`.test(...)` thay vì so sánh chuỗi.
+3. Gate `lint:i18n-strings` phát hiện thêm **83 chuỗi tiếng Việt hardcode mới** (đúng lớp phát hiện
+   như đợt "rà soát lại sau khoảng nghỉ 2 tuần" 15/09/2026 — code của Tiến merge sạch nhưng chưa
+   từng qua bộ kiểm tra này) trên 10 file KHÔNG nằm trong 23 file conflict (`Topbar.tsx`,
+   `RoleCheckboxList.tsx`, `DepartmentsPage.tsx`, `MembersPage.tsx`, `RolesPermissionsPage.tsx`,
+   `ProfilePage.tsx`, `AnalyticsPage.tsx`, `LeaveRequestsPage.tsx`, `NotificationsPage.tsx`,
+   `notifications/utils.tsx`). Giao lại cho 4 agent song song khác (theo khu vực): 1 agent xác nhận
+   và XOÁ hẳn (không chỉ `i18n-lint-ignore`) các nhánh `.includes('quản trị'/'quản lý'/'nhân viên')`
+   so khớp tên vai trò — xác nhận qua rà soát toàn bộ mã nguồn rằng `Role.name` KHÔNG BAO GIỜ có thể
+   là tiếng Việt (chỉ được seed bằng 3 giá trị tiếng Anh cố định, không có endpoint đổi tên vai
+   trò) nên các nhánh đó là code chết thật sự, không phải ngoại lệ hợp lệ; 1 agent dịch đầy đủ 32
+   nhãn quyền hạn trong `RolesPermissionsPage.tsx` (tái sử dụng key `admin:rolesPermissionsPage.
+   permissions.*` đã có sẵn, khớp 100% với văn bản hardcode — không cần dịch lại); 1 agent xử lý
+   `AnalyticsPage.tsx` (tách đúng 2 loại: pattern-matching lên văn bản AI (Gemini/Groq) tiếng Việt
+   do backend sinh ra → `i18n-lint-ignore`, còn 3 tên dự án demo + 3 câu fallback + 3 nhãn
+   Điểm sáng/Rủi ro/Khuyến nghị là văn bản UI thật → dịch đầy đủ vi/en/ja); 1 agent gắn
+   `i18n-lint-ignore` cho các điểm so khớp còn lại (`LeaveRequestsPage.tsx`'s `parseLeaveReason()` -
+   so khớp dữ liệu ĐÃ LƯU từ trước khi có quy ước `[ANNUAL]`-prefix; `NotificationsPage.tsx`/
+   `notifications/utils.tsx` - so khớp `title` do backend sinh sẵn, cùng loại đã có tiền lệ).
+4. Gói `packages/common-dto`: `coverageThreshold.functions` (30%) tụt xuống 28.57% — KHÔNG do đợt
+   merge này (không đổi code sản phẩm nào của gói) mà do cấu trúc: mỗi `export enum` biên dịch
+   thành 1 hàm IIFE runtime, và gói này có 5 file enum chưa từng có test nào import tới chúng (file
+   test duy nhất từ trước, `pagination.dto.spec.ts`, chỉ đụng tới `dto/pagination.dto.ts`) — thêm 1
+   enum mới bất kỳ (kể cả không đổi code) đều kéo % xuống dần theo thời gian. Lấp bằng 1 file test
+   mới (`enums/enums.spec.ts`, 22 test) xác nhận giá trị của cả 6 enum/hằng số dùng chung
+   (`TaskStatus`, `ProjectStatus`, `DealStage`, `LeaveRequestStatus`, `CalendarEventType`,
+   `DefaultRoleName`/`PERMISSIONS`/`DEFAULT_ROLE_PERMISSIONS`) — vừa lấp ngưỡng vừa là lưới an toàn
+   thật chống đổi tên/xoá nhầm 1 giá trị enum (hợp đồng dữ liệu lưu thẳng vào DB, dùng xuyên nhiều
+   service).
+
+**Xác minh cuối cùng**: `node scripts/check-hardcoded-vietnamese.js` sạch (129 file, 0 vi phạm).
+`npm run typecheck` (root, cả 9 service + `apps/web`) sạch. `npm run lint` (root) 0 lỗi (chỉ còn
+warning nền cũ, không tăng). `npm run test` (root) — 12/12 workspace pass, không hồi quy số lượng
+test. `npm run test:coverage` (root) — sạch, không rớt ngưỡng ở bất kỳ workspace nào (kể cả
+`common-dto` sau khi vá). `npm run build -w apps/web` (production) thành công.
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 16/09/2026 (phần "merge nhánh
+frontend lần 3 + Super Admin").*
+
+---
+
+## 2026-09-16 — Tính năng mới: "Super Admin" (quản trị nền tảng, xuyên nhiều tổ chức)
+
+Người dùng yêu cầu triển khai "Super Admin" — vai trò được `General_idea.md` §4 ghi nhận từ
+18/07/2026 như 1 khái niệm ĐỊNH HƯỚNG, CHƯA từng lập trình (làm rõ lại 15/09/2026 sau phản hồi
+GVHD, xem mục "phản hồi GVHD" phía trên). Đây là lần ĐẦU TIÊN hệ thống có 1 tài khoản nhìn xuyên
+được NHIỀU tổ chức — quyết định kiến trúc quan trọng nhất là **giới hạn phạm vi nhìn-xuyên-tổ-chức
+đó ở ĐÚNG 1 nơi duy nhất: quản lý vòng đời entity `Organization` trong `iam-service`**, KHÔNG mở
+rộng sang bất kỳ dữ liệu nghiệp vụ nào của 6 service còn lại (dự án, tài liệu, khách hàng, chấm
+công, báo cáo...) — giữ nguyên bất biến "đa tổ chức, không tổ chức nào nhìn xuyên tổ chức khác"
+(`General_idea.md` §4) cho MỌI dữ liệu nghiệp vụ, chỉ phá lệ đúng 1 chỗ có kiểm soát.
+
+**Thiết kế chống đổ vỡ kiến trúc hiện có**: `InternalAuthGuard` (`packages/common-guard`) bắt buộc
+mọi request phải mang `x-org-id` KHÔNG RỖNG mới qua được (từ chối cứng nếu thiếu) — nếu cho
+`User.organizationId` là `null`/nullable cho Super Admin sẽ phải sửa lại guard này VÀ mọi câu
+truy vấn `WHERE organizationId = ...` ở 7 service, rủi ro rất lớn cho 1 tính năng phụ. Thay vào đó:
+tạo 1 Organization "hệ thống" DUY NHẤT (`Organization.isSystem: boolean`, cột mới) chỉ để "an cư"
+tài khoản Super Admin (thoả FK `organizationId NOT NULL` mà không phải sửa gì ở 7 service khác),
+và 1 cột `User.isSuperAdmin: boolean` (mặc định `false`) đánh dấu quyền hạn thật sự — hoàn toàn
+tách biệt khỏi hệ thống Role/Permission theo tổ chức hiện có (Super Admin không có `Role` nào,
+`permissions[]` luôn rỗng).
+
+**Luồng xác thực**: `AuthContext`/`JwtAccessPayload` (`packages/common-dto`) thêm field
+`isSuperAdmin: boolean`; Gateway forward qua header nội bộ mới `x-is-super-admin`
+(`inject-auth-headers.ts`); `InternalAuthGuard` đọc lại thành `AuthContext.isSuperAdmin`. Guard mới
+`SuperAdminGuard` + decorator `@RequireSuperAdmin()` (`packages/common-guard`, mirror đúng mẫu
+`PermissionsGuard`/`@RequirePermissions()` nhưng tách guard riêng vì đây là 1 cấp độ quyền hạn khác
+hẳn RBAC theo tổ chức) — chỉ đăng ký làm `APP_GUARD` thứ 3 trong `iam-service` (không phải cả 7
+service), giữ phạm vi ảnh hưởng nhỏ nhất có thể.
+
+**Khoá/mở khoá 1 tổ chức**: `Organization.isActive: boolean` (cột mới, mặc định `true`) — mirror
+đúng ý tưởng `User.isActive` nhưng ở cấp tổ chức. `AuthService.login()`/`refresh()` gộp kiểm tra
+`!user.organization.isActive` vào CHUNG nhánh chống đoán tài khoản đã có sẵn (cùng "Email hoặc mật
+khẩu không đúng"/`INVALID_CREDENTIALS` cho `login()`, cùng `USER_INACTIVE_OR_MISSING` cho
+`refresh()`) — không tạo mã lỗi riêng để không lộ "tổ chức bạn đã bị khoá" khác với "sai mật khẩu"
+cho kẻ tấn công đang dò tài khoản. Khoá 1 tổ chức còn chủ động blacklist Redis access token của
+TOÀN BỘ user thuộc tổ chức đó ngay lập tức (mirror `UsersService.deactivate()` cho 1 user, nay lặp
+cho cả danh sách, fail-open giống hệt nếu Redis lỗi).
+
+**Bootstrap**: không có luồng đăng ký Super Admin qua API (sẽ là lỗ hổng bảo mật nghiêm trọng nếu
+bất kỳ ai tự đăng ký được quyền quản trị toàn nền tảng) — `SuperAdminBootstrapService`
+(`OnModuleInit`) tự tạo tài khoản Super Admin ĐẦU TIÊN lúc `iam-service` khởi động, CHỈ khi 2 biến
+môi trường `SUPER_ADMIN_EMAIL`/`SUPER_ADMIN_PASSWORD` được cấu hình (để trống = tắt hoàn toàn tính
+năng, mirror triết lý "cấu hình ngoài tuỳ chọn" đã áp dụng cho SMTP/Gemini/Groq) VÀ chưa có user
+nào dùng đúng email đó (idempotent tuyệt đối — không bao giờ ghi đè tài khoản đã tồn tại, kể cả sau
+khi Super Admin tự đổi mật khẩu, an toàn qua vô số lần restart service).
+
+**API mới** (`apps/iam-service/src/platform-admin/`, route `/api/v1/platform-admin/*`, Gateway
+thêm prefix vào nhóm proxy `iam-service` sẵn có): `GET organizations` (danh sách phân trang, loại
+trừ tổ chức hệ thống qua `isSystem: false`, kèm `userCount` đếm riêng từng tổ chức — quy mô đồ án
+tốt nghiệp không cần tối ưu 1 subquery gộp), `GET organizations/:id`, `PATCH organizations/:id/
+{de,re}activate`, `GET stats` (tổng số tổ chức/tổ chức đang hoạt động/tổng người dùng, không tính
+Super Admin vào tổng người dùng).
+
+**Frontend**: Super Admin có 1 khu vực HOÀN TOÀN RIÊNG (`/platform-admin`, `PlatformAdminPage.tsx`)
+— KHÔNG dùng `AppShell`/`Sidebar`/`Topbar` hiện có (những thành phần đó giả định người dùng thuộc 1
+tổ chức nghiệp vụ thật, vô nghĩa với Super Admin). `ProtectedRoute.tsx` bổ sung prop
+`requireSuperAdmin` VÀ tự động điều hướng 2 CHIỀU: Super Admin cố vào bất kỳ trang nào khác đều bị
+đẩy về `/platform-admin` (tránh họ thấy 1 dashboard trống trơn của tổ chức "hệ thống"), người dùng
+thường cố vào `/platform-admin` bị đẩy về `/dashboard`. `useLogin()` kiểm tra `data.user.isSuperAdmin`
+để điều hướng đúng ngay sau đăng nhập. Thêm 1 thẻ tài khoản demo thứ 4 (Super Admin) vào widget có
+sẵn trên `LoginPage.tsx`, khớp đúng giá trị mặc định của `SUPER_ADMIN_EMAIL`/`PASSWORD` trong
+`infra/.env.example` — demo được ngay không cần biết thông tin đăng nhập ẩn.
+
+**Xác minh**: `platform-admin.service.spec.ts` (8 test), `super-admin-bootstrap.service.spec.ts`
+(4 test, gồm cả trường hợp tính năng tắt + idempotent), `super-admin.guard.spec.ts` (4 test),
+bổ sung test cho `InternalAuthGuard`/`inject-auth-headers.ts` (header `x-is-super-admin` cả 2
+chiều true/false), bổ sung 1 test `login()` cho nhánh tổ chức bị khoá. `iam-service`: 13 suite/77
+test pass. Gate cuối cùng (chạy CHUNG với đợt merge ở mục ngay trên, cùng 1 lượt xác minh):
+typecheck/lint/lint:i18n-strings/test/test:coverage toàn bộ 12 workspace sạch, `build -w apps/web`
+production thành công (chunk `PlatformAdminPage` được tách riêng đúng theo `React.lazy()`).
+
+**Giới hạn đã biết (ghi nhận, không phải thiếu sót)**: Super Admin CHỈ quản lý được vòng đời tổ
+chức (xem/khoá/mở khoá), KHÔNG xem được danh sách người dùng bên trong từng tổ chức (chỉ có số
+đếm) — quyết định có chủ đích để không phải đụng tới logic lọc theo tổ chức sẵn có của
+`UsersService`, giữ đúng bất biến "không xem xuyên dữ liệu nghiệp vụ". Có thể mở rộng sau nếu cần.
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 16/09/2026 (phần "merge nhánh
+frontend lần 3 + Super Admin").*
+
+---
+
 ## Lịch sử thay đổi tài liệu này
 
 - **2026-08-24** — Khởi tạo file, gộp lại toàn bộ lịch sử rà soát/sửa lỗi từ 18/07/2026 (khởi tạo
@@ -890,3 +1401,32 @@ frontend của Tiến lần 2").*
   tái xuất hiện ở `ProjectCard.tsx`/`ProjectDetailPage.tsx`/`EditProjectModal.tsx`, 1 lỗi cú pháp
   JSX do merge tự lặp đôi nội dung, 4 chuỗi tiếng Việt hardcode mới, 1 lỗi type `DateRangeOption`
   lệch giữa 2 nhánh) — bài học: chỉ tìm dấu conflict là không đủ, phải chạy đủ lint+typecheck+test.
+- **2026-09-15** — Bổ sung mục "Rà soát lại sau khoảng nghỉ 2 tuần" — quay lại dự án phát hiện 1 đợt
+  code mới của Tiến (thuần frontend, merge sạch không conflict) chưa từng qua `lint:i18n-strings`:
+  102 chuỗi tiếng Việt hardcode trên 16 file, dịch toàn bộ bằng 3 agent song song; 5 lỗi thật phát
+  hiện qua chính quá trình đọc để dịch (deal đã chốt vẫn tô đỏ "sắp quá hạn", Dashboard cứng
+  `limit: 100` cho danh sách dự án + khối tính KPI phía client hoàn toàn không có chú thích, chọn tệp
+  hàng loạt không reset khi đổi thư mục, kéo-thả nhiều tệp âm thầm mất hết trừ tệp đầu, badge chấm
+  công tính giờ theo timezone trình duyệt thay vì GMT+7 — lỗi cuối tái diễn đúng lớp lỗi đã sửa toàn
+  dự án 22/07/2026), toàn bộ đã sửa. Gate cuối sạch, không hồi quy so với 29/08.
+- **2026-09-15 (phản hồi GVHD)** — Bổ sung mục "4 góp ý của giảng viên hướng dẫn" — sửa lỗi thật
+  (dead prop `minDate` ở `DatePicker.tsx` khiến "Nghỉ phép" chọn được ngày quá khứ, vá cả frontend
+  lẫn backend); làm rõ tài liệu RBAC (không phải lỗi code — chỉ 3/4 vai trò trong bảng gốc đã lập
+  trình, "Super Admin" chưa từng triển khai); 2 tính năng mới hoàn toàn (Lịch công ty cho Org Admin —
+  `hrm-service`, permission `calendar:manage` riêng; "Quên mật khẩu" — entity `PasswordResetToken`
+  mirror `RefreshToken` với secret ký riêng, `EmailService`/`nodemailer` + service `mailhog` mới
+  trong Docker Compose cho demo không cần SMTP thật, thiết kế chống dò email mirror `login()`).
+  Gate cuối sạch (typecheck/lint/lint:i18n-strings/test toàn 12 workspace), không hồi quy.
+- **2026-09-16** — Bổ sung mục "Merge nhánh frontend của Tiến (lần 3)" — 23 file conflict Git thật
+  (69 khối, `AttendancePage.tsx` riêng 23 khối) + 1 hồi quy "im lặng" (`DatePicker.tsx`, `const`
+  trùng tên) + 3 phát hiện chỉ lộ ra khi chạy lại toàn bộ gate sau khi gộp xong (`NotificationBell.tsx`
+  dùng sai API `Dropdown`, 1 test `notification-service` lỗi thời so với tính năng lọc-theo-tiền-tố
+  đã có, 83 chuỗi tiếng Việt hardcode mới trên 10 file ngoài vùng conflict) + 1 ngưỡng coverage
+  `common-dto` tụt do cấu trúc (enum chưa từng có test). Dùng 4+4 agent song song (giải quyết
+  conflict theo khu vực, rồi dịch/gắn i18n-lint-ignore theo khu vực). Gate cuối sạch toàn bộ.
+- **2026-09-16 (bổ sung)** — Bổ sung mục "Tính năng mới: Super Admin" — vai trò quản trị nền tảng
+  đầu tiên nhìn xuyên được nhiều tổ chức, phạm vi cố ý giới hạn ở quản lý vòng đời `Organization`
+  trong `iam-service` (không đụng dữ liệu nghiệp vụ 6 service còn lại). Cột mới `User.isSuperAdmin`/
+  `Organization.{isActive,isSystem}`, guard/decorator mới `SuperAdminGuard`/`@RequireSuperAdmin()`,
+  bootstrap tự động qua biến môi trường (không có luồng đăng ký qua API), khu vực frontend riêng
+  `/platform-admin` tách biệt hoàn toàn AppShell hiện có.

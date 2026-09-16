@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -38,14 +39,17 @@ function OnSiteBadge({ isOnSite }: { isOnSite?: boolean | null }) {
 
 /**
  * Tính tổng số giờ làm việc giữa check-in và check-out (Ví dụ: 8.5 giờ)
+ * 16/09/2026: gop merge - ca 2 nhanh deu tu them 1 key i18n rieng cho chuoi "X giờ"
+ * (totalHoursValue vs hoursUnit). Giu totalHoursValue (di kem kieu TFunction da co san import
+ * o dau file), xoa hoursUnit khoi hrm.json (vi/en/ja) vi khong con noi nao goi toi.
  */
-function formatTotalHours(t: (key: string, options?: any) => string, checkInAt?: string | null, checkOutAt?: string | null): string {
+function formatTotalHours(t: TFunction, checkInAt?: string | null, checkOutAt?: string | null): string {
   if (!checkInAt || !checkOutAt) return '—';
   const start = new Date(checkInAt).getTime();
   const end = new Date(checkOutAt).getTime();
   if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return '—';
   const diffHours = (end - start) / (1000 * 60 * 60);
-  return t('hrm:attendancePage.hoursUnit', { hours: diffHours.toFixed(1) });
+  return t('hrm:attendancePage.totalHoursValue', { hours: diffHours.toFixed(1) });
 }
 
 /**
@@ -104,6 +108,9 @@ function PhotoProofModal({
       title={
         <div className="flex items-center gap-2 text-base font-bold text-slate-900">
           <CameraIcon className="h-5 w-5 text-primary-600" />
+          {/* 16/09/2026: gop merge - giu namespace attendancePage.photoModal (nhat quan voi cac
+              key con lai cua trang Cham cong), bo namespace rieng "photoProofModal" o cap goc
+              cua hrm.json vi sau merge khong con noi nao khac tham chieu toi (da xoa khoi JSON). */}
           <span>{t('hrm:attendancePage.photoModal.title', { action: actionText })}</span>
         </div>
       }
@@ -154,17 +161,31 @@ function PhotoProofModal({
 function AttendanceStatusBadge({ record, today }: { record: { workDate: string; checkInAt: string; checkOutAt?: string | null }; today: string }) {
   const { t } = useTranslation();
   const checkInDate = new Date(record.checkInAt);
-  // Giờ check-in tính theo GMT+7
-  const checkInHour = checkInDate.getHours();
-  const checkInMinute = checkInDate.getMinutes();
+  // 15/09/2026 (sua loi thuc te): dong comment cu "Gio check-in tinh theo GMT+7" o day tung SAI -
+  // Date.getHours()/getMinutes() doc gio theo timezone cua TRINH DUYET nguoi xem, khong phai GMT+7
+  // - dung 1 nguoi xem trang tu may dat timezone khac VN se bi tinh sai "di muon"/"dung gio" du
+  // du lieu server dung. Day chinh la loi da duoc ghi nhan va sua toan bo du an ngay 22/07/2026
+  // (xem formatDate/formatTime trong lib/utils.ts) nhung tai xuat hien o component moi nay - dung
+  // Intl.DateTimeFormat voi timeZone: 'Asia/Ho_Chi_Minh' de doc dung gio hien thi GMT+7.
+  const gmt7Parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    hour: 'numeric',
+    minute: 'numeric',
+    hourCycle: 'h23',
+  }).formatToParts(checkInDate);
+  const checkInHour = Number(gmt7Parts.find((p) => p.type === 'hour')?.value ?? 0);
+  const checkInMinute = Number(gmt7Parts.find((p) => p.type === 'minute')?.value ?? 0);
   const isLate = checkInHour > 8 || (checkInHour === 8 && checkInMinute > 30); // Giờ chuẩn vào ca 8:30
   const isPastDay = record.workDate < today;
   const isMissingCheckOut = !record.checkOutAt && isPastDay;
 
+  // 16/09/2026: gop merge - nhanh Tien tao them object "statuses" trung lap voi "statusBadge" da
+  // co san (cung 3 nhan Dung gio/Di muon/Quen check-out, chi khac ten key). Giu "statusBadge" (ten
+  // khop voi ten component AttendanceStatusBadge), xoa "statuses" khoi hrm.json.
   if (isMissingCheckOut) {
     return (
       <span className="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-600 whitespace-nowrap">
-        {t('hrm:attendancePage.statuses.forgotCheckOut')}
+        {t('hrm:attendancePage.statusBadge.missingCheckOut')}
       </span>
     );
   }
@@ -172,14 +193,14 @@ function AttendanceStatusBadge({ record, today }: { record: { workDate: string; 
   if (isLate) {
     return (
       <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700 whitespace-nowrap">
-        {t('hrm:attendancePage.statuses.late')}
+        {t('hrm:attendancePage.statusBadge.late')}
       </span>
     );
   }
 
   return (
     <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 whitespace-nowrap">
-      {t('hrm:attendancePage.statuses.onTime')}
+      {t('hrm:attendancePage.statusBadge.onTime')}
     </span>
   );
 }
@@ -203,13 +224,15 @@ export function AttendancePage() {
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthStr);
 
   // Tạo danh sách 6 tháng gần nhất để lựa chọn nhanh
+  // 16/09/2026: gop merge - nhanh Tien tao them object "filter" trung lap voi "monthFilter" da co
+  // san. Giu "monthFilter", xoa "filter" khoi hrm.json.
   const monthOptions = useMemo(() => {
-    const options = [{ value: 'all', label: t('hrm:attendancePage.filter.allTime') }];
+    const options = [{ value: 'all', label: t('hrm:attendancePage.monthFilter.allTime') }];
     const now = new Date();
     for (let i = 0; i < 6; i++) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const lbl = t('hrm:attendancePage.filter.monthLabel', { month: d.getMonth() + 1, year: d.getFullYear() });
+      const lbl = t('hrm:attendancePage.monthFilter.monthYear', { month: d.getMonth() + 1, year: d.getFullYear() });
       options.push({ value: val, label: lbl });
     }
     return options;
@@ -292,7 +315,11 @@ export function AttendancePage() {
                   {timeString}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 font-medium">{t('hrm:attendancePage.today.standardTime')}</p>
+              {/* 16/09/2026: gop merge - nhanh Tien doi ten "systemTimeLabel"/"completedMessage"
+                  thanh "standardTime"/"completedShift" va tach them 2 object thua "statuses"/
+                  "filter" trong "today" (da xu ly o cac cho khac). Giu ten key cu, khong them
+                  object con moi. */}
+              <p className="text-xs text-slate-400 font-medium">{t('hrm:attendancePage.today.systemTimeLabel')}</p>
 
               {/* Trạng thái chấm công trong ngày */}
               <div className="mt-5 w-full rounded-xl bg-slate-50/80 p-3.5 border border-slate-100/90 text-left text-xs space-y-2">
@@ -341,7 +368,7 @@ export function AttendancePage() {
                 )}
                 {todayRecord?.checkOutAt && (
                   <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 text-xs font-semibold text-emerald-700 text-center">
-                    {t('hrm:attendancePage.today.completedShift')}
+                    ✓ {t('hrm:attendancePage.today.completedMessage')}
                   </div>
                 )}
               </div>
@@ -391,7 +418,7 @@ export function AttendancePage() {
                     value={selectedMonth}
                     options={monthOptions}
                     onChange={setSelectedMonth}
-                    ariaLabel={t('hrm:attendancePage.filter.ariaLabel')}
+                    ariaLabel={t('hrm:attendancePage.monthFilter.ariaLabel')}
                     className="min-w-[150px]"
                   />
                 </div>
@@ -410,7 +437,7 @@ export function AttendancePage() {
                   {filteredMyRecords.length === 0 ? (
                     <EmptyState
                       title={t('hrm:attendancePage.history.emptyTitle')}
-                      description={selectedMonth !== 'all' ? t('hrm:attendancePage.history.emptyFiltered', { month: monthOptions.find((m) => m.value === selectedMonth)?.label }) : t('hrm:attendancePage.history.emptyDescription')}
+                      description={selectedMonth !== 'all' ? t('hrm:attendancePage.history.emptyFilteredDescription', { month: monthOptions.find((m) => m.value === selectedMonth)?.label }) : t('hrm:attendancePage.history.emptyDescription')}
                     />
                   ) : (
                     <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
@@ -420,6 +447,12 @@ export function AttendancePage() {
                             <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.date')}</th>
                             <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.checkIn')}</th>
                             <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.checkOut')}</th>
+                            {/* 16/09/2026: gop merge - nhanh HEAD dung chung 1 object "attendancePage.columns"
+                                {totalHours, status} cho ca 2 bang (Lich su + Toan to chuc), nhung 3 cot
+                                con lai cua CUNG mot bang van doc tu "history.columns"/"allAttendance.columns" -
+                                tron 2 namespace trong 1 hang la khong nhat quan. Giu nguyen namespace rieng
+                                cua tung bang (history.columns / allAttendance.columns, da co san du 5 cot),
+                                xoa object "attendancePage.columns" thua khoi hrm.json. */}
                             <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.totalHours')}</th>
                             <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.status')}</th>
                           </tr>
@@ -503,7 +536,7 @@ export function AttendancePage() {
                   {filteredAllRecords.length === 0 ? (
                     <EmptyState
                       title={t('hrm:attendancePage.allAttendance.emptyTitle')}
-                      description={selectedMonth !== 'all' ? t('hrm:attendancePage.allAttendance.emptyFiltered', { month: monthOptions.find((m) => m.value === selectedMonth)?.label }) : t('hrm:attendancePage.allAttendance.emptyDescription')}
+                      description={selectedMonth !== 'all' ? t('hrm:attendancePage.allAttendance.emptyFilteredDescription', { month: monthOptions.find((m) => m.value === selectedMonth)?.label }) : t('hrm:attendancePage.allAttendance.emptyDescription')}
                     />
                   ) : (
                     <div className="overflow-x-auto max-h-[420px] overflow-y-auto">

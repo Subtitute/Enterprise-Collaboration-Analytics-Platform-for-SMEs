@@ -9,15 +9,27 @@
     "errorTitle": "Không thể tải tài liệu",
     "errorDescription": "Đã xảy ra lỗi khi tải thư mục/tệp. Vui lòng thử lại.",
     "searchPlaceholder": "Tìm kiếm thư mục, tệp tin…",
-    "viewGrid": "Lưới",
-    "viewList": "Danh sách",
-    "viewGridTitle": "Chế độ xem Lưới",
-    "viewListTitle": "Chế độ xem Danh sách",
     "emptyState": {
       "title": "Thư mục trống",
       "description": "Tạo thư mục con hoặc tải lên tài liệu đầu tiên.",
       "newFolder": "Thư mục mới",
       "uploadFile": "Tải lên tài liệu"
+    },
+    "dropzone": {
+      "title": "Thả tệp vào đây để tải lên",
+      "description": "Tệp sẽ được tự động tải trực tiếp vào thư mục",
+      "multipleFilesTitle": "Chỉ tải lên được 1 tệp mỗi lần",
+      "multipleFilesDescription": "Đã chọn tệp đầu tiên trong số các tệp bạn vừa thả; các tệp còn lại chưa được tải lên."
+    },
+    "viewMode": {
+      "grid": "Lưới",
+      "gridTitle": "Chế độ xem Lưới",
+      "list": "Danh sách",
+      "listTitle": "Chế độ xem Danh sách"
+    },
+    "filteredEmpty": {
+      "title": "Không tìm thấy tài liệu hoặc thư mục phù hợp",
+      "description": "Hãy thử tìm kiếm với từ khóa khác"
     }
   },
   "newFolderModal": {
@@ -52,13 +64,22 @@
     "share": "Chia sẻ",
     "versionHistory": "Lịch sử phiên bản",
     "delete": "Xoá tệp",
-    "updatedAt": "Cập nhật {{time}}",
     "selectAllAria": "Chọn tất cả tệp",
     "selectFileAria": "Chọn tệp {{name}}",
     "deleteConfirm": {
       "title": "Xoá tệp này?",
       "description": "\"{{name}}\" sẽ bị xoá khỏi hệ thống.",
       "confirmLabel": "Xoá tệp"
+    },
+    "updatedLabel": "Cập nhật {{date}}",
+    "selectedLabel": "Đã chọn",
+    "batchDownload": "Tải về hàng loạt",
+    "batchDelete": "Xóa hàng loạt",
+    "deselectAll": "Bỏ chọn",
+    "batchDeleteConfirm": {
+      "title": "Xóa hàng loạt tệp tin",
+      "description": "Bạn có chắc chắn muốn xóa {{count}} tệp tin đã chọn không? Hành động này không thể hoàn tác.",
+      "confirmLabel": "Xác nhận xóa"
     }
   },
   "uploadModal": {
@@ -68,6 +89,11 @@
     "removeFileAria": "Bỏ chọn tệp",
     "cancel": "Hủy",
     "submit": "Tải lên"
+  },
+  "shareTargetPicker": {
+    "change": "Thay đổi",
+    "noMembersFound": "Không tìm thấy thành viên",
+    "noDepartmentsFound": "Không tìm thấy phòng ban"
   },
   "folderShareModal": {
     "title": "Quản lý chia sẻ \"{{folderName}}\"",
@@ -105,8 +131,8 @@
     "submit": "Chia sẻ"
   },
   "folderGrid": {
-    "loading": "Đang tải…",
-    "meta": "{{count}} tệp • Cập nhật {{time}}",
+    "loadingFileCount": "Đang tải…",
+    "metaSummary": "{{count}} tệp • Cập nhật {{time}}",
     "restrictedTooltip": "Thư mục hạn chế truy cập",
     "optionsAria": "Tùy chọn thư mục",
     "rename": "Đổi tên",

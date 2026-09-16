@@ -6,6 +6,8 @@ const TABS = [
   { to: '/admin/members', labelKey: 'admin:adminPage.tabs.members' },
   { to: '/admin/departments', labelKey: 'admin:adminPage.tabs.departments' },
   { to: '/admin/roles', labelKey: 'admin:adminPage.tabs.roles' },
+  // 15/09/2026: tab moi "Lich cong ty" (ngay le + su kien, theo yeu cau GVHD) - xem CalendarPage.tsx.
+  { to: '/admin/calendar', labelKey: 'admin:adminPage.tabs.calendar' },
   // 28/07/2026: tab moi cho man hinh chan doan Dead Letter Queue (GET /failed-events) - xem
   // FailedEventsPage.tsx.
   { to: '/admin/failed-events', labelKey: 'admin:adminPage.tabs.failedEvents' },

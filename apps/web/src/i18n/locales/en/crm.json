@@ -64,14 +64,19 @@
     "optionsAriaLabel": "Customer options",
     "editCustomer": "Edit customer details",
     "deleteCustomer": "Delete customer",
-    "interaction": "Interaction: {{time}}",
     "openDeals": "{{count}} open deals",
+    "lastInteraction": "Interaction: {{time}}",
     "deleteConfirmTitle": "Delete this customer?",
     "deleteConfirmDescription": "All deals belonging to \"{{name}}\" will also be deleted. This action cannot be undone."
   },
   "editCustomerModal": {
     "title": "Edit customer details",
     "save": "Save changes"
+  },
+  "kanban": {
+    "scrollLeftAriaLabel": "Scroll left",
+    "scrollRightAriaLabel": "Scroll right",
+    "emptyColumn": "Empty"
   },
   "dealDetailModal": {
     "title": "Deal details",

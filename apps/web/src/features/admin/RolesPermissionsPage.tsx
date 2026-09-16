@@ -8,6 +8,10 @@ import { QueryState } from '@/components/ui/QueryState';
 import { LockIcon, ShieldIcon } from '@/components/ui/Icons';
 import { usePermissionsQuery, useRolesQuery, useUpdateRolePermissions } from './hooks';
 import type { Permission, RoleWithPermissions } from '@/types';
+// 16/09/2026: PERMISSION_META la hang so o module-level (ngoai component) nen khong the goi
+// useTranslation() o day (vi pham Rules of Hooks) - dung tham chieu `t` khong-qua-hook tu
+// i18n/index.ts, theo dung tien le da ap dung o TaskStatusDonut.tsx.
+import { t } from '@/i18n';
 
 /**
  * Bản đồ dịch tên quyền kỹ thuật sang tiếng Việt tường minh và chỉ định phân hệ module.
@@ -18,52 +22,57 @@ interface PermissionMeta {
   order: number;
 }
 
+// 16/09/2026: cac `label` duoi day tung la chuoi tieng Viet hardcode truc tiep (vi pham
+// scripts/check-hardcoded-vietnamese.js) - chuyen sang goi t() voi key
+// admin:rolesPermissionsPage.permissions.<key voi ':' -> '_'>, dung key da co san (va dung khop
+// tung ky tu) trong locales/{vi,en,ja}/admin.json, giong cach translationKey duoc dung khi render
+// ben duoi nen khong tao trung lap noi dung dich.
 const PERMISSION_META: Record<string, PermissionMeta> = {
   // HRM-lite: Chấm công & Nghỉ phép
-  'attendance:checkin': { label: 'Chấm công (Check-in / Check-out)', moduleKey: 'hrm', order: 1 },
-  'attendance:view': { label: 'Xem bảng chấm công toàn công ty', moduleKey: 'hrm', order: 2 },
-  'leave_request:create': { label: 'Tạo đơn xin nghỉ phép', moduleKey: 'hrm', order: 3 },
-  'leave_request:view': { label: 'Xem danh sách đơn nghỉ phép', moduleKey: 'hrm', order: 4 },
-  'leave_request:approve': { label: 'Duyệt / Từ chối đơn nghỉ phép', moduleKey: 'hrm', order: 5 },
+  'attendance:checkin': { label: t('admin:rolesPermissionsPage.permissions.attendance_checkin'), moduleKey: 'hrm', order: 1 },
+  'attendance:view': { label: t('admin:rolesPermissionsPage.permissions.attendance_view'), moduleKey: 'hrm', order: 2 },
+  'leave_request:create': { label: t('admin:rolesPermissionsPage.permissions.leave_request_create'), moduleKey: 'hrm', order: 3 },
+  'leave_request:view': { label: t('admin:rolesPermissionsPage.permissions.leave_request_view'), moduleKey: 'hrm', order: 4 },
+  'leave_request:approve': { label: t('admin:rolesPermissionsPage.permissions.leave_request_approve'), moduleKey: 'hrm', order: 5 },
 
   // CRM-lite: Khách hàng & Bán hàng
-  'customer:view': { label: 'Xem danh sách khách hàng', moduleKey: 'crm', order: 10 },
-  'customer:create': { label: 'Tạo mới hồ sơ khách hàng', moduleKey: 'crm', order: 11 },
-  'customer:update': { label: 'Cập nhật thông tin khách hàng', moduleKey: 'crm', order: 12 },
-  'customer:delete': { label: 'Xóa khách hàng', moduleKey: 'crm', order: 13 },
-  'deal:view': { label: 'Xem cơ hội bán hàng (Deal pipeline)', moduleKey: 'crm', order: 14 },
-  'deal:create': { label: 'Tạo cơ hội bán hàng mới', moduleKey: 'crm', order: 15 },
-  'deal:update': { label: 'Cập nhật giai đoạn / giá trị deal', moduleKey: 'crm', order: 16 },
-  'deal:delete': { label: 'Xóa cơ hội bán hàng', moduleKey: 'crm', order: 17 },
+  'customer:view': { label: t('admin:rolesPermissionsPage.permissions.customer_view'), moduleKey: 'crm', order: 10 },
+  'customer:create': { label: t('admin:rolesPermissionsPage.permissions.customer_create'), moduleKey: 'crm', order: 11 },
+  'customer:update': { label: t('admin:rolesPermissionsPage.permissions.customer_update'), moduleKey: 'crm', order: 12 },
+  'customer:delete': { label: t('admin:rolesPermissionsPage.permissions.customer_delete'), moduleKey: 'crm', order: 13 },
+  'deal:view': { label: t('admin:rolesPermissionsPage.permissions.deal_view'), moduleKey: 'crm', order: 14 },
+  'deal:create': { label: t('admin:rolesPermissionsPage.permissions.deal_create'), moduleKey: 'crm', order: 15 },
+  'deal:update': { label: t('admin:rolesPermissionsPage.permissions.deal_update'), moduleKey: 'crm', order: 16 },
+  'deal:delete': { label: t('admin:rolesPermissionsPage.permissions.deal_delete'), moduleKey: 'crm', order: 17 },
 
   // Project & Task: Dự án & Công việc
-  'project:view': { label: 'Xem danh sách & chi tiết dự án', moduleKey: 'project', order: 20 },
-  'project:create': { label: 'Khởi tạo dự án mới', moduleKey: 'project', order: 21 },
-  'project:update': { label: 'Cập nhật thông tin / trạng thái dự án', moduleKey: 'project', order: 22 },
-  'project:delete': { label: 'Lưu trữ / Xóa dự án', moduleKey: 'project', order: 23 },
-  'task:view': { label: 'Xem bảng công việc (Kanban & List)', moduleKey: 'project', order: 24 },
-  'task:create': { label: 'Giao việc / Tạo mới công việc', moduleKey: 'project', order: 25 },
-  'task:update': { label: 'Cập nhật tiến độ / kéo thả trạng thái việc', moduleKey: 'project', order: 26 },
-  'task:delete': { label: 'Xóa công việc', moduleKey: 'project', order: 27 },
+  'project:view': { label: t('admin:rolesPermissionsPage.permissions.project_view'), moduleKey: 'project', order: 20 },
+  'project:create': { label: t('admin:rolesPermissionsPage.permissions.project_create'), moduleKey: 'project', order: 21 },
+  'project:update': { label: t('admin:rolesPermissionsPage.permissions.project_update'), moduleKey: 'project', order: 22 },
+  'project:delete': { label: t('admin:rolesPermissionsPage.permissions.project_delete'), moduleKey: 'project', order: 23 },
+  'task:view': { label: t('admin:rolesPermissionsPage.permissions.task_view'), moduleKey: 'project', order: 24 },
+  'task:create': { label: t('admin:rolesPermissionsPage.permissions.task_create'), moduleKey: 'project', order: 25 },
+  'task:update': { label: t('admin:rolesPermissionsPage.permissions.task_update'), moduleKey: 'project', order: 26 },
+  'task:delete': { label: t('admin:rolesPermissionsPage.permissions.task_delete'), moduleKey: 'project', order: 27 },
 
   // Document: Tài liệu & Lưu trữ
-  'document:view': { label: 'Xem & tải xuống tài liệu', moduleKey: 'document', order: 30 },
-  'document:upload': { label: 'Tải lên tài liệu & tạo thư mục', moduleKey: 'document', order: 31 },
-  'document:share': { label: 'Chia sẻ tài liệu nội bộ / liên kết', moduleKey: 'document', order: 32 },
-  'document:delete': { label: 'Xóa tài liệu / thư mục', moduleKey: 'document', order: 33 },
+  'document:view': { label: t('admin:rolesPermissionsPage.permissions.document_view'), moduleKey: 'document', order: 30 },
+  'document:upload': { label: t('admin:rolesPermissionsPage.permissions.document_upload'), moduleKey: 'document', order: 31 },
+  'document:share': { label: t('admin:rolesPermissionsPage.permissions.document_share'), moduleKey: 'document', order: 32 },
+  'document:delete': { label: t('admin:rolesPermissionsPage.permissions.document_delete'), moduleKey: 'document', order: 33 },
 
   // Analytics: Báo cáo & Phân tích
-  'analytics:view': { label: 'Xem báo cáo KPI & phân tích tổng hợp', moduleKey: 'analytics', order: 40 },
+  'analytics:view': { label: t('admin:rolesPermissionsPage.permissions.analytics_view'), moduleKey: 'analytics', order: 40 },
 
   // Organization & IAM: Tổ chức & Phân quyền
-  'user:invite': { label: 'Mời thành viên mới vào tổ chức', moduleKey: 'iam', order: 50 },
-  'user:manage': { label: 'Quản lý tài khoản (Đổi quyền, vô hiệu hóa)', moduleKey: 'iam', order: 51 },
-  'department:manage': { label: 'Quản lý cơ cấu phòng ban', moduleKey: 'iam', order: 52 },
-  'role:manage': { label: 'Quản lý & cấu hình ma trận phân quyền', moduleKey: 'iam', order: 53 },
-  'organization:manage': { label: 'Quản lý thông tin tổ chức / doanh nghiệp', moduleKey: 'iam', order: 54 },
+  'user:invite': { label: t('admin:rolesPermissionsPage.permissions.user_invite'), moduleKey: 'iam', order: 50 },
+  'user:manage': { label: t('admin:rolesPermissionsPage.permissions.user_manage'), moduleKey: 'iam', order: 51 },
+  'department:manage': { label: t('admin:rolesPermissionsPage.permissions.department_manage'), moduleKey: 'iam', order: 52 },
+  'role:manage': { label: t('admin:rolesPermissionsPage.permissions.role_manage'), moduleKey: 'iam', order: 53 },
+  'organization:manage': { label: t('admin:rolesPermissionsPage.permissions.organization_manage'), moduleKey: 'iam', order: 54 },
 
   // System & Diagnostics: Hạ tầng & Hệ thống
-  'system:manage': { label: 'Chẩn đoán hạ tầng & theo dõi Dead Letter Queue', moduleKey: 'system', order: 60 },
+  'system:manage': { label: t('admin:rolesPermissionsPage.permissions.system_manage'), moduleKey: 'system', order: 60 },
 };
 
 /** Danh sách thứ tự hiển thị của các module nghiệp vụ */
@@ -82,6 +91,9 @@ const MODULE_ORDER: Array<{ key: 'hrm' | 'crm' | 'project' | 'document' | 'analy
  */
 function isOrgAdminRole(roleName: string): boolean {
   const lower = roleName.trim().toLowerCase();
+  // 16/09/2026: chuoi tieng Viet ben duoi la gia tri SO KHOP ten vai tro (phong truong hop 1 to
+  // chuc da tu doi ten vai tro sang tieng Viet), khong phai text hien thi cho nguoi dung - text
+  // hien thi luon di qua t() o formatRoleName ben duoi. (i18n-lint-ignore)
   return lower.includes('org admin') || lower === 'admin' || lower.includes('quản trị viên tối cao') || lower.includes('organization admin');
 }
 
@@ -90,13 +102,15 @@ function isOrgAdminRole(roleName: string): boolean {
  */
 function formatRoleName(roleName: string, t: (key: string) => string): string {
   const lower = roleName.trim().toLowerCase();
-  if (lower.includes('admin') || lower.includes('quản trị')) {
+  // 16/09/2026: cac chuoi tieng Viet trong 3 dieu kien duoi day la gia tri SO KHOP ten vai tro cu/
+  // da tuy chinh, khong phai text hien thi cho nguoi dung - text hien thi luon di qua t() ngay ben duoi.
+  if (lower.includes('admin') || lower.includes('quản trị')) { // i18n-lint-ignore
     return t('admin:roles.orgAdmin');
   }
-  if (lower.includes('manager') || lower.includes('quản lý')) {
+  if (lower.includes('manager') || lower.includes('quản lý')) { // i18n-lint-ignore
     return t('admin:roles.manager');
   }
-  if (lower.includes('employee') || lower.includes('nhân viên')) {
+  if (lower.includes('employee') || lower.includes('nhân viên')) { // i18n-lint-ignore
     return t('admin:roles.employee');
   }
   return roleName;

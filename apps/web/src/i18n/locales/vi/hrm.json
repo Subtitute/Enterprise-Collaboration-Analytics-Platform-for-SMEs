@@ -9,6 +9,17 @@
   "attendancePage": {
     "title": "Chấm công",
     "subtitle": "Chấm công vào làm/ra về kèm ảnh chụp làm bằng chứng.",
+    "totalHoursValue": "{{hours}} giờ",
+    "statusBadge": {
+      "missingCheckOut": "Quên check-out",
+      "late": "Đi muộn",
+      "onTime": "Đúng giờ"
+    },
+    "monthFilter": {
+      "allTime": "Tất cả thời gian",
+      "monthYear": "Tháng {{month}}/{{year}}",
+      "ariaLabel": "Chọn tháng lọc chấm công"
+    },
     "onSiteBadge": {
       "onSiteTitle": "Vị trí GPS nằm trong bán kính văn phòng",
       "offSiteTitle": "Vị trí GPS nằm ngoài bán kính văn phòng",
@@ -26,19 +37,9 @@
       "doneToday": "Đã hoàn tất hôm nay",
       "checkedInBadge": "Đã Check-in",
       "notCheckedInBadge": "Chưa Check-in",
-      "standardTime": "Giờ chuẩn hệ thống (GMT+7)",
+      "systemTimeLabel": "Giờ chuẩn hệ thống (GMT+7)",
       "notRecorded": "Chưa ghi nhận",
-      "completedShift": "✓ Bạn đã hoàn thành chấm công ca làm việc hôm nay!"
-    },
-    "statuses": {
-      "onTime": "Đúng giờ",
-      "late": "Đi muộn",
-      "forgotCheckOut": "Quên check-out"
-    },
-    "filter": {
-      "ariaLabel": "Chọn tháng lọc chấm công",
-      "allTime": "Tất cả thời gian",
-      "monthLabel": "Tháng {{month}}/{{year}}"
+      "completedMessage": "Bạn đã hoàn thành chấm công ca làm việc hôm nay!"
     },
     "history": {
       "cardTitle": "Lịch sử chấm công",
@@ -47,7 +48,7 @@
       "errorDescription": "Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại.",
       "emptyTitle": "Chưa có lịch sử chấm công",
       "emptyDescription": "Dữ liệu sẽ xuất hiện sau lần chấm công đầu tiên.",
-      "emptyFiltered": "Không có dữ liệu chấm công trong {{month}}",
+      "emptyFilteredDescription": "Không có dữ liệu chấm công trong {{month}}",
       "columns": {
         "date": "Ngày",
         "checkIn": "Vào làm",
@@ -60,12 +61,12 @@
     },
     "allAttendance": {
       "cardTitle": "Chấm công toàn tổ chức",
-      "loading": "Đang tải dữ liệu chấm công toàn tổ chức…",
-      "errorTitle": "Không thể tải dữ liệu chấm công",
+      "loading": "Đang tải chấm công toàn tổ chức…",
+      "errorTitle": "Không thể tải chấm công toàn tổ chức",
       "errorDescription": "Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại.",
-      "emptyTitle": "Chưa có dữ liệu chấm công",
-      "emptyDescription": "Chưa có nhân viên nào chấm công.",
-      "emptyFiltered": "Không có dữ liệu chấm công toàn tổ chức trong {{month}}",
+      "emptyTitle": "Chưa có dữ liệu chấm công toàn tổ chức",
+      "emptyDescription": "Dữ liệu sẽ xuất hiện khi có nhân viên chấm công.",
+      "emptyFilteredDescription": "Không có dữ liệu chấm công toàn tổ chức trong {{month}}",
       "columns": {
         "employee": "Nhân viên",
         "date": "Ngày",
@@ -77,7 +78,6 @@
       "viewProofInOf": "Xem ảnh bằng chứng vào làm của {{name}}",
       "viewProofOutOf": "Xem ảnh bằng chứng ra về của {{name}}"
     },
-    "hoursUnit": "{{hours}} giờ",
     "photoModal": {
       "title": "Ảnh chấm công {{action}}",
       "actionCheckIn": "Vào làm",
@@ -93,10 +93,13 @@
     "title": "Nghỉ phép",
     "subtitle": "Tạo và theo dõi yêu cầu nghỉ phép của bạn.",
     "newRequestButton": "Yêu cầu mới",
+    "daysCount": "{{count}} ngày",
     "pending": {
       "cardTitle": "Chờ duyệt ({{count}})",
       "reject": "Từ chối",
-      "approve": "Duyệt"
+      "approve": "Duyệt",
+      "emptyMessage": "Không có yêu cầu chờ duyệt",
+      "unknownEmployee": "Nhân viên"
     },
     "myRequests": {
       "cardTitle": "Yêu cầu của tôi",
@@ -107,8 +110,7 @@
       "emptyDescription": "Tạo yêu cầu đầu tiên khi bạn cần nghỉ phép.",
       "createFirstButton": "Tạo yêu cầu mới",
       "decisionNote": "Ghi chú: {{note}}"
-    },
-    "daysCount": "{{count}} ngày"
+    }
   },
   "newLeaveRequestModal": {
     "title": "Tạo yêu cầu nghỉ phép",
@@ -121,18 +123,20 @@
     },
     "startDateLabel": "Ngày bắt đầu",
     "endDateLabel": "Ngày kết thúc",
+    "totalDaysPrefix": "Tổng cộng:",
+    "totalDaysValue": "{{count}} ngày",
+    "totalDaysSuffix": "(không tính cuối tuần)",
     "reasonLabel": "Lý do",
     "reasonPlaceholder": "Lý do xin nghỉ phép…",
     "cancelButton": "Hủy",
     "submitButton": "Gửi yêu cầu",
     "daysCount": "{{count}} ngày",
-    "totalWorkingDays": "Tổng cộng: {{count}} ngày (không tính cuối tuần)",
     "errors": {
       "missingDates": "Vui lòng chọn ngày bắt đầu và kết thúc",
+      "startDateInPast": "Ngày bắt đầu không được ở trong quá khứ",
+      "endDateBeforeStart": "Ngày kết thúc không được trước ngày bắt đầu",
       "missingType": "Vui lòng chọn loại nghỉ phép",
-      "missingReason": "Vui lòng nhập lý do nghỉ phép",
-      "pastStartDate": "Ngày bắt đầu nghỉ không được ở trong quá khứ",
-      "invalidDateRange": "Ngày kết thúc không được trước ngày bắt đầu"
+      "missingReason": "Vui lòng nhập lý do nghỉ phép"
     }
   },
   "checkInCamera": {

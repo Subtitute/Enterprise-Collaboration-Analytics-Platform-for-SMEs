@@ -18,8 +18,8 @@ export function NotificationBell() {
 
   return (
     <Dropdown
-      align="end"
-      contentClassName="w-80 p-0"
+      align="right"
+      panelClassName="w-80 p-0"
       trigger={({ toggle }) => (
         <button
           type="button"
@@ -87,7 +87,7 @@ export function NotificationBell() {
                           {!n.isRead && (
                             <span
                               className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary-600 ring-2 ring-white"
-                              title={t('notifications:bell.unreadBadge')}
+                              title={t('notifications:bell.unreadTitle')}
                             />
                           )}
                         </div>

@@ -9,6 +9,17 @@
   "attendancePage": {
     "title": "Attendance",
     "subtitle": "Check in and out with a photo as proof.",
+    "totalHoursValue": "{{hours}} hours",
+    "statusBadge": {
+      "missingCheckOut": "Missed check-out",
+      "late": "Late",
+      "onTime": "On time"
+    },
+    "monthFilter": {
+      "allTime": "All time",
+      "monthYear": "Month {{month}}/{{year}}",
+      "ariaLabel": "Select month to filter attendance"
+    },
     "onSiteBadge": {
       "onSiteTitle": "GPS location is within the office radius",
       "offSiteTitle": "GPS location is outside the office radius",
@@ -26,19 +37,9 @@
       "doneToday": "Done for today",
       "checkedInBadge": "Checked In",
       "notCheckedInBadge": "Not Checked In",
-      "standardTime": "System Standard Time (GMT+7)",
+      "systemTimeLabel": "System standard time (GMT+7)",
       "notRecorded": "Not recorded",
-      "completedShift": "✓ You have completed your work shift for today!"
-    },
-    "statuses": {
-      "onTime": "On time",
-      "late": "Late",
-      "forgotCheckOut": "Forgot check-out"
-    },
-    "filter": {
-      "ariaLabel": "Select month for attendance filter",
-      "allTime": "All time",
-      "monthLabel": "Month {{month}}/{{year}}"
+      "completedMessage": "You've completed your attendance for today's shift!"
     },
     "history": {
       "cardTitle": "Attendance history",
@@ -47,7 +48,7 @@
       "errorDescription": "Something went wrong loading the data. Please try again.",
       "emptyTitle": "No attendance history yet",
       "emptyDescription": "Your data will appear after your first check-in.",
-      "emptyFiltered": "No attendance records found for {{month}}",
+      "emptyFilteredDescription": "No attendance data in {{month}}",
       "columns": {
         "date": "Date",
         "checkIn": "Check in",
@@ -60,12 +61,12 @@
     },
     "allAttendance": {
       "cardTitle": "Organization-wide attendance",
-      "loading": "Loading organization attendance…",
-      "errorTitle": "Couldn't load attendance data",
+      "loading": "Loading organization-wide attendance…",
+      "errorTitle": "Couldn't load organization-wide attendance",
       "errorDescription": "Something went wrong loading the data. Please try again.",
-      "emptyTitle": "No attendance data",
-      "emptyDescription": "No employees have checked in yet.",
-      "emptyFiltered": "No organization attendance records found for {{month}}",
+      "emptyTitle": "No organization-wide attendance yet",
+      "emptyDescription": "Data will appear once employees check in.",
+      "emptyFilteredDescription": "No organization-wide attendance data in {{month}}",
       "columns": {
         "employee": "Employee",
         "date": "Date",
@@ -77,7 +78,6 @@
       "viewProofInOf": "View check-in photo proof of {{name}}",
       "viewProofOutOf": "View check-out photo proof of {{name}}"
     },
-    "hoursUnit": "{{hours}} hrs",
     "photoModal": {
       "title": "{{action}} Photo Proof",
       "actionCheckIn": "Check-in",
@@ -93,10 +93,13 @@
     "title": "Leave Requests",
     "subtitle": "Create and track your leave requests.",
     "newRequestButton": "New request",
+    "daysCount": "{{count}} days",
     "pending": {
       "cardTitle": "Pending ({{count}})",
       "reject": "Reject",
-      "approve": "Approve"
+      "approve": "Approve",
+      "emptyMessage": "No requests pending approval",
+      "unknownEmployee": "Employee"
     },
     "myRequests": {
       "cardTitle": "My requests",
@@ -107,8 +110,7 @@
       "emptyDescription": "Create your first request when you need time off.",
       "createFirstButton": "Create new request",
       "decisionNote": "Note: {{note}}"
-    },
-    "daysCount": "{{count}} days"
+    }
   },
   "newLeaveRequestModal": {
     "title": "Create leave request",
@@ -121,18 +123,20 @@
     },
     "startDateLabel": "Start date",
     "endDateLabel": "End date",
+    "totalDaysPrefix": "Total:",
+    "totalDaysValue": "{{count}} days",
+    "totalDaysSuffix": "(weekends excluded)",
     "reasonLabel": "Reason",
     "reasonPlaceholder": "Reason for the leave request…",
     "cancelButton": "Cancel",
     "submitButton": "Submit request",
     "daysCount": "{{count}} days",
-    "totalWorkingDays": "Total: {{count}} days (excluding weekends)",
     "errors": {
       "missingDates": "Please select a start and end date",
+      "startDateInPast": "The start date cannot be in the past",
+      "endDateBeforeStart": "The end date cannot be before the start date",
       "missingType": "Please select a leave type",
-      "missingReason": "Please enter a reason for the leave",
-      "pastStartDate": "Start date cannot be in the past",
-      "invalidDateRange": "End date cannot be earlier than start date"
+      "missingReason": "Please enter a reason for the leave"
     }
   },
   "checkInCamera": {

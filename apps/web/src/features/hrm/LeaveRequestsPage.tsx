@@ -41,12 +41,18 @@ function parseLeaveReason(rawReason: string | undefined | null, t: (key: string,
       };
     }
     // Đối với các đơn cũ đã lưu text tiếng Việt hoặc ngôn ngữ khác
+    // 16/09/2026: cac chuoi trong .includes(...) o 3 dong duoi la HANG SO de doi chieu voi rawType
+    // DA LUU SAN trong DB tu truoc khi co quy uoc prefix enum [ANNUAL]/[SICK]/[UNPAID] (xem
+    // typePrefix trong NewLeaveRequestModal.tsx) - voi du lieu cu do, rawType chinh la text da dich
+    // san theo ngon ngu UI dang chon TAI THOI DIEM tao don (Viet/Anh/Nhat), khong phai chuoi UI
+    // tinh dang hien thi nen khong dua qua t(). Du lieu MOI da di theo nhanh enum o tren (dong
+    // rawType === 'ANNUAL' ...) nen khong can/khong the doi ve so sanh enum o day.
     let translatedType = rawType;
-    if (rawType.includes('Nghỉ phép năm') || rawType.includes('Annual leave') || rawType.includes('年次有給休暇')) {
+    if (rawType.includes('Nghỉ phép năm') || rawType.includes('Annual leave') || rawType.includes('年次有給休暇')) { // i18n-lint-ignore: khop rawType da luu tu truoc, khong phai chuoi UI
       translatedType = t('hrm:newLeaveRequestModal.types.ANNUAL');
-    } else if (rawType.includes('Nghỉ ốm') || rawType.includes('Sick leave') || rawType.includes('病気休暇')) {
+    } else if (rawType.includes('Nghỉ ốm') || rawType.includes('Sick leave') || rawType.includes('病気休暇')) { // i18n-lint-ignore: khop rawType da luu tu truoc, khong phai chuoi UI
       translatedType = t('hrm:newLeaveRequestModal.types.SICK');
-    } else if (rawType.includes('Nghỉ việc riêng') || rawType.includes('Personal leave') || rawType.includes('私用休暇')) {
+    } else if (rawType.includes('Nghỉ việc riêng') || rawType.includes('Personal leave') || rawType.includes('私用休暇')) { // i18n-lint-ignore: khop rawType da luu tu truoc, khong phai chuoi UI
       translatedType = t('hrm:newLeaveRequestModal.types.UNPAID');
     }
     return {
@@ -120,7 +126,7 @@ export function LeaveRequestsPage() {
           <CardContent className="space-y-4">
             {(pendingQuery.data?.data.length ?? 0) === 0 ? (
               <div className="border-dashed border-2 border-slate-200 py-6 text-center text-slate-400 text-sm rounded-lg">
-                Không có yêu cầu chờ duyệt
+                {t('hrm:leaveRequestsPage.pending.emptyMessage')}
               </div>
             ) : (
               pendingQuery.data?.data.map((request) => {
@@ -130,7 +136,12 @@ export function LeaveRequestsPage() {
                 // toan bo danh sach).
                 const isRowBusy = pendingRequestId === request.id && (approve.isPending || reject.isPending);
                 const days = calculateWorkingDays(request.startDate, request.endDate);
-                const employeeName = userNameMap[request.userId] || 'Nhân viên';
+                // 16/09/2026: gop merge - giu nhanh dung key i18n cho employeeName (hardcode 'Nhân
+                // viên' cua nhanh Tien se khong dich duoc sang en/ja), nhung lay tham so `t` cua
+                // nhanh Tien khi goi parseLeaveReason vi ham nay bat buoc tham so thu 2 la `t`
+                // (xem khai bao parseLeaveReason o tren) - nhanh HEAD thieu tham so nay se gay loi
+                // "t is not a function" ngay khi request.reason co dang "[ANNUAL] ...".
+                const employeeName = userNameMap[request.userId] || t('hrm:leaveRequestsPage.pending.unknownEmployee');
                 const { leaveType, cleanReason } = parseLeaveReason(request.reason, t);
 
                 return (

@@ -27,9 +27,13 @@ export function RoleCheckboxList({
       {roles.map((role) => {
         const isSelected = selectedIds.includes(role.id);
         const lower = role.name.trim().toLowerCase();
-        const isAdmin = lower.includes('admin') || lower.includes('quản trị');
-        const isManager = lower.includes('manager') || lower.includes('quản lý');
-        const isEmployee = lower.includes('employee') || lower.includes('nhân viên');
+        // 16/09/2026: bo cac nhanh khop tieng Viet ('quản trị'/'quản lý'/'nhân viên') - Role.name
+        // luon la tieng Anh ('Org Admin'/'Manager'/'Employee', xem DefaultRoleName trong
+        // packages/common-dto), khong co endpoint doi ten vai tro nao ca nen cac nhanh nay khong
+        // bao gio khop (dead code) va vi pham linter hardcode tieng Viet.
+        const isAdmin = lower.includes('admin');
+        const isManager = lower.includes('manager');
+        const isEmployee = lower.includes('employee');
         const roleLabel = isAdmin
           ? t('admin:roles.orgAdmin')
           : isManager

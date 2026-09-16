@@ -7,6 +7,7 @@
       "members": "メンバー",
       "departments": "部署",
       "roles": "ロールと権限",
+      "calendar": "会社カレンダー",
       "failedEvents": "システムエラーイベント"
     }
   },
@@ -131,6 +132,37 @@
       "system_manage": "システム診断とDLQ（デッドレター）監視"
     }
   },
+  "calendarPage": {
+    "description": "組織全体で共有する祝日とイベント・予約を設定します。日付をクリックすると新規作成、既存の項目をクリックすると編集できます。",
+    "newEntry": "新規項目",
+    "loading": "カレンダーを読み込み中…",
+    "errorTitle": "会社カレンダーを読み込めませんでした",
+    "moreEntries": "他{{count}}件",
+    "deleteConfirm": {
+      "title": "この項目を削除しますか？",
+      "description": "「{{title}}」が会社カレンダーから削除されます。この操作は取り消せません。"
+    }
+  },
+  "calendarEventModal": {
+    "createTitle": "カレンダー項目を追加",
+    "editTitle": "カレンダー項目を編集",
+    "type": {
+      "HOLIDAY": "祝日",
+      "EVENT": "イベント"
+    },
+    "titleLabel": "タイトル",
+    "titlePlaceholder": "例: 旧正月休暇",
+    "titleRequiredError": "タイトルを入力してください",
+    "startDateLabel": "開始日",
+    "endDateLabel": "終了日",
+    "startDateRequiredError": "開始日を選択してください",
+    "endDateBeforeStartError": "終了日を開始日より前にすることはできません",
+    "descriptionLabel": "説明",
+    "cancel": "キャンセル",
+    "create": "項目を作成",
+    "saveChanges": "変更を保存",
+    "delete": "削除"
+  },
   "failedEventsPage": {
     "description": "内部処理イベント(Kafka)のうち、永続的に失敗したか自動リトライの上限に達したものの一覧です。これらはユーザー起因のエラーではなく、システム障害を診断するためのデータです。この一覧は閲覧専用であり、この画面から再試行を行うことはできません。",
     "descriptionOrgNote": "「組織不明」と表示されるイベントは、どの組織で発生したかを特定する前のデータ読み込み段階で発生したエラーであるため、すべての組織管理者に表示されます。これは特定の組織の業務データではなく、共通のインフラ診断データです。",
@@ -212,7 +244,13 @@
     "departmentUpdateFailed": "部署を更新できませんでした",
     "departmentDeleted": "部署を削除しました",
     "departmentDeleteFailed": "部署を削除できませんでした",
-    "permissionsUpdateFailed": "権限を更新できませんでした"
+    "permissionsUpdateFailed": "権限を更新できませんでした",
+    "calendarEventCreated": "カレンダー項目を追加しました",
+    "calendarEventCreateFailed": "カレンダー項目を追加できませんでした",
+    "calendarEventUpdated": "カレンダー項目を更新しました",
+    "calendarEventUpdateFailed": "カレンダー項目を更新できませんでした",
+    "calendarEventDeleted": "カレンダー項目を削除しました",
+    "calendarEventDeleteFailed": "カレンダー項目を削除できませんでした"
   },
   "roles": {
     "orgAdmin": "組織管理者",

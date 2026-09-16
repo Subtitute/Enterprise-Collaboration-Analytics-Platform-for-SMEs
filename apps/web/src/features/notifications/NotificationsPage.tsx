@@ -97,21 +97,25 @@ export function NotificationsPage() {
   const currentTypeOption = typeOptions.find((opt) => opt.value === typeFilter) ?? typeOptions[0];
 
   // Lọc hiển thị đảm bảo độ chính xác tuyệt đối (client-side fallback nếu backend trả về tập hợp rộng)
+  // 16/09/2026: cac chuoi tieng Viet trong n.title?...includes(...) ben duoi la HANG SO de doi
+  // chieu voi title thong bao - title nay do BACKEND sinh san (tieng Viet) va luu vao MongoDB tai
+  // thoi diem phat sinh event, khong phai chuoi UI tinh nen khong dua qua t(); day chi la fallback
+  // heuristic bo sung cho itemType khi backend tra ve type khong khop dung typeFilter.
   const displayedItems = accumulatedItems.filter((n) => {
     if (!typeFilter) return true;
     const itemType = (n.type || '').toLowerCase();
 
     if (typeFilter === 'leave_request') {
-      return itemType.includes('leave') || n.title?.toLowerCase().includes('nghỉ phép');
+      return itemType.includes('leave') || n.title?.toLowerCase().includes('nghỉ phép'); // i18n-lint-ignore: khop title backend, khong phai chuoi UI
     }
     if (typeFilter === 'deal.stage_changed') {
       return itemType.includes('deal') || n.title?.toLowerCase().includes('deal');
     }
     if (typeFilter === 'task.assigned') {
-      return itemType.includes('task') || n.title?.toLowerCase().includes('công việc');
+      return itemType.includes('task') || n.title?.toLowerCase().includes('công việc'); // i18n-lint-ignore: khop title backend, khong phai chuoi UI
     }
     if (typeFilter === 'document.shared') {
-      return itemType.includes('document') || n.title?.toLowerCase().includes('tài liệu');
+      return itemType.includes('document') || n.title?.toLowerCase().includes('tài liệu'); // i18n-lint-ignore: khop title backend, khong phai chuoi UI
     }
     return true;
   });
@@ -231,7 +235,7 @@ export function NotificationsPage() {
                         {!n.isRead && (
                           <span
                             className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-indigo-600 ring-2 ring-white"
-                            title={t('notifications:page.unreadBadge')}
+                            title={t('notifications:page.unreadTitle')}
                           />
                         )}
                       </div>
@@ -306,7 +310,7 @@ export function NotificationsPage() {
                   <Spinner size="sm" /> {t('common:loading')}
                 </span>
               ) : (
-                t('notifications:page.loadMore', { current: accumulatedItems.length, total: meta.total })
+                t('notifications:page.loadMoreButton', { loaded: accumulatedItems.length, total: meta.total })
               )}
             </Button>
           </div>

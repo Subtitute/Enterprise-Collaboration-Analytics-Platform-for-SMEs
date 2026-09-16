@@ -78,6 +78,47 @@ describe('InternalAuthGuard', () => {
 
     expect(guard.canActivate(ctx)).toBe(true);
   });
+
+  // 16/09/2026: "Super Admin" (tinh nang moi) - header x-is-super-admin duoc doc lai thanh
+  // AuthContext.isSuperAdmin (dung boi SuperAdminGuard ben canh guard nay).
+  it('gan isSuperAdmin = true khi header x-is-super-admin = "true"', () => {
+    const guard = new InternalAuthGuard(reflectorReturning(false));
+    const req = {
+      headers: {
+        [INTERNAL_SHARED_SECRET_HEADER]: 'test-shared-secret',
+        'x-user-id': 'user-1',
+        'x-org-id': 'org-1',
+        'x-is-super-admin': 'true',
+      },
+    };
+    const ctx = {
+      switchToHttp: () => ({ getRequest: () => req }),
+      getHandler: () => ({}),
+      getClass: () => ({}),
+    } as unknown as ExecutionContext;
+
+    guard.canActivate(ctx);
+    expect((req as unknown as { user: { isSuperAdmin: boolean } }).user.isSuperAdmin).toBe(true);
+  });
+
+  it('gan isSuperAdmin = false khi thieu header x-is-super-admin (nguoi dung thuong)', () => {
+    const guard = new InternalAuthGuard(reflectorReturning(false));
+    const req = {
+      headers: {
+        [INTERNAL_SHARED_SECRET_HEADER]: 'test-shared-secret',
+        'x-user-id': 'user-1',
+        'x-org-id': 'org-1',
+      },
+    };
+    const ctx = {
+      switchToHttp: () => ({ getRequest: () => req }),
+      getHandler: () => ({}),
+      getClass: () => ({}),
+    } as unknown as ExecutionContext;
+
+    guard.canActivate(ctx);
+    expect((req as unknown as { user: { isSuperAdmin: boolean } }).user.isSuperAdmin).toBe(false);
+  });
 });
 
 // 22/07/2026: bo sung nhom test cho fix fail-open cua INTERNAL_SHARED_SECRET (xem

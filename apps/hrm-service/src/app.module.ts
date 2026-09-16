@@ -9,12 +9,14 @@ import { HttpMetricsInterceptor, MetricsController, MetricsService } from '@app/
 import configuration from './config/configuration';
 import { Attendance } from './entities/attendance.entity';
 import { LeaveRequest } from './entities/leave-request.entity';
+import { CalendarEvent } from './entities/calendar-event.entity';
 import { OutboxEvent } from './entities/outbox-event.entity';
 import { KafkaModule } from './kafka/kafka.module';
 import { MinioModule } from './minio/minio.module';
 import { OutboxModule } from './outbox/outbox.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { LeaveRequestsModule } from './leave-requests/leave-requests.module';
+import { CalendarEventsModule } from './calendar-events/calendar-events.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -29,7 +31,7 @@ import { HealthController } from './health/health.controller';
         username: config.get<string>('db.user'),
         password: config.get<string>('db.password'),
         database: config.get<string>('db.name'),
-        entities: [Attendance, LeaveRequest, OutboxEvent],
+        entities: [Attendance, LeaveRequest, CalendarEvent, OutboxEvent],
         // MVP: dung synchronize thay vi migration thu cong - Technical_Spec.md muc 14 (gioi han da biet).
         synchronize: true,
       }),
@@ -43,6 +45,7 @@ import { HealthController } from './health/health.controller';
     OutboxModule,
     AttendanceModule,
     LeaveRequestsModule,
+    CalendarEventsModule,
   ],
   controllers: [HealthController, MetricsController],
   providers: [

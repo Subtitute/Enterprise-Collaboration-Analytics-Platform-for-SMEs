@@ -99,7 +99,7 @@ export function CustomerCard({ customer }: { customer: Customer }) {
 
         <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
           <span className="text-xs text-slate-400 italic">
-            {t('crm:customerCard.interaction', { time: lastInteraction })}
+            {t('crm:customerCard.lastInteraction', { time: lastInteraction })}
           </span>
           <span
             className={

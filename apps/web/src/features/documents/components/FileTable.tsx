@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow } from '@/components/ui/Table';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
@@ -85,6 +85,15 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
   const download = useDownloadFile();
   const deleteFile = useDeleteFile(folderId);
 
+  // 15/09/2026: FileTable la cung 1 instance component khi dieu huong giua cac thu muc (chi doi
+  // prop `folderId`/`files`, khong unmount) - truoc ban sua nay selectedFileIds khong bao gio duoc
+  // xoa khi doi thu muc, nen chon file o thu muc A roi chuyen sang thu muc B van con giu "da chon"
+  // nhung id khong con thuoc `files` hien tai - thanh hanh dong hang loat (tai ve/xoa) co the am
+  // tham thao tac tren id file khong con hien tren man hinh. Reset ve rong moi khi doi thu muc.
+  useEffect(() => {
+    setSelectedFileIds([]);
+  }, [folderId]);
+
   const isAllSelected = files.length > 0 && selectedFileIds.length === files.length;
   const isSomeSelected = selectedFileIds.length > 0 && selectedFileIds.length < files.length;
 
@@ -144,7 +153,7 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
                       onClick={(e) => toggleSelectFile(file.id, e)}
                       onChange={() => {}}
                       className="h-4 w-4 rounded-md border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
-                      aria-label={`Chọn tệp ${file.name}`}
+                      aria-label={t('documents:fileTable.selectFileAria', { name: file.name })}
                     />
                     <button
                       type="button"
@@ -231,7 +240,7 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
                 </div>
 
                 <div className="mt-3 flex items-center justify-between border-t border-slate-100/90 pt-2.5 text-[11px] text-slate-400">
-                  <span>{t('documents:fileTable.updatedAt', { time: formatDateTime(file.updatedAt) })}</span>
+                  <span>{t('documents:fileTable.updatedLabel', { date: formatDateTime(file.updatedAt) })}</span>
                 </div>
               </div>
             );
@@ -375,7 +384,7 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
               <span className="flex min-w-[20px] h-5 px-1.5 shrink-0 items-center justify-center rounded-full bg-primary-600 text-[11px] font-bold text-white shadow-2xs leading-none">
                 {selectedFileIds.length}
               </span>
-              <span className="text-xs font-bold text-slate-700">Đã chọn</span>
+              <span className="text-xs font-bold text-slate-700">{t('documents:fileTable.selectedLabel')}</span>
             </div>
 
             <button
@@ -384,7 +393,7 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
               className="flex items-center gap-1.5 rounded-xl bg-slate-100/90 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-primary-50 hover:text-primary-600 transition-colors cursor-pointer"
             >
               <DownloadIcon className="h-4 w-4 text-primary-600" />
-              <span>Tải về hàng loạt</span>
+              <span>{t('documents:fileTable.batchDownload')}</span>
             </button>
 
             <button
@@ -393,7 +402,7 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
               className="flex items-center gap-1.5 rounded-xl bg-rose-50 px-3.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-100 hover:text-rose-700 transition-colors cursor-pointer"
             >
               <TrashIcon className="h-4 w-4" />
-              <span>Xóa hàng loạt</span>
+              <span>{t('documents:fileTable.batchDelete')}</span>
             </button>
 
             <button
@@ -401,7 +410,7 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
               onClick={() => setSelectedFileIds([])}
               className="ml-1 text-xs font-medium text-slate-400 hover:text-slate-600 hover:underline transition-colors cursor-pointer"
             >
-              Bỏ chọn
+              {t('documents:fileTable.deselectAll')}
             </button>
           </div>
         </div>
@@ -426,9 +435,9 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
         open={Boolean(batchDeleting && batchDeleting.length > 0)}
         onClose={() => setBatchDeleting(null)}
         onConfirm={handleBatchDeleteConfirm}
-        title="Xóa hàng loạt tệp tin"
-        description={`Bạn có chắc chắn muốn xóa ${batchDeleting?.length ?? 0} tệp tin đã chọn không? Hành động này không thể hoàn tác.`}
-        confirmLabel="Xác nhận xóa"
+        title={t('documents:fileTable.batchDeleteConfirm.title')}
+        description={t('documents:fileTable.batchDeleteConfirm.description', { count: batchDeleting?.length ?? 0 })}
+        confirmLabel={t('documents:fileTable.batchDeleteConfirm.confirmLabel')}
         danger
       />
     </>

@@ -59,6 +59,12 @@ export const EVENT_TYPES = {
   LEAVE_REQUEST_CREATED: 'leave_request.created',
   LEAVE_REQUEST_APPROVED: 'leave_request.approved',
   LEAVE_REQUEST_REJECTED: 'leave_request.rejected',
+
+  // 15/09/2026: Lich cong ty (HRM-lite mo rong, theo yeu cau GVHD) - mirror CUSTOMER_CREATED/
+  // DELETED (khong co UPDATED - toan bo entity khac trong repo cung khong phat event cho thao tac
+  // sua, chi CREATE/DELETE, giu nhat quan).
+  CALENDAR_EVENT_CREATED: 'calendar_event.created',
+  CALENDAR_EVENT_DELETED: 'calendar_event.deleted',
 } as const;
 
 export type EventType = (typeof EVENT_TYPES)[keyof typeof EVENT_TYPES];
@@ -93,6 +99,8 @@ export const EVENT_TYPE_TOPIC_MAP: Record<EventType, KafkaTopic> = {
   [EVENT_TYPES.LEAVE_REQUEST_CREATED]: KAFKA_TOPICS.HRM,
   [EVENT_TYPES.LEAVE_REQUEST_APPROVED]: KAFKA_TOPICS.HRM,
   [EVENT_TYPES.LEAVE_REQUEST_REJECTED]: KAFKA_TOPICS.HRM,
+  [EVENT_TYPES.CALENDAR_EVENT_CREATED]: KAFKA_TOPICS.HRM,
+  [EVENT_TYPES.CALENDAR_EVENT_DELETED]: KAFKA_TOPICS.HRM,
 };
 
 /** Consumer group id chuan - moi service subscribe dung 1 group rieng de nhan du 3 topic. */

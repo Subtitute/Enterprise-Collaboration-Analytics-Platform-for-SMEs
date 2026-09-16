@@ -22,8 +22,12 @@
   "REFRESH_TOKEN_REVOKED": "このリフレッシュトークンは無効化されています。",
   "USER_INACTIVE_OR_MISSING": "このユーザーは存在しないか、無効化されています。",
   "REFRESH_TOKEN_NOT_FOUND_OR_REVOKED": "このリフレッシュトークンは存在しないか、既に無効化されています。",
+  "PASSWORD_RESET_TOKEN_INVALID": "このパスワード再設定リンクは無効か期限切れです。もう一度リクエストしてください。",
 
   "ROLE_NOT_FOUND": "ロールが見つかりませんでした。",
+
+  "FORBIDDEN_SUPER_ADMIN_ONLY": "この操作はプラットフォームのSuper Adminのみ実行できます。",
+  "ORGANIZATION_NOT_FOUND": "組織が見つかりませんでした。",
 
   "PROJECT_NOT_FOUND_IN_ORG": "組織内にこのプロジェクトが見つかりませんでした。",
   "TASK_STATUS_TRANSITION_INVALID": "タスクのステータスを{{from}}から{{to}}に変更することはできません。",
@@ -50,6 +54,7 @@
   "MISSING_CHECKIN_PHOTO": "勤怠写真がありません。",
   "INVALID_PHOTO_KIND": "kindは\"checkin\"または\"checkout\"である必要があります。",
   "LEAVE_DATE_RANGE_INVALID": "開始日は終了日より後にすることはできません。",
+  "LEAVE_START_DATE_IN_PAST": "開始日を過去の日付にすることはできません。",
   "LEAVE_REQUEST_NOT_FOUND": "休暇申請が見つかりませんでした。",
   "LEAVE_REQUEST_ALREADY_DECIDED": "この休暇申請は既に処理済みです。",
   "ALREADY_CHECKED_IN_TODAY": "本日は既に出勤打刻済みです。",
@@ -60,6 +65,9 @@
   "ATTENDANCE_PHOTO_MISSING": "この操作に対応する写真がまだ登録されていません。",
   "INVALID_COORDINATE": "{{field}}が無効です。",
   "PHOTO_CONTENT_MISMATCH": "写真の内容が宣言された種類（{{mimeType}}）と一致しません。",
+
+  "CALENDAR_EVENT_NOT_FOUND": "カレンダーの項目が見つかりませんでした。",
+  "CALENDAR_EVENT_DATE_RANGE_INVALID": "開始日は終了日より後にすることはできません。",
 
   "CUSTOMER_NOT_FOUND_IN_ORG": "組織内にこの顧客が見つかりませんでした。",
   "DEAL_STAGE_TRANSITION_INVALID": "取引のステージを{{from}}から{{to}}に変更することはできません。",

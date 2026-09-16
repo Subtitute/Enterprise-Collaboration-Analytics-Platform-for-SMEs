@@ -16,6 +16,9 @@ import { FullPageSpinner } from '@/components/ui/Spinner';
 // ProtectedRoute/NotFoundPage giu nguyen import tinh (nho, dung ngay tu dau, khong dang tach).
 const LoginPage = lazy(() => import('@/features/auth/LoginPage').then((m) => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import('@/features/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })));
+// 15/09/2026: "Quen mat khau" (phan hoi GVHD, muc 4) - cung khuon mau lazy() voi Login/Register.
+const ForgotPasswordPage = lazy(() => import('@/features/auth/ForgotPasswordPage').then((m) => ({ default: m.ForgotPasswordPage })));
+const ResetPasswordPage = lazy(() => import('@/features/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })));
 const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })));
 const ProjectsListPage = lazy(() => import('@/features/projects/ProjectsListPage').then((m) => ({ default: m.ProjectsListPage })));
 const ProjectDetailPage = lazy(() => import('@/features/projects/ProjectDetailPage').then((m) => ({ default: m.ProjectDetailPage })));
@@ -36,6 +39,11 @@ const RolesPermissionsPage = lazy(() => import('@/features/admin/RolesPermission
 // 28/07/2026: trang moi "Sự kiện lỗi hệ thống" (Dead Letter Queue, GET /failed-events) - theo
 // dung khuon mau lazy() cua cac trang /admin/* con lai o tren.
 const FailedEventsPage = lazy(() => import('@/features/admin/FailedEventsPage').then((m) => ({ default: m.FailedEventsPage })));
+// 15/09/2026: trang moi "Lich cong ty" (ngay le + su kien, theo yeu cau GVHD) - cung khuon mau lazy().
+const CalendarPage = lazy(() => import('@/features/admin/CalendarPage').then((m) => ({ default: m.CalendarPage })));
+// 16/09/2026: "Super Admin" (tinh nang moi) - trang rieng, KHONG long trong AppShell (xem
+// ProtectedRoute.tsx/PlatformAdminPage.tsx).
+const PlatformAdminPage = lazy(() => import('@/features/platform-admin/PlatformAdminPage').then((m) => ({ default: m.PlatformAdminPage })));
 
 export default function App() {
   const { t } = useTranslation();
@@ -73,6 +81,19 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+        {/* 16/09/2026: "Super Admin" - route rieng, KHONG long trong AppShell (ProtectedRoute tu
+            dieu huong het Super Admin ve day, xem ProtectedRoute.tsx). */}
+        <Route
+          path="/platform-admin"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <PlatformAdminPage />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           element={
@@ -106,6 +127,8 @@ export default function App() {
             <Route path="members" element={<MembersPage />} />
             <Route path="departments" element={<DepartmentsPage />} />
             <Route path="roles" element={<RolesPermissionsPage />} />
+            {/* 15/09/2026: route cho tab moi "Lịch công ty" (xem TABS trong AdminPage.tsx). */}
+            <Route path="calendar" element={<CalendarPage />} />
             {/* 28/07/2026: route cho tab moi "Sự kiện lỗi hệ thống" (xem TABS trong AdminPage.tsx). */}
             <Route path="failed-events" element={<FailedEventsPage />} />
           </Route>

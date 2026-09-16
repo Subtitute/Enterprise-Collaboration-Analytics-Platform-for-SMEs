@@ -198,7 +198,7 @@ export function KanbanBoard({ projectId, project, tasks, onTaskClick, onQuickAdd
             type="button"
             onClick={() => scrollByAmount(-300)}
             className="lg:hidden absolute left-1 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-lg border border-slate-200 hover:bg-white hover:text-indigo-600 hover:scale-110 active:scale-95 transition-all cursor-pointer"
-            aria-label="Cuộn sang trái"
+            aria-label={t('projects:kanban.scrollLeftAriaLabel')}
           >
             <ChevronLeftIcon className="h-5 w-5" />
           </button>
@@ -210,7 +210,7 @@ export function KanbanBoard({ projectId, project, tasks, onTaskClick, onQuickAdd
             type="button"
             onClick={() => scrollByAmount(300)}
             className="lg:hidden absolute right-1 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-lg border border-slate-200 hover:bg-white hover:text-indigo-600 hover:scale-110 active:scale-95 transition-all cursor-pointer animate-pulse hover:animate-none"
-            aria-label="Cuộn sang phải"
+            aria-label={t('projects:kanban.scrollRightAriaLabel')}
           >
             <ChevronRightIcon className="h-5 w-5" />
           </button>

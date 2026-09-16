@@ -43,11 +43,25 @@ export const ERROR_CODES = {
   REFRESH_TOKEN_REVOKED: 'REFRESH_TOKEN_REVOKED',
   USER_INACTIVE_OR_MISSING: 'USER_INACTIVE_OR_MISSING',
   REFRESH_TOKEN_NOT_FOUND_OR_REVOKED: 'REFRESH_TOKEN_NOT_FOUND_OR_REVOKED',
+  // 15/09/2026: "Quen mat khau" - 1 ma DUY NHAT cho MOI ly do token khong dung duoc (khong tim
+  // thay/da het han/da dung roi) - co y KHONG tach rieng tung ly do (giong REFRESH_TOKEN_INVALID
+  // vs REFRESH_TOKEN_REVOKED o tren) vi day la luong CONG KHAI (khong dang nhap), tiet lo chinh
+  // xac ly do that bai co the giup ke tan cong do doan trang thai token/tai khoan.
+  PASSWORD_RESET_TOKEN_INVALID: 'PASSWORD_RESET_TOKEN_INVALID',
 
   // ---- IAM: roles ----
   ROLE_NOT_FOUND: 'ROLE_NOT_FOUND',
   // 20/08/2026: co y KHONG gan ma cho loi "permission key khong hop le" (roles.service.ts) - ca
   // bien admin/dev hiem gap, roi ve message tieng Viet qua defaultValue cua i18next (xem plan).
+
+  // ---- IAM: platform-admin (Super Admin, bo sung 16/09/2026) ----
+  // Endpoint /platform-admin/* CHI danh cho Super Admin (quan tri nen tang, khong thuoc 1 to
+  // chuc nghiep vu nao) - xem SuperAdminGuard (@app/common-guard) va User.isSuperAdmin.
+  FORBIDDEN_SUPER_ADMIN_ONLY: 'FORBIDDEN_SUPER_ADMIN_ONLY',
+  // Dung chung cho ca 2 truong hop id sai VA id trung dung to chuc he thong (Organization.isSystem,
+  // noi "an cu" cua chinh tai khoan Super Admin) - to chuc he thong khong hien trong danh sach
+  // quan ly nen coi nhu "khong ton tai" doi voi API nay, khong can ma loi rieng.
+  ORGANIZATION_NOT_FOUND: 'ORGANIZATION_NOT_FOUND',
 
   // ---- Project & Task ----
   PROJECT_NOT_FOUND_IN_ORG: 'PROJECT_NOT_FOUND_IN_ORG',
@@ -77,6 +91,7 @@ export const ERROR_CODES = {
   MISSING_CHECKIN_PHOTO: 'MISSING_CHECKIN_PHOTO',
   INVALID_PHOTO_KIND: 'INVALID_PHOTO_KIND',
   LEAVE_DATE_RANGE_INVALID: 'LEAVE_DATE_RANGE_INVALID',
+  LEAVE_START_DATE_IN_PAST: 'LEAVE_START_DATE_IN_PAST',
   LEAVE_REQUEST_NOT_FOUND: 'LEAVE_REQUEST_NOT_FOUND',
   LEAVE_REQUEST_ALREADY_DECIDED: 'LEAVE_REQUEST_ALREADY_DECIDED',
   ALREADY_CHECKED_IN_TODAY: 'ALREADY_CHECKED_IN_TODAY',
@@ -87,6 +102,10 @@ export const ERROR_CODES = {
   ATTENDANCE_PHOTO_MISSING: 'ATTENDANCE_PHOTO_MISSING',
   INVALID_COORDINATE: 'INVALID_COORDINATE',
   PHOTO_CONTENT_MISMATCH: 'PHOTO_CONTENT_MISMATCH',
+
+  // ---- HRM-lite: lich cong ty (bo sung 15/09/2026) ----
+  CALENDAR_EVENT_NOT_FOUND: 'CALENDAR_EVENT_NOT_FOUND',
+  CALENDAR_EVENT_DATE_RANGE_INVALID: 'CALENDAR_EVENT_DATE_RANGE_INVALID',
 
   // ---- CRM-lite ----
   CUSTOMER_NOT_FOUND_IN_ORG: 'CUSTOMER_NOT_FOUND_IN_ORG',

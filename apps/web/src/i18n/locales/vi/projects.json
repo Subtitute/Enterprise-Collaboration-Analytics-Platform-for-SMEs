@@ -88,6 +88,10 @@
     "title": "Chỉnh sửa thông tin dự án",
     "submit": "Lưu thay đổi"
   },
+  "kanban": {
+    "scrollLeftAriaLabel": "Cuộn sang trái",
+    "scrollRightAriaLabel": "Cuộn sang phải"
+  },
   "newTaskModal": {
     "title": "Tạo công việc mới",
     "titleRequired": "Vui lòng nhập tiêu đề công việc",

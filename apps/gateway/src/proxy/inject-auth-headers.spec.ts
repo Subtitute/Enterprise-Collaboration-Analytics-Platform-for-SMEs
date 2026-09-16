@@ -14,7 +14,12 @@
 // Logger.prototype duoc import tinh o dau file la MOT class KHAC (khong lien quan) voi
 // Logger.prototype ma module vua duoc require lai thuc su dung ben trong.
 import type { ClientRequest, IncomingMessage } from 'http';
-import { DEV_FALLBACK_INTERNAL_SHARED_SECRET, INTERNAL_SHARED_SECRET_HEADER } from '@app/common-dto';
+import {
+  DEV_FALLBACK_INTERNAL_SHARED_SECRET,
+  INTERNAL_AUTH_HEADERS,
+  INTERNAL_SHARED_SECRET_HEADER,
+  type JwtAccessPayload,
+} from '@app/common-dto';
 import type { injectAuthHeaders as InjectAuthHeadersFn } from './inject-auth-headers';
 
 type InjectAuthHeadersModule = { injectAuthHeaders: typeof InjectAuthHeadersFn };
@@ -87,5 +92,49 @@ describe('inject-auth-headers - resolveInternalSharedSecret (giai quyet luc modu
     mod.injectAuthHeaders(proxyReq, {} as IncomingMessage);
 
     expect(setHeader).toHaveBeenCalledWith(INTERNAL_SHARED_SECRET_HEADER, 'real-secret-tu-moi-truong');
+  });
+});
+
+// 16/09/2026: bo sung test cho header x-is-super-admin ("Super Admin", tinh nang moi) - truoc day
+// TOAN BO nhanh forward header tu req.user chua co test nao (chi test resolveInternalSharedSecret()
+// o tren), them 1 test tap trung dung vao header MOI de xac nhan gia tri boolean duoc forward dung
+// (khong bi bo qua/undefined) ca 2 chieu true/false.
+describe('inject-auth-headers - forward x-is-super-admin tu req.user', () => {
+  const ORIGINAL_SECRET = process.env.INTERNAL_SHARED_SECRET;
+
+  afterEach(() => {
+    process.env.INTERNAL_SHARED_SECRET = ORIGINAL_SECRET;
+  });
+
+  function buildUser(isSuperAdmin: boolean): JwtAccessPayload {
+    return {
+      sub: 'user-1',
+      organizationId: 'org-1',
+      email: 'user@example.com',
+      roles: [],
+      permissions: [],
+      departmentId: null,
+      isSuperAdmin,
+    };
+  }
+
+  it('forward "true" khi user.isSuperAdmin = true', () => {
+    process.env.INTERNAL_SHARED_SECRET = 'real-secret-tu-moi-truong';
+    const { mod } = requireFreshModule();
+    const { proxyReq, setHeader } = createProxyReq();
+
+    mod.injectAuthHeaders(proxyReq, { user: buildUser(true) } as unknown as IncomingMessage);
+
+    expect(setHeader).toHaveBeenCalledWith(INTERNAL_AUTH_HEADERS.IS_SUPER_ADMIN, 'true');
+  });
+
+  it('forward "false" khi user.isSuperAdmin = false (nguoi dung thuong)', () => {
+    process.env.INTERNAL_SHARED_SECRET = 'real-secret-tu-moi-truong';
+    const { mod } = requireFreshModule();
+    const { proxyReq, setHeader } = createProxyReq();
+
+    mod.injectAuthHeaders(proxyReq, { user: buildUser(false) } as unknown as IncomingMessage);
+
+    expect(setHeader).toHaveBeenCalledWith(INTERNAL_AUTH_HEADERS.IS_SUPER_ADMIN, 'false');
   });
 });
