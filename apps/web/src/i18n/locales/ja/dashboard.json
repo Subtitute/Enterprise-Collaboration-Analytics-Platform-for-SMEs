@@ -101,7 +101,18 @@
       "project_deleted": "プロジェクトを削除しました",
       "document_uploaded": "ドキュメントをアップロードしました",
       "document_shared": "ドキュメントを共有しました",
-      "document_deleted": "ドキュメントを削除しました"
+      "document_deleted": "ドキュメントを削除しました",
+      "iam_user_department_changed": "部署情報を更新しました",
+      "customer_created": "新しい顧客を登録しました",
+      "customer_deleted": "顧客を削除しました",
+      "deal_created": "新しい商談を作成しました",
+      "deal_stage_changed": "商談ステージを更新しました",
+      "deal_deleted": "商談を削除しました",
+      "attendance_checked_in": "出勤を打刻しました",
+      "attendance_checked_out": "退勤を打刻しました",
+      "leave_request_created": "休暇申請を提出しました",
+      "leave_request_approved": "休暇申請が承認されました",
+      "leave_request_rejected": "休暇申請が却下されました"
     }
   }
 }

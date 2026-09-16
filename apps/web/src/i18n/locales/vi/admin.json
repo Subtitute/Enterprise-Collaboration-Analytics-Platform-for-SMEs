@@ -1,6 +1,7 @@
 {
   "adminPage": {
     "title": "Quản trị",
+    "subtitle": "Quản lý thành viên, phòng ban và phân quyền truy cập hệ thống.",
     "description": "Quản lý thành viên, phòng ban và phân quyền truy cập hệ thống.",
     "tabs": {
       "members": "Thành viên",
@@ -20,9 +21,12 @@
     "columns": {
       "name": "Tên phòng ban",
       "description": "Mô tả",
+      "manager": "Trưởng bộ phận / Phụ trách",
       "memberCount": "Số thành viên",
       "actions": "Hành động"
     },
+    "membersCountLabel": "{{count}} nhân sự",
+    "noManager": "Chưa bổ nhiệm",
     "actionsMenu": {
       "edit": "Chỉnh sửa",
       "delete": "Xoá"
@@ -36,6 +40,14 @@
   "membersPage": {
     "description": "Quản lý thành viên, phòng ban và phân quyền truy cập trong tổ chức.",
     "inviteMember": "Mời thành viên",
+    "searchPlaceholder": "Tìm theo tên hoặc email…",
+    "allDepartments": "Tất cả phòng ban",
+    "allStatuses": "Tất cả trạng thái",
+    "filterDepartmentAria": "Lọc theo phòng ban",
+    "filterStatusAria": "Lọc theo trạng thái",
+    "noMatchTitle": "Không tìm thấy thành viên phù hợp",
+    "noMatchDescription": "Vui lòng thử tìm kiếm với từ khóa hoặc bộ lọc khác.",
+    "clearFilters": "Xóa bộ lọc",
     "loading": "Đang tải danh sách thành viên…",
     "errorTitle": "Không thể tải danh sách thành viên",
     "emptyTitle": "Chưa có thành viên nào",
@@ -68,8 +80,57 @@
     "errorTitle": "Không thể tải dữ liệu vai trò/phân quyền",
     "emptyTitle": "Chưa có dữ liệu vai trò hoặc quyền",
     "hint": "Tick vào ô tương ứng để cấp/thu hồi quyền cho từng vai trò. Thay đổi được lưu ngay lập tức.",
-    "permissionColumn": "Quyền",
-    "checkboxAriaLabel": "{{roleName}} - {{permissionLabel}}"
+    "permissionColumn": "Quyền & Chức năng",
+    "selectAll": "Chọn tất cả",
+    "selectAllModule": "Chọn tất cả module",
+    "lockedNotice": "Cố định",
+    "lockedTooltip": "Quyền của Quản trị viên tối cao được khóa cố định để đảm bảo an toàn hệ thống.",
+    "checkboxAriaLabel": "{{roleName}} - {{permissionLabel}}",
+    "moduleSelectAllAria": "{{roleName}} - Chọn tất cả quyền thuộc {{groupName}}",
+    "roleSelectAllAria": "{{roleName}} - Chọn tất cả quyền trong hệ thống",
+    "groups": {
+      "hrm": "Chấm công & Nghỉ phép",
+      "crm": "Khách hàng & Bán hàng",
+      "project": "Dự án & Công việc",
+      "document": "Tài liệu & Lưu trữ",
+      "analytics": "Báo cáo & Phân tích",
+      "iam": "Tổ chức & Phân quyền",
+      "system": "Hạ tầng & Hệ thống"
+    },
+    "permissions": {
+      "attendance_checkin": "Chấm công (Check-in / Check-out)",
+      "attendance_view": "Xem bảng chấm công toàn công ty",
+      "leave_request_create": "Tạo đơn xin nghỉ phép",
+      "leave_request_view": "Xem danh sách đơn nghỉ phép",
+      "leave_request_approve": "Duyệt / Từ chối đơn nghỉ phép",
+      "customer_view": "Xem danh sách khách hàng",
+      "customer_create": "Tạo mới hồ sơ khách hàng",
+      "customer_update": "Cập nhật thông tin khách hàng",
+      "customer_delete": "Xóa khách hàng",
+      "deal_view": "Xem cơ hội bán hàng (Deal pipeline)",
+      "deal_create": "Tạo cơ hội bán hàng mới",
+      "deal_update": "Cập nhật giai đoạn / giá trị deal",
+      "deal_delete": "Xóa cơ hội bán hàng",
+      "project_view": "Xem danh sách & chi tiết dự án",
+      "project_create": "Khởi tạo dự án mới",
+      "project_update": "Cập nhật thông tin / trạng thái dự án",
+      "project_delete": "Lưu trữ / Xóa dự án",
+      "task_view": "Xem bảng công việc (Kanban & List)",
+      "task_create": "Giao việc / Tạo mới công việc",
+      "task_update": "Cập nhật tiến độ / kéo thả trạng thái việc",
+      "task_delete": "Xóa công việc",
+      "document_view": "Xem & tải xuống tài liệu",
+      "document_upload": "Tải lên tài liệu & tạo thư mục",
+      "document_share": "Chia sẻ tài liệu nội bộ / liên kết",
+      "document_delete": "Xóa tài liệu / thư mục",
+      "analytics_view": "Xem báo cáo KPI & phân tích tổng hợp",
+      "user_invite": "Mời thành viên mới vào tổ chức",
+      "user_manage": "Quản lý tài khoản (Đổi quyền, vô hiệu hóa)",
+      "department_manage": "Quản lý cơ cấu phòng ban",
+      "role_manage": "Quản lý & cấu hình ma trận phân quyền",
+      "organization_manage": "Quản lý thông tin tổ chức / doanh nghiệp",
+      "system_manage": "Chẩn đoán hạ tầng & theo dõi Dead Letter Queue"
+    }
   },
   "calendarPage": {
     "description": "Thiết lập ngày lễ và sự kiện/đặt lịch dùng chung cho toàn tổ chức. Bấm vào 1 ngày để tạo mục mới, bấm vào 1 mục có sẵn để sửa.",
@@ -190,5 +251,10 @@
     "calendarEventUpdateFailed": "Không thể cập nhật mục lịch",
     "calendarEventDeleted": "Đã xoá mục lịch",
     "calendarEventDeleteFailed": "Không thể xoá mục lịch"
+  },
+  "roles": {
+    "orgAdmin": "Quản trị viên tổ chức",
+    "manager": "Quản lý",
+    "employee": "Nhân viên"
   }
 }

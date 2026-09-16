@@ -3,25 +3,25 @@
 
 /** Thu tu co dinh, KHONG xoay vong - gan theo vi tri chuoi (categorical identity). */
 export const CATEGORICAL = [
-  '#2a78d6', // 1 blue
-  '#008300', // 2 green
-  '#e87ba4', // 3 magenta
-  '#eda100', // 4 yellow
-  '#1baf7a', // 5 aqua
-  '#eb6834', // 6 orange
-  '#4a3aa7', // 7 violet
-  '#e34948', // 8 red
+  '#4f46e5', // 1 indigo-600 (mau chu dao)
+  '#0d9488', // 2 teal-600
+  '#8b5cf6', // 3 violet-500
+  '#f59e0b', // 4 amber-500
+  '#6366f1', // 5 indigo-500 (danh cho shares/tai lieu)
+  '#f97316', // 6 orange-500
+  '#06b6d4', // 7 cyan-500
+  '#e11d48', // 8 rose-600
 ] as const;
 
-/** Thang mot-hue (blue) dung cho du lieu tuan tu / magnitude (vd cuong do hoat dong). */
-export const SEQUENTIAL_BLUE = ['#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95', '#0d366b'];
+/** Thang mot-hue (indigo/slate) dung cho du lieu tuan tu / magnitude (vd cuong do hoat dong). */
+export const SEQUENTIAL_BLUE = ['#e0e7ff', '#c7d2fe', '#a5b4fc', '#818cf8', '#6366f1', '#4f46e5', '#3730a3'];
 
 /** Mau trang thai co dinh - khong dung lai cho series thong thuong. */
 export const STATUS = {
-  good: '#0ca30c',
-  warning: '#fab219',
-  serious: '#ec835a',
-  critical: '#d03b3b',
+  good: '#10b981',
+  warning: '#f59e0b',
+  serious: '#f97316',
+  critical: '#ef4444',
 };
 
 export const CHART_INK = {

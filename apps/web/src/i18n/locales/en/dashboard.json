@@ -101,7 +101,18 @@
       "project_deleted": "deleted a project",
       "document_uploaded": "uploaded a document",
       "document_shared": "shared a document",
-      "document_deleted": "deleted a document"
+      "document_deleted": "deleted a document",
+      "iam_user_department_changed": "updated member department",
+      "customer_created": "created a new customer",
+      "customer_deleted": "deleted a customer",
+      "deal_created": "created a new deal",
+      "deal_stage_changed": "updated deal stage",
+      "deal_deleted": "deleted a deal",
+      "attendance_checked_in": "checked in for shift",
+      "attendance_checked_out": "checked out from shift",
+      "leave_request_created": "submitted a leave request",
+      "leave_request_approved": "had a leave request approved",
+      "leave_request_rejected": "had a leave request rejected"
     }
   }
 }

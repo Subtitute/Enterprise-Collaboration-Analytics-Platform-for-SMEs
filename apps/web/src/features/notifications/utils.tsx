@@ -9,6 +9,7 @@ export interface NotificationVisualConfig {
   textColor: string;
   linkUrl: string | null;
   targetName: string;
+  targetKey: 'leave_request' | 'deal' | 'task' | 'document' | 'system';
 }
 
 /**
@@ -51,13 +52,81 @@ export function cleanNotificationMessage(message: string): string {
   // khong dua qua t(). Script check-hardcoded-vietnamese van bat dong nay vi buoc "an" regex
   // literal cua no chi giu nguyen text de tranh nham thanh comment/string khac chu khong thuc su
   // loai bo ky tu co dau ben trong khoi luot quet. i18n-lint-ignore: regex pattern khop text backend, khong phai chuoi UI
+  // 16/09/2026: '(#$1)'.toUpperCase() goc chi uppercase chuoi PATTERN truoc khi replace (khong co
+  // tac dung vi $1 la backreference, chi duoc thay the SAU khi replace chay) nen hash tra ve bi sai,
+  // van giu nguyen chu thuong - doi sang callback de uppercase dung phan hex vua khop.
+  // 16/09/2026: marker i18n-lint-ignore o dong 54 cach day 4 dong nen script khong tinh la "dong
+  // ngay truoc" dong regex ben duoi - them lai truc tiep tren dong nay de script nhan dung: pattern
+  // "mã" trong regex la khop chuoi that su tu backend, khong phai chuoi UI - i18n-lint-ignore
   const uuidInParenRegex = /\((?:mã[^:]*:\s*)?([0-9a-f]{8})-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\)/gi;
-  let cleaned = message.replace(uuidInParenRegex, '(#$1)'.toUpperCase());
+  let cleaned = message.replace(uuidInParenRegex, (_m: string, hex: string) => `(#${hex.toUpperCase()})`);
 
   const bareUuidRegex = /\b([0-9a-f]{6})[0-9a-f]{2}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
-  cleaned = cleaned.replace(bareUuidRegex, '#$1'.toUpperCase());
+  cleaned = cleaned.replace(bareUuidRegex, (_m: string, hex: string) => `#${hex.toUpperCase()}`);
 
   return cleaned;
+}
+
+/**
+ * Định dạng tiêu đề thông báo theo đa ngôn ngữ dựa trên type hoặc nội dung gốc:
+ */
+export function formatNotificationTitle(notification: AppNotification, t?: (key: string) => string): string {
+  if (!t) return notification.title || '';
+
+  const type = notification.type?.toLowerCase() || '';
+  const rawTitle = (notification.title || '').trim().toLowerCase();
+
+  // 16/09/2026: cac chuoi tieng Viet trong rawTitle.includes(...) ben duoi (ca 5 khoi if phia
+  // duoi) la HANG SO de doi chieu voi title thong bao - title do BACKEND sinh san (tieng Viet) va
+  // luu vao MongoDB tai thoi diem phat sinh event, khong phai chuoi UI tinh nen khong dua qua t();
+  // day chi la fallback nhan dien khi truong `type` cua notification khong khop/thieu. Ly do giong
+  // het khoi giai thich chi tiet hon trong getNotificationVisualConfig ben duoi ham nay.
+  // 1. Nghỉ phép đã duyệt
+  if (
+    type === 'leave_request.approved' ||
+    rawTitle.includes('yêu cầu nghỉ phép đã được duyệt') || // i18n-lint-ignore: khop title backend, khong phai chuoi UI
+    rawTitle.includes('leave request approved')
+  ) {
+    return t('notifications:page.titles.leaveApproved');
+  }
+
+  // 2. Nghỉ phép bị từ chối
+  if (
+    type === 'leave_request.rejected' ||
+    rawTitle.includes('yêu cầu nghỉ phép đã bị từ chối') || // i18n-lint-ignore: khop title backend, khong phai chuoi UI
+    rawTitle.includes('leave request rejected')
+  ) {
+    return t('notifications:page.titles.leaveRejected');
+  }
+
+  // 3. Deal chốt thành công
+  if (
+    type === 'deal.stage_changed' ||
+    rawTitle.includes('deal đã chốt thành công') || // i18n-lint-ignore: khop title backend, khong phai chuoi UI
+    rawTitle.includes('deal successfully closed')
+  ) {
+    return t('notifications:page.titles.dealWon');
+  }
+
+  // 4. Giao công việc mới
+  if (
+    type === 'task.assigned' ||
+    rawTitle.includes('bạn được giao công việc mới') || // i18n-lint-ignore: khop title backend, khong phai chuoi UI
+    rawTitle.includes('assigned a new task')
+  ) {
+    return t('notifications:page.titles.taskAssigned');
+  }
+
+  // 5. Tài liệu được chia sẻ
+  if (
+    type === 'document.shared' ||
+    rawTitle.includes('tài liệu đã được chia sẻ') || // i18n-lint-ignore: khop title backend, khong phai chuoi UI
+    rawTitle.includes('document has been shared')
+  ) {
+    return t('notifications:page.titles.documentShared');
+  }
+
+  return notification.title || '';
 }
 
 /**
@@ -68,7 +137,7 @@ export function cleanNotificationMessage(message: string): string {
  * - Công việc (Task): Màu xanh da trời (sky)
  * - Tài liệu: Màu tím nhạt / slate
  */
-export function getNotificationVisualConfig(notification: AppNotification): NotificationVisualConfig {
+export function getNotificationVisualConfig(notification: AppNotification, t?: (key: string) => string): NotificationVisualConfig {
   const type = notification.type?.toLowerCase() || '';
   const title = notification.title?.toLowerCase() || '';
   const message = notification.message?.toLowerCase() || '';
@@ -86,28 +155,35 @@ export function getNotificationVisualConfig(notification: AppNotification): Noti
   // 1. Nghiệp vụ Nghỉ phép - TỪ CHỐI (Màu đỏ hồng - Rose)
   if (
     type.includes('leave_request.rejected') ||
-    (type.includes('leave') && (title.includes('từ chối') || message.includes('từ chối'))) // i18n-lint-ignore: khop text backend, khong phai chuoi UI
+    (type.includes('leave') && (title.includes('từ chối') || message.includes('từ chối') || title.includes('reject'))) // i18n-lint-ignore: khop text backend, khong phai chuoi UI
   ) {
     return {
       icon: <CalendarIcon className="h-4 w-4" />,
       bgColor: 'bg-rose-100 text-rose-700 ring-1 ring-rose-600/20',
       textColor: 'text-rose-700',
       linkUrl: '/leave-requests',
-      targetName: t('notifications:visual.leave'),
+      // 16/09/2026: 'targetName: t ? t(key) : "fallback"' o day va cac targetName tuong tu ben
+      // duoi la gia tri du phong CHU DICH mirror dung noi dung cua key i18n that (dung khi ham
+      // duoc goi ma khong co `t`, vd tu noi khong co i18n context) - khong phai chuoi UI hien thi
+      // song song voi ket qua t(), nen khong tinh la hardcode con sot. Cung mau voi
+      // getRoleBadgeConfig trong MembersPage.tsx.
+      targetName: t ? t('notifications:page.targets.leave_request') : 'Nghỉ phép', // i18n-lint-ignore: fallback mirror dung key i18n that
+      targetKey: 'leave_request',
     };
   }
 
   // 2. Nghiệp vụ Nghỉ phép - ĐÃ DUYỆT / PHÊ DUYỆT (Màu xanh lá - Emerald)
   if (
     type.includes('leave_request.approved') ||
-    (type.includes('leave') && (title.includes('duyệt') || message.includes('duyệt') || title.includes('phê duyệt'))) // i18n-lint-ignore: khop text backend, khong phai chuoi UI
+    (type.includes('leave') && (title.includes('duyệt') || message.includes('duyệt') || title.includes('phê duyệt') || title.includes('approv'))) // i18n-lint-ignore: khop text backend, khong phai chuoi UI
   ) {
     return {
       icon: <CalendarIcon className="h-4 w-4" />,
       bgColor: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-600/20',
       textColor: 'text-emerald-700',
       linkUrl: '/leave-requests',
-      targetName: t('notifications:visual.leave'),
+      targetName: t ? t('notifications:page.targets.leave_request') : 'Nghỉ phép', // i18n-lint-ignore: fallback mirror dung key i18n that
+      targetKey: 'leave_request',
     };
   }
 
@@ -118,7 +194,8 @@ export function getNotificationVisualConfig(notification: AppNotification): Noti
       bgColor: 'bg-amber-100 text-amber-700 ring-1 ring-amber-600/20',
       textColor: 'text-amber-700',
       linkUrl: '/leave-requests',
-      targetName: t('notifications:visual.leave'),
+      targetName: t ? t('notifications:page.targets.leave_request') : 'Nghỉ phép', // i18n-lint-ignore: fallback mirror dung key i18n that
+      targetKey: 'leave_request',
     };
   }
 
@@ -130,7 +207,8 @@ export function getNotificationVisualConfig(notification: AppNotification): Noti
       bgColor: 'bg-indigo-100 text-indigo-700 ring-1 ring-indigo-600/20',
       textColor: 'text-indigo-700',
       linkUrl: customerId ? `/customers/${customerId}` : '/customers',
-      targetName: t('notifications:visual.dealSales'),
+      targetName: t ? t('notifications:page.targets.deal') : 'Bán hàng (Deal)', // i18n-lint-ignore: fallback mirror dung key i18n that
+      targetKey: 'deal',
     };
   }
 
@@ -142,7 +220,8 @@ export function getNotificationVisualConfig(notification: AppNotification): Noti
       bgColor: 'bg-sky-100 text-sky-700 ring-1 ring-sky-600/20',
       textColor: 'text-sky-700',
       linkUrl: projectId ? `/projects/${projectId}` : '/projects',
-      targetName: t('notifications:visual.task'),
+      targetName: t ? t('notifications:page.targets.task') : 'Công việc', // i18n-lint-ignore: fallback mirror dung key i18n that
+      targetKey: 'task',
     };
   }
 
@@ -153,7 +232,8 @@ export function getNotificationVisualConfig(notification: AppNotification): Noti
       bgColor: 'bg-slate-100 text-slate-700 ring-1 ring-slate-400/20',
       textColor: 'text-slate-700',
       linkUrl: '/documents',
-      targetName: t('notifications:visual.document'),
+      targetName: t ? t('notifications:page.targets.document') : 'Tài liệu', // i18n-lint-ignore: fallback mirror dung key i18n that
+      targetKey: 'document',
     };
   }
 
@@ -163,6 +243,7 @@ export function getNotificationVisualConfig(notification: AppNotification): Noti
     bgColor: 'bg-slate-100 text-slate-600 ring-1 ring-slate-400/20',
     textColor: 'text-slate-600',
     linkUrl: null,
-    targetName: t('notifications:visual.system'),
+    targetName: t ? t('notifications:page.targets.system') : 'Hệ thống', // i18n-lint-ignore: fallback mirror dung key i18n that
+    targetKey: 'system',
   };
 }

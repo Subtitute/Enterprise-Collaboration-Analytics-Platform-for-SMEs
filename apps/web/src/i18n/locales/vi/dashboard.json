@@ -101,7 +101,18 @@
       "project_deleted": "đã xóa một dự án",
       "document_uploaded": "đã tải lên một tài liệu",
       "document_shared": "đã chia sẻ một tài liệu",
-      "document_deleted": "đã xóa một tài liệu"
+      "document_deleted": "đã xóa một tài liệu",
+      "iam_user_department_changed": "đã cập nhật phòng ban nhân sự",
+      "customer_created": "đã thêm khách hàng mới",
+      "customer_deleted": "đã xóa một khách hàng",
+      "deal_created": "đã tạo cơ hội bán hàng mới",
+      "deal_stage_changed": "đã cập nhật giai đoạn cơ hội bán hàng",
+      "deal_deleted": "đã xóa cơ hội bán hàng",
+      "attendance_checked_in": "đã điểm danh vào ca làm việc",
+      "attendance_checked_out": "đã kết thúc ca làm việc",
+      "leave_request_created": "đã gửi đơn yêu cầu nghỉ phép",
+      "leave_request_approved": "đã được duyệt đơn nghỉ phép",
+      "leave_request_rejected": "đã bị từ chối đơn nghỉ phép"
     }
   }
 }

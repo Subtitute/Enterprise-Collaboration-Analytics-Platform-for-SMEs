@@ -5,8 +5,8 @@
       "CONTACTED": "Contacted",
       "PROPOSAL": "Proposal",
       "NEGOTIATION": "Negotiation",
-      "WON": "Won",
-      "LOST": "Lost"
+      "WON": "Won (Closed)",
+      "LOST": "Lost (Closed)"
     }
   },
   "customersListPage": {
@@ -62,7 +62,7 @@
   },
   "customerCard": {
     "optionsAriaLabel": "Customer options",
-    "edit": "Edit details",
+    "editCustomer": "Edit customer details",
     "deleteCustomer": "Delete customer",
     "openDeals": "{{count}} open deals",
     "lastInteraction": "Interaction: {{time}}",
@@ -70,7 +70,7 @@
     "deleteConfirmDescription": "All deals belonging to \"{{name}}\" will also be deleted. This action cannot be undone."
   },
   "editCustomerModal": {
-    "title": "Edit customer",
+    "title": "Edit customer details",
     "save": "Save changes"
   },
   "kanban": {

@@ -9,12 +9,35 @@
     "departmentAriaLabel": "Phòng ban",
     "allDepartments": "Tất cả phòng ban"
   },
+  "kpiCards": {
+    "activeProjects": "Dự án đang chạy",
+    "avgProgress": "Tiến độ trung bình",
+    "newDocuments": "Khối lượng tài liệu mới",
+    "completedDeals": "Doanh số / Deal thắng",
+    "comparedToPrevious": "so với kỳ trước",
+    "stable": "Ổn định",
+    "filesCount": "{{count}} tệp",
+    "projectsCount": "{{count}} dự án",
+    "trends": {
+      "vsLastWeek": "{{percent}} so với tuần trước",
+      "vsLastMonth": "{{percent}} so với tháng trước",
+      "vsLastQuarter": "{{percent}} so với quý trước"
+    }
+  },
   "aiInsight": {
-    "title": "Nhận xét AI",
-    "generateButton": "Tạo nhận xét AI",
-    "summaryWithDepartment": "Dựa trên số liệu {{range}} · Phòng ban {{department}}",
-    "summaryAllOrg": "Dựa trên số liệu {{range}} · Toàn tổ chức",
-    "placeholder": "Bấm “Tạo nhận xét AI” để nhận một đoạn nhận xét ngắn gọn về số liệu đang hiển thị, do AI tổng hợp."
+    "title": "Trợ lý phân tích nội bộ",
+    "badge": "Phân tích điều hành",
+    "generateButton": "Tạo tóm tắt báo cáo",
+    "summaryWithDepartment": "Tóm lược số liệu {{period}} · Phòng ban {{department}}",
+    "summaryAllOrg": "Tóm lược số liệu {{period}} · Toàn tổ chức",
+    "placeholder": "Bấm “Tạo tóm tắt báo cáo” để trợ lý phân tích tổng hợp các điểm sáng vận hành, rủi ro tiềm ẩn và khuyến nghị nhanh cho ban quản lý.",
+    "periodAriaLabel": "Kỳ phân tích báo cáo",
+    "periods": {
+      "week": "Theo tuần (7 ngày qua)",
+      "month": "Theo tháng (30 ngày qua)",
+      "quarter": "Theo quý (Quý này)",
+      "year": "Theo năm (Năm nay)"
+    }
   },
   "charts": {
     "projectProgressTitle": "So sánh tiến độ dự án",
@@ -44,7 +67,8 @@
       "name": "Dự án",
       "progress": "Tiến độ",
       "completedTasks": "Hoàn thành",
-      "totalTasks": "Tổng công việc"
+      "totalTasks": "Tổng công việc",
+      "deadline": "Hạn chót"
     }
   },
   "hooks": {

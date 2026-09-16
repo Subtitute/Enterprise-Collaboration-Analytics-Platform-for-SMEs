@@ -164,6 +164,7 @@
       "deleteError": "Không thể xoá dự án",
       "completed": "Đã đánh dấu dự án hoàn thành",
       "completeError": "Không thể hoàn thành dự án",
+      "incompleteTasksError": "Chưa hoàn thành dự án: Cần hoàn thành 100% công việc trong dự án trước khi chuyển sang trạng thái hoàn thành.",
       "reopened": "Đã chuyển dự án về trạng thái đang hoạt động",
       "reopenError": "Không thể mở lại dự án"
     },

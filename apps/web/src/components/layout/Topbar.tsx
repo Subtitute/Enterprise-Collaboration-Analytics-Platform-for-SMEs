@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUIStore } from '@/stores/ui.store';
 import { useLogout } from '@/features/auth/hooks';
@@ -11,6 +11,8 @@ import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 import { Avatar } from '@/components/ui/Avatar';
 import { Spinner } from '@/components/ui/Spinner';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
+import { ConfirmDialog } from '@/components/ui/Modal';
+import { QuickCreateTaskModal } from '@/features/projects/components/QuickCreateTaskModal';
 import {
   MenuIcon,
   SearchIcon,
@@ -20,6 +22,9 @@ import {
   FolderKanbanIcon,
   CheckCircleIcon,
   FolderIcon,
+  PlusIcon,
+  CalendarIcon,
+  BriefcaseIcon,
 } from '@/components/ui/Icons';
 
 const CATEGORY_LABEL_KEY: Record<SearchResult['category'], string> = {
@@ -155,9 +160,45 @@ export function Topbar() {
   const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen);
   const logout = useLogout();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showQuickTaskModal, setShowQuickTaskModal] = useState(false);
+
+  // Nhận diện projectId nếu người dùng đang xem chi tiết một dự án cụ thể (/projects/:projectId)
+  const currentProjectId = useMemo(() => {
+    const match = location.pathname.match(/^\/projects\/([^/]+)/);
+    return match ? match[1] : undefined;
+  }, [location.pathname]);
+
+  // Phân quyền hiển thị: Admin hoặc Manager có thêm quyền tạo Dự án & Khách hàng
+  const canManageProjectsOrCRM = useMemo(() => {
+    if (!user?.roles || user.roles.length === 0) return false;
+    return user.roles.some((r) => {
+      const name = r.name.toLowerCase();
+      return name.includes('admin') || name.includes('manager') || name.includes('quản lý');
+    });
+  }, [user?.roles]);
+
+  // Phím tắt toàn cục: Bấm 'c' hoặc 'C' để mở nhanh modal tạo Task khi không focus vào ô nhập liệu
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === 'c' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const activeEl = document.activeElement;
+        const tagName = activeEl?.tagName.toLowerCase();
+        const isInput = tagName === 'input' || tagName === 'textarea' || tagName === 'select' || (activeEl as HTMLElement)?.isContentEditable;
+        if (!isInput && !showQuickTaskModal && !showLogoutConfirm) {
+          e.preventDefault();
+          setShowQuickTaskModal(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showQuickTaskModal, showLogoutConfirm]);
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 md:gap-5 border-b border-slate-200 bg-white px-4 md:px-6">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2.5 md:gap-4 border-b border-slate-200 bg-white px-3 md:px-6">
       {/* Nút menu mở Mobile Sidebar */}
       <button
         type="button"
@@ -168,26 +209,136 @@ export function Topbar() {
         <MenuIcon className="h-5 w-5" />
       </button>
 
-      {/* Cụm Logo & Tên nền tảng chuyển sang Topbar bên trái */}
-      <div className="flex items-center gap-2.5 shrink-0">
-        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-xs font-bold text-white shadow-sm shadow-primary-500/20">
-          EFS
+      {/* Tên công ty / doanh nghiệp ở bên trái Topbar (không logo icon) */}
+      <div className="flex flex-col justify-center shrink-0 min-w-0 max-w-[170px] md:max-w-[240px]">
+        <span className="truncate text-sm font-semibold text-slate-800 leading-tight" title={user?.organizationName || 'Demo SME Platform'}>
+          {user?.organizationName || 'Demo SME Platform'}
         </span>
-        <div className="hidden sm:flex flex-col">
-          <span className="text-sm font-bold tracking-tight text-slate-900 leading-none">
-            ECAP for SMEs
-          </span>
-          <span className="text-[10px] font-medium text-slate-400 leading-tight mt-0.5">
-            Enterprise Platform
-          </span>
-        </div>
+        <span className="truncate text-[11px] text-slate-400 leading-tight">
+          {t('common:sidebar.subtitle')}
+        </span>
       </div>
 
-      {/* Thanh tìm kiếm mở rộng (fill) toàn bộ khoảng trống từ cụm thương hiệu đến cụm tiện ích bên phải */}
-      <GlobalSearchBox />
+      {/* Thanh tìm kiếm toàn hệ thống tự động fill toàn bộ khoảng trống còn lại */}
+      <div className="flex-1 min-w-0">
+        <GlobalSearchBox />
+      </div>
 
-      {/* Cụm tiện ích hệ thống bên phải (Chọn ngôn ngữ, Thông báo, Menu tài khoản) */}
-      <div className="flex items-center gap-1.5 shrink-0">
+      {/* Nút Tạo nhanh (Quick Create Action Dropdown) */}
+      <Dropdown
+        align="right"
+        panelClassName="w-60 p-1.5"
+        trigger={({ toggle, open }) => (
+          <button
+            type="button"
+            onClick={toggle}
+            title={t('common:quickCreate.tooltip')}
+            aria-label={t('common:quickCreate.tooltip')}
+            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 md:px-3 md:py-2 text-xs font-semibold text-white transition-all duration-150 shadow-sm shrink-0 cursor-pointer active:scale-[0.98] ${
+              open ? 'bg-indigo-700 ring-2 ring-indigo-500/30' : 'bg-indigo-600 hover:bg-indigo-700 ring-1 ring-inset ring-white/20'
+            }`}
+          >
+            <PlusIcon className="h-4 w-4 stroke-[2.2]" />
+            <span className="hidden sm:inline">{t('common:quickCreate.button')}</span>
+            <ChevronDownIcon className={`hidden sm:inline h-3 w-3 text-indigo-200 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+          </button>
+        )}
+      >
+        {({ close }) => (
+          <div className="py-1">
+            {/* 1. Tạo công việc (Mở Modal nhanh ngay tức thì) */}
+            <DropdownItem
+              onClick={() => {
+                close();
+                setShowQuickTaskModal(true);
+              }}
+              className="flex items-start gap-2.5 rounded-lg px-3 py-2 text-left hover:bg-slate-50 transition-colors"
+            >
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-50 text-indigo-600 shrink-0 mt-0.5">
+                <CheckCircleIcon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-slate-900 leading-tight">
+                  {t('common:quickCreate.createTask')}
+                </p>
+                <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                  {t('common:quickCreate.createTaskDesc')}
+                </p>
+              </div>
+            </DropdownItem>
+
+            {/* 2. Tạo dự án mới (Dành cho Quản lý & Admin) */}
+            {canManageProjectsOrCRM && (
+              <DropdownItem
+                onClick={() => {
+                  close();
+                  navigate('/projects?action=create');
+                }}
+                className="flex items-start gap-2.5 rounded-lg px-3 py-2 text-left hover:bg-slate-50 transition-colors"
+              >
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-sky-50 text-sky-600 shrink-0 mt-0.5">
+                  <FolderKanbanIcon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-slate-900 leading-tight">
+                    {t('common:quickCreate.createProject')}
+                  </p>
+                  <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                    {t('common:quickCreate.createProjectDesc')}
+                  </p>
+                </div>
+              </DropdownItem>
+            )}
+
+            {/* 3. Thêm khách hàng (Dành cho Quản lý & Admin) */}
+            {canManageProjectsOrCRM && (
+              <DropdownItem
+                onClick={() => {
+                  close();
+                  navigate('/customers?action=create');
+                }}
+                className="flex items-start gap-2.5 rounded-lg px-3 py-2 text-left hover:bg-slate-50 transition-colors"
+              >
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-50 text-emerald-600 shrink-0 mt-0.5">
+                  <BriefcaseIcon className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold text-slate-900 leading-tight">
+                    {t('common:quickCreate.createCustomer')}
+                  </p>
+                  <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                    {t('common:quickCreate.createCustomerDesc')}
+                  </p>
+                </div>
+              </DropdownItem>
+            )}
+
+            {/* 4. Gửi đơn nghỉ phép (Dành cho tất cả mọi người) */}
+            <DropdownItem
+              onClick={() => {
+                close();
+                navigate('/leave-requests?action=create');
+              }}
+              className="flex items-start gap-2.5 rounded-lg px-3 py-2 text-left hover:bg-slate-50 transition-colors border-t border-slate-100 mt-1 pt-2"
+            >
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-50 text-amber-600 shrink-0 mt-0.5">
+                <CalendarIcon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-slate-900 leading-tight">
+                  {t('common:quickCreate.requestLeave')}
+                </p>
+                <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                  {t('common:quickCreate.requestLeaveDesc')}
+                </p>
+              </div>
+            </DropdownItem>
+          </div>
+        )}
+      </Dropdown>
+
+      {/* Cụm tiện ích hệ thống luôn cố định ở sát mép phải (Chọn ngôn ngữ, Thông báo, Menu tài khoản) */}
+      <div className="flex items-center gap-1.5 shrink-0 ml-auto">
         <LanguageSwitcher />
         <NotificationBell />
 
@@ -224,13 +375,42 @@ export function Topbar() {
               >
                 <UserIcon className="h-4 w-4" /> {t('common:topbar.profile')}
               </DropdownItem>
-              <DropdownItem onClick={() => logout.mutate()} className="text-rose-600 hover:bg-rose-50">
+              <DropdownItem
+                onClick={() => {
+                  close();
+                  setShowLogoutConfirm(true);
+                }}
+                className="text-rose-600 hover:bg-rose-50"
+              >
                 <LogOutIcon className="h-4 w-4" /> {t('common:topbar.logout')}
               </DropdownItem>
             </div>
           )}
         </Dropdown>
       </div>
+
+      {/* Modal tạo công việc nhanh (Quick Create Task) */}
+      <QuickCreateTaskModal
+        open={showQuickTaskModal}
+        onClose={() => setShowQuickTaskModal(false)}
+        defaultProjectId={currentProjectId}
+      />
+
+      {/* Modal xác nhận đăng xuất chống bấm nhầm */}
+      <ConfirmDialog
+        open={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={() => {
+          setShowLogoutConfirm(false);
+          logout.mutate();
+        }}
+        title={t('common:topbar.logoutConfirmTitle')}
+        description={t('common:topbar.logoutConfirmDescription')}
+        confirmLabel={t('common:topbar.logout')}
+        cancelLabel={t('common:actions.cancel')}
+        danger
+        isLoading={logout.isPending}
+      />
     </header>
   );
 }

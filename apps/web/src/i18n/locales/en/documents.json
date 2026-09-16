@@ -8,6 +8,7 @@
     "loading": "Loading documents…",
     "errorTitle": "Couldn't load documents",
     "errorDescription": "Something went wrong loading folders/files. Please try again.",
+    "searchPlaceholder": "Search folders, files…",
     "emptyState": {
       "title": "Folder is empty",
       "description": "Create a subfolder or upload your first document.",
@@ -20,7 +21,6 @@
       "multipleFilesTitle": "Only 1 file can be uploaded at a time",
       "multipleFilesDescription": "The first file you dropped was selected; the other files were not uploaded."
     },
-    "searchPlaceholder": "Search folders, files…",
     "viewMode": {
       "grid": "Grid",
       "gridTitle": "Grid view",
@@ -64,13 +64,13 @@
     "share": "Share",
     "versionHistory": "Version history",
     "delete": "Delete file",
+    "selectAllAria": "Select all files",
+    "selectFileAria": "Select file {{name}}",
     "deleteConfirm": {
       "title": "Delete this file?",
       "description": "\"{{name}}\" will be removed from the system.",
       "confirmLabel": "Delete File"
     },
-    "selectFileAria": "Select file {{name}}",
-    "selectAllAria": "Select all files",
     "updatedLabel": "Updated {{date}}",
     "selectedLabel": "Selected",
     "batchDownload": "Bulk Download",

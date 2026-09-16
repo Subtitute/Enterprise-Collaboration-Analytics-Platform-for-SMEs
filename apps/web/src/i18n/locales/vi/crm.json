@@ -5,7 +5,7 @@
       "CONTACTED": "Đã liên hệ",
       "PROPOSAL": "Đề xuất",
       "NEGOTIATION": "Đàm phán",
-      "WON": "Thành công",
+      "WON": "Hoàn thành",
       "LOST": "Thất bại"
     }
   },
@@ -62,7 +62,7 @@
   },
   "customerCard": {
     "optionsAriaLabel": "Tùy chọn khách hàng",
-    "edit": "Chỉnh sửa thông tin",
+    "editCustomer": "Chỉnh sửa thông tin",
     "deleteCustomer": "Xoá khách hàng",
     "openDeals": "{{count}} deal đang hoạt động",
     "lastInteraction": "Tương tác: {{time}}",

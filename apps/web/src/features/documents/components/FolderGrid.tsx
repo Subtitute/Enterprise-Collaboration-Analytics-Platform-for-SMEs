@@ -270,7 +270,7 @@ function FolderCardItem({
             </span>
           )}
         </div>
-        {/* Siêu dữ liệu Metadata Tiếng Việt có dấu: Số lượng tệp tin & Thời gian cập nhật */}
+        {/* Siêu dữ liệu Metadata: Số lượng tệp tin & Thời gian cập nhật */}
         <p className="mt-1 truncate text-xs font-normal text-slate-500">
           {folderFilesQuery.isLoading ? (
             <span className="text-slate-400">{t('documents:folderGrid.loadingFileCount')}</span>

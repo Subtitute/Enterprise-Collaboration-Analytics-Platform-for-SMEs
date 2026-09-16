@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
@@ -19,7 +20,16 @@ const ORDER_STORAGE_KEY = 'ec_projects_custom_order';
 
 export function ProjectsListPage() {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isNewOpen, setIsNewOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'create') {
+      setIsNewOpen(true);
+      searchParams.delete('action');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
@@ -269,14 +279,12 @@ export function ProjectsListPage() {
             onChange={(val) => setStatus(val)}
             ariaLabel={t('projects:list.statusFilter.all')}
             options={STATUS_OPTIONS}
-            variant="subtle"
           />
           <CustomFilterSelect
             value={priorityFilter}
             onChange={(val) => setPriorityFilter(val)}
             ariaLabel={t('projects:list.priorityFilter.all')}
             options={PRIORITY_FILTER_OPTIONS}
-            variant="subtle"
           />
         </div>
       </div>

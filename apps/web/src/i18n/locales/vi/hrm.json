@@ -10,10 +10,6 @@
     "title": "Chấm công",
     "subtitle": "Chấm công vào làm/ra về kèm ảnh chụp làm bằng chứng.",
     "totalHoursValue": "{{hours}} giờ",
-    "columns": {
-      "totalHours": "Tổng giờ",
-      "status": "Trạng thái"
-    },
     "statusBadge": {
       "missingCheckOut": "Quên check-out",
       "late": "Đi muộn",
@@ -53,13 +49,15 @@
       "emptyTitle": "Chưa có lịch sử chấm công",
       "emptyDescription": "Dữ liệu sẽ xuất hiện sau lần chấm công đầu tiên.",
       "emptyFilteredDescription": "Không có dữ liệu chấm công trong {{month}}",
-      "viewCheckInProofTitle": "Xem ảnh bằng chứng vào làm",
-      "viewCheckOutProofTitle": "Xem ảnh bằng chứng ra về",
       "columns": {
         "date": "Ngày",
         "checkIn": "Vào làm",
-        "checkOut": "Ra về"
-      }
+        "checkOut": "Ra về",
+        "totalHours": "Tổng giờ",
+        "status": "Trạng thái"
+      },
+      "viewProofIn": "Xem ảnh bằng chứng vào làm",
+      "viewProofOut": "Xem ảnh bằng chứng ra về"
     },
     "allAttendance": {
       "cardTitle": "Chấm công toàn tổ chức",
@@ -69,22 +67,27 @@
       "emptyTitle": "Chưa có dữ liệu chấm công toàn tổ chức",
       "emptyDescription": "Dữ liệu sẽ xuất hiện khi có nhân viên chấm công.",
       "emptyFilteredDescription": "Không có dữ liệu chấm công toàn tổ chức trong {{month}}",
-      "viewCheckInProofTitle": "Xem ảnh bằng chứng vào làm của {{name}}",
-      "viewCheckOutProofTitle": "Xem ảnh bằng chứng ra về của {{name}}",
       "columns": {
         "employee": "Nhân viên",
         "date": "Ngày",
         "checkIn": "Vào làm",
-        "checkOut": "Ra về"
-      }
+        "checkOut": "Ra về",
+        "totalHours": "Tổng giờ",
+        "status": "Trạng thái"
+      },
+      "viewProofInOf": "Xem ảnh bằng chứng vào làm của {{name}}",
+      "viewProofOutOf": "Xem ảnh bằng chứng ra về của {{name}}"
+    },
+    "photoModal": {
+      "title": "Ảnh chấm công {{action}}",
+      "actionCheckIn": "Vào làm",
+      "actionCheckOut": "Ra về",
+      "personal": "Cá nhân",
+      "loading": "Đang tải ảnh bằng chứng…",
+      "error": "Không thể tải ảnh bằng chứng hoặc liên kết đã hết hạn.",
+      "imageAlt": "Ảnh chụp chấm công",
+      "close": "Đóng"
     }
-  },
-  "photoProofModal": {
-    "title": "Ảnh chấm công {{kind}}",
-    "anonymousUser": "Cá nhân",
-    "loadingPhoto": "Đang tải ảnh bằng chứng…",
-    "loadError": "Không thể tải ảnh bằng chứng hoặc liên kết đã hết hạn.",
-    "photoAlt": "Ảnh chụp chấm công"
   },
   "leaveRequestsPage": {
     "title": "Nghỉ phép",
@@ -127,6 +130,7 @@
     "reasonPlaceholder": "Lý do xin nghỉ phép…",
     "cancelButton": "Hủy",
     "submitButton": "Gửi yêu cầu",
+    "daysCount": "{{count}} ngày",
     "errors": {
       "missingDates": "Vui lòng chọn ngày bắt đầu và kết thúc",
       "startDateInPast": "Ngày bắt đầu không được ở trong quá khứ",

@@ -39,6 +39,9 @@ function OnSiteBadge({ isOnSite }: { isOnSite?: boolean | null }) {
 
 /**
  * Tính tổng số giờ làm việc giữa check-in và check-out (Ví dụ: 8.5 giờ)
+ * 16/09/2026: gop merge - ca 2 nhanh deu tu them 1 key i18n rieng cho chuoi "X giờ"
+ * (totalHoursValue vs hoursUnit). Giu totalHoursValue (di kem kieu TFunction da co san import
+ * o dau file), xoa hoursUnit khoi hrm.json (vi/en/ja) vi khong con noi nao goi toi.
  */
 function formatTotalHours(t: TFunction, checkInAt?: string | null, checkOutAt?: string | null): string {
   if (!checkInAt || !checkOutAt) return '—';
@@ -67,6 +70,8 @@ function PhotoProofModal({
   useEffect(() => {
     if (!target) {
       setPhotoUrl(null);
+      setIsLoading(false);
+      setError(false);
       return;
     }
     let isMounted = true;
@@ -94,6 +99,8 @@ function PhotoProofModal({
 
   if (!target) return null;
 
+  const actionText = target.kind === 'checkin' ? t('hrm:attendancePage.photoModal.actionCheckIn') : t('hrm:attendancePage.photoModal.actionCheckOut');
+
   return (
     <Modal
       open={Boolean(target)}
@@ -101,7 +108,10 @@ function PhotoProofModal({
       title={
         <div className="flex items-center gap-2 text-base font-bold text-slate-900">
           <CameraIcon className="h-5 w-5 text-primary-600" />
-          <span>{t('hrm:photoProofModal.title', { kind: target.kind === 'checkin' ? t('hrm:attendancePage.today.checkInLabel') : t('hrm:attendancePage.today.checkOutLabel') })}</span>
+          {/* 16/09/2026: gop merge - giu namespace attendancePage.photoModal (nhat quan voi cac
+              key con lai cua trang Cham cong), bo namespace rieng "photoProofModal" o cap goc
+              cua hrm.json vi sau merge khong con noi nao khac tham chieu toi (da xoa khoi JSON). */}
+          <span>{t('hrm:attendancePage.photoModal.title', { action: actionText })}</span>
         </div>
       }
       size="sm"
@@ -109,7 +119,7 @@ function PhotoProofModal({
       <div className="space-y-3">
         <div className="flex items-center justify-between text-xs text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
           <div>
-            <span className="font-semibold text-slate-700">{target.userName || t('hrm:photoProofModal.anonymousUser')}</span>
+            <span className="font-semibold text-slate-700">{target.userName || t('hrm:attendancePage.photoModal.personal')}</span>
             <div className="font-mono text-slate-900 font-bold mt-0.5">{target.time}</div>
           </div>
           <OnSiteBadge isOnSite={target.isOnSite} />
@@ -119,22 +129,22 @@ function PhotoProofModal({
           {isLoading && (
             <div className="flex flex-col items-center gap-2 text-slate-300">
               <Spinner />
-              <span className="text-xs text-slate-400">{t('hrm:photoProofModal.loadingPhoto')}</span>
+              <span className="text-xs text-slate-400">{t('hrm:attendancePage.photoModal.loading')}</span>
             </div>
           )}
           {error && (
             <div className="p-4 text-center text-xs text-rose-400">
-              {t('hrm:photoProofModal.loadError')}
+              {t('hrm:attendancePage.photoModal.error')}
             </div>
           )}
           {photoUrl && !isLoading && (
-            <img src={photoUrl} alt={t('hrm:photoProofModal.photoAlt')} className="h-full w-full object-cover" />
+            <img src={photoUrl} alt={t('hrm:attendancePage.photoModal.imageAlt')} className="h-full w-full object-cover" />
           )}
         </div>
 
         <div className="flex justify-end pt-2">
           <Button type="button" variant="outline" size="sm" onClick={onClose}>
-            {t('common:actions.close')}
+            {t('hrm:attendancePage.photoModal.close')}
           </Button>
         </div>
       </div>
@@ -169,6 +179,9 @@ function AttendanceStatusBadge({ record, today }: { record: { workDate: string; 
   const isPastDay = record.workDate < today;
   const isMissingCheckOut = !record.checkOutAt && isPastDay;
 
+  // 16/09/2026: gop merge - nhanh Tien tao them object "statuses" trung lap voi "statusBadge" da
+  // co san (cung 3 nhan Dung gio/Di muon/Quen check-out, chi khac ten key). Giu "statusBadge" (ten
+  // khop voi ten component AttendanceStatusBadge), xoa "statuses" khoi hrm.json.
   if (isMissingCheckOut) {
     return (
       <span className="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-600 whitespace-nowrap">
@@ -211,6 +224,8 @@ export function AttendancePage() {
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthStr);
 
   // Tạo danh sách 6 tháng gần nhất để lựa chọn nhanh
+  // 16/09/2026: gop merge - nhanh Tien tao them object "filter" trung lap voi "monthFilter" da co
+  // san. Giu "monthFilter", xoa "filter" khoi hrm.json.
   const monthOptions = useMemo(() => {
     const options = [{ value: 'all', label: t('hrm:attendancePage.monthFilter.allTime') }];
     const now = new Date();
@@ -300,6 +315,10 @@ export function AttendancePage() {
                   {timeString}
                 </span>
               </div>
+              {/* 16/09/2026: gop merge - nhanh Tien doi ten "systemTimeLabel"/"completedMessage"
+                  thanh "standardTime"/"completedShift" va tach them 2 object thua "statuses"/
+                  "filter" trong "today" (da xu ly o cac cho khac). Giu ten key cu, khong them
+                  object con moi. */}
               <p className="text-xs text-slate-400 font-medium">{t('hrm:attendancePage.today.systemTimeLabel')}</p>
 
               {/* Trạng thái chấm công trong ngày */}
@@ -428,8 +447,14 @@ export function AttendancePage() {
                             <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.date')}</th>
                             <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.checkIn')}</th>
                             <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.checkOut')}</th>
-                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.columns.totalHours')}</th>
-                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.columns.status')}</th>
+                            {/* 16/09/2026: gop merge - nhanh HEAD dung chung 1 object "attendancePage.columns"
+                                {totalHours, status} cho ca 2 bang (Lich su + Toan to chuc), nhung 3 cot
+                                con lai cua CUNG mot bang van doc tu "history.columns"/"allAttendance.columns" -
+                                tron 2 namespace trong 1 hang la khong nhat quan. Giu nguyen namespace rieng
+                                cua tung bang (history.columns / allAttendance.columns, da co san du 5 cot),
+                                xoa object "attendancePage.columns" thua khoi hrm.json. */}
+                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.totalHours')}</th>
+                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.status')}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -451,8 +476,8 @@ export function AttendancePage() {
                                       })
                                     }
                                     className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
-                                    title={t('hrm:attendancePage.history.viewCheckInProofTitle')}
-                                    aria-label={t('hrm:attendancePage.history.viewCheckInProofTitle')}
+                                    title={t('hrm:attendancePage.history.viewProofIn')}
+                                    aria-label={t('hrm:attendancePage.history.viewProofIn')}
                                   >
                                     <CameraIcon className="h-3 w-3" />
                                   </button>
@@ -474,8 +499,8 @@ export function AttendancePage() {
                                         })
                                       }
                                       className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
-                                      title={t('hrm:attendancePage.history.viewCheckOutProofTitle')}
-                                      aria-label={t('hrm:attendancePage.history.viewCheckOutProofTitle')}
+                                      title={t('hrm:attendancePage.history.viewProofOut')}
+                                      aria-label={t('hrm:attendancePage.history.viewProofOut')}
                                     >
                                       <CameraIcon className="h-3 w-3" />
                                     </button>
@@ -522,8 +547,8 @@ export function AttendancePage() {
                             <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.date')}</th>
                             <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.checkIn')}</th>
                             <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.checkOut')}</th>
-                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.columns.totalHours')}</th>
-                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.columns.status')}</th>
+                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.totalHours')}</th>
+                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.status')}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -554,8 +579,8 @@ export function AttendancePage() {
                                         })
                                       }
                                       className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
-                                      title={t('hrm:attendancePage.allAttendance.viewCheckInProofTitle', { name })}
-                                      aria-label={t('hrm:attendancePage.allAttendance.viewCheckInProofTitle', { name })}
+                                      title={t('hrm:attendancePage.allAttendance.viewProofInOf', { name })}
+                                      aria-label={t('hrm:attendancePage.allAttendance.viewProofInOf', { name })}
                                     >
                                       <CameraIcon className="h-3 w-3" />
                                     </button>
@@ -578,8 +603,8 @@ export function AttendancePage() {
                                           })
                                         }
                                         className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
-                                        title={t('hrm:attendancePage.allAttendance.viewCheckOutProofTitle', { name })}
-                                        aria-label={t('hrm:attendancePage.allAttendance.viewCheckOutProofTitle', { name })}
+                                        title={t('hrm:attendancePage.allAttendance.viewProofOutOf', { name })}
+                                        aria-label={t('hrm:attendancePage.allAttendance.viewProofOutOf', { name })}
                                       >
                                         <CameraIcon className="h-3 w-3" />
                                       </button>

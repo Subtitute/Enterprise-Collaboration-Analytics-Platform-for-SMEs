@@ -21,7 +21,7 @@ const crypto = require('crypto');
 
 const API_BASE_URL = process.env.SEED_API_BASE_URL || 'http://localhost:3000/api/v1';
 
-const DEPARTMENTS = ['Kinh doanh', 'Ky thuat', 'Nhan su', 'Marketing'];
+const DEPARTMENTS = ['Kinh doanh', 'Kỹ thuật', 'Nhân sự', 'Marketing'];
 
 const EMPLOYEES = [
   { fullName: 'Nguyen Van An', email: 'an.nguyen@demo-sme.vn' },

@@ -20,7 +20,16 @@ interface DatePickerProps {
   align?: 'left' | 'right';
 }
 
-export function DatePicker({ id, value = '', onChange, placeholder, className, minDate, position = 'top', align = 'left' }: DatePickerProps) {
+export function DatePicker({
+  id,
+  value = '',
+  onChange,
+  placeholder,
+  className,
+  minDate,
+  position = 'top',
+  align = 'left',
+}: DatePickerProps) {
   const { t } = useTranslation();
   const errorId = useId();
 
@@ -170,10 +179,14 @@ export function DatePicker({ id, value = '', onChange, placeholder, className, m
       const check = new Date(y, m - 1, d);
       const roundTrips = check.getFullYear() === y && check.getMonth() === m - 1 && check.getDate() === d;
 
-      const formatted = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       // 15/09/2026: ap dung minDate cho ca nhap tay - truoc ban sua nay chi luoi ngay bi chan, go
       // thang 1 ngay qua khu hop le dinh dang van lot qua duoc.
-      if (inRange && roundTrips && (!minDate || formatted >= minDate)) {
+      if (inRange && roundTrips) {
+        const formatted = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        if (minDate && formatted < minDate) {
+          setInputError(true);
+          return;
+        }
         setInputError(false);
         onChange(formatted);
         return;
@@ -372,6 +385,14 @@ export function DatePicker({ id, value = '', onChange, placeholder, className, m
                   {/* Ngày tháng hiện tại */}
                   {Array.from({ length: daysInMonth }).map((_, i) => {
                     const day = i + 1;
+                    const formattedMonth = String(currentMonth + 1).padStart(2, '0');
+                    const formattedDay = String(day).padStart(2, '0');
+                    // 15/09/2026: so sanh dang chuoi 'YYYY-MM-DD' zero-pad - dung thu tu tu dien
+                    // khop dung thu tu thoi gian, khong can dung Date object (tranh moi rui ro lech
+                    // gio/timezone khi so sanh 2 Date truc tiep).
+                    const dateStr = `${currentYear}-${formattedMonth}-${formattedDay}`;
+                    const isDisabled = Boolean(minDate) && dateStr < minDate!;
+
                     const isSelected =
                       parsedDate &&
                       !isNaN(parsedDate.getTime()) &&
@@ -384,30 +405,21 @@ export function DatePicker({ id, value = '', onChange, placeholder, className, m
                       today.getMonth() === currentMonth &&
                       today.getDate() === day;
 
-                    // 15/09/2026: so sanh dang chuoi 'YYYY-MM-DD' zero-pad - dung thu tu tu dien
-                    // khop dung thu tu thoi gian, khong can dung Date object (tranh moi rui ro lech
-                    // gio/timezone khi so sanh 2 Date truc tiep).
-                    const dayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    const isDisabled = Boolean(minDate) && dayStr < minDate!;
-
                     return (
                       <button
                         key={`cur-${day}`}
                         type="button"
                         disabled={isDisabled}
-                        onClick={() => handleSelectDay(day)}
+                        onClick={() => !isDisabled && handleSelectDay(day)}
                         className={cn(
                           'flex h-5.5 w-full items-center justify-center rounded text-[10px] font-semibold transition-all duration-150',
                           isDisabled
-                            ? 'text-slate-300 cursor-not-allowed'
-                            : cn(
-                                'cursor-pointer',
-                                isSelected
-                                  ? 'bg-slate-800 text-white font-bold shadow-xs'
-                                  : isToday
-                                    ? 'bg-primary-50 text-primary-700 font-bold border border-primary-300 hover:bg-primary-100'
-                                    : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900',
-                              ),
+                            ? 'text-slate-300 cursor-not-allowed bg-slate-50/40 line-through decoration-slate-300'
+                            : isSelected
+                              ? 'bg-slate-800 text-white font-bold shadow-xs cursor-pointer'
+                              : isToday
+                                ? 'bg-primary-50 text-primary-700 font-bold border border-primary-300 hover:bg-primary-100 cursor-pointer'
+                                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 cursor-pointer',
                         )}
                       >
                         {day}

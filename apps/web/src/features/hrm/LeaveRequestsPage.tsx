@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -26,13 +27,36 @@ const STATUS_BADGE_VARIANT: Record<LeaveRequestStatus, BadgeVariant> = {
   REJECTED: 'danger',
 };
 
-/** Tách loại nghỉ phép và lý do thực tế từ chuỗi reason đã lưu (VD: "[Nghỉ phép năm (Có lương)] Lý do...") */
-function parseLeaveReason(rawReason?: string | null) {
+/** Tách loại nghỉ phép và lý do thực tế từ chuỗi reason đã lưu (hỗ trợ cả key enum ANNUAL/SICK/UNPAID và text cũ) */
+function parseLeaveReason(rawReason: string | undefined | null, t: (key: string, options?: any) => string) {
   if (!rawReason) return { leaveType: null, cleanReason: '' };
   const match = rawReason.match(/^\[(.*?)\]\s*(.*)$/);
   if (match) {
+    const rawType = match[1];
+    // Nếu là mã type (ANNUAL, SICK, UNPAID)
+    if (rawType === 'ANNUAL' || rawType === 'SICK' || rawType === 'UNPAID') {
+      return {
+        leaveType: t(`hrm:newLeaveRequestModal.types.${rawType}`),
+        cleanReason: match[2],
+      };
+    }
+    // Đối với các đơn cũ đã lưu text tiếng Việt hoặc ngôn ngữ khác
+    // 16/09/2026: cac chuoi trong .includes(...) o 3 dong duoi la HANG SO de doi chieu voi rawType
+    // DA LUU SAN trong DB tu truoc khi co quy uoc prefix enum [ANNUAL]/[SICK]/[UNPAID] (xem
+    // typePrefix trong NewLeaveRequestModal.tsx) - voi du lieu cu do, rawType chinh la text da dich
+    // san theo ngon ngu UI dang chon TAI THOI DIEM tao don (Viet/Anh/Nhat), khong phai chuoi UI
+    // tinh dang hien thi nen khong dua qua t(). Du lieu MOI da di theo nhanh enum o tren (dong
+    // rawType === 'ANNUAL' ...) nen khong can/khong the doi ve so sanh enum o day.
+    let translatedType = rawType;
+    if (rawType.includes('Nghỉ phép năm') || rawType.includes('Annual leave') || rawType.includes('年次有給休暇')) { // i18n-lint-ignore: khop rawType da luu tu truoc, khong phai chuoi UI
+      translatedType = t('hrm:newLeaveRequestModal.types.ANNUAL');
+    } else if (rawType.includes('Nghỉ ốm') || rawType.includes('Sick leave') || rawType.includes('病気休暇')) { // i18n-lint-ignore: khop rawType da luu tu truoc, khong phai chuoi UI
+      translatedType = t('hrm:newLeaveRequestModal.types.SICK');
+    } else if (rawType.includes('Nghỉ việc riêng') || rawType.includes('Personal leave') || rawType.includes('私用休暇')) { // i18n-lint-ignore: khop rawType da luu tu truoc, khong phai chuoi UI
+      translatedType = t('hrm:newLeaveRequestModal.types.UNPAID');
+    }
     return {
-      leaveType: match[1],
+      leaveType: translatedType,
       cleanReason: match[2],
     };
   }
@@ -45,7 +69,16 @@ function parseLeaveReason(rawReason?: string | null) {
 /** Trang Nghỉ phép (HRM-lite) - Technical_Spec.md muc 17, Wireframe.md muc 13. */
 export function LeaveRequestsPage() {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isNewOpen, setIsNewOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'create') {
+      setIsNewOpen(true);
+      searchParams.delete('action');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   const myRequestsQuery = useMyLeaveRequestsQuery({ limit: 20 });
   const pendingQuery = usePendingLeaveRequestsQuery();
   const { map: userNameMap } = useUserNameMap();
@@ -103,8 +136,13 @@ export function LeaveRequestsPage() {
                 // toan bo danh sach).
                 const isRowBusy = pendingRequestId === request.id && (approve.isPending || reject.isPending);
                 const days = calculateWorkingDays(request.startDate, request.endDate);
+                // 16/09/2026: gop merge - giu nhanh dung key i18n cho employeeName (hardcode 'Nhân
+                // viên' cua nhanh Tien se khong dich duoc sang en/ja), nhung lay tham so `t` cua
+                // nhanh Tien khi goi parseLeaveReason vi ham nay bat buoc tham so thu 2 la `t`
+                // (xem khai bao parseLeaveReason o tren) - nhanh HEAD thieu tham so nay se gay loi
+                // "t is not a function" ngay khi request.reason co dang "[ANNUAL] ...".
                 const employeeName = userNameMap[request.userId] || t('hrm:leaveRequestsPage.pending.unknownEmployee');
-                const { leaveType, cleanReason } = parseLeaveReason(request.reason);
+                const { leaveType, cleanReason } = parseLeaveReason(request.reason, t);
 
                 return (
                   <div key={request.id} className="flex flex-col gap-3 rounded-lg border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between bg-white shadow-2xs hover:border-slate-300 transition-colors">
@@ -193,7 +231,7 @@ export function LeaveRequestsPage() {
               <div className="space-y-4">
                 {myRequestsQuery.data?.data.map((request) => {
                   const days = calculateWorkingDays(request.startDate, request.endDate);
-                  const { leaveType, cleanReason } = parseLeaveReason(request.reason);
+                  const { leaveType, cleanReason } = parseLeaveReason(request.reason, t);
                   return (
                     <div key={request.id} className="flex flex-col gap-2 rounded-lg border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between bg-white shadow-2xs hover:border-slate-300 transition-colors">
                       <div className="min-w-0 space-y-1.5">

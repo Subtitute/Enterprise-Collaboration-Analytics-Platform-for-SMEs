@@ -108,7 +108,7 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
       return;
     }
 
-    const typePrefix = `[${t(`hrm:newLeaveRequestModal.types.${leaveType}`)}]`;
+    const typePrefix = `[${leaveType}]`;
     const fullReason = `${typePrefix} ${reason.trim()}`;
 
     createLeaveRequest.mutate(
@@ -140,11 +140,11 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
             <DatePicker
               id="leave-start-date"
               value={startDate}
+              minDate={todayGmt7}
               onChange={(val) => {
                 setStartDate(val);
                 if (error) setError('');
               }}
-              minDate={todayGmt7}
               position="bottom"
             />
           </div>
@@ -155,13 +155,13 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
             <DatePicker
               id="leave-end-date"
               value={endDate}
+              // 15/09/2026: ngay ket thuc khong the truoc ngay bat dau (da chon) HOAC truoc hom nay
+              // (chua chon ngay bat dau) - tien loi phu, backend van la nguon xac thuc that.
+              minDate={startDate || todayGmt7}
               onChange={(val) => {
                 setEndDate(val);
                 if (error) setError('');
               }}
-              // 15/09/2026: ngay ket thuc khong the truoc ngay bat dau (da chon) HOAC truoc hom nay
-              // (chua chon ngay bat dau) - tien loi phu, backend van la nguon xac thuc that.
-              minDate={startDate || todayGmt7}
               position="bottom"
               align="right"
             />

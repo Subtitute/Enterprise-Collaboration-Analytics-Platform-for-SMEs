@@ -68,7 +68,7 @@ export function CustomerCard({ customer }: { customer: Customer }) {
                       close();
                     }}
                   >
-                    <EditIcon className="h-4 w-4 text-slate-500" /> {t('crm:customerCard.edit')}
+                    <EditIcon className="h-4 w-4 text-slate-500" /> {t('crm:customerCard.editCustomer')}
                   </DropdownItem>
                   <DropdownItem
                     className="text-rose-600 hover:bg-rose-50"

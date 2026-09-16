@@ -9,12 +9,35 @@
     "departmentAriaLabel": "Department",
     "allDepartments": "All departments"
   },
+  "kpiCards": {
+    "activeProjects": "Active Projects",
+    "avgProgress": "Avg. Progress Rate",
+    "newDocuments": "New Documents Volume",
+    "completedDeals": "Revenue / Won Deals",
+    "comparedToPrevious": "vs previous period",
+    "stable": "Stable",
+    "filesCount": "{{count}} files",
+    "projectsCount": "{{count}} projects",
+    "trends": {
+      "vsLastWeek": "{{percent}} vs last week",
+      "vsLastMonth": "{{percent}} vs last month",
+      "vsLastQuarter": "{{percent}} vs last quarter"
+    }
+  },
   "aiInsight": {
-    "title": "AI Insight",
-    "generateButton": "Generate AI Insight",
-    "summaryWithDepartment": "Based on {{range}} data · {{department}} department",
-    "summaryAllOrg": "Based on {{range}} data · Organization-wide",
-    "placeholder": "Click \"Generate AI Insight\" to get a concise, AI-generated summary of the metrics currently shown."
+    "title": "Internal Analytical Assistant",
+    "badge": "Executive Analysis",
+    "generateButton": "Generate Executive Summary",
+    "summaryWithDepartment": "Summary based on {{period}} data · {{department}} department",
+    "summaryAllOrg": "Summary based on {{period}} data · Organization-wide",
+    "placeholder": "Click “Generate Executive Summary” for an executive briefing of operating highlights, bottlenecks, and recommendations.",
+    "periodAriaLabel": "Report period",
+    "periods": {
+      "week": "Weekly (Last 7 days)",
+      "month": "Monthly (Last 30 days)",
+      "quarter": "Quarterly (This quarter)",
+      "year": "Yearly (This year)"
+    }
   },
   "charts": {
     "projectProgressTitle": "Project Progress Comparison",
@@ -44,7 +67,8 @@
       "name": "Project",
       "progress": "Progress",
       "completedTasks": "Completed",
-      "totalTasks": "Total Tasks"
+      "totalTasks": "Total Tasks",
+      "deadline": "Deadline"
     }
   },
   "hooks": {

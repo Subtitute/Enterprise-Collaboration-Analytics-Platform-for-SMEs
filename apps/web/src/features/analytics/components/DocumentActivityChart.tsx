@@ -57,8 +57,8 @@ export function DocumentActivityChart({ data, isLoading, isError, onRetry }: Doc
                 <stop offset="100%" stopColor={CATEGORICAL[0]} stopOpacity={0.02} />
               </linearGradient>
               <linearGradient id="doc-activity-shares" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={CATEGORICAL[4]} stopOpacity={0.28} />
-                <stop offset="100%" stopColor={CATEGORICAL[4]} stopOpacity={0.02} />
+                <stop offset="0%" stopColor={CATEGORICAL[1]} stopOpacity={0.28} />
+                <stop offset="100%" stopColor={CATEGORICAL[1]} stopOpacity={0.02} />
               </linearGradient>
             </defs>
             <CartesianGrid stroke={CHART_INK.grid} vertical={false} />
@@ -85,7 +85,7 @@ export function DocumentActivityChart({ data, isLoading, isError, onRetry }: Doc
                 type="monotone"
                 dataKey="shares"
                 name={t('analytics:documentActivityChart.sharesLabel')}
-                stroke={CATEGORICAL[4]}
+                stroke={CATEGORICAL[1]}
                 strokeWidth={2}
                 fill="url(#doc-activity-shares)"
               />

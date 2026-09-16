@@ -8,6 +8,7 @@
     "loading": "Đang tải tài liệu…",
     "errorTitle": "Không thể tải tài liệu",
     "errorDescription": "Đã xảy ra lỗi khi tải thư mục/tệp. Vui lòng thử lại.",
+    "searchPlaceholder": "Tìm kiếm thư mục, tệp tin…",
     "emptyState": {
       "title": "Thư mục trống",
       "description": "Tạo thư mục con hoặc tải lên tài liệu đầu tiên.",
@@ -20,7 +21,6 @@
       "multipleFilesTitle": "Chỉ tải lên được 1 tệp mỗi lần",
       "multipleFilesDescription": "Đã chọn tệp đầu tiên trong số các tệp bạn vừa thả; các tệp còn lại chưa được tải lên."
     },
-    "searchPlaceholder": "Tìm kiếm thư mục, tệp tin…",
     "viewMode": {
       "grid": "Lưới",
       "gridTitle": "Chế độ xem Lưới",
@@ -64,13 +64,13 @@
     "share": "Chia sẻ",
     "versionHistory": "Lịch sử phiên bản",
     "delete": "Xoá tệp",
+    "selectAllAria": "Chọn tất cả tệp",
+    "selectFileAria": "Chọn tệp {{name}}",
     "deleteConfirm": {
       "title": "Xoá tệp này?",
       "description": "\"{{name}}\" sẽ bị xoá khỏi hệ thống.",
       "confirmLabel": "Xoá tệp"
     },
-    "selectFileAria": "Chọn tệp {{name}}",
-    "selectAllAria": "Chọn tất cả tệp",
     "updatedLabel": "Cập nhật {{date}}",
     "selectedLabel": "Đã chọn",
     "batchDownload": "Tải về hàng loạt",

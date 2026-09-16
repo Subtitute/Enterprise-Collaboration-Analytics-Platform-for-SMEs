@@ -1,19 +1,53 @@
 {
   "page": {
-    "title": "Profile",
-    "subtitle": "Your account information within the organization.",
+    "title": "User Profile",
+    "subtitle": "Manage your identity information and account security settings.",
     "loading": "Loading profile…",
-    "loadError": "Couldn't load profile",
+    "loadError": "Couldn't load user profile",
     "status": {
       "active": "Active",
       "inactive": "Deactivated"
     },
-    "fields": {
-      "email": "Email",
-      "department": "Department",
-      "roles": "Role",
-      "joinedAt": "Joined on"
+    "sections": {
+      "personalInfo": "Personal Information",
+      "personalInfoDesc": "Basic personnel and contact information within the organization.",
+      "security": "Account Security",
+      "securityDesc": "Update your password to maintain account safety."
     },
-    "contactAdminNote": "To change your department or role, please contact your organization admin (Admin > Members)."
+    "fields": {
+      "fullName": "Full Name",
+      "fullNamePlaceholder": "Enter full name",
+      "employeeId": "Employee ID",
+      "department": "Department",
+      "phone": "Phone Number",
+      "phonePlaceholder": "e.g. +84 912 345 678",
+      "roles": "Assigned Roles",
+      "joinedAt": "Joined Date",
+      "currentPassword": "Current Password",
+      "currentPasswordPlaceholder": "Enter current password",
+      "newPassword": "New Password",
+      "newPasswordPlaceholder": "Enter new password (min 8 chars)",
+      "confirmPassword": "Confirm New Password",
+      "confirmPasswordPlaceholder": "Re-enter new password"
+    },
+    "buttons": {
+      "uploadAvatar": "Upload Photo",
+      "saveProfile": "Save Changes",
+      "updatePassword": "Change Password"
+    },
+    "roles": {
+      "orgAdmin": "Organization Admin",
+      "manager": "Manager",
+      "employee": "Employee"
+    },
+    "contactAdminCallout": "To change your department, employee ID, or system roles, please contact your Organization Administrator.",
+    "toasts": {
+      "avatarSimulated": "Profile photo uploaded successfully!",
+      "profileUpdated": "Personal information updated successfully!",
+      "passwordSuccess": "Password changed successfully!",
+      "passwordMismatch": "Password confirmation does not match.",
+      "passwordTooShort": "New password must be at least 8 characters long.",
+      "missingCurrentPassword": "Please enter your current password."
+    }
   }
 }

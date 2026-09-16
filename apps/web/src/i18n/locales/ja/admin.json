@@ -1,6 +1,7 @@
 {
   "adminPage": {
     "title": "管理",
+    "subtitle": "メンバー、部署、システムのアクセス権限を管理します。",
     "description": "メンバー、部署、システムのアクセス権限を管理します。",
     "tabs": {
       "members": "メンバー",
@@ -20,9 +21,12 @@
     "columns": {
       "name": "部署名",
       "description": "説明",
+      "manager": "部門長 / 担当者",
       "memberCount": "メンバー数",
       "actions": "操作"
     },
+    "membersCountLabel": "{{count}} 名",
+    "noManager": "未任用",
     "actionsMenu": {
       "edit": "編集",
       "delete": "削除"
@@ -36,7 +40,15 @@
   "membersPage": {
     "description": "組織内のメンバー、部署、アクセス権限を管理します。",
     "inviteMember": "メンバーを招待",
-    "loading": "メンバー一覧を読み込み中…",
+    "searchPlaceholder": "名前またはメールアドレスで検索…",
+    "allDepartments": "すべての部署",
+    "allStatuses": "すべてのステータス",
+    "filterDepartmentAria": "部署で絞り込み",
+    "filterStatusAria": "ステータスで絞り込み",
+    "noMatchTitle": "該当するメンバーが見つかりません",
+    "noMatchDescription": "検索キーワードや絞り込み条件を変更してください。",
+    "clearFilters": "フィルターをクリア",
+    "loading": "メンバーを読み込み中…",
     "errorTitle": "メンバー一覧を読み込めませんでした",
     "emptyTitle": "メンバーがまだいません",
     "optionsAria": "メンバーのオプション",
@@ -68,8 +80,57 @@
     "errorTitle": "ロール・権限データを読み込めませんでした",
     "emptyTitle": "ロールまたは権限のデータがまだありません",
     "hint": "チェックボックスのオン/オフで、各ロールへの権限の付与・取り消しができます。変更はすぐに保存されます。",
-    "permissionColumn": "権限",
-    "checkboxAriaLabel": "{{roleName}} - {{permissionLabel}}"
+    "permissionColumn": "権限と機能",
+    "selectAll": "すべて選択",
+    "selectAllModule": "モジュール内すべて選択",
+    "lockedNotice": "固定",
+    "lockedTooltip": "組織管理者の権限はシステムの安全のため固定されています。",
+    "checkboxAriaLabel": "{{roleName}} - {{permissionLabel}}",
+    "moduleSelectAllAria": "{{roleName}} - {{groupName}}の全権限を選択",
+    "roleSelectAllAria": "{{roleName}} - システム全体の全権限を選択",
+    "groups": {
+      "hrm": "勤怠・休暇管理",
+      "crm": "顧客・案件管理",
+      "project": "プロジェクト・タスク",
+      "document": "ドキュメント・ファイル",
+      "analytics": "レポート・分析",
+      "iam": "組織・権限管理",
+      "system": "システム・診断"
+    },
+    "permissions": {
+      "attendance_checkin": "勤怠打刻（出勤 / 退勤）",
+      "attendance_view": "全社勤怠データの閲覧",
+      "leave_request_create": "休暇申請の作成",
+      "leave_request_view": "休暇申請一覧の閲覧",
+      "leave_request_approve": "休暇申請の承認 / 却下",
+      "customer_view": "顧客一覧の閲覧",
+      "customer_create": "顧客カルテの新規作成",
+      "customer_update": "顧客情報の更新",
+      "customer_delete": "顧客データの削除",
+      "deal_view": "商談パイプライン（Deal）の閲覧",
+      "deal_create": "新規商談・案件の登録",
+      "deal_update": "商談フェーズ / 金額の更新",
+      "deal_delete": "商談・案件の削除",
+      "project_view": "プロジェクト一覧と詳細の閲覧",
+      "project_create": "新規プロジェクトの立ち上げ",
+      "project_update": "プロジェクト情報・進捗ステータスの更新",
+      "project_delete": "プロジェクトのアーカイブ / 削除",
+      "task_view": "タスクボードの閲覧（カンバン・リスト）",
+      "task_create": "タスクの新規作成と担当割り当て",
+      "task_update": "タスク進捗の更新・ドラッグ＆ドロップ",
+      "task_delete": "タスクの削除",
+      "document_view": "ドキュメントの閲覧とダウンロード",
+      "document_upload": "ドキュメントのアップロードとフォルダ作成",
+      "document_share": "社内ドキュメントの共有 / リンク発行",
+      "document_delete": "ドキュメント・フォルダの削除",
+      "analytics_view": "経営KPIレポートと総合分析の閲覧",
+      "user_invite": "新規組織メンバーの招待",
+      "user_manage": "アカウント管理（権限変更・無効化）",
+      "department_manage": "部署構造と編成の管理",
+      "role_manage": "ロール別権限マトリクスの設定管理",
+      "organization_manage": "組織・企業プロファイルの管理",
+      "system_manage": "システム診断とDLQ（デッドレター）監視"
+    }
   },
   "calendarPage": {
     "description": "組織全体で共有する祝日とイベント・予約を設定します。日付をクリックすると新規作成、既存の項目をクリックすると編集できます。",
@@ -190,5 +251,10 @@
     "calendarEventUpdateFailed": "カレンダー項目を更新できませんでした",
     "calendarEventDeleted": "カレンダー項目を削除しました",
     "calendarEventDeleteFailed": "カレンダー項目を削除できませんでした"
+  },
+  "roles": {
+    "orgAdmin": "組織管理者",
+    "manager": "マネージャー",
+    "employee": "従業員"
   }
 }

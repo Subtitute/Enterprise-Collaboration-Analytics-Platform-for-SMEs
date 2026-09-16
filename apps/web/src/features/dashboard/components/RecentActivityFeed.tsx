@@ -23,9 +23,9 @@ function getActionDisplay(action: string, t: TFunction): ActionDisplay {
   // - Xóa (Delete): Đỏ (Red/Rose)
   // - Tạo mới (Create/Upload/Register): Xanh lá (Emerald/Green)
   // - Cập nhật / Đổi trạng thái / Giao việc (Update/Status/Assign): Xanh dương (Blue/Sky) hoặc Cam (Amber)
-  const isDelete = normalized.includes('delete') || normalized.includes('deactivate') || normalized.includes('remove');
-  const isCreate = normalized.includes('created') || normalized.includes('registered') || normalized.includes('upload');
-  const isUpdate = normalized.includes('update') || normalized.includes('status') || normalized.includes('assign') || normalized.includes('share') || normalized.includes('complete');
+  const isDelete = normalized.includes('delete') || normalized.includes('deactivate') || normalized.includes('remove') || normalized.includes('rejected');
+  const isCreate = normalized.includes('created') || normalized.includes('registered') || normalized.includes('upload') || normalized.includes('approved') || normalized.includes('check_in');
+  const isUpdate = normalized.includes('update') || normalized.includes('changed') || normalized.includes('status') || normalized.includes('stage') || normalized.includes('assign') || normalized.includes('share') || normalized.includes('complete') || normalized.includes('check_out');
 
   let dotColor = 'bg-slate-400 ring-slate-100';
   let badgeColor = 'bg-slate-100 text-slate-700';

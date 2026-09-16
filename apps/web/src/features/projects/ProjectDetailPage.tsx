@@ -16,6 +16,7 @@ import { projectStatusMeta, computeProgressFromTasks, projectPriorityMeta } from
 import { KanbanBoard } from './components/KanbanBoard';
 import { NewTaskModal } from './components/NewTaskModal';
 import { TaskDetailModal } from './components/TaskDetailModal';
+import { toast } from '@/stores/toast.store';
 import type { TaskStatus } from '@/types';
 
 export function ProjectDetailPage() {
@@ -98,7 +99,23 @@ export function ProjectDetailPage() {
 
           <div className="flex flex-wrap items-center gap-2 sm:shrink-0 w-full sm:w-auto">
             {currentStatus !== 'COMPLETED' ? (
-              <Button variant="outline" className="flex-1 sm:flex-initial" onClick={() => completeProject.mutate()} isLoading={completeProject.isPending}>
+              <Button
+                variant="outline"
+                className="flex-1 sm:flex-initial"
+                onClick={() => {
+                  const isFullyDone = tasks.length > 0
+                    ? tasks.every((t) => t.status === 'DONE')
+                    : progress >= 100;
+
+                  if (!isFullyDone) {
+                    toast.error(t('projects:toast.project.incompleteTasksError'));
+                    return;
+                  }
+
+                  completeProject.mutate();
+                }}
+                isLoading={completeProject.isPending}
+              >
                 <CheckCircleIcon className="h-4 w-4 text-emerald-600" /> {t('projects:detail.completeProject')}
               </Button>
             ) : (

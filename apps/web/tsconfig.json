@@ -20,10 +20,8 @@
     "forceConsistentCasingInFileNames": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     },
 
     // 25/07/2026: them "vitest/globals" (describe/it/expect toan cuc, khop voi test.globals:
