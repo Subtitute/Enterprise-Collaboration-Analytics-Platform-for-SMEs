@@ -125,6 +125,17 @@ export function hasAdminRole(roles?: Array<{ name: string }>): boolean {
   return roles.some((r) => ADMIN_ROLE_PATTERN.test(r.name));
 }
 
+const PROJECT_MANAGER_ROLE_PATTERN = /admin|quản\s*trị|quan\s*tri|owner|manager|quản\s*lý|quan\s*ly/i;
+
+/**
+ * Kiểm tra xem người dùng có quyền quản lý CRUD Dự án (Tạo / Sửa / Đổi trạng thái / Lưu trữ / Xóa dự án) hay không.
+ * Chỉ Org Admin và Manager mới có quyền này. Nhân viên (Employee) chỉ có quyền xem dự án và thao tác với Task.
+ */
+export function canManageProjects(roles?: Array<{ name: string }>): boolean {
+  if (!roles || roles.length === 0) return false;
+  return roles.some((r) => PROJECT_MANAGER_ROLE_PATTERN.test(r.name));
+}
+
 // 20/08/2026: dung cho PasswordInput (components/ui/Input.tsx) - phat hien go NHAM dau tieng
 // Viet vao o mat khau (bo go Unikey/EVKey... doi khi tu dong ghep dau du nguoi dung go phim
 // thuong, KHONG nhan ra vi o mat khau che ky tu, khong xem lai duoc gi da go that su) de HIEN THI

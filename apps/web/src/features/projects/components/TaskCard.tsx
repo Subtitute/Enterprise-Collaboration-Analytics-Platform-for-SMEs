@@ -7,7 +7,14 @@ import { useUserNameMap } from '@/hooks/useOrgUsers';
 import { isOverdue } from '../utils';
 import type { Task } from '@/types';
 
-export function TaskCard({ task, index, onClick }: { task: Task; index: number; onClick: () => void }) {
+interface TaskCardProps {
+  task: Task;
+  index: number;
+  onClick: () => void;
+  isHighlighted?: boolean;
+}
+
+export function TaskCard({ task, index, onClick, isHighlighted = false }: TaskCardProps) {
   const { t } = useTranslation();
   const { map: userNames } = useUserNameMap();
   const isDone = task.status === 'DONE';
@@ -37,16 +44,18 @@ export function TaskCard({ task, index, onClick }: { task: Task; index: number; 
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
+          id={`task-card-${task.id}`}
           style={provided.draggableProps.style}
           onClick={onClick}
           onKeyDown={(e) => {
             if (e.key === 'Enter') onClick();
           }}
-          className="select-none mb-2.5 last:mb-0 focus:outline-none"
+          className="select-none mb-2.5 last:mb-0 focus:outline-none scroll-mt-24"
         >
           <div
             className={cn(
-              'relative cursor-pointer rounded-xl border p-3 shadow-sm shadow-slate-900/5 transition-all duration-150',
+              'relative cursor-pointer rounded-xl border p-3 shadow-sm shadow-slate-900/5 transition-all duration-200',
+              isHighlighted && 'ring-2 ring-indigo-500 border-indigo-400 bg-indigo-50/30 shadow-indigo-100 shadow-md animate-pulse',
               // Giao diện mặc định & Hiệu ứng chìm cho task đã Hoàn thành
               isDone
                 ? 'border-slate-200/60 bg-slate-50/80 text-slate-500 opacity-80 hover:opacity-100 hover:bg-slate-50 hover:border-indigo-300'

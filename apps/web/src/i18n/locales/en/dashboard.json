@@ -1,7 +1,8 @@
 {
   "page": {
     "title": "Dashboard",
-    "subtitle": "An overview of your organization's activity."
+    "subtitle": "Operations overview - Latest business metrics today.",
+    "exportPdf": "Export PDF Report"
   },
   "hero": {
     "title": "Enterprise-Wide Task Overview",
@@ -113,6 +114,23 @@
       "leave_request_created": "submitted a leave request",
       "leave_request_approved": "had a leave request approved",
       "leave_request_rejected": "had a leave request rejected"
+    }
+  },
+  "upcomingLeaves": {
+    "title": "Upcoming Leaves",
+    "viewAll": "View all",
+    "loading": "Loading upcoming leaves…",
+    "errorTitle": "Unable to load upcoming leaves",
+    "retry": "Retry",
+    "emptyTitle": "No upcoming leaves",
+    "emptyDescription": "All team members are currently working normally.",
+    "today": "Today",
+    "employee": "Employee",
+    "daysCount": "{{count}}d",
+    "types": {
+      "ANNUAL": "Annual",
+      "SICK": "Sick",
+      "UNPAID": "Unpaid"
     }
   }
 }

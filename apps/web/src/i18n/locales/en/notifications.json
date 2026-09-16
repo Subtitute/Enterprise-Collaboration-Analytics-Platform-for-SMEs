@@ -31,6 +31,7 @@
     },
     "titles": {
       "taskAssigned": "You have been assigned a new task",
+      "taskCompleted": "Task has been completed",
       "documentShared": "A document has been shared with you",
       "dealWon": "Deal successfully closed",
       "leaveApproved": "Leave request approved",

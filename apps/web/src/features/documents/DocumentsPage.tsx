@@ -12,10 +12,10 @@ import { FileTable } from './components/FileTable';
 import { NewFolderModal } from './components/NewFolderModal';
 import { UploadModal } from './components/UploadModal';
 import { ShareModal } from './components/ShareModal';
-// 28/07/2026: modal quan ly chia se thu muc (tinh nang kiem soat truy cap thu muc theo cap do) -
-// wire vao trang nay theo dung pattern sharingFile/ShareModal ngay ben duoi.
 import { FolderShareModal } from './components/FolderShareModal';
 import { VersionHistoryModal } from './components/VersionHistoryModal';
+import { FilePreviewModal } from './components/FilePreviewModal';
+import { useDownloadFile } from './hooks';
 import { matchesVietnameseSearch } from '@/lib/utils';
 import type { FileItem, Folder } from '@/types';
 
@@ -44,6 +44,8 @@ export function DocumentsPage() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [sharingFile, setSharingFile] = useState<FileItem | null>(null);
   const [historyFile, setHistoryFile] = useState<FileItem | null>(null);
+  const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
+  const download = useDownloadFile();
   // 28/07/2026: sharingFolder - dieu khien FolderShareModal, mirror y het sharingFile/ShareModal o
   // tren (tinh nang kiem soat truy cap thu muc theo cap do).
   const [sharingFolder, setSharingFolder] = useState<Folder | null>(null);
@@ -301,6 +303,7 @@ export function DocumentsPage() {
                 folderId={currentFolderId}
                 onShare={setSharingFile}
                 onVersionHistory={setHistoryFile}
+                onPreview={setPreviewFile}
                 viewMode={viewMode}
               />
             )}
@@ -322,6 +325,12 @@ export function DocumentsPage() {
       {/* 28/07/2026: render FolderShareModal, mirror vi tri/pattern cua ShareModal (tep) ngay tren. */}
       <FolderShareModal folder={sharingFolder} onClose={() => setSharingFolder(null)} />
       <VersionHistoryModal file={historyFile} folderId={currentFolderId} onClose={() => setHistoryFile(null)} />
+      <FilePreviewModal
+        file={previewFile}
+        open={Boolean(previewFile)}
+        onClose={() => setPreviewFile(null)}
+        onDownload={(fileId) => download.openFile(fileId, 'attachment')}
+      />
     </div>
   );
 }

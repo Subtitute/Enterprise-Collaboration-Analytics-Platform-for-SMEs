@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth.store';
 import { connectAnalyticsSocket, disconnectAnalyticsSocket } from '@/lib/socket';
 import type { DateRangeOption, RecentActivityItem } from '@/types';
-import { fetchAnalyticsSummary, fetchRecentActivity, fetchTaskStatusBreakdown, fetchTaskTrend } from './api';
+import { fetchAnalyticsSummary, fetchRecentActivity, fetchTaskStatusBreakdown, fetchTaskTrend, fetchUpcomingLeaves } from './api';
 
 // 28/07/2026: them tham so departmentId (tuy chon) cho bo loc "Phong ban" tren Dashboard - dua
 // vao queryKey de moi lua chon phong ban duoc cache rieng, giong het cach projectId da lam ben duoi.
@@ -90,4 +90,17 @@ export function useRecentActivityFeed(limit = LIVE_FEED_LIMIT) {
   }, [liveItems, query.data, limit]);
 
   return { items, isLoading: query.isLoading, isError: query.isError, isLive };
+}
+
+/**
+ * Hook truy vấn danh sách nghỉ phép sắp tới đã được duyệt:
+ * Tự động lọc các đơn có ngày kết thúc >= ngày hiện tại, sắp xếp theo ngày bắt đầu tăng dần.
+ */
+export function useUpcomingLeavesQuery() {
+  return useQuery({
+    queryKey: ['leave-requests', 'upcoming'],
+    queryFn: fetchUpcomingLeaves,
+    staleTime: 60 * 1000,
+    retry: false,
+  });
 }

@@ -51,6 +51,9 @@
     "completeProject": "Complete project",
     "reopenProject": "Reopen to active",
     "projectProgress": "Project progress",
+    "projectMembers": "Project Members",
+    "membersCountLabel": "{{count}} members",
+    "noMembers": "No members",
     "newTask": "New task",
     "tasksLoading": "Loading tasks…",
     "tasksErrorTitle": "Couldn't load tasks",
@@ -97,7 +100,8 @@
   },
   "projectCard": {
     "optionsAriaLabel": "Project options",
-    "edit": "Edit details",
+    "edit": "Edit project info",
+    "manageMembers": "Manage members",
     "markComplete": "Mark as complete",
     "reopen": "Reopen to active",
     "delete": "Delete project",
@@ -149,6 +153,34 @@
     "noStatusHistory": "No status change history yet.",
     "confirmDeleteTitle": "Delete this task?",
     "confirmDeleteDescription": "This action cannot be undone."
+  },
+  "membersModal": {
+    "title": "Project Members",
+    "memberCount": "{{count}} members",
+    "addMemberTitle": "Add member to project",
+    "selectMemberPlaceholder": "Select a member in the organization…",
+    "searchPlaceholder": "Search by name or email…",
+    "noAvailableCandidates": "All organization members are already in this project.",
+    "addButton": "Add",
+    "currentMembersTitle": "Current project members",
+    "totalCount": "Total {{count}} members",
+    "emptyTitle": "No members yet",
+    "emptyDescription": "This project currently has no members.",
+    "roles": {
+      "lead": "Project Lead",
+      "member": "Member"
+    },
+    "taskCount": "{{count}} tasks",
+    "leadCannotBeRemoved": "Project Lead cannot be removed from members list",
+    "removeMemberTooltip": "Remove from project",
+    "confirmRemoveTitle": "Remove member from project?",
+    "confirmRemoveDescription": "Are you sure you want to remove \"{{name}}\" from the project? All assigned tasks for this member in this project will also be unassigned.",
+    "confirmRemoveButton": "Remove member",
+    "toast": {
+      "memberAdded": "Added {{name}} to project",
+      "memberRemoved": "Removed {{name}} from project",
+      "cannotRemoveLead": "Cannot remove Project Lead. Please assign another lead before removing."
+    }
   },
   "toast": {
     "project": {

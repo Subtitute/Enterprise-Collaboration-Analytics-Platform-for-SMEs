@@ -31,6 +31,7 @@
     },
     "titles": {
       "taskAssigned": "Bạn được giao công việc mới",
+      "taskCompleted": "Công việc đã hoàn thành",
       "documentShared": "Tài liệu đã được chia sẻ với bạn",
       "dealWon": "Deal đã chốt thành công",
       "leaveApproved": "Yêu cầu nghỉ phép đã được duyệt",

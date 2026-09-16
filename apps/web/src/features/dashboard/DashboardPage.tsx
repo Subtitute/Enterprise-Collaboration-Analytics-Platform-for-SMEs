@@ -5,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Input';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { Button } from '@/components/ui/Button';
-import { FolderKanbanIcon, CheckCircleIcon, UserIcon, FileTextIcon } from '@/components/ui/Icons';
+import { FolderKanbanIcon, CheckCircleIcon, UserIcon, FileTextIcon, PrinterIcon } from '@/components/ui/Icons';
 import { DATE_RANGE_OPTIONS } from '@/types';
 import type { DateRangeOption } from '@/types';
 import { useAuthStore } from '@/stores/auth.store';
-import { hasAdminRole } from '@/lib/utils';
+import { hasAdminRole, canManageProjects } from '@/lib/utils';
 import { useProjectsQuery, useAllTasksQuery } from '@/features/projects/hooks';
 // 28/07/2026: tai su dung useDepartmentsQuery da co san (dung chung o MembersPage/InviteMemberModal)
 // cho bo loc "Phong ban" moi tren Dashboard, khong tao hook fetch phong ban rieng.
@@ -19,6 +19,7 @@ import { KpiCard } from './components/KpiCard';
 import { TaskTrendChart } from './components/TaskTrendChart';
 import { TaskStatusDonut } from './components/TaskStatusDonut';
 import { RecentActivityFeed } from './components/RecentActivityFeed';
+import { UpcomingLeavesWidget } from './components/UpcomingLeavesWidget';
 
 import { useOrgUsersQuery } from '@/hooks/useOrgUsers';
 
@@ -38,6 +39,7 @@ export function DashboardPage() {
 
   const roles = useAuthStore((s) => s.user?.roles);
   const canInviteMembers = hasAdminRole(roles);
+  const canCreateProject = canManageProjects(roles);
   const showOnboarding = !allProjectsQuery.isLoading && !allProjectsQuery.isError && (allProjectsQuery.data?.meta.total ?? 0) === 0;
 
   const summary = summaryQuery.data;
@@ -67,6 +69,22 @@ export function DashboardPage() {
   const totalTasksCreated = allTasksQuery.data ? validTasks.length : (summary?.totalTasksCreated ?? 0);
   const totalTasksCompleted = allTasksQuery.data ? validTasks.filter((t) => t.status === 'DONE').length : (summary?.totalTasksCompleted ?? 0);
   const completionRate = totalTasksCreated > 0 ? Math.round((totalTasksCompleted / totalTasksCreated) * 100) : (summary?.completionRate ?? 0);
+
+  // Tính toán số lượng thành viên hoạt động và tài liệu mới (fallback thông minh khi Employee không có quyền Analytics)
+  const activeUsersCount = useMemo(() => {
+    if (summary?.activeUsersLast7Days && summary.activeUsersLast7Days > 0) {
+      return summary.activeUsersLast7Days;
+    }
+    if (allUsersQuery.data && allUsersQuery.data.length > 0) {
+      if (departmentId) {
+        return allUsersQuery.data.filter((u) => u.departmentId === departmentId && u.isActive !== false).length;
+      }
+      return allUsersQuery.data.filter((u) => u.isActive !== false).length;
+    }
+    return summary?.activeUsersLast7Days ?? 0;
+  }, [summary?.activeUsersLast7Days, allUsersQuery.data, departmentId]);
+
+  const newDocumentsCount = summary?.newDocumentsThisWeek ?? 0;
 
   // Tính toán dữ liệu phân bố trạng thái (Donut Chart)
   const dynamicTaskBreakdown = useMemo(() => {
@@ -134,13 +152,28 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('dashboard:page.title')}</h1>
-        <p className="mt-1 text-sm text-slate-500">{t('dashboard:page.subtitle')}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('dashboard:page.title')}</h1>
+          <p className="mt-1 text-sm text-slate-500">{t('dashboard:page.subtitle')}</p>
+        </div>
+        <div className="flex items-center gap-2 no-print shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => window.print()}
+            title={t('dashboard:page.exportPdf')}
+            className="border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs font-medium cursor-pointer active:scale-[0.98]"
+          >
+            <PrinterIcon className="h-4 w-4 text-slate-500 mr-1.5" />
+            <span>{t('dashboard:page.exportPdf')}</span>
+          </Button>
+        </div>
       </div>
 
       {showOnboarding && (
-        <Card className="flex flex-col items-start gap-3 border-primary-100 bg-primary-50/40 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <Card className="flex flex-col items-start gap-3 border-primary-100 bg-primary-50/40 p-5 sm:flex-row sm:items-center sm:justify-between no-print">
           <div>
             <p className="text-sm font-semibold text-slate-900">{t('dashboard:onboarding.welcomeTitle')}</p>
             <p className="mt-1 text-sm text-slate-600">
@@ -153,9 +186,11 @@ export function DashboardPage() {
                 <Button variant="outline">{t('dashboard:onboarding.inviteMembers')}</Button>
               </Link>
             )}
-            <Link to="/projects">
-              <Button>{t('dashboard:onboarding.createFirstProject')}</Button>
-            </Link>
+            {canCreateProject && (
+              <Link to="/projects">
+                <Button>{t('dashboard:onboarding.createFirstProject')}</Button>
+              </Link>
+            )}
           </div>
         </Card>
       )}
@@ -215,7 +250,7 @@ export function DashboardPage() {
             </div>
             <Link
               to="/projects"
-              className="font-semibold text-sm text-primary-600 hover:text-primary-700 transition-colors inline-flex items-center gap-1"
+              className="font-semibold text-sm text-primary-600 hover:text-primary-700 transition-colors inline-flex items-center gap-1 no-print"
             >
               {t('dashboard:hero.viewAllLink')}
             </Link>
@@ -226,7 +261,7 @@ export function DashboardPage() {
         <div className="flex flex-col justify-between gap-4 lg:col-span-4 h-full">
           <KpiCard
             label={t('dashboard:kpi.newDocuments.label')}
-            value={summary?.newDocumentsThisWeek ?? '—'}
+            value={newDocumentsCount}
             hint={t('dashboard:kpi.newDocuments.hint')}
             icon={<FileTextIcon className="h-5 w-5" />}
             accentClassName="bg-violet-100 text-violet-600"
@@ -237,13 +272,16 @@ export function DashboardPage() {
           />
           <KpiCard
             label={t('dashboard:kpi.activeUsers.label')}
-            value={summary?.activeUsersLast7Days ?? '—'}
+            value={activeUsersCount}
             hint={t('dashboard:kpi.activeUsers.hint')}
             icon={<UserIcon className="h-5 w-5" />}
             accentClassName="bg-amber-100 text-amber-600"
-            isLoading={summaryQuery.isLoading}
-            isError={summaryQuery.isError}
-            onRetry={() => summaryQuery.refetch()}
+            isLoading={summaryQuery.isLoading && allUsersQuery.isLoading}
+            isError={summaryQuery.isError && allUsersQuery.isError}
+            onRetry={() => {
+              summaryQuery.refetch();
+              allUsersQuery.refetch();
+            }}
             className="flex-1"
           />
         </div>
@@ -315,14 +353,20 @@ export function DashboardPage() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('dashboard:recentActivitySection.title')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <RecentActivityFeed />
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <Card className="lg:col-span-8">
+          <CardHeader>
+            <CardTitle>{t('dashboard:recentActivitySection.title')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RecentActivityFeed />
+          </CardContent>
+        </Card>
+
+        <div className="lg:col-span-4">
+          <UpcomingLeavesWidget />
+        </div>
+      </div>
     </div>
   );
 }

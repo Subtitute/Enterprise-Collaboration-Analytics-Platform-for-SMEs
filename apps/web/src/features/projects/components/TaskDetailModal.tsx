@@ -44,15 +44,20 @@ import {
   useUpdateTaskStatus,
 } from '../hooks';
 import { AssigneePicker } from './AssigneePicker';
+import { notifyTaskCompleted } from '../utils';
+import { useAuthStore } from '@/stores/auth.store';
+import type { Project } from '@/types';
 
 interface TaskDetailModalProps {
   projectId: string;
+  project?: Project;
   taskId: string | null;
   onClose: () => void;
 }
 
-export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalProps) {
+export function TaskDetailModal({ projectId, project, taskId, onClose }: TaskDetailModalProps) {
   const { t } = useTranslation();
+  const currentUser = useAuthStore((s) => s.user);
   const tasksQuery = useTasksQuery(projectId);
   const task = tasksQuery.data?.find((t) => t.id === taskId);
 
@@ -326,6 +331,13 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
                               onClick={() => {
                                 if (task.status !== s) {
                                   updateStatus.mutate({ taskId: task.id, status: s });
+                                  if (task.status !== 'DONE' && s === 'DONE') {
+                                    notifyTaskCompleted({
+                                      task: { ...task, status: 'DONE' },
+                                      project,
+                                      currentUser,
+                                    });
+                                  }
                                 }
                                 close();
                               }}

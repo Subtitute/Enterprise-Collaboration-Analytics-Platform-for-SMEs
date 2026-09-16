@@ -51,6 +51,9 @@
     "completeProject": "Hoàn thành dự án",
     "reopenProject": "Mở lại đang hoạt động",
     "projectProgress": "Tiến độ dự án",
+    "projectMembers": "Thành viên dự án",
+    "membersCountLabel": "{{count}} thành viên",
+    "noMembers": "Chưa có thành viên",
     "newTask": "Công việc mới",
     "tasksLoading": "Đang tải công việc…",
     "tasksErrorTitle": "Không thể tải công việc",
@@ -98,6 +101,7 @@
   "projectCard": {
     "optionsAriaLabel": "Tùy chọn dự án",
     "edit": "Chỉnh sửa lại thông tin",
+    "manageMembers": "Quản lý thành viên",
     "markComplete": "Đánh dấu hoàn thành",
     "reopen": "Chuyển về đang hoạt động",
     "delete": "Xoá dự án",
@@ -149,6 +153,34 @@
     "noStatusHistory": "Chưa có lịch sử thay đổi trạng thái.",
     "confirmDeleteTitle": "Xoá công việc này?",
     "confirmDeleteDescription": "Hành động này không thể hoàn tác."
+  },
+  "membersModal": {
+    "title": "Thành viên dự án",
+    "memberCount": "{{count}} thành viên",
+    "addMemberTitle": "Thêm thành viên vào dự án",
+    "selectMemberPlaceholder": "Chọn thành viên trong tổ chức…",
+    "searchPlaceholder": "Tìm theo tên hoặc email…",
+    "noAvailableCandidates": "Tất cả thành viên trong tổ chức đã có mặt trong dự án này.",
+    "addButton": "Thêm",
+    "currentMembersTitle": "Danh sách thành viên hiện tại",
+    "totalCount": "Tổng cộng {{count}} người",
+    "emptyTitle": "Chưa có thành viên nào",
+    "emptyDescription": "Dự án hiện chưa có thành viên nào tham gia.",
+    "roles": {
+      "lead": "Trưởng dự án",
+      "member": "Thành viên"
+    },
+    "taskCount": "{{count}} việc",
+    "leadCannotBeRemoved": "Không thể gỡ Trưởng dự án khỏi danh sách thành viên",
+    "removeMemberTooltip": "Gỡ khỏi dự án",
+    "confirmRemoveTitle": "Gỡ thành viên khỏi dự án?",
+    "confirmRemoveDescription": "Bạn có chắc chắn muốn gỡ \"{{name}}\" khỏi dự án? Toàn bộ công việc đang phân công cho thành viên này trong dự án cũng sẽ được gỡ bỏ.",
+    "confirmRemoveButton": "Gỡ thành viên",
+    "toast": {
+      "memberAdded": "Đã thêm {{name}} vào dự án",
+      "memberRemoved": "Đã gỡ {{name}} khỏi dự án",
+      "cannotRemoveLead": "Không thể gỡ Trưởng dự án. Hãy đổi người phụ trách khác trước khi gỡ."
+    }
   },
   "toast": {
     "project": {

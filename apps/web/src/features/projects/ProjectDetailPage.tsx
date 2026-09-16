@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { ProgressBar } from '@/components/ui/ProgressBar';
@@ -9,27 +9,67 @@ import { EmptyState } from '@/components/ui/EmptyState';
 // 22/07/2026: them QueryState de xu ly nhanh isError cho tasksQuery ben duoi (xem chu thich tai
 // vi tri dung).
 import { QueryState } from '@/components/ui/QueryState';
-import { ChevronLeftIcon, PlusIcon, CheckCircleIcon, CalendarIcon, RefreshIcon } from '@/components/ui/Icons';
-import { formatDate, cn } from '@/lib/utils';
+import { ChevronLeftIcon, PlusIcon, CheckCircleIcon, CalendarIcon, RefreshIcon, UsersIcon } from '@/components/ui/Icons';
+import { formatDate, cn, canManageProjects } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth.store';
+import { useOrgUsersQuery } from '@/hooks/useOrgUsers';
+import { Avatar } from '@/components/ui/Avatar';
 import { useProjectQuery, useTasksQuery, useCompleteProject, useReopenProject } from './hooks';
-import { projectStatusMeta, computeProgressFromTasks, projectPriorityMeta } from './utils';
+import { projectStatusMeta, computeProgressFromTasks, projectPriorityMeta, getProjectMemberIds } from './utils';
 import { KanbanBoard } from './components/KanbanBoard';
 import { NewTaskModal } from './components/NewTaskModal';
 import { TaskDetailModal } from './components/TaskDetailModal';
+import { ProjectMembersModal } from './components/ProjectMembersModal';
 import { toast } from '@/stores/toast.store';
 import type { TaskStatus } from '@/types';
 
 export function ProjectDetailPage() {
   const { t } = useTranslation();
   const { projectId = '' } = useParams<{ projectId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const projectQuery = useProjectQuery(projectId);
   const tasksQuery = useTasksQuery(projectId);
   const completeProject = useCompleteProject(projectId);
   const reopenProject = useReopenProject(projectId);
+  const orgUsersQuery = useOrgUsersQuery();
 
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const [newTaskColumn, setNewTaskColumn] = useState<TaskStatus | undefined>(undefined);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
+  const [membersUpdateTick, setMembersUpdateTick] = useState(0);
+
+  // Xử lý Deep Link: Đọc taskId từ URL để tự động mở modal chi tiết & cuộn tới vị trí thẻ task
+  const handledDeepLinkRef = useRef(false);
+  useEffect(() => {
+    const deepTaskId = searchParams.get('taskId');
+    if (deepTaskId && !handledDeepLinkRef.current && tasksQuery.data) {
+      handledDeepLinkRef.current = true;
+      setSelectedTaskId(deepTaskId);
+      setHighlightedTaskId(deepTaskId);
+
+      // Cuộn mượt đến vị trí thẻ sau khi DOM đã render
+      setTimeout(() => {
+        const el = document.getElementById(`task-card-${deepTaskId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
+
+      // Tắt highlight sau 5 giây để giao diện trở về trạng thái bình thường
+      setTimeout(() => {
+        setHighlightedTaskId(null);
+      }, 5000);
+
+      // Xóa query param taskId khỏi URL để giữ URL tinh gọn
+      searchParams.delete('taskId');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, tasksQuery.data]);
+
+  const user = useAuthStore((s) => s.user);
+  const canManage = canManageProjects(user?.roles);
 
   if (projectQuery.isLoading) return <FullPageSpinner label={t('projects:detail.loading')} />;
   if (projectQuery.isError || !projectQuery.data) {
@@ -98,30 +138,32 @@ export function ProjectDetailPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2 sm:shrink-0 w-full sm:w-auto">
-            {currentStatus !== 'COMPLETED' ? (
-              <Button
-                variant="outline"
-                className="flex-1 sm:flex-initial"
-                onClick={() => {
-                  const isFullyDone = tasks.length > 0
-                    ? tasks.every((t) => t.status === 'DONE')
-                    : progress >= 100;
+            {canManage && (
+              currentStatus !== 'COMPLETED' ? (
+                <Button
+                  variant="outline"
+                  className="flex-1 sm:flex-initial"
+                  onClick={() => {
+                    const isFullyDone = tasks.length > 0
+                      ? tasks.every((t) => t.status === 'DONE')
+                      : progress >= 100;
 
-                  if (!isFullyDone) {
-                    toast.error(t('projects:toast.project.incompleteTasksError'));
-                    return;
-                  }
+                    if (!isFullyDone) {
+                      toast.error(t('projects:toast.project.incompleteTasksError'));
+                      return;
+                    }
 
-                  completeProject.mutate();
-                }}
-                isLoading={completeProject.isPending}
-              >
-                <CheckCircleIcon className="h-4 w-4 text-emerald-600" /> {t('projects:detail.completeProject')}
-              </Button>
-            ) : (
-              <Button variant="outline" className="flex-1 sm:flex-initial" onClick={() => reopenProject.mutate()} isLoading={reopenProject.isPending}>
-                <RefreshIcon className="h-4 w-4 text-primary-600" /> {t('projects:detail.reopenProject')}
-              </Button>
+                    completeProject.mutate();
+                  }}
+                  isLoading={completeProject.isPending}
+                >
+                  <CheckCircleIcon className="h-4 w-4 text-emerald-600" /> {t('projects:detail.completeProject')}
+                </Button>
+              ) : (
+                <Button variant="outline" className="flex-1 sm:flex-initial" onClick={() => reopenProject.mutate()} isLoading={reopenProject.isPending}>
+                  <RefreshIcon className="h-4 w-4 text-primary-600" /> {t('projects:detail.reopenProject')}
+                </Button>
+              )
             )}
             <Button className="flex-1 sm:flex-initial" onClick={() => setIsNewTaskOpen(true)}>
               <PlusIcon className="h-4 w-4" /> {t('projects:detail.newTask')}
@@ -129,11 +171,11 @@ export function ProjectDetailPage() {
           </div>
         </div>
 
-        {/* Hàng 2: Dải nền xám nhạt khóa đáy thẻ chứa 2 Widget (Hạn hoàn thành & Tiến độ dự án) */}
+        {/* Hàng 2: Dải nền xám nhạt khóa đáy thẻ chứa 3 Widget (Hạn hoàn thành, Tiến độ dự án & Thành viên) */}
         <div className="flex flex-wrap items-center gap-3 pt-1">
           <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 rounded-2xl bg-slate-50/90 border border-slate-200/60 p-2 shadow-2xs w-full sm:w-auto">
             {project.dueDate && (
-              <div className="flex items-center gap-2.5 rounded-xl border border-slate-200/70 bg-white px-3.5 py-2 w-full sm:w-56 h-[52px] shadow-2xs">
+              <div className="flex items-center gap-2.5 rounded-xl border border-slate-200/70 bg-white px-3.5 py-2 w-full sm:w-52 h-[52px] shadow-2xs">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 border border-slate-200/60 text-slate-500 shadow-2xs">
                   <CalendarIcon className="h-4 w-4 text-slate-500" />
                 </div>
@@ -149,7 +191,7 @@ export function ProjectDetailPage() {
             )}
             
             {/* Widget tiến độ hoàn thành công việc */}
-            <div className="flex items-center gap-3 rounded-xl border border-slate-200/70 bg-white px-3.5 py-2 w-full sm:w-56 h-[52px] shadow-2xs">
+            <div className="flex items-center gap-3 rounded-xl border border-slate-200/70 bg-white px-3.5 py-2 w-full sm:w-52 h-[52px] shadow-2xs">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-[11px] font-semibold text-slate-500 leading-tight">{t('projects:detail.projectProgress')}</span>
@@ -173,6 +215,53 @@ export function ProjectDetailPage() {
                 </div>
               </div>
             </div>
+
+            {/* Widget Thành viên dự án */}
+            {(() => {
+              const memberIds = getProjectMemberIds(project.id, project.leadUserId, tasks);
+              const allUsers = orgUsersQuery.data ?? [];
+              const userMap = new Map(allUsers.map((u) => [u.id, u]));
+              const projectMembers = memberIds.map((id) => userMap.get(id)).filter(Boolean);
+              const previewMembers = projectMembers.slice(0, 3);
+              const remainingCount = Math.max(0, projectMembers.length - 3);
+
+              return (
+                <button
+                  type="button"
+                  onClick={() => setIsMembersModalOpen(true)}
+                  className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200/70 bg-white px-3.5 py-2 w-full sm:w-64 h-[52px] shadow-2xs hover:border-indigo-300 hover:bg-slate-50/70 transition-all text-left cursor-pointer active:scale-[0.98]"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 leading-tight group-hover:text-indigo-600 transition-colors">
+                      <UsersIcon className="h-3.5 w-3.5 text-slate-400 group-hover:text-indigo-600" />
+                      <span>{t('projects:detail.projectMembers')}</span>
+                    </div>
+                    <span className="block text-xs font-bold text-slate-800 truncate mt-0.5">
+                      {t('projects:detail.membersCountLabel', { count: memberIds.length })}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center -space-x-1.5 overflow-hidden shrink-0">
+                    {previewMembers.map((m) => (
+                      <Avatar
+                        key={m!.id}
+                        name={m!.fullName}
+                        size="sm"
+                        className="h-6 w-6 text-[10px] ring-2 ring-white shadow-2xs"
+                      />
+                    ))}
+                    {remainingCount > 0 && (
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-600 ring-2 ring-white shadow-2xs">
+                        +{remainingCount}
+                      </span>
+                    )}
+                    {memberIds.length === 0 && (
+                      <span className="text-[11px] text-slate-400 italic">{t('projects:detail.noMembers')}</span>
+                    )}
+                  </div>
+                </button>
+              );
+            })()}
           </div>
         </div>
       </div>
@@ -200,12 +289,14 @@ export function ProjectDetailPage() {
         ) : (
           <KanbanBoard
             projectId={projectId}
+            project={project}
             tasks={tasks}
             onTaskClick={(task) => setSelectedTaskId(task.id)}
             onQuickAdd={(status) => {
               setNewTaskColumn(status);
               setIsNewTaskOpen(true);
             }}
+            highlightedTaskId={highlightedTaskId}
           />
         )}
       </QueryState>
@@ -219,7 +310,19 @@ export function ProjectDetailPage() {
           setNewTaskColumn(undefined);
         }}
       />
-      <TaskDetailModal projectId={projectId} taskId={selectedTaskId} onClose={() => setSelectedTaskId(null)} />
+      <TaskDetailModal
+        projectId={projectId}
+        project={project}
+        taskId={selectedTaskId}
+        onClose={() => setSelectedTaskId(null)}
+      />
+      <ProjectMembersModal
+        open={isMembersModalOpen}
+        onClose={() => setIsMembersModalOpen(false)}
+        project={project}
+        tasks={tasks}
+        onMembersChanged={() => setMembersUpdateTick((t) => t + 1)}
+      />
     </div>
   );
 }

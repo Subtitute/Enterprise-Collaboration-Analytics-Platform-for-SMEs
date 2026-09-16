@@ -10,9 +10,21 @@ import { fetchNotifications, markAllNotificationsRead, markNotificationRead } fr
 import type { FetchNotificationsParams } from './api';
 
 export function useNotificationsQuery(params: FetchNotificationsParams = {}) {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    };
+    window.addEventListener('ec_notifications_updated', handleUpdate);
+    return () => window.removeEventListener('ec_notifications_updated', handleUpdate);
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ['notifications', params],
     queryFn: () => fetchNotifications(params),
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
   });
 }
 
