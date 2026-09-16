@@ -40,4 +40,14 @@ export default () => ({
   // email (vd http://localhost:5173/reset-password?token=...). TACH RIENG voi CORS_ORIGIN (co the
   // la danh sach nhieu origin phan tach boi dau phay) vi day can DUNG 1 gia tri duy nhat.
   frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:5173',
+  // 16/09/2026: "Super Admin" (tinh nang moi) - de trong (khong dat SUPER_ADMIN_EMAIL/PASSWORD)
+  // la trang thai HOP LE, tat hoan toan buoc bootstrap (xem
+  // bootstrap/super-admin-bootstrap.service.ts) - mirror triet ly "cau hinh ngoai tuy chon" da ap
+  // dung cho SMTP/GEMINI_API_KEY/GROQ_API_KEY. Khong co gia tri mac dinh cung cho mat khau (khac
+  // voi cac truong khac trong file nay) - bat buoc nguoi van hanh tu dat neu muon dung tinh nang.
+  superAdmin: {
+    email: process.env.SUPER_ADMIN_EMAIL,
+    password: process.env.SUPER_ADMIN_PASSWORD,
+    fullName: process.env.SUPER_ADMIN_FULL_NAME ?? 'Super Admin',
+  },
 });

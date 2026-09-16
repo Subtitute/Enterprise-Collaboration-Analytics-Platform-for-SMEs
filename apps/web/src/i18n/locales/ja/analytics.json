@@ -37,6 +37,16 @@
       "month": "月次 (直近30日間)",
       "quarter": "四半期 (今四半期)",
       "year": "年次 (今年度)"
+    },
+    "labels": {
+      "highlight": "ハイライト:",
+      "risk": "リスク:",
+      "recommendation": "推奨事項:"
+    },
+    "fallbacks": {
+      "risk": "未完了タスクの進捗を注視し、運用のペースを維持してください。",
+      "recommendationWhenHighlightOnly": "今期の重要タスクの解決に向けてリソース配分を優先してください。",
+      "recommendationDefault": "定期的なレビューを継続し、部署間の連携プロセスを最適化してください。"
     }
   },
   "charts": {
@@ -73,5 +83,10 @@
   },
   "hooks": {
     "aiInsightError": "AIインサイトを生成できませんでした"
+  },
+  "mockProjects": {
+    "crmUpgrade": "CRM・営業システムのアップグレード",
+    "customerPortal": "顧客ポータルの導入",
+    "operationsOptimization": "第4四半期 運用プロセス最適化"
   }
 }

@@ -1,0 +1,43 @@
+{
+  "page": {
+    "title": "Quản trị nền tảng",
+    "logout": "Đăng xuất",
+    "description": "Quản lý vòng đời các tổ chức đã đăng ký trên nền tảng. Khu vực này tách biệt hoàn toàn với dữ liệu nghiệp vụ của từng tổ chức (dự án, tài liệu, khách hàng...).",
+    "loading": "Đang tải danh sách tổ chức…",
+    "errorTitle": "Không thể tải danh sách tổ chức",
+    "emptyTitle": "Chưa có tổ chức nào đăng ký",
+    "optionsAria": "Tùy chọn tổ chức",
+    "columns": {
+      "organization": "Tổ chức",
+      "taxCode": "Mã số thuế",
+      "userCount": "Số thành viên",
+      "createdAt": "Ngày đăng ký",
+      "status": "Trạng thái",
+      "actions": "Hành động"
+    },
+    "status": {
+      "active": "Đang hoạt động",
+      "inactive": "Đã khoá"
+    },
+    "actionsMenu": {
+      "deactivate": "Khoá tổ chức",
+      "reactivate": "Mở khoá tổ chức"
+    },
+    "deactivateConfirm": {
+      "title": "Khoá tổ chức này?",
+      "description": "Toàn bộ thành viên của \"{{name}}\" sẽ không thể đăng nhập cho đến khi tổ chức được mở khoá lại.",
+      "confirmLabel": "Khoá tổ chức"
+    }
+  },
+  "stats": {
+    "totalOrganizations": "Tổng số tổ chức",
+    "activeOrganizations": "Tổ chức đang hoạt động",
+    "totalUsers": "Tổng số người dùng"
+  },
+  "toast": {
+    "organizationDeactivated": "Đã khoá tổ chức",
+    "organizationDeactivateFailed": "Không thể khoá tổ chức",
+    "organizationReactivated": "Đã mở khoá tổ chức",
+    "organizationReactivateFailed": "Không thể mở khoá tổ chức"
+  }
+}

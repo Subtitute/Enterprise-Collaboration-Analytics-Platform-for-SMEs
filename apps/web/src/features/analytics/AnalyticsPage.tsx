@@ -97,7 +97,7 @@ export function AnalyticsPage() {
       const mockProjects = [
         {
           projectId: 'mock-p1',
-          name: 'Nâng cấp Hệ thống CRM & Bán hàng',
+          name: t('analytics:mockProjects.crmUpgrade'),
           progress: 85,
           completedTasks: 17,
           totalTasks: 20,
@@ -105,7 +105,7 @@ export function AnalyticsPage() {
         },
         {
           projectId: 'mock-p2',
-          name: 'Triển khai Cổng Thông tin Khách hàng',
+          name: t('analytics:mockProjects.customerPortal'),
           progress: 60,
           completedTasks: 12,
           totalTasks: 20,
@@ -113,7 +113,7 @@ export function AnalyticsPage() {
         },
         {
           projectId: 'mock-p3',
-          name: 'Tối ưu Hóa Quy trình Vận hành Q4',
+          name: t('analytics:mockProjects.operationsOptimization'),
           progress: 35,
           completedTasks: 7,
           totalTasks: 20,
@@ -385,15 +385,22 @@ export function AnalyticsPage() {
                 let risk = '';
                 let recommendation = '';
 
+                // 16/09/2026: cac chuoi tieng Viet trong .includes(...)/regex ben duoi (vd 'diem
+                // sang', 'rui ro', 'khuyen nghi'...) la HANG SO de doi chieu/tach doan van ban AI
+                // (Gemini/Groq) ma backend analytics-service sinh ra bang tieng Viet (xem
+                // useAiInsightMutation ben tren) - khong phai chuoi hien thi cho nguoi dung nen
+                // KHONG dua qua t(): noi dung AI insight luon la tieng Viet bat ke ngon ngu UI dang
+                // chon, boc qua t() se lam sai pattern matching. Moi dong .includes(...)/regex co
+                // dau duoi day duoc danh dau i18n-lint-ignore vi ly do tren.
                 // Tìm theo từ khóa nếu có sẵn trong câu
                 for (const line of lines) {
                   const lower = line.toLowerCase();
-                  if (!highlight && (lower.includes('điểm sáng') || lower.includes('nổi bật') || lower.includes('tích cực') || lower.includes('hoàn thành'))) {
-                    highlight = line.replace(/^(điểm sáng|điểm nổi bật)[:\s-]*/i, '').trim();
-                  } else if (!risk && (lower.includes('rủi ro') || lower.includes('chậm') || lower.includes('tồn đọng') || lower.includes('hạn chế'))) {
-                    risk = line.replace(/^(rủi ro|rủi ro tiềm ẩn)[:\s-]*/i, '').trim();
-                  } else if (!recommendation && (lower.includes('khuyến nghị') || lower.includes('đề xuất') || lower.includes('gợi ý') || lower.includes('cần'))) {
-                    recommendation = line.replace(/^(khuyến nghị|đề xuất|gợi ý)[:\s-]*/i, '').trim();
+                  if (!highlight && (lower.includes('điểm sáng') || lower.includes('nổi bật') || lower.includes('tích cực') || lower.includes('hoàn thành'))) { // i18n-lint-ignore: khop van ban AI backend, khong phai chuoi UI
+                    highlight = line.replace(/^(điểm sáng|điểm nổi bật)[:\s-]*/i, '').trim(); // i18n-lint-ignore: regex khop van ban AI backend, khong phai chuoi UI
+                  } else if (!risk && (lower.includes('rủi ro') || lower.includes('chậm') || lower.includes('tồn đọng') || lower.includes('hạn chế'))) { // i18n-lint-ignore: khop van ban AI backend, khong phai chuoi UI
+                    risk = line.replace(/^(rủi ro|rủi ro tiềm ẩn)[:\s-]*/i, '').trim(); // i18n-lint-ignore: regex khop van ban AI backend, khong phai chuoi UI
+                  } else if (!recommendation && (lower.includes('khuyến nghị') || lower.includes('đề xuất') || lower.includes('gợi ý') || lower.includes('cần'))) { // i18n-lint-ignore: khop van ban AI backend, khong phai chuoi UI
+                    recommendation = line.replace(/^(khuyến nghị|đề xuất|gợi ý)[:\s-]*/i, '').trim(); // i18n-lint-ignore: regex khop van ban AI backend, khong phai chuoi UI
                   }
                 }
 
@@ -408,10 +415,10 @@ export function AnalyticsPage() {
                   if (!risk && sentences[1]) risk = sentences[1];
                   if (!recommendation && sentences[2]) recommendation = sentences.slice(2).join(' ');
                   if (!risk && !recommendation && highlight) {
-                    risk = 'Theo dõi sát tiến độ các đầu việc tồn đọng để duy trì nhịp độ vận hành.';
-                    recommendation = 'Ưu tiên phân bổ nguồn lực giải quyết các công việc trọng tâm trong kỳ.';
+                    risk = t('analytics:aiInsight.fallbacks.risk');
+                    recommendation = t('analytics:aiInsight.fallbacks.recommendationWhenHighlightOnly');
                   } else if (!recommendation) {
-                    recommendation = 'Tiếp tục rà soát định kỳ và tối ưu quy trình phối hợp liên phòng ban.';
+                    recommendation = t('analytics:aiInsight.fallbacks.recommendationDefault');
                   }
                 }
 
@@ -420,19 +427,19 @@ export function AnalyticsPage() {
                     <li className="flex items-start gap-2.5">
                       <span className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
                       <span>
-                        <strong className="font-semibold text-slate-900">Điểm sáng:</strong> {highlight}
+                        <strong className="font-semibold text-slate-900">{t('analytics:aiInsight.labels.highlight')}</strong> {highlight}
                       </span>
                     </li>
                     <li className="flex items-start gap-2.5">
                       <span className="mt-1 h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
                       <span>
-                        <strong className="font-semibold text-slate-900">Rủi ro:</strong> {risk}
+                        <strong className="font-semibold text-slate-900">{t('analytics:aiInsight.labels.risk')}</strong> {risk}
                       </span>
                     </li>
                     <li className="flex items-start gap-2.5">
                       <span className="mt-1 h-1.5 w-1.5 rounded-full bg-indigo-500 shrink-0" />
                       <span>
-                        <strong className="font-semibold text-slate-900">Khuyến nghị:</strong> {recommendation}
+                        <strong className="font-semibold text-slate-900">{t('analytics:aiInsight.labels.recommendation')}</strong> {recommendation}
                       </span>
                     </li>
                   </ul>

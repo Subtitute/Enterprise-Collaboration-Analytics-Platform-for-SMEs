@@ -26,6 +26,9 @@
 
   "ROLE_NOT_FOUND": "ロールが見つかりませんでした。",
 
+  "FORBIDDEN_SUPER_ADMIN_ONLY": "この操作はプラットフォームのSuper Adminのみ実行できます。",
+  "ORGANIZATION_NOT_FOUND": "組織が見つかりませんでした。",
+
   "PROJECT_NOT_FOUND_IN_ORG": "組織内にこのプロジェクトが見つかりませんでした。",
   "TASK_STATUS_TRANSITION_INVALID": "タスクのステータスを{{from}}から{{to}}に変更することはできません。",
   "TASK_NOT_FOUND": "タスクが見つかりませんでした。",

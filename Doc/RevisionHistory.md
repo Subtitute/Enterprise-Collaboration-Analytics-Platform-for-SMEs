@@ -1178,6 +1178,195 @@ thành công — 2 chunk mới `ForgotPasswordPage`/`ResetPasswordPage` được
 
 ---
 
+## 2026-09-16 — Merge nhánh `frontend` của Nguyễn Lê Tiến (lần 3) — 23 file conflict Git thật + 1 hồi quy ngữ nghĩa "im lặng"
+
+Người dùng tự merge nhánh `frontend` của Tiến vào nhánh chính bằng công cụ Git riêng (môi trường
+CLI này không có `git`), để lại dấu conflict (`<<<<<<< HEAD` / `=======` / `>>>>>>> origin/frontend`)
+trong **23 file**, toàn bộ đều trong `apps/web` — 69 khối conflict: `i18n/locales/{vi,en,ja}/
+{hrm,documents,crm,admin}.json` (12 file, 1-3 khối/file), `components/ui/DatePicker.tsx` (3),
+`features/hrm/{AttendancePage.tsx (23!), LeaveRequestsPage.tsx (1), components/
+NewLeaveRequestModal.tsx (2)}`, `features/documents/{DocumentsPage.tsx (2), components/
+FileTable.tsx (1), components/FolderGrid.tsx (2)}`, `features/crm/components/CustomerCard.tsx (2)`,
+`features/notifications/{utils.tsx (9), NotificationsPage.tsx (2), components/
+NotificationBell.tsx (1)}`.
+
+**Cách xử lý**: `admin.json` (3 file, 1 khối/file) + `DatePicker.tsx`/`NewLeaveRequestModal.tsx` (5
+khối, gắn trực tiếp với bản vá "Nghỉ phép chọn được ngày quá khứ" 15/09/2026 của chính tôi) tự giải
+quyết trực tiếp; 4 nhóm còn lại (HRM, Documents, CRM, Notifications — 61 khối) giao cho 4 agent chạy
+song song, mỗi agent 1 khu vực tính năng, cùng bộ hướng dẫn: đọc CẢ HAI phía đầy đủ (không chỉ vài
+dòng đánh dấu), phân biệt "cả 2 phía cùng sửa 1 bug độc lập" (chọn 1 bản, xoá bản trùng) với "cả 2
+phía cùng thêm tính năng khác nhau" (gộp cả 2), và đặc biệt canh chừng hiện tượng đã biết từ 2 lần
+merge Tiến trước (29/08, đợt "rà soát lại" 15/09): Git 3-way merge có thể gộp SẠCH (không báo
+conflict) 2 đoạn thêm khác dòng nhưng cùng ý — để lại `const` trùng tên trong cùng scope hoặc key
+JSON trùng trong cùng object (giá trị đầu bị đè âm thầm).
+
+**Phát hiện qua chính tôi** (`DatePicker.tsx`, ngoài vùng conflict được đánh dấu): cả 2 phía độc lập
+thêm cơ chế disable ô ngày `< minDate` (đúng bản vá 15/09/2026 của tôi, và Tiến làm y hệt) — merge
+gộp sạch phần tính `isDisabled`, để lại **2 lần khai báo `const isDisabled`** trong cùng 1 vòng lặp
+render (`dateStr`/`formattedMonth`/`formattedDay` của Tiến VÀ `dayStr` của tôi, tính ra CÙNG 1 giá
+trị) — lỗi biên dịch thật nếu không gộp lại. Giữ 1 bản tính duy nhất (dùng tên `dateStr` của Tiến,
+giữ chú thích lý do so sánh chuỗi của tôi), giữ kiểu tô màu ô bị khoá đẹp hơn của Tiến
+(`line-through`/nền mờ) thay vì bản đơn giản của tôi.
+
+**Phát hiện qua 4 agent** (đầy đủ trong báo cáo từng agent, tóm tắt):
+- **HRM** (33 khối — lớn nhất): `AttendancePage.tsx` 23 khối hoá ra CHỈ 1 nguyên nhân lặp lại nhiều
+  lần — cả 2 phía độc lập đặt tên khác nhau cho CÙNG khái niệm (`statusBadge`/`statuses`,
+  `monthFilter`/`filter`, `photoModal`/`photoProofModal`, `viewProofIn`/`viewCheckInProofTitle`...)
+  — agent giữ bản khớp đúng quy ước đặt tên sẵn có của file, xoá bản trùng khỏi cả 3 locale.
+  **Bug thật tìm thấy** ở `LeaveRequestsPage.tsx` (1 khối): bản merge của tôi gọi
+  `parseLeaveReason(request.reason)` THIẾU tham số bắt buộc thứ 2 (`t`) — sẽ ném lỗi runtime
+  "t is not a function" ngay khi có 1 đơn nghỉ phép nào đó có `reason` đúng định dạng
+  `[ANNUAL] ...`; bản của Tiến gọi đúng đủ tham số nhưng lại hardcode fallback tên nhân viên
+  `'Nhân viên'` thay vì dùng key i18n có sẵn. Gộp đúng nửa tốt của mỗi bên.
+- **Documents** (8 khối): cùng lớp "2 tên cho 1 khái niệm" (`viewMode.*`/`viewGrid*`,
+  `updatedLabel`/`updatedAt`, `loadingFileCount`/`loading`) + phát hiện phụ 2 cặp key JSON trùng
+  lặp cơ học thật (`documentsPage.searchPlaceholder`, `fileTable.selectFileAria`/`selectAllAria`
+  mỗi key khai báo 2 lần, cùng giá trị — vô hại nhưng dọn cho sạch).
+- **CRM** (8 khối): cùng lớp đặt tên trùng (`editCustomer`/`edit`, `lastInteraction`/`interaction`)
+  + xác nhận `DealKanbanBoard.tsx` cần đúng section `kanban` từ phía tôi (Tiến bỏ sót khi merge thủ
+  công đoạn đó), giữ lại đúng.
+- **Notifications** (12 khối): gộp 2 cách viết `getNotificationVisualConfig` (giữ điều kiện match
+  cả 2 phía cộng lại), gộp `targetName`/`targetKey` theo cấu trúc bắt buộc của Tiến (HEAD thiếu hẳn
+  field `targetKey` — sẽ lỗi kiểu TypeScript nếu giữ nguyên). **Bug thật tìm thấy** (ngoài vùng
+  conflict): `cleanNotificationMessage()` gọi `.toUpperCase()` lên CHÍNH CHUỖI PATTERN thay vì lên
+  kết quả khớp được (`'(#$1)'.toUpperCase()` là no-op vì không ký tự nào trong `(#$1)` có
+  hoa/thường) — mã hash UUID được "dọn" khỏi thông báo đáng lẽ phải viết hoa nhưng vẫn giữ nguyên
+  chữ thường; sửa bằng callback `.replace(pattern, (_m, hex) => `(#${hex.toUpperCase()})`)`.
+
+**Hồi quy phát hiện SAU khi gộp xong (chạy lại toàn bộ gate, không phải trong vùng conflict nào)**:
+1. `NotificationBell.tsx` — `<Dropdown align="end" contentClassName="...">`: cả 2 prop đều SAI so
+   với API thật của `Dropdown.tsx` (`align?: 'left'|'right'` — không có `'end'`; tên prop đúng là
+   `panelClassName`, không phải `contentClassName`) — lỗi biên dịch thật, phát hiện qua
+   `npm run typecheck`. Đây là code của Tiến, chưa từng qua conflict nên chưa ai đọc lại — sửa
+   thành `align="right"` (khớp mặc định), `panelClassName`.
+2. `apps/notification-service/src/notifications/notifications.service.spec.ts` — 2 test kỳ vọng
+   `filter.type` là chuỗi tuyệt đối (`'task.assigned'`), nhưng `NotificationsService.findForUser()`
+   thực tế đã xây `filter.type` thành 1 `RegExp` khớp TIỀN TỐ (cho phép lọc `'leave_request'` khớp
+   cả `'leave_request.approved'`/`'leave_request.rejected'`) — tính năng có chủ đích (có chú thích
+   giải thích rõ trong service), test chỉ đơn giản chưa được cập nhật theo. Không phải file
+   `apps/web` nên KHÔNG nằm trong 23 file có dấu conflict — merge sạch, chỉ lộ ra khi chạy lại toàn
+   bộ `npm run test`. Sửa lại test để so khớp bằng `RegExp`/`.test(...)` thay vì so sánh chuỗi.
+3. Gate `lint:i18n-strings` phát hiện thêm **83 chuỗi tiếng Việt hardcode mới** (đúng lớp phát hiện
+   như đợt "rà soát lại sau khoảng nghỉ 2 tuần" 15/09/2026 — code của Tiến merge sạch nhưng chưa
+   từng qua bộ kiểm tra này) trên 10 file KHÔNG nằm trong 23 file conflict (`Topbar.tsx`,
+   `RoleCheckboxList.tsx`, `DepartmentsPage.tsx`, `MembersPage.tsx`, `RolesPermissionsPage.tsx`,
+   `ProfilePage.tsx`, `AnalyticsPage.tsx`, `LeaveRequestsPage.tsx`, `NotificationsPage.tsx`,
+   `notifications/utils.tsx`). Giao lại cho 4 agent song song khác (theo khu vực): 1 agent xác nhận
+   và XOÁ hẳn (không chỉ `i18n-lint-ignore`) các nhánh `.includes('quản trị'/'quản lý'/'nhân viên')`
+   so khớp tên vai trò — xác nhận qua rà soát toàn bộ mã nguồn rằng `Role.name` KHÔNG BAO GIỜ có thể
+   là tiếng Việt (chỉ được seed bằng 3 giá trị tiếng Anh cố định, không có endpoint đổi tên vai
+   trò) nên các nhánh đó là code chết thật sự, không phải ngoại lệ hợp lệ; 1 agent dịch đầy đủ 32
+   nhãn quyền hạn trong `RolesPermissionsPage.tsx` (tái sử dụng key `admin:rolesPermissionsPage.
+   permissions.*` đã có sẵn, khớp 100% với văn bản hardcode — không cần dịch lại); 1 agent xử lý
+   `AnalyticsPage.tsx` (tách đúng 2 loại: pattern-matching lên văn bản AI (Gemini/Groq) tiếng Việt
+   do backend sinh ra → `i18n-lint-ignore`, còn 3 tên dự án demo + 3 câu fallback + 3 nhãn
+   Điểm sáng/Rủi ro/Khuyến nghị là văn bản UI thật → dịch đầy đủ vi/en/ja); 1 agent gắn
+   `i18n-lint-ignore` cho các điểm so khớp còn lại (`LeaveRequestsPage.tsx`'s `parseLeaveReason()` -
+   so khớp dữ liệu ĐÃ LƯU từ trước khi có quy ước `[ANNUAL]`-prefix; `NotificationsPage.tsx`/
+   `notifications/utils.tsx` - so khớp `title` do backend sinh sẵn, cùng loại đã có tiền lệ).
+4. Gói `packages/common-dto`: `coverageThreshold.functions` (30%) tụt xuống 28.57% — KHÔNG do đợt
+   merge này (không đổi code sản phẩm nào của gói) mà do cấu trúc: mỗi `export enum` biên dịch
+   thành 1 hàm IIFE runtime, và gói này có 5 file enum chưa từng có test nào import tới chúng (file
+   test duy nhất từ trước, `pagination.dto.spec.ts`, chỉ đụng tới `dto/pagination.dto.ts`) — thêm 1
+   enum mới bất kỳ (kể cả không đổi code) đều kéo % xuống dần theo thời gian. Lấp bằng 1 file test
+   mới (`enums/enums.spec.ts`, 22 test) xác nhận giá trị của cả 6 enum/hằng số dùng chung
+   (`TaskStatus`, `ProjectStatus`, `DealStage`, `LeaveRequestStatus`, `CalendarEventType`,
+   `DefaultRoleName`/`PERMISSIONS`/`DEFAULT_ROLE_PERMISSIONS`) — vừa lấp ngưỡng vừa là lưới an toàn
+   thật chống đổi tên/xoá nhầm 1 giá trị enum (hợp đồng dữ liệu lưu thẳng vào DB, dùng xuyên nhiều
+   service).
+
+**Xác minh cuối cùng**: `node scripts/check-hardcoded-vietnamese.js` sạch (129 file, 0 vi phạm).
+`npm run typecheck` (root, cả 9 service + `apps/web`) sạch. `npm run lint` (root) 0 lỗi (chỉ còn
+warning nền cũ, không tăng). `npm run test` (root) — 12/12 workspace pass, không hồi quy số lượng
+test. `npm run test:coverage` (root) — sạch, không rớt ngưỡng ở bất kỳ workspace nào (kể cả
+`common-dto` sau khi vá). `npm run build -w apps/web` (production) thành công.
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 16/09/2026 (phần "merge nhánh
+frontend lần 3 + Super Admin").*
+
+---
+
+## 2026-09-16 — Tính năng mới: "Super Admin" (quản trị nền tảng, xuyên nhiều tổ chức)
+
+Người dùng yêu cầu triển khai "Super Admin" — vai trò được `General_idea.md` §4 ghi nhận từ
+18/07/2026 như 1 khái niệm ĐỊNH HƯỚNG, CHƯA từng lập trình (làm rõ lại 15/09/2026 sau phản hồi
+GVHD, xem mục "phản hồi GVHD" phía trên). Đây là lần ĐẦU TIÊN hệ thống có 1 tài khoản nhìn xuyên
+được NHIỀU tổ chức — quyết định kiến trúc quan trọng nhất là **giới hạn phạm vi nhìn-xuyên-tổ-chức
+đó ở ĐÚNG 1 nơi duy nhất: quản lý vòng đời entity `Organization` trong `iam-service`**, KHÔNG mở
+rộng sang bất kỳ dữ liệu nghiệp vụ nào của 6 service còn lại (dự án, tài liệu, khách hàng, chấm
+công, báo cáo...) — giữ nguyên bất biến "đa tổ chức, không tổ chức nào nhìn xuyên tổ chức khác"
+(`General_idea.md` §4) cho MỌI dữ liệu nghiệp vụ, chỉ phá lệ đúng 1 chỗ có kiểm soát.
+
+**Thiết kế chống đổ vỡ kiến trúc hiện có**: `InternalAuthGuard` (`packages/common-guard`) bắt buộc
+mọi request phải mang `x-org-id` KHÔNG RỖNG mới qua được (từ chối cứng nếu thiếu) — nếu cho
+`User.organizationId` là `null`/nullable cho Super Admin sẽ phải sửa lại guard này VÀ mọi câu
+truy vấn `WHERE organizationId = ...` ở 7 service, rủi ro rất lớn cho 1 tính năng phụ. Thay vào đó:
+tạo 1 Organization "hệ thống" DUY NHẤT (`Organization.isSystem: boolean`, cột mới) chỉ để "an cư"
+tài khoản Super Admin (thoả FK `organizationId NOT NULL` mà không phải sửa gì ở 7 service khác),
+và 1 cột `User.isSuperAdmin: boolean` (mặc định `false`) đánh dấu quyền hạn thật sự — hoàn toàn
+tách biệt khỏi hệ thống Role/Permission theo tổ chức hiện có (Super Admin không có `Role` nào,
+`permissions[]` luôn rỗng).
+
+**Luồng xác thực**: `AuthContext`/`JwtAccessPayload` (`packages/common-dto`) thêm field
+`isSuperAdmin: boolean`; Gateway forward qua header nội bộ mới `x-is-super-admin`
+(`inject-auth-headers.ts`); `InternalAuthGuard` đọc lại thành `AuthContext.isSuperAdmin`. Guard mới
+`SuperAdminGuard` + decorator `@RequireSuperAdmin()` (`packages/common-guard`, mirror đúng mẫu
+`PermissionsGuard`/`@RequirePermissions()` nhưng tách guard riêng vì đây là 1 cấp độ quyền hạn khác
+hẳn RBAC theo tổ chức) — chỉ đăng ký làm `APP_GUARD` thứ 3 trong `iam-service` (không phải cả 7
+service), giữ phạm vi ảnh hưởng nhỏ nhất có thể.
+
+**Khoá/mở khoá 1 tổ chức**: `Organization.isActive: boolean` (cột mới, mặc định `true`) — mirror
+đúng ý tưởng `User.isActive` nhưng ở cấp tổ chức. `AuthService.login()`/`refresh()` gộp kiểm tra
+`!user.organization.isActive` vào CHUNG nhánh chống đoán tài khoản đã có sẵn (cùng "Email hoặc mật
+khẩu không đúng"/`INVALID_CREDENTIALS` cho `login()`, cùng `USER_INACTIVE_OR_MISSING` cho
+`refresh()`) — không tạo mã lỗi riêng để không lộ "tổ chức bạn đã bị khoá" khác với "sai mật khẩu"
+cho kẻ tấn công đang dò tài khoản. Khoá 1 tổ chức còn chủ động blacklist Redis access token của
+TOÀN BỘ user thuộc tổ chức đó ngay lập tức (mirror `UsersService.deactivate()` cho 1 user, nay lặp
+cho cả danh sách, fail-open giống hệt nếu Redis lỗi).
+
+**Bootstrap**: không có luồng đăng ký Super Admin qua API (sẽ là lỗ hổng bảo mật nghiêm trọng nếu
+bất kỳ ai tự đăng ký được quyền quản trị toàn nền tảng) — `SuperAdminBootstrapService`
+(`OnModuleInit`) tự tạo tài khoản Super Admin ĐẦU TIÊN lúc `iam-service` khởi động, CHỈ khi 2 biến
+môi trường `SUPER_ADMIN_EMAIL`/`SUPER_ADMIN_PASSWORD` được cấu hình (để trống = tắt hoàn toàn tính
+năng, mirror triết lý "cấu hình ngoài tuỳ chọn" đã áp dụng cho SMTP/Gemini/Groq) VÀ chưa có user
+nào dùng đúng email đó (idempotent tuyệt đối — không bao giờ ghi đè tài khoản đã tồn tại, kể cả sau
+khi Super Admin tự đổi mật khẩu, an toàn qua vô số lần restart service).
+
+**API mới** (`apps/iam-service/src/platform-admin/`, route `/api/v1/platform-admin/*`, Gateway
+thêm prefix vào nhóm proxy `iam-service` sẵn có): `GET organizations` (danh sách phân trang, loại
+trừ tổ chức hệ thống qua `isSystem: false`, kèm `userCount` đếm riêng từng tổ chức — quy mô đồ án
+tốt nghiệp không cần tối ưu 1 subquery gộp), `GET organizations/:id`, `PATCH organizations/:id/
+{de,re}activate`, `GET stats` (tổng số tổ chức/tổ chức đang hoạt động/tổng người dùng, không tính
+Super Admin vào tổng người dùng).
+
+**Frontend**: Super Admin có 1 khu vực HOÀN TOÀN RIÊNG (`/platform-admin`, `PlatformAdminPage.tsx`)
+— KHÔNG dùng `AppShell`/`Sidebar`/`Topbar` hiện có (những thành phần đó giả định người dùng thuộc 1
+tổ chức nghiệp vụ thật, vô nghĩa với Super Admin). `ProtectedRoute.tsx` bổ sung prop
+`requireSuperAdmin` VÀ tự động điều hướng 2 CHIỀU: Super Admin cố vào bất kỳ trang nào khác đều bị
+đẩy về `/platform-admin` (tránh họ thấy 1 dashboard trống trơn của tổ chức "hệ thống"), người dùng
+thường cố vào `/platform-admin` bị đẩy về `/dashboard`. `useLogin()` kiểm tra `data.user.isSuperAdmin`
+để điều hướng đúng ngay sau đăng nhập. Thêm 1 thẻ tài khoản demo thứ 4 (Super Admin) vào widget có
+sẵn trên `LoginPage.tsx`, khớp đúng giá trị mặc định của `SUPER_ADMIN_EMAIL`/`PASSWORD` trong
+`infra/.env.example` — demo được ngay không cần biết thông tin đăng nhập ẩn.
+
+**Xác minh**: `platform-admin.service.spec.ts` (8 test), `super-admin-bootstrap.service.spec.ts`
+(4 test, gồm cả trường hợp tính năng tắt + idempotent), `super-admin.guard.spec.ts` (4 test),
+bổ sung test cho `InternalAuthGuard`/`inject-auth-headers.ts` (header `x-is-super-admin` cả 2
+chiều true/false), bổ sung 1 test `login()` cho nhánh tổ chức bị khoá. `iam-service`: 13 suite/77
+test pass. Gate cuối cùng (chạy CHUNG với đợt merge ở mục ngay trên, cùng 1 lượt xác minh):
+typecheck/lint/lint:i18n-strings/test/test:coverage toàn bộ 12 workspace sạch, `build -w apps/web`
+production thành công (chunk `PlatformAdminPage` được tách riêng đúng theo `React.lazy()`).
+
+**Giới hạn đã biết (ghi nhận, không phải thiếu sót)**: Super Admin CHỈ quản lý được vòng đời tổ
+chức (xem/khoá/mở khoá), KHÔNG xem được danh sách người dùng bên trong từng tổ chức (chỉ có số
+đếm) — quyết định có chủ đích để không phải đụng tới logic lọc theo tổ chức sẵn có của
+`UsersService`, giữ đúng bất biến "không xem xuyên dữ liệu nghiệp vụ". Có thể mở rộng sau nếu cần.
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 16/09/2026 (phần "merge nhánh
+frontend lần 3 + Super Admin").*
+
+---
+
 ## Lịch sử thay đổi tài liệu này
 
 - **2026-08-24** — Khởi tạo file, gộp lại toàn bộ lịch sử rà soát/sửa lỗi từ 18/07/2026 (khởi tạo
@@ -1228,3 +1417,16 @@ thành công — 2 chunk mới `ForgotPasswordPage`/`ResetPasswordPage` được
   mirror `RefreshToken` với secret ký riêng, `EmailService`/`nodemailer` + service `mailhog` mới
   trong Docker Compose cho demo không cần SMTP thật, thiết kế chống dò email mirror `login()`).
   Gate cuối sạch (typecheck/lint/lint:i18n-strings/test toàn 12 workspace), không hồi quy.
+- **2026-09-16** — Bổ sung mục "Merge nhánh frontend của Tiến (lần 3)" — 23 file conflict Git thật
+  (69 khối, `AttendancePage.tsx` riêng 23 khối) + 1 hồi quy "im lặng" (`DatePicker.tsx`, `const`
+  trùng tên) + 3 phát hiện chỉ lộ ra khi chạy lại toàn bộ gate sau khi gộp xong (`NotificationBell.tsx`
+  dùng sai API `Dropdown`, 1 test `notification-service` lỗi thời so với tính năng lọc-theo-tiền-tố
+  đã có, 83 chuỗi tiếng Việt hardcode mới trên 10 file ngoài vùng conflict) + 1 ngưỡng coverage
+  `common-dto` tụt do cấu trúc (enum chưa từng có test). Dùng 4+4 agent song song (giải quyết
+  conflict theo khu vực, rồi dịch/gắn i18n-lint-ignore theo khu vực). Gate cuối sạch toàn bộ.
+- **2026-09-16 (bổ sung)** — Bổ sung mục "Tính năng mới: Super Admin" — vai trò quản trị nền tảng
+  đầu tiên nhìn xuyên được nhiều tổ chức, phạm vi cố ý giới hạn ở quản lý vòng đời `Organization`
+  trong `iam-service` (không đụng dữ liệu nghiệp vụ 6 service còn lại). Cột mới `User.isSuperAdmin`/
+  `Organization.{isActive,isSystem}`, guard/decorator mới `SuperAdminGuard`/`@RequireSuperAdmin()`,
+  bootstrap tự động qua biến môi trường (không có luồng đăng ký qua API), khu vực frontend riêng
+  `/platform-admin` tách biệt hoàn toàn AppShell hiện có.

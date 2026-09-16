@@ -54,6 +54,15 @@ export const ERROR_CODES = {
   // 20/08/2026: co y KHONG gan ma cho loi "permission key khong hop le" (roles.service.ts) - ca
   // bien admin/dev hiem gap, roi ve message tieng Viet qua defaultValue cua i18next (xem plan).
 
+  // ---- IAM: platform-admin (Super Admin, bo sung 16/09/2026) ----
+  // Endpoint /platform-admin/* CHI danh cho Super Admin (quan tri nen tang, khong thuoc 1 to
+  // chuc nghiep vu nao) - xem SuperAdminGuard (@app/common-guard) va User.isSuperAdmin.
+  FORBIDDEN_SUPER_ADMIN_ONLY: 'FORBIDDEN_SUPER_ADMIN_ONLY',
+  // Dung chung cho ca 2 truong hop id sai VA id trung dung to chuc he thong (Organization.isSystem,
+  // noi "an cu" cua chinh tai khoan Super Admin) - to chuc he thong khong hien trong danh sach
+  // quan ly nen coi nhu "khong ton tai" doi voi API nay, khong can ma loi rieng.
+  ORGANIZATION_NOT_FOUND: 'ORGANIZATION_NOT_FOUND',
+
   // ---- Project & Task ----
   PROJECT_NOT_FOUND_IN_ORG: 'PROJECT_NOT_FOUND_IN_ORG',
   TASK_STATUS_TRANSITION_INVALID: 'TASK_STATUS_TRANSITION_INVALID',

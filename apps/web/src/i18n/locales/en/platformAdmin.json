@@ -1,0 +1,43 @@
+{
+  "page": {
+    "title": "Platform Administration",
+    "logout": "Sign out",
+    "description": "Manage the lifecycle of organizations registered on the platform. This area is completely separate from each organization's business data (projects, documents, customers...).",
+    "loading": "Loading organizations…",
+    "errorTitle": "Couldn't load the organization list",
+    "emptyTitle": "No organizations have registered yet",
+    "optionsAria": "Organization options",
+    "columns": {
+      "organization": "Organization",
+      "taxCode": "Tax code",
+      "userCount": "Members",
+      "createdAt": "Registered on",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Deactivated"
+    },
+    "actionsMenu": {
+      "deactivate": "Deactivate organization",
+      "reactivate": "Reactivate organization"
+    },
+    "deactivateConfirm": {
+      "title": "Deactivate this organization?",
+      "description": "Every member of \"{{name}}\" will be unable to sign in until the organization is reactivated.",
+      "confirmLabel": "Deactivate organization"
+    }
+  },
+  "stats": {
+    "totalOrganizations": "Total organizations",
+    "activeOrganizations": "Active organizations",
+    "totalUsers": "Total users"
+  },
+  "toast": {
+    "organizationDeactivated": "Organization deactivated",
+    "organizationDeactivateFailed": "Couldn't deactivate the organization",
+    "organizationReactivated": "Organization reactivated",
+    "organizationReactivateFailed": "Couldn't reactivate the organization"
+  }
+}

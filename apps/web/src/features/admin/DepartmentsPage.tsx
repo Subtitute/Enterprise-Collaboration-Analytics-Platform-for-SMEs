@@ -38,7 +38,11 @@ export function DepartmentsPage() {
       // Xác định Trưởng bộ phận / Quản trị viên của phòng ban
       const isLead = (u.roles ?? []).some((r) => {
         const rName = r.name.toLowerCase();
-        return rName.includes('lead') || rName.includes('manager') || rName.includes('trưởng') || rName.includes('admin');
+        // 16/09/2026: bo nhanh khop 'trưởng' - Role.name luon la tieng Anh ('Org Admin'/'Manager'/
+        // 'Employee', xem DefaultRoleName trong packages/common-dto) vi seedDefaultRoles() la duy
+        // nhat tao Role va khong co endpoint doi ten vai tro nao ca, nen nhanh nay khong bao gio
+        // khop (dead code) va vi pham linter hardcode tieng Viet.
+        return rName.includes('lead') || rName.includes('manager') || rName.includes('admin');
       });
 
       if (isLead && !managers[u.departmentId]) {

@@ -15,6 +15,15 @@ export interface AuthContext {
   // nay co thuoc phong ban duoc chia se hay khong" ma khong goi ngang sang IAM Service (chua co
   // co che goi noi bo giua cac service). `null` neu nguoi dung chua duoc gan phong ban nao.
   departmentId: string | null;
+  // 16/09/2026: "Super Admin" (tinh nang moi) - true CHI VOI tai khoan quan tri nen tang (khong
+  // thuoc 1 to chuc nghiep vu that nao, xem User.isSuperAdmin + Organization.isSystem trong
+  // iam-service). Mac dinh false cho MOI nguoi dung thuong - khong doi hanh vi cu. Cac endpoint
+  // /platform-admin/* (chi co o iam-service) doc truong nay qua SuperAdminGuard
+  // (@app/common-guard) thay vi `permissions` (Super Admin KHONG tham gia ma tran RBAC theo to
+  // chuc, no la 1 cap do quyen han hoan toan khac - quan ly nen tang, khong phai nghiep vu 1 to
+  // chuc). Cac endpoint nghiep vu con lai (project/task/document/crm/hrm/analytics...) KHONG doc
+  // truong nay - Super Admin khong duoc thiet ke de xem du lieu nghiep vu cua bat ky to chuc nao.
+  isSuperAdmin: boolean;
 }
 
 /** Payload ky trong JWT access token, phat hanh boi IAM Service. */
@@ -27,6 +36,8 @@ export interface JwtAccessPayload {
   // 28/07/2026: xem ghi chu departmentId tai AuthContext o tren - cung ly do, dua thang vao JWT
   // de Gateway forward duoc qua header noi bo ma khong can IAM Service lam gi them luc verify.
   departmentId: string | null;
+  // 16/09/2026: xem ghi chu isSuperAdmin tai AuthContext o tren.
+  isSuperAdmin: boolean;
   iat?: number;
   exp?: number;
 }
@@ -54,4 +65,6 @@ export const INTERNAL_AUTH_HEADERS = {
   PERMISSIONS: 'x-permissions',
   // 28/07/2026: header noi bo moi mang departmentId - xem ghi chu tai AuthContext o tren.
   DEPARTMENT_ID: 'x-department-id',
+  // 16/09/2026: header noi bo moi mang co Super Admin - xem ghi chu isSuperAdmin tai AuthContext.
+  IS_SUPER_ADMIN: 'x-is-super-admin',
 } as const;

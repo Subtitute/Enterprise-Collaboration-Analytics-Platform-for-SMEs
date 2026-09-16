@@ -31,6 +31,13 @@ export function useLogin() {
     onSuccess: (data) => {
       queryClient.clear();
       setSession(data);
+      // 16/09/2026: "Super Admin" (tinh nang moi) - khong thuoc to chuc nghiep vu nao, dieu huong
+      // thang ve khu vuc rieng /platform-admin, bo qua hoan toan logic "trang redirect"/dashboard
+      // ben duoi (danh cho nguoi dung thuong thuoc 1 to chuc that).
+      if (data.user.isSuperAdmin) {
+        navigate('/platform-admin', { replace: true });
+        return;
+      }
       // Neu co trang redirect tu state cua window.history thi dieu huong ve do, mac dinh ve /dashboard
       const from = (window.history.state?.usr as { from?: { pathname: string; search?: string } })?.from;
       const redirectTarget = from ? `${from.pathname}${from.search || ''}` : '/dashboard';

@@ -28,21 +28,36 @@ const LIMIT = 15;
  */
 function getRoleBadgeConfig(roleName: string, t?: (key: string) => string) {
   const lower = roleName.trim().toLowerCase();
-  if (lower.includes('admin') || lower.includes('quản trị')) {
+  // 16/09/2026: bo cac nhanh khop tieng Viet ('quản trị'/'quản lý'/'nhân viên') o 3 dieu kien
+  // if() ben duoi - Role.name luon la tieng Anh ('Org Admin'/'Manager'/'Employee', xem
+  // DefaultRoleName trong packages/common-dto), khong co endpoint doi ten vai tro nao ca nen cac
+  // nhanh nay khong bao gio khop (dead code) va vi pham linter hardcode tieng Viet. Chuoi tieng
+  // Viet trong bien `label` ben duoi la truong hop khac (fallback co chu y khi khong truyen t),
+  // xem comment rieng ngay canh no.
+  if (lower.includes('admin')) {
+    // Fallback co chu y, chi dung khi ham nay duoc goi ma khong truyen t vao (tham so t la
+    // optional) - minh giu nguyen dung chuoi that trong vi/admin.json (key admin:roles.orgAdmin)
+    // de 2 nguon luon khop nhau, day khong phai UI copy hardcode. i18n-lint-ignore (16/09/2026)
     const label = t ? t('admin:roles.orgAdmin') : 'Quản trị viên tổ chức';
     return {
       label,
       className: 'bg-indigo-50 text-indigo-700 border border-indigo-200/70 font-medium',
     };
   }
-  if (lower.includes('manager') || lower.includes('quản lý')) {
+  if (lower.includes('manager')) {
+    // Fallback co chu y, chi dung khi ham nay duoc goi ma khong truyen t vao - minh giu nguyen
+    // dung chuoi that trong vi/admin.json (key admin:roles.manager) de 2 nguon luon khop nhau,
+    // day khong phai UI copy hardcode. i18n-lint-ignore (16/09/2026)
     const label = t ? t('admin:roles.manager') : 'Quản lý';
     return {
       label,
       className: 'bg-purple-50 text-purple-700 border border-purple-200/70 font-medium',
     };
   }
-  if (lower.includes('employee') || lower.includes('nhân viên')) {
+  if (lower.includes('employee')) {
+    // Fallback co chu y, chi dung khi ham nay duoc goi ma khong truyen t vao - minh giu nguyen
+    // dung chuoi that trong vi/admin.json (key admin:roles.employee) de 2 nguon luon khop nhau,
+    // day khong phai UI copy hardcode. i18n-lint-ignore (16/09/2026)
     const label = t ? t('admin:roles.employee') : 'Nhân viên';
     return {
       label,

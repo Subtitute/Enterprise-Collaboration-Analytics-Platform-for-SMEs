@@ -93,6 +93,9 @@ function toPublicUser(user: User) {
     organizationId: user.organizationId,
     departmentId: user.departmentId ?? null,
     roles: (user.roles ?? []).map((r) => ({ id: r.id, name: r.name })),
+    // 16/09/2026: "Super Admin" - frontend dung truong nay de dieu huong dung khu vuc
+    // (/platform-admin thay vi /dashboard, xem ProtectedRoute.tsx).
+    isSuperAdmin: user.isSuperAdmin,
   };
 }
 
@@ -244,8 +247,16 @@ export class AuthService {
     // (hoa dau, vd do trinh duyet tu viet hoa) se KHONG tim thay chinh tai khoan cua ho (so sanh
     // Postgres phan biet hoa/thuong) du go dung mat khau - bao "Email hoac mat khau khong dung"
     // sai lech. Dung `emailKey` (da chuan hoa) o day, dong nhat voi bo dem throttle.
-    const user = await this.userRepo.findOne({ where: { email: emailKey } });
-    if (!user || !user.isActive) {
+    // 16/09/2026: nap kem quan he `organization` - "Super Admin" (tinh nang moi) cho phep khoa
+    // TOAN BO 1 to chuc (Organization.isActive = false), can biet trang thai nay ngay tai day.
+    const user = await this.userRepo.findOne({ where: { email: emailKey }, relations: { organization: true } });
+    if (!user || !user.isActive || !user.organization.isActive) {
+      // 16/09/2026: gop kiem tra to chuc bi khoa vao CHUNG nhanh voi "khong tim thay"/"tai khoan bi
+      // vo hieu hoa" (khong tach rieng thanh 1 nhanh loi khac) - giu dung tinh chat chong do email
+      // da co (xem DUMMY_PASSWORD_HASH duoi day): 1 nguoi go dung email+mat khau cua 1 tai khoan
+      // thuoc to chuc da bi khoa KHONG duoc phep nhan phan hoi khac voi "sai mat khau" thong
+      // thuong - neu khong se lo cho ke tan cong biet chinh xac ly do that bai (to chuc bi khoa hay
+      // don gian la sai mat khau).
       // 22/07/2026: van chay bcrypt.compare() (voi DUMMY_PASSWORD_HASH co dinh) truoc khi tu choi
       // de nhanh nay ton thoi gian tuong duong nhanh "sai mat khau" ben duoi - xem chu thich
       // DUMMY_PASSWORD_HASH dau file. Ket qua bi bo qua, chi de lam phang thoi gian phan hoi.
@@ -338,8 +349,12 @@ export class AuthService {
       });
     }
 
-    const user = await this.userRepo.findOne({ where: { id: payload.sub } });
-    if (!user || !user.isActive) {
+    // 16/09/2026: nap kem `organization` - mirror dung kiem tra da them o login(), dam bao 1 to
+    // chuc bi Super Admin khoa (Organization.isActive = false) khong the tiep tuc refresh() de
+    // giu phien song sau khi bi khoa (access token cu van tu het han trong toi da 15 phut, hoac
+    // bi thu hoi ngay qua Redis blacklist - xem PlatformAdminService.setOrganizationActive()).
+    const user = await this.userRepo.findOne({ where: { id: payload.sub }, relations: { organization: true } });
+    if (!user || !user.isActive || !user.organization.isActive) {
       throw new UnauthorizedException({
         message: 'Nguoi dung khong ton tai hoac da bi vo hieu hoa',
         errorCode: ERROR_CODES.USER_INACTIVE_OR_MISSING,
@@ -514,6 +529,8 @@ export class AuthService {
       // 28/07/2026: xem ghi chu departmentId tai JwtAccessPayload (@app/common-dto) - nang cap
       // access-control tai lieu theo phong ban (Document Service, FolderShare).
       departmentId: user.departmentId ?? null,
+      // 16/09/2026: xem ghi chu isSuperAdmin tai JwtAccessPayload (@app/common-dto).
+      isSuperAdmin: user.isSuperAdmin,
     };
     const accessToken = await this.jwtService.signAsync(accessPayload, {
       secret: this.configService.get<string>('jwt.accessSecret'),

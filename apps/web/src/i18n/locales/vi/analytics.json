@@ -37,6 +37,16 @@
       "month": "Theo tháng (30 ngày qua)",
       "quarter": "Theo quý (Quý này)",
       "year": "Theo năm (Năm nay)"
+    },
+    "labels": {
+      "highlight": "Điểm sáng:",
+      "risk": "Rủi ro:",
+      "recommendation": "Khuyến nghị:"
+    },
+    "fallbacks": {
+      "risk": "Theo dõi sát tiến độ các đầu việc tồn đọng để duy trì nhịp độ vận hành.",
+      "recommendationWhenHighlightOnly": "Ưu tiên phân bổ nguồn lực giải quyết các công việc trọng tâm trong kỳ.",
+      "recommendationDefault": "Tiếp tục rà soát định kỳ và tối ưu quy trình phối hợp liên phòng ban."
     }
   },
   "charts": {
@@ -73,5 +83,10 @@
   },
   "hooks": {
     "aiInsightError": "Không thể tạo nhận xét AI"
+  },
+  "mockProjects": {
+    "crmUpgrade": "Nâng cấp Hệ thống CRM & Bán hàng",
+    "customerPortal": "Triển khai Cổng Thông tin Khách hàng",
+    "operationsOptimization": "Tối ưu Hóa Quy trình Vận hành Q4"
   }
 }

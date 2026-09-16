@@ -40,7 +40,17 @@ describe('AuthService.login', () => {
       findOne: jest.fn().mockResolvedValue(
         'user' in options
           ? options.user
-          : { id: 'u1', email, isActive: true, passwordHash, organizationId: 'org1', roles: [] },
+          : {
+              id: 'u1',
+              email,
+              isActive: true,
+              passwordHash,
+              organizationId: 'org1',
+              roles: [],
+              // 16/09/2026: login() nay nap kem quan he `organization` de kiem tra "Super Admin"
+              // co khoa ca to chuc hay khong (xem AuthService.login()).
+              organization: { id: 'org1', isActive: true },
+            },
       ),
     };
     const refreshTokenRepo = {
@@ -88,7 +98,23 @@ describe('AuthService.login', () => {
     const result = await service.login({ email: 'User@Demo-SME.vn', password: rawPassword } as LoginDto);
 
     expect(result.user.email).toBe(email);
-    expect(userRepo.findOne).toHaveBeenCalledWith({ where: { email } });
+    expect(userRepo.findOne).toHaveBeenCalledWith({ where: { email }, relations: { organization: true } });
+  });
+
+  it('to chuc da bi Super Admin khoa (Organization.isActive = false): tu choi GIONG HET sai mat khau (khong lo thong tin)', async () => {
+    const { service, redisService } = buildService({
+      user: {
+        id: 'u1',
+        email,
+        isActive: true,
+        passwordHash,
+        organizationId: 'org1',
+        roles: [],
+        organization: { id: 'org1', isActive: false },
+      },
+    });
+    await expect(service.login({ email, password: rawPassword } as LoginDto)).rejects.toThrow(UnauthorizedException);
+    expect(redisService.incrementFailedLoginAttempts).toHaveBeenCalledWith(email, 15 * 60);
   });
 
   it('sai mat khau: tang bo dem loi, van nem UnauthorizedException/INVALID_CREDENTIALS nhu truoc', async () => {

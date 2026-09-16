@@ -41,6 +41,9 @@ const RolesPermissionsPage = lazy(() => import('@/features/admin/RolesPermission
 const FailedEventsPage = lazy(() => import('@/features/admin/FailedEventsPage').then((m) => ({ default: m.FailedEventsPage })));
 // 15/09/2026: trang moi "Lich cong ty" (ngay le + su kien, theo yeu cau GVHD) - cung khuon mau lazy().
 const CalendarPage = lazy(() => import('@/features/admin/CalendarPage').then((m) => ({ default: m.CalendarPage })));
+// 16/09/2026: "Super Admin" (tinh nang moi) - trang rieng, KHONG long trong AppShell (xem
+// ProtectedRoute.tsx/PlatformAdminPage.tsx).
+const PlatformAdminPage = lazy(() => import('@/features/platform-admin/PlatformAdminPage').then((m) => ({ default: m.PlatformAdminPage })));
 
 export default function App() {
   const { t } = useTranslation();
@@ -80,6 +83,17 @@ export default function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+        {/* 16/09/2026: "Super Admin" - route rieng, KHONG long trong AppShell (ProtectedRoute tu
+            dieu huong het Super Admin ve day, xem ProtectedRoute.tsx). */}
+        <Route
+          path="/platform-admin"
+          element={
+            <ProtectedRoute requireSuperAdmin>
+              <PlatformAdminPage />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           element={

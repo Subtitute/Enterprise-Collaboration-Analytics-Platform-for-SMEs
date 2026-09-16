@@ -71,6 +71,9 @@ describe('createJwtAuthMiddleware', () => {
     // 28/07/2026: bo sung departmentId - truong bat buoc tu JwtAccessPayload sau nang cap ACL/KPI
     // theo phong ban (xem auth-context.interface.ts), thieu truong nay lam tsc --noEmit that bai.
     departmentId: null,
+    // 16/09/2026: bo sung isSuperAdmin - truong bat buoc tu JwtAccessPayload sau tinh nang moi
+    // "Super Admin" (xem auth-context.interface.ts), thieu truong nay lam tsc --noEmit that bai.
+    isSuperAdmin: false,
     email: 'user@example.com',
     roles: ['member'],
     permissions: [],

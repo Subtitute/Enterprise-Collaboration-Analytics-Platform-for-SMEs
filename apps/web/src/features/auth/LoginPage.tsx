@@ -12,7 +12,7 @@ import { CopyIcon, CheckIcon } from '@/components/ui/Icons';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface DemoAccountItem {
-  id: 'admin' | 'manager' | 'employee';
+  id: 'superAdmin' | 'admin' | 'manager' | 'employee';
   roleNameKey: string;
   descKey: string;
   badgeClass: string;
@@ -44,6 +44,18 @@ const DEMO_ACCOUNTS: DemoAccountItem[] = [
     badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-200',
     email: 'binh.tran+246317@demo-sme.vn',
     password: 'Password123!',
+  },
+  // 16/09/2026: "Super Admin" (tinh nang moi) - khop dung gia tri mac dinh cua
+  // SUPER_ADMIN_EMAIL/PASSWORD trong infra/.env.example (chi co tac dung khi tinh nang duoc bat -
+  // xem bootstrap/super-admin-bootstrap.service.ts). Dang nhap thanh cong se dieu huong thang toi
+  // /platform-admin (xem useLogin()), khac han 3 tai khoan con lai.
+  {
+    id: 'superAdmin',
+    roleNameKey: 'auth:loginPage.demoAccount.roles.superAdmin',
+    descKey: 'auth:loginPage.demoAccount.roles.superAdminDesc',
+    badgeClass: 'bg-rose-100 text-rose-700 border-rose-200',
+    email: 'superadmin@ecap-platform.local',
+    password: 'SuperAdmin123!',
   },
 ];
 
@@ -175,11 +187,12 @@ export function LoginPage() {
           </button>
         </div>
 
-        {/* Tab chuyển đổi 3 vai trò */}
-        <div className="grid grid-cols-3 gap-1 rounded-lg bg-slate-100 p-1 mb-2.5">
+        {/* Tab chuyển đổi 4 vai trò */}
+        <div className="grid grid-cols-4 gap-1 rounded-lg bg-slate-100 p-1 mb-2.5">
           {DEMO_ACCOUNTS.map((acc, index) => {
             const isActive = activeRoleIndex === index;
-            const shortLabel = index === 0 ? 'Admin' : index === 1 ? 'Manager' : 'Employee';
+            const shortLabel =
+              acc.id === 'admin' ? 'Admin' : acc.id === 'manager' ? 'Manager' : acc.id === 'employee' ? 'Employee' : 'Super';
             return (
               <button
                 key={acc.id}
@@ -203,7 +216,7 @@ export function LoginPage() {
             <div className="flex items-center justify-between gap-2">
               <span className="font-bold text-slate-800 text-[11px] truncate">{t(selectedDemo.roleNameKey)}</span>
               <span className={`inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold border ${selectedDemo.badgeClass}`}>
-                {selectedDemo.id.toUpperCase()}
+                {selectedDemo.id === 'superAdmin' ? 'SUPER ADMIN' : selectedDemo.id.toUpperCase()}
               </span>
             </div>
             <p className="text-[10.5px] text-slate-500 leading-tight">

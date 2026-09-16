@@ -59,9 +59,13 @@ export function ProfilePage() {
   // Lấy vai trò chính hiển thị
   const primaryRole = user?.roles?.[0]?.name ?? '';
   const lowerRole = primaryRole.toLowerCase();
-  const roleBadgeLabel = lowerRole.includes('admin') || lowerRole.includes('quản trị')
+  // 16/09/2026: bo cac nhanh khop tieng Viet ('quản trị'/'quản lý') - Role.name luon la tieng Anh
+  // ('Org Admin'/'Manager'/'Employee', xem DefaultRoleName trong packages/common-dto), khong co
+  // endpoint doi ten vai tro nao ca nen cac nhanh nay khong bao gio khop (dead code) va vi pham
+  // linter hardcode tieng Viet.
+  const roleBadgeLabel = lowerRole.includes('admin')
     ? t('profile:page.roles.orgAdmin')
-    : lowerRole.includes('manager') || lowerRole.includes('quản lý')
+    : lowerRole.includes('manager')
     ? t('profile:page.roles.manager')
     : t('profile:page.roles.employee');
 

@@ -37,6 +37,16 @@
       "month": "Monthly (Last 30 days)",
       "quarter": "Quarterly (This quarter)",
       "year": "Yearly (This year)"
+    },
+    "labels": {
+      "highlight": "Highlight:",
+      "risk": "Risk:",
+      "recommendation": "Recommendation:"
+    },
+    "fallbacks": {
+      "risk": "Monitor outstanding tasks closely to maintain operational momentum.",
+      "recommendationWhenHighlightOnly": "Prioritize resource allocation to address the period's key tasks.",
+      "recommendationDefault": "Continue periodic reviews and optimize cross-department collaboration processes."
     }
   },
   "charts": {
@@ -73,5 +83,10 @@
   },
   "hooks": {
     "aiInsightError": "Couldn't generate AI insight"
+  },
+  "mockProjects": {
+    "crmUpgrade": "CRM & Sales System Upgrade",
+    "customerPortal": "Customer Portal Rollout",
+    "operationsOptimization": "Q4 Operations Process Optimization"
   }
 }

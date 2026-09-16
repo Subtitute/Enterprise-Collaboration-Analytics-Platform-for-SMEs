@@ -4,7 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TerminusModule } from '@nestjs/terminus';
-import { AllExceptionsFilter, InternalAuthGuard, PermissionsGuard } from '@app/common-guard';
+import { AllExceptionsFilter, InternalAuthGuard, PermissionsGuard, SuperAdminGuard } from '@app/common-guard';
 // 04/08/2026: metric Prometheus dung chung (Technical_Spec.md muc 15) - xem
 // packages/common-metrics/src/index.ts.
 import { HttpMetricsInterceptor, MetricsController, MetricsService } from '@app/common-metrics';
@@ -24,6 +24,9 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { DepartmentsModule } from './departments/departments.module';
 import { RolesModule } from './roles/roles.module';
+// 16/09/2026: "Super Admin" (tinh nang moi) - xem platform-admin/ + bootstrap/.
+import { PlatformAdminModule } from './platform-admin/platform-admin.module';
+import { BootstrapModule } from './bootstrap/bootstrap.module';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -63,11 +66,16 @@ import { HealthController } from './health/health.controller';
     UsersModule,
     DepartmentsModule,
     RolesModule,
+    PlatformAdminModule,
+    BootstrapModule,
   ],
   controllers: [HealthController, MetricsController],
   providers: [
     { provide: APP_GUARD, useClass: InternalAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
+    // 16/09/2026: "Super Admin" - guard thu 3, kiem tra @RequireSuperAdmin() (xem
+    // platform-admin.controller.ts). Chay SAU InternalAuthGuard (can req.user da duoc gan).
+    { provide: APP_GUARD, useClass: SuperAdminGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     MetricsService,
     { provide: APP_INTERCEPTOR, useClass: HttpMetricsInterceptor },

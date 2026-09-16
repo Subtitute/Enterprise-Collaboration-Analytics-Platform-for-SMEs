@@ -26,6 +26,9 @@
 
   "ROLE_NOT_FOUND": "Role not found.",
 
+  "FORBIDDEN_SUPER_ADMIN_ONLY": "This action is only available to platform Super Admins.",
+  "ORGANIZATION_NOT_FOUND": "Organization not found.",
+
   "PROJECT_NOT_FOUND_IN_ORG": "Project not found in your organization.",
   "TASK_STATUS_TRANSITION_INVALID": "Cannot change task status from {{from}} to {{to}}.",
   "TASK_NOT_FOUND": "Task not found.",

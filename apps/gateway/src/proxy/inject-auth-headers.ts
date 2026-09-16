@@ -86,4 +86,8 @@ export function injectAuthHeaders(proxyReq: ClientRequest, req: IncomingMessage)
   if (user.departmentId) {
     proxyReq.setHeader(INTERNAL_AUTH_HEADERS.DEPARTMENT_ID, user.departmentId);
   }
+  // 16/09/2026: "Super Admin" - forward co isSuperAdmin tu JWT (mac dinh false/undefined cho MOI
+  // nguoi dung thuong, xem chu thich AuthContext.isSuperAdmin @app/common-dto) de InternalAuthGuard
+  // phia sau doc lai dung gia tri.
+  proxyReq.setHeader(INTERNAL_AUTH_HEADERS.IS_SUPER_ADMIN, String(user.isSuperAdmin ?? false));
 }

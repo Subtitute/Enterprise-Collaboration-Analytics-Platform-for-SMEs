@@ -13,13 +13,19 @@ interface ProtectedRouteProps {
    * nhung khong co vai tro quan tri se bi dieu huong ve /dashboard thay vi thay noi dung trang.
    */
   requireAdmin?: boolean;
+  /**
+   * 16/09/2026: "Super Admin" (tinh nang moi) - bat buoc danh cho route /platform-admin DUY NHAT.
+   * Nguoi dung da xac thuc nhung KHONG phai Super Admin se bi dieu huong ve /dashboard.
+   */
+  requireSuperAdmin?: boolean;
 }
 
-export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, requireAdmin = false, requireSuperAdmin = false }: ProtectedRouteProps) {
   const { t } = useTranslation();
   const isBootstrapping = useAuthStore((s) => s.isBootstrapping);
   const accessToken = useAuthStore((s) => s.accessToken);
   const roles = useAuthStore((s) => s.user?.roles);
+  const isSuperAdmin = useAuthStore((s) => s.user?.isSuperAdmin ?? false);
   const location = useLocation();
 
   if (isBootstrapping) {
@@ -28,6 +34,16 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
 
   if (!accessToken) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // 16/09/2026: "Super Admin" khong thuoc to chuc nghiep vu nao ca - moi trang theo to chuc
+  // (dashboard/du an/CRM/HRM...) deu vo nghia/trong rong doi voi ho. Dieu huong het ve khu vuc
+  // dung cua ho (/platform-admin) thay vi hien 1 dashboard trong khong co du lieu that.
+  if (isSuperAdmin && !requireSuperAdmin) {
+    return <Navigate to="/platform-admin" replace />;
+  }
+  if (requireSuperAdmin && !isSuperAdmin) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   if (requireAdmin && !hasAdminRole(roles)) {
