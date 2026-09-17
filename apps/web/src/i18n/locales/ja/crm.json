@@ -35,7 +35,11 @@
     "dealsErrorDescription": "この顧客の商談の読み込み中にエラーが発生しました。もう一度お試しください。",
     "emptyDealsTitle": "商談がまだありません",
     "emptyDealsDescription": "この顧客の最初の商談を作成しましょう。",
-    "createFirstDeal": "新規商談を作成"
+    "createFirstDeal": "新規商談を作成",
+    "ownerLabel": "担当者",
+    "changeOwner": "変更",
+    "changeOwnerAriaLabel": "担当者を変更",
+    "reassignOwnerHeading": "新しい担当者を選択"
   },
   "newDealModal": {
     "title": "新規商談を作成",

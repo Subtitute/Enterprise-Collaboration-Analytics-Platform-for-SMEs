@@ -4,10 +4,16 @@ import { Card } from '@/components/ui/Card';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { FolderIcon, LockIcon, MoreVerticalIcon, EditIcon, ShareIcon, TrashIcon } from '@/components/ui/Icons';
-// 28/07/2026: hasAdminRole + useAuthStore - can de tinh quyen quan ly visibility/chia se cua tung
-// thu muc (chi nguoi tao thu muc HOAC Org Admin), cung 1 pattern voi guard cua /admin/* (Sidebar.tsx).
-import { hasAdminRole, formatRelativeTime } from '@/lib/utils';
-import { useAuthStore } from '@/stores/auth.store';
+// 28/07/2026: canAccessAdminArea + useAuthStore/usePermissions - can de tinh quyen quan ly
+// visibility/chia se cua tung thu muc (chi nguoi tao thu muc HOAC nguoi co quyen quan tri), cung
+// 1 pattern voi guard cua /admin/* (Sidebar.tsx). 17/09/2026: doi tu hasAdminRole(roles) (so khop
+// TEN vai tro) sang canAccessAdminArea(permissions) (so khop QUYEN that su) - xem ghi chu chi tiet
+// tai lib/utils.ts. Luu y: canAccessAdminArea() gio dung CHUNG 1 tap quyen quan tri (USER_INVITE/
+// USER_MANAGE/DEPARTMENT_MANAGE/ROLE_MANAGE/CALENDAR_MANAGE/SYSTEM_MANAGE) cho MOI khu vuc quan
+// tri - Manager (co san USER_INVITE) tu day cung duoc coi la "quan tri" cho muc dich quan ly
+// thu muc nay, giong cach ho da vao duoc /admin/* qua chinh 1 quyen do.
+import { canAccessAdminArea, formatRelativeTime } from '@/lib/utils';
+import { useAuthStore, usePermissions } from '@/stores/auth.store';
 import type { Folder } from '@/types';
 import { useDeleteFolder, useRenameFolder, useUpdateFolderVisibility, useFilesQuery } from '../hooks';
 
@@ -306,14 +312,14 @@ export function FolderGrid({
   // 28/07/2026: id + roles cua nguoi dang dang nhap - dung de so sanh voi folder.createdByUserId
   // (xem canManage() ben duoi).
   const currentUserId = useAuthStore((s) => s.user?.id);
-  const roles = useAuthStore((s) => s.user?.roles);
+  const permissions = usePermissions();
 
-  // 28/07/2026: chi nguoi tao thu muc HOAC Org Admin moi duoc doi visibility/quan ly chia se - mirror
-  // dung cach kiem tra "la Org Admin" da dung cho cac route /admin/* (hasAdminRole(roles)), ket hop
-  // so sanh truc tiep createdByUserId (kiem tra o CLIENT chi de an/hien UI, backend van la noi thuc
-  // thi quyen that su).
+  // 28/07/2026: chi nguoi tao thu muc HOAC nguoi co quyen quan tri moi duoc doi visibility/quan ly
+  // chia se - mirror dung cach kiem tra dung cho cac route /admin/* (canAccessAdminArea(permissions)),
+  // ket hop so sanh truc tiep createdByUserId (kiem tra o CLIENT chi de an/hien UI, backend van la
+  // noi thuc thi quyen that su).
   function canManage(folder: Folder): boolean {
-    return folder.createdByUserId === currentUserId || hasAdminRole(roles);
+    return folder.createdByUserId === currentUserId || canAccessAdminArea(permissions);
   }
 
   if (folders.length === 0) return null;

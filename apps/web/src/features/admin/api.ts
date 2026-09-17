@@ -47,12 +47,18 @@ export async function fetchDepartments(): Promise<Department[]> {
   return Array.isArray(data) ? data : data.data;
 }
 
-export async function createDepartment(payload: { name: string; description?: string }): Promise<Department> {
+// 17/09/2026: bo sung managerId?: string | null (Department.managerId that tu backend, xem
+// apps/iam-service/src/entities/department.entity.ts) - CreateDepartmentDto/UpdateDepartmentDto
+// da validate gia tri nay thuoc ve nguoi trong to chuc (backend). `null` = go bo truong phong ban.
+export async function createDepartment(payload: { name: string; description?: string; managerId?: string | null }): Promise<Department> {
   const { data } = await apiClient.post<Department>('/departments', payload);
   return data;
 }
 
-export async function updateDepartment(id: string, payload: { name?: string; description?: string }): Promise<Department> {
+export async function updateDepartment(
+  id: string,
+  payload: { name?: string; description?: string; managerId?: string | null },
+): Promise<Department> {
   const { data } = await apiClient.patch<Department>(`/departments/${id}`, payload);
   return data;
 }

@@ -19,6 +19,8 @@
       "fullNamePlaceholder": "Nhập họ và tên",
       "employeeId": "Mã nhân viên",
       "department": "Phòng ban",
+      "departmentManager": "Trưởng phòng",
+      "noDepartmentManager": "Chưa chỉ định",
       "phone": "Số điện thoại liên hệ",
       "phonePlaceholder": "Ví dụ: 0912 345 678",
       "roles": "Vai trò đảm nhiệm",

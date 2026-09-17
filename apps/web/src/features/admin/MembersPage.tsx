@@ -1,5 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+// 17/09/2026: import truc tiep submodule (khong qua barrel '@app/common-dto') bang `import * as`
+// (namespace, khong phai named import) - xem ghi chu chi tiet tai lib/utils.ts (barrel keo theo
+// DTO dung class-transformer, throw Reflect.getMetadata is not a function; named import tu deep
+// import CJS lam Rollup build that bai "not exported by ...").
+import * as PermissionEnum from '@app/common-dto/dist/enums/permission.enum';
+import { usePermissions } from '@/stores/auth.store';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -17,6 +23,8 @@ import { useDeactivateUser, useDepartmentsQuery, useReactivateUser, useUsersQuer
 import { InviteMemberModal } from './components/InviteMemberModal';
 import { EditMemberModal } from './components/EditMemberModal';
 import type { User } from '@/types';
+
+const { PERMISSIONS } = PermissionEnum;
 
 const LIMIT = 15;
 
@@ -86,6 +94,12 @@ export function MembersPage() {
   const departmentsQuery = useDepartmentsQuery();
   const deactivateUser = useDeactivateUser();
   const reactivateUser = useReactivateUser();
+  // 17/09/2026: Manager gio cung vao duoc trang nay (co USER_INVITE, xem canAccessAdminArea/
+  // AdminPage.tsx) nhung KHONG co USER_MANAGE - an (khong chi disable) cac hanh dong sua vai
+  // tro/phong ban, vo hieu hoa, kich hoat lai, giu nguyen nut "Moi thanh vien" (chi can USER_INVITE
+  // ma ca Manager lan Org Admin deu co, xem DEFAULT_ROLE_PERMISSIONS trong packages/common-dto).
+  const permissions = usePermissions();
+  const canManageUsers = permissions.includes(PERMISSIONS.USER_MANAGE);
 
   const departmentNameById: Record<string, string> = {};
   for (const d of departmentsQuery.data ?? []) departmentNameById[d.id] = d.name;
@@ -267,55 +281,63 @@ export function MembersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell label={t('admin:membersPage.columns.actions')} className="text-right">
-                      <Dropdown
-                        align="right"
-                        trigger={({ toggle }) => (
-                          <button
-                            onClick={toggle}
-                            className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                            aria-label={t('admin:membersPage.optionsAria')}
-                          >
-                            <MoreVerticalIcon className="h-4 w-4" />
-                          </button>
-                        )}
-                      >
-                        {({ close }) => (
-                          <div className="w-48 py-1.5">
-                            <DropdownItem
-                              onClick={() => {
-                                setEditingUser(u);
-                                close();
-                              }}
+                      {/* 17/09/2026: an (khong chi disable) toan bo menu hanh dong khi khong co
+                          USER_MANAGE - moi hanh dong trong menu nay (sua vai tro/phong ban, vo hieu
+                          hoa, kich hoat lai) deu can quyen do, khac voi nut "Moi thanh vien" o dau
+                          trang (chi can USER_INVITE, van hien cho Manager). */}
+                      {canManageUsers ? (
+                        <Dropdown
+                          align="right"
+                          trigger={({ toggle }) => (
+                            <button
+                              onClick={toggle}
+                              className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                              aria-label={t('admin:membersPage.optionsAria')}
                             >
-                              <EditIcon className="h-4 w-4" /> {t('admin:membersPage.actionsMenu.editRoleDepartment')}
-                            </DropdownItem>
-                            {u.isActive !== false ? (
+                              <MoreVerticalIcon className="h-4 w-4" />
+                            </button>
+                          )}
+                        >
+                          {({ close }) => (
+                            <div className="w-48 py-1.5">
                               <DropdownItem
-                                className="text-rose-600 hover:bg-rose-50"
                                 onClick={() => {
-                                  setDeactivatingUser(u);
+                                  setEditingUser(u);
                                   close();
                                 }}
                               >
-                                <UserIcon className="h-4 w-4" /> {t('admin:membersPage.actionsMenu.deactivate')}
+                                <EditIcon className="h-4 w-4" /> {t('admin:membersPage.actionsMenu.editRoleDepartment')}
                               </DropdownItem>
-                            ) : (
-                              // 22/07/2026 (review toan du an): truoc day KHONG co cach nao kich
-                              // hoat lai 1 tai khoan da vo hieu hoa tu giao dien - backend da bo
-                              // sung PATCH /users/:id/reactivate (fix loi Major) nhung thieu diem
-                              // vao tu UI. Chi hien khi tai khoan dang bi vo hieu hoa.
-                              <DropdownItem
-                                onClick={() => {
-                                  reactivateUser.mutate(u.id);
-                                  close();
-                                }}
-                              >
-                                <RefreshIcon className="h-4 w-4" /> {t('admin:membersPage.actionsMenu.reactivate')}
-                              </DropdownItem>
-                            )}
-                          </div>
-                        )}
-                      </Dropdown>
+                              {u.isActive !== false ? (
+                                <DropdownItem
+                                  className="text-rose-600 hover:bg-rose-50"
+                                  onClick={() => {
+                                    setDeactivatingUser(u);
+                                    close();
+                                  }}
+                                >
+                                  <UserIcon className="h-4 w-4" /> {t('admin:membersPage.actionsMenu.deactivate')}
+                                </DropdownItem>
+                              ) : (
+                                // 22/07/2026 (review toan du an): truoc day KHONG co cach nao kich
+                                // hoat lai 1 tai khoan da vo hieu hoa tu giao dien - backend da bo
+                                // sung PATCH /users/:id/reactivate (fix loi Major) nhung thieu diem
+                                // vao tu UI. Chi hien khi tai khoan dang bi vo hieu hoa.
+                                <DropdownItem
+                                  onClick={() => {
+                                    reactivateUser.mutate(u.id);
+                                    close();
+                                  }}
+                                >
+                                  <RefreshIcon className="h-4 w-4" /> {t('admin:membersPage.actionsMenu.reactivate')}
+                                </DropdownItem>
+                              )}
+                            </div>
+                          )}
+                        </Dropdown>
+                      ) : (
+                        <span className="text-xs text-slate-300">—</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

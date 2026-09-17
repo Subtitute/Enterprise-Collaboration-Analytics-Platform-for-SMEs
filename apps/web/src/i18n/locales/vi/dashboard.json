@@ -6,6 +6,8 @@
   "hero": {
     "title": "Tổng quan Công việc Toàn Doanh nghiệp",
     "subtitle": "Tổng hợp tiến độ thực hiện và tỷ lệ hoàn thành công việc trên toàn bộ các dự án đang triển khai.",
+    "titlePersonal": "Tổng quan Công việc của bạn",
+    "subtitlePersonal": "Tổng hợp tiến độ thực hiện và tỷ lệ hoàn thành trên các công việc được giao cho bạn.",
     "completionRateLabel": "Tỷ lệ hoàn thành chung",
     "progressLabel": "Tiến độ thực hiện",
     "progressUnit": "việc",
@@ -36,6 +38,14 @@
     "activeUsers": {
       "label": "Thành viên hoạt động",
       "hint": "Trong 7 ngày qua"
+    },
+    "myInProgressTasks": {
+      "label": "Việc đang làm",
+      "hint": "Công việc của bạn đang thực hiện"
+    },
+    "myOverdueTasks": {
+      "label": "Việc quá hạn",
+      "hint": "Công việc của bạn đã trễ hạn"
     }
   },
   "filters": {

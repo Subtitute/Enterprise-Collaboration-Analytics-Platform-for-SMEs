@@ -197,6 +197,9 @@
     "namePlaceholder": "Ví dụ: Phòng Kinh doanh",
     "descriptionLabel": "Mô tả",
     "nameRequiredError": "Vui lòng nhập tên phòng ban",
+    "managerLabel": "Trưởng bộ phận / Phụ trách",
+    "noManagerOption": "— Chưa bổ nhiệm —",
+    "managerHintNoMembers": "Chỉ có thể chọn sau khi phòng ban đã có ít nhất 1 thành viên.",
     "cancel": "Hủy",
     "saveChanges": "Lưu thay đổi",
     "create": "Tạo phòng ban"

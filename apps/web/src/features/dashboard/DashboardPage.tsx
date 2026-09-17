@@ -5,11 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Input';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { Button } from '@/components/ui/Button';
-import { FolderKanbanIcon, CheckCircleIcon, UserIcon, FileTextIcon } from '@/components/ui/Icons';
+import { FolderKanbanIcon, AlertCircleIcon, UserIcon, FileTextIcon } from '@/components/ui/Icons';
 import { DATE_RANGE_OPTIONS } from '@/types';
 import type { DateRangeOption } from '@/types';
-import { useAuthStore } from '@/stores/auth.store';
-import { hasAdminRole } from '@/lib/utils';
+import { usePermissions } from '@/stores/auth.store';
+import { canAccessAdminArea, getTodayGmt7DateString } from '@/lib/utils';
+// 17/09/2026: xem chu thich chi tiet ve import namespace tai lib/utils.ts - deep-import submodule
+// CJS cua @app/common-dto, tranh loi crash Reflect.getMetadata/loi build Rollup da gap phai.
+import * as PermissionEnum from '@app/common-dto/dist/enums/permission.enum';
+const { PERMISSIONS } = PermissionEnum;
 import { useProjectsQuery, useAllTasksQuery } from '@/features/projects/hooks';
 // 28/07/2026: tai su dung useDepartmentsQuery da co san (dung chung o MembersPage/InviteMemberModal)
 // cho bo loc "Phong ban" moi tren Dashboard, khong tao hook fetch phong ban rieng.
@@ -24,12 +28,18 @@ import { useOrgUsersQuery } from '@/hooks/useOrgUsers';
 
 export function DashboardPage() {
   const { t } = useTranslation();
+  const permissions = usePermissions();
+  // 17/09/2026: Employee KHONG co ANALYTICS_VIEW (AnalyticsController da @RequirePermissions tu
+  // truoc) - dung DUNG permission nay lam tin hieu "xem duoc so lieu toan to chuc hay chi so lieu
+  // ca nhan", vi day chinh xac la ranh gioi nghiep vu da co san (mirror cach PROJECT_CREATE/
+  // TASK_DELETE/CUSTOMER_CREATE da duoc dung lam tin hieu gioi han xem o Project/Task/Customer).
+  const canViewAnalytics = permissions.includes(PERMISSIONS.ANALYTICS_VIEW);
   const [range, setRange] = useState<DateRangeOption>('7d');
   const [departmentId, setDepartmentId] = useState('');
   const departmentsQuery = useDepartmentsQuery();
-  const summaryQuery = useAnalyticsSummary(range, departmentId || undefined);
-  const trendQuery = useTaskTrend(range);
-  const breakdownQuery = useTaskStatusBreakdown(range, undefined, departmentId || undefined);
+  const summaryQuery = useAnalyticsSummary(range, departmentId || undefined, { enabled: canViewAnalytics });
+  const trendQuery = useTaskTrend(range, { enabled: canViewAnalytics });
+  const breakdownQuery = useTaskStatusBreakdown(range, undefined, departmentId || undefined, { enabled: canViewAnalytics });
 
   // Lấy danh sách toàn bộ dự án, tasks và người dùng để tính toán số liệu khớp tuyệt đối với bộ lọc
   // 15/09/2026: nhan lai khoi tinh toan nay khong co chu thich nao - ghi lai ly do de lan sau khoi
@@ -48,8 +58,7 @@ export function DashboardPage() {
   const allTasksQuery = useAllTasksQuery();
   const allUsersQuery = useOrgUsersQuery();
 
-  const roles = useAuthStore((s) => s.user?.roles);
-  const canInviteMembers = hasAdminRole(roles);
+  const canInviteMembers = canAccessAdminArea(permissions);
   const showOnboarding = !allProjectsQuery.isLoading && !allProjectsQuery.isError && (allProjectsQuery.data?.meta.total ?? 0) === 0;
 
   const summary = summaryQuery.data;
@@ -79,6 +88,14 @@ export function DashboardPage() {
   const totalTasksCreated = allTasksQuery.data ? validTasks.length : (summary?.totalTasksCreated ?? 0);
   const totalTasksCompleted = allTasksQuery.data ? validTasks.filter((t) => t.status === 'DONE').length : (summary?.totalTasksCompleted ?? 0);
   const completionRate = totalTasksCreated > 0 ? Math.round((totalTasksCompleted / totalTasksCreated) * 100) : (summary?.completionRate ?? 0);
+
+  // 17/09/2026: 2 KPI ca nhan thay the cho "Tai lieu moi"/"Thanh vien hoat dong" (2 chi so cap to
+  // chuc, khong phu hop voi Employee - xem nhanh render ben duoi). Tinh THANG tren validTasks (da
+  // loc san chi con task cua chinh Employee do backend enforce - xem ProjectsService/TasksService
+  // .getVisibleProjectIds(), khong phai loc them o day) - khong can goi API rieng.
+  const todayGmt7 = getTodayGmt7DateString();
+  const myInProgressCount = validTasks.filter((t) => t.status === 'DOING').length;
+  const myOverdueCount = validTasks.filter((t) => t.status !== 'DONE' && t.dueDate && t.dueDate.slice(0, 10) < todayGmt7).length;
 
   // Tính toán dữ liệu phân bố trạng thái (Donut Chart)
   const dynamicTaskBreakdown = useMemo(() => {
@@ -180,10 +197,10 @@ export function DashboardPage() {
         <Card className="flex flex-col justify-between p-6 border-slate-200/60 bg-white shadow-sm lg:col-span-8 group hover:shadow-md hover:border-indigo-300 transition-all duration-200">
           <div>
             <h3 className="font-display text-lg font-bold text-slate-900">
-              {t('dashboard:hero.title')}
+              {t(canViewAnalytics ? 'dashboard:hero.title' : 'dashboard:hero.titlePersonal')}
             </h3>
             <p className="mt-1 text-xs text-slate-500">
-              {t('dashboard:hero.subtitle')}
+              {t(canViewAnalytics ? 'dashboard:hero.subtitle' : 'dashboard:hero.subtitlePersonal')}
             </p>
 
             {/* Trọng tâm thị giác: Hàng 1 chứa con số % cực đại + Text thống kê, Hàng 2 là Thanh máu boss w-full */}
@@ -234,30 +251,62 @@ export function DashboardPage() {
           </div>
         </Card>
 
-        {/* 2 Thẻ KPI phụ bên cạnh (4/12 cols) - Thiết lập h-full để khớp tuyệt đối chiều cao với Thẻ Hero */}
+        {/* 2 Thẻ KPI phụ bên cạnh (4/12 cols) - Thiết lập h-full để khớp tuyệt đối chiều cao với Thẻ Hero.
+            17/09/2026: Employee thay 2 KPI cap to chuc (Tai lieu moi/Thanh vien hoat dong, doi hoi
+            ANALYTICS_VIEW) bang 2 KPI ca nhan tinh tren chinh cong viec cua ho (xem myInProgressCount/
+            myOverdueCount o tren). */}
         <div className="flex flex-col justify-between gap-4 lg:col-span-4 h-full">
-          <KpiCard
-            label={t('dashboard:kpi.newDocuments.label')}
-            value={summary?.newDocumentsThisWeek ?? '—'}
-            hint={t('dashboard:kpi.newDocuments.hint')}
-            icon={<FileTextIcon className="h-5 w-5" />}
-            accentClassName="bg-violet-100 text-violet-600"
-            isLoading={summaryQuery.isLoading}
-            isError={summaryQuery.isError}
-            onRetry={() => summaryQuery.refetch()}
-            className="flex-1"
-          />
-          <KpiCard
-            label={t('dashboard:kpi.activeUsers.label')}
-            value={summary?.activeUsersLast7Days ?? '—'}
-            hint={t('dashboard:kpi.activeUsers.hint')}
-            icon={<UserIcon className="h-5 w-5" />}
-            accentClassName="bg-amber-100 text-amber-600"
-            isLoading={summaryQuery.isLoading}
-            isError={summaryQuery.isError}
-            onRetry={() => summaryQuery.refetch()}
-            className="flex-1"
-          />
+          {canViewAnalytics ? (
+            <>
+              <KpiCard
+                label={t('dashboard:kpi.newDocuments.label')}
+                value={summary?.newDocumentsThisWeek ?? '—'}
+                hint={t('dashboard:kpi.newDocuments.hint')}
+                icon={<FileTextIcon className="h-5 w-5" />}
+                accentClassName="bg-violet-100 text-violet-600"
+                isLoading={summaryQuery.isLoading}
+                isError={summaryQuery.isError}
+                onRetry={() => summaryQuery.refetch()}
+                className="flex-1"
+              />
+              <KpiCard
+                label={t('dashboard:kpi.activeUsers.label')}
+                value={summary?.activeUsersLast7Days ?? '—'}
+                hint={t('dashboard:kpi.activeUsers.hint')}
+                icon={<UserIcon className="h-5 w-5" />}
+                accentClassName="bg-amber-100 text-amber-600"
+                isLoading={summaryQuery.isLoading}
+                isError={summaryQuery.isError}
+                onRetry={() => summaryQuery.refetch()}
+                className="flex-1"
+              />
+            </>
+          ) : (
+            <>
+              <KpiCard
+                label={t('dashboard:kpi.myInProgressTasks.label')}
+                value={myInProgressCount}
+                hint={t('dashboard:kpi.myInProgressTasks.hint')}
+                icon={<FolderKanbanIcon className="h-5 w-5" />}
+                accentClassName="bg-indigo-100 text-indigo-600"
+                isLoading={allTasksQuery.isLoading}
+                isError={allTasksQuery.isError}
+                onRetry={() => allTasksQuery.refetch()}
+                className="flex-1"
+              />
+              <KpiCard
+                label={t('dashboard:kpi.myOverdueTasks.label')}
+                value={myOverdueCount}
+                hint={t('dashboard:kpi.myOverdueTasks.hint')}
+                icon={<AlertCircleIcon className="h-5 w-5" />}
+                accentClassName="bg-rose-100 text-rose-600"
+                isLoading={allTasksQuery.isLoading}
+                isError={allTasksQuery.isError}
+                onRetry={() => allTasksQuery.refetch()}
+                className="flex-1"
+              />
+            </>
+          )}
         </div>
       </div>
 
@@ -285,19 +334,24 @@ export function DashboardPage() {
                   dieu do van dung cho CHINH endpoint do, nhung tu khi co khoi tinh lai phia client
                   (dynamicTaskTrend, xem chu thich tai allProjectsQuery/allTasksQuery/allUsersQuery
                   o tren) thi bieu do Xu huong hien THUC SU co loc theo phong ban - chi la tinh o
-                  client tren du lieu task tho, khong phai do server tinh ho. */}
-              <CustomFilterSelect
-                value={departmentId}
-                onChange={(val) => setDepartmentId(val)}
-                ariaLabel={t('dashboard:filters.departmentAriaLabel')}
-                options={[
-                  { value: '', label: t('dashboard:filters.allDepartments') },
-                  ...(departmentsQuery.data ?? []).map((d) => ({
-                    value: d.id,
-                    label: d.name,
-                  })),
-                ]}
-              />
+                  client tren du lieu task tho, khong phai do server tinh ho.
+                  17/09/2026: an voi Employee - bo loc "xem theo phong ban nao" vo nghia tren 1
+                  dashboard ca nhan (du lieu cua ho da chi gioi han dung ho, khong co phong ban khac
+                  de loc qua lai). */}
+              {canViewAnalytics && (
+                <CustomFilterSelect
+                  value={departmentId}
+                  onChange={(val) => setDepartmentId(val)}
+                  ariaLabel={t('dashboard:filters.departmentAriaLabel')}
+                  options={[
+                    { value: '', label: t('dashboard:filters.allDepartments') },
+                    ...(departmentsQuery.data ?? []).map((d) => ({
+                      value: d.id,
+                      label: d.name,
+                    })),
+                  ]}
+                />
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -331,6 +385,10 @@ export function DashboardPage() {
         </Card>
       </div>
 
+      {/* 17/09/2026: an voi Employee - feed nay la nhat ky hoat dong TOAN TO CHUC, dua tren cung
+          AnalyticsController da @RequirePermissions(ANALYTICS_VIEW) (bao gom ca socket /ws/analytics,
+          xem analytics.gateway.ts) ma Employee khong co, khong the goi duoc du component nay co render. */}
+      {canViewAnalytics && (
       <Card>
         <CardHeader>
           <CardTitle>{t('dashboard:recentActivitySection.title')}</CardTitle>
@@ -339,6 +397,7 @@ export function DashboardPage() {
           <RecentActivityFeed />
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

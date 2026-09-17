@@ -16,6 +16,21 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
     },
   },
+  build: {
+    commonjsOptions: {
+      // 17/09/2026: '@app/common-dto' trong node_modules la Windows junction/symlink tro ve
+      // 'packages/common-dto' (npm workspaces) - Rollup mac dinh resolve symlink ve duong dan
+      // THAT truoc khi build, nen id module khong con chua chuoi "node_modules" nua. Vite mac
+      // dinh chi bat @rollup/plugin-commonjs transform CJS->ESM cho id khop /node_modules/, nen
+      // file bien dich CJS cua common-dto (vd dist/enums/permission.enum.js voi "exports.X = ...")
+      // bi bo qua transform va nhet THO vao bundle ESM production -> "ReferenceError: exports is
+      // not defined" luc chay tren trinh duyet (khong co bien global `exports`). Loi CHI xuat hien
+      // sau khi build that (npm run build), khong xuat hien o dev server (esbuild optimizeDeps xu
+      // ly khac) - vi vay khong bi phat hien qua cac lan chay `npm run dev` truoc do. Mo rong
+      // include de bat ca duong dan that cua goi trong thu muc packages/ (khong chi node_modules/).
+      include: [/node_modules/, /packages\//],
+    },
+  },
   server: {
     port: 5173,
     proxy: {

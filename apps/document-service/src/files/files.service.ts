@@ -17,6 +17,10 @@ import { MAX_FILE_VERSIONS, pruneOldVersions } from './utils/version-retention.u
 // 22/07/2026: Fix 1 (code review) - lam sach ten file client cung cap truoc khi dua vao object
 // key MinIO/luu DB. Xem giai thich day du o sanitize-filename.util.ts.
 import { MAX_FILE_NAME_LENGTH, sanitizeFileName } from './utils/sanitize-filename.util';
+// 16/09/2026: sua loi bao cao thuc te - ten file tieng Viet co dau bi mojibake (Busboy giai ma
+// nham 'filename' cua multipart header la Latin-1). Phai chay TRUOC sanitizeFileName ben tren, o
+// ca 2 diem nhan file.originalname ben duoi. Xem giai thich day du o decode-multer-filename.util.ts.
+import { decodeMulterFilename } from './utils/decode-multer-filename.util';
 // 22/07/2026: Fix 4 (code review) - doi chieu magic-byte cua noi dung THAT SU voi mimetype
 // client khai bao, boi vi mimeTypeFileFilter (tang multer) chi kiem tra duoc Content-Type do
 // CLIENT tu khai bao. Xem giai thich day du o allowed-mime-types.ts.
@@ -190,14 +194,17 @@ export class FilesService {
     // ham, TRUOC KHI dung no de tinh object key hay goi MinIO. Tu choi som (400) thay vi de loi
     // phat sinh sau khi da buffer/tai xong toan bo noi dung nhi phan len MinIO (lang phi bang
     // thong + I/O cho 1 request cuoi cung van bi tu choi).
-    if (file.originalname.length > MAX_FILE_NAME_LENGTH) {
+    // 16/09/2026: sua ten file bi mojibake TRUOC KHI kiem tra do dai/lam sach - xem
+    // decode-multer-filename.util.ts.
+    const decodedOriginalName = decodeMulterFilename(file.originalname);
+    if (decodedOriginalName.length > MAX_FILE_NAME_LENGTH) {
       throw new BadRequestException({
         message: `Ten file qua dai (toi da ${MAX_FILE_NAME_LENGTH} ky tu)`,
         errorCode: ERROR_CODES.FILE_NAME_TOO_LONG,
         errorParams: { max: MAX_FILE_NAME_LENGTH },
       });
     }
-    const sanitizedFileName = sanitizeFileName(file.originalname);
+    const sanitizedFileName = sanitizeFileName(decodedOriginalName);
 
     // 22/07/2026: Fix 4 (code review) - xem giai thich day du o allowed-mime-types.ts. Phai chay
     // SAU KHI buffer san sang (file.buffer) va TRUOC khi goi MinioService.putObject ben duoi.
@@ -274,14 +281,17 @@ export class FilesService {
   ): Promise<FileMeta> {
     // 22/07/2026: Fix 1 (code review) - xem giai thich day du o upload() ben tren, ap dung dong
     // nhat cho duong tai phien ban moi.
-    if (file.originalname.length > MAX_FILE_NAME_LENGTH) {
+    // 16/09/2026: sua ten file bi mojibake TRUOC KHI kiem tra do dai/lam sach - xem
+    // decode-multer-filename.util.ts.
+    const decodedOriginalName = decodeMulterFilename(file.originalname);
+    if (decodedOriginalName.length > MAX_FILE_NAME_LENGTH) {
       throw new BadRequestException({
         message: `Ten file qua dai (toi da ${MAX_FILE_NAME_LENGTH} ky tu)`,
         errorCode: ERROR_CODES.FILE_NAME_TOO_LONG,
         errorParams: { max: MAX_FILE_NAME_LENGTH },
       });
     }
-    const sanitizedFileName = sanitizeFileName(file.originalname);
+    const sanitizedFileName = sanitizeFileName(decodedOriginalName);
 
     // 22/07/2026: Fix 4 (code review) - ap dung dong nhat voi upload(): endpoint nay cung nhan 1
     // buffer file MOI va goi putObject nen mang chinh xac cung rui ro gia mao Content-Type (yeu

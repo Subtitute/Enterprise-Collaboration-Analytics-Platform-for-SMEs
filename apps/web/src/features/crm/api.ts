@@ -30,7 +30,14 @@ export async function createCustomer(payload: CreateCustomerPayload): Promise<Cu
   return data;
 }
 
-export async function updateCustomer(id: string, payload: Partial<CreateCustomerPayload>): Promise<Customer> {
+// 17/09/2026: PATCH /customers/:id gio nhan them ownerUserId (tuy chon) de doi nguoi phu trach
+// khach hang (CustomerDetailPage.tsx) - rieng UpdateCustomerDto (BE), KHONG co o CreateCustomerDto
+// (nguoi phu trach ban dau do BE tu gan luc tao, khong chon duoc qua form tao moi) nen tach thanh
+// kieu rieng thay vi nhet vao CreateCustomerPayload. BE da xac thuc PERMISSIONS.CUSTOMER_UPDATE
+// truoc khi cho goi ca endpoint nay (khong rieng truong ownerUserId).
+export type UpdateCustomerPayload = Partial<CreateCustomerPayload> & { ownerUserId?: string };
+
+export async function updateCustomer(id: string, payload: UpdateCustomerPayload): Promise<Customer> {
   const { data } = await apiClient.patch<Customer>(`/customers/${id}`, payload);
   return data;
 }

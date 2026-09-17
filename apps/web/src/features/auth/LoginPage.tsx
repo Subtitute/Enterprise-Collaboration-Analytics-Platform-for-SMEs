@@ -34,7 +34,11 @@ const DEMO_ACCOUNTS: DemoAccountItem[] = [
     roleNameKey: 'auth:loginPage.demoAccount.roles.manager',
     descKey: 'auth:loginPage.demoAccount.roles.managerDesc',
     badgeClass: 'bg-indigo-100 text-indigo-700 border-indigo-200',
-    email: 'an.nguyen+246317@demo-sme.vn',
+    // 17/09/2026: sua lai email demo Manager - hau to ngau nhien "+246317" tu ban seed cu khong
+    // con ton tai (moi nhan vien duoc invite qua API voi 1 hau to ngau nhien rieng, sinh ra khac
+    // nhau moi lan seed lai). "binh.tran+141603" la Truong phong Kinh doanh, da duoc thang chuc
+    // Manager that su trong DB hien tai (xem fix-manager-role-and-customer-owners.js).
+    email: 'binh.tran+141603@demo-sme.vn',
     password: 'Password123!',
   },
   {
@@ -42,7 +46,10 @@ const DEMO_ACCOUNTS: DemoAccountItem[] = [
     roleNameKey: 'auth:loginPage.demoAccount.roles.employee',
     descKey: 'auth:loginPage.demoAccount.roles.employeeDesc',
     badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    email: 'binh.tran+246317@demo-sme.vn',
+    // 17/09/2026: tuong tu - "khoa.lam+861373" la nhan vien Kinh doanh dang thuc su phu trach
+    // khach hang va duoc giao task/du an, phu hop de minh hoa tinh nang gioi han xem theo
+    // "duoc giao" moi bo sung (Employee chi thay du an/khach hang cua chinh minh).
+    email: 'khoa.lam+861373@demo-sme.vn',
     password: 'Password123!',
   },
   // 16/09/2026: "Super Admin" (tinh nang moi) - khop dung gia tri mac dinh cua

@@ -1,10 +1,13 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, FindOptionsWhere, ILike, Repository } from 'typeorm';
+// 17/09/2026: them `In` - can cho truy van "du an nam trong danh sach id duoc phep thay" khi loc
+// theo pham vi cho Employee (xem findAll()/findById()/getVisibleProjectIds() ben duoi).
+import { DataSource, FindOptionsWhere, ILike, In, Repository } from 'typeorm';
 import {
   ERROR_CODES,
   EVENT_TYPES,
   PaginatedResponse,
+  PERMISSIONS,
   ProjectCompletedPayload,
   ProjectCreatedPayload,
   ProjectDeletedPayload,
@@ -52,14 +55,30 @@ export class ProjectsService {
    * (khong query N+1 - 1 query aggregate cho tong so Task, 1 cho so Task DONE, 1 cho so thanh vien
    * duy nhat, tat ca deu GROUP BY project_id va loc theo danh sach id cua trang hien tai).
    * Khong co bo loc theo phong ban - dieu chinh 21/07/2026, xem Technical_Spec.md muc 14.
+   *
+   * 17/09/2026: truoc ban sua nay, moi nguoi giu PROJECT_VIEW (ke ca Employee) deu thay TOAN BO du
+   * an cua to chuc - Employee chi duoc giao viec o 1-2 du an van doc duoc danh sach/thong tin cua
+   * moi du an khac, lo du lieu ngoai pham vi cong viec cua ho. Dung PROJECT_CREATE (Manager/Org
+   * Admin co, Employee khong co - xem DEFAULT_ROLE_PERMISSIONS trong packages/common-dto) lam ranh
+   * gioi "thay tat ca" vs "chi thay du an co lien quan" thay vi them permission moi (khong can thiet
+   * - ranh gioi nay TRUNG KHOP hoan toan voi ranh gioi PROJECT_CREATE da co san). "Co lien quan" suy
+   * tu TaskAssignee (chua co bang thanh vien du an rieng) - xem getVisibleProjectIds().
    */
   async findAll(
     organizationId: string,
     query: ProjectQueryDto,
+    userId: string,
+    permissions: string[],
   ): Promise<PaginatedResponse<ProjectListItem>> {
     const where: FindOptionsWhere<Project> = { organizationId };
     if (query.status) where.status = query.status;
     if (query.search) where.name = ILike(`%${query.search}%`);
+
+    if (!(permissions ?? []).includes(PERMISSIONS.PROJECT_CREATE)) {
+      const visibleIds = await this.getVisibleProjectIds(organizationId, userId);
+      if (visibleIds.length === 0) return paginate([], 0, query.page, query.limit);
+      where.id = In(visibleIds);
+    }
 
     const [data, total] = await this.projectRepo.findAndCount({
       where,
@@ -84,10 +103,27 @@ export class ProjectsService {
    * frontend fallback ve 0%) trong khi trang danh sach cung du an do lai hien dung. Goi lai
    * computeProjectStats() (chi truyen 1 phan tu [id], ham nay von thiet ke cho batch nen nhan mang)
    * de tra ve DUNG shape ProjectListItem ma findAll() da tra, khong con lech giua 2 endpoint.
+   *
+   * 17/09/2026: cung 1 ranh gioi PROJECT_CREATE voi findAll() o tren - neu khong, Employee bi loc
+   * khoi danh sach van co the "vuot rao" bang cach doan/nhan mot UUID du an cu the roi goi thang
+   * GET /projects/:id. Nem NotFoundException CUNG errorCode voi truong hop "khong ton tai" (khong
+   * phai ForbiddenException) de khong lo lieu 1 du an co that su ton tai trong to chuc hay khong.
    */
-  async findById(organizationId: string, id: string): Promise<ProjectListItem> {
+  async findById(
+    organizationId: string,
+    id: string,
+    userId: string,
+    permissions: string[],
+  ): Promise<ProjectListItem> {
     const project = await this.projectRepo.findOne({ where: { id, organizationId } });
     if (!project) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
+
+    if (!(permissions ?? []).includes(PERMISSIONS.PROJECT_CREATE)) {
+      const visibleIds = await this.getVisibleProjectIds(organizationId, userId, [id]);
+      if (!visibleIds.includes(id)) {
+        throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
+      }
+    }
 
     const stats = await this.computeProjectStats([id]);
     const stat = stats.get(id) ?? { completionRate: 0, memberCount: 0 };
@@ -323,6 +359,50 @@ export class ProjectsService {
         });
       }
     });
+  }
+
+  /**
+   * 17/09/2026: danh sach id du an ma 1 nguoi khong co PROJECT_CREATE (Employee) duoc phep thay -
+   * dung cho findAll()/findById() o tren. Chua co bang "thanh vien du an" rieng nen suy tu 3 nguon:
+   * (1) dang duoc giao >=1 Task thuoc du an do (TaskAssignee JOIN Task - dung LAI CHINH XAC kieu
+   * join cua computeProjectStats() ben duoi, chi doi chieu theo userId thay vi theo projectId),
+   * (2) la nguoi phu trach (leadUserId), (3) la nguoi tao (createdByUserId).
+   *
+   * `restrictToIds` (tuy chon) gioi han truy van trong 1 tap id cho truoc - dung boi findById()
+   * (truyen [id]) de tranh quet toan bo du an nguoi dung co lien quan chi de kiem tra 1 id duy nhat,
+   * mirror cach computeProjectStats() nhan mang id de tai su dung cho ca truong hop 1 phan tu.
+   */
+  private async getVisibleProjectIds(
+    organizationId: string,
+    userId: string,
+    restrictToIds?: string[],
+  ): Promise<string[]> {
+    if (restrictToIds && restrictToIds.length === 0) return [];
+
+    const assigneeQuery = this.assigneeRepo
+      .createQueryBuilder('assignee')
+      .innerJoin(Task, 'task', 'task.id = assignee.taskId')
+      .select('DISTINCT task.projectId', 'projectId')
+      .where('assignee.userId = :userId', { userId })
+      .andWhere('task.organizationId = :organizationId', { organizationId });
+    if (restrictToIds) {
+      assigneeQuery.andWhere('task.projectId IN (:...restrictToIds)', { restrictToIds });
+    }
+    const assignedRows = await assigneeQuery.getRawMany<{ projectId: string }>();
+
+    const ownedWhere: FindOptionsWhere<Project>[] = [
+      { organizationId, leadUserId: userId },
+      { organizationId, createdByUserId: userId },
+    ];
+    if (restrictToIds) {
+      for (const clause of ownedWhere) clause.id = In(restrictToIds);
+    }
+    const ownedProjects = await this.projectRepo.find({ where: ownedWhere, select: ['id'] });
+
+    const ids = new Set<string>();
+    for (const row of assignedRows) ids.add(row.projectId);
+    for (const project of ownedProjects) ids.add(project.id);
+    return Array.from(ids);
   }
 
   /** Tinh completionRate/memberCount cho 1 tap projectId (trang hien tai) bang cac query GROUP BY, tranh N+1. */

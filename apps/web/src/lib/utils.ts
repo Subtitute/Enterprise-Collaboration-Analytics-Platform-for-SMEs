@@ -1,4 +1,17 @@
 import i18n from '@/i18n';
+// 17/09/2026: import THANG vao submodule (khong qua barrel '@app/common-dto') - barrel index.ts
+// re-export ca cac DTO dung class-transformer/class-validator (vd PaginationQueryDto), decorator
+// @Type() cua class-transformer GOI THANG Reflect.getMetadata KHONG co feature-detect guard nen
+// SE THROW ngay luc dinh nghia class (module load time) trong moi trinh trinh duyet/vitest KHONG
+// nap polyfill 'reflect-metadata' toan cuc (da xac minh thuc te: them polyfill toan app chi de
+// dung 1 hang so PERMISSIONS la khong dang - anh huong pham vi toan cuc + tang bundle size khong
+// can thiet). permission.enum.ts la hang so thuan tuy (khong decorator) nen import rieng an toan.
+// Dung `import * as` (namespace, khong phai named import) - da xac minh thuc te `npm run build`
+// (Rollup) khong tu phat hien duoc named export tren file CJS bien dich rieng le nay khi import
+// sau (deep import) vao 1 submodule thay vi entry "main" khai bao trong package.json, dan toi loi
+// build "X is not exported by ...permission.enum.js"; import namespace luon an toan voi CJS.
+import * as PermissionEnum from '@app/common-dto/dist/enums/permission.enum';
+const { PERMISSIONS } = PermissionEnum;
 
 export function cn(...classes: Array<string | false | null | undefined>): string {
   return classes.filter(Boolean).join(' ');
@@ -122,19 +135,28 @@ export function formatBytes(bytes?: number): string {
   return `${value.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
-// Backend contract khong tra ve permissionKeys trong AuthUser (JWT context) - chi { id, name }
-// cho moi role - nen khong the kiem tra quyen chinh xac 100% o client. Day la heuristic don gian
-// (khong chan chac chan, backend van la noi thuc thi RBAC that su o tung API): an muc "Quan tri"
-// tren Sidebar neu KHONG co role nao trung ten "quan tri/admin/owner", VA lam dieu kien cho
-// route-guard thuc su cua /admin/* (xem components/layout/ProtectedRoute.tsx, bo sung 21/07/2026).
-// Fail CLOSED khi khong/chua co du lieu vai tro (roles rong/undefined) - truoc day fail-open
-// (coi nhu la admin) la mot lo hong: bat ky user nao co roles=[] (vd du lieu dang tai dang do,
-// hoac user khong duoc gan role nao) se duoc coi la admin va vao duoc /admin/*.
-const ADMIN_ROLE_PATTERN = /admin|quản\s*trị|quan\s*tri|owner/i; // i18n-lint-ignore: pattern doi chieu ten vai tro, khong phai chuoi hien thi
+// 17/09/2026: thay hasAdminRole(roles) (so khop TEN vai tro bang regex - /admin|quản trị|.../i)
+// bang canAccessAdminArea(permissions) (so khop QUYEN that su cua nguoi dung). Ly do: regex ten
+// vai tro chi khop role dat ten "Org Admin" - "Manager" (co san USER_INVITE, dung duoc trang
+// Quan tri > Thanh vien) bi CHAN OAN toan bo /admin/* du dang co quyen hop le. accessToken (JWT)
+// da mang san permissions[] tu luc dang nhap/lam moi token (IAM Service, xem
+// packages/common-dto/src/interfaces/auth-context.interface.ts: JwtAccessPayload.permissions) -
+// usePermissions() (stores/auth.store.ts) giai ma truong nay, KHONG can doi AuthUser/JSON body.
+// Fail CLOSED khi khong/chua co permissions (mang rong/undefined) - GIU NGUYEN tinh an toan cua
+// ham cu: bat ky user nao chua xac dinh duoc quyen (vd du lieu dang tai dang do) deu bi coi la
+// KHONG co quyen vao /admin/*, thay vi fail-open (coi nhu la admin).
+const ADMIN_AREA_PERMISSIONS: string[] = [
+  PERMISSIONS.USER_INVITE,
+  PERMISSIONS.USER_MANAGE,
+  PERMISSIONS.DEPARTMENT_MANAGE,
+  PERMISSIONS.ROLE_MANAGE,
+  PERMISSIONS.CALENDAR_MANAGE,
+  PERMISSIONS.SYSTEM_MANAGE,
+];
 
-export function hasAdminRole(roles?: Array<{ name: string }>): boolean {
-  if (!roles || roles.length === 0) return false;
-  return roles.some((r) => ADMIN_ROLE_PATTERN.test(r.name));
+export function canAccessAdminArea(permissions?: string[]): boolean {
+  if (!permissions || permissions.length === 0) return false;
+  return ADMIN_AREA_PERMISSIONS.some((p) => permissions.includes(p));
 }
 
 // 20/08/2026: dung cho PasswordInput (components/ui/Input.tsx) - phat hien go NHAM dau tieng

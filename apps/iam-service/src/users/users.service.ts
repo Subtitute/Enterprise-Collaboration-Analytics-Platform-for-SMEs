@@ -235,9 +235,20 @@ export class UsersService {
     // doi request A commit va nha khoa truoc khi doc, dam bao B luon apply thay doi cua no LEN TREN
     // trang thai MOI NHAT (da bao gom thay doi cua A) thay vi de len snapshot cu.
     const saved = await this.dataSource.transaction(async (manager) => {
+      // 16/09/2026: fix loi that (phat hien khi goi PATCH /users/:id that qua API) - `User.roles`
+      // la quan he eager:true (xem entities/user.entity.ts), TypeORM tu dong LEFT JOIN sang bang
+      // trung gian `user_roles`/`roles` cho MOI truy van tren User, ke ca truy van nay. Ket hop
+      // voi `lock: { mode: 'pessimistic_write' }` (FOR UPDATE) sinh loi Postgres "FOR UPDATE
+      // cannot be applied to the nullable side of an outer join" - Postgres tu choi khoa 1 hang co
+      // the la NULL o phia LEFT JOIN, xay ra VOI MOI user (khong phu thuoc user do co bao nhieu
+      // vai tro). `loadEagerRelations: false` tat eager-load CHI cho truy van nay - an toan vi
+      // logic ben duoi khong bao gio DOC `user.roles` cu (chi GHI DE toan bo bang `newRoles` khi
+      // dto.roleIds duoc gui, xem tra cuu newRoles truoc transaction o tren); khi khong doi vai
+      // tro, `user.roles` khong duoc gan gi ca nen manager.save() khong dung toi bang trung gian.
       const user = await manager.findOneOrFail(User, {
         where: { id, organizationId },
         lock: { mode: 'pessimistic_write' },
+        loadEagerRelations: false,
       });
 
       if (dto.fullName !== undefined) user.fullName = dto.fullName;

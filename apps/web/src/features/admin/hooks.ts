@@ -99,7 +99,7 @@ export function useCreateDepartment() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { name: string; description?: string }) => createDepartment(payload),
+    mutationFn: (payload: { name: string; description?: string; managerId?: string | null }) => createDepartment(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
       toast.success(t('admin:toast.departmentCreated'));
@@ -112,7 +112,8 @@ export function useUpdateDepartment() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: { name?: string; description?: string } }) => updateDepartment(id, payload),
+    mutationFn: ({ id, payload }: { id: string; payload: { name?: string; description?: string; managerId?: string | null } }) =>
+      updateDepartment(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['departments'] });
       toast.success(t('admin:toast.departmentUpdated'));

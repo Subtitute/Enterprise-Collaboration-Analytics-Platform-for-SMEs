@@ -10,6 +10,15 @@ WORKDIR /workspace
 COPY . .
 RUN npm ci
 
+# 17/09/2026: bo sung - tu hom nay apps/web THAT SU import @app/common-dto (PERMISSIONS, xem
+# lib/utils.ts va cac noi khac) de kiem tra quyen o client. packages/common-dto bien dich ra
+# dist/ - thu muc nay nam trong .dockerignore (dung ly do voi tsbuildinfo o cac Dockerfile
+# NestJS: tranh COPY nham dist/ cu tren host) nen KHONG co san trong build context, phai tu build
+# lai ngay trong image nay truoc khi vite build, mirror dung cach cac Dockerfile NestJS
+# (vd apps/iam-service/Dockerfile) da lam tu truoc - truoc day apps/web chua tung can buoc nay vi
+# chua thuc su import goi nao tu common-dto/common-guard.
+RUN npm run build -w packages/common-dto
+
 # Cac bien VITE_* phai co mat luc build (Vite inline chung vao bundle qua import.meta.env),
 # khac voi cac bien runtime cua NestJS service. infra/docker-compose.yml truyen chung qua build.args.
 ARG VITE_API_BASE_URL=/api/v1

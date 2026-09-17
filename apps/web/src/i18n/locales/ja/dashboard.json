@@ -6,6 +6,8 @@
   "hero": {
     "title": "組織全体のタスク概要",
     "subtitle": "進行中の全プロジェクトにおける進捗状況とタスク完了率のサマリーです。",
+    "titlePersonal": "あなたのタスク概要",
+    "subtitlePersonal": "あなたに割り当てられたタスクの進捗状況と完了率のサマリーです。",
     "completionRateLabel": "全体の完了率",
     "progressLabel": "進捗状況",
     "progressUnit": "件",
@@ -36,6 +38,14 @@
     "activeUsers": {
       "label": "アクティブメンバー",
       "hint": "過去7日間"
+    },
+    "myInProgressTasks": {
+      "label": "進行中のタスク",
+      "hint": "あなたが現在進めているタスク"
+    },
+    "myOverdueTasks": {
+      "label": "期限超過のタスク",
+      "hint": "期限を過ぎたあなたのタスク"
     }
   },
   "filters": {

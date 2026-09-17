@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { ILike } from 'typeorm';
-import { EVENT_TYPES } from '@app/common-dto';
+import { EVENT_TYPES, PERMISSIONS } from '@app/common-dto';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 
@@ -11,11 +11,19 @@ import { CreateCustomerDto } from './dto/create-customer.dto';
  * (organizationId) tren tung method, tinh dung openDealCount/openDealValue qua 1 truy van gop
  * (mirror ProjectsService.computeProjectStats()), va hanh vi cascade xoa Deal khi xoa Customer
  * (remove() - FK onDelete: CASCADE, xem customer.entity.ts/deal.entity.ts).
+ *
+ * 17/09/2026: bo sung pham vi xem theo ownerUserId (findAll()/findById() - Employee chi thay khach
+ * hang minh phu trach, Manager/Org Admin thay toan bo) va cap nhat ownerUserId qua update().
  */
 describe('CustomersService', () => {
   const organizationId = 'org-1';
   const customerId = 'cust-1';
   const actorId = 'actor-1';
+  // 17/09/2026: mo phong 2 nhom quyen theo DEFAULT_ROLE_PERMISSIONS (permission.enum.ts) - Manager/
+  // Org Admin co ca CUSTOMER_VIEW lan CUSTOMER_CREATE (xem toan bo khach hang), Employee chi co
+  // CUSTOMER_VIEW (chi xem khach hang minh phu trach) - xem chu thich tai CustomersService.findAll().
+  const managerLikePermissions = [PERMISSIONS.CUSTOMER_VIEW, PERMISSIONS.CUSTOMER_CREATE];
+  const employeeLikePermissions = [PERMISSIONS.CUSTOMER_VIEW];
 
   /** QueryBuilder gia lap chain duoc (select/addSelect/where/andWhere/groupBy) roi tra ve rawResult o getRawMany(). */
   function makeQueryBuilder(rawResult: Array<{ customerId: string; count: string; sum: string }>) {
@@ -40,7 +48,12 @@ describe('CustomersService', () => {
         {} as any,
       );
 
-      await service.findAll(organizationId, { page: 2, limit: 10, search: 'Cong ty ABC' } as any);
+      await service.findAll(
+        organizationId,
+        { page: 2, limit: 10, search: 'Cong ty ABC' } as any,
+        actorId,
+        managerLikePermissions,
+      );
 
       expect(customerRepoMock.findAndCount).toHaveBeenCalledWith({
         where: { organizationId, name: ILike('%Cong ty ABC%') },
@@ -60,10 +73,27 @@ describe('CustomersService', () => {
         {} as any,
       );
 
-      await service.findAll(organizationId, { page: 1, limit: 20 } as any);
+      await service.findAll(organizationId, { page: 1, limit: 20 } as any, actorId, managerLikePermissions);
 
       expect(customerRepoMock.findAndCount).toHaveBeenCalledWith(
         expect.objectContaining({ where: { organizationId } }),
+      );
+    });
+
+    it('Employee-like caller (co CUSTOMER_VIEW nhung KHONG co CUSTOMER_CREATE) chi thay khach hang minh phu trach', async () => {
+      const customerRepoMock = { findAndCount: jest.fn().mockResolvedValue([[], 0]) };
+      const dealRepoMock = { createQueryBuilder: jest.fn() };
+      const service = new CustomersService(
+        {} as any,
+        customerRepoMock as any,
+        dealRepoMock as any,
+        {} as any,
+      );
+
+      await service.findAll(organizationId, { page: 1, limit: 20 } as any, actorId, employeeLikePermissions);
+
+      expect(customerRepoMock.findAndCount).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { organizationId, ownerUserId: actorId } }),
       );
     });
 
@@ -85,7 +115,12 @@ describe('CustomersService', () => {
         {} as any,
       );
 
-      const result = await service.findAll(organizationId, { page: 1, limit: 20 } as any);
+      const result = await service.findAll(
+        organizationId,
+        { page: 1, limit: 20 } as any,
+        actorId,
+        managerLikePermissions,
+      );
 
       expect(result.data[0]).toMatchObject({ id: 'c1', openDealCount: 3, openDealValue: 150.5 });
       expect(result.data[1]).toMatchObject({ id: 'c2', openDealCount: 0, openDealValue: 0 });
@@ -102,7 +137,12 @@ describe('CustomersService', () => {
         {} as any,
       );
 
-      const result = await service.findAll(organizationId, { page: 1, limit: 20 } as any);
+      const result = await service.findAll(
+        organizationId,
+        { page: 1, limit: 20 } as any,
+        actorId,
+        managerLikePermissions,
+      );
 
       expect(result.data).toEqual([]);
       expect(dealRepoMock.createQueryBuilder).not.toHaveBeenCalled();
@@ -114,7 +154,9 @@ describe('CustomersService', () => {
       const customerRepoMock = { findOne: jest.fn().mockResolvedValue(null) };
       const service = new CustomersService({} as any, customerRepoMock as any, {} as any, {} as any);
 
-      await expect(service.findById(organizationId, customerId)).rejects.toThrow(NotFoundException);
+      await expect(
+        service.findById(organizationId, customerId, actorId, managerLikePermissions),
+      ).rejects.toThrow(NotFoundException);
       expect(customerRepoMock.findOne).toHaveBeenCalledWith({ where: { id: customerId, organizationId } });
     });
 
@@ -133,9 +175,42 @@ describe('CustomersService', () => {
         {} as any,
       );
 
-      const result = await service.findById(organizationId, customerId);
+      const result = await service.findById(organizationId, customerId, actorId, managerLikePermissions);
 
       expect(result).toMatchObject({ id: customerId, openDealCount: 2, openDealValue: 500 });
+    });
+
+    it('Employee-like caller (khong co CUSTOMER_CREATE) them ownerUserId=chinh minh vao dieu kien truy van', async () => {
+      const customerRepoMock = { findOne: jest.fn().mockResolvedValue(null) };
+      const service = new CustomersService({} as any, customerRepoMock as any, {} as any, {} as any);
+
+      await expect(
+        service.findById(organizationId, customerId, actorId, employeeLikePermissions),
+      ).rejects.toThrow(NotFoundException);
+      expect(customerRepoMock.findOne).toHaveBeenCalledWith({
+        where: { id: customerId, organizationId, ownerUserId: actorId },
+      });
+    });
+
+    it('Employee-like caller xem duoc khach hang minh phu trach (khong bi chan boi scoping)', async () => {
+      const customer = { id: customerId, organizationId, name: 'A', ownerUserId: actorId };
+      const customerRepoMock = { findOne: jest.fn().mockResolvedValue(customer) };
+      const dealRepoMock = {
+        createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])),
+      };
+      const service = new CustomersService(
+        {} as any,
+        customerRepoMock as any,
+        dealRepoMock as any,
+        {} as any,
+      );
+
+      const result = await service.findById(organizationId, customerId, actorId, employeeLikePermissions);
+
+      expect(customerRepoMock.findOne).toHaveBeenCalledWith({
+        where: { id: customerId, organizationId, ownerUserId: actorId },
+      });
+      expect(result).toMatchObject({ id: customerId, ownerUserId: actorId });
     });
   });
 
@@ -209,6 +284,36 @@ describe('CustomersService', () => {
         company: 'Cong ty A',
         notes: 'Ghi chu cu',
       });
+    });
+
+    it('cap nhat ownerUserId (doi nguoi phu trach) khi dto co truyen truong nay', async () => {
+      const newOwnerId = 'user-2';
+      const existing = { id: customerId, organizationId, name: 'A', ownerUserId: actorId };
+      const customerRepoMock = {
+        findOne: jest.fn().mockResolvedValue(existing),
+        save: jest.fn().mockImplementation((entity: any) => Promise.resolve(entity)),
+      };
+      const service = new CustomersService({} as any, customerRepoMock as any, {} as any, {} as any);
+
+      const result = await service.update(organizationId, customerId, { ownerUserId: newOwnerId });
+
+      expect(result).toMatchObject({ ownerUserId: newOwnerId });
+      expect(customerRepoMock.save).toHaveBeenCalledWith(
+        expect.objectContaining({ ownerUserId: newOwnerId }),
+      );
+    });
+
+    it('giu nguyen ownerUserId neu dto khong truyen truong nay', async () => {
+      const existing = { id: customerId, organizationId, name: 'A', ownerUserId: actorId };
+      const customerRepoMock = {
+        findOne: jest.fn().mockResolvedValue(existing),
+        save: jest.fn().mockImplementation((entity: any) => Promise.resolve(entity)),
+      };
+      const service = new CustomersService({} as any, customerRepoMock as any, {} as any, {} as any);
+
+      const result = await service.update(organizationId, customerId, { name: 'Moi' });
+
+      expect(result).toMatchObject({ ownerUserId: actorId });
     });
   });
 
