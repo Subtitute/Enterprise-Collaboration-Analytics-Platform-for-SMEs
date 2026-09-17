@@ -54,7 +54,8 @@
         "checkIn": "Vào làm",
         "checkOut": "Ra về",
         "totalHours": "Tổng giờ",
-        "status": "Trạng thái"
+        "status": "Trạng thái",
+        "actions": "Hành động"
       },
       "viewProofIn": "Xem ảnh bằng chứng vào làm",
       "viewProofOut": "Xem ảnh bằng chứng ra về"
@@ -76,7 +77,35 @@
         "status": "Trạng thái"
       },
       "viewProofInOf": "Xem ảnh bằng chứng vào làm của {{name}}",
-      "viewProofOutOf": "Xem ảnh bằng chứng ra về của {{name}}"
+      "viewProofOutOf": "Xem ảnh bằng chứng ra về của {{name}}",
+      "viewModeLog": "Nhật ký chấm công",
+      "viewModeTimesheet": "Bảng công tổng hợp",
+      "exportCsv": "Xuất CSV",
+      "timesheet": {
+        "title": "Bảng công tháng {{month}}",
+        "searchPlaceholder": "Tìm theo tên nhân viên…",
+        "allDepartments": "Tất cả phòng ban",
+        "columns": {
+          "employee": "Nhân viên",
+          "department": "Phòng ban",
+          "actualDays": "Ngày công",
+          "workHours": "Tổng giờ làm",
+          "lateCount": "Đi muộn",
+          "missingCheckOut": "Quên checkout",
+          "otHours": "Giờ OT",
+          "status": "Đánh giá"
+        },
+        "status": {
+          "sufficient": "Đủ công",
+          "insufficient": "Thiếu công",
+          "newMember": "Mới gia nhập"
+        },
+        "daysUnit": "ngày",
+        "hoursUnit": "giờ",
+        "timesUnit": "lần",
+        "noDepartment": "Chưa gán",
+        "empty": "Không có dữ liệu tổng hợp cho tháng này"
+      }
     },
     "photoModal": {
       "title": "Ảnh chấm công {{action}}",
@@ -161,5 +190,93 @@
     "approveLeaveRequestError": "Không thể duyệt yêu cầu",
     "rejectLeaveRequestSuccess": "Đã từ chối yêu cầu nghỉ phép",
     "rejectLeaveRequestError": "Không thể từ chối yêu cầu"
+  },
+  "extensions": {
+    "adjustment": {
+      "requestButton": "Giải trình / Sửa công",
+      "modalTitle": "Giải trình điều chỉnh công",
+      "dateLabel": "Ngày công",
+      "checkInLabel": "Giờ check-in đề xuất",
+      "checkOutLabel": "Giờ check-out đề xuất",
+      "reasonLabel": "Lý do giải trình",
+      "reasonPlaceholder": "Ví dụ: Quên check-out do đi công tác gặp khách hàng gấp…",
+      "submitButton": "Gửi giải trình",
+      "cancelButton": "Hủy",
+      "errors": {
+        "futureTime": "Không được chọn mốc thời gian vượt quá thời điểm hiện tại",
+        "invalidRange": "Giờ ra về đề xuất phải sau giờ vào làm",
+        "tooOld": "Chỉ được gửi giải trình trong vòng tối đa 7 ngày kể từ ngày phát sinh",
+        "missingReason": "Vui lòng nhập lý do giải trình chi tiết"
+      },
+      "badge": {
+        "adjusted": "Đã sửa công",
+        "pending": "Chờ duyệt giải trình",
+        "rejected": "Từ chối giải trình"
+      },
+      "originalLabel": "Ban đầu:",
+      "proposedLabel": "Đề xuất sửa:",
+      "tabTitle": "Duyệt giải trình ({{count}})",
+      "emptyTitle": "Không có yêu cầu giải trình nào",
+      "emptyDescription": "Tất cả yêu cầu điều chỉnh công của nhân viên sẽ hiển thị tại đây.",
+      "approveButton": "Duyệt",
+      "rejectButton": "Từ chối",
+      "successSubmit": "Đã gửi giải trình điều chỉnh công thành công",
+      "successApprove": "Đã duyệt yêu cầu giải trình công",
+      "successReject": "Đã từ chối yêu cầu giải trình công"
+    },
+    "overtime": {
+      "registerButton": "Đăng ký làm thêm (OT)",
+      "modalTitle": "Đăng ký làm thêm giờ (OT)",
+      "dateLabel": "Ngày làm thêm",
+      "startLabel": "Giờ bắt đầu OT",
+      "endLabel": "Giờ kết thúc OT",
+      "multiplierLabel": "Hệ số tính lương OT",
+      "timeSlotLabel": "Khung giờ OT:",
+      "multiplierLabelShort": "Hệ số tính lương:",
+      "multipliers": {
+        "weekday": "Ngày thường (x1.5)",
+        "weekend": "Cuối tuần Thứ 7 / CN (x2.0)",
+        "holiday": "Ngày nghỉ lễ / Tết (x3.0)"
+      },
+      "reasonLabel": "Lý do làm thêm",
+      "reasonPlaceholder": "Ví dụ: Hoàn thành triển khai dự án cho khách hàng…",
+      "estimatedHours": "Thời lượng OT dự kiến: {{hours}} giờ",
+      "submitButton": "Gửi đăng ký OT",
+      "cancelButton": "Hủy",
+      "errors": {
+        "overlapOfficeHours": "Giờ OT không được trùng lấn với giờ làm việc hành chính (08:30 - 17:30)",
+        "monthlyCapExceeded": "Tổng số giờ OT trong tháng đã vượt trần 40 giờ theo Bộ luật Lao động",
+        "hasLeaveOnDate": "Không thể đăng ký OT do bạn đã có lịch nghỉ phép trong ngày này",
+        "invalidRange": "Giờ kết thúc OT phải sau giờ bắt đầu",
+        "missingReason": "Vui lòng nhập lý do đăng ký OT"
+      },
+      "badge": {
+        "pending": "Chờ duyệt OT",
+        "approved": "Đã duyệt OT",
+        "rejected": "Từ chối OT"
+      },
+      "tabTitle": "Duyệt OT ({{count}})",
+      "emptyTitle": "Không có yêu cầu OT nào",
+      "emptyDescription": "Tất cả đơn xin làm thêm giờ của nhân viên sẽ hiển thị tại đây.",
+      "approveButton": "Duyệt OT",
+      "rejectButton": "Từ chối OT",
+      "successSubmit": "Đã gửi đơn đăng ký làm thêm giờ (OT) thành công",
+      "successApprove": "Đã duyệt đăng ký làm thêm giờ (OT)",
+      "successReject": "Đã từ chối đăng ký làm thêm giờ (OT)"
+    },
+    "payroll": {
+      "exportButton": "Xuất bảng lương (MISA/Fast)",
+      "successExport": "Đã xuất bảng tính lương thành công",
+      "exportedBy": "Xuất bởi {{user}} lúc {{time}}"
+    },
+    "orgTabs": {
+      "mainTitle": "Quản lý tổ chức",
+      "subtabs": {
+        "timesheet": "Bảng công tổng hợp",
+        "log": "Nhật ký chấm công",
+        "adjustments": "Duyệt giải trình",
+        "overtime": "Duyệt làm thêm (OT)"
+      }
+    }
   }
 }

@@ -9,7 +9,8 @@
     "cancel": "Cancel",
     "confirm": "Confirm",
     "close": "Close",
-    "save": "Save"
+    "save": "Save",
+    "done": "Done"
   },
   "appTitle": "Enterprise Collaboration & Analytics Platform",
   "notFound": {
@@ -134,5 +135,12 @@
     "weekDays": {
       "0": "Mon", "1": "Tue", "2": "Wed", "3": "Thu", "4": "Fri", "5": "Sat", "6": "Sun"
     }
+  },
+  "timePicker": {
+    "title": "Select Time",
+    "openTitle": "Select time",
+    "hours": "Hours",
+    "minutes": "Minutes",
+    "presets": "Quick Presets:"
   }
 }

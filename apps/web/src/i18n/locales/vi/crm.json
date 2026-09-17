@@ -55,8 +55,20 @@
     "fieldCompany": "Công ty",
     "fieldEmail": "Email",
     "fieldPhone": "Số điện thoại",
-    "fieldNotes": "Ghi chú",
-    "notesPlaceholder": "Thông tin thêm về khách hàng…",
+    "fieldNotes": "Ghi chú & Loại khách hàng",
+    "notesPlaceholder": "Nhập ghi chú hoặc thông tin cụ thể về khách hàng…",
+    "customerTypeLabel": "Phân loại khách hàng",
+    "customerTypePlaceholder": "-- Chọn phân loại khách hàng --",
+    "customerTypeOther": "Khác (Tự điền ghi chú)",
+    "customerTypes": {
+      "lead": "Khách hàng tiềm năng",
+      "vip": "Khách hàng VIP",
+      "loyal": "Khách hàng thân thiết",
+      "sme": "Doanh nghiệp SME",
+      "enterprise": "Tập đoàn / Doanh nghiệp lớn",
+      "individual": "Khách hàng cá nhân"
+    },
+    "customNotesLabel": "Chi tiết ghi chú (tự điền)",
     "cancel": "Hủy",
     "submit": "Thêm khách hàng"
   },

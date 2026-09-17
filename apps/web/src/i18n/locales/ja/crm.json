@@ -55,8 +55,20 @@
     "fieldCompany": "会社名",
     "fieldEmail": "メールアドレス",
     "fieldPhone": "電話番号",
-    "fieldNotes": "メモ",
-    "notesPlaceholder": "顧客に関する補足情報…",
+    "fieldNotes": "メモ・顧客種別",
+    "notesPlaceholder": "顧客に関するメモや詳細情報を入力…",
+    "customerTypeLabel": "顧客区分",
+    "customerTypePlaceholder": "-- 顧客区分を選択 --",
+    "customerTypeOther": "その他（自由入力）",
+    "customerTypes": {
+      "lead": "見込み顧客",
+      "vip": "VIP顧客",
+      "loyal": "リピート顧客",
+      "sme": "中小企業（SME）",
+      "enterprise": "大手企業・グループ企業",
+      "individual": "個人顧客"
+    },
+    "customNotesLabel": "メモ詳細（自由入力）",
     "cancel": "キャンセル",
     "submit": "顧客を追加"
   },

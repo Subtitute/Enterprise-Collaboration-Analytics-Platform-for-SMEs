@@ -51,10 +51,11 @@
       "emptyFilteredDescription": "No attendance data in {{month}}",
       "columns": {
         "date": "Date",
-        "checkIn": "Check in",
-        "checkOut": "Check out",
-        "totalHours": "Total hours",
-        "status": "Status"
+        "checkIn": "Check In",
+        "checkOut": "Check Out",
+        "totalHours": "Total Hours",
+        "status": "Status",
+        "actions": "Actions"
       },
       "viewProofIn": "View check-in photo proof",
       "viewProofOut": "View check-out photo proof"
@@ -76,7 +77,35 @@
         "status": "Status"
       },
       "viewProofInOf": "View check-in photo proof of {{name}}",
-      "viewProofOutOf": "View check-out photo proof of {{name}}"
+      "viewProofOutOf": "View check-out photo proof of {{name}}",
+      "viewModeLog": "Attendance Log",
+      "viewModeTimesheet": "Monthly Timesheet",
+      "exportCsv": "Export CSV",
+      "timesheet": {
+        "title": "Monthly Timesheet - {{month}}",
+        "searchPlaceholder": "Search by employee name…",
+        "allDepartments": "All Departments",
+        "columns": {
+          "employee": "Employee",
+          "department": "Department",
+          "actualDays": "Workdays",
+          "workHours": "Total Hours",
+          "lateCount": "Late",
+          "missingCheckOut": "Missing Checkout",
+          "otHours": "OT Hours",
+          "status": "Status"
+        },
+        "status": {
+          "sufficient": "Sufficient",
+          "insufficient": "Under Hours",
+          "newMember": "New Joiner"
+        },
+        "daysUnit": "days",
+        "hoursUnit": "hrs",
+        "timesUnit": "times",
+        "noDepartment": "Unassigned",
+        "empty": "No summary data for this month"
+      }
     },
     "photoModal": {
       "title": "{{action}} Photo Proof",
@@ -161,5 +190,93 @@
     "approveLeaveRequestError": "Couldn't approve the request",
     "rejectLeaveRequestSuccess": "Leave request rejected",
     "rejectLeaveRequestError": "Couldn't reject the request"
+  },
+  "extensions": {
+    "adjustment": {
+      "requestButton": "Request Adjustment",
+      "modalTitle": "Attendance Adjustment Request",
+      "dateLabel": "Work Date",
+      "checkInLabel": "Proposed Check-In Time",
+      "checkOutLabel": "Proposed Check-Out Time",
+      "reasonLabel": "Explanation / Reason",
+      "reasonPlaceholder": "e.g. Forgot to checkout due to urgent client meeting…",
+      "submitButton": "Submit Adjustment",
+      "cancelButton": "Cancel",
+      "errors": {
+        "futureTime": "Cannot select a time in the future",
+        "invalidRange": "Proposed check-out must be after check-in",
+        "tooOld": "Adjustment can only be requested within 7 days of the work date",
+        "missingReason": "Please provide a detailed explanation"
+      },
+      "badge": {
+        "adjusted": "Adjusted",
+        "pending": "Adjustment Pending",
+        "rejected": "Adjustment Rejected"
+      },
+      "originalLabel": "Original:",
+      "proposedLabel": "Proposed:",
+      "tabTitle": "Adjustments ({{count}})",
+      "emptyTitle": "No adjustment requests",
+      "emptyDescription": "All employee attendance adjustment requests will appear here.",
+      "approveButton": "Approve",
+      "rejectButton": "Reject",
+      "successSubmit": "Attendance adjustment submitted successfully",
+      "successApprove": "Attendance adjustment approved",
+      "successReject": "Attendance adjustment rejected"
+    },
+    "overtime": {
+      "registerButton": "Register Overtime (OT)",
+      "modalTitle": "Overtime Registration (OT)",
+      "dateLabel": "Overtime Date",
+      "startLabel": "OT Start Time",
+      "endLabel": "OT End Time",
+      "multiplierLabel": "OT Rate Multiplier",
+      "timeSlotLabel": "OT Time Slot:",
+      "multiplierLabelShort": "Rate Multiplier:",
+      "multipliers": {
+        "weekday": "Weekday (x1.5)",
+        "weekend": "Weekend Sat / Sun (x2.0)",
+        "holiday": "Public Holiday (x3.0)"
+      },
+      "reasonLabel": "Reason for Overtime",
+      "reasonPlaceholder": "e.g. Complete urgent deployment for enterprise customer…",
+      "estimatedHours": "Estimated OT duration: {{hours}} hours",
+      "submitButton": "Submit OT Request",
+      "cancelButton": "Cancel",
+      "errors": {
+        "overlapOfficeHours": "OT hours cannot overlap with official office hours (08:30 - 17:30)",
+        "monthlyCapExceeded": "Total OT hours this month exceeds legal cap of 40 hours",
+        "hasLeaveOnDate": "Cannot register OT because you have an approved leave on this date",
+        "invalidRange": "OT end time must be after start time",
+        "missingReason": "Please enter a reason for overtime"
+      },
+      "badge": {
+        "pending": "OT Pending",
+        "approved": "OT Approved",
+        "rejected": "OT Rejected"
+      },
+      "tabTitle": "Overtime Approvals ({{count}})",
+      "emptyTitle": "No overtime requests",
+      "emptyDescription": "All employee overtime requests will appear here.",
+      "approveButton": "Approve OT",
+      "rejectButton": "Reject OT",
+      "successSubmit": "Overtime request submitted successfully",
+      "successApprove": "Overtime request approved",
+      "successReject": "Overtime request rejected"
+    },
+    "payroll": {
+      "exportButton": "Export for Payroll (MISA/Fast)",
+      "successExport": "Payroll export completed successfully",
+      "exportedBy": "Exported by {{user}} at {{time}}"
+    },
+    "orgTabs": {
+      "mainTitle": "Organization Management",
+      "subtabs": {
+        "timesheet": "Monthly Timesheet",
+        "log": "Attendance Logs",
+        "adjustments": "Adjustments",
+        "overtime": "Overtime (OT)"
+      }
+    }
   }
 }

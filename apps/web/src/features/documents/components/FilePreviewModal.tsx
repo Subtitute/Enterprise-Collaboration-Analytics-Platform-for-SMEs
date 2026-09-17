@@ -167,7 +167,7 @@ export function FilePreviewModal({ file, open, onClose, onDownload }: FilePrevie
         {!isLoadingUrl && !isLoadingText && (urlError || hasRenderError) && (
           <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 border border-rose-200/60 shadow-2xs">
-              <AlertTriangleIcon className="h-6 w-6" />
+              <AlertCircleIcon className="h-6 w-6" />
             </div>
             <div>
               <p className="text-sm font-bold text-slate-800">{t('documents:preview.loadErrorTitle')}</p>

@@ -224,8 +224,6 @@ export function getNotificationVisualConfig(notification: AppNotification, t?: (
   }
 
   // 5. Nghiệp vụ Công việc (Task) - Màu xanh da trời (Sky) hoặc Xanh ngọc (Emerald) khi hoàn thành
-  if (type.includes('task') || title.includes('công việc') || message.includes('công việc')) {
-  // 5. Nghiệp vụ Công việc (Task) - Màu xanh da trời (Sky)
   if (type.includes('task') || title.includes('công việc') || message.includes('công việc')) { // i18n-lint-ignore: khop text backend, khong phai chuoi UI
     const projectId = payload.projectId as string | undefined;
     const taskId = payload.taskId as string | undefined;
@@ -245,10 +243,6 @@ export function getNotificationVisualConfig(notification: AppNotification, t?: (
         : 'bg-sky-100 text-sky-700 ring-1 ring-sky-600/20',
       textColor: isCompleted ? 'text-emerald-700' : 'text-sky-700',
       linkUrl,
-      targetName: t ? t('notifications:page.targets.task') : 'Công việc',
-      bgColor: 'bg-sky-100 text-sky-700 ring-1 ring-sky-600/20',
-      textColor: 'text-sky-700',
-      linkUrl: projectId ? `/projects/${projectId}` : '/projects',
       targetName: t ? t('notifications:page.targets.task') : 'Công việc', // i18n-lint-ignore: fallback mirror dung key i18n that
       targetKey: 'task',
     };

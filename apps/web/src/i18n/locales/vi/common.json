@@ -9,7 +9,8 @@
     "cancel": "Hủy",
     "confirm": "Xác nhận",
     "close": "Đóng",
-    "save": "Lưu"
+    "save": "Lưu",
+    "done": "Xong"
   },
   "appTitle": "Nền tảng Cộng tác & Phân tích Doanh nghiệp",
   "notFound": {
@@ -134,5 +135,12 @@
     "weekDays": {
       "0": "T2", "1": "T3", "2": "T4", "3": "T5", "4": "T6", "5": "T7", "6": "CN"
     }
+  },
+  "timePicker": {
+    "title": "Chọn mốc giờ",
+    "openTitle": "Chọn thời gian",
+    "hours": "Giờ",
+    "minutes": "Phút",
+    "presets": "Mốc nhanh:"
   }
 }
