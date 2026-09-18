@@ -1,5 +1,5 @@
-import { BadRequestException } from '@nestjs/common';
-import { EVENT_TYPES, ProjectStatus } from '@app/common-dto';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { EVENT_TYPES, PERMISSIONS, ProjectStatus } from '@app/common-dto';
 import { ProjectsService } from './projects.service';
 
 /**
@@ -264,7 +264,12 @@ describe('ProjectsService', () => {
         {} as any,
       );
 
-      const result = await service.findById(organizationId, projectId);
+      // 17/09/2026: truyen permissions co PROJECT_CREATE (Manager/Org Admin) de bo qua scoping moi
+      // them - test nay chi khoa lai shape enrich (completionRate/memberCount), khong lien quan
+      // scoping (xem describe rieng "findAll/findById - scoping theo PROJECT_CREATE" ben duoi).
+      const result = await service.findById(organizationId, projectId, 'caller-1', [
+        PERMISSIONS.PROJECT_CREATE,
+      ]);
 
       // Cung shape ProjectListItem ma findAll() tra: { ...project, completionRate, memberCount }.
       expect(result).toMatchObject({
@@ -297,9 +302,215 @@ describe('ProjectsService', () => {
         {} as any,
       );
 
-      const result = await service.findById(organizationId, projectId);
+      const result = await service.findById(organizationId, projectId, 'caller-1', [
+        PERMISSIONS.PROJECT_CREATE,
+      ]);
 
       expect(result).toMatchObject({ id: projectId, completionRate: 0, memberCount: 0 });
+    });
+  });
+
+  /**
+   * 17/09/2026: test cho tinh nang moi - Employee (co PROJECT_VIEW nhung KHONG co PROJECT_CREATE)
+   * chi duoc thay du an minh dang duoc giao viec/la nguoi phu trach/nguoi tao, thay vi TOAN BO du an
+   * cua to chuc nhu truoc. Manager/Org Admin (co PROJECT_CREATE) phai tiep tuc thay TAT CA, khong
+   * doi hanh vi cu. Mock thu cong queryBuilder/Repository, cung phong cach voi cac describe khac
+   * trong file nay (khong boot NestJS module hay DB that).
+   */
+  describe('findAll/findById - scoping theo PROJECT_CREATE (thay tat ca vs chi thay du an co lien quan)', () => {
+    const employeeId = 'employee-1';
+    const employeePermissions = [PERMISSIONS.PROJECT_VIEW];
+    const managerPermissions = [PERMISSIONS.PROJECT_CREATE, PERMISSIONS.PROJECT_VIEW];
+
+    /** QueryBuilder gia lap chain duoc (select/addSelect/where/andWhere/innerJoin/groupBy) roi tra ve rawResult o getRawMany(). */
+    function makeQueryBuilder(rawResult: unknown[]) {
+      const qb: any = {};
+      qb.select = jest.fn().mockReturnValue(qb);
+      qb.addSelect = jest.fn().mockReturnValue(qb);
+      qb.where = jest.fn().mockReturnValue(qb);
+      qb.andWhere = jest.fn().mockReturnValue(qb);
+      qb.innerJoin = jest.fn().mockReturnValue(qb);
+      qb.groupBy = jest.fn().mockReturnValue(qb);
+      qb.getRawMany = jest.fn().mockResolvedValue(rawResult);
+      return qb;
+    }
+
+    /** Empty query builder dung cho cac lan goi computeProjectStats() ma test khong quan tam ket qua (mac dinh 0/0). */
+    function emptyStatsRepos() {
+      const taskRepoMock = { createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])) };
+      return taskRepoMock;
+    }
+
+    it('Employee: findAll() chi tra ve du an duoc giao viec (TaskAssignee) HOAC la nguoi phu trach/nguoi tao - loai bo du an khong lien quan', async () => {
+      const allProjects = [
+        { id: 'project-1', organizationId, name: 'Duoc giao viec' },
+        { id: 'project-2', organizationId, name: 'Khong lien quan' },
+        { id: 'project-3', organizationId, name: 'Tu tao' },
+      ];
+
+      const projectRepoMock = {
+        // getVisibleProjectIds(): du an 'project-3' la do employee tu tao/phu trach.
+        find: jest.fn().mockResolvedValue([{ id: 'project-3' }]),
+        findAndCount: jest.fn().mockImplementation((options: any) => {
+          const idOperator = options.where.id;
+          const filtered = idOperator
+            ? allProjects.filter((p) => idOperator.value.includes(p.id))
+            : allProjects;
+          return Promise.resolve([filtered, filtered.length]);
+        }),
+      };
+      const assigneeRepoMock = {
+        createQueryBuilder: jest
+          .fn()
+          // Lan 1: getVisibleProjectIds() - employee dang duoc giao Task thuoc 'project-1'.
+          .mockReturnValueOnce(makeQueryBuilder([{ projectId: 'project-1' }]))
+          // Lan 2: computeProjectStats() memberRows - khong quan tam ket qua o test nay.
+          .mockReturnValueOnce(makeQueryBuilder([])),
+      };
+      const taskRepoMock = emptyStatsRepos();
+
+      const service = new ProjectsService(
+        {} as any,
+        projectRepoMock as any,
+        taskRepoMock as any,
+        assigneeRepoMock as any,
+        {} as any,
+      );
+
+      const result = await service.findAll(
+        organizationId,
+        { page: 1, limit: 20 } as any,
+        employeeId,
+        employeePermissions,
+      );
+
+      // Chi con 'project-1' (duoc giao viec) va 'project-3' (tu tao) - 'project-2' bi loai vi
+      // employee khong co lien quan gi (khong duoc giao Task, khong phai lead/nguoi tao).
+      expect(result.data.map((p) => p.id).sort()).toEqual(['project-1', 'project-3']);
+      expect(projectRepoMock.find).toHaveBeenCalledTimes(1);
+    });
+
+    it('Employee: findAll() tra ve danh sach rong (khong loi) neu khong lien quan bat ky du an nao', async () => {
+      const projectRepoMock = {
+        find: jest.fn().mockResolvedValue([]),
+        findAndCount: jest.fn(),
+      };
+      const assigneeRepoMock = {
+        createQueryBuilder: jest.fn().mockReturnValueOnce(makeQueryBuilder([])),
+      };
+
+      const service = new ProjectsService(
+        {} as any,
+        projectRepoMock as any,
+        {} as any,
+        assigneeRepoMock as any,
+        {} as any,
+      );
+
+      const result = await service.findAll(
+        organizationId,
+        { page: 1, limit: 20 } as any,
+        employeeId,
+        employeePermissions,
+      );
+
+      expect(result.data).toEqual([]);
+      expect(result.meta.total).toBe(0);
+      // Tra rong SOM ngay khi khong co du an nao lien quan - khong can query trang Project that su.
+      expect(projectRepoMock.findAndCount).not.toHaveBeenCalled();
+    });
+
+    it('Manager (co PROJECT_CREATE): findAll() van tra ve TOAN BO du an cua to chuc - khong doi hanh vi cu', async () => {
+      const allProjects = [
+        { id: 'project-1', organizationId },
+        { id: 'project-2', organizationId },
+      ];
+      const projectRepoMock = {
+        find: jest.fn(),
+        findAndCount: jest.fn().mockResolvedValue([allProjects, allProjects.length]),
+      };
+      const assigneeRepoMock = { createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])) };
+      const taskRepoMock = emptyStatsRepos();
+
+      const service = new ProjectsService(
+        {} as any,
+        projectRepoMock as any,
+        taskRepoMock as any,
+        assigneeRepoMock as any,
+        {} as any,
+      );
+
+      const result = await service.findAll(
+        organizationId,
+        { page: 1, limit: 20 } as any,
+        'manager-1',
+        managerPermissions,
+      );
+
+      expect(result.data.map((p) => p.id)).toEqual(['project-1', 'project-2']);
+      // Khong goi getVisibleProjectIds() (khong co lenh doc "du an minh phu trach/tao" nao) -
+      // xac nhan hoan toan bo qua scoping cho Manager.
+      expect(projectRepoMock.find).not.toHaveBeenCalled();
+      expect(projectRepoMock.findAndCount).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.not.objectContaining({ id: expect.anything() }) }),
+      );
+    });
+
+    it('Employee: findById() nem NotFoundException (khong phai Forbidden) khi xem 1 du an ton tai nhung khong lien quan - tranh lo lieu ton tai', async () => {
+      const project = { id: 'project-2', organizationId, name: 'Khong lien quan' };
+      const projectRepoMock = {
+        findOne: jest.fn().mockResolvedValue(project),
+        // Khong phai lead/nguoi tao.
+        find: jest.fn().mockResolvedValue([]),
+      };
+      const assigneeRepoMock = {
+        // Khong duoc giao Task nao thuoc du an nay.
+        createQueryBuilder: jest.fn().mockReturnValueOnce(makeQueryBuilder([])),
+      };
+
+      const service = new ProjectsService(
+        {} as any,
+        projectRepoMock as any,
+        {} as any,
+        assigneeRepoMock as any,
+        {} as any,
+      );
+
+      await expect(
+        service.findById(organizationId, 'project-2', employeeId, employeePermissions),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('Employee: findById() cho xem binh thuong 1 du an ma minh la nguoi tao (createdByUserId)', async () => {
+      const project = { id: 'project-3', organizationId, name: 'Tu tao' };
+      const projectRepoMock = {
+        findOne: jest.fn().mockResolvedValue(project),
+        find: jest.fn().mockResolvedValue([{ id: 'project-3' }]),
+      };
+      const assigneeRepoMock = {
+        createQueryBuilder: jest
+          .fn()
+          .mockReturnValueOnce(makeQueryBuilder([])) // getVisibleProjectIds: khong co Task nao duoc giao
+          .mockReturnValueOnce(makeQueryBuilder([])), // computeProjectStats memberRows
+      };
+      const taskRepoMock = emptyStatsRepos();
+
+      const service = new ProjectsService(
+        {} as any,
+        projectRepoMock as any,
+        taskRepoMock as any,
+        assigneeRepoMock as any,
+        {} as any,
+      );
+
+      const result = await service.findById(
+        organizationId,
+        'project-3',
+        employeeId,
+        employeePermissions,
+      );
+
+      expect(result).toMatchObject({ id: 'project-3' });
     });
   });
 });

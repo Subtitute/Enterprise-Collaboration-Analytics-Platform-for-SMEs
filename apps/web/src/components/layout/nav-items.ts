@@ -1,5 +1,10 @@
 import { BarChartIcon, BriefcaseIcon, CalendarIcon, ClockIcon, FileTextIcon, FolderKanbanIcon, GridIcon, BellIcon, ShieldIcon } from '@/components/ui/Icons';
 import type { IconProps } from '@/components/ui/Icons';
+// 17/09/2026: xem chu thich chi tiet ve import namespace (khong phai named import) tai
+// lib/utils.ts - deep-import submodule CJS cua @app/common-dto, tranh 2 loi da gap phai (crash
+// Reflect.getMetadata khi import qua barrel, va loi build Rollup voi named import).
+import * as PermissionEnum from '@app/common-dto/dist/enums/permission.enum';
+const { PERMISSIONS } = PermissionEnum;
 
 export interface NavItem {
   to: string;
@@ -8,8 +13,14 @@ export interface NavItem {
    *  i18n/locales/{vi,en,ja}/common.json, muc "nav". */
   labelKey: string;
   icon: (props: IconProps) => JSX.Element;
-  /** Chi hien thi voi nguoi dung co vai tro dang quan tri (xem lib/utils.ts:hasAdminRole). */
+  /** Chi hien thi voi nguoi dung co quyen vao khu vuc Quan tri (xem lib/utils.ts:canAccessAdminArea). */
   adminOnly?: boolean;
+  /** 17/09/2026: chi hien thi voi nguoi dung co dung permission nay (khac adminOnly - kiem tra 1
+   *  permission cu the thay vi ca nhom quyen quan tri). Dung cho "Bao cao & Phan tich": Employee
+   *  KHONG co ANALYTICS_VIEW (xem DEFAULT_ROLE_PERMISSIONS.EMPLOYEE, permission.enum.ts) - truoc
+   *  ban sua nay, Sidebar van hien link cho Employee du moi lenh goi API cua trang deu bi 403
+   *  (AnalyticsController da @RequirePermissions(ANALYTICS_VIEW) tu truoc), khien trang vo dung. */
+  requiredPermission?: string;
 }
 
 // Wireframe.md muc 2: Dashboard, Du an & Cong viec, Tai lieu, Thong bao, Bao cao & Phan tich, Quan tri.
@@ -23,6 +34,6 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/attendance', labelKey: 'common:nav.attendance', icon: ClockIcon },
   { to: '/leave-requests', labelKey: 'common:nav.leaveRequests', icon: CalendarIcon },
   { to: '/notifications', labelKey: 'common:nav.notifications', icon: BellIcon },
-  { to: '/analytics', labelKey: 'common:nav.analytics', icon: BarChartIcon },
+  { to: '/analytics', labelKey: 'common:nav.analytics', icon: BarChartIcon, requiredPermission: PERMISSIONS.ANALYTICS_VIEW },
   { to: '/admin/members', labelKey: 'common:nav.admin', icon: ShieldIcon, adminOnly: true },
 ];

@@ -24,35 +24,88 @@ const API_BASE_URL = process.env.SEED_API_BASE_URL || 'http://localhost:3000/api
 const DEPARTMENTS = ['Kinh doanh', 'Kỹ thuật', 'Nhân sự', 'Marketing'];
 
 const EMPLOYEES = [
-  { fullName: 'Nguyen Van An', email: 'an.nguyen@demo-sme.vn' },
-  { fullName: 'Tran Thi Binh', email: 'binh.tran@demo-sme.vn' },
-  { fullName: 'Le Van Chi', email: 'chi.le@demo-sme.vn' },
-  { fullName: 'Pham Thi Dung', email: 'dung.pham@demo-sme.vn' },
-  { fullName: 'Hoang Van Duc', email: 'duc.hoang@demo-sme.vn' },
-  { fullName: 'Vu Thi Em', email: 'em.vu@demo-sme.vn' },
-  { fullName: 'Do Van Phong', email: 'phong.do@demo-sme.vn' },
-  { fullName: 'Ngo Thi Giang', email: 'giang.ngo@demo-sme.vn' },
+  { fullName: 'Nguyễn Văn An', email: 'an.nguyen@demo-sme.vn' },
+  { fullName: 'Trần Thị Bình', email: 'binh.tran@demo-sme.vn' },
+  { fullName: 'Lê Văn Chi', email: 'chi.le@demo-sme.vn' },
+  { fullName: 'Phạm Thị Dung', email: 'dung.pham@demo-sme.vn' },
+  { fullName: 'Hoàng Văn Đức', email: 'duc.hoang@demo-sme.vn' },
+  { fullName: 'Vũ Thị Em', email: 'em.vu@demo-sme.vn' },
+  { fullName: 'Đỗ Văn Phong', email: 'phong.do@demo-sme.vn' },
+  { fullName: 'Ngô Thị Giang', email: 'giang.ngo@demo-sme.vn' },
 ];
 
 const PROJECTS = [
-  { name: 'Website ban hang SME', description: 'Xay dung website thuong mai dien tu cho SME' },
-  { name: 'Trien khai CRM noi bo', description: 'Trien khai he thong CRM quan ly khach hang' },
-  { name: 'Nang cap ha tang Docker', description: 'Container hoa toan bo he thong noi bo' },
-  { name: 'Ung dung di dong ban hang', description: 'Xay dung app mobile ho tro nhan vien kinh doanh' },
-  { name: 'He thong bao cao KPI', description: 'Xay dung dashboard bao cao KPI noi bo cho ban giam doc' },
+  { name: 'Website bán hàng SME', description: 'Xây dựng website thương mại điện tử cho SME' },
+  { name: 'Triển khai CRM nội bộ', description: 'Triển khai hệ thống CRM quản lý khách hàng' },
+  { name: 'Nâng cấp hạ tầng Docker', description: 'Container hóa toàn bộ hệ thống nội bộ' },
+  { name: 'Ứng dụng di động bán hàng', description: 'Xây dựng app mobile hỗ trợ nhân viên kinh doanh' },
+  { name: 'Hệ thống báo cáo KPI', description: 'Xây dựng dashboard báo cáo KPI nội bộ cho ban giám đốc' },
 ];
 
 const TASK_TITLES = [
-  'Thiet ke giao dien trang chu',
-  'Tich hop cong thanh toan',
-  'Viet tai lieu API',
-  'Kiem thu chuc nang dang nhap',
-  'Toi uu hoa truy van co so du lieu',
-  'Chuan bi bao cao tien do tuan',
-  'Ra soat bao mat API',
-  'Toi uu hoa hieu nang frontend',
-  'Xay dung quy trinh CI/CD',
-  'Dao tao nhan vien moi',
+  'Thiết kế giao diện trang chủ',
+  'Tích hợp cổng thanh toán',
+  'Viết tài liệu API',
+  'Kiểm thử chức năng đăng nhập',
+  'Tối ưu hóa truy vấn cơ sở dữ liệu',
+  'Chuẩn bị báo cáo tiến độ tuần',
+  'Rà soát bảo mật API',
+  'Tối ưu hóa hiệu năng frontend',
+  'Xây dựng quy trình CI/CD',
+  'Đào tạo nhân viên mới',
+];
+
+// 16/09/2026: bo sung - toan bo 5 du an tren truoc day KHONG co khach hang/deal CRM nao di kem
+// (script nay chua tung tao du lieu CRM), khien man hinh CRM luon trong tren 1 to chuc vua seed
+// moi. Danh sach nay dung chung ten cong ty/nganh nghe VIET NAM thuc te (khong phai placeholder
+// kieu "Khach hang A") de anh xa/bao cao cua tinh nang AI Insight (Gemini/Groq - xem
+// analytics-service/src/ai-insights) va man hinh CRM trong nom that hon khi demo.
+const CUSTOMERS = [
+  { name: 'Nguyễn Thanh Tùng', company: 'Công ty TNHH Thương mại Đại Phát', email: 'tung.nguyen@daiphat.vn', phone: '0903123456', notes: 'Khách hàng quen thuộc, chuyên phân phối hàng gia dụng' },
+  { name: 'Trần Thị Mai Anh', company: 'Công ty CP Thực phẩm Hương Việt', email: 'maianh.tran@huongviet.com.vn', phone: '0912345678', notes: 'Đang mở rộng chuỗi cửa hàng tại TP.HCM' },
+  { name: 'Lê Hoàng Nam', company: 'Xưởng May Thành Công', email: 'nam.le@thanhcongtailor.vn', phone: '0987654321', notes: 'Khách hàng tiềm năng, quan tâm gói CRM và quản lý kho' },
+  { name: 'Phạm Minh Đức', company: 'Công ty TNHH Xây dựng Phú Cường', email: 'duc.pham@phucuong.vn', phone: '0977888999', notes: '' },
+  { name: 'Vũ Thị Ngọc Hà', company: 'Chuỗi Cà phê Hạt Dẻ', email: 'ha.vu@hatdecoffee.vn', phone: '0909111222', notes: 'Muốn tích hợp quản lý nhân sự cho 5 chi nhánh' },
+  { name: 'Đặng Quốc Bảo', company: 'Công ty CP Vận tải Bảo Long', email: 'bao.dang@baolongtransport.vn', phone: '0938222333', notes: '' },
+  { name: 'Hoàng Thị Thu Trang', company: 'Trung tâm Anh ngữ Global Link', email: 'trang.hoang@globallink.edu.vn', phone: '0918444555', notes: 'Khách hàng lâu năm, ký hợp đồng thường niên' },
+  { name: 'Bùi Văn Hùng', company: 'Công ty TNHH Cơ khí Chính Xác', email: 'hung.bui@cokhichinhxac.vn', phone: '0944666777', notes: '' },
+  { name: 'Ngô Thị Kim Oanh', company: 'Siêu thị Mini Xanh', email: 'oanh.ngo@sieuthixanh.vn', phone: '0966777888', notes: 'Chuỗi 3 cửa hàng, cần báo cáo doanh số theo thời gian thực' },
+  { name: 'Đỗ Anh Tuấn', company: 'Công ty CP Công nghệ Việt Số', email: 'tuan.do@vietso.tech', phone: '0922333444', notes: 'Đối tác công nghệ, hợp tác triển khai module tích hợp' },
+  { name: 'Lý Thị Bích Ngọc', company: 'Nhà thuốc An Khang', email: 'ngoc.ly@ankhangpharma.vn', phone: '0955666111', notes: '' },
+  { name: 'Trương Văn Long', company: 'Công ty TNHH In ấn Sao Việt', email: 'long.truong@saovietprint.vn', phone: '0933555222', notes: 'Khách hàng mới, đang trong giai đoạn tư vấn' },
+];
+
+/**
+ * 2 deal/khach hang, rai deu ca 6 giai doan pipeline (NEW/CONTACTED/PROPOSAL/NEGOTIATION/WON/LOST -
+ * xem DEAL_STAGE_TRANSITIONS packages/common-dto) de Kanban CRM trong nhu 1 pipeline that dang van
+ * hanh, khong phai toan bo deal moi tinh. `closeOffsetDays` am = da qua (danh cho WON/LOST, mo
+ * phong ngay du kien chot trong qua khu), duong = trong tuong lai (deal dang hoat dong).
+ */
+const DEAL_TEMPLATES = [
+  { customer: 0, title: 'Gói triển khai CRM cơ bản', value: 45000000, stage: 'WON', closeOffsetDays: -40 },
+  { customer: 0, title: 'Hợp đồng bảo trì hệ thống năm 2027', value: 18000000, stage: 'NEGOTIATION', closeOffsetDays: 20 },
+  { customer: 1, title: 'Gói quản lý chuỗi cung ứng thực phẩm', value: 120000000, stage: 'PROPOSAL', closeOffsetDays: 30 },
+  { customer: 1, title: 'Dịch vụ tư vấn số hóa quy trình sản xuất', value: 65000000, stage: 'CONTACTED', closeOffsetDays: 45 },
+  { customer: 2, title: 'Gói phần mềm quản lý kho vải', value: 32000000, stage: 'NEW', closeOffsetDays: 60 },
+  { customer: 2, title: 'Demo dùng thử hệ thống CRM', value: 0, stage: 'CONTACTED', closeOffsetDays: 25 },
+  { customer: 3, title: 'Hợp đồng quản lý dự án xây dựng', value: 250000000, stage: 'NEGOTIATION', closeOffsetDays: 15 },
+  { customer: 3, title: 'Gói theo dõi tiến độ công trình', value: 40000000, stage: 'LOST', closeOffsetDays: -10 },
+  { customer: 4, title: 'Gói quản lý nhân sự đa chi nhánh', value: 85000000, stage: 'WON', closeOffsetDays: -15 },
+  { customer: 4, title: 'Gói báo cáo doanh thu theo chi nhánh', value: 28000000, stage: 'PROPOSAL', closeOffsetDays: 35 },
+  { customer: 5, title: 'Hợp đồng tích hợp hệ thống điều phối xe', value: 180000000, stage: 'CONTACTED', closeOffsetDays: 50 },
+  { customer: 5, title: 'Gói theo dõi đơn hàng thời gian thực', value: 55000000, stage: 'NEW', closeOffsetDays: 70 },
+  { customer: 6, title: 'Gói quản lý học viên và lịch học', value: 38000000, stage: 'WON', closeOffsetDays: -60 },
+  { customer: 6, title: 'Hợp đồng gia hạn dịch vụ năm 2', value: 38000000, stage: 'NEGOTIATION', closeOffsetDays: 5 },
+  { customer: 7, title: 'Gói quản lý sản xuất và chất lượng', value: 95000000, stage: 'LOST', closeOffsetDays: -20 },
+  { customer: 7, title: 'Demo hệ thống theo dõi máy móc', value: 0, stage: 'NEW', closeOffsetDays: 40 },
+  { customer: 8, title: 'Gói quản lý bán lẻ đa cửa hàng', value: 60000000, stage: 'PROPOSAL', closeOffsetDays: 28 },
+  { customer: 8, title: 'Gói báo cáo doanh số thời gian thực', value: 22000000, stage: 'CONTACTED', closeOffsetDays: 18 },
+  { customer: 9, title: 'Hợp đồng hợp tác tích hợp API', value: 150000000, stage: 'WON', closeOffsetDays: -25 },
+  { customer: 9, title: 'Gói mở rộng module phân tích dữ liệu', value: 90000000, stage: 'NEGOTIATION', closeOffsetDays: 12 },
+  { customer: 10, title: 'Gói quản lý kho thuốc và hạn dùng', value: 48000000, stage: 'CONTACTED', closeOffsetDays: 33 },
+  { customer: 10, title: 'Demo dùng thử 30 ngày', value: 0, stage: 'NEW', closeOffsetDays: 50 },
+  { customer: 11, title: 'Gói thiết kế bộ nhận diện số', value: 15000000, stage: 'LOST', closeOffsetDays: -8 },
+  { customer: 11, title: 'Gói quản lý đơn hàng in ấn', value: 26000000, stage: 'NEW', closeOffsetDays: 65 },
 ];
 
 // 25/07/2026: to chuc demo CO DINH (khong con hau to timestamp trong ten/email admin) - xem main()
@@ -166,6 +219,46 @@ function buildSampleDocuments(project) {
   return docs;
 }
 
+/** Tao khach hang + deal CRM mau (CUSTOMERS/DEAL_TEMPLATES dau file) - xem chu thich 2 hang so do. */
+async function seedCustomersAndDeals(authHeaders) {
+  const customers = [];
+  for (const c of CUSTOMERS) {
+    const created = await apiCall('/customers', {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify(c),
+    });
+    customers.push(created);
+  }
+
+  let dealCount = 0;
+  for (const tpl of DEAL_TEMPLATES) {
+    const closeDate = new Date(Date.now() + tpl.closeOffsetDays * MS_PER_DAY).toISOString().slice(0, 10);
+    const deal = await apiCall('/deals', {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify({
+        customerId: customers[tpl.customer].id,
+        title: tpl.title,
+        value: tpl.value,
+        expectedCloseDate: closeDate,
+      }),
+    });
+    // Deal vua tao luon o giai doan NEW (CreateDealDto khong nhan `stage`) - chuyen sang giai
+    // doan muc tieu qua endpoint rieng neu can (4 giai doan dang hoat dong deu chuyen tiep truc
+    // tiep duoc toi nhau/WON/LOST trong 1 buoc - xem DEAL_STAGE_TRANSITIONS packages/common-dto).
+    if (tpl.stage !== 'NEW') {
+      await apiCall(`/deals/${deal.id}/stage`, {
+        method: 'PATCH',
+        headers: authHeaders,
+        body: JSON.stringify({ stage: tpl.stage }),
+      });
+    }
+    dealCount += 1;
+  }
+  console.log(`Da tao ${customers.length} khach hang va ${dealCount} deal CRM`);
+}
+
 async function main() {
   console.log(`Seeding vao ${API_BASE_URL} ...`);
 
@@ -257,6 +350,8 @@ async function main() {
     employees.push(created);
   }
   console.log(`Da moi ${employees.length} nhan vien (mat khau: ${adminPassword})`);
+
+  await seedCustomersAndDeals(authHeaders);
 
   // Nguon nguoi dung co the giao viec / lam actor: nhan vien + chinh Org Admin (thuc te Org
   // Admin cung thuong tu nhan task nho trong doanh nghiep SME).

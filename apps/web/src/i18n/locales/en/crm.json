@@ -35,7 +35,11 @@
     "dealsErrorDescription": "Something went wrong loading this customer's deals. Please try again.",
     "emptyDealsTitle": "No deals yet",
     "emptyDealsDescription": "Create the first sales opportunity for this customer.",
-    "createFirstDeal": "Create new deal"
+    "createFirstDeal": "Create new deal",
+    "ownerLabel": "Owner",
+    "changeOwner": "Change",
+    "changeOwnerAriaLabel": "Change owner",
+    "reassignOwnerHeading": "Select new owner"
   },
   "newDealModal": {
     "title": "Create new deal",

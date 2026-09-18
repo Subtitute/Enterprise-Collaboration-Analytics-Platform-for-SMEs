@@ -197,6 +197,9 @@
     "namePlaceholder": "例:営業部",
     "descriptionLabel": "説明",
     "nameRequiredError": "部署名を入力してください",
+    "managerLabel": "部門長 / 担当者",
+    "noManagerOption": "— 未任用 —",
+    "managerHintNoMembers": "部署に1名以上のメンバーが所属している場合のみ選択できます。",
     "cancel": "キャンセル",
     "saveChanges": "変更を保存",
     "create": "部署を作成"

@@ -22,6 +22,7 @@ import {
 import { formatDate } from '@/lib/utils';
 import { useToastStore } from '@/stores/toast.store';
 import { useDepartmentsQuery } from '@/features/admin/hooks';
+import { useUserNameMap } from '@/hooks/useOrgUsers';
 import { useMyProfileQuery } from './hooks';
 
 export function ProfilePage() {
@@ -31,6 +32,10 @@ export function ProfilePage() {
   const departmentsQuery = useDepartmentsQuery();
   const user = profileQuery.data;
   const department = departmentsQuery.data?.find((d) => d.id === user?.departmentId);
+  // 17/09/2026: Department.managerId that (BE) - hien thi "Truong phong" canh ten phong ban, chi
+  // doc (doi truong phong thuoc trang Quan tri > Phong ban, viec rieng - xem DepartmentsPage.tsx).
+  const { map: userNameMap } = useUserNameMap();
+  const departmentManagerName = department?.managerId ? userNameMap[department.managerId] : undefined;
 
   // Trạng thái cục bộ cho tương tác người dùng (Avatar, Họ tên, Số điện thoại, Đổi mật khẩu)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -314,6 +319,22 @@ export function ProfilePage() {
                             className="bg-slate-50 text-slate-500 border-slate-200 cursor-not-allowed select-none pr-9"
                           />
                           <BuildingIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                        </div>
+                      </FormField>
+
+                      {/* 17/09/2026: Truong phong (Department.managerId that, BE thay the kieu doan
+                          ten role cu) - chi doc, doi truong phong thuoc trang Quan tri > Phong ban. */}
+                      <FormField label={t('profile:page.fields.departmentManager')} htmlFor="profile-dept-manager">
+                        <div className="relative">
+                          <Input
+                            id="profile-dept-manager"
+                            value={departmentManagerName ?? t('profile:page.fields.noDepartmentManager')}
+                            readOnly
+                            tabIndex={-1}
+                            aria-readonly="true"
+                            className="bg-slate-50 text-slate-500 border-slate-200 cursor-not-allowed select-none pr-9"
+                          />
+                          <UserIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
                         </div>
                       </FormField>
                     </div>

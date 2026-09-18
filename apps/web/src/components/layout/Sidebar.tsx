@@ -1,11 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { cn, hasAdminRole } from '@/lib/utils';
+import { cn, canAccessAdminArea } from '@/lib/utils';
 import { NAV_ITEMS } from './nav-items';
 import { ChevronLeftIcon, ChevronRightIcon, LayersIcon } from '@/components/ui/Icons';
 import { useUIStore } from '@/stores/ui.store';
-import { useAuthStore } from '@/stores/auth.store';
+import { usePermissions } from '@/stores/auth.store';
 
 interface SidebarContentProps {
   collapsed: boolean;
@@ -15,9 +15,11 @@ interface SidebarContentProps {
 function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
   const { t } = useTranslation();
   const location = useLocation();
-  const roles = useAuthStore((s) => s.user?.roles);
-  const canSeeAdmin = hasAdminRole(roles);
-  const items = NAV_ITEMS.filter((item) => !item.adminOnly || canSeeAdmin);
+  const permissions = usePermissions();
+  const canSeeAdmin = canAccessAdminArea(permissions);
+  const items = NAV_ITEMS.filter(
+    (item) => (!item.adminOnly || canSeeAdmin) && (!item.requiredPermission || permissions.includes(item.requiredPermission)),
+  );
 
   return (
     <nav className="flex-1 space-y-1 overflow-x-hidden overflow-y-auto px-2.5 py-2">

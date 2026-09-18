@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AuthUser } from '@/types';
@@ -60,4 +61,46 @@ export const useAuthStore = create<AuthState>()(
 
 export function useIsAuthenticated(): boolean {
   return useAuthStore((s) => Boolean(s.accessToken));
+}
+
+/**
+ * 17/09/2026: giai ma phan payload (base64url, doan giua) cua JWT access token PHIA CLIENT - CHI
+ * de doc du lieu hien/an UI, KHONG xac minh chu ky (viec xac minh la trach nhiem cua backend tren
+ * tung API, xem packages/common-guard). AuthUser (JSON body /auth/login|register|refresh) KHONG
+ * mang permissions (chi { id, name } cho moi role - xem apps/iam-service/src/auth/auth.service.ts
+ * toPublicUser()), nhung accessToken THAT SU co mang permissions[] duoc IAM Service ky luc phat
+ * hanh token (JwtAccessPayload.permissions, packages/common-dto/src/interfaces/
+ * auth-context.interface.ts) - nen phai doc tu chinh JWT thay vi tu AuthUser.
+ */
+function decodeAccessTokenPermissions(token: string | null): string[] {
+  if (!token) return [];
+  try {
+    const payloadSegment = token.split('.')[1];
+    if (!payloadSegment) return [];
+    const base64 = payloadSegment.replace(/-/g, '+').replace(/_/g, '/');
+    const json = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => `%${c.charCodeAt(0).toString(16).padStart(2, '0')}`)
+        .join(''),
+    );
+    const payload = JSON.parse(json) as { permissions?: unknown };
+    return Array.isArray(payload.permissions) ? payload.permissions.filter((p): p is string => typeof p === 'string') : [];
+  } catch {
+    // Token khong dung dinh dang JWT (vd du lieu test/mock) - fail closed ve mang rong, xem
+    // canAccessAdminArea (lib/utils.ts) ve ly do fail-closed la lua chon co chu y o day.
+    return [];
+  }
+}
+
+/**
+ * Danh sach quyen (permission key, vd 'user:invite') cua nguoi dang dang nhap - dung cho
+ * canAccessAdminArea() va cac kiem tra quyen khac o client (CHI de an/hien UI - backend van la
+ * noi thuc thi RBAC that su tren tung API, xem packages/common-guard/PermissionsGuard). Doc lai
+ * tu accessToken (khong luu rieng trong store) de LUON dong bo voi token hien hanh, ke ca sau khi
+ * refresh() xoay vong token hoac sau khi F5 (accessToken duoc persist, xem partialize o tren).
+ */
+export function usePermissions(): string[] {
+  const accessToken = useAuthStore((s) => s.accessToken);
+  return useMemo(() => decodeAccessTokenPermissions(accessToken), [accessToken]);
 }

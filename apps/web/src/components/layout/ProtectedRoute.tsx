@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuthStore } from '@/stores/auth.store';
+import { useAuthStore, usePermissions } from '@/stores/auth.store';
 import { FullPageSpinner } from '@/components/ui/Spinner';
-import { hasAdminRole } from '@/lib/utils';
+import { canAccessAdminArea } from '@/lib/utils';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -18,13 +18,24 @@ interface ProtectedRouteProps {
    * Nguoi dung da xac thuc nhung KHONG phai Super Admin se bi dieu huong ve /dashboard.
    */
   requireSuperAdmin?: boolean;
+  /**
+   * 17/09/2026: bao ve tang ROUTE (khac requireAdmin - kiem tra 1 permission cu the thay vi ca
+   * nhom quyen quan tri) - dung cho /analytics (yeu cau ANALYTICS_VIEW, xem nav-items.ts). Sidebar
+   * chi AN link chu khong chan dieu huong truc tiep bang URL, giong ly do requireAdmin da co san.
+   */
+  requiredPermission?: string;
 }
 
-export function ProtectedRoute({ children, requireAdmin = false, requireSuperAdmin = false }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  children,
+  requireAdmin = false,
+  requireSuperAdmin = false,
+  requiredPermission,
+}: ProtectedRouteProps) {
   const { t } = useTranslation();
   const isBootstrapping = useAuthStore((s) => s.isBootstrapping);
   const accessToken = useAuthStore((s) => s.accessToken);
-  const roles = useAuthStore((s) => s.user?.roles);
+  const permissions = usePermissions();
   const isSuperAdmin = useAuthStore((s) => s.user?.isSuperAdmin ?? false);
   const location = useLocation();
 
@@ -46,7 +57,11 @@ export function ProtectedRoute({ children, requireAdmin = false, requireSuperAdm
     return <Navigate to="/dashboard" replace />;
   }
 
-  if (requireAdmin && !hasAdminRole(roles)) {
+  if (requireAdmin && !canAccessAdminArea(permissions)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (requiredPermission && !permissions.includes(requiredPermission)) {
     return <Navigate to="/dashboard" replace />;
   }
 

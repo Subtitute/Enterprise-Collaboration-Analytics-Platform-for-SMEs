@@ -5,7 +5,30 @@
 // (America/Los_Angeles) truoc khi chay - de bai test nay THAT SU that bai neu ai do lam mat tham
 // so timeZone trong tuong lai, thay vi "vo tinh" pass chi vi may chay test tinh co dat gio VN.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { formatDate, formatDateTime } from './utils';
+import { formatDate, formatDateTime, canAccessAdminArea } from './utils';
+
+// 17/09/2026: test moi cho canAccessAdminArea() - thay the hasAdminRole(roles) (so khop TEN vai
+// tro) bang kiem tra QUYEN that su (xem chu thich chi tiet tai utils.ts). Quan trong nhat can xac
+// minh: fail CLOSED khi khong/chua co permissions (mang rong/undefined) - day la tinh an toan cot
+// loi ke thua tu ham cu, sai o day se mo lai lo hong "roles rong = coi nhu la admin" da tung co.
+describe('canAccessAdminArea', () => {
+  it('fail CLOSED (tra ve false) khi permissions rong hoac undefined', () => {
+    expect(canAccessAdminArea(undefined)).toBe(false);
+    expect(canAccessAdminArea([])).toBe(false);
+  });
+
+  it('tra ve false khi permissions khong chua quyen quan tri nao', () => {
+    expect(canAccessAdminArea(['task:view', 'document:upload'])).toBe(false);
+  });
+
+  it('tra ve true khi co it nhat 1 quyen quan tri (vd Manager chi co USER_INVITE)', () => {
+    expect(canAccessAdminArea(['task:view', 'user:invite'])).toBe(true);
+  });
+
+  it('tra ve true voi Org Admin (co day du cac quyen quan tri)', () => {
+    expect(canAccessAdminArea(['user:manage', 'department:manage', 'role:manage', 'calendar:manage', 'system:manage'])).toBe(true);
+  });
+});
 
 describe('formatDate / formatDateTime (Asia/Ho_Chi_Minh)', () => {
   let originalTZ: string | undefined;

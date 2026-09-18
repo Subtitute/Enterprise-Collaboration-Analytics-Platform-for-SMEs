@@ -35,7 +35,11 @@
     "dealsErrorDescription": "Đã xảy ra lỗi khi tải danh sách deal của khách hàng. Vui lòng thử lại.",
     "emptyDealsTitle": "Chưa có deal nào",
     "emptyDealsDescription": "Tạo cơ hội bán hàng đầu tiên cho khách hàng này.",
-    "createFirstDeal": "Tạo deal mới"
+    "createFirstDeal": "Tạo deal mới",
+    "ownerLabel": "Phụ trách",
+    "changeOwner": "Đổi",
+    "changeOwnerAriaLabel": "Đổi người phụ trách",
+    "reassignOwnerHeading": "Chọn người phụ trách mới"
   },
   "newDealModal": {
     "title": "Tạo deal mới",

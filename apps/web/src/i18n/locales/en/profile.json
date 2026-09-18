@@ -19,6 +19,8 @@
       "fullNamePlaceholder": "Enter full name",
       "employeeId": "Employee ID",
       "department": "Department",
+      "departmentManager": "Department Manager",
+      "noDepartmentManager": "Not assigned",
       "phone": "Phone Number",
       "phonePlaceholder": "e.g. +84 912 345 678",
       "roles": "Assigned Roles",

@@ -19,14 +19,25 @@ export class ProjectsController {
   findAll(
     @CurrentUser('organizationId') organizationId: string,
     @Query() query: ProjectQueryDto,
+    // 17/09/2026: can userId/permissions cua nguoi goi de ProjectsService.findAll() tu gioi han
+    // ket qua cho Employee (khong co PROJECT_CREATE) - xem chu thich chi tiet tai findAll().
+    @CurrentUser('userId') userId: string,
+    @CurrentUser('permissions') permissions: string[],
   ) {
-    return this.projectsService.findAll(organizationId, query);
+    return this.projectsService.findAll(organizationId, query, userId, permissions ?? []);
   }
 
   @Get(':id')
   @RequirePermissions(PERMISSIONS.PROJECT_VIEW)
-  findOne(@CurrentUser('organizationId') organizationId: string, @Param('id') id: string) {
-    return this.projectsService.findById(organizationId, id);
+  findOne(
+    @CurrentUser('organizationId') organizationId: string,
+    @Param('id') id: string,
+    // 17/09/2026: cung ly do voi findAll() o tren - ap dung dung ranh gioi cho GET 1 du an, tranh
+    // Employee vuot rao bang cach doan/nhan UUID du an khong thuoc pham vi cua ho.
+    @CurrentUser('userId') userId: string,
+    @CurrentUser('permissions') permissions: string[],
+  ) {
+    return this.projectsService.findById(organizationId, id, userId, permissions ?? []);
   }
 
   @Post()

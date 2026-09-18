@@ -9,6 +9,7 @@ import {
   ERROR_CODES,
   EVENT_TYPES,
   PaginatedResponse,
+  PERMISSIONS,
   paginate,
 } from '@app/common-dto';
 import { Customer } from '../entities/customer.entity';
@@ -46,13 +47,23 @@ export class CustomersService {
    * Danh sach khach hang (Wireframe.md muc 12): ho tro tim kiem theo ten (khong phan biet hoa/
    * thuong), tra ve kem openDealCount/openDealValue tinh gop theo trang hien tai (1 truy van
    * aggregate GROUP BY customer_id, tranh N+1 - mirror ProjectsService.computeProjectStats()).
+   *
+   * 17/09/2026: gioi han pham vi xem theo ownerUserId - Employee (co CUSTOMER_VIEW nhung KHONG co
+   * CUSTOMER_CREATE, xem DEFAULT_ROLE_PERMISSIONS trong permission.enum.ts) chi thay khach hang
+   * minh phu trach; Manager/Org Admin (co ca 2 quyen) van thay toan bo khach hang trong to chuc nhu
+   * truoc gio. Dung CUSTOMER_CREATE lam tin hieu ranh gioi "quan ly danh muc khach hang" (Manager)
+   * vs "chi thao tac Deal cua minh tren khach hang co san" (Employee) da co san trong RBAC, tranh
+   * phai them 1 permission constant rieng chi de phuc vu 1 dieu kien nay.
    */
   async findAll(
     organizationId: string,
     query: CustomerQueryDto,
+    callerId: string,
+    callerPermissions: string[],
   ): Promise<PaginatedResponse<CustomerListItem>> {
     const where: FindOptionsWhere<Customer> = { organizationId };
     if (query.search) where.name = ILike(`%${query.search}%`);
+    if (!callerPermissions.includes(PERMISSIONS.CUSTOMER_CREATE)) where.ownerUserId = callerId;
 
     const [data, total] = await this.customerRepo.findAndCount({
       where,
@@ -70,8 +81,21 @@ export class CustomersService {
     return paginate(enriched, total, query.page, query.limit);
   }
 
-  async findById(organizationId: string, id: string): Promise<CustomerListItem> {
-    const customer = await this.customerRepo.findOne({ where: { id, organizationId } });
+  // 17/09/2026: ap dung CUNG quy tac pham vi xem nhu findAll() o tren - neu khong, Employee van co
+  // the xem chi tiet 1 khach hang khong phai minh phu trach chi bang cach doan/nhan duoc UUID cua
+  // no truc tiep (vd. tu URL chia se), du danh sach da loc dung. Tra ve CUNG 1 NotFoundException
+  // nhu truong hop khach hang khong ton tai (khong dung ForbiddenException rieng) de khong lam lo
+  // su ton tai cua ban ghi cho nguoi khong co quyen xem no.
+  async findById(
+    organizationId: string,
+    id: string,
+    callerId: string,
+    callerPermissions: string[],
+  ): Promise<CustomerListItem> {
+    const where: FindOptionsWhere<Customer> = { id, organizationId };
+    if (!callerPermissions.includes(PERMISSIONS.CUSTOMER_CREATE)) where.ownerUserId = callerId;
+
+    const customer = await this.customerRepo.findOne({ where });
     if (!customer) throw new NotFoundException({ message: 'Khong tim thay khach hang', errorCode: ERROR_CODES.CUSTOMER_NOT_FOUND });
 
     const stats = await this.computeCustomerStats([id]);
@@ -114,6 +138,12 @@ export class CustomersService {
     if (dto.phone !== undefined) customer.phone = dto.phone;
     if (dto.company !== undefined) customer.company = dto.company;
     if (dto.notes !== undefined) customer.notes = dto.notes;
+    // 17/09/2026: cho phep doi nguoi phu trach (ownerUserId) - chi nguoi co CUSTOMER_UPDATE (Manager/
+    // Org Admin, xem DEFAULT_ROLE_PERMISSIONS) moi goi duoc PATCH nay (da gate san boi
+    // @RequirePermissions tren CustomersController.update()) nen khong can kiem tra quyen rieng cho
+    // truong nay. Xem chu thich tai UpdateCustomerDto.ownerUserId ve gioi han KHONG validate
+    // ownerUserId thuc su thuoc organizationId cua nguoi goi (mirror Project.leadUserId).
+    if (dto.ownerUserId !== undefined) customer.ownerUserId = dto.ownerUserId;
     return this.customerRepo.save(customer);
   }
 

@@ -7,6 +7,8 @@
   "hero": {
     "title": "Enterprise-Wide Task Overview",
     "subtitle": "Summary of implementation progress and task completion rate across all ongoing projects.",
+    "titlePersonal": "Your Task Overview",
+    "subtitlePersonal": "Summary of implementation progress and completion rate for the tasks assigned to you.",
     "completionRateLabel": "Overall completion rate",
     "progressLabel": "Progress status",
     "progressUnit": "tasks",
@@ -37,6 +39,14 @@
     "activeUsers": {
       "label": "Active members",
       "hint": "In the last 7 days"
+    },
+    "myInProgressTasks": {
+      "label": "In-progress tasks",
+      "hint": "Your tasks currently in progress"
+    },
+    "myOverdueTasks": {
+      "label": "Overdue tasks",
+      "hint": "Your tasks past their due date"
     }
   },
   "filters": {

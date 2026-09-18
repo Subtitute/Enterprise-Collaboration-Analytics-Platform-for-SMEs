@@ -1367,6 +1367,104 @@ frontend lần 3 + Super Admin").*
 
 ---
 
+## 2026-09-16 (bổ sung lần 3) — Container Docker cũ 3 tuần + lỗi mojibake tên file + thay dữ liệu E2E bằng dữ liệu CRM thật
+
+Người dùng báo cáo không thấy các thay đổi vừa merge/Super Admin ở đâu cả, kèm 1 ảnh chụp tên file
+tải lên bị lỗi hiển thị kiểu `Biá»u máº«u...`. Rà soát trực tiếp `.git` (không có git CLI trong
+sandbox, đọc thẳng object) xác nhận mã nguồn đã đúng, đủ — nguyên nhân thật: **toàn bộ 9 container
+ứng dụng đang chạy image build từ 24/08/2026**, cũ hơn 3 tuần so với đợt merge/Super Admin vừa xong.
+Rebuild + `up -d` lại cả 9 service phát hiện thêm 1 lỗi thật tiềm ẩn: `notification-service` (image
+cũ) dùng quy ước `MONGO_URI` ghép sẵn, trong khi `docker-compose.yml` (đã cập nhật từ 26/08) chỉ còn
+truyền 5 biến `MONGO_HOST/PORT/...` — image cũ không đọc được, rơi về `localhost` mặc định, service
+CRASH lúc khởi động lại; tự khỏi sau khi rebuild với code hiện tại.
+
+**Lỗi mojibake**: Busboy (thư viện Multer dùng bên trong `FileInterceptor`) mặc định giải mã tham số
+`filename` của header multipart theo Latin-1 (quy ước cũ RFC 2388), trong khi trình duyệt hiện đại
+gửi thẳng byte UTF-8 không kèm khai báo charset — 1 tên file tiếng Việt có dấu bị hiểu nhầm byte.
+Thêm `decodeMulterFilename()` (`apps/document-service/src/files/utils/decode-multer-filename.util.ts`)
+chạy TRƯỚC `sanitizeFileName()` ở cả `upload()`/`uploadNewVersion()` — có 1 lớp bảo vệ (giữ nguyên
+chuỗi gốc nếu kết quả sau khi đổi sinh ký tự thay thế U+FFFD) để không phá hỏng 1 tên file vốn đã
+đúng. Chỉ ảnh hưởng tải file mới — dữ liệu cũ đã lưu sai không tự sửa lại.
+
+**Thay dữ liệu**: xoá 22 dự án + 12 khách hàng + cascade con do Playwright e2e sinh ra (đã xác nhận
+cô lập hoàn toàn trong tổ chức demo, không giao thoa dữ liệu thật), qua API thật (không SQL thô, giữ
+đúng cascade/outbox); 13 tài khoản e2e giả hoá ra đã tự bị vô hiệu hoá sẵn (tự dọn dẹp của chính bộ
+test). Thêm 12 khách hàng + 24 deal CRM **thật, có tên công ty/ngành nghề Việt Nam đa dạng** (không
+phải placeholder) — lý do: người dùng cần dữ liệu "chân thực" khi demo tính năng AI Insight (rà soát
+lại phát hiện tính năng này thực chất dùng **Gemini + Groq**, không phải Grok/xAI như người dùng
+tưởng — không có tích hợp xAI nào trong dự án; chỉ phân tích số liệu tổng hợp task/dự án từ
+TimescaleDB, không đọc dữ liệu CRM, nhưng xoá bớt 22 dự án rác vẫn giúp "top 5 dự án" trong prompt AI
+sạch hơn). Đồng thời vá dấu tiếng Việt còn thiếu (phòng ban, tên 5 dự án thật, tên 8 nhân viên) sót
+lại từ trước khi Tiến sửa dấu ở nhánh `frontend`. `scripts/seed.js` được cập nhật cùng lúc (mảng
+`CUSTOMERS`/`DEAL_TEMPLATES` mới + dấu tiếng Việt) để lần seed sau (nếu DB bị reset) vẫn ra dữ liệu
+phong phú, không cần lặp lại thao tác thủ công này.
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 16/09/2026 (phần cuối, sau mục
+Super Admin).*
+
+## 2026-09-17 — Phân quyền 3 cấp Org Admin/Admin/Employee + 15 nhân viên mới + lịch sử làm việc thật
+
+Người dùng đưa ra 7 yêu cầu 1 lúc; mục 6 (nhắn tin nội bộ) và mục 7 (ý tưởng tăng tính thuyết phục
+đồ án) là tư vấn — trả lời bằng lời, không code đợt này (xem trao đổi trực tiếp). 5 mục còn lại:
+
+**Phát hiện kiến trúc quan trọng nhất**: vai trò "admin" người dùng mô tả ("thấy/thao tác mọi thứ
+trừ phần thuộc Org Admin") khớp gần như tuyệt đối với `DEFAULT_ROLE_PERMISSIONS.MANAGER` sẵn có
+(`packages/common-dto`) — không cần vai trò mới. Vấn đề thật: gate khu vực "Quản trị" (`hasAdminRole()`,
+`apps/web/src/lib/utils.ts`) so khớp theo TÊN vai trò bằng regex thay vì theo QUYỀN, nên "Manager"
+(dù đã có `USER_INVITE`) bị chặn hoàn toàn — đúng loại lỗi "tên vai trò không phải quyền" đã cảnh
+báo ở nhiều đợt review trước. Đổi thành `canAccessAdminArea(permissions)`, đọc quyền thật qua
+`usePermissions()` (`stores/auth.store.ts`, giải mã trường `permissions[]` vốn đã có sẵn trong JWT
+access token do IAM Service ký lúc đăng nhập — chỉ chưa từng được đọc ở frontend) — không cần đổi
+hợp đồng backend. Từng tab trong `/admin/*` tự ẩn/hiện đúng quyền cụ thể của nó (Members/Departments
+cho cả 2, Roles & Permissions/Lịch công ty/DLQ vẫn độc quyền Org Admin).
+
+**Giới hạn hiển thị theo "được giao"**: Project/Task/Customer trước đây hiển thị toàn bộ tổ chức cho
+mọi vai trò có quyền xem tương ứng, kể cả Employee. Sửa `ProjectsService`/`TasksService`/
+`CustomersService` dùng lại chính quyền đã phân biệt Employee/Manager (`PROJECT_CREATE`/`TASK_DELETE`/
+`CUSTOMER_CREATE` — Employee không có, Manager+ có) làm tín hiệu "xem toàn bộ hay xem giới hạn", suy
+ra "thành viên dự án" qua `TaskAssignee` (join có sẵn, trước đây chỉ dùng đếm `memberCount`) — không
+phát minh permission mới. Áp dụng cả cho tra cứu 1 bản ghi (không chỉ danh sách) để chặn dò UUID trực
+tiếp. `Customer.ownerUserId` (đã có sẵn, trước đây chỉ gán lúc tạo, không đổi được/không hiển thị/
+không dùng để giới hạn xem) nay đổi được qua `PATCH /customers/:id`, hiển thị "Phụ trách" ở
+`CustomerDetailPage.tsx`. `Department` thêm cột thật `managerId` (mirror `Project.leadUserId`), thay
+cho suy đoán sai trước đây ở `DepartmentsPage.tsx` (quét tên vai trò chứa "lead/manager/admin", có
+thể nhận nhầm 1 Org Admin không thuộc phòng ban).
+
+**Lỗi thật phát hiện qua thực thi** (không phải suy luận): `PATCH /users/:id` (sửa vai trò/phòng ban
+1 nhân viên) crash 500 với MỌI user — `User.roles` là quan hệ `eager: true`, kết hợp
+`lock: 'pessimistic_write'` sinh lỗi Postgres "FOR UPDATE cannot be applied to the nullable side of
+an outer join". Sửa bằng `loadEagerRelations: false` cho đúng truy vấn này (an toàn vì logic không
+bao giờ đọc `roles` cũ, chỉ ghi đè toàn bộ khi có `roleIds` mới). Riêng phía frontend: import
+`PERMISSIONS` từ `@app/common-dto` (lần đầu `apps/web` thực sự dùng gói này) kéo theo
+`class-transformer`'s `@Type()` gọi `Reflect.getMetadata` không có polyfill trên trình duyệt — sửa
+bằng import sâu vào đúng file enum (`@app/common-dto/dist/enums/permission.enum`) dạng namespace
+import (Rollup không nhận diện được named export từ deep-import CJS); `apps/web/Dockerfile` phải bổ
+sung bước tự build `packages/common-dto` (trước đây chưa từng cần vì `apps/web` chưa từng import gói
+này — `dist/` nằm trong `.dockerignore`).
+
+**15 nhân viên mới (8 → 23) + lịch sử làm việc thật**: mời qua API thật, tên tiếng Việt đầy đủ dấu,
+4 người trong 8 nhân viên "sáng lập" được thăng vai trò Manager kiêm trưởng phòng (trước đó KHÔNG ai
+trong tổ chức mang vai trò Manager — tính năng phân quyền vừa xong không có gì để kiểm chứng nếu
+không sửa luôn). Lịch sử chấm công 6 tuần (chỉ ngày làm việc, rải trễ/vắng để chân thực) buộc phải
+chèn thẳng vào `hrm_db` — API check-in luôn dùng thời điểm request thật (ảnh chụp), không có cách
+hợp lệ lùi ngày, giống lý do `seedHistoricalAnalyticsData()` (`scripts/seed.js`) đã bơm thẳng vào
+TimescaleDB. Đơn nghỉ phép tạo qua API thật nhưng phát hiện luật nghiệp vụ chặn ngày bắt đầu trong
+quá khứ (`LEAVE_START_DATE_IN_PAST`) — chỉ tạo được đơn cho tương lai, khớp đúng thực tế "xin nghỉ
+phải xin trước". 12 khách hàng CRM (đợt trước đều do Org Admin sở hữu) được gán lại cho đội Kinh
+doanh để tính năng "khách hàng được giao" có dữ liệu chứng minh. Dọn nốt dữ liệu e2e còn sót trong
+Leave Requests (18 đơn, toàn bộ do tài khoản Org Admin tạo khi chạy e2e)/Documents (1 thư mục + 13
+ảnh test) qua API thật, riêng leave-requests không có endpoint xoá nên xoá trực tiếp theo đúng danh
+sách ID đã xác minh cô lập.
+
+**Xác minh**: gate `typecheck/lint/lint:i18n-strings/test` sạch toàn 12 workspace ở MỌI bước (backend
+3 service song song, frontend 2 mảng song song, rồi gộp lại xác minh lần cuối). Kiểm thử sống qua
+API thật (không chỉ đọc code) bằng tài khoản Employee/Manager/Org Admin thật: Employee chỉ thấy đúng
+1/5 dự án được giao + đúng số khách hàng sở hữu, bị chặn 403 khi gọi API quản trị; Manager thấy đủ cả
+5 dự án (không đổi) nhưng vẫn bị chặn `ROLE_MANAGE`/`DEPARTMENT_MANAGE`, mời thành viên được. Rebuild
++ redeploy `iam-service`/`project-task-service`/`crm-service`/`web`.
+
+*Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 17/09/2026.*
+
 ## Lịch sử thay đổi tài liệu này
 
 - **2026-08-24** — Khởi tạo file, gộp lại toàn bộ lịch sử rà soát/sửa lỗi từ 18/07/2026 (khởi tạo
@@ -1430,3 +1528,13 @@ frontend lần 3 + Super Admin").*
   `Organization.{isActive,isSystem}`, guard/decorator mới `SuperAdminGuard`/`@RequireSuperAdmin()`,
   bootstrap tự động qua biến môi trường (không có luồng đăng ký qua API), khu vực frontend riêng
   `/platform-admin` tách biệt hoàn toàn AppShell hiện có.
+- **2026-09-16 (bổ sung lần 3)** — Bổ sung mục "Container Docker cũ 3 tuần + lỗi mojibake tên file +
+  thay dữ liệu E2E bằng dữ liệu CRM thật" — nguyên nhân "không thấy thay đổi" là container 3 tuần
+  tuổi (không phải lỗi merge), phát hiện thêm 1 lỗi thật khi rebuild (`notification-service` dùng
+  quy ước Mongo URI cũ); sửa lỗi mojibake tên file tải lên (Busboy giải mã Latin-1 nhầm UTF-8); thay
+  34 bản ghi CRM/dự án rác do e2e sinh ra bằng 12 khách hàng + 24 deal thật.
+- **2026-09-17** — Bổ sung mục "Phân quyền 3 cấp Org Admin/Admin/Employee + 15 nhân viên mới" —
+  "admin" hoá ra chính là vai trò Manager sẵn có, chỉ cần sửa gate theo quyền thay vì theo tên vai
+  trò; giới hạn Project/Task/Customer theo "được giao" cho Employee; phát hiện + sửa 1 lỗi 500 thật
+  ở `PATCH /users/:id` (Postgres từ chối khoá dòng qua outer join); mở rộng 8 → 23 nhân viên kèm
+  lịch sử chấm công/nghỉ phép thật, kiểm thử sống bằng tài khoản thật cho cả 3 cấp vai trò.

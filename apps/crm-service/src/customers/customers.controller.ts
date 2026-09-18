@@ -16,14 +16,26 @@ export class CustomersController {
 
   @Get()
   @RequirePermissions(PERMISSIONS.CUSTOMER_VIEW)
-  findAll(@CurrentUser('organizationId') organizationId: string, @Query() query: CustomerQueryDto) {
-    return this.customersService.findAll(organizationId, query);
+  findAll(
+    @CurrentUser('organizationId') organizationId: string,
+    // 17/09/2026: can them userId/permissions cua nguoi goi de CustomersService.findAll() gioi han
+    // Employee chi thay khach hang minh phu trach (xem chu thich tai service).
+    @CurrentUser('userId') callerId: string,
+    @CurrentUser('permissions') callerPermissions: string[],
+    @Query() query: CustomerQueryDto,
+  ) {
+    return this.customersService.findAll(organizationId, query, callerId, callerPermissions);
   }
 
   @Get(':id')
   @RequirePermissions(PERMISSIONS.CUSTOMER_VIEW)
-  findOne(@CurrentUser('organizationId') organizationId: string, @Param('id') id: string) {
-    return this.customersService.findById(organizationId, id);
+  findOne(
+    @CurrentUser('organizationId') organizationId: string,
+    @CurrentUser('userId') callerId: string,
+    @CurrentUser('permissions') callerPermissions: string[],
+    @Param('id') id: string,
+  ) {
+    return this.customersService.findById(organizationId, id, callerId, callerPermissions);
   }
 
   @Post()

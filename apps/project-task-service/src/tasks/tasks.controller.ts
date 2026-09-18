@@ -19,14 +19,28 @@ export class TasksController {
 
   @Get()
   @RequirePermissions(PERMISSIONS.TASK_VIEW)
-  findAll(@CurrentUser('organizationId') organizationId: string, @Query() query: TaskQueryDto) {
-    return this.tasksService.findAll(organizationId, query);
+  findAll(
+    @CurrentUser('organizationId') organizationId: string,
+    @Query() query: TaskQueryDto,
+    // 17/09/2026: can userId/permissions cua nguoi goi de TasksService.findAll() tu gioi han ket
+    // qua cho Employee (khong co TASK_DELETE) - xem chu thich chi tiet tai findAll().
+    @CurrentUser('userId') userId: string,
+    @CurrentUser('permissions') permissions: string[],
+  ) {
+    return this.tasksService.findAll(organizationId, query, userId, permissions ?? []);
   }
 
   @Get(':id')
   @RequirePermissions(PERMISSIONS.TASK_VIEW)
-  findOne(@CurrentUser('organizationId') organizationId: string, @Param('id') id: string) {
-    return this.tasksService.findById(organizationId, id);
+  findOne(
+    @CurrentUser('organizationId') organizationId: string,
+    @Param('id') id: string,
+    // 17/09/2026: cung ly do voi findAll() o tren - ap dung dung ranh gioi cho GET 1 Task, tranh
+    // Employee vuot rao bang cach doan/nhan UUID Task khong thuoc pham vi cua ho.
+    @CurrentUser('userId') userId: string,
+    @CurrentUser('permissions') permissions: string[],
+  ) {
+    return this.tasksService.findById(organizationId, id, userId, permissions ?? []);
   }
 
   @Post()

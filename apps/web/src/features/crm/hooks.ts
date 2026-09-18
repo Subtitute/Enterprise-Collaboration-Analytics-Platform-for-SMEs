@@ -15,7 +15,7 @@ import {
   updateDeal,
   updateDealStage,
 } from './api';
-import type { CreateCustomerPayload, CreateDealPayload, FetchCustomersParams } from './api';
+import type { CreateCustomerPayload, CreateDealPayload, FetchCustomersParams, UpdateCustomerPayload } from './api';
 
 export function useCustomersQuery(params: FetchCustomersParams = {}) {
   return useQuery({ queryKey: ['customers', params], queryFn: () => fetchCustomers(params) });
@@ -42,7 +42,9 @@ export function useUpdateCustomer(id: string) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: Partial<CreateCustomerPayload>) => updateCustomer(id, payload),
+    // 17/09/2026: UpdateCustomerPayload (thay Partial<CreateCustomerPayload>) - cho phep them
+    // ownerUserId khi doi nguoi phu trach (CustomerDetailPage.tsx), xem chu thich tai api.ts.
+    mutationFn: (payload: UpdateCustomerPayload) => updateCustomer(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       queryClient.invalidateQueries({ queryKey: ['customer', id] });

@@ -1,7 +1,9 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { QueryFailedError } from 'typeorm';
 // 25/07/2026: them EVENT_TYPES - can cho assertion outbox trong test remove() bo sung ben duoi.
-import { EVENT_TYPES, TaskStatus } from '@app/common-dto';
+// 17/09/2026: them PERMISSIONS - can cho cac test scoping findAll()/findById() theo TASK_DELETE
+// (xem describe "findAll/findById - scoping theo TASK_DELETE" o cuoi file).
+import { EVENT_TYPES, PERMISSIONS, TaskStatus } from '@app/common-dto';
 import { TasksService } from './tasks.service';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
 
@@ -46,7 +48,15 @@ describe('TasksService', () => {
         {} as any,
       );
 
-      const result = await service.findAll(organizationId, { page: 1, limit: 20 } as any);
+      // 17/09/2026: truyen permissions co TASK_DELETE (Manager/Org Admin) de bo qua scoping moi them
+      // - test nay chi khoa lai enrich assignees, khong lien quan scoping (xem describe rieng
+      // "findAll/findById - scoping theo TASK_DELETE" o cuoi file).
+      const result = await service.findAll(
+        organizationId,
+        { page: 1, limit: 20 } as any,
+        'manager-1',
+        [PERMISSIONS.TASK_DELETE],
+      );
 
       expect(result.data[0].assignees).toEqual([{ userId: 'user-1' }, { userId: 'user-2' }]);
       expect(result.data[1].assignees).toEqual([]);
@@ -67,7 +77,9 @@ describe('TasksService', () => {
         {} as any,
       );
 
-      const result = await service.findAll(organizationId, { page: 1, limit: 20 } as any);
+      const result = await service.findAll(organizationId, { page: 1, limit: 20 } as any, 'manager-1', [
+        PERMISSIONS.TASK_DELETE,
+      ]);
 
       expect(result.data).toEqual([]);
       expect(assigneeRepoMock.find).not.toHaveBeenCalled();
@@ -98,7 +110,10 @@ describe('TasksService', () => {
         {} as any,
       );
 
-      const result = await service.findById(organizationId, taskId);
+      // 17/09/2026: cung ly do voi findAll() o tren - truyen permissions co TASK_DELETE de bo qua scoping.
+      const result = await service.findById(organizationId, taskId, 'manager-1', [
+        PERMISSIONS.TASK_DELETE,
+      ]);
 
       expect(result.assignees).toEqual([{ userId: 'user-1' }]);
       expect((result as any).assigneeIds).toBeUndefined();
@@ -292,6 +307,192 @@ describe('TasksService', () => {
       await expect(service.assign(organizationId, taskId, actorId, 'user-1')).rejects.toThrow(
         'connection lost',
       );
+    });
+  });
+
+  /**
+   * 17/09/2026: test cho tinh nang moi - Employee (co TASK_VIEW/TASK_CREATE/TASK_UPDATE nhung KHONG
+   * co TASK_DELETE) chi duoc thay Task thuoc du an minh dang duoc giao viec/la nguoi phu trach/nguoi
+   * tao, thay vi TOAN BO Task cua to chuc nhu truoc (mirror describe tuong tu trong
+   * projects.service.spec.ts). Manager/Org Admin (co TASK_DELETE) phai tiep tuc thay TAT CA, khong
+   * doi hanh vi cu.
+   */
+  describe('findAll/findById - scoping theo TASK_DELETE (thay tat ca vs chi thay Task cua du an co lien quan)', () => {
+    const employeeId = 'employee-1';
+    const employeePermissions = [PERMISSIONS.TASK_VIEW, PERMISSIONS.TASK_CREATE, PERMISSIONS.TASK_UPDATE];
+    const managerPermissions = [PERMISSIONS.TASK_DELETE, PERMISSIONS.TASK_VIEW];
+
+    /** QueryBuilder gia lap chain duoc (select/where/andWhere/innerJoin) roi tra ve rawResult o getRawMany(). */
+    function makeQueryBuilder(rawResult: unknown[]) {
+      const qb: any = {};
+      qb.select = jest.fn().mockReturnValue(qb);
+      qb.where = jest.fn().mockReturnValue(qb);
+      qb.andWhere = jest.fn().mockReturnValue(qb);
+      qb.innerJoin = jest.fn().mockReturnValue(qb);
+      qb.getRawMany = jest.fn().mockResolvedValue(rawResult);
+      return qb;
+    }
+
+    it('Employee: findAll() chi tra ve Task thuoc du an duoc giao viec HOAC la nguoi phu trach/nguoi tao - loai bo Task cua du an khong lien quan', async () => {
+      const allTasks = [
+        { id: 'task-1', organizationId, projectId: 'project-1', title: 'A' },
+        { id: 'task-2', organizationId, projectId: 'project-2', title: 'B (khong lien quan)' },
+        { id: 'task-3', organizationId, projectId: 'project-3', title: 'C (tu tao du an)' },
+      ];
+      const taskRepoMock = {
+        findAndCount: jest.fn().mockImplementation((options: any) => {
+          const projectIdOperator = options.where.projectId;
+          const filtered = projectIdOperator
+            ? allTasks.filter((t) => projectIdOperator.value.includes(t.projectId))
+            : allTasks;
+          return Promise.resolve([filtered, filtered.length]);
+        }),
+      };
+      const projectOwnedRepoMock = { find: jest.fn().mockResolvedValue([{ id: 'project-3' }]) };
+      const assigneeRepoMock = {
+        // getVisibleProjectIds(): employee dang duoc giao Task thuoc 'project-1'.
+        createQueryBuilder: jest.fn().mockReturnValueOnce(makeQueryBuilder([{ projectId: 'project-1' }])),
+        find: jest.fn().mockResolvedValue([]), // enrich assignees - khong quan tam o test nay
+      };
+      const dataSourceMock = { getRepository: jest.fn().mockReturnValue(projectOwnedRepoMock) };
+
+      const service = new TasksService(
+        dataSourceMock as any,
+        taskRepoMock as any,
+        assigneeRepoMock as any,
+        {} as any,
+        {} as any,
+        {} as any,
+      );
+
+      const result = await service.findAll(
+        organizationId,
+        { page: 1, limit: 20 } as any,
+        employeeId,
+        employeePermissions,
+      );
+
+      // Chi con 'task-1' (thuoc du an duoc giao viec) va 'task-3' (thuoc du an tu tao) -
+      // 'task-2' bi loai vi employee khong lien quan gi den 'project-2'.
+      expect(result.data.map((t) => t.id).sort()).toEqual(['task-1', 'task-3']);
+      expect(dataSourceMock.getRepository).toHaveBeenCalledWith(expect.anything());
+    });
+
+    it('Employee: tu loc theo query.projectId cua 1 du an KHONG lien quan - tra ve rong thay vi bo qua scoping', async () => {
+      const taskRepoMock = { findAndCount: jest.fn() };
+      const projectOwnedRepoMock = { find: jest.fn().mockResolvedValue([]) };
+      const assigneeRepoMock = {
+        createQueryBuilder: jest.fn().mockReturnValueOnce(makeQueryBuilder([])), // khong duoc giao Task nao
+      };
+      const dataSourceMock = { getRepository: jest.fn().mockReturnValue(projectOwnedRepoMock) };
+
+      const service = new TasksService(
+        dataSourceMock as any,
+        taskRepoMock as any,
+        assigneeRepoMock as any,
+        {} as any,
+        {} as any,
+        {} as any,
+      );
+
+      const result = await service.findAll(
+        organizationId,
+        { page: 1, limit: 20, projectId: 'project-2' } as any,
+        employeeId,
+        employeePermissions,
+      );
+
+      expect(result.data).toEqual([]);
+      expect(result.meta.total).toBe(0);
+      // Khong duoc am tham bo qua bo loc projectId ma client tu chon - phai tra rong ngay, khong
+      // cham toi DB Task that su.
+      expect(taskRepoMock.findAndCount).not.toHaveBeenCalled();
+    });
+
+    it('Manager (co TASK_DELETE): findAll() van tra ve TOAN BO Task cua to chuc - khong doi hanh vi cu', async () => {
+      const allTasks = [
+        { id: 'task-1', organizationId, projectId: 'project-1' },
+        { id: 'task-2', organizationId, projectId: 'project-2' },
+      ];
+      const taskRepoMock = { findAndCount: jest.fn().mockResolvedValue([allTasks, allTasks.length]) };
+      const assigneeRepoMock = { find: jest.fn().mockResolvedValue([]) };
+      const dataSourceMock = { getRepository: jest.fn() };
+
+      const service = new TasksService(
+        dataSourceMock as any,
+        taskRepoMock as any,
+        assigneeRepoMock as any,
+        {} as any,
+        {} as any,
+        {} as any,
+      );
+
+      const result = await service.findAll(
+        organizationId,
+        { page: 1, limit: 20 } as any,
+        'manager-1',
+        managerPermissions,
+      );
+
+      expect(result.data.map((t) => t.id)).toEqual(['task-1', 'task-2']);
+      // Khong goi getVisibleProjectIds() (khong doc Project nao) - xac nhan hoan toan bo qua scoping cho Manager.
+      expect(dataSourceMock.getRepository).not.toHaveBeenCalled();
+      expect(taskRepoMock.findAndCount).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.not.objectContaining({ projectId: expect.anything() }) }),
+      );
+    });
+
+    it('Employee: findById() nem NotFoundException (khong phai Forbidden) khi xem 1 Task ton tai nhung thuoc du an khong lien quan - tranh lo lieu ton tai', async () => {
+      const task = { id: 'task-2', organizationId, projectId: 'project-2', title: 'B' };
+      const taskRepoMock = { findOne: jest.fn().mockResolvedValue(task) };
+      const projectOwnedRepoMock = { find: jest.fn().mockResolvedValue([]) };
+      const assigneeRepoMock = {
+        createQueryBuilder: jest.fn().mockReturnValueOnce(makeQueryBuilder([])),
+      };
+      const dataSourceMock = { getRepository: jest.fn().mockReturnValue(projectOwnedRepoMock) };
+
+      const service = new TasksService(
+        dataSourceMock as any,
+        taskRepoMock as any,
+        assigneeRepoMock as any,
+        {} as any,
+        {} as any,
+        {} as any,
+      );
+
+      await expect(
+        service.findById(organizationId, 'task-2', employeeId, employeePermissions),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('Employee: findById() cho xem binh thuong 1 Task thuoc du an ma minh la nguoi tao (createdByUserId)', async () => {
+      const task = { id: 'task-3', organizationId, projectId: 'project-3', title: 'C' };
+      const taskRepoMock = { findOne: jest.fn().mockResolvedValue(task) };
+      const projectOwnedRepoMock = { find: jest.fn().mockResolvedValue([{ id: 'project-3' }]) };
+      const assigneeRepoMock = {
+        createQueryBuilder: jest.fn().mockReturnValueOnce(makeQueryBuilder([])),
+        find: jest.fn().mockResolvedValue([]),
+      };
+      const commentRepoMock = { count: jest.fn().mockResolvedValue(0) };
+      const dataSourceMock = { getRepository: jest.fn().mockReturnValue(projectOwnedRepoMock) };
+
+      const service = new TasksService(
+        dataSourceMock as any,
+        taskRepoMock as any,
+        assigneeRepoMock as any,
+        commentRepoMock as any,
+        {} as any,
+        {} as any,
+      );
+
+      const result = await service.findById(
+        organizationId,
+        'task-3',
+        employeeId,
+        employeePermissions,
+      );
+
+      expect(result).toMatchObject({ id: 'task-3' });
     });
   });
 });

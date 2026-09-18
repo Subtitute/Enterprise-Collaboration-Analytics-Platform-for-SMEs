@@ -1,5 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+// 17/09/2026: import truc tiep submodule (khong qua barrel '@app/common-dto') bang `import * as`
+// (namespace, khong phai named import) - xem ghi chu chi tiet tai lib/utils.ts (barrel keo theo
+// DTO dung class-transformer, throw Reflect.getMetadata is not a function; named import tu deep
+// import CJS lam Rollup build that bai "not exported by ...").
+import * as PermissionEnum from '@app/common-dto/dist/enums/permission.enum';
+import { usePermissions } from '@/stores/auth.store';
+import { useUserNameMap } from '@/hooks/useOrgUsers';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
@@ -12,7 +19,9 @@ import { QueryState } from '@/components/ui/QueryState';
 import { BuildingIcon, EditIcon, MoreVerticalIcon, PlusIcon, TrashIcon, UserIcon, UsersIcon } from '@/components/ui/Icons';
 import { useDeleteDepartment, useDepartmentsQuery, useUsersQuery } from './hooks';
 import { DepartmentModal } from './components/DepartmentModal';
-import type { Department, User } from '@/types';
+import type { Department } from '@/types';
+
+const { PERMISSIONS } = PermissionEnum;
 
 export function DepartmentsPage() {
   const { t } = useTranslation();
@@ -25,48 +34,33 @@ export function DepartmentsPage() {
   const deleteDepartment = useDeleteDepartment();
   const departments = departmentsQuery.data ?? [];
   const users = usersQuery.data?.data ?? [];
+  // 17/09/2026: ten nguoi phu trach (Department.managerId) - dung lai useUserNameMap() da co san
+  // (id -> ten hien thi, cung hook dung o AssigneePicker.tsx/useGlobalSearch.ts) thay vi tu fetch
+  // rieng. Chi Org Admin (DEPARTMENT_MANAGE) moi them/sua/xoa phong ban duoc, nen an cac hanh dong
+  // do voi Manager (vao duoc trang nay qua USER_INVITE, xem canAccessAdminArea/AdminPage.tsx).
+  const permissions = usePermissions();
+  const canManageDepartments = permissions.includes(PERMISSIONS.DEPARTMENT_MANAGE);
+  const { map: userNameMap } = useUserNameMap();
 
-  // Tính số lượng nhân sự và tìm Người phụ trách / Trưởng bộ phận theo từng phòng ban
-  const { memberCountMap, managerMap } = useMemo(() => {
+  // Tính số lượng nhân sự theo từng phòng ban
+  const memberCountMap = useMemo(() => {
     const counts: Record<string, number> = {};
-    const managers: Record<string, User> = {};
-
     for (const u of users) {
       if (!u.departmentId) continue;
       counts[u.departmentId] = (counts[u.departmentId] ?? 0) + 1;
-
-      // Xác định Trưởng bộ phận / Quản trị viên của phòng ban
-      const isLead = (u.roles ?? []).some((r) => {
-        const rName = r.name.toLowerCase();
-        // 16/09/2026: bo nhanh khop 'trưởng' - Role.name luon la tieng Anh ('Org Admin'/'Manager'/
-        // 'Employee', xem DefaultRoleName trong packages/common-dto) vi seedDefaultRoles() la duy
-        // nhat tao Role va khong co endpoint doi ten vai tro nao ca, nen nhanh nay khong bao gio
-        // khop (dead code) va vi pham linter hardcode tieng Viet.
-        return rName.includes('lead') || rName.includes('manager') || rName.includes('admin');
-      });
-
-      if (isLead && !managers[u.departmentId]) {
-        managers[u.departmentId] = u;
-      }
     }
-
-    // Nếu chưa có lead rõ ràng nhưng phòng có nhân sự, lấy người đầu tiên làm đại diện phụ trách
-    for (const u of users) {
-      if (u.departmentId && !managers[u.departmentId]) {
-        managers[u.departmentId] = u;
-      }
-    }
-
-    return { memberCountMap: counts, managerMap: managers };
+    return counts;
   }, [users]);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-slate-500">{t('admin:departmentsPage.description')}</p>
-        <Button onClick={() => setIsCreateOpen(true)}>
-          <PlusIcon className="h-4 w-4" /> {t('admin:departmentsPage.newDepartment')}
-        </Button>
+        {canManageDepartments && (
+          <Button onClick={() => setIsCreateOpen(true)}>
+            <PlusIcon className="h-4 w-4" /> {t('admin:departmentsPage.newDepartment')}
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -97,7 +91,11 @@ export function DepartmentsPage() {
             <TableBody>
               {departments.map((d) => {
                 const count = d.memberCount ?? memberCountMap[d.id] ?? 0;
-                const manager = managerMap[d.id];
+                // 17/09/2026: Department.managerId that tu backend (thay cho heuristic doan qua
+                // role name "lead/manager/admin" cu, co the doan SAI - vd phong ban co nhieu
+                // Manager, hoac Manager khong thuoc phong ban do) - chi con can resolve id -> ten
+                // hien thi qua useUserNameMap() da co san.
+                const managerName = d.managerId ? userNameMap[d.managerId] : undefined;
 
                 return (
                   <TableRow key={d.id}>
@@ -121,13 +119,10 @@ export function DepartmentsPage() {
 
                     {/* Cột Trưởng bộ phận / Người phụ trách */}
                     <TableCell label={t('admin:departmentsPage.columns.manager')}>
-                      {manager ? (
+                      {d.managerId && managerName ? (
                         <div className="flex items-center gap-2">
-                          <Avatar name={manager.fullName} size="sm" />
-                          <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-slate-800">{manager.fullName}</p>
-                            <p className="truncate text-xs text-slate-400">{manager.email}</p>
-                          </div>
+                          <Avatar name={managerName} size="sm" />
+                          <p className="truncate text-sm font-medium text-slate-800">{managerName}</p>
                         </div>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-xs text-slate-400">
@@ -138,40 +133,47 @@ export function DepartmentsPage() {
                     </TableCell>
 
                     <TableCell label={t('admin:departmentsPage.columns.actions')} className="text-right">
-                      <Dropdown
-                        align="right"
-                        trigger={({ toggle }) => (
-                          <button
-                            onClick={toggle}
-                            className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                            aria-label={t('admin:departmentsPage.optionsAria')}
-                          >
-                            <MoreVerticalIcon className="h-4 w-4" />
-                          </button>
-                        )}
-                      >
-                        {({ close }) => (
-                          <div className="w-40 py-1.5">
-                            <DropdownItem
-                              onClick={() => {
-                                setEditingDept(d);
-                                close();
-                              }}
+                      {/* 17/09/2026: an (khong chi disable) toan bo menu Sua/Xoa khi khong co
+                          DEPARTMENT_MANAGE - Manager vao duoc trang nay (qua USER_INVITE) nhung
+                          chi Org Admin moi duoc thay doi co cau phong ban. */}
+                      {canManageDepartments ? (
+                        <Dropdown
+                          align="right"
+                          trigger={({ toggle }) => (
+                            <button
+                              onClick={toggle}
+                              className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                              aria-label={t('admin:departmentsPage.optionsAria')}
                             >
-                              <EditIcon className="h-4 w-4" /> {t('admin:departmentsPage.actionsMenu.edit')}
-                            </DropdownItem>
-                            <DropdownItem
-                              className="text-rose-600 hover:bg-rose-50"
-                              onClick={() => {
-                                setDeletingDept(d);
-                                close();
-                              }}
-                            >
-                              <TrashIcon className="h-4 w-4" /> {t('admin:departmentsPage.actionsMenu.delete')}
-                            </DropdownItem>
-                          </div>
-                        )}
-                      </Dropdown>
+                              <MoreVerticalIcon className="h-4 w-4" />
+                            </button>
+                          )}
+                        >
+                          {({ close }) => (
+                            <div className="w-40 py-1.5">
+                              <DropdownItem
+                                onClick={() => {
+                                  setEditingDept(d);
+                                  close();
+                                }}
+                              >
+                                <EditIcon className="h-4 w-4" /> {t('admin:departmentsPage.actionsMenu.edit')}
+                              </DropdownItem>
+                              <DropdownItem
+                                className="text-rose-600 hover:bg-rose-50"
+                                onClick={() => {
+                                  setDeletingDept(d);
+                                  close();
+                                }}
+                              >
+                                <TrashIcon className="h-4 w-4" /> {t('admin:departmentsPage.actionsMenu.delete')}
+                              </DropdownItem>
+                            </div>
+                          )}
+                        </Dropdown>
+                      ) : (
+                        <span className="text-xs text-slate-300">—</span>
+                      )}
                     </TableCell>
                   </TableRow>
                 );

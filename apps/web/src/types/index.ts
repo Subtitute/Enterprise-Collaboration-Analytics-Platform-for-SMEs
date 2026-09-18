@@ -90,6 +90,9 @@ export interface Department {
   description?: string | null;
   organizationId?: string;
   memberCount?: number;
+  // 17/09/2026: "Truong phong" that (Department.managerId, backend) - thay cho kieu doan cu o
+  // DepartmentsPage.tsx (quet role name chua "lead/manager/admin", co the doan sai).
+  managerId?: string | null;
 }
 
 export interface Permission {

@@ -8,6 +8,7 @@ import {
   EVENT_TYPES,
   PaginatedResponse,
   PaginationQueryDto,
+  PERMISSIONS,
   TaskAssignedPayload,
   TaskCreatedPayload,
   TaskDeletedPayload,
@@ -85,14 +86,39 @@ export class TasksService {
    * 1 truy van GOP DUY NHAT `TaskAssignee WHERE taskId IN (...)` sau khi da co danh sach id cua CA
    * TRANG (giong ky thuat batch GROUP BY... WHERE id IN (...) cua
    * ProjectsService.computeProjectStats()), tranh N+1 (moi Task 1 query rieng).
+   *
+   * 17/09/2026: truoc ban sua nay, moi nguoi giu TASK_VIEW (ke ca Employee) deu thay TOAN BO Task
+   * cua to chuc du chi duoc giao viec o 1-2 du an. Dung TASK_DELETE (Manager/Org Admin co, Employee
+   * khong co - xem DEFAULT_ROLE_PERMISSIONS trong packages/common-dto) lam ranh gioi "thay tat ca"
+   * vs "chi thay Task cua du an co lien quan", cung nguyen tac da dung cho
+   * ProjectsService.findAll() (PROJECT_CREATE) - khong them permission moi. Task "co lien quan"
+   * = Task thuoc 1 du an nam trong getVisibleProjectIds() (xem ben duoi, mirror
+   * ProjectsService.getVisibleProjectIds()).
    */
   async findAll(
     organizationId: string,
     query: TaskQueryDto,
+    userId: string,
+    permissions: string[],
   ): Promise<PaginatedResponse<TaskWithAssignees>> {
     const where: FindOptionsWhere<Task> = { organizationId };
     if (query.projectId) where.projectId = query.projectId;
     if (query.status) where.status = query.status;
+
+    if (!(permissions ?? []).includes(PERMISSIONS.TASK_DELETE)) {
+      const visibleProjectIds = await this.getVisibleProjectIds(organizationId, userId);
+      if (query.projectId) {
+        // Client da tu loc theo 1 projectId cu the - neu du an do KHONG nam trong pham vi duoc
+        // phep thay, tra rong thay vi am tham bo qua bo loc scoping (tranh Employee "vuot rao"
+        // bang cach tu chon projectId cua du an khac ngay tren query string).
+        if (!visibleProjectIds.includes(query.projectId)) {
+          return paginate([], 0, query.page, query.limit);
+        }
+      } else {
+        if (visibleProjectIds.length === 0) return paginate([], 0, query.page, query.limit);
+        where.projectId = In(visibleProjectIds);
+      }
+    }
 
     const [data, total] = await this.taskRepo.findAndCount({
       where,
@@ -110,8 +136,26 @@ export class TasksService {
     return paginate(enriched, total, query.page, query.limit);
   }
 
-  async findById(organizationId: string, id: string): Promise<TaskDetail> {
+  /**
+   * 17/09/2026: cung 1 ranh gioi TASK_DELETE voi findAll() o tren - neu khong, Employee bi loc khoi
+   * danh sach van co the "vuot rao" bang cach doan/nhan mot UUID Task cu the roi goi thang
+   * GET /tasks/:id. Nem NotFoundException CUNG errorCode voi truong hop "khong ton tai" (khong
+   * phai ForbiddenException) de khong lo lieu 1 Task co that su ton tai trong to chuc hay khong.
+   */
+  async findById(
+    organizationId: string,
+    id: string,
+    userId: string,
+    permissions: string[],
+  ): Promise<TaskDetail> {
     const task = await this.findTaskOrFail(organizationId, id);
+
+    if (!(permissions ?? []).includes(PERMISSIONS.TASK_DELETE)) {
+      const visibleProjectIds = await this.getVisibleProjectIds(organizationId, userId);
+      if (!visibleProjectIds.includes(task.projectId)) {
+        throw new NotFoundException({ message: 'Khong tim thay cong viec', errorCode: ERROR_CODES.TASK_NOT_FOUND });
+      }
+    }
 
     const [assignees, commentCount] = await Promise.all([
       this.assigneeRepo.find({ where: { taskId: id } }),
@@ -121,6 +165,40 @@ export class TasksService {
     // 22/07/2026: doi ten field `assigneeIds: string[]` -> `assignees: { userId }[]` de khop CHINH
     // XAC shape cua findAll() o tren (fix code review, loi CRITICAL - xem ghi chu tai TaskWithAssignees).
     return { ...task, assignees: assignees.map((a) => ({ userId: a.userId })), commentCount };
+  }
+
+  /**
+   * 17/09/2026: danh sach id du an ma 1 nguoi khong co TASK_DELETE (Employee) duoc phep thay Task -
+   * mirror CHINH XAC ProjectsService.getVisibleProjectIds() (apps/project-task-service/src/projects/
+   * projects.service.ts) vi Project-Task Service chua tach rieng 1 module/service dung chung cho 2
+   * concern Project/Task; nhan ban logic o day thay vi inject ProjectsService de tranh phinh to pham
+   * vi sua doi (them dependency giua 2 module) chi cho 1 truy van doc. Dung `this.dataSource.
+   * getRepository(Project)` thay vi them 1 @InjectRepository(Project) vao constructor - tranh doi
+   * chu ky constructor cua TasksService (se lam vo hieu moi lenh `new TasksService(...)` co san
+   * trong tasks.service.spec.ts).
+   */
+  private async getVisibleProjectIds(organizationId: string, userId: string): Promise<string[]> {
+    const assignedRows = await this.assigneeRepo
+      .createQueryBuilder('assignee')
+      .innerJoin(Task, 'task', 'task.id = assignee.taskId')
+      .select('DISTINCT task.projectId', 'projectId')
+      .where('assignee.userId = :userId', { userId })
+      .andWhere('task.organizationId = :organizationId', { organizationId })
+      .getRawMany<{ projectId: string }>();
+
+    const projectRepo = this.dataSource.getRepository(Project);
+    const ownedProjects = await projectRepo.find({
+      where: [
+        { organizationId, leadUserId: userId },
+        { organizationId, createdByUserId: userId },
+      ],
+      select: ['id'],
+    });
+
+    const ids = new Set<string>();
+    for (const row of assignedRows) ids.add(row.projectId);
+    for (const project of ownedProjects) ids.add(project.id);
+    return Array.from(ids);
   }
 
   /** 22/07/2026: truy van gop assignees cho 1 tap taskId (trang hien tai), tranh N+1 - dung boi findAll(). */

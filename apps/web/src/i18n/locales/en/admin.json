@@ -197,6 +197,9 @@
     "namePlaceholder": "e.g. Sales Department",
     "descriptionLabel": "Description",
     "nameRequiredError": "Please enter a department name",
+    "managerLabel": "Head of Dept / Manager",
+    "noManagerOption": "— Unassigned —",
+    "managerHintNoMembers": "Can only be set once the department has at least 1 member.",
     "cancel": "Cancel",
     "saveChanges": "Save changes",
     "create": "Create department"

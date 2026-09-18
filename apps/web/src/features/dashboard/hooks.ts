@@ -7,25 +7,35 @@ import { fetchAnalyticsSummary, fetchRecentActivity, fetchTaskStatusBreakdown, f
 
 // 28/07/2026: them tham so departmentId (tuy chon) cho bo loc "Phong ban" tren Dashboard - dua
 // vao queryKey de moi lua chon phong ban duoc cache rieng, giong het cach projectId da lam ben duoi.
-export function useAnalyticsSummary(range: DateRangeOption = '30d', departmentId?: string) {
+// 17/09/2026: them options.enabled - AnalyticsController yeu cau ANALYTICS_VIEW (Employee KHONG
+// co, xem DEFAULT_ROLE_PERMISSIONS.EMPLOYEE) nen Dashboard tat han query nay cho Employee thay vi
+// goi roi nhan 403 (xem DashboardPage.tsx).
+export function useAnalyticsSummary(range: DateRangeOption = '30d', departmentId?: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['analytics', 'summary', range, departmentId ?? null],
     queryFn: () => fetchAnalyticsSummary(range, departmentId),
+    enabled: options?.enabled,
   });
 }
 
 // 28/07/2026: GET /analytics/task-trend KHONG ho tro departmentId (gioi han da biet cua backend -
 // xem Technical_Spec.md) nen hook nay co tinh KHONG nhan them tham so departmentId.
-export function useTaskTrend(range: DateRangeOption = '30d') {
-  return useQuery({ queryKey: ['analytics', 'task-trend', range], queryFn: () => fetchTaskTrend(range) });
+export function useTaskTrend(range: DateRangeOption = '30d', options?: { enabled?: boolean }) {
+  return useQuery({ queryKey: ['analytics', 'task-trend', range], queryFn: () => fetchTaskTrend(range), enabled: options?.enabled });
 }
 
 // 28/07/2026: them tham so departmentId (tuy chon), theo dung cach projectId da duoc thread vao
 // queryKey/fetch* ben duoi.
-export function useTaskStatusBreakdown(range: DateRangeOption = '30d', projectId?: string, departmentId?: string) {
+export function useTaskStatusBreakdown(
+  range: DateRangeOption = '30d',
+  projectId?: string,
+  departmentId?: string,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: ['analytics', 'task-status-breakdown', range, projectId ?? null, departmentId ?? null],
     queryFn: () => fetchTaskStatusBreakdown(range, projectId, departmentId),
+    enabled: options?.enabled,
   });
 }
 

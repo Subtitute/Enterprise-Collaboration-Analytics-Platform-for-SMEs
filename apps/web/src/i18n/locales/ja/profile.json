@@ -19,6 +19,8 @@
       "fullNamePlaceholder": "氏名を入力",
       "employeeId": "社員番号",
       "department": "所属部署",
+      "departmentManager": "部門責任者",
+      "noDepartmentManager": "未設定",
       "phone": "連絡先電話番号",
       "phonePlaceholder": "例: 090-1234-5678",
       "roles": "担当ロール",
