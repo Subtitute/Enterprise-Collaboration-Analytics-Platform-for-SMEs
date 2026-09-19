@@ -662,7 +662,7 @@ export function AttendancePage() {
                     <UsersIcon className="h-4 w-4" />
                   </div>
                   <CardTitle className="text-base font-bold text-slate-900">
-                    {t('hrm:extensions.orgTabs.mainTitle', 'Quản lý tổ chức')}
+                    {t('hrm:extensions.orgTabs.mainTitle')}
                   </CardTitle>
                 </div>
 
@@ -677,7 +677,7 @@ export function AttendancePage() {
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    {t('hrm:extensions.orgTabs.subtabs.timesheet', 'Bảng công tổng hợp')}
+                    {t('hrm:extensions.orgTabs.subtabs.timesheet')}
                   </button>
 
                   <button
@@ -689,7 +689,7 @@ export function AttendancePage() {
                         : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    {t('hrm:extensions.orgTabs.subtabs.log', 'Nhật ký chấm công')}
+                    {t('hrm:extensions.orgTabs.subtabs.log')}
                   </button>
 
                   <button
@@ -702,7 +702,7 @@ export function AttendancePage() {
                     }`}
                   >
                     <EditIcon className="h-3 w-3" />
-                    <span>{t('hrm:extensions.orgTabs.subtabs.adjustments', 'Duyệt giải trình')}</span>
+                    <span>{t('hrm:extensions.orgTabs.subtabs.adjustments')}</span>
                     <span
                       className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
                         pendingAdjustmentsCount > 0
@@ -724,7 +724,7 @@ export function AttendancePage() {
                     }`}
                   >
                     <ClockIcon className="h-3 w-3" />
-                    <span>{t('hrm:extensions.orgTabs.subtabs.overtime', 'Duyệt làm thêm (OT)')}</span>
+                    <span>{t('hrm:extensions.orgTabs.subtabs.overtime')}</span>
                     <span
                       className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
                         pendingOtCount > 0

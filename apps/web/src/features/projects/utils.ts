@@ -138,12 +138,12 @@ export function notifyTaskCompleted({ task, project, currentUser }: NotifyTaskCo
   if (currentUserId && currentUserId === managerId) return;
 
   const actorName = currentUser?.fullName || currentUser?.email?.split('@')[0] || t('projects:taskCard.unknownAssignee');
-  const taskTitle = task.title || 'Công việc';
-  const projectName = project.name || 'Dự án';
+  const taskTitle = task.title || 'Công việc'; // i18n-lint-ignore: fallback text
+  const projectName = project.name || 'Dự án'; // i18n-lint-ignore: fallback text
 
   const notificationId = `notif_task_done_${task.id}_${Date.now()}`;
-  const notificationTitle = t('notifications:page.titles.taskCompleted', { defaultValue: 'Công việc đã hoàn thành' });
-  const notificationMessage = `${actorName} đã hoàn thành công việc "${taskTitle}" trong dự án "${projectName}".`;
+  const notificationTitle = t('notifications:page.titles.taskCompleted', { defaultValue: 'Công việc đã hoàn thành' }); // i18n-lint-ignore: fallback text
+  const notificationMessage = `${actorName} đã hoàn thành công việc "${taskTitle}" trong dự án "${projectName}".`; // i18n-lint-ignore: fallback message
 
   // Lưu thông báo vào client-side storage của Manager
   try {

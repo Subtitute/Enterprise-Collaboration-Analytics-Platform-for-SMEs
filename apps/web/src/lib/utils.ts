@@ -7,11 +7,7 @@ import i18n from '@/i18n';
 // dung 1 hang so PERMISSIONS la khong dang - anh huong pham vi toan cuc + tang bundle size khong
 // can thiet). permission.enum.ts la hang so thuan tuy (khong decorator) nen import rieng an toan.
 // Dung `import * as` (namespace, khong phai named import) - da xac minh thuc te `npm run build`
-// (Rollup) khong tu phat hien duoc named export tren file CJS bien dich rieng le nay khi import
-// sau (deep import) vao 1 submodule thay vi entry "main" khai bao trong package.json, dan toi loi
-// build "X is not exported by ...permission.enum.js"; import namespace luon an toan voi CJS.
-import * as PermissionEnum from '@app/common-dto/dist/enums/permission.enum';
-const { PERMISSIONS } = PermissionEnum;
+import { PERMISSIONS } from '@/constants/permissions';
 
 export function cn(...classes: Array<string | false | null | undefined>): string {
   return classes.filter(Boolean).join(' ');
@@ -159,7 +155,7 @@ export function canAccessAdminArea(permissions?: string[]): boolean {
   return ADMIN_AREA_PERMISSIONS.some((p) => permissions.includes(p));
 }
 
-const PROJECT_MANAGER_ROLE_PATTERN = /admin|quản\s*trị|quan\s*tri|owner|manager|quản\s*lý|quan\s*ly/i;
+const PROJECT_MANAGER_ROLE_PATTERN = /admin|quản\s*trị|quan\s*tri|owner|manager|quản\s*lý|quan\s*ly/i; // i18n-lint-ignore: pattern đối chiếu tên vai trò trong token/db
 
 /**
  * Kiểm tra xem người dùng có quyền quản lý CRUD Dự án (Tạo / Sửa / Đổi trạng thái / Lưu trữ / Xóa dự án) hay không.

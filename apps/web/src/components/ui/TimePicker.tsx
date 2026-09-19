@@ -147,7 +147,7 @@ export function TimePicker({
           onClick={() => setIsOpen(!isOpen)}
           aria-expanded={isOpen}
           aria-haspopup="dialog"
-          title={t('common:timePicker.openTitle', 'Chọn thời gian')}
+          title={t('common:timePicker.openTitle')}
           className={cn(
             'flex h-full items-center justify-center border-l border-slate-200 px-2.5 text-slate-400 hover:bg-slate-50 hover:text-indigo-600 transition-colors cursor-pointer rounded-r-lg',
             isOpen ? 'bg-indigo-50 text-indigo-600' : ''
@@ -168,7 +168,7 @@ export function TimePicker({
         >
           {/* Header hiển thị giờ đang chọn */}
           <div className="flex items-center justify-between border-b border-slate-100 pb-2 px-1">
-            <span className="text-xs font-semibold text-slate-500">{t('common:timePicker.title', 'Chọn mốc giờ')}</span>
+            <span className="text-xs font-semibold text-slate-500">{t('common:timePicker.title')}</span>
             <span className="font-mono text-sm font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
               {String(selectedHour).padStart(2, '0')}:{String(selectedMinute).padStart(2, '0')}
             </span>
@@ -179,7 +179,7 @@ export function TimePicker({
             {/* Cột Giờ (00 - 23) */}
             <div className="flex flex-col">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 text-center">
-                {t('common:timePicker.hours', 'Giờ')}
+                {t('common:timePicker.hours')}
               </span>
               <div
                 ref={hoursListRef}
@@ -209,7 +209,7 @@ export function TimePicker({
             {/* Cột Phút (00, 05, 10 ... 55) */}
             <div className="flex flex-col">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 text-center">
-                {t('common:timePicker.minutes', 'Phút')}
+                {t('common:timePicker.minutes')}
               </span>
               <div
                 ref={minutesListRef}
@@ -240,7 +240,7 @@ export function TimePicker({
           {/* Mốc chọn nhanh (Presets) */}
           <div className="border-t border-slate-100 pt-2">
             <span className="text-[10px] font-medium text-slate-400 block mb-1">
-              {t('common:timePicker.presets', 'Mốc nhanh:')}
+              {t('common:timePicker.presets')}
             </span>
             <div className="grid grid-cols-3 gap-1">
               {PRESETS.map((p) => (

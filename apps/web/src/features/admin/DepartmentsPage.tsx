@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 // (namespace, khong phai named import) - xem ghi chu chi tiet tai lib/utils.ts (barrel keo theo
 // DTO dung class-transformer, throw Reflect.getMetadata is not a function; named import tu deep
 // import CJS lam Rollup build that bai "not exported by ...").
-import * as PermissionEnum from '@app/common-dto/dist/enums/permission.enum';
+import { PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/stores/auth.store';
 import { useUserNameMap } from '@/hooks/useOrgUsers';
 import { Card } from '@/components/ui/Card';
@@ -20,8 +20,6 @@ import { BuildingIcon, EditIcon, MoreVerticalIcon, PlusIcon, TrashIcon, UserIcon
 import { useDeleteDepartment, useDepartmentsQuery, useUsersQuery } from './hooks';
 import { DepartmentModal } from './components/DepartmentModal';
 import type { Department } from '@/types';
-
-const { PERMISSIONS } = PermissionEnum;
 
 export function DepartmentsPage() {
   const { t } = useTranslation();

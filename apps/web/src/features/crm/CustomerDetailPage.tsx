@@ -16,11 +16,7 @@ import { DealKanbanBoard } from './components/DealKanbanBoard';
 import { NewDealModal } from './components/NewDealModal';
 import { DealDetailModal } from './components/DealDetailModal';
 import type { Deal } from '@/types';
-// 17/09/2026: import dang namespace (khong phai named import) - Rollup (npm run build) khong tu
-// nhan dien duoc named export tu file CJS import sau (du typecheck/vitest deu chay binh thuong),
-// xem chu thich chi tiet o lib/utils.ts (noi da phat hien loi nay dau tien).
-import * as PermissionEnum from '@app/common-dto/dist/enums/permission.enum';
-const { PERMISSIONS } = PermissionEnum;
+import { PERMISSIONS } from '@/constants/permissions';
 
 /** Chi tiet khach hang + Kanban pipeline ban hang (Wireframe.md muc 12) - mirror ProjectDetailPage.tsx. */
 export function CustomerDetailPage() {

@@ -1,10 +1,6 @@
 import { BarChartIcon, BriefcaseIcon, CalendarIcon, ClockIcon, FileTextIcon, FolderKanbanIcon, GridIcon, BellIcon, ShieldIcon } from '@/components/ui/Icons';
 import type { IconProps } from '@/components/ui/Icons';
-// 17/09/2026: xem chu thich chi tiet ve import namespace (khong phai named import) tai
-// lib/utils.ts - deep-import submodule CJS cua @app/common-dto, tranh 2 loi da gap phai (crash
-// Reflect.getMetadata khi import qua barrel, va loi build Rollup voi named import).
-import * as PermissionEnum from '@app/common-dto/dist/enums/permission.enum';
-const { PERMISSIONS } = PermissionEnum;
+import { PERMISSIONS } from '@/constants/permissions';
 
 export interface NavItem {
   to: string;

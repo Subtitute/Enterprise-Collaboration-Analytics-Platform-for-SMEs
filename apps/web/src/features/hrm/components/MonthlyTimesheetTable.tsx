@@ -273,16 +273,16 @@ export function MonthlyTimesheetTable({
   const handleExportPayroll = () => {
     // Header chuẩn MISA / Fast HRM import template
     const headers = [
-      'Mã nhân viên',
-      'Họ và tên',
-      'Phòng ban',
-      'Công chuẩn',
-      'Công thực tế',
-      'Giờ làm việc thực tế',
-      'Giờ làm thêm (OT)',
-      'Số lần đi muộn',
-      'Quên check-out',
-      'Trạng thái',
+      'Mã nhân viên', // i18n-lint-ignore: MISA/Fast payroll header
+      'Họ và tên', // i18n-lint-ignore: MISA/Fast payroll header
+      'Phòng ban', // i18n-lint-ignore: MISA/Fast payroll header
+      'Công chuẩn', // i18n-lint-ignore: MISA/Fast payroll header
+      'Công thực tế', // i18n-lint-ignore: MISA/Fast payroll header
+      'Giờ làm việc thực tế', // i18n-lint-ignore: MISA/Fast payroll header
+      'Giờ làm thêm (OT)', // i18n-lint-ignore: MISA/Fast payroll header
+      'Số lần đi muộn', // i18n-lint-ignore: MISA/Fast payroll header
+      'Quên check-out', // i18n-lint-ignore: MISA/Fast payroll header
+      'Trạng thái', // i18n-lint-ignore: MISA/Fast payroll header
     ];
 
     const rows = filteredSummaries.map((s) => [

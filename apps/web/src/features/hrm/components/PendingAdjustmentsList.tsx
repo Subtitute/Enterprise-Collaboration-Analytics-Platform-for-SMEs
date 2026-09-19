@@ -60,20 +60,20 @@ export function PendingAdjustmentsList({
             <div className="grid grid-cols-2 gap-2 text-[11px] p-2 rounded-lg bg-slate-50 border border-slate-100">
               <div>
                 <span className="text-slate-400 block text-[10px]">
-                  {t('hrm:extensions.adjustment.originalLabel', 'Ban đầu:')}
+                  {t('hrm:extensions.adjustment.originalLabel')}
                 </span>
                 <span className="font-mono text-slate-600">{origIn} → {origOut}</span>
               </div>
               <div>
                 <span className="text-indigo-600 block text-[10px] font-semibold">
-                  {t('hrm:extensions.adjustment.proposedLabel', 'Đề xuất sửa:')}
+                  {t('hrm:extensions.adjustment.proposedLabel')}
                 </span>
                 <span className="font-mono font-bold text-indigo-900">{proposedIn} → {proposedOut}</span>
               </div>
             </div>
 
             <p className="text-xs text-slate-600 bg-white p-2 rounded border border-slate-100 italic">
-              "{adj.reason}"
+              &ldquo;{adj.reason}&rdquo;
             </p>
 
             <div className="flex justify-end gap-2 pt-1">

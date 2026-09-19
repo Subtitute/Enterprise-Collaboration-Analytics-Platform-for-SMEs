@@ -7,10 +7,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
 import { NotFoundPage } from '@/components/layout/NotFoundPage';
 import { FullPageSpinner } from '@/components/ui/Spinner';
-// 17/09/2026: xem chu thich chi tiet ve import namespace tai lib/utils.ts - deep-import submodule
-// CJS cua @app/common-dto, tranh loi crash Reflect.getMetadata/loi build Rollup da gap phai.
-import * as PermissionEnum from '@app/common-dto/dist/enums/permission.enum';
-const { PERMISSIONS } = PermissionEnum;
+import { PERMISSIONS } from '@/constants/permissions';
 
 // 28/07/2026: chuyen toan bo trang cap route sang React.lazy() - phat hien qua de xuat nang cap
 // (khong phai loi) rang bundle production truoc day gom TOAN BO 13 trang vao 1 chunk duy nhat

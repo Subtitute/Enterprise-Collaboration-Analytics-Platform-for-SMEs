@@ -10,10 +10,7 @@ import { DATE_RANGE_OPTIONS } from '@/types';
 import type { DateRangeOption } from '@/types';
 import { useAuthStore, usePermissions } from '@/stores/auth.store';
 import { canAccessAdminArea, canManageProjects, getTodayGmt7DateString } from '@/lib/utils';
-// 17/09/2026: xem chu thich chi tiet ve import namespace tai lib/utils.ts - deep-import submodule
-// CJS cua @app/common-dto, tranh loi crash Reflect.getMetadata/loi build Rollup da gap phai.
-import * as PermissionEnum from '@app/common-dto/dist/enums/permission.enum';
-const { PERMISSIONS } = PermissionEnum;
+import { PERMISSIONS } from '@/constants/permissions';
 import { useProjectsQuery, useAllTasksQuery } from '@/features/projects/hooks';
 // 28/07/2026: tai su dung useDepartmentsQuery da co san (dung chung o MembersPage/InviteMemberModal)
 // cho bo loc "Phong ban" moi tren Dashboard, khong tao hook fetch phong ban rieng.

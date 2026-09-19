@@ -23,14 +23,14 @@ function parseLeaveType(rawReason: string | undefined | null, t: (key: string) =
   const match = rawReason.match(/^\[(.*?)\]\s*(.*)$/);
   const rawType = match ? match[1] : '';
 
-  if (rawType === 'SICK' || rawType.includes('ốm') || rawType.includes('Sick') || rawType.includes('病気')) {
+  if (rawType === 'SICK' || rawType.includes('ốm') || rawType.includes('Sick') || rawType.includes('病気')) { // i18n-lint-ignore: khop rawType da luu tu truoc
     return {
       label: t('dashboard:upcomingLeaves.types.SICK'),
       badgeStyle: 'bg-amber-50 text-amber-700 border-amber-200/60',
     };
   }
 
-  if (rawType === 'UNPAID' || rawType.includes('việc riêng') || rawType.includes('Personal') || rawType.includes('私用')) {
+  if (rawType === 'UNPAID' || rawType.includes('việc riêng') || rawType.includes('Personal') || rawType.includes('私用')) { // i18n-lint-ignore: khop rawType da luu tu truoc
     return {
       label: t('dashboard:upcomingLeaves.types.UNPAID'),
       badgeStyle: 'bg-slate-100 text-slate-700 border-slate-200/60',

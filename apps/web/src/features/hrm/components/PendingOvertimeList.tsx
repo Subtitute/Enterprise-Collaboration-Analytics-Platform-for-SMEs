@@ -62,21 +62,21 @@ export function PendingOvertimeList({
             <div className="grid grid-cols-2 gap-2 text-[11px] p-2 rounded-lg bg-slate-50 border border-slate-100">
               <div>
                 <span className="text-slate-400 block text-[10px]">
-                  {t('hrm:extensions.overtime.timeSlotLabel', 'Khung giờ OT:')}
+                  {t('hrm:extensions.overtime.timeSlotLabel')}
                 </span>
                 <span className="font-mono font-bold text-slate-800">{ot.otStart} → {ot.otEnd}</span>
                 <span className="text-[10px] text-slate-500 block">({ot.estimatedHours}h)</span>
               </div>
               <div>
                 <span className="text-slate-400 block text-[10px]">
-                  {t('hrm:extensions.overtime.multiplierLabelShort', 'Hệ số tính lương:')}
+                  {t('hrm:extensions.overtime.multiplierLabelShort')}
                 </span>
                 <span className="font-bold text-indigo-700">{multLabel}</span>
               </div>
             </div>
 
             <p className="text-xs text-slate-600 bg-white p-2 rounded border border-slate-100 italic">
-              "{ot.reason}"
+              &ldquo;{ot.reason}&rdquo;
             </p>
 
             <div className="flex justify-end gap-2 pt-1">

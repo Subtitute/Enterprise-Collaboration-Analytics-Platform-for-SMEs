@@ -1,14 +1,8 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-// 17/09/2026: import truc tiep submodule (khong qua barrel '@app/common-dto') bang `import * as`
-// (namespace, khong phai named import) - xem ghi chu chi tiet tai lib/utils.ts (barrel keo theo
-// DTO dung class-transformer, throw Reflect.getMetadata is not a function; named import tu deep
-// import CJS lam Rollup build that bai "not exported by ...").
-import * as PermissionEnum from '@app/common-dto/dist/enums/permission.enum';
+import { PERMISSIONS } from '@/constants/permissions';
 import { cn } from '@/lib/utils';
 import { usePermissions } from '@/stores/auth.store';
-
-const { PERMISSIONS } = PermissionEnum;
 
 // 17/09/2026: `requiredPermission` moi tren tung tab - truoc day CA 5 tab deu hien mac dinh mien
 // nguoi dung da qua duoc lop bao ve ngoai /admin/* (requireAdmin, ProtectedRoute.tsx), gio lop

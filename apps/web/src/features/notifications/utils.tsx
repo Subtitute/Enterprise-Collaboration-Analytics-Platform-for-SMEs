@@ -121,7 +121,7 @@ export function formatNotificationTitle(notification: AppNotification, t?: (key:
   if (
     type === 'task.completed' ||
     type === 'task_completed' ||
-    rawTitle.includes('công việc đã hoàn thành') ||
+    rawTitle.includes('công việc đã hoàn thành') || // i18n-lint-ignore: khop title backend, khong phai chuoi UI
     rawTitle.includes('task has been completed') ||
     rawTitle.includes('task completed')
   ) {
@@ -227,7 +227,7 @@ export function getNotificationVisualConfig(notification: AppNotification, t?: (
   if (type.includes('task') || title.includes('công việc') || message.includes('công việc')) { // i18n-lint-ignore: khop text backend, khong phai chuoi UI
     const projectId = payload.projectId as string | undefined;
     const taskId = payload.taskId as string | undefined;
-    const isCompleted = type.includes('completed') || title.includes('hoàn thành') || title.includes('completed');
+    const isCompleted = type.includes('completed') || title.includes('hoàn thành') || title.includes('completed'); // i18n-lint-ignore: khop text backend, khong phai chuoi UI
 
     let linkUrl: string | null = null;
     if (projectId) {
