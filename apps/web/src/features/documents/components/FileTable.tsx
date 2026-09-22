@@ -73,10 +73,11 @@ interface FileTableProps {
   folderId: string | null;
   onShare: (file: FileItem) => void;
   onVersionHistory: (file: FileItem) => void;
+  onPreview?: (file: FileItem) => void;
   viewMode?: 'grid' | 'list';
 }
 
-export function FileTable({ files, folderId, onShare, onVersionHistory, viewMode = 'list' }: FileTableProps) {
+export function FileTable({ files, folderId, onShare, onVersionHistory, onPreview, viewMode = 'list' }: FileTableProps) {
   const { t } = useTranslation();
   const [deleting, setDeleting] = useState<FileItem | null>(null);
   const [batchDeleting, setBatchDeleting] = useState<string[] | null>(null);
@@ -156,7 +157,7 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, viewMode
                     />
                     <button
                       type="button"
-                      onClick={() => download.openFile(file.id, 'inline')}
+                      onClick={() => (onPreview ? onPreview(file) : download.openFile(file.id, 'inline'))}
                       title={t('documents:fileTable.openFileTitle')}
                       className="flex min-w-0 flex-1 items-center gap-2.5 text-left cursor-pointer"
                     >
@@ -199,14 +200,6 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, viewMode
                     >
                       {({ close }) => (
                         <div className="w-48 py-1.5 shadow-md">
-                          <DropdownItem
-                            onClick={() => {
-                              download.openFile(file.id, 'inline');
-                              close();
-                            }}
-                          >
-                            <EyeIcon className="h-4 w-4" /> {t('documents:fileTable.viewFile')}
-                          </DropdownItem>
                           <DropdownItem
                             onClick={() => {
                               download.openFile(file.id, 'attachment');
@@ -295,12 +288,9 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, viewMode
                   <TableCell label={t('documents:fileTable.columns.name')}>
                     <button
                       type="button"
-                      // 22/07/2026: goi download.openFile() (khong phai .mutate() truc tiep) - ham nay
-                      // tu mo tab trong DONG BO ngay trong onClick truoc khi goi API, xem giai thich
-                      // day du tai dinh nghia useDownloadFile() o documents/hooks.ts.
-                      onClick={() => download.openFile(file.id, 'inline')}
+                      onClick={() => (onPreview ? onPreview(file) : download.openFile(file.id, 'inline'))}
                       title={t('documents:fileTable.openFileTitle')}
-                      className="flex min-w-0 items-center gap-2.5 text-left group-hover:text-primary-600 transition-colors"
+                      className="flex min-w-0 items-center gap-2.5 text-left group-hover:text-primary-600 transition-colors cursor-pointer"
                     >
                       <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${theme.bg}`}>
                         <FileIcon className="h-4 w-4" />
@@ -342,20 +332,6 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, viewMode
                         {({ close }) => (
                           <div className="w-48 py-1.5 shadow-md">
                             <DropdownItem
-                              // 22/07/2026: dung openFile() thay vi mutate() de window.open() chay dong
-                              // bo trong chinh onClick nay (xem chu thich tai useDownloadFile()) - goi
-                              // close() sau do khong lam mat tinh dong bo vi close() chi setState, khong
-                              // await gi ca.
-                              onClick={() => {
-                                download.openFile(file.id, 'inline');
-                                close();
-                              }}
-                            >
-                              <EyeIcon className="h-4 w-4" /> {t('documents:fileTable.viewFile')}
-                            </DropdownItem>
-                            <DropdownItem
-                              // 22/07/2026: tuong tu nut "Xem tệp" - dung openFile() de tab tai xuong
-                              // duoc mo dong bo trong gesture, tranh bi popup blocker chan am tham.
                               onClick={() => {
                                 download.openFile(file.id, 'attachment');
                                 close();

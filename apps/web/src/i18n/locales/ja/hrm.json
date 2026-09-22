@@ -53,11 +53,12 @@
         "date": "日付",
         "checkIn": "出勤",
         "checkOut": "退勤",
-        "totalHours": "合計時間",
-        "status": "状態"
+        "totalHours": "総労働時間",
+        "status": "状態",
+        "actions": "操作"
       },
-      "viewProofIn": "出勤証明写真を表示",
-      "viewProofOut": "退勤証明写真を表示"
+      "viewProofIn": "出勤写真を確認",
+      "viewProofOut": "退勤写真を確認"
     },
     "allAttendance": {
       "cardTitle": "組織全体の勤怠",
@@ -76,7 +77,35 @@
         "status": "状態"
       },
       "viewProofInOf": "{{name}}の出勤証明写真を表示",
-      "viewProofOutOf": "{{name}}の退勤証明写真を表示"
+      "viewProofOutOf": "{{name}}の退勤証明写真を表示",
+      "viewModeLog": "出退勤ログ",
+      "viewModeTimesheet": "月次集計表",
+      "exportCsv": "CSVエクスポート",
+      "timesheet": {
+        "title": "{{month}}の月次集計表",
+        "searchPlaceholder": "従業員名で検索…",
+        "allDepartments": "すべての部署",
+        "columns": {
+          "employee": "従業員",
+          "department": "部署",
+          "actualDays": "実出勤日数",
+          "workHours": "実労働時間",
+          "lateCount": "遅刻回数",
+          "missingCheckOut": "退勤未打刻",
+          "otHours": "残業時間",
+          "status": "評価"
+        },
+        "status": {
+          "sufficient": "基準達成",
+          "insufficient": "時間不足",
+          "newMember": "新規入社"
+        },
+        "daysUnit": "日",
+        "hoursUnit": "時間",
+        "timesUnit": "回",
+        "noDepartment": "未設定",
+        "empty": "この月の集計データはありません"
+      }
     },
     "photoModal": {
       "title": "{{action}}証明写真",
@@ -161,5 +190,93 @@
     "approveLeaveRequestError": "申請の承認に失敗しました",
     "rejectLeaveRequestSuccess": "休暇申請を却下しました",
     "rejectLeaveRequestError": "申請の却下に失敗しました"
+  },
+  "extensions": {
+    "adjustment": {
+      "requestButton": "打刻修正・理由書",
+      "modalTitle": "打刻修正申請（理由書）",
+      "dateLabel": "勤務日",
+      "checkInLabel": "修正後の出勤時刻",
+      "checkOutLabel": "修正後の退勤時刻",
+      "reasonLabel": "修正理由",
+      "reasonPlaceholder": "例: 緊急の顧客対応で直帰したため退勤打刻を忘れました…",
+      "submitButton": "修正申請を送信",
+      "cancelButton": "キャンセル",
+      "errors": {
+        "futureTime": "現在時刻より未来の時刻を選択することはできません",
+        "invalidRange": "退勤予定時刻は出勤時刻より後である必要があります",
+        "tooOld": "打刻修正の申請は発生日から7日以内のみ可能です",
+        "missingReason": "詳しい修正理由を入力してください"
+      },
+      "badge": {
+        "adjusted": "打刻修正済",
+        "pending": "修正申請中",
+        "rejected": "修正申請却下"
+      },
+      "originalLabel": "修正前:",
+      "proposedLabel": "修正後（申請）:",
+      "tabTitle": "修正承認 ({{count}})",
+      "emptyTitle": "修正申請はありません",
+      "emptyDescription": "従業員からの打刻修正申請はここに表示されます。",
+      "approveButton": "承認",
+      "rejectButton": "却下",
+      "successSubmit": "打刻修正申請を送信しました",
+      "successApprove": "打刻修正申請を承認しました",
+      "successReject": "打刻修正申請を却下しました"
+    },
+    "overtime": {
+      "registerButton": "残業申請 (OT)",
+      "modalTitle": "時間外労働（残業）申請",
+      "dateLabel": "残業実施日",
+      "startLabel": "残業開始時刻",
+      "endLabel": "残業終了時刻",
+      "multiplierLabel": "残業手当割増率",
+      "timeSlotLabel": "残業時間帯:",
+      "multiplierLabelShort": "割増率:",
+      "multipliers": {
+        "weekday": "平日残業 (x1.5)",
+        "weekend": "休日出勤 土日 (x2.0)",
+        "holiday": "祝日・法定休日 (x3.0)"
+      },
+      "reasonLabel": "残業の理由・業務内容",
+      "reasonPlaceholder": "例: 顧客向け本番リリースの緊急デプロイ作業のため…",
+      "estimatedHours": "残業見込時間: {{hours}} 時間",
+      "submitButton": "残業申請を送信",
+      "cancelButton": "キャンセル",
+      "errors": {
+        "overlapOfficeHours": "残業時間は所定労働時間（08:30〜17:30）と重複して指定できません",
+        "monthlyCapExceeded": "今月の残業時間合計が労働法の上限（40時間）を超過しています",
+        "hasLeaveOnDate": "この日は休暇が登録されているため残業申請できません",
+        "invalidRange": "残業終了時刻は開始時刻より後である必要があります",
+        "missingReason": "残業理由を入力してください"
+      },
+      "badge": {
+        "pending": "残業申請中",
+        "approved": "残業承認済",
+        "rejected": "残業却下"
+      },
+      "tabTitle": "残業承認 ({{count}})",
+      "emptyTitle": "残業申請はありません",
+      "emptyDescription": "従業員からの残業申請はここに表示されます。",
+      "approveButton": "残業を承認",
+      "rejectButton": "残業を却下",
+      "successSubmit": "残業申請を送信しました",
+      "successApprove": "残業申請を承認しました",
+      "successReject": "残業申請を却下しました"
+    },
+    "payroll": {
+      "exportButton": "給与計算用CSV出力 (MISA/Fast)",
+      "successExport": "給与計算用CSVのエクスポートが完了しました",
+      "exportedBy": "出力者: {{user}} ({{time}})"
+    },
+    "orgTabs": {
+      "mainTitle": "組織管理",
+      "subtabs": {
+        "timesheet": "勤怠集計表",
+        "log": "打刻ログ",
+        "adjustments": "修正承認",
+        "overtime": "残業承認 (OT)"
+      }
+    }
   }
 }

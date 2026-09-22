@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 // (namespace, khong phai named import) - xem ghi chu chi tiet tai lib/utils.ts (barrel keo theo
 // DTO dung class-transformer, throw Reflect.getMetadata is not a function; named import tu deep
 // import CJS lam Rollup build that bai "not exported by ...").
-import * as PermissionEnum from '@app/common-dto/dist/enums/permission.enum';
+import { PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/stores/auth.store';
 import { useOrgUsersQuery } from '@/hooks/useOrgUsers';
 import { Modal } from '@/components/ui/Modal';
@@ -13,8 +13,6 @@ import { Button } from '@/components/ui/Button';
 import { FormField, Input, Select, Textarea } from '@/components/ui/Input';
 import { useCreateDepartment, useUpdateDepartment } from '../hooks';
 import type { Department } from '@/types';
-
-const { PERMISSIONS } = PermissionEnum;
 
 export function DepartmentModal({
   open,

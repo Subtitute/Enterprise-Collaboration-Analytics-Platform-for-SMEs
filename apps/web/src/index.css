@@ -58,3 +58,52 @@
     display: none;
   }
 }
+
+/* ==========================================================================
+   PRINT CSS (Xuất Dashboard / Báo cáo PDF via window.print)
+   Ẩn Topbar, Sidebar, các nút thao tác điều hướng và tối ưu ngắt trang sạch sẽ
+   ========================================================================== */
+@media print {
+  /* Ẩn thanh điều hướng và thanh tiêu đề */
+  header,
+  aside,
+  nav,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Reset layout và nền để in sắc nét, không bị dính padding thừa */
+  body,
+  #root,
+  .min-h-screen {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    height: auto !important;
+    min-height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Tránh cắt ngang các thẻ Card / Biểu đồ khi in */
+  .card,
+  div[class*="rounded-2xl"],
+  div[class*="rounded-xl"] {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    box-shadow: none !important;
+    border-color: #e2e8f0 !important;
+  }
+
+  /* Giữ màu nền và viền nguyên vẹn khi in ra PDF */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

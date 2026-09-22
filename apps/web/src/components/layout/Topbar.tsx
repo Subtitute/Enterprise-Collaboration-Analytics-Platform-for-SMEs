@@ -13,6 +13,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { QuickCreateTaskModal } from '@/features/projects/components/QuickCreateTaskModal';
+import { canManageProjects } from '@/lib/utils';
 import {
   MenuIcon,
   SearchIcon,
@@ -182,6 +183,7 @@ export function Topbar() {
       // khop (dead code) va vi pham linter hardcode tieng Viet.
       return name.includes('admin') || name.includes('manager');
     });
+    return canManageProjects(user?.roles);
   }, [user?.roles]);
 
   // Phím tắt toàn cục: Bấm 'c' hoặc 'C' để mở nhanh modal tạo Task khi không focus vào ô nhập liệu

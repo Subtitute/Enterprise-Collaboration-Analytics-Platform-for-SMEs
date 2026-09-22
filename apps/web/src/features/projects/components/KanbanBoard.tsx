@@ -5,9 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { PlusIcon, ChevronLeftIcon, ChevronRightIcon } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import { TASK_STATUSES } from '@/types';
-import type { Task, TaskStatus } from '@/types';
+import type { Task, TaskStatus, Project } from '@/types';
 import { TaskCard } from './TaskCard';
 import { useUpdateTaskStatus } from '../hooks';
+import { notifyTaskCompleted } from '../utils';
+import { useAuthStore } from '@/stores/auth.store';
 
 const COLUMN_ACCENT: Record<TaskStatus, string> = {
   TODO: 'bg-slate-300',
@@ -17,13 +19,16 @@ const COLUMN_ACCENT: Record<TaskStatus, string> = {
 
 interface KanbanBoardProps {
   projectId: string;
+  project?: Project;
   tasks: Task[];
   onTaskClick: (task: Task) => void;
   onQuickAdd?: (status: TaskStatus) => void;
+  highlightedTaskId?: string | null;
 }
 
-export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd }: KanbanBoardProps) {
+export function KanbanBoard({ projectId, project, tasks, onTaskClick, onQuickAdd, highlightedTaskId }: KanbanBoardProps) {
   const { t } = useTranslation();
+  const currentUser = useAuthStore((s) => s.user);
   const updateStatus = useUpdateTaskStatus(projectId);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -172,6 +177,15 @@ export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd }: Kanba
     // Nếu chuyển cột thì gọi API cập nhật Backend
     if (sourceStatus !== destStatus) {
       updateStatus.mutate({ taskId: draggableId, status: destStatus });
+
+      // Tự động hóa thông báo khi Task hoàn thành (Task Done -> Notify Manager)
+      if (sourceStatus !== 'DONE' && destStatus === 'DONE') {
+        notifyTaskCompleted({
+          task: movedTask,
+          project,
+          currentUser,
+        });
+      }
     }
   }
 
@@ -239,7 +253,13 @@ export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd }: Kanba
                       style={{ minHeight: 120 }}
                     >
                       {columnTasks.map((task, index) => (
-                        <TaskCard key={task.id} task={task} index={index} onClick={() => onTaskClick(task)} />
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          index={index}
+                          onClick={() => onTaskClick(task)}
+                          isHighlighted={task.id === highlightedTaskId}
+                        />
                       ))}
                       {provided.placeholder}
                     </div>

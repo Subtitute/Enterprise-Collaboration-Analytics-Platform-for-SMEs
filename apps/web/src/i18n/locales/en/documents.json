@@ -180,5 +180,16 @@
     "popupBlockedDescription": "Please allow pop-ups for this site and try again.",
     "openFileError": "Couldn't open file",
     "downloadFileError": "Couldn't download file"
+  },
+  "preview": {
+    "title": "File Preview",
+    "download": "Download",
+    "loading": "Loading preview…",
+    "downloadToView": "Download to View",
+    "loadErrorTitle": "Unable to load preview",
+    "loadErrorDesc": "An error occurred while connecting or rendering the file. Please download to view.",
+    "fileTooLargeDesc": "File size exceeds the limit for direct preview (> {{maxSize}}). Please download to view full content.",
+    "unsupportedDesc": "This file format is not supported for inline browser preview. Please download to open in a compatible application.",
+    "emptyContent": "The file is empty or has no content."
   }
 }

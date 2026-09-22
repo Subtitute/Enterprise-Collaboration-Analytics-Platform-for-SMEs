@@ -9,14 +9,28 @@ import { Modal } from '@/components/ui/Modal';
 import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner, Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { CameraIcon, ClockIcon, MapPinIcon, UsersIcon, UserIcon } from '@/components/ui/Icons';
+import { CameraIcon, ClockIcon, MapPinIcon, UsersIcon, UserIcon, PlusIcon, EditIcon, CheckIcon, AlertCircleIcon } from '@/components/ui/Icons';
 import { formatTime, formatDateTime, formatDate } from '@/lib/utils';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { useUserNameMap } from '@/hooks/useOrgUsers';
+import { useDepartmentsQuery } from '@/features/admin/hooks';
+import { useAuthStore } from '@/stores/auth.store';
 import { CheckInCamera } from './components/CheckInCamera';
 import type { CheckInLocation } from './components/CheckInCamera';
+import { MonthlyTimesheetTable } from './components/MonthlyTimesheetTable';
+import { AttendanceAdjustmentModal } from './components/AttendanceAdjustmentModal';
+import { OvertimeRegistrationModal } from './components/OvertimeRegistrationModal';
+import { PendingAdjustmentsList } from './components/PendingAdjustmentsList';
+import { PendingOvertimeList } from './components/PendingOvertimeList';
+import type { AttendanceAdjustment, OvertimeRegistration } from './attendance-extensions.types';
+import {
+  getStoredAdjustments,
+  saveStoredAdjustments,
+  getStoredOvertime,
+  saveStoredOvertime,
+} from './attendance-extensions.types';
 import { getAttendancePhotoUrl } from './api';
-import { useAllAttendanceQuery, useCheckIn, useCheckOut, useMyAttendanceQuery } from './hooks';
+import { useAllAttendanceQuery, useCheckIn, useCheckOut, useMyAttendanceQuery, useMyLeaveRequestsQuery } from './hooks';
 
 /**
  * 13/08/2026 (Technical_Spec.md muc 17): huy hieu co "on-site"/"off-site" - `null`/`undefined`
@@ -158,15 +172,27 @@ function PhotoProofModal({
  * - Đi muộn (bg-amber-100 text-amber-700)
  * - Quên check-out (bg-rose-100 text-rose-600)
  */
-function AttendanceStatusBadge({ record, today }: { record: { workDate: string; checkInAt: string; checkOutAt?: string | null }; today: string }) {
+function AttendanceStatusBadge({
+  record,
+  today,
+  isAdjusted = false,
+}: {
+  record: { workDate: string; checkInAt: string; checkOutAt?: string | null };
+  today: string;
+  isAdjusted?: boolean;
+}) {
   const { t } = useTranslation();
+
+  if (isAdjusted) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 border border-indigo-200 whitespace-nowrap">
+        <CheckIcon className="h-3 w-3 text-indigo-600" />
+        {t('hrm:extensions.adjustment.badge.adjusted')}
+      </span>
+    );
+  }
+
   const checkInDate = new Date(record.checkInAt);
-  // 15/09/2026 (sua loi thuc te): dong comment cu "Gio check-in tinh theo GMT+7" o day tung SAI -
-  // Date.getHours()/getMinutes() doc gio theo timezone cua TRINH DUYET nguoi xem, khong phai GMT+7
-  // - dung 1 nguoi xem trang tu may dat timezone khac VN se bi tinh sai "di muon"/"dung gio" du
-  // du lieu server dung. Day chinh la loi da duoc ghi nhan va sua toan bo du an ngay 22/07/2026
-  // (xem formatDate/formatTime trong lib/utils.ts) nhung tai xuat hien o component moi nay - dung
-  // Intl.DateTimeFormat voi timeZone: 'Asia/Ho_Chi_Minh' de doc dung gio hien thi GMT+7.
   const gmt7Parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Asia/Ho_Chi_Minh',
     hour: 'numeric',
@@ -179,9 +205,6 @@ function AttendanceStatusBadge({ record, today }: { record: { workDate: string; 
   const isPastDay = record.workDate < today;
   const isMissingCheckOut = !record.checkOutAt && isPastDay;
 
-  // 16/09/2026: gop merge - nhanh Tien tao them object "statuses" trung lap voi "statusBadge" da
-  // co san (cung 3 nhan Dung gio/Di muon/Quen check-out, chi khac ten key). Giu "statusBadge" (ten
-  // khop voi ten component AttendanceStatusBadge), xoa "statuses" khoi hrm.json.
   if (isMissingCheckOut) {
     return (
       <span className="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-600 whitespace-nowrap">
@@ -215,17 +238,37 @@ function getTodayGmt7(): string {
 export function AttendancePage() {
   const { t } = useTranslation();
   const [cameraMode, setCameraMode] = useState<'checkin' | 'checkout' | null>(null);
-  const [viewingPhoto, setViewingPhoto] = useState<{ id: string; kind: 'checkin' | 'checkout'; time: string; userName?: string; isOnSite?: boolean | null } | null>(null);
-  const [activeTab, setActiveTab] = useState<'my' | 'all'>('my');
+  const [orgSubTab, setOrgSubTab] = useState<'timesheet' | 'log' | 'adjustments' | 'overtime'>('timesheet');
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   
-  // Bộ lọc Dropdown Tháng/Năm đơn giản (mặc định tháng hiện tại: 'YYYY-MM')
+  // Modal states for extensions
+  const [viewingPhoto, setViewingPhoto] = useState<{
+    id: string;
+    kind: 'checkin' | 'checkout';
+    time: string;
+    userName?: string;
+    isOnSite?: boolean | null;
+  } | null>(null);
+  const [adjustmentRecord, setAdjustmentRecord] = useState<import('@/types').Attendance | null>(null);
+  const [showOtModal, setShowOtModal] = useState(false);
+
+  // Persistent storage state for adjustments and overtime
+  const [adjustments, setAdjustments] = useState<AttendanceAdjustment[]>(() => getStoredAdjustments());
+  const [overtimeList, setOvertimeList] = useState<OvertimeRegistration[]>(() => getStoredOvertime());
+
+  const reloadExtensions = () => {
+    setAdjustments(getStoredAdjustments());
+    setOvertimeList(getStoredOvertime());
+  };
+
+  const currentUser = useAuthStore((s) => s.user);
+
+  // Bộ lọc Dropdown Tháng/Năm (mặc định tháng hiện tại: 'YYYY-MM')
   const currentMonthStr = useMemo(() => new Date().toISOString().slice(0, 7), []);
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthStr);
+  const [orgSelectedMonth, setOrgSelectedMonth] = useState<string>(currentMonthStr);
 
   // Tạo danh sách 6 tháng gần nhất để lựa chọn nhanh
-  // 16/09/2026: gop merge - nhanh Tien tao them object "filter" trung lap voi "monthFilter" da co
-  // san. Giu "monthFilter", xoa "filter" khoi hrm.json.
   const monthOptions = useMemo(() => {
     const options = [{ value: 'all', label: t('hrm:attendancePage.monthFilter.allTime') }];
     const now = new Date();
@@ -246,7 +289,9 @@ export function AttendancePage() {
 
   const attendanceQuery = useMyAttendanceQuery({ limit: 50 });
   const allAttendanceQuery = useAllAttendanceQuery();
-  const { map: userNameMap } = useUserNameMap();
+  const myLeaveRequestsQuery = useMyLeaveRequestsQuery();
+  const { map: userNameMap, users: orgUsers } = useUserNameMap();
+  const departmentsQuery = useDepartmentsQuery();
   const checkInMutation = useCheckIn();
   const checkOutMutation = useCheckOut();
 
@@ -256,18 +301,95 @@ export function AttendancePage() {
   // nhu "khong ap dung", mirror canApprove cua LeaveRequestsPage.tsx.
   const canViewAll = !allAttendanceQuery.isError && allAttendanceQuery.isSuccess;
 
+  // Map các giải trình đã duyệt theo attendanceId
+  const approvedAdjustmentsMap = useMemo(() => {
+    const map = new Map<string, AttendanceAdjustment>();
+    for (const adj of adjustments) {
+      if (adj.status === 'APPROVED') {
+        map.set(adj.attendanceId, adj);
+      }
+    }
+    return map;
+  }, [adjustments]);
+
+  const approvedAdjustmentAttendanceIds = useMemo(() => {
+    return new Set<string>(approvedAdjustmentsMap.keys());
+  }, [approvedAdjustmentsMap]);
+
+  // Handler duyệt / từ chối giải trình
+  const handleApproveAdjustment = (id: string) => {
+    const updated = adjustments.map((a) =>
+      a.id === id ? { ...a, status: 'APPROVED' as const, reviewedBy: currentUser?.fullName || 'Manager', reviewedAt: new Date().toISOString() } : a
+    );
+    saveStoredAdjustments(updated);
+    setAdjustments(updated);
+  };
+
+  const handleRejectAdjustment = (id: string) => {
+    const updated = adjustments.map((a) =>
+      a.id === id ? { ...a, status: 'REJECTED' as const, reviewedBy: currentUser?.fullName || 'Manager', reviewedAt: new Date().toISOString() } : a
+    );
+    saveStoredAdjustments(updated);
+    setAdjustments(updated);
+  };
+
+  // Handler duyệt / từ chối OT
+  const handleApproveOt = (id: string) => {
+    const updated = overtimeList.map((ot) =>
+      ot.id === id ? { ...ot, status: 'APPROVED' as const, reviewedBy: currentUser?.fullName || 'Manager', reviewedAt: new Date().toISOString() } : ot
+    );
+    saveStoredOvertime(updated);
+    setOvertimeList(updated);
+  };
+
+  const handleRejectOt = (id: string) => {
+    const updated = overtimeList.map((ot) =>
+      ot.id === id ? { ...ot, status: 'REJECTED' as const, reviewedBy: currentUser?.fullName || 'Manager', reviewedAt: new Date().toISOString() } : ot
+    );
+    saveStoredOvertime(updated);
+    setOvertimeList(updated);
+  };
+
+  const pendingAdjustmentsCount = useMemo(
+    () => adjustments.filter((a) => a.status === 'PENDING').length,
+    [adjustments]
+  );
+  const pendingOtCount = useMemo(
+    () => overtimeList.filter((ot) => ot.status === 'PENDING').length,
+    [overtimeList]
+  );
+
+  // Áp dụng giải trình đã duyệt vào bản ghi chấm công (cập nhật giờ vào/ra thực tế theo đề xuất đã duyệt)
+  const applyApprovedAdjustment = (r: import('@/types').Attendance): import('@/types').Attendance => {
+    const adj = approvedAdjustmentsMap.get(r.id);
+    if (!adj) return r;
+    return {
+      ...r,
+      checkInAt: adj.proposedCheckInAt || r.checkInAt,
+      checkOutAt: adj.proposedCheckOutAt || r.checkOutAt,
+    };
+  };
+
   // Lọc dữ liệu theo Tháng/Năm đã chọn
   const filteredMyRecords = useMemo(() => {
-    const records = attendanceQuery.data?.data ?? [];
-    if (selectedMonth === 'all') return records;
-    return records.filter((r) => r.workDate.startsWith(selectedMonth));
-  }, [attendanceQuery.data?.data, selectedMonth]);
+    const rawRecords = attendanceQuery.data?.data ?? [];
+    const adjusted = rawRecords.map(applyApprovedAdjustment);
+    if (selectedMonth === 'all') return adjusted;
+    return adjusted.filter((r) => r.workDate.startsWith(selectedMonth));
+  }, [attendanceQuery.data?.data, selectedMonth, approvedAdjustmentsMap]);
 
   const filteredAllRecords = useMemo(() => {
-    const records = allAttendanceQuery.data?.data ?? [];
-    if (selectedMonth === 'all') return records;
-    return records.filter((r) => r.workDate.startsWith(selectedMonth));
-  }, [allAttendanceQuery.data?.data, selectedMonth]);
+    const rawRecords = allAttendanceQuery.data?.data ?? [];
+    const adjusted = rawRecords.map(applyApprovedAdjustment);
+    if (orgSelectedMonth === 'all') return adjusted;
+    return adjusted.filter((r) => r.workDate.startsWith(orgSelectedMonth));
+  }, [allAttendanceQuery.data?.data, orgSelectedMonth, approvedAdjustmentsMap]);
+
+  // Bản ghi hôm nay sau khi cập nhật giải trình (nếu có)
+  const effectiveTodayRecord = useMemo(() => {
+    if (!todayRecord) return undefined;
+    return applyApprovedAdjustment(todayRecord);
+  }, [todayRecord, approvedAdjustmentsMap]);
 
   function handleConfirmPhoto(photo: Blob, location?: CheckInLocation) {
     const mutation = cameraMode === 'checkin' ? checkInMutation : checkOutMutation;
@@ -288,18 +410,18 @@ export function AttendancePage() {
       </div>
 
       {/* Bố cục Lưới bất đối xứng (Grid & Tabs): Gập 1 cột mượt mà trên Mobile (grid-cols-1), 2 cột trên Desktop (lg:grid-cols-12) */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 items-start">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 items-stretch">
         {/* Khối bên trái: Widget Check-in với đồng hồ số lớn */}
-        <div className="w-full lg:col-span-5">
-          <Card className="border border-slate-200/80 bg-white shadow-sm overflow-hidden">
+        <div className="w-full lg:col-span-5 flex flex-col">
+          <Card className="border border-slate-200/80 bg-white shadow-sm overflow-hidden flex flex-col h-full">
             <CardHeader className="pb-3 border-b border-slate-100">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base font-bold text-slate-900">
                   {t('hrm:attendancePage.today.cardTitle', { date: formatDate(today) })}
                 </CardTitle>
-                {todayRecord?.checkOutAt ? (
+                {effectiveTodayRecord?.checkOutAt ? (
                   <Badge variant="success">{t('hrm:attendancePage.today.doneToday')}</Badge>
-                ) : todayRecord ? (
+                ) : effectiveTodayRecord ? (
                   <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700 whitespace-nowrap">
                     {t('hrm:attendancePage.today.checkedInBadge')}
                   </span>
@@ -308,65 +430,67 @@ export function AttendancePage() {
                 )}
               </div>
             </CardHeader>
-            <CardContent className="pt-6 pb-6 flex flex-col items-center text-center">
-              {/* Đồng hồ số điện tử lớn */}
-              <div className="mb-2 inline-flex items-center justify-center rounded-2xl bg-slate-50 border border-slate-100 px-6 py-3.5 shadow-2xs">
-                <span className="font-mono text-4xl sm:text-5xl font-black tracking-tight text-slate-900 tabular-nums">
-                  {timeString}
-                </span>
-              </div>
-              {/* 16/09/2026: gop merge - nhanh Tien doi ten "systemTimeLabel"/"completedMessage"
-                  thanh "standardTime"/"completedShift" va tach them 2 object thua "statuses"/
-                  "filter" trong "today" (da xu ly o cac cho khac). Giu ten key cu, khong them
-                  object con moi. */}
-              <p className="text-xs text-slate-400 font-medium">{t('hrm:attendancePage.today.systemTimeLabel')}</p>
-
-              {/* Trạng thái chấm công trong ngày */}
-              <div className="mt-5 w-full rounded-xl bg-slate-50/80 p-3.5 border border-slate-100/90 text-left text-xs space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-500 flex items-center gap-1.5 font-medium">
-                    <ClockIcon className="h-3.5 w-3.5 text-slate-400" />
-                    {t('hrm:attendancePage.today.checkInLabel')}
+            <CardContent className="pt-6 pb-6 flex flex-col items-center text-center flex-1 justify-between">
+              <div>
+                {/* Đồng hồ số điện tử lớn */}
+                <div className="mb-2 inline-flex items-center justify-center rounded-2xl bg-slate-50 border border-slate-100 px-6 py-3.5 shadow-2xs">
+                  <span className="font-mono text-4xl sm:text-5xl font-black tracking-tight text-slate-900 tabular-nums">
+                    {timeString}
                   </span>
-                  {todayRecord ? (
-                    <span className="font-semibold text-slate-800 flex items-center gap-1.5">
-                      <span className="font-bold text-slate-900 font-mono text-sm">{formatTime(todayRecord.checkInAt)}</span>
-                      <OnSiteBadge isOnSite={todayRecord.checkInIsOnSite} />
-                    </span>
-                  ) : (
-                    <span className="text-slate-400 italic">{t('hrm:attendancePage.today.notRecorded')}</span>
-                  )}
                 </div>
+                {/* 16/09/2026: gop merge - nhanh Tien doi ten "systemTimeLabel"/"completedMessage"
+                    thanh "standardTime"/"completedShift" va tach them 2 object thua "statuses"/
+                    "filter" trong "today" (da xu ly o cac cho khac). Giu ten key cu, khong them
+                    object con moi. */}
+                <p className="text-xs text-slate-400 font-medium">{t('hrm:attendancePage.today.systemTimeLabel')}</p>
 
-                <div className="flex items-center justify-between border-t border-slate-200/60 pt-2">
-                  <span className="text-slate-500 flex items-center gap-1.5 font-medium">
-                    <ClockIcon className="h-3.5 w-3.5 text-slate-400" />
-                    {t('hrm:attendancePage.today.checkOutLabel')}
-                  </span>
-                  {todayRecord?.checkOutAt ? (
-                    <span className="font-semibold text-slate-800 flex items-center gap-1.5">
-                      <span className="font-bold text-slate-900 font-mono text-sm">{formatTime(todayRecord.checkOutAt)}</span>
-                      <OnSiteBadge isOnSite={todayRecord.checkOutIsOnSite} />
+                {/* Trạng thái chấm công trong ngày */}
+                <div className="mt-5 w-full rounded-xl bg-slate-50/80 p-3.5 border border-slate-100/90 text-left text-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500 flex items-center gap-1.5 font-medium">
+                      <ClockIcon className="h-3.5 w-3.5 text-slate-400" />
+                      {t('hrm:attendancePage.today.checkInLabel')}
                     </span>
-                  ) : (
-                    <span className="text-slate-400 italic">{t('hrm:attendancePage.today.notRecorded')}</span>
-                  )}
+                    {effectiveTodayRecord ? (
+                      <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                        <span className="font-bold text-slate-900 font-mono text-sm">{formatTime(effectiveTodayRecord.checkInAt)}</span>
+                        <OnSiteBadge isOnSite={effectiveTodayRecord.checkInIsOnSite} />
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 italic">{t('hrm:attendancePage.today.notRecorded')}</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-slate-200/60 pt-2">
+                    <span className="text-slate-500 flex items-center gap-1.5 font-medium">
+                      <ClockIcon className="h-3.5 w-3.5 text-slate-400" />
+                      {t('hrm:attendancePage.today.checkOutLabel')}
+                    </span>
+                    {effectiveTodayRecord?.checkOutAt ? (
+                      <span className="font-semibold text-slate-800 flex items-center gap-1.5">
+                        <span className="font-bold text-slate-900 font-mono text-sm">{formatTime(effectiveTodayRecord.checkOutAt)}</span>
+                        <OnSiteBadge isOnSite={effectiveTodayRecord.checkOutIsOnSite} />
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 italic">{t('hrm:attendancePage.today.notRecorded')}</span>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* Nút hành động Check-in / Check-out lớn */}
               <div className="mt-5 w-full">
-                {!todayRecord && (
-                  <Button size="lg" className="w-full justify-center shadow-md py-3" onClick={() => setCameraMode('checkin')}>
+                {!effectiveTodayRecord && (
+                  <Button size="lg" className="w-full justify-center shadow-md py-3 cursor-pointer" onClick={() => setCameraMode('checkin')}>
                     <CameraIcon className="h-5 w-5" /> {t('hrm:attendancePage.today.checkInButton')}
                   </Button>
                 )}
-                {todayRecord && !todayRecord.checkOutAt && (
-                  <Button size="lg" className="w-full justify-center shadow-md py-3 bg-amber-600 hover:bg-amber-700" onClick={() => setCameraMode('checkout')}>
+                {effectiveTodayRecord && !effectiveTodayRecord.checkOutAt && (
+                  <Button size="lg" className="w-full justify-center shadow-md py-3 bg-amber-600 hover:bg-amber-700 cursor-pointer" onClick={() => setCameraMode('checkout')}>
                     <CameraIcon className="h-5 w-5" /> {t('hrm:attendancePage.today.checkOutButton')}
                   </Button>
                 )}
-                {todayRecord?.checkOutAt && (
+                {effectiveTodayRecord?.checkOutAt && (
                   <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 text-xs font-semibold text-emerald-700 text-center">
                     ✓ {t('hrm:attendancePage.today.completedMessage')}
                   </div>
@@ -376,89 +500,74 @@ export function AttendancePage() {
           </Card>
         </div>
 
-        {/* Khối bên phải: Tabs gộp "Lịch sử cá nhân" (mặc định) và "Toàn tổ chức" */}
-        <div className="w-full lg:col-span-7">
-          <Card className="border border-slate-200/80 bg-white shadow-sm">
+        {/* Khối bên phải: Card "Lịch sử chấm công" cá nhân độc lập */}
+        <div className="w-full lg:col-span-7 flex flex-col">
+          <Card className="border border-slate-200/80 bg-white shadow-sm flex flex-col h-full overflow-hidden">
             <CardHeader className="pb-3 border-b border-slate-100">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                {/* Cụm Tabs chuyển đổi tức thì không giật lag */}
-                <div className="flex items-center gap-1 rounded-xl bg-slate-100/90 p-1 border border-slate-200/60 w-fit">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('my')}
-                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-                      activeTab === 'my'
-                        ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    <UserIcon className="h-3.5 w-3.5" />
-                    <span>{t('hrm:attendancePage.history.cardTitle')}</span>
-                  </button>
-
-                  {canViewAll && (
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('all')}
-                      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-                        activeTab === 'all'
-                          ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                          : 'text-slate-500 hover:text-slate-800'
-                      }`}
-                    >
-                      <UsersIcon className="h-3.5 w-3.5" />
-                      <span>{t('hrm:attendancePage.allAttendance.cardTitle')}</span>
-                    </button>
-                  )}
+                {/* Tiêu đề Lịch sử cá nhân */}
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100">
+                    <UserIcon className="h-4 w-4" />
+                  </div>
+                  <CardTitle className="text-base font-bold text-slate-900">
+                    {t('hrm:attendancePage.history.cardTitle')}
+                  </CardTitle>
                 </div>
 
-                {/* Bộ lọc Dropdown Tháng/Năm tùy biến cao cấp với ChevronDownIcon & border-slate-200 */}
+                {/* Toolbar bên phải: Nút Đăng ký OT + Lọc tháng cá nhân */}
                 <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => setShowOtModal(true)}
+                    className="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs cursor-pointer"
+                  >
+                    <PlusIcon className="h-3.5 w-3.5" />
+                    <span>{t('hrm:extensions.overtime.registerButton')}</span>
+                  </Button>
+
                   <CustomFilterSelect
                     value={selectedMonth}
                     options={monthOptions}
                     onChange={setSelectedMonth}
                     ariaLabel={t('hrm:attendancePage.monthFilter.ariaLabel')}
-                    className="min-w-[150px]"
+                    className="min-w-[140px]"
                   />
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="pt-4">
-              {activeTab === 'my' ? (
-                <QueryState
-                  isLoading={attendanceQuery.isLoading}
-                  isError={attendanceQuery.isError}
-                  onRetry={() => attendanceQuery.refetch()}
-                  loadingFallback={<FullPageSpinner label={t('hrm:attendancePage.history.loading')} />}
-                  errorTitle={t('hrm:attendancePage.history.errorTitle')}
-                  errorDescription={t('hrm:attendancePage.history.errorDescription')}
-                >
-                  {filteredMyRecords.length === 0 ? (
-                    <EmptyState
-                      title={t('hrm:attendancePage.history.emptyTitle')}
-                      description={selectedMonth !== 'all' ? t('hrm:attendancePage.history.emptyFilteredDescription', { month: monthOptions.find((m) => m.value === selectedMonth)?.label }) : t('hrm:attendancePage.history.emptyDescription')}
-                    />
-                  ) : (
-                    <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
-                      <table className="w-full text-sm">
-                        <thead className="sticky top-0 bg-white z-10">
-                          <tr className="border-b border-slate-200 text-left text-xs font-medium uppercase text-slate-500">
-                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.date')}</th>
-                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.checkIn')}</th>
-                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.checkOut')}</th>
-                            {/* 16/09/2026: gop merge - nhanh HEAD dung chung 1 object "attendancePage.columns"
-                                {totalHours, status} cho ca 2 bang (Lich su + Toan to chuc), nhung 3 cot
-                                con lai cua CUNG mot bang van doc tu "history.columns"/"allAttendance.columns" -
-                                tron 2 namespace trong 1 hang la khong nhat quan. Giu nguyen namespace rieng
-                                cua tung bang (history.columns / allAttendance.columns, da co san du 5 cot),
-                                xoa object "attendancePage.columns" thua khoi hrm.json. */}
-                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.totalHours')}</th>
-                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.status')}</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {filteredMyRecords.map((record) => (
+            <CardContent className="pt-4 flex-1 flex flex-col min-h-0">
+              <QueryState
+                isLoading={attendanceQuery.isLoading}
+                isError={attendanceQuery.isError}
+                onRetry={() => attendanceQuery.refetch()}
+                loadingFallback={<FullPageSpinner label={t('hrm:attendancePage.history.loading')} />}
+                errorTitle={t('hrm:attendancePage.history.errorTitle')}
+                errorDescription={t('hrm:attendancePage.history.errorDescription')}
+              >
+                {filteredMyRecords.length === 0 ? (
+                  <EmptyState
+                    title={t('hrm:attendancePage.history.emptyTitle')}
+                    description={selectedMonth !== 'all' ? t('hrm:attendancePage.history.emptyFilteredDescription', { month: monthOptions.find((m) => m.value === selectedMonth)?.label }) : t('hrm:attendancePage.history.emptyDescription')}
+                  />
+                ) : (
+                  <div className="overflow-x-auto flex-1 overflow-y-auto max-h-[300px]">
+                    <table className="w-full text-sm">
+                      <thead className="sticky top-0 bg-white z-10">
+                        <tr className="border-b border-slate-200 text-left text-xs font-medium uppercase text-slate-500">
+                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.date')}</th>
+                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.checkIn')}</th>
+                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.checkOut')}</th>
+                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.totalHours')}</th>
+                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.status')}</th>
+                          <th className="py-2.5 pr-4 bg-white text-right">{t('hrm:attendancePage.history.columns.actions')}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {filteredMyRecords.map((record) => {
+                          const isAdjusted = approvedAdjustmentAttendanceIds.has(record.id);
+                          return (
                             <tr key={record.id} className="hover:bg-slate-50/60 transition-colors">
                               <td className="py-2.5 pr-4 text-slate-700 font-medium whitespace-nowrap">{formatDate(record.workDate)}</td>
                               <td className="py-2.5 pr-4 text-slate-600 whitespace-nowrap">
@@ -515,125 +624,271 @@ export function AttendancePage() {
                                 </span>
                               </td>
                               <td className="py-2.5 pr-4 whitespace-nowrap">
-                                <AttendanceStatusBadge record={record} today={today} />
+                                <AttendanceStatusBadge record={record} today={today} isAdjusted={isAdjusted} />
+                              </td>
+                              <td className="py-2.5 pr-4 whitespace-nowrap text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => setAdjustmentRecord(record)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 transition-colors cursor-pointer border border-transparent hover:border-indigo-100"
+                                  title={t('hrm:extensions.adjustment.requestButton')}
+                                >
+                                  <EditIcon className="h-3 w-3" />
+                                  <span>{t('hrm:extensions.adjustment.requestButton')}</span>
+                                </button>
                               </td>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </QueryState>
-              ) : (
-                <QueryState
-                  isLoading={allAttendanceQuery.isLoading}
-                  isError={allAttendanceQuery.isError}
-                  onRetry={() => allAttendanceQuery.refetch()}
-                  loadingFallback={<FullPageSpinner label={t('hrm:attendancePage.allAttendance.loading')} />}
-                  errorTitle={t('hrm:attendancePage.allAttendance.errorTitle')}
-                  errorDescription={t('hrm:attendancePage.allAttendance.errorDescription')}
-                >
-                  {filteredAllRecords.length === 0 ? (
-                    <EmptyState
-                      title={t('hrm:attendancePage.allAttendance.emptyTitle')}
-                      description={selectedMonth !== 'all' ? t('hrm:attendancePage.allAttendance.emptyFilteredDescription', { month: monthOptions.find((m) => m.value === selectedMonth)?.label }) : t('hrm:attendancePage.allAttendance.emptyDescription')}
-                    />
-                  ) : (
-                    <div className="overflow-x-auto max-h-[420px] overflow-y-auto">
-                      <table className="w-full text-sm">
-                        <thead className="sticky top-0 bg-white z-10">
-                          <tr className="border-b border-slate-200 text-left text-xs font-medium uppercase text-slate-500">
-                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.employee')}</th>
-                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.date')}</th>
-                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.checkIn')}</th>
-                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.checkOut')}</th>
-                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.totalHours')}</th>
-                            <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.status')}</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {filteredAllRecords.map((record) => {
-                            const name = userNameMap[record.userId] ?? record.userId;
-                            return (
-                              <tr key={record.id} className="hover:bg-slate-50/60 transition-colors">
-                                <td className="py-2.5 pr-4 text-slate-900 font-semibold whitespace-nowrap">
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </QueryState>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Khối bên dưới: Card "Quản lý tổ chức" toàn màn hình (chỉ hiển thị cho Manager / Admin) */}
+      {canViewAll && (
+        <Card className="border border-slate-200/80 bg-white shadow-sm overflow-hidden">
+          <CardHeader className="pb-3 border-b border-slate-100">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              {/* Tiêu đề & Sub-tabs */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100">
+                    <UsersIcon className="h-4 w-4" />
+                  </div>
+                  <CardTitle className="text-base font-bold text-slate-900">
+                    {t('hrm:extensions.orgTabs.mainTitle')}
+                  </CardTitle>
+                </div>
+
+                {/* Sub-tabs điều hướng 4 phân hệ */}
+                <div className="flex flex-wrap items-center gap-1.5 rounded-xl bg-slate-100/90 p-1 border border-slate-200/60">
+                  <button
+                    type="button"
+                    onClick={() => setOrgSubTab('timesheet')}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                      orgSubTab === 'timesheet'
+                        ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {t('hrm:extensions.orgTabs.subtabs.timesheet')}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setOrgSubTab('log')}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                      orgSubTab === 'log'
+                        ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {t('hrm:extensions.orgTabs.subtabs.log')}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setOrgSubTab('adjustments')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                      orgSubTab === 'adjustments'
+                        ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <EditIcon className="h-3 w-3" />
+                    <span>{t('hrm:extensions.orgTabs.subtabs.adjustments')}</span>
+                    <span
+                      className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                        pendingAdjustmentsCount > 0
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-slate-200/70 text-slate-600'
+                      }`}
+                    >
+                      {pendingAdjustmentsCount}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setOrgSubTab('overtime')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                      orgSubTab === 'overtime'
+                        ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <ClockIcon className="h-3 w-3" />
+                    <span>{t('hrm:extensions.orgTabs.subtabs.overtime')}</span>
+                    <span
+                      className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                        pendingOtCount > 0
+                          ? 'bg-indigo-100 text-indigo-800'
+                          : 'bg-slate-200/70 text-slate-600'
+                      }`}
+                    >
+                      {pendingOtCount}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Bộ lọc tháng cho Quản lý tổ chức (khi xem Timesheet hoặc Log) */}
+              {(orgSubTab === 'timesheet' || orgSubTab === 'log') && (
+                <div className="flex items-center gap-2">
+                  <CustomFilterSelect
+                    value={orgSelectedMonth}
+                    options={monthOptions}
+                    onChange={setOrgSelectedMonth}
+                    ariaLabel={t('hrm:attendancePage.monthFilter.ariaLabel')}
+                    className="min-w-[140px]"
+                  />
+                </div>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {orgSubTab === 'adjustments' ? (
+              <PendingAdjustmentsList
+                adjustments={adjustments.filter((a) => a.status === 'PENDING')}
+                onApprove={handleApproveAdjustment}
+                onReject={handleRejectAdjustment}
+              />
+            ) : orgSubTab === 'overtime' ? (
+              <PendingOvertimeList
+                overtimeList={overtimeList.filter((ot) => ot.status === 'PENDING')}
+                onApprove={handleApproveOt}
+                onReject={handleRejectOt}
+              />
+            ) : (
+              <QueryState
+                isLoading={allAttendanceQuery.isLoading || departmentsQuery.isLoading}
+                isError={allAttendanceQuery.isError}
+                onRetry={() => {
+                  allAttendanceQuery.refetch();
+                  departmentsQuery.refetch();
+                }}
+                loadingFallback={<FullPageSpinner label={t('hrm:attendancePage.allAttendance.loading')} />}
+                errorTitle={t('hrm:attendancePage.allAttendance.errorTitle')}
+                errorDescription={t('hrm:attendancePage.allAttendance.errorDescription')}
+              >
+                {orgSubTab === 'timesheet' ? (
+                  <MonthlyTimesheetTable
+                    records={filteredAllRecords}
+                    users={orgUsers}
+                    departments={departmentsQuery.data ?? []}
+                    selectedMonth={orgSelectedMonth}
+                    today={today}
+                  />
+                ) : filteredAllRecords.length === 0 ? (
+                  <EmptyState
+                    title={t('hrm:attendancePage.allAttendance.emptyTitle')}
+                    description={orgSelectedMonth !== 'all' ? t('hrm:attendancePage.allAttendance.emptyFilteredDescription', { month: monthOptions.find((m) => m.value === orgSelectedMonth)?.label }) : t('hrm:attendancePage.allAttendance.emptyDescription')}
+                  />
+                ) : (
+                  <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="sticky top-0 bg-white z-10">
+                        <tr className="border-b border-slate-200 text-left text-xs font-medium uppercase text-slate-500">
+                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.employee')}</th>
+                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.date')}</th>
+                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.checkIn')}</th>
+                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.checkOut')}</th>
+                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.totalHours')}</th>
+                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.status')}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {filteredAllRecords.map((record) => {
+                          const name = userNameMap[record.userId] ?? record.userId;
+                          return (
+                            <tr key={record.id} className="hover:bg-slate-50/60 transition-colors">
+                              <td className="py-2.5 pr-4 text-slate-900 font-semibold whitespace-nowrap">
+                                <div className="flex items-center gap-2">
+                                  <Avatar name={name} size="sm" className="h-6 w-6 text-[10px] shadow-2xs" />
+                                  <span className="truncate max-w-[160px]">{name}</span>
+                                </div>
+                              </td>
+                              <td className="py-2.5 pr-4 text-slate-700 whitespace-nowrap">{formatDate(record.workDate)}</td>
+                              <td className="py-2.5 pr-4 text-slate-600 whitespace-nowrap">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono font-semibold text-slate-800">{formatTime(record.checkInAt)}</span>
+                                  <OnSiteBadge isOnSite={record.checkInIsOnSite} />
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setViewingPhoto({
+                                        id: record.id,
+                                        kind: 'checkin',
+                                        time: formatDateTime(record.checkInAt),
+                                        userName: name,
+                                        isOnSite: record.checkInIsOnSite,
+                                      })
+                                    }
+                                    className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
+                                    title={t('hrm:attendancePage.allAttendance.viewProofInOf', { name })}
+                                    aria-label={t('hrm:attendancePage.allAttendance.viewProofInOf', { name })}
+                                  >
+                                    <CameraIcon className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              </td>
+                              <td className="py-2.5 pr-4 text-slate-600 whitespace-nowrap">
+                                {record.checkOutAt ? (
                                   <div className="flex items-center gap-2">
-                                    <Avatar name={name} size="sm" className="h-6 w-6 text-[10px] shadow-2xs" />
-                                    <span className="truncate max-w-[160px]">{name}</span>
-                                  </div>
-                                </td>
-                                <td className="py-2.5 pr-4 text-slate-700 whitespace-nowrap">{formatDate(record.workDate)}</td>
-                                <td className="py-2.5 pr-4 text-slate-600 whitespace-nowrap">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-mono font-semibold text-slate-800">{formatTime(record.checkInAt)}</span>
-                                    <OnSiteBadge isOnSite={record.checkInIsOnSite} />
+                                    <span className="font-mono font-semibold text-slate-800">{formatTime(record.checkOutAt)}</span>
+                                    <OnSiteBadge isOnSite={record.checkOutIsOnSite} />
                                     <button
                                       type="button"
                                       onClick={() =>
                                         setViewingPhoto({
                                           id: record.id,
-                                          kind: 'checkin',
-                                          time: formatDateTime(record.checkInAt),
+                                          kind: 'checkout',
+                                          time: formatDateTime(record.checkOutAt),
                                           userName: name,
-                                          isOnSite: record.checkInIsOnSite,
+                                          isOnSite: record.checkOutIsOnSite,
                                         })
                                       }
                                       className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
-                                      title={t('hrm:attendancePage.allAttendance.viewProofInOf', { name })}
-                                      aria-label={t('hrm:attendancePage.allAttendance.viewProofInOf', { name })}
+                                      title={t('hrm:attendancePage.allAttendance.viewProofOutOf', { name })}
+                                      aria-label={t('hrm:attendancePage.allAttendance.viewProofOutOf', { name })}
                                     >
                                       <CameraIcon className="h-3 w-3" />
                                     </button>
                                   </div>
-                                </td>
-                                <td className="py-2.5 pr-4 text-slate-600 whitespace-nowrap">
-                                  {record.checkOutAt ? (
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-mono font-semibold text-slate-800">{formatTime(record.checkOutAt)}</span>
-                                      <OnSiteBadge isOnSite={record.checkOutIsOnSite} />
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          setViewingPhoto({
-                                            id: record.id,
-                                            kind: 'checkout',
-                                            time: formatDateTime(record.checkOutAt),
-                                            userName: name,
-                                            isOnSite: record.checkOutIsOnSite,
-                                          })
-                                        }
-                                        className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
-                                        title={t('hrm:attendancePage.allAttendance.viewProofOutOf', { name })}
-                                        aria-label={t('hrm:attendancePage.allAttendance.viewProofOutOf', { name })}
-                                      >
-                                        <CameraIcon className="h-3 w-3" />
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <span className="text-slate-400 italic">{t('hrm:attendancePage.today.notRecorded')}</span>
-                                  )}
-                                </td>
-                                <td className="py-2.5 pr-4 text-slate-700 font-medium whitespace-nowrap tabular-nums">
-                                  <span className={record.checkOutAt ? 'font-semibold text-slate-900' : 'text-slate-400 font-normal'}>
-                                    {formatTotalHours(t, record.checkInAt, record.checkOutAt)}
-                                  </span>
-                                </td>
-                                <td className="py-2.5 pr-4 whitespace-nowrap">
-                                  <AttendanceStatusBadge record={record} today={today} />
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </QueryState>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                                ) : (
+                                  <span className="text-slate-400 italic">{t('hrm:attendancePage.today.notRecorded')}</span>
+                                )}
+                              </td>
+                              <td className="py-2.5 pr-4 text-slate-700 font-medium whitespace-nowrap tabular-nums">
+                                <span className={record.checkOutAt ? 'font-semibold text-slate-900' : 'text-slate-400 font-normal'}>
+                                  {formatTotalHours(t, record.checkInAt, record.checkOutAt)}
+                                </span>
+                              </td>
+                              <td className="py-2.5 pr-4 whitespace-nowrap">
+                                <AttendanceStatusBadge
+                                  record={record}
+                                  today={today}
+                                  isAdjusted={approvedAdjustmentAttendanceIds.has(record.id)}
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </QueryState>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Modal xác thực camera check-in / check-out */}
       <CheckInCamera
@@ -647,6 +902,25 @@ export function AttendancePage() {
       <PhotoProofModal
         target={viewingPhoto}
         onClose={() => setViewingPhoto(null)}
+      />
+
+      {/* Modal giải trình / sửa công */}
+      <AttendanceAdjustmentModal
+        record={adjustmentRecord}
+        userName={currentUser?.fullName || currentUser?.email || 'Employee'}
+        open={Boolean(adjustmentRecord)}
+        onClose={() => setAdjustmentRecord(null)}
+        onSuccess={reloadExtensions}
+      />
+
+      {/* Modal đăng ký làm thêm giờ (OT) */}
+      <OvertimeRegistrationModal
+        userId={currentUser?.id || ''}
+        userName={currentUser?.fullName || currentUser?.email || 'Employee'}
+        open={showOtModal}
+        onClose={() => setShowOtModal(false)}
+        onSuccess={reloadExtensions}
+        leaveRequests={myLeaveRequestsQuery.data?.data ?? []}
       />
     </div>
   );

@@ -117,6 +117,17 @@ export function formatNotificationTitle(notification: AppNotification, t?: (key:
     return t('notifications:page.titles.taskAssigned');
   }
 
+  // 4b. Công việc đã hoàn thành (Task Done -> Notify Manager)
+  if (
+    type === 'task.completed' ||
+    type === 'task_completed' ||
+    rawTitle.includes('công việc đã hoàn thành') || // i18n-lint-ignore: khop title backend, khong phai chuoi UI
+    rawTitle.includes('task has been completed') ||
+    rawTitle.includes('task completed')
+  ) {
+    return t('notifications:page.titles.taskCompleted');
+  }
+
   // 5. Tài liệu được chia sẻ
   if (
     type === 'document.shared' ||
@@ -220,14 +231,26 @@ export function getNotificationVisualConfig(notification: AppNotification, t?: (
     };
   }
 
-  // 5. Nghiệp vụ Công việc (Task) - Màu xanh da trời (Sky)
+  // 5. Nghiệp vụ Công việc (Task) - Màu xanh da trời (Sky) hoặc Xanh ngọc (Emerald) khi hoàn thành
   if (type.includes('task') || title.includes('công việc') || message.includes('công việc')) { // i18n-lint-ignore: khop text backend, khong phai chuoi UI
     const projectId = payload.projectId as string | undefined;
+    const taskId = payload.taskId as string | undefined;
+    const isCompleted = type.includes('completed') || title.includes('hoàn thành') || title.includes('completed'); // i18n-lint-ignore: khop text backend, khong phai chuoi UI
+
+    let linkUrl: string | null = null;
+    if (projectId) {
+      linkUrl = taskId ? `/projects/${projectId}?taskId=${taskId}` : `/projects/${projectId}`;
+    } else {
+      linkUrl = '/projects';
+    }
+
     return {
       icon: <CheckSquareIcon className="h-4 w-4" />,
-      bgColor: 'bg-sky-100 text-sky-700 ring-1 ring-sky-600/20',
-      textColor: 'text-sky-700',
-      linkUrl: projectId ? `/projects/${projectId}` : '/projects',
+      bgColor: isCompleted
+        ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-600/20'
+        : 'bg-sky-100 text-sky-700 ring-1 ring-sky-600/20',
+      textColor: isCompleted ? 'text-emerald-700' : 'text-sky-700',
+      linkUrl,
       targetName: t ? t('notifications:page.targets.task') : 'Công việc', // i18n-lint-ignore: fallback mirror dung key i18n that
       targetKey: 'task',
     };

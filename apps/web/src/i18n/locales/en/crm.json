@@ -59,8 +59,20 @@
     "fieldCompany": "Company",
     "fieldEmail": "Email",
     "fieldPhone": "Phone number",
-    "fieldNotes": "Notes",
-    "notesPlaceholder": "Additional information about this customer…",
+    "fieldNotes": "Notes & Customer Type",
+    "notesPlaceholder": "Enter custom notes or specific information about this customer…",
+    "customerTypeLabel": "Customer Classification",
+    "customerTypePlaceholder": "-- Select customer classification --",
+    "customerTypeOther": "Other (Custom note)",
+    "customerTypes": {
+      "lead": "Potential Lead",
+      "vip": "VIP Customer",
+      "loyal": "Loyal Customer",
+      "sme": "SME Enterprise",
+      "enterprise": "Large Enterprise / Corporation",
+      "individual": "Individual Customer"
+    },
+    "customNotesLabel": "Custom Note Details",
     "cancel": "Cancel",
     "submit": "Add customer"
   },

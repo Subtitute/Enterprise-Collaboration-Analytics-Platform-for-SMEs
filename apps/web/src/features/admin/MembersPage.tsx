@@ -1,10 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-// 17/09/2026: import truc tiep submodule (khong qua barrel '@app/common-dto') bang `import * as`
-// (namespace, khong phai named import) - xem ghi chu chi tiet tai lib/utils.ts (barrel keo theo
-// DTO dung class-transformer, throw Reflect.getMetadata is not a function; named import tu deep
-// import CJS lam Rollup build that bai "not exported by ...").
-import * as PermissionEnum from '@app/common-dto/dist/enums/permission.enum';
+import { PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/stores/auth.store';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -23,8 +19,6 @@ import { useDeactivateUser, useDepartmentsQuery, useReactivateUser, useUsersQuer
 import { InviteMemberModal } from './components/InviteMemberModal';
 import { EditMemberModal } from './components/EditMemberModal';
 import type { User } from '@/types';
-
-const { PERMISSIONS } = PermissionEnum;
 
 const LIMIT = 15;
 

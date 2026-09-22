@@ -34,6 +34,7 @@
     },
     "titles": {
       "taskAssigned": "新しいタスクが割り当てられました",
+      "taskCompleted": "タスクが完了しました",
       "documentShared": "ドキュメントが共有されました",
       "dealWon": "案件の受注が完了しました",
       "leaveApproved": "休暇申請が承認されました",

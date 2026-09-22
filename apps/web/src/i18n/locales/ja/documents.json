@@ -180,5 +180,16 @@
     "popupBlockedDescription": "このサイトのポップアップを許可してから、もう一度お試しください。",
     "openFileError": "ファイルを開けませんでした",
     "downloadFileError": "ファイルをダウンロードできませんでした"
+  },
+  "preview": {
+    "title": "ファイルプレビュー",
+    "download": "ダウンロード",
+    "loading": "プレビューを読み込み中…",
+    "downloadToView": "ダウンロードして表示",
+    "loadErrorTitle": "プレビューを読み込めませんでした",
+    "loadErrorDesc": "接続または描画中にエラーが発生しました。直接表示するにはダウンロードしてください。",
+    "fileTooLargeDesc": "ファイルサイズがプレビュー上限を超えています（> {{maxSize}}）。内容を確認するにはダウンロードしてください。",
+    "unsupportedDesc": "この形式はブラウザ内での直接プレビューに対応していません。対応アプリケーションで開くにはダウンロードしてください。",
+    "emptyContent": "ファイルが空か、内容がありません。"
   }
 }

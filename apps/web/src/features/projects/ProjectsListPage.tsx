@@ -11,8 +11,9 @@ import { FolderKanbanIcon, PlusIcon, SearchIcon } from '@/components/ui/Icons';
 import { useAllTasksQuery, useProjectsQuery } from './hooks';
 import { ProjectCard } from './components/ProjectCard';
 import { NewProjectModal } from './components/NewProjectModal';
-import { computeProgressFromTasks } from './utils';
-import { matchesVietnameseSearch } from '@/lib/utils';
+import { computeProgressFromTasks, getProjectMemberIds } from './utils';
+import { matchesVietnameseSearch, canManageProjects } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth.store';
 import type { Project } from '@/types';
 
 const LIMIT = 20;
@@ -20,16 +21,20 @@ const ORDER_STORAGE_KEY = 'ec_projects_custom_order';
 
 export function ProjectsListPage() {
   const { t } = useTranslation();
+  const user = useAuthStore((s) => s.user);
+  const canManage = canManageProjects(user?.roles);
   const [searchParams, setSearchParams] = useSearchParams();
   const [isNewOpen, setIsNewOpen] = useState(false);
 
   useEffect(() => {
     if (searchParams.get('action') === 'create') {
-      setIsNewOpen(true);
+      if (canManage) {
+        setIsNewOpen(true);
+      }
       searchParams.delete('action');
       setSearchParams(searchParams, { replace: true });
     }
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, canManage]);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
@@ -212,9 +217,10 @@ export function ProjectsListPage() {
     setDragOverId(null);
   };
 
-  const { progressByProject, taskStatsByProject } = useMemo(() => {
+  const { progressByProject, taskStatsByProject, memberCountByProject } = useMemo(() => {
     const pMap: Record<string, number> = {};
     const statsMap: Record<string, { total: number; completed: number }> = {};
+    const membersMap: Record<string, number> = {};
     const tasks = tasksQuery.data ?? [];
     const byProject: Record<string, typeof tasks> = {};
     for (const task of tasks) {
@@ -227,8 +233,13 @@ export function ProjectsListPage() {
         completed: list.filter((t) => t.status === 'DONE').length,
       };
     }
-    return { progressByProject: pMap, taskStatsByProject: statsMap };
-  }, [tasksQuery.data]);
+    for (const p of rawProjects) {
+      const pTasks = byProject[p.id] ?? [];
+      const mIds = getProjectMemberIds(p.id, p.leadUserId, pTasks);
+      membersMap[p.id] = Math.max(mIds.length, p.memberCount ?? 0);
+    }
+    return { progressByProject: pMap, taskStatsByProject: statsMap, memberCountByProject: membersMap };
+  }, [tasksQuery.data, rawProjects, updateTick]);
 
   const meta = projectsQuery.data?.meta ?? { page: 1, limit: LIMIT, total: 0 };
   const hasFilters = Boolean(search || status || priorityFilter);
@@ -255,9 +266,11 @@ export function ProjectsListPage() {
               {t('projects:list.viewAll')}
             </Button>
           )}
-          <Button onClick={() => setIsNewOpen(true)} size="sm">
-            <PlusIcon className="h-4 w-4" /> {t('projects:list.newProject')}
-          </Button>
+          {canManage && (
+            <Button onClick={() => setIsNewOpen(true)} size="sm">
+              <PlusIcon className="h-4 w-4" /> {t('projects:list.newProject')}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -306,7 +319,7 @@ export function ProjectsListPage() {
                 ? t('projects:list.emptyFilteredDescription')
                 : t('projects:list.emptyDescription')
             }
-            action={!hasFilters && <Button onClick={() => setIsNewOpen(true)}>{t('projects:list.createFirst')}</Button>}
+            action={!hasFilters && canManage && <Button onClick={() => setIsNewOpen(true)}>{t('projects:list.createFirst')}</Button>}
           />
         ) : (
           <>
@@ -331,7 +344,7 @@ export function ProjectsListPage() {
                     <ProjectCard
                       project={project}
                       progress={project.completionRate ?? project.progress ?? progressByProject[project.id] ?? 0}
-                      memberCount={project.memberCount}
+                      memberCount={memberCountByProject[project.id] ?? project.memberCount}
                       taskCount={taskStatsByProject[project.id]?.total}
                       completedTaskCount={taskStatsByProject[project.id]?.completed}
                     />

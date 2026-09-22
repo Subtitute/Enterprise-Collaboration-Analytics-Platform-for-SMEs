@@ -180,5 +180,16 @@
     "popupBlockedDescription": "Vui lòng cho phép cửa sổ bật lên (pop-up) cho trang này rồi thử lại.",
     "openFileError": "Không thể mở tệp",
     "downloadFileError": "Không thể tải xuống tệp"
+  },
+  "preview": {
+    "title": "Xem trước tệp",
+    "download": "Tải xuống",
+    "loading": "Đang tải bản xem trước…",
+    "downloadToView": "Tải xuống để xem",
+    "loadErrorTitle": "Không thể tải bản xem trước",
+    "loadErrorDesc": "Đã xảy ra lỗi khi kết nối hoặc hiển thị tệp. Vui lòng tải xuống để xem trực tiếp.",
+    "fileTooLargeDesc": "Tệp vượt quá kích thước cho phép xem trực tiếp (> {{maxSize}}). Vui lòng tải xuống để xem nội dung đầy đủ.",
+    "unsupportedDesc": "Định dạng này không hỗ trợ xem trực tiếp trên trình duyệt. Vui lòng tải xuống tệp để mở trên ứng dụng tương thích.",
+    "emptyContent": "Tệp văn bản trống hoặc không có nội dung."
   }
 }

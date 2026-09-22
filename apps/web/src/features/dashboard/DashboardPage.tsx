@@ -5,15 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Input';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { Button } from '@/components/ui/Button';
-import { FolderKanbanIcon, AlertCircleIcon, UserIcon, FileTextIcon } from '@/components/ui/Icons';
+import { FolderKanbanIcon, AlertCircleIcon, UserIcon, FileTextIcon, PrinterIcon } from '@/components/ui/Icons';
 import { DATE_RANGE_OPTIONS } from '@/types';
 import type { DateRangeOption } from '@/types';
-import { usePermissions } from '@/stores/auth.store';
-import { canAccessAdminArea, getTodayGmt7DateString } from '@/lib/utils';
-// 17/09/2026: xem chu thich chi tiet ve import namespace tai lib/utils.ts - deep-import submodule
-// CJS cua @app/common-dto, tranh loi crash Reflect.getMetadata/loi build Rollup da gap phai.
-import * as PermissionEnum from '@app/common-dto/dist/enums/permission.enum';
-const { PERMISSIONS } = PermissionEnum;
+import { useAuthStore, usePermissions } from '@/stores/auth.store';
+import { canAccessAdminArea, canManageProjects, getTodayGmt7DateString } from '@/lib/utils';
+import { PERMISSIONS } from '@/constants/permissions';
 import { useProjectsQuery, useAllTasksQuery } from '@/features/projects/hooks';
 // 28/07/2026: tai su dung useDepartmentsQuery da co san (dung chung o MembersPage/InviteMemberModal)
 // cho bo loc "Phong ban" moi tren Dashboard, khong tao hook fetch phong ban rieng.
@@ -23,6 +20,7 @@ import { KpiCard } from './components/KpiCard';
 import { TaskTrendChart } from './components/TaskTrendChart';
 import { TaskStatusDonut } from './components/TaskStatusDonut';
 import { RecentActivityFeed } from './components/RecentActivityFeed';
+import { UpcomingLeavesWidget } from './components/UpcomingLeavesWidget';
 
 import { useOrgUsersQuery } from '@/hooks/useOrgUsers';
 
@@ -58,7 +56,9 @@ export function DashboardPage() {
   const allTasksQuery = useAllTasksQuery();
   const allUsersQuery = useOrgUsersQuery();
 
+  const roles = useAuthStore((s) => s.user?.roles);
   const canInviteMembers = canAccessAdminArea(permissions);
+  const canCreateProject = canManageProjects(roles);
   const showOnboarding = !allProjectsQuery.isLoading && !allProjectsQuery.isError && (allProjectsQuery.data?.meta.total ?? 0) === 0;
 
   const summary = summaryQuery.data;
@@ -163,13 +163,28 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('dashboard:page.title')}</h1>
-        <p className="mt-1 text-sm text-slate-500">{t('dashboard:page.subtitle')}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('dashboard:page.title')}</h1>
+          <p className="mt-1 text-sm text-slate-500">{t('dashboard:page.subtitle')}</p>
+        </div>
+        <div className="flex items-center gap-2 no-print shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => window.print()}
+            title={t('dashboard:page.exportPdf')}
+            className="border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs font-medium cursor-pointer active:scale-[0.98]"
+          >
+            <PrinterIcon className="h-4 w-4 text-slate-500 mr-1.5" />
+            <span>{t('dashboard:page.exportPdf')}</span>
+          </Button>
+        </div>
       </div>
 
       {showOnboarding && (
-        <Card className="flex flex-col items-start gap-3 border-primary-100 bg-primary-50/40 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <Card className="flex flex-col items-start gap-3 border-primary-100 bg-primary-50/40 p-5 sm:flex-row sm:items-center sm:justify-between no-print">
           <div>
             <p className="text-sm font-semibold text-slate-900">{t('dashboard:onboarding.welcomeTitle')}</p>
             <p className="mt-1 text-sm text-slate-600">
@@ -182,9 +197,11 @@ export function DashboardPage() {
                 <Button variant="outline">{t('dashboard:onboarding.inviteMembers')}</Button>
               </Link>
             )}
-            <Link to="/projects">
-              <Button>{t('dashboard:onboarding.createFirstProject')}</Button>
-            </Link>
+            {canCreateProject && (
+              <Link to="/projects">
+                <Button>{t('dashboard:onboarding.createFirstProject')}</Button>
+              </Link>
+            )}
           </div>
         </Card>
       )}
@@ -244,7 +261,7 @@ export function DashboardPage() {
             </div>
             <Link
               to="/projects"
-              className="font-semibold text-sm text-primary-600 hover:text-primary-700 transition-colors inline-flex items-center gap-1"
+              className="font-semibold text-sm text-primary-600 hover:text-primary-700 transition-colors inline-flex items-center gap-1 no-print"
             >
               {t('dashboard:hero.viewAllLink')}
             </Link>
@@ -385,19 +402,28 @@ export function DashboardPage() {
         </Card>
       </div>
 
-      {/* 17/09/2026: an voi Employee - feed nay la nhat ky hoat dong TOAN TO CHUC, dua tren cung
-          AnalyticsController da @RequirePermissions(ANALYTICS_VIEW) (bao gom ca socket /ws/analytics,
-          xem analytics.gateway.ts) ma Employee khong co, khong the goi duoc du component nay co render. */}
-      {canViewAnalytics && (
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('dashboard:recentActivitySection.title')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <RecentActivityFeed />
-        </CardContent>
-      </Card>
-      )}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        {canViewAnalytics ? (
+          <>
+            <Card className="lg:col-span-8">
+              <CardHeader>
+                <CardTitle>{t('dashboard:recentActivitySection.title')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RecentActivityFeed />
+              </CardContent>
+            </Card>
+
+            <div className="lg:col-span-4">
+              <UpcomingLeavesWidget />
+            </div>
+          </>
+        ) : (
+          <div className="lg:col-span-12">
+            <UpcomingLeavesWidget />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

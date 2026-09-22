@@ -1,7 +1,8 @@
 {
   "page": {
     "title": "Dashboard",
-    "subtitle": "Tổng quan vận hành - Cập nhật dữ liệu kinh doanh mới nhất hôm nay."
+    "subtitle": "Tổng quan vận hành - Cập nhật dữ liệu kinh doanh mới nhất hôm nay.",
+    "exportPdf": "Xuất báo cáo PDF"
   },
   "hero": {
     "title": "Tổng quan Công việc Toàn Doanh nghiệp",
@@ -123,6 +124,23 @@
       "leave_request_created": "đã gửi đơn yêu cầu nghỉ phép",
       "leave_request_approved": "đã được duyệt đơn nghỉ phép",
       "leave_request_rejected": "đã bị từ chối đơn nghỉ phép"
+    }
+  },
+  "upcomingLeaves": {
+    "title": "Nghỉ phép sắp tới",
+    "viewAll": "Xem tất cả",
+    "loading": "Đang tải danh sách nghỉ phép…",
+    "errorTitle": "Không thể tải danh sách nghỉ phép",
+    "retry": "Thử lại",
+    "emptyTitle": "Không có lịch nghỉ sắp tới",
+    "emptyDescription": "Tất cả nhân sự hiện đang làm việc bình thường.",
+    "today": "Hôm nay",
+    "employee": "Nhân viên",
+    "daysCount": "{{count}} ngày",
+    "types": {
+      "ANNUAL": "Phép năm",
+      "SICK": "Nghỉ ốm",
+      "UNPAID": "Việc riêng"
     }
   }
 }

@@ -7,12 +7,14 @@ import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { CalendarIcon, CheckCircleIcon, EditIcon, MoreVerticalIcon, RefreshIcon, TrashIcon, UsersIcon } from '@/components/ui/Icons';
-import { formatDate } from '@/lib/utils';
+import { formatDate, canManageProjects } from '@/lib/utils';
 import { Avatar } from '@/components/ui/Avatar';
 import { useOrgUsersQuery } from '@/hooks/useOrgUsers';
+import { useAuthStore } from '@/stores/auth.store';
 import { projectStatusMeta, projectPriorityMeta } from '../utils';
 import { useCompleteProject, useReopenProject, useDeleteProject } from '../hooks';
 import { EditProjectModal } from './EditProjectModal';
+import { ProjectMembersModal } from './ProjectMembersModal';
 import { toast } from '@/stores/toast.store';
 import type { Project } from '@/types';
 
@@ -30,8 +32,11 @@ interface ProjectCardProps {
 export function ProjectCard({ project, progress, memberCount, taskCount, completedTaskCount }: ProjectCardProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const canManage = canManageProjects(user?.roles);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isMembersOpen, setIsMembersOpen] = useState(false);
   const [, setUpdateTick] = useState(0);
 
   useEffect(() => {
@@ -113,71 +118,82 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
                 </span>
               </div>
             </div>
-            <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center">
-              <Dropdown
-                trigger={({ toggle }) => (
-                  <button
-                    onClick={toggle}
-                    className="flex h-7 w-7 items-center justify-center -mr-1.5 rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
-                    aria-label={t('projects:projectCard.optionsAriaLabel')}
-                  >
-                    <MoreVerticalIcon className="h-4.5 w-4.5" />
-                  </button>
-                )}
-              >
-                {({ close }) => (
-                  <div className="w-52 py-1.5">
-                    <DropdownItem
-                      className="text-slate-700 hover:bg-slate-50"
-                      onClick={() => {
-                        setIsEditOpen(true);
-                        close();
-                      }}
+            {canManage && (
+              <div onClick={(e) => e.stopPropagation()} className="shrink-0 flex items-center">
+                <Dropdown
+                  trigger={({ toggle }) => (
+                    <button
+                      onClick={toggle}
+                      className="flex h-7 w-7 items-center justify-center -mr-1.5 rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+                      aria-label={t('projects:projectCard.optionsAriaLabel')}
                     >
-                      <EditIcon className="h-4 w-4 text-slate-500" /> {t('projects:projectCard.edit')}
-                    </DropdownItem>
-                    {currentStatus !== 'COMPLETED' ? (
+                      <MoreVerticalIcon className="h-4.5 w-4.5" />
+                    </button>
+                  )}
+                >
+                  {({ close }) => (
+                    <div className="w-52 py-1.5">
                       <DropdownItem
+                        className="text-slate-700 hover:bg-slate-50"
                         onClick={() => {
-                          const total = taskCount ?? 0;
-                          const completedCount = completedTaskCount ?? 0;
-                          const isFullyDone = total > 0 ? completedCount >= total : progress >= 100;
+                          setIsEditOpen(true);
+                          close();
+                        }}
+                      >
+                        <EditIcon className="h-4 w-4 text-slate-500" /> {t('projects:projectCard.edit')}
+                      </DropdownItem>
+                      <DropdownItem
+                        className="text-slate-700 hover:bg-slate-50"
+                        onClick={() => {
+                          setIsMembersOpen(true);
+                          close();
+                        }}
+                      >
+                        <UsersIcon className="h-4 w-4 text-slate-500" /> {t('projects:projectCard.manageMembers')}
+                      </DropdownItem>
+                      {currentStatus !== 'COMPLETED' ? (
+                        <DropdownItem
+                          onClick={() => {
+                            const total = taskCount ?? 0;
+                            const completedCount = completedTaskCount ?? 0;
+                            const isFullyDone = total > 0 ? completedCount >= total : progress >= 100;
 
-                          if (!isFullyDone) {
-                            toast.error(t('projects:toast.project.incompleteTasksError'));
+                            if (!isFullyDone) {
+                              toast.error(t('projects:toast.project.incompleteTasksError'));
+                              close();
+                              return;
+                            }
+
+                            complete.mutate();
                             close();
-                            return;
-                          }
-
-                          complete.mutate();
-                          close();
-                        }}
-                      >
-                        <CheckCircleIcon className="h-4 w-4 text-emerald-600" /> {t('projects:projectCard.markComplete')}
-                      </DropdownItem>
-                    ) : (
+                          }}
+                        >
+                          <CheckCircleIcon className="h-4 w-4 text-emerald-600" /> {t('projects:projectCard.markComplete')}
+                        </DropdownItem>
+                      ) : (
+                        <DropdownItem
+                          onClick={() => {
+                            reopen.mutate();
+                            close();
+                          }}
+                        >
+                          <RefreshIcon className="h-4 w-4 text-primary-600" /> {t('projects:projectCard.reopen')}
+                        </DropdownItem>
+                      )}
                       <DropdownItem
+                        className="text-rose-600 hover:bg-rose-50"
                         onClick={() => {
-                          reopen.mutate();
+                          setConfirmDelete(true);
                           close();
                         }}
                       >
-                        <RefreshIcon className="h-4 w-4 text-primary-600" /> {t('projects:projectCard.reopen')}
+                        <TrashIcon className="h-4 w-4 text-rose-600" /> {t('projects:projectCard.delete')}
                       </DropdownItem>
-                    )}
-                    <DropdownItem
-                      className="text-rose-600 hover:bg-rose-50"
-                      onClick={() => {
-                        setConfirmDelete(true);
-                        close();
-                      }}
-                    >
-                      <TrashIcon className="h-4 w-4 text-rose-600" /> {t('projects:projectCard.delete')}
-                    </DropdownItem>
-                  </div>
-                )}
-              </Dropdown>
-            </div>
+                    </div>
+                  )}
+                </Dropdown>
+              </div>
+            )}
           </div>
 
           {/* Mô tả luôn giữ chiều cao cố định min-h-[1.15rem] để các thẻ luôn cao bằng nhau */}
@@ -259,11 +275,21 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
         danger
       />
 
-      <EditProjectModal
-        open={isEditOpen}
-        onClose={() => setIsEditOpen(false)}
-        project={project}
-      />
+      {isEditOpen && (
+        <EditProjectModal
+          open={isEditOpen}
+          onClose={() => setIsEditOpen(false)}
+          project={project}
+        />
+      )}
+
+      {isMembersOpen && (
+        <ProjectMembersModal
+          open={isMembersOpen}
+          onClose={() => setIsMembersOpen(false)}
+          project={project}
+        />
+      )}
     </>
   );
 }
