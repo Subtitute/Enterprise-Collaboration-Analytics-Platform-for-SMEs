@@ -126,6 +126,14 @@ export function formatNotificationTitle(notification: AppNotification, t?: (key:
     return t('notifications:page.titles.documentShared');
   }
 
+  // 6. Công bố ngày nghỉ lễ công ty (bổ sung 17/09/2026 - thông báo toàn tổ chức)
+  if (
+    type === 'calendar_event.created' ||
+    rawTitle.includes('thông báo ngày nghỉ lễ') // i18n-lint-ignore: khop title backend, khong phai chuoi UI
+  ) {
+    return t('notifications:page.titles.holidayAnnounced');
+  }
+
   return notification.title || '';
 }
 
@@ -234,6 +242,20 @@ export function getNotificationVisualConfig(notification: AppNotification, t?: (
       linkUrl: '/documents',
       targetName: t ? t('notifications:page.targets.document') : 'Tài liệu', // i18n-lint-ignore: fallback mirror dung key i18n that
       targetKey: 'document',
+    };
+  }
+
+  // 7. Công bố ngày nghỉ lễ công ty (bổ sung 17/09/2026) - Cam (Amber), mirror màu chấm HOLIDAY
+  // trên Lịch công ty (CalendarPage.tsx). Vẫn thuộc targetKey 'system' (không mở rộng union type/
+  // bộ lọc riêng ở NotificationsPage.tsx - thông báo này rơi vào nhánh lọc "Hệ thống" mặc định).
+  if (type === 'calendar_event.created' || title.includes('thông báo ngày nghỉ lễ')) { // i18n-lint-ignore: khop text backend, khong phai chuoi UI
+    return {
+      icon: <CalendarIcon className="h-4 w-4" />,
+      bgColor: 'bg-amber-100 text-amber-700 ring-1 ring-amber-600/20',
+      textColor: 'text-amber-700',
+      linkUrl: null,
+      targetName: t ? t('notifications:page.targets.system') : 'Hệ thống', // i18n-lint-ignore: fallback mirror dung key i18n that
+      targetKey: 'system',
     };
   }
 

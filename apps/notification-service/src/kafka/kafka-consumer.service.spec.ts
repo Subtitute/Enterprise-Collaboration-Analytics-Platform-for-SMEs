@@ -6,6 +6,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 // 28/07/2026: mock moi KafkaProducerService - can inject vao constructor tu khi bo sung tinh
 // nang day DLQ (xem cac test moi ben duoi).
 import { KafkaProducerService } from './kafka-producer.service';
+import { OrgMembersService } from '../org-members/org-members.service';
 
 /**
  * Unit test cho diem review 21/07/2026 (Technical_Spec.md muc 14 - "Kafka consumer chua co
@@ -30,15 +31,22 @@ describe('KafkaConsumerService (Notification Service)', () => {
   let service: KafkaConsumerService;
   let notificationsServiceMock: { createFromEvent: jest.Mock };
   let kafkaProducerMock: { publish: jest.Mock };
+  let orgMembersServiceMock: { markActive: jest.Mock; markInactive: jest.Mock; listActiveUserIds: jest.Mock };
 
   beforeEach(() => {
     notificationsServiceMock = { createFromEvent: jest.fn().mockResolvedValue({ id: 'notif-1' }) };
     kafkaProducerMock = { publish: jest.fn().mockResolvedValue(undefined) };
+    orgMembersServiceMock = {
+      markActive: jest.fn().mockResolvedValue(undefined),
+      markInactive: jest.fn().mockResolvedValue(undefined),
+      listActiveUserIds: jest.fn().mockResolvedValue([]),
+    };
     const configServiceMock = { get: jest.fn() } as unknown as ConfigService;
     service = new KafkaConsumerService(
       configServiceMock,
       notificationsServiceMock as unknown as NotificationsService,
       kafkaProducerMock as unknown as KafkaProducerService,
+      orgMembersServiceMock as unknown as OrgMembersService,
     );
   });
 
@@ -92,6 +100,111 @@ describe('KafkaConsumerService (Notification Service)', () => {
       'evt-2',
       expect.objectContaining({ userId: 'user-1' }),
     );
+  });
+
+  // 17/09/2026: bo sung - syncOrgMembership() (read-model danh sach thanh vien active) +
+  // buildBroadcastNotificationTemplate() (thong bao toan to chuc, vd cong bo ngay nghi le).
+  describe('syncOrgMembership + fan-out thong bao toan to chuc (bo sung 17/09/2026)', () => {
+    it('USER_REGISTERED: ghi nhan thanh vien active, KHONG sinh notification (van la eventType khong sinh thong bao)', async () => {
+      const event = {
+        eventId: 'evt-reg-1',
+        eventType: EVENT_TYPES.USER_REGISTERED,
+        occurredAt: '2026-09-17T09:00:00.000Z',
+        organizationId: 'org-1',
+        producer: 'iam-service',
+        payload: { userId: 'user-1', email: 'a@demo-sme.vn', departmentId: null },
+      };
+
+      await expect(service['handleMessage'](makePayload(JSON.stringify(event), 'iam.events'))).resolves.toBeUndefined();
+
+      expect(orgMembersServiceMock.markActive).toHaveBeenCalledWith('org-1', 'user-1');
+      expect(notificationsServiceMock.createFromEvent).not.toHaveBeenCalled();
+    });
+
+    it('USER_DEACTIVATED: danh dau thanh vien khong con active', async () => {
+      const event = {
+        eventId: 'evt-deact-1',
+        eventType: EVENT_TYPES.USER_DEACTIVATED,
+        occurredAt: '2026-09-17T09:00:00.000Z',
+        organizationId: 'org-1',
+        producer: 'iam-service',
+        payload: { userId: 'user-1', actorId: 'admin-1' },
+      };
+
+      await service['handleMessage'](makePayload(JSON.stringify(event), 'iam.events'));
+
+      expect(orgMembersServiceMock.markInactive).toHaveBeenCalledWith('org-1', 'user-1');
+    });
+
+    it('CALENDAR_EVENT_CREATED (type=HOLIDAY): fan-out 1 notification cho MOI thanh vien active, dung chung eventId', async () => {
+      orgMembersServiceMock.listActiveUserIds.mockResolvedValue(['user-1', 'user-2', 'user-3']);
+      const event = {
+        eventId: 'evt-holiday-1',
+        eventType: EVENT_TYPES.CALENDAR_EVENT_CREATED,
+        occurredAt: '2026-09-17T09:00:00.000Z',
+        organizationId: 'org-1',
+        producer: 'hrm-service',
+        payload: {
+          calendarEventId: 'cal-1',
+          title: 'Tet Nguyen Dan',
+          type: 'HOLIDAY',
+          startDate: '2027-02-05',
+          endDate: '2027-02-09',
+          actorId: 'admin-1',
+        },
+      };
+
+      await service['handleMessage'](makePayload(JSON.stringify(event), 'hrm.events'));
+
+      expect(orgMembersServiceMock.listActiveUserIds).toHaveBeenCalledWith('org-1');
+      expect(notificationsServiceMock.createFromEvent).toHaveBeenCalledTimes(3);
+      for (const uid of ['user-1', 'user-2', 'user-3']) {
+        expect(notificationsServiceMock.createFromEvent).toHaveBeenCalledWith(
+          'org-1',
+          'evt-holiday-1',
+          expect.objectContaining({ userId: uid, type: EVENT_TYPES.CALENDAR_EVENT_CREATED }),
+        );
+      }
+    });
+
+    it('CALENDAR_EVENT_CREATED (type=EVENT, khong phai HOLIDAY): KHONG fan-out, khong sinh notification nao', async () => {
+      const event = {
+        eventId: 'evt-cal-event-1',
+        eventType: EVENT_TYPES.CALENDAR_EVENT_CREATED,
+        occurredAt: '2026-09-17T09:00:00.000Z',
+        organizationId: 'org-1',
+        producer: 'hrm-service',
+        payload: {
+          calendarEventId: 'cal-2',
+          title: 'Hop toan cong ty',
+          type: 'EVENT',
+          startDate: '2027-03-01',
+          endDate: '2027-03-01',
+          actorId: 'admin-1',
+        },
+      };
+
+      await service['handleMessage'](makePayload(JSON.stringify(event), 'hrm.events'));
+
+      expect(orgMembersServiceMock.listActiveUserIds).not.toHaveBeenCalled();
+      expect(notificationsServiceMock.createFromEvent).not.toHaveBeenCalled();
+    });
+
+    it('RETHROW khi syncOrgMembership loi TAM THOI (vd Mongo down) - mirror hanh vi loi cua createFromEvent', async () => {
+      orgMembersServiceMock.markActive.mockRejectedValue(new Error('Mongo connection timeout'));
+      const event = {
+        eventId: 'evt-reg-2',
+        eventType: EVENT_TYPES.USER_REGISTERED,
+        occurredAt: '2026-09-17T09:00:00.000Z',
+        organizationId: 'org-1',
+        producer: 'iam-service',
+        payload: { userId: 'user-1', email: 'a@demo-sme.vn', departmentId: null },
+      };
+
+      await expect(
+        service['handleMessage'](makePayload(JSON.stringify(event), 'iam.events')),
+      ).rejects.toThrow('Mongo connection timeout');
+    });
   });
 
   it('RETHROW loi TAM THOI tu NotificationsService.createFromEvent (vd Mongo down) de kafkajs khong commit offset', async () => {

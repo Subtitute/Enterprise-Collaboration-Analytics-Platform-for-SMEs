@@ -20,9 +20,13 @@ export type NotificationDocument = HydratedDocument<Notification>;
 })
 export class Notification {
   /**
-   * eventId cua DomainEvent goc (Technical_Spec.md muc 4.3). Unique index (khai bao o duoi) de
-   * chong trung khi OutboxPublisherJob phia producer publish lai cung 1 su kien sau khi worker
-   * crash giua luc publish (gioi han da biet - Technical_Spec.md muc 4.1, muc 3.5).
+   * eventId cua DomainEvent goc (Technical_Spec.md muc 4.3). Unique index HOP (eventId, userId,
+   * khai bao o duoi) de chong trung khi OutboxPublisherJob phia producer publish lai cung 1 su
+   * kien sau khi worker crash giua luc publish (gioi han da biet - Technical_Spec.md muc 4.1, muc
+   * 3.5) - VAN cho phep NHIEU document cung eventId khi 1 su kien can THONG BAO CHO NHIEU NGUOI
+   * (vd cong bo ngay nghi le toan to chuc, xem buildBroadcastNotificationTemplate() +
+   * KafkaConsumerService.handleMessage()); truoc 17/09/2026 index nay la {eventId:1} DON, chi cho
+   * phep DUY NHAT 1 document/eventId - khong dung duoc cho truong hop fan-out nhieu nguoi nhan.
    */
   @Prop({ required: true })
   eventId: string;
@@ -61,5 +65,6 @@ export const NotificationSchema = SchemaFactory.createForClass(Notification);
 // sap xep moi nhat truoc" - Technical_Spec.md muc 5.
 NotificationSchema.index({ organizationId: 1, userId: 1, isRead: 1, createdAt: -1 });
 
-// Unique index chong trung theo eventId - Technical_Spec.md muc 3.5, muc 4.1.
-NotificationSchema.index({ eventId: 1 }, { unique: true });
+// Unique index chong trung theo CAP (eventId, userId) - Technical_Spec.md muc 3.5, muc 4.1. Xem
+// chu thich chi tiet tai field `eventId` o tren ve ly do doi tu {eventId:1} don sang hop (17/09/2026).
+NotificationSchema.index({ eventId: 1, userId: 1 }, { unique: true });

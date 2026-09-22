@@ -150,6 +150,7 @@
       "HOLIDAY": "Holiday",
       "EVENT": "Event"
     },
+    "holidayHint": "All employees will be unable to check in on this date range and will receive a notification.",
     "titleLabel": "Title",
     "titlePlaceholder": "e.g. Lunar New Year break",
     "titleRequiredError": "Please enter a title",

@@ -135,6 +135,29 @@ describe('CalendarEventsService', () => {
     });
   });
 
+  describe('findHolidayForDate (bo sung 17/09/2026 - chan cham cong vao ngay nghi le)', () => {
+    it('tra ve muc lich HOLIDAY khop khoang ngay, loc dung type/organizationId', async () => {
+      const calendarEventRepoMock = { findOne: jest.fn().mockResolvedValue(existingEvent()) };
+      const { service } = createService({ calendarEventRepoMock });
+
+      const result = await service.findHolidayForDate(organizationId, '2026-02-16');
+
+      expect(result).toEqual(existingEvent());
+      const callArg = calendarEventRepoMock.findOne.mock.calls[0][0];
+      expect(callArg.where.organizationId).toBe(organizationId);
+      expect(callArg.where.type).toBe(CalendarEventType.HOLIDAY);
+    });
+
+    it('tra ve null khi khong co ngay nghi le nao khop', async () => {
+      const calendarEventRepoMock = { findOne: jest.fn().mockResolvedValue(null) };
+      const { service } = createService({ calendarEventRepoMock });
+
+      const result = await service.findHolidayForDate(organizationId, '2026-05-01');
+
+      expect(result).toBeNull();
+    });
+  });
+
   describe('update', () => {
     it('cap nhat thanh cong cac field duoc truyen, giu nguyen field khong truyen', async () => {
       const existing = existingEvent();

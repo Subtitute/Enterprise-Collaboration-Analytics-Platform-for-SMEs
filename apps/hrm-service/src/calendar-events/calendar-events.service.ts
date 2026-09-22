@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
-import { CalendarEventCreatedPayload, CalendarEventDeletedPayload, ERROR_CODES, EVENT_TYPES } from '@app/common-dto';
+import { CalendarEventCreatedPayload, CalendarEventDeletedPayload, CalendarEventType, ERROR_CODES, EVENT_TYPES } from '@app/common-dto';
 import { CalendarEvent } from '../entities/calendar-event.entity';
 import { OutboxService } from '../outbox/outbox.service';
 import { CreateCalendarEventDto } from './dto/create-calendar-event.dto';
@@ -78,6 +78,22 @@ export class CalendarEventsService {
     if (query.endDate) where.startDate = LessThanOrEqual(query.endDate);
 
     return this.calendarEventRepo.find({ where, order: { startDate: 'ASC' } });
+  }
+
+  /**
+   * 17/09/2026: tra ve muc lich HOLIDAY dang "hieu luc" tai 1 ngay cu the (startDate <= dateStr <=
+   * endDate), hoac null neu khong co - dung boi AttendanceService.checkIn() de chan cham cong vao
+   * ngay nghi le cong ty (Org Admin khai bao qua Lich cong ty, xem chu thich tai attendance.service.ts).
+   */
+  async findHolidayForDate(organizationId: string, dateStr: string): Promise<CalendarEvent | null> {
+    return this.calendarEventRepo.findOne({
+      where: {
+        organizationId,
+        type: CalendarEventType.HOLIDAY,
+        startDate: LessThanOrEqual(dateStr),
+        endDate: MoreThanOrEqual(dateStr),
+      },
+    });
   }
 
   async update(organizationId: string, id: string, dto: UpdateCalendarEventDto): Promise<CalendarEvent> {

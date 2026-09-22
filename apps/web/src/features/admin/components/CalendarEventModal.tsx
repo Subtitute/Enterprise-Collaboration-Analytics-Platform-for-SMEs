@@ -105,6 +105,14 @@ export function CalendarEventModal({
           ))}
         </div>
 
+        {/* 17/09/2026: HOLIDAY gio co anh huong THAT (chan cham cong toan to chuc + gui thong bao),
+            khong con thuan tuy trang tri nhu truoc - canh bao ro cho Org Admin biet truoc khi luu. */}
+        {type === 'HOLIDAY' && (
+          <p className="rounded-lg bg-amber-50 border border-amber-200/60 px-3 py-2 text-xs text-amber-800">
+            {t('admin:calendarEventModal.holidayHint')}
+          </p>
+        )}
+
         <FormField label={t('admin:calendarEventModal.titleLabel')} htmlFor="calendar-event-title" error={error} required>
           <Input
             id="calendar-event-title"

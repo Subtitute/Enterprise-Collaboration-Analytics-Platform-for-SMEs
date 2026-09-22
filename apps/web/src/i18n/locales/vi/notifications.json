@@ -37,7 +37,8 @@
       "documentShared": "Tài liệu đã được chia sẻ với bạn",
       "dealWon": "Deal đã chốt thành công",
       "leaveApproved": "Yêu cầu nghỉ phép đã được duyệt",
-      "leaveRejected": "Yêu cầu nghỉ phép đã bị từ chối"
+      "leaveRejected": "Yêu cầu nghỉ phép đã bị từ chối",
+      "holidayAnnounced": "Thông báo ngày nghỉ lễ công ty"
     }
   },
   "bell": {

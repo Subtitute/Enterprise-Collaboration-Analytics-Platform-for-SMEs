@@ -14,6 +14,7 @@ import {
 import { Attendance } from '../entities/attendance.entity';
 import { OutboxService } from '../outbox/outbox.service';
 import { MinioService } from '../minio/minio.service';
+import { CalendarEventsService } from '../calendar-events/calendar-events.service';
 import { AttendanceQueryDto } from './dto/attendance-query.dto';
 import { toGmt7DateString } from './attendance-date.util';
 import { buildAttendancePhotoObjectKey } from './object-key.util';
@@ -32,6 +33,7 @@ export class AttendanceService {
     private readonly outboxService: OutboxService,
     private readonly minioService: MinioService,
     private readonly configService: ConfigService,
+    private readonly calendarEventsService: CalendarEventsService,
   ) {}
 
   /**
@@ -68,6 +70,19 @@ export class AttendanceService {
   ): Promise<Attendance> {
     verifyPhotoContentMatchesMimeType(file);
     const workDate = toGmt7DateString(new Date());
+
+    // 17/09/2026: chan cham cong vao ngay nghi le cong ty (Org Admin khai bao qua Lich cong ty,
+    // CalendarEvent.type=HOLIDAY) - kiem tra TRUOC "da checkin chua" vi day la luat cap to chuc,
+    // doc lap voi trang thai rieng cua tung nguoi dung. Chi chan checkIn() (tao ban ghi MOI cho
+    // ngay hom nay) - KHONG chan checkOut() vi ca lam viec vat qua nua dem (checkin toi hom truoc,
+    // checkout sang hom sau roi vao dung ngay le) van phai hop le, xem checkOut() ben duoi.
+    const holiday = await this.calendarEventsService.findHolidayForDate(organizationId, workDate);
+    if (holiday) {
+      throw new BadRequestException({
+        message: `Hôm nay là ngày nghỉ lễ công ty "${holiday.title}", bạn không thể chấm công`,
+        errorCode: ERROR_CODES.ATTENDANCE_BLOCKED_HOLIDAY,
+      });
+    }
 
     const existing = await this.attendanceRepo.findOne({ where: { organizationId, userId, workDate } });
     if (existing) {

@@ -37,7 +37,8 @@
       "documentShared": "ドキュメントが共有されました",
       "dealWon": "案件の受注が完了しました",
       "leaveApproved": "休暇申請が承認されました",
-      "leaveRejected": "休暇申請が却下されました"
+      "leaveRejected": "休暇申請が却下されました",
+      "holidayAnnounced": "会社の休日のお知らせ"
     }
   },
   "bell": {

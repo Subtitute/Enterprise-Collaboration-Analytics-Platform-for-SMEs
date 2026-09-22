@@ -1,5 +1,5 @@
 import { DealStage, DomainEvent, EVENT_TYPES } from '@app/common-dto';
-import { buildNotificationFromEvent } from './event-notification-builder';
+import { buildBroadcastNotificationTemplate, buildNotificationFromEvent } from './event-notification-builder';
 
 /**
  * Unit test cho ham anh xa event -> notification - Technical_Spec.md muc 10
@@ -228,5 +228,72 @@ describe('buildNotificationFromEvent', () => {
     };
 
     expect(buildNotificationFromEvent(event)).toBeNull();
+  });
+});
+
+// 17/09/2026: bo sung - thong bao toan to chuc (vd cong bo ngay nghi le cong ty).
+describe('buildBroadcastNotificationTemplate', () => {
+  it('sinh mau thong bao (thieu userId) khi calendar_event.created co type=HOLIDAY', () => {
+    const event: DomainEvent = {
+      eventId: 'evt-holiday-1',
+      eventType: EVENT_TYPES.CALENDAR_EVENT_CREATED,
+      occurredAt: '2026-09-17T09:00:00.000Z',
+      organizationId: 'org-1',
+      producer: 'hrm-service',
+      payload: {
+        calendarEventId: 'cal-1',
+        title: 'Tet Nguyen Dan',
+        type: 'HOLIDAY',
+        startDate: '2027-02-05',
+        endDate: '2027-02-09',
+        actorId: 'admin-1',
+      },
+    };
+
+    const template = buildBroadcastNotificationTemplate(event);
+
+    expect(template).not.toBeNull();
+    expect(template).not.toHaveProperty('userId');
+    expect(template?.type).toBe(EVENT_TYPES.CALENDAR_EVENT_CREATED);
+    expect(template?.message).toContain('Tet Nguyen Dan');
+    expect(template?.payload).toEqual({
+      calendarEventId: 'cal-1',
+      startDate: '2027-02-05',
+      endDate: '2027-02-09',
+      actorId: 'admin-1',
+    });
+  });
+
+  it('tra ve null khi calendar_event.created co type=EVENT (khong phai HOLIDAY)', () => {
+    const event: DomainEvent = {
+      eventId: 'evt-event-1',
+      eventType: EVENT_TYPES.CALENDAR_EVENT_CREATED,
+      occurredAt: '2026-09-17T09:00:00.000Z',
+      organizationId: 'org-1',
+      producer: 'hrm-service',
+      payload: {
+        calendarEventId: 'cal-2',
+        title: 'Hop toan cong ty',
+        type: 'EVENT',
+        startDate: '2027-03-01',
+        endDate: '2027-03-01',
+        actorId: 'admin-1',
+      },
+    };
+
+    expect(buildBroadcastNotificationTemplate(event)).toBeNull();
+  });
+
+  it('tra ve null cho cac eventType khac (khong can thong bao toan to chuc)', () => {
+    const event: DomainEvent = {
+      eventId: 'evt-task-1',
+      eventType: EVENT_TYPES.TASK_ASSIGNED,
+      occurredAt: '2026-09-17T09:00:00.000Z',
+      organizationId: 'org-1',
+      producer: 'project-task-service',
+      payload: { taskId: 'task-1', projectId: 'project-1', assigneeId: 'user-1', actorId: 'user-2' },
+    };
+
+    expect(buildBroadcastNotificationTemplate(event)).toBeNull();
   });
 });

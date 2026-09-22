@@ -1,12 +1,23 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Consumer, EachMessagePayload, Kafka } from 'kafkajs';
-import { DeadLetterEnvelope, DomainEvent, KAFKA_CONSUMER_GROUPS, KAFKA_TOPICS } from '@app/common-dto';
+import {
+  DeadLetterEnvelope,
+  DomainEvent,
+  EVENT_TYPES,
+  KAFKA_CONSUMER_GROUPS,
+  KAFKA_TOPICS,
+  UserDeactivatedPayload,
+  UserRegisteredPayload,
+} from '@app/common-dto';
 import { NotificationsService } from '../notifications/notifications.service';
-import { buildNotificationFromEvent } from './event-notification-builder';
+import { buildBroadcastNotificationTemplate, buildNotificationFromEvent } from './event-notification-builder';
 // 28/07/2026: bo sung KafkaProducerService de day message loi vao KAFKA_TOPICS.DLQ - xem
 // publishToDlq() ben duoi (Technical_Spec.md muc 14 - nang cap Dead Letter Queue).
 import { KafkaProducerService } from './kafka-producer.service';
+// 17/09/2026: bo sung OrgMembersService - duy tri read-model danh sach thanh vien active + tra
+// cuu khi fan-out thong bao toan to chuc (xem syncOrgMembership()/handleMessage() ben duoi).
+import { OrgMembersService } from '../org-members/org-members.service';
 
 /**
  * Kafka CONSUMER cho Notification Service (khac IAM la producer) - Technical_Spec.md muc 3.5,
@@ -47,6 +58,8 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     private readonly notificationsService: NotificationsService,
     // 28/07/2026: xem import o tren.
     private readonly kafkaProducer: KafkaProducerService,
+    // 17/09/2026: xem import o tren.
+    private readonly orgMembersService: OrgMembersService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -208,14 +221,34 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    const draft = buildNotificationFromEvent(event);
-    if (!draft) {
-      this.logger.debug(`Bo qua eventType khong sinh thong bao: ${event.eventType} (topic=${topic})`);
-      return;
-    }
-
     try {
-      await this.notificationsService.createFromEvent(event.organizationId, event.eventId, draft);
+      // 17/09/2026: duy tri read-model danh sach thanh vien active TRUOC (can cho fan-out ben
+      // duoi) - dat trong CUNG try/catch voi buoc tao notification ben duoi de tai su dung nguyen
+      // co che retry/DLQ da co san (Mongo loi tam thoi o buoc nay cung phai duoc redeliver giong
+      // het loi o buoc tao notification, khong can 1 bo dem retry rieng).
+      await this.syncOrgMembership(event);
+
+      // 17/09/2026: mot so event (vd cong bo ngay nghi le) can thong bao cho TOAN BO thanh vien
+      // to chuc thay vi 1 nguoi nhan duy nhat - xem buildBroadcastNotificationTemplate(). Uu tien
+      // kiem tra nhanh nay TRUOC nhanh buildNotificationFromEvent() (1-nguoi-nhan) ben duoi.
+      const broadcastTemplate = buildBroadcastNotificationTemplate(event);
+      if (broadcastTemplate) {
+        const memberUserIds = await this.orgMembersService.listActiveUserIds(event.organizationId);
+        for (const memberUserId of memberUserIds) {
+          await this.notificationsService.createFromEvent(event.organizationId, event.eventId, {
+            ...broadcastTemplate,
+            userId: memberUserId,
+          });
+        }
+      } else {
+        const draft = buildNotificationFromEvent(event);
+        if (!draft) {
+          this.logger.debug(`Bo qua eventType khong sinh thong bao: ${event.eventType} (topic=${topic})`);
+        } else {
+          await this.notificationsService.createFromEvent(event.organizationId, event.eventId, draft);
+        }
+      }
+
       // 28/07/2026: xu ly thanh cong -> xoa dem retry (neu CO tu cac lan that bai truoc do cua
       // CUNG eventId nay) de khong ro ri bo nho Map theo thoi gian chay cua service.
       this.retryAttempts.delete(event.eventId);
@@ -257,6 +290,25 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
         `Loi khi tao notification tu event ${event.eventId} (type=${event.eventType}), lan thu ${attempts}/${this.maxRetryAttempts}: ${(err as Error).message}`,
       );
       throw err;
+    }
+  }
+
+  /**
+   * 17/09/2026: duy tri 1 read-model cuc bo (collection `org_members` trong chinh Mongo cua
+   * Notification Service) ve danh sach thanh vien active cua tung to chuc - can cho fan-out thong
+   * bao toan to chuc (vd cong bo ngay nghi le, xem buildBroadcastNotificationTemplate()). Mirror
+   * dung tinh than UserDepartmentSyncService (apps/iam-service) da lam cho Analytics Service: moi
+   * service tu xay read-model rieng tu event Kafka da co san thay vi goi HTTP noi bo xuyen service
+   * (Technical_Spec.md muc 4 - "database-per-service", chua co ha tang goi HTTP noi bo trong repo).
+   * Cac eventType khac (khong lien quan thanh vien) khong lam gi ca (no-op).
+   */
+  private async syncOrgMembership(event: DomainEvent): Promise<void> {
+    if (event.eventType === EVENT_TYPES.USER_REGISTERED) {
+      const payload = event.payload as unknown as UserRegisteredPayload;
+      if (payload?.userId) await this.orgMembersService.markActive(event.organizationId, payload.userId);
+    } else if (event.eventType === EVENT_TYPES.USER_DEACTIVATED) {
+      const payload = event.payload as unknown as UserDeactivatedPayload;
+      if (payload?.userId) await this.orgMembersService.markInactive(event.organizationId, payload.userId);
     }
   }
 

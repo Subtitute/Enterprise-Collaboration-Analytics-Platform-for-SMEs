@@ -1,4 +1,5 @@
 import {
+  CalendarEventCreatedPayload,
   DealStage,
   DealStageChangedPayload,
   DocumentSharedPayload,
@@ -110,6 +111,41 @@ export function buildNotificationFromEvent(event: DomainEvent): NotificationDraf
         message: `Yêu cầu nghỉ phép của bạn đã bị từ chối (mã yêu cầu: ${payload.leaveRequestId}).`,
         payload: {
           leaveRequestId: payload.leaveRequestId,
+          actorId: payload.actorId,
+        },
+      };
+    }
+
+    default:
+      return null;
+  }
+}
+
+/**
+ * 17/09/2026: mot so event can THONG BAO CHO TOAN BO thanh vien to chuc (khac moi case tren, luon
+ * co DUNG 1 nguoi nhan xac dinh tu payload) - vd Org Admin cong bo 1 ngay nghi le cong ty. Ham nay
+ * tra ve 1 "mau" (thieu san `userId`) - KafkaConsumerService.handleMessage() se dien `userId` cho
+ * TUNG thanh vien active (tra cuu qua OrgMembersService) khi fan-out, mirror pattern
+ * buildNotificationFromEvent() (1 ham thuan, khong goi DB/gateway) nhung tach rieng vi hinh dang
+ * ket qua khac han (thieu userId, co the sinh ra NHIEU notification tu 1 event thay vi toi da 1).
+ *
+ * CHI xu ly CalendarEventType.HOLIDAY - loai EVENT (hop/su kien thong thuong) khong dang de thong
+ * bao toan to chuc, chi can hien tren Lich cong ty (Org Admin) la du (dung `string` cho `type`
+ * giong CalendarEventCreatedPayload, tranh vong lap phu thuoc - xem chu thich tai payload do).
+ */
+export function buildBroadcastNotificationTemplate(event: DomainEvent): Omit<NotificationDraft, 'userId'> | null {
+  switch (event.eventType) {
+    case EVENT_TYPES.CALENDAR_EVENT_CREATED: {
+      const payload = event.payload as unknown as CalendarEventCreatedPayload;
+      if (payload?.type !== 'HOLIDAY') return null;
+      return {
+        type: EVENT_TYPES.CALENDAR_EVENT_CREATED,
+        title: 'Thông báo ngày nghỉ lễ công ty',
+        message: `Tổ chức của bạn vừa công bố ngày nghỉ lễ "${payload.title}" (từ ${payload.startDate} đến ${payload.endDate}). Bạn sẽ không thể chấm công vào (các) ngày này.`,
+        payload: {
+          calendarEventId: payload.calendarEventId,
+          startDate: payload.startDate,
+          endDate: payload.endDate,
           actorId: payload.actorId,
         },
       };

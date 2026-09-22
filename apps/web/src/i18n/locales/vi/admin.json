@@ -150,6 +150,7 @@
       "HOLIDAY": "Ngày lễ",
       "EVENT": "Sự kiện"
     },
+    "holidayHint": "Toàn bộ nhân viên sẽ không thể chấm công vào (các) ngày này và sẽ nhận được thông báo.",
     "titleLabel": "Tiêu đề",
     "titlePlaceholder": "Ví dụ: Nghỉ Tết Nguyên Đán",
     "titleRequiredError": "Vui lòng nhập tiêu đề",

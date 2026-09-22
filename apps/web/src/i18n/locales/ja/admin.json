@@ -150,6 +150,7 @@
       "HOLIDAY": "祝日",
       "EVENT": "イベント"
     },
+    "holidayHint": "全従業員がこの期間に打刻できなくなり、通知が送信されます。",
     "titleLabel": "タイトル",
     "titlePlaceholder": "例: 旧正月休暇",
     "titleRequiredError": "タイトルを入力してください",

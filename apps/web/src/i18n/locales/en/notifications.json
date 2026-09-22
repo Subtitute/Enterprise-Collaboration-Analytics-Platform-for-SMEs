@@ -37,7 +37,8 @@
       "documentShared": "A document has been shared with you",
       "dealWon": "Deal successfully closed",
       "leaveApproved": "Leave request approved",
-      "leaveRejected": "Leave request rejected"
+      "leaveRejected": "Leave request rejected",
+      "holidayAnnounced": "Company holiday announcement"
     }
   },
   "bell": {

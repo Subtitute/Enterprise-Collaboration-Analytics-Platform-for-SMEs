@@ -43,6 +43,7 @@ describe('AttendanceService', () => {
     attendanceRepoMock: { findOne: jest.Mock };
     managerMock?: { create: jest.Mock; save: jest.Mock };
     configServiceMock?: { get: jest.Mock };
+    calendarEventsServiceMock?: { findHolidayForDate: jest.Mock };
   }) {
     // 22/08/2026: them findOne mac dinh cho managerMock (uy quyen lai attendanceRepoMock.findOne())
     // - can cho checkOut() sau khi sua rieng ra soat (doc lai voi khoa pessimistic_write BEN TRONG
@@ -63,6 +64,11 @@ describe('AttendanceService', () => {
       presignedGetObject: jest.fn(),
     };
     const configServiceMock = opts.configServiceMock ?? createConfigServiceMock();
+    // 17/09/2026: mac dinh khong co ngay nghi le nao (khong chan checkIn()) - giu nguyen hanh vi
+    // cu cho moi test hien co chua quan tam toi tinh nang nay, mirror cach permissions mac dinh
+    // duoc them vao cac test findAll/findById o project-task-service/crm-service truoc do.
+    const calendarEventsServiceMock =
+      opts.calendarEventsServiceMock ?? { findHolidayForDate: jest.fn().mockResolvedValue(null) };
 
     const service = new AttendanceService(
       dataSourceMock as any,
@@ -70,9 +76,10 @@ describe('AttendanceService', () => {
       outboxServiceMock as any,
       minioServiceMock as any,
       configServiceMock as any,
+      calendarEventsServiceMock as any,
     );
 
-    return { service, dataSourceMock, managerMock, outboxServiceMock, minioServiceMock, configServiceMock };
+    return { service, dataSourceMock, managerMock, outboxServiceMock, minioServiceMock, configServiceMock, calendarEventsServiceMock };
   }
 
   describe('checkIn', () => {
@@ -144,6 +151,35 @@ describe('AttendanceService', () => {
       await expect(service.checkIn(organizationId, userId, validJpegFile())).rejects.toThrow('connection lost');
       // Khong fetch lai ban ghi khi khong phai truong hop 23505.
       expect(attendanceRepoMock.findOne).toHaveBeenCalledTimes(1);
+    });
+
+    // 17/09/2026: chan cham cong vao ngay nghi le cong ty.
+    it('tu choi khi hom nay la ngay nghi le cong ty - khong upload anh, khong tra cuu/mo transaction', async () => {
+      const attendanceRepoMock = { findOne: jest.fn() };
+      const calendarEventsServiceMock = {
+        findHolidayForDate: jest.fn().mockResolvedValue({ id: 'cal-1', title: 'Tet Nguyen Dan' }),
+      };
+      const { service, dataSourceMock, minioServiceMock } = createService({
+        attendanceRepoMock,
+        calendarEventsServiceMock,
+      });
+
+      await expect(service.checkIn(organizationId, userId, validJpegFile())).rejects.toMatchObject({
+        response: expect.objectContaining({ errorCode: ERROR_CODES.ATTENDANCE_BLOCKED_HOLIDAY }),
+      });
+      expect(attendanceRepoMock.findOne).not.toHaveBeenCalled();
+      expect(minioServiceMock.putObject).not.toHaveBeenCalled();
+      expect(dataSourceMock.transaction).not.toHaveBeenCalled();
+    });
+
+    it('cho phep checkin binh thuong khi hom nay khong phai ngay nghi le', async () => {
+      const attendanceRepoMock = { findOne: jest.fn().mockResolvedValue(null) };
+      const calendarEventsServiceMock = { findHolidayForDate: jest.fn().mockResolvedValue(null) };
+      const { service } = createService({ attendanceRepoMock, calendarEventsServiceMock });
+
+      const result = await service.checkIn(organizationId, userId, validJpegFile());
+
+      expect(result.organizationId).toBe(organizationId);
     });
   });
 

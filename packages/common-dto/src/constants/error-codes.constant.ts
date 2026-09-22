@@ -102,6 +102,9 @@ export const ERROR_CODES = {
   ATTENDANCE_PHOTO_MISSING: 'ATTENDANCE_PHOTO_MISSING',
   INVALID_COORDINATE: 'INVALID_COORDINATE',
   PHOTO_CONTENT_MISMATCH: 'PHOTO_CONTENT_MISMATCH',
+  // 17/09/2026: chan cham cong vao ngay nghi le cong ty (CalendarEvent.type=HOLIDAY) - xem
+  // AttendanceService.checkIn(), CalendarEventsService.findHolidayForDate().
+  ATTENDANCE_BLOCKED_HOLIDAY: 'ATTENDANCE_BLOCKED_HOLIDAY',
 
   // ---- HRM-lite: lich cong ty (bo sung 15/09/2026) ----
   CALENDAR_EVENT_NOT_FOUND: 'CALENDAR_EVENT_NOT_FOUND',

@@ -1,0 +1,68 @@
+import { Model } from 'mongoose';
+import { OrgMembersService } from './org-members.service';
+import { OrgMemberDocument } from './schemas/org-member.schema';
+
+/**
+ * 17/09/2026: unit test cho OrgMembersService - read-model cuc bo danh sach thanh vien active
+ * (xem chu thich tai schemas/org-member.schema.ts), mirror pattern mock Model cua
+ * notifications.service.spec.ts.
+ */
+describe('OrgMembersService', () => {
+  let service: OrgMembersService;
+  let modelMock: { updateOne: jest.Mock; find: jest.Mock };
+
+  beforeEach(() => {
+    modelMock = {
+      updateOne: jest.fn().mockResolvedValue({ acknowledged: true }),
+      find: jest.fn(),
+    };
+    service = new OrgMembersService(modelMock as unknown as Model<OrgMemberDocument>);
+  });
+
+  describe('markActive', () => {
+    it('upsert isActive=true theo cap (organizationId, userId)', async () => {
+      await service.markActive('org-1', 'user-1');
+
+      expect(modelMock.updateOne).toHaveBeenCalledWith(
+        { organizationId: 'org-1', userId: 'user-1' },
+        { $set: { isActive: true } },
+        { upsert: true },
+      );
+    });
+  });
+
+  describe('markInactive', () => {
+    it('upsert isActive=false theo cap (organizationId, userId)', async () => {
+      await service.markInactive('org-1', 'user-1');
+
+      expect(modelMock.updateOne).toHaveBeenCalledWith(
+        { organizationId: 'org-1', userId: 'user-1' },
+        { $set: { isActive: false } },
+        { upsert: true },
+      );
+    });
+  });
+
+  describe('listActiveUserIds', () => {
+    it('tra ve danh sach userId, chi loc thanh vien active cua dung to chuc', async () => {
+      const selectMock = jest.fn().mockReturnValue({
+        lean: jest.fn().mockResolvedValue([{ userId: 'user-1' }, { userId: 'user-2' }]),
+      });
+      modelMock.find.mockReturnValue({ select: selectMock });
+
+      const result = await service.listActiveUserIds('org-1');
+
+      expect(modelMock.find).toHaveBeenCalledWith({ organizationId: 'org-1', isActive: true });
+      expect(result).toEqual(['user-1', 'user-2']);
+    });
+
+    it('tra ve mang rong khi khong co thanh vien active nao', async () => {
+      const selectMock = jest.fn().mockReturnValue({ lean: jest.fn().mockResolvedValue([]) });
+      modelMock.find.mockReturnValue({ select: selectMock });
+
+      const result = await service.listActiveUserIds('org-1');
+
+      expect(result).toEqual([]);
+    });
+  });
+});
