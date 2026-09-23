@@ -123,6 +123,21 @@
     "subtitle": "休暇申請を作成し、状況を確認できます。",
     "newRequestButton": "新規申請",
     "daysCount": "{{count}}日",
+    "balance": {
+      "cardTitle": "{{year}}年の有給休暇残日数",
+      "entitledLabel": "付与日数",
+      "usedLabel": "使用済み",
+      "remainingLabel": "残日数",
+      "seniorityNote": "勤続年数による加算 {{bonusDays}} 日を含む(ベトナム労働法:勤続{{yearsPerBonus}}年ごとに+1日)",
+      "editPolicyButton": "休暇ポリシーを設定",
+      "policyModalTitle": "休暇ポリシーの設定",
+      "baseDaysLabel": "年間基本付与日数",
+      "seniorityYearsLabel": "加算日数が増える勤続年数の間隔",
+      "saveButton": "保存",
+      "cancelButton": "キャンセル",
+      "policyUpdateSuccess": "休暇ポリシーを更新しました",
+      "policyUpdateError": "休暇ポリシーを更新できませんでした"
+    },
     "pending": {
       "cardTitle": "承認待ち（{{count}}件）",
       "reject": "却下",
@@ -222,7 +237,10 @@
       "rejectButton": "却下",
       "successSubmit": "打刻修正申請を送信しました",
       "successApprove": "打刻修正申請を承認しました",
-      "successReject": "打刻修正申請を却下しました"
+      "successReject": "打刻修正申請を却下しました",
+      "errorSubmit": "打刻修正申請を送信できませんでした",
+      "errorApprove": "打刻修正申請を承認できませんでした",
+      "errorReject": "打刻修正申請を却下できませんでした"
     },
     "overtime": {
       "registerButton": "残業申請 (OT)",
@@ -262,7 +280,10 @@
       "rejectButton": "残業を却下",
       "successSubmit": "残業申請を送信しました",
       "successApprove": "残業申請を承認しました",
-      "successReject": "残業申請を却下しました"
+      "successReject": "残業申請を却下しました",
+      "errorSubmit": "残業申請を送信できませんでした",
+      "errorApprove": "残業申請を承認できませんでした",
+      "errorReject": "残業申請を却下できませんでした"
     },
     "payroll": {
       "exportButton": "給与計算用CSV出力 (MISA/Fast)",

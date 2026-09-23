@@ -53,6 +53,9 @@ export const ERROR_CODES = {
   ROLE_NOT_FOUND: 'ROLE_NOT_FOUND',
   // 20/08/2026: co y KHONG gan ma cho loi "permission key khong hop le" (roles.service.ts) - ca
   // bien admin/dev hiem gap, roi ve message tieng Viet qua defaultValue cua i18next (xem plan).
+  // 22/09/2026: chan tu doi quyen cho DUNG vai tro ma nguoi goi dang giu (RBAC audit - "khong the
+  // tu nang quyen"). Xem RolesService.updateRolePermissions().
+  FORBIDDEN_SELF_ROLE_PERMISSION_CHANGE: 'FORBIDDEN_SELF_ROLE_PERMISSION_CHANGE',
 
   // ---- IAM: platform-admin (Super Admin, bo sung 16/09/2026) ----
   // Endpoint /platform-admin/* CHI danh cho Super Admin (quan tri nen tang, khong thuoc 1 to
@@ -70,6 +73,8 @@ export const ERROR_CODES = {
   PROJECT_NOT_FOUND: 'PROJECT_NOT_FOUND',
   PROJECT_ALREADY_COMPLETED: 'PROJECT_ALREADY_COMPLETED',
   PROJECT_ALREADY_ARCHIVED: 'PROJECT_ALREADY_ARCHIVED',
+  // 22/09/2026: ProjectMember (thanh vien du an that su, thay the localStorage o frontend).
+  PROJECT_MEMBER_IS_LEAD: 'PROJECT_MEMBER_IS_LEAD',
 
   // ---- Document ----
   MISSING_UPLOAD_FILE: 'MISSING_UPLOAD_FILE',
@@ -109,6 +114,16 @@ export const ERROR_CODES = {
   // ---- HRM-lite: lich cong ty (bo sung 15/09/2026) ----
   CALENDAR_EVENT_NOT_FOUND: 'CALENDAR_EVENT_NOT_FOUND',
   CALENDAR_EVENT_DATE_RANGE_INVALID: 'CALENDAR_EVENT_DATE_RANGE_INVALID',
+
+  // ---- HRM-lite: giai trinh/duyet cham cong va tang ca (bo sung 22/09/2026) ----
+  ATTENDANCE_ADJUSTMENT_NOT_FOUND: 'ATTENDANCE_ADJUSTMENT_NOT_FOUND',
+  ATTENDANCE_ADJUSTMENT_ALREADY_DECIDED: 'ATTENDANCE_ADJUSTMENT_ALREADY_DECIDED',
+  ATTENDANCE_ADJUSTMENT_TOO_OLD: 'ATTENDANCE_ADJUSTMENT_TOO_OLD',
+  ATTENDANCE_ADJUSTMENT_INVALID_RANGE: 'ATTENDANCE_ADJUSTMENT_INVALID_RANGE',
+  OVERTIME_REQUEST_NOT_FOUND: 'OVERTIME_REQUEST_NOT_FOUND',
+  OVERTIME_REQUEST_ALREADY_DECIDED: 'OVERTIME_REQUEST_ALREADY_DECIDED',
+  OVERTIME_REQUEST_INVALID_RANGE: 'OVERTIME_REQUEST_INVALID_RANGE',
+  OVERTIME_MONTHLY_CAP_EXCEEDED: 'OVERTIME_MONTHLY_CAP_EXCEEDED',
 
   // ---- CRM-lite ----
   CUSTOMER_NOT_FOUND_IN_ORG: 'CUSTOMER_NOT_FOUND_IN_ORG',

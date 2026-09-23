@@ -6,9 +6,11 @@ import { KafkaConsumerService } from './kafka-consumer.service';
 import { KafkaProducerService } from './kafka-producer.service';
 // 17/09/2026: dang ky OrgMembersModule - xem chu thich tai kafka-consumer.service.ts (syncOrgMembership()).
 import { OrgMembersModule } from '../org-members/org-members.module';
+// 23/09/2026: dang ky DepartmentManagersModule - xem chu thich tai kafka-consumer.service.ts (syncDepartmentManager()).
+import { DepartmentManagersModule } from '../department-managers/department-managers.module';
 
 @Module({
-  imports: [NotificationsModule, OrgMembersModule],
+  imports: [NotificationsModule, OrgMembersModule, DepartmentManagersModule],
   providers: [KafkaConsumerService, KafkaProducerService],
 })
 export class KafkaModule {}

@@ -7,7 +7,7 @@ import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { DownloadIcon, SearchIcon, ClockIcon, FileTextIcon } from '@/components/ui/Icons';
 import { useAuthStore } from '@/stores/auth.store';
 import { toast } from '@/stores/toast.store';
-import type { Attendance, User, Department } from '@/types';
+import type { Attendance, Department, OvertimeRequest, User } from '@/types';
 
 interface MonthlyTimesheetTableProps {
   records: Attendance[];
@@ -15,6 +15,10 @@ interface MonthlyTimesheetTableProps {
   departments: Department[];
   selectedMonth: string; // 'YYYY-MM' or 'all'
   today: string; // 'YYYY-MM-DD' GMT+7
+  /** 22/09/2026: OT DA DUYET (status=APPROVED) toan to chuc, khong loc thang - component tu loc
+   *  theo khoang ngay cua thang dang xet (xem summaries useMemo ben duoi). Thay the heuristic doan
+   *  "checkout sau 17:30" truoc day bang du lieu that (OvertimeRequestsService). */
+  approvedOvertime: OvertimeRequest[];
 }
 
 interface UserSummary {
@@ -85,6 +89,7 @@ export function MonthlyTimesheetTable({
   departments,
   selectedMonth,
   today,
+  approvedOvertime,
 }: MonthlyTimesheetTableProps) {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
@@ -124,6 +129,14 @@ export function MonthlyTimesheetTable({
       recordsByUser.set(r.userId, list);
     }
 
+    // 22/09/2026: gio OT THAT (da duyet) trong khoang ngay cua thang dang xet, cong don theo
+    // userId - thay heuristic doan "checkout sau 17:30" truoc day (xem OvertimeRequestsService).
+    const otHoursByUser = new Map<string, number>();
+    for (const ot of approvedOvertime) {
+      if (ot.workDate < firstDayOfMonth || ot.workDate > lastDayOfMonth) continue;
+      otHoursByUser.set(ot.userId, (otHoursByUser.get(ot.userId) ?? 0) + ot.estimatedHours);
+    }
+
     // Duyệt qua tất cả người dùng (hoặc những người có log)
     return users.map((user) => {
       const userRecords = recordsByUser.get(user.id) || [];
@@ -146,7 +159,7 @@ export function MonthlyTimesheetTable({
       let totalActualHours = 0;
       let lateCount = 0;
       let missingCheckOutCount = 0;
-      let otHours = 0;
+      const otHours = Math.round((otHoursByUser.get(user.id) ?? 0) * 10) / 10;
 
       // Tính toán trên từng log chấm công
       for (const rec of userRecords) {
@@ -177,13 +190,6 @@ export function MonthlyTimesheetTable({
               rawHours = Math.max(0, rawHours - 1);
             }
             totalActualHours += rawHours;
-
-            // 4. Quy tắc OT: Giờ làm sau mốc kết thúc ca quy định (17:30 GMT+7)
-            const { hour: outHour, minute: outMin } = getGmt7TimeParts(rec.checkOutAt);
-            if (outHour > 17 || (outHour === 17 && outMin > 30)) {
-              const otMin = (outHour - 17) * 60 + (outMin - 30);
-              otHours += otMin / 60;
-            }
           }
         }
       }
@@ -212,7 +218,7 @@ export function MonthlyTimesheetTable({
         isNewMember,
       };
     });
-  }, [records, users, deptMap, selectedMonth, today, t]);
+  }, [records, users, deptMap, selectedMonth, today, t, approvedOvertime]);
 
   // Bộ lọc theo phòng ban & tìm kiếm theo tên
   const filteredSummaries = useMemo(() => {
@@ -269,7 +275,10 @@ export function MonthlyTimesheetTable({
 
   const currentUser = useAuthStore((s) => s.user);
 
-  // Xuất file tương thích Payroll (Mock Header chuẩn MISA/Fast)
+  // 22/09/2026: cac cot actualDays/totalActualHours/lateCount/missingCheckOutCount/otHours deu la
+  // so lieu THAT (Attendance + OvertimeRequest da duyet tu server, xem summaries o tren) - header
+  // van mo phong dung khuon mau import MISA/Fast (chua doi chieu voi tai lieu import chinh thuc cua
+  // 2 phan mem nay, ghi nhan la gioi han da biet).
   const handleExportPayroll = () => {
     // Header chuẩn MISA / Fast HRM import template
     const headers = [

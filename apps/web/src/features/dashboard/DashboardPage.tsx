@@ -1,16 +1,18 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Select } from '@/components/ui/Input';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { Button } from '@/components/ui/Button';
-import { FolderKanbanIcon, AlertCircleIcon, UserIcon, FileTextIcon, PrinterIcon } from '@/components/ui/Icons';
+import { FolderKanbanIcon, AlertCircleIcon, UserIcon, FileTextIcon, PrinterIcon, DownloadIcon } from '@/components/ui/Icons';
 import { DATE_RANGE_OPTIONS } from '@/types';
 import type { DateRangeOption } from '@/types';
 import { useAuthStore, usePermissions } from '@/stores/auth.store';
 import { canAccessAdminArea, canManageProjects, getTodayGmt7DateString } from '@/lib/utils';
 import { PERMISSIONS } from '@/constants/permissions';
+import { exportElementToPdf } from '@/lib/pdf-export';
+import { toast } from '@/stores/toast.store';
 import { useProjectsQuery, useAllTasksQuery } from '@/features/projects/hooks';
 // 28/07/2026: tai su dung useDepartmentsQuery da co san (dung chung o MembersPage/InviteMemberModal)
 // cho bo loc "Phong ban" moi tren Dashboard, khong tao hook fetch phong ban rieng.
@@ -34,6 +36,10 @@ export function DashboardPage() {
   const canViewAnalytics = permissions.includes(PERMISSIONS.ANALYTICS_VIEW);
   const [range, setRange] = useState<DateRangeOption>('7d');
   const [departmentId, setDepartmentId] = useState('');
+  // 23/09/2026: tham chieu vung noi dung can xuat PDF (khong bao gom header/aside cua layout) -
+  // xem exportElementToPdf() trong lib/pdf-export.ts.
+  const printableRef = useRef<HTMLDivElement>(null);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const departmentsQuery = useDepartmentsQuery();
   const summaryQuery = useAnalyticsSummary(range, departmentId || undefined, { enabled: canViewAnalytics });
   const trendQuery = useTaskTrend(range, { enabled: canViewAnalytics });
@@ -161,8 +167,23 @@ export function DashboardPage() {
     return dates.map((d) => ({ date: d, ...map[d] }));
   }, [allTasksQuery.data, validTasks, trendQuery.data, range]);
 
+  // 23/09/2026: "Xuat PDF" gio la lua chon DAU TIEN va that su tao/tai ve 1 file .pdf (khong con
+  // mo hop thoai in ngay lap tuc) - xem exportElementToPdf() trong lib/pdf-export.ts. "In" (hop
+  // thoai in cua trinh duyet, window.print()) van con nhung chuyen thanh lua chon THU HAI.
+  async function handleExportPdf() {
+    if (!printableRef.current) return;
+    setIsExportingPdf(true);
+    try {
+      await exportElementToPdf(printableRef.current, `bao-cao-dashboard-${getTodayGmt7DateString()}`);
+    } catch (err) {
+      toast.error(t('dashboard:page.exportPdfError'), err instanceof Error ? err.message : undefined);
+    } finally {
+      setIsExportingPdf(false);
+    }
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" ref={printableRef}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('dashboard:page.title')}</h1>
@@ -171,14 +192,26 @@ export function DashboardPage() {
         <div className="flex items-center gap-2 no-print shrink-0">
           <Button
             type="button"
+            variant="primary"
+            size="sm"
+            isLoading={isExportingPdf}
+            onClick={handleExportPdf}
+            title={t('dashboard:page.exportPdf')}
+            className="font-medium cursor-pointer active:scale-[0.98]"
+          >
+            <DownloadIcon className="h-4 w-4 mr-1.5" />
+            <span>{t('dashboard:page.exportPdf')}</span>
+          </Button>
+          <Button
+            type="button"
             variant="outline"
             size="sm"
             onClick={() => window.print()}
-            title={t('dashboard:page.exportPdf')}
+            title={t('dashboard:page.print')}
             className="border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs font-medium cursor-pointer active:scale-[0.98]"
           >
             <PrinterIcon className="h-4 w-4 text-slate-500 mr-1.5" />
-            <span>{t('dashboard:page.exportPdf')}</span>
+            <span>{t('dashboard:page.print')}</span>
           </Button>
         </div>
       </div>

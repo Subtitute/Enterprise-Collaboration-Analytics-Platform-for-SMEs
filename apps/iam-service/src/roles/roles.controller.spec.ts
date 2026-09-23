@@ -21,4 +21,11 @@ describe('RolesController - RBAC (Fix 5, review 22/07/2026)', () => {
     const required = Reflect.getMetadata(PERMISSIONS_KEY, RolesController.prototype.findAllPermissions);
     expect(required).toEqual([PERMISSIONS.ROLE_MANAGE]);
   });
+
+  // 22/09/2026: RBAC audit log - endpoint moi phai co CUNG ranh gioi quyen voi cac endpoint quan
+  // tri khac cua controller nay.
+  it('GET /roles/audit-log (findPermissionChangeLog) yeu cau permission role:manage', () => {
+    const required = Reflect.getMetadata(PERMISSIONS_KEY, RolesController.prototype.findPermissionChangeLog);
+    expect(required).toEqual([PERMISSIONS.ROLE_MANAGE]);
+  });
 });

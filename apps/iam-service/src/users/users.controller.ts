@@ -92,10 +92,13 @@ export class UsersController {
     // 25/07/2026: cung ly do voi invite() o tren - truyen tiep permissions cho lop chan phong thu
     // chieu sau trong UsersService.update() (dto.roleIds).
     @CurrentUser('permissions') callerPermissions: string[],
+    // 23/09/2026: nguoi thuc hien - dinh kem vao outbox event USER_DEPARTMENT_CHANGED (khi dto co
+    // departmentId) de "Hoat dong gan day" hien thi dung ten thay vi "Mot thanh vien".
+    @CurrentUser('userId') actorId: string,
     @Param('id', uuidParamPipe()) id: string,
     @Body() dto: UpdateUserDto,
   ) {
-    return this.usersService.update(organizationId, id, dto, callerPermissions ?? []);
+    return this.usersService.update(organizationId, id, dto, callerPermissions ?? [], actorId);
   }
 
   @Patch(':id/deactivate')

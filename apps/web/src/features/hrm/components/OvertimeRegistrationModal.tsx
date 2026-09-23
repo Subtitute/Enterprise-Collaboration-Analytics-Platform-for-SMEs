@@ -4,30 +4,19 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { FormField, Input, Select, Textarea } from '@/components/ui/Input';
 import { TimePicker } from '@/components/ui/TimePicker';
-import { toast } from '@/stores/toast.store';
-import { formatDate } from '@/lib/utils';
-import type { LeaveRequest } from '@/types';
-import type { OvertimeRegistration } from '../attendance-extensions.types';
-import { getStoredOvertime, saveStoredOvertime } from '../attendance-extensions.types';
+import type { LeaveRequest, OvertimeMultiplierType } from '@/types';
+import { useCreateOvertimeRequest } from '../hooks';
 
 interface OvertimeRegistrationModalProps {
   userId: string;
-  userName: string;
   open: boolean;
   onClose: () => void;
-  onSuccess: () => void;
   leaveRequests?: LeaveRequest[];
 }
 
-export function OvertimeRegistrationModal({
-  userId,
-  userName,
-  open,
-  onClose,
-  onSuccess,
-  leaveRequests = [],
-}: OvertimeRegistrationModalProps) {
+export function OvertimeRegistrationModal({ userId, open, onClose, leaveRequests = [] }: OvertimeRegistrationModalProps) {
   const { t } = useTranslation();
+  const createOvertime = useCreateOvertimeRequest();
 
   const todayStr = useMemo(
     () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date()),
@@ -37,7 +26,7 @@ export function OvertimeRegistrationModal({
   const [workDate, setWorkDate] = useState(todayStr);
   const [otStart, setOtStart] = useState('18:00');
   const [otEnd, setOtEnd] = useState('20:00');
-  const [multiplierType, setMultiplierType] = useState<'WEEKDAY' | 'WEEKEND' | 'HOLIDAY'>('WEEKDAY');
+  const [multiplierType, setMultiplierType] = useState<OvertimeMultiplierType>('WEEKDAY');
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -99,39 +88,15 @@ export function OvertimeRegistrationModal({
       return;
     }
 
-    // 5. Kiểm tra trần tối đa 40 giờ OT / tháng
-    const monthPrefix = workDate.slice(0, 7);
-    const allOtList = getStoredOvertime();
-    const userMonthOtHours = allOtList
-      .filter((ot) => ot.userId === userId && ot.workDate.startsWith(monthPrefix) && ot.status !== 'REJECTED')
-      .reduce((sum, item) => sum + item.estimatedHours, 0);
-
-    if (userMonthOtHours + estimatedHours > 40) {
-      setError(t('hrm:extensions.overtime.errors.monthlyCapExceeded'));
-      return;
-    }
-
-    const multiplier = multiplierType === 'HOLIDAY' ? 3.0 : multiplierType === 'WEEKEND' ? 2.0 : 1.5;
-
-    const newOvertime: OvertimeRegistration = {
-      id: `ot_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      userId,
-      userName,
-      workDate,
-      otStart,
-      otEnd,
-      multiplier,
-      multiplierType,
-      reason: reason.trim(),
-      estimatedHours,
-      status: 'PENDING',
-      createdAt: new Date().toISOString(),
-    };
-
-    saveStoredOvertime([newOvertime, ...allOtList]);
-    toast.success(t('hrm:extensions.overtime.successSubmit'));
-    onSuccess();
-    onClose();
+    // 5. Tran toi da 40h OT/thang - server la nguon that su (OvertimeRequestsService.create(),
+    // cong don TOAN BO yeu cau chua bi tu choi trong thang cua nguoi nay), khong con kiem tra lai
+    // o day (tranh doc lai toan bo danh sach OT chi de lam 1 phep cong client khong dang tin cay
+    // bang server) - loi OVERTIME_MONTHLY_CAP_EXCEEDED (tieng Viet) se hien qua onError ben duoi
+    // neu vuot tran.
+    createOvertime.mutate(
+      { workDate, otStart, otEnd, multiplierType, reason: reason.trim() },
+      { onSuccess: onClose },
+    );
   };
 
   return (
@@ -214,7 +179,7 @@ export function OvertimeRegistrationModal({
           <Button type="button" variant="outline" size="sm" onClick={onClose}>
             {t('hrm:extensions.overtime.cancelButton')}
           </Button>
-          <Button type="submit" size="sm">
+          <Button type="submit" size="sm" disabled={createOvertime.isPending}>
             {t('hrm:extensions.overtime.submitButton')}
           </Button>
         </div>

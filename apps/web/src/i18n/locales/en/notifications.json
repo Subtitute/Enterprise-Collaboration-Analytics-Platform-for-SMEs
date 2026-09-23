@@ -2,6 +2,11 @@
   "page": {
     "title": "Notifications",
     "subtitle": "All notifications related to your activity.",
+    "scope": {
+      "organization": "Whole organization",
+      "department": "Your department",
+      "self": "Yours"
+    },
     "markAllRead": "Mark all as read",
     "markRead": "Mark as read",
     "unreadTitle": "Unread",

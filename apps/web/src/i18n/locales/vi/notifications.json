@@ -2,6 +2,11 @@
   "page": {
     "title": "Thông báo",
     "subtitle": "Toàn bộ thông báo liên quan đến hoạt động của bạn.",
+    "scope": {
+      "organization": "Toàn tổ chức",
+      "department": "Phòng ban bạn phụ trách",
+      "self": "Của bạn"
+    },
     "markAllRead": "Đánh dấu tất cả đã đọc",
     "markRead": "Đánh dấu đã đọc",
     "unreadTitle": "Chưa đọc",

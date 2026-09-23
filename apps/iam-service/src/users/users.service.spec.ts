@@ -17,6 +17,7 @@ import { UsersService } from './users.service';
  */
 describe('UsersService', () => {
   const ORG_ID = 'org-1';
+  const ACTOR_ID = 'actor-1';
 
   let userRepo: { findOne: jest.Mock };
   let roleRepo: { find: jest.Mock };
@@ -144,7 +145,7 @@ describe('UsersService', () => {
       departmentRepo.findOne.mockResolvedValue(null);
 
       await expect(
-        service.update(ORG_ID, 'user-1', { departmentId: 'dept-of-other-org' } as any, []),
+        service.update(ORG_ID, 'user-1', { departmentId: 'dept-of-other-org' } as any, [], ACTOR_ID),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -154,7 +155,7 @@ describe('UsersService', () => {
       await expect(
         service.update(ORG_ID, 'user-1', { roleIds: ['role-org-admin'] } as any, [
           PERMISSIONS.USER_INVITE,
-        ]),
+        ], ACTOR_ID),
       ).rejects.toThrow(ForbiddenException);
     });
 
@@ -174,7 +175,7 @@ describe('UsersService', () => {
 
       const result = await service.update(ORG_ID, 'user-1', { roleIds: ['role-manager'] } as any, [
         PERMISSIONS.USER_MANAGE,
-      ]);
+      ], ACTOR_ID);
 
       expect(roleRepo.find).toHaveBeenCalledWith({
         where: { id: expect.anything(), organizationId: ORG_ID },
@@ -209,14 +210,14 @@ describe('UsersService', () => {
       managerMock.findOneOrFail.mockResolvedValue(existingUser);
       managerMock.save.mockImplementation(async (u: any) => u);
 
-      const result = await service.update(ORG_ID, 'user-1', { departmentId: 'dept-new' } as any, []);
+      const result = await service.update(ORG_ID, 'user-1', { departmentId: 'dept-new' } as any, [], ACTOR_ID);
 
       expect(outboxService.record).toHaveBeenCalledTimes(1);
       expect(outboxService.record).toHaveBeenCalledWith(managerMock, {
         eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,
         organizationId: ORG_ID,
         producer: 'iam-service',
-        payload: { userId: 'user-1', departmentId: 'dept-new' },
+        payload: { userId: 'user-1', departmentId: 'dept-new', actorId: ACTOR_ID },
       });
       expect(result.departmentId).toBe('dept-new');
     });
@@ -232,7 +233,7 @@ describe('UsersService', () => {
       managerMock.findOneOrFail.mockResolvedValue(existingUser);
       managerMock.save.mockImplementation(async (u: any) => u);
 
-      const result = await service.update(ORG_ID, 'user-1', { departmentId: null } as any, []);
+      const result = await service.update(ORG_ID, 'user-1', { departmentId: null } as any, [], ACTOR_ID);
 
       // `null` khong can tra cuu Department (xem comment 22/07/2026 trong users.service.ts).
       expect(departmentRepo.findOne).not.toHaveBeenCalled();
@@ -241,7 +242,7 @@ describe('UsersService', () => {
         eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,
         organizationId: ORG_ID,
         producer: 'iam-service',
-        payload: { userId: 'user-1', departmentId: null },
+        payload: { userId: 'user-1', departmentId: null, actorId: ACTOR_ID },
       });
       expect(result.departmentId).toBeNull();
     });
@@ -257,7 +258,7 @@ describe('UsersService', () => {
       managerMock.findOneOrFail.mockResolvedValue(existingUser);
       managerMock.save.mockImplementation(async (u: any) => u);
 
-      await service.update(ORG_ID, 'user-1', { fullName: 'Ten Moi' } as any, []);
+      await service.update(ORG_ID, 'user-1', { fullName: 'Ten Moi' } as any, [], ACTOR_ID);
 
       expect(outboxService.record).not.toHaveBeenCalled();
     });

@@ -1,4 +1,6 @@
 import {
+  AttendanceAdjustmentApprovedPayload,
+  AttendanceAdjustmentRejectedPayload,
   CalendarEventCreatedPayload,
   DealStage,
   DealStageChangedPayload,
@@ -7,7 +9,11 @@ import {
   EVENT_TYPES,
   LeaveRequestApprovedPayload,
   LeaveRequestRejectedPayload,
+  OvertimeRequestApprovedPayload,
+  OvertimeRequestRejectedPayload,
   TaskAssignedPayload,
+  TaskStatus,
+  TaskStatusChangedPayload,
 } from '@app/common-dto';
 import { NotificationDraft } from '../notifications/interfaces/notification-draft.interface';
 
@@ -17,14 +23,18 @@ import { NotificationDraft } from '../notifications/interfaces/notification-draf
  * unit test va de mo rong (them event type moi chi can them 1 nhanh trong switch).
  *
  * PHAM VI MVP (gioi han da biet - xem bao cao/README): chi xu ly `task.assigned` va
- * `document.shared`. Cac event khac (task.created, task.status_changed, project.*,
- * document.uploaded, document.deleted, iam.*) CHUA sinh thong bao ca nhan trong MVP nay vi
- * viec xac dinh "ai lien quan den project/document nay" can tra cuu xuyen service (vd. danh
- * sach thanh vien du an o Project-Task Service) - ngoai pham vi cua Notification Service
- * (service nay chi tieu thu event, khong co quyen truy van DB cua service khac - Technical
- * Spec.md muc 1 "database-per-service"). Huong mo rong: Project-Task/Document Service dinh
- * kem san danh sach nguoi lien quan vao payload event, hoac Notification Service goi REST
- * noi bo (qua Gateway) de tra cuu khi can.
+ * `document.shared`. Cac event khac (task.created, project.*, document.uploaded,
+ * document.deleted, iam.*) CHUA sinh thong bao ca nhan trong MVP nay vi viec xac dinh "ai lien
+ * quan den project/document nay" can tra cuu xuyen service (vd. danh sach thanh vien du an o
+ * Project-Task Service) - ngoai pham vi cua Notification Service (service nay chi tieu thu
+ * event, khong co quyen truy van DB cua service khac - Technical Spec.md muc 1
+ * "database-per-service"). Huong mo rong: Project-Task/Document Service dinh kem san danh sach
+ * nguoi lien quan vao payload event, hoac Notification Service goi REST noi bo (qua Gateway) de
+ * tra cuu khi can.
+ *
+ * 22/09/2026: `task.status_changed` la vi du dau tien ap dung huong mo rong tren - Project-Task
+ * Service (TasksService.updateStatus()) da dinh kem san `leadUserId` vao payload tai thoi diem
+ * phat event, nen o day chi can doc lai `payload.leadUserId`, khong can tra cuu gi them.
  */
 export function buildNotificationFromEvent(event: DomainEvent): NotificationDraft | null {
   switch (event.eventType) {
@@ -111,6 +121,94 @@ export function buildNotificationFromEvent(event: DomainEvent): NotificationDraf
         message: `Yêu cầu nghỉ phép của bạn đã bị từ chối (mã yêu cầu: ${payload.leaveRequestId}).`,
         payload: {
           leaveRequestId: payload.leaveRequestId,
+          actorId: payload.actorId,
+        },
+      };
+    }
+
+    // 22/09/2026: giai trinh/duyet cham cong va tang ca (HRM-lite mo rong) - mirror CHINH XAC 2
+    // nhanh LEAVE_REQUEST_APPROVED/REJECTED o tren (cung hinh dang payload: userId nguoi gui yeu
+    // cau, actorId nguoi duyet).
+    case EVENT_TYPES.ATTENDANCE_ADJUSTMENT_APPROVED: {
+      const payload = event.payload as unknown as AttendanceAdjustmentApprovedPayload;
+      if (!payload?.userId) return null;
+      return {
+        userId: payload.userId,
+        type: EVENT_TYPES.ATTENDANCE_ADJUSTMENT_APPROVED,
+        title: 'Yêu cầu giải trình chấm công đã được duyệt',
+        message: `Yêu cầu giải trình chấm công của bạn đã được duyệt (mã yêu cầu: ${payload.attendanceAdjustmentId}).`,
+        payload: {
+          attendanceAdjustmentId: payload.attendanceAdjustmentId,
+          actorId: payload.actorId,
+        },
+      };
+    }
+
+    case EVENT_TYPES.ATTENDANCE_ADJUSTMENT_REJECTED: {
+      const payload = event.payload as unknown as AttendanceAdjustmentRejectedPayload;
+      if (!payload?.userId) return null;
+      return {
+        userId: payload.userId,
+        type: EVENT_TYPES.ATTENDANCE_ADJUSTMENT_REJECTED,
+        title: 'Yêu cầu giải trình chấm công đã bị từ chối',
+        message: `Yêu cầu giải trình chấm công của bạn đã bị từ chối (mã yêu cầu: ${payload.attendanceAdjustmentId}).`,
+        payload: {
+          attendanceAdjustmentId: payload.attendanceAdjustmentId,
+          actorId: payload.actorId,
+        },
+      };
+    }
+
+    case EVENT_TYPES.OVERTIME_REQUEST_APPROVED: {
+      const payload = event.payload as unknown as OvertimeRequestApprovedPayload;
+      if (!payload?.userId) return null;
+      return {
+        userId: payload.userId,
+        type: EVENT_TYPES.OVERTIME_REQUEST_APPROVED,
+        title: 'Yêu cầu tăng ca đã được duyệt',
+        message: `Yêu cầu tăng ca của bạn đã được duyệt (mã yêu cầu: ${payload.overtimeRequestId}).`,
+        payload: {
+          overtimeRequestId: payload.overtimeRequestId,
+          actorId: payload.actorId,
+        },
+      };
+    }
+
+    case EVENT_TYPES.OVERTIME_REQUEST_REJECTED: {
+      const payload = event.payload as unknown as OvertimeRequestRejectedPayload;
+      if (!payload?.userId) return null;
+      return {
+        userId: payload.userId,
+        type: EVENT_TYPES.OVERTIME_REQUEST_REJECTED,
+        title: 'Yêu cầu tăng ca đã bị từ chối',
+        message: `Yêu cầu tăng ca của bạn đã bị từ chối (mã yêu cầu: ${payload.overtimeRequestId}).`,
+        payload: {
+          overtimeRequestId: payload.overtimeRequestId,
+          actorId: payload.actorId,
+        },
+      };
+    }
+
+    // 22/09/2026: thong bao cho nguoi phu trach du an (leadUserId) khi 1 Task chuyen sang DONE -
+    // chi xu ly khi toStatus === TaskStatus.DONE (mirror DEAL_STAGE_CHANGED o tren, khong thong
+    // bao MOI lan doi trang thai). leadUserId duoc dinh kem san trong payload boi
+    // TasksService.updateStatus() (Project-Task Service) tai thoi diem phat event - xem chu thich
+    // dau file.
+    case EVENT_TYPES.TASK_STATUS_CHANGED: {
+      const payload = event.payload as unknown as TaskStatusChangedPayload;
+      // 22/09/2026: chan tu gui thong bao cho chinh minh neu nguoi hoan thanh Task CUNG LA nguoi
+      // phu trach du an - mirror dung hanh vi cua ban gia lap localStorage truoc day
+      // (notifyTaskCompleted(), da xoa khoi apps/web/src/features/projects/utils.ts) de tranh
+      // "Notification Fatigue" (Manager tu lam viec khong can duoc bao chinh minh vua lam gi).
+      if (payload?.toStatus !== TaskStatus.DONE || !payload.leadUserId || payload.leadUserId === payload.actorId) return null;
+      return {
+        userId: payload.leadUserId,
+        type: EVENT_TYPES.TASK_STATUS_CHANGED,
+        title: 'Công việc đã hoàn thành',
+        message: `Một công việc trong dự án bạn phụ trách vừa được đánh dấu hoàn thành (mã công việc: ${payload.taskId}).`,
+        payload: {
+          taskId: payload.taskId,
+          projectId: payload.projectId,
           actorId: payload.actorId,
         },
       };

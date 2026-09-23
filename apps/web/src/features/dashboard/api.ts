@@ -1,6 +1,6 @@
 import { apiClient } from '@/lib/api-client';
 import { unwrapList } from '@/lib/utils';
-import type { AnalyticsSummary, DateRangeOption, RecentActivityItem, TaskStatusBreakdownItem, TaskTrendPoint } from '@/types';
+import type { AnalyticsSummary, DateRangeOption, RecentActivityItem, TaskStatusBreakdownItem, TaskTrendPoint, VisibilityScope } from '@/types';
 
 const EMPTY_SUMMARY: AnalyticsSummary = {
   totalTasksCreated: 0,
@@ -71,18 +71,23 @@ export async function fetchTaskStatusBreakdown(
   }
 }
 
-// Backend (GET /analytics/recent-activity) tra ve { eventId, time, eventType, producer, actorId, payload }[] -
-// doi ten sang { id, action, createdAt, actorId } de khop voi RecentActivityFeed hien co.
+// Backend (GET /analytics/recent-activity) tra ve { data: {eventId, time, eventType, producer,
+// actorId, payload}[], scope } - doi ten sang { id, action, createdAt, actorId } de khop voi
+// RecentActivityFeed hien co.
+// 23/09/2026: bo sung `scope` (yeu cau nguoi dung - the hien ro rang dang xem pham vi nao: toan
+// to chuc/phong ban minh phu trach/chi cua minh) - xem AnalyticsService.getRecentActivity().
 // 16/09/2026: bat 403 va tra ve [] neu Employee khong co quyen xem nhat ky toan to chuc.
-export async function fetchRecentActivity(): Promise<RecentActivityItem[]> {
+export async function fetchRecentActivity(): Promise<{ items: RecentActivityItem[]; scope: VisibilityScope }> {
   try {
     const { data } = await apiClient.get('/analytics/recent-activity');
     const rows = unwrapList<{ eventId: string; time: string; eventType: string; actorId: string | null }>(data);
-    return rows.map((r) => ({ id: r.eventId, actorId: r.actorId, action: r.eventType, createdAt: r.time }));
+    const items = rows.map((r) => ({ id: r.eventId, actorId: r.actorId, action: r.eventType, createdAt: r.time }));
+    const scope: VisibilityScope = (data && typeof data === 'object' && data.scope) || 'self';
+    return { items, scope };
   } catch (err: unknown) {
     const status = (err as { response?: { status?: number } })?.response?.status;
     if (status === 403) {
-      return [];
+      return { items: [], scope: 'self' };
     }
     throw err;
   }

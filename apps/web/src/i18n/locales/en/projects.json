@@ -183,7 +183,9 @@
     "toast": {
       "memberAdded": "Added {{name}} to project",
       "memberRemoved": "Removed {{name}} from project",
-      "cannotRemoveLead": "Cannot remove Project Lead. Please assign another lead before removing."
+      "cannotRemoveLead": "Cannot remove Project Lead. Please assign another lead before removing.",
+      "addError": "Could not add member",
+      "removeError": "Could not remove member"
     }
   },
   "toast": {

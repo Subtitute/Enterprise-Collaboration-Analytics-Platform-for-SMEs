@@ -22,6 +22,13 @@ export interface TaskStatusChangedPayload {
   fromStatus: string;
   toStatus: string;
   actorId: string;
+  /**
+   * 22/09/2026: nguoi phu trach du an (Project.leadUserId) tai thoi diem phat event - dinh kem san
+   * de Notification Service resolve nguoi nhan thong bao "Task chuyen sang Done" ma khong can tra
+   * cuu xuyen DB cua Project-Task Service (database-per-service - xem event-notification-builder.ts).
+   * `null` neu du an chua co nguoi phu trach.
+   */
+  leadUserId?: string | null;
 }
 
 export interface TaskCreatedPayload {
@@ -78,10 +85,15 @@ export interface DocumentDeletedPayload {
   actorId: string;
 }
 
+// 23/09/2026: bo sung actorId (bang chinh userId - nguoi "gia nhap to chuc" la chu the cua hanh
+// dong nay, du tu dang ky hay duoc moi) - cung ly do voi UserDepartmentChangedPayload.actorId:
+// Analytics Service hien thi "Hoat dong gan day" dung ten thay vi "Mot thanh vien" khong ro danh
+// tinh (xem RecentActivityFeed.tsx, actions.iam_user_registered).
 export interface UserRegisteredPayload {
   userId: string;
   email: string;
   departmentId: string | null;
+  actorId: string;
 }
 
 export interface OrganizationRegisteredPayload {
@@ -97,9 +109,24 @@ export interface UserDeactivatedPayload {
 
 // 28/07/2026: payload cho EVENT_TYPES.USER_DEPARTMENT_CHANGED - xem ghi chu tai event-types.ts.
 // `departmentId: null` nghia la user vua bi GO khoi phong ban (khong con thuoc phong ban nao).
+// 23/09/2026: bo sung actorId (nguoi THUC HIEN thay doi, vd Org Admin goi PATCH /users/:id) - de
+// Analytics Service hien thi dung "Hoat dong gan day" thay vi "Mot thanh vien" khong ro danh tinh
+// (xem RecentActivityFeed.tsx). `null` danh cho truong hop THAT SU khong co actor con nguoi -
+// UserDepartmentSyncService phat lai (resync) event nay TU DONG moi luc iam-service khoi dong,
+// khong phai do 1 nguoi vua thao tac.
 export interface UserDepartmentChangedPayload {
   userId: string;
   departmentId: string | null;
+  actorId: string | null;
+}
+
+// 23/09/2026: payload cho EVENT_TYPES.DEPARTMENT_MANAGER_CHANGED - xem ghi chu tai event-types.ts.
+// actorId luon co gia tri (khac UserDepartmentChangedPayload o tren) - khong co buoc resync tu
+// dong nao cho su kien nay, chi phat khi 1 Org Admin THAT SU tao/sua phong ban qua API.
+export interface DepartmentManagerChangedPayload {
+  departmentId: string;
+  managerId: string | null;
+  actorId: string;
 }
 
 // 04/08/2026: CRM-lite Service (Technical_Spec.md muc 16).
@@ -192,5 +219,32 @@ export interface CalendarEventCreatedPayload {
 export interface CalendarEventDeletedPayload {
   calendarEventId: string;
   title: string;
+  actorId: string;
+}
+
+// 22/09/2026: giai trinh/duyet cham cong va tang ca (HRM-lite mo rong). `actorId` la nguoi DUYET
+// (approver), khac `userId` (nguoi gui yeu cau) - mirror dung LeaveRequestApprovedPayload/
+// LeaveRequestRejectedPayload o tren.
+export interface AttendanceAdjustmentApprovedPayload {
+  attendanceAdjustmentId: string;
+  userId: string;
+  actorId: string;
+}
+
+export interface AttendanceAdjustmentRejectedPayload {
+  attendanceAdjustmentId: string;
+  userId: string;
+  actorId: string;
+}
+
+export interface OvertimeRequestApprovedPayload {
+  overtimeRequestId: string;
+  userId: string;
+  actorId: string;
+}
+
+export interface OvertimeRequestRejectedPayload {
+  overtimeRequestId: string;
+  userId: string;
   actorId: string;
 }

@@ -29,6 +29,38 @@ describe('OrgMembersService', () => {
         { upsert: true },
       );
     });
+
+    it('ghi kem departmentId khi tham so nay duoc truyen (USER_REGISTERED co san departmentId)', async () => {
+      await service.markActive('org-1', 'user-1', 'dept-1');
+
+      expect(modelMock.updateOne).toHaveBeenCalledWith(
+        { organizationId: 'org-1', userId: 'user-1' },
+        { $set: { isActive: true, departmentId: 'dept-1' } },
+        { upsert: true },
+      );
+    });
+
+    it('ghi departmentId = null khi user dang KHONG thuoc phong ban nao (khac voi khong truyen tham so)', async () => {
+      await service.markActive('org-1', 'user-1', null);
+
+      expect(modelMock.updateOne).toHaveBeenCalledWith(
+        { organizationId: 'org-1', userId: 'user-1' },
+        { $set: { isActive: true, departmentId: null } },
+        { upsert: true },
+      );
+    });
+  });
+
+  describe('setDepartment', () => {
+    it('upsert departmentId theo cap (organizationId, userId)', async () => {
+      await service.setDepartment('org-1', 'user-1', 'dept-2');
+
+      expect(modelMock.updateOne).toHaveBeenCalledWith(
+        { organizationId: 'org-1', userId: 'user-1' },
+        { $set: { departmentId: 'dept-2' } },
+        { upsert: true },
+      );
+    });
   });
 
   describe('markInactive', () => {
@@ -62,6 +94,31 @@ describe('OrgMembersService', () => {
 
       const result = await service.listActiveUserIds('org-1');
 
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('listActiveUserIdsInDepartments', () => {
+    it('tra ve danh sach userId active thuoc 1 trong cac phong ban duoc truyen', async () => {
+      const selectMock = jest.fn().mockReturnValue({
+        lean: jest.fn().mockResolvedValue([{ userId: 'user-1' }, { userId: 'user-2' }]),
+      });
+      modelMock.find.mockReturnValue({ select: selectMock });
+
+      const result = await service.listActiveUserIdsInDepartments('org-1', ['dept-1', 'dept-2']);
+
+      expect(modelMock.find).toHaveBeenCalledWith({
+        organizationId: 'org-1',
+        isActive: true,
+        departmentId: { $in: ['dept-1', 'dept-2'] },
+      });
+      expect(result).toEqual(['user-1', 'user-2']);
+    });
+
+    it('tra ve mang rong ma KHONG truy van Mongo khi danh sach phong ban rong', async () => {
+      const result = await service.listActiveUserIdsInDepartments('org-1', []);
+
+      expect(modelMock.find).not.toHaveBeenCalled();
       expect(result).toEqual([]);
     });
   });

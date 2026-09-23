@@ -18,15 +18,17 @@ import { useProjectNameMap } from '@/hooks/useOrgProjects';
 import { useAllDealsQuery } from '@/features/crm/hooks';
 import { formatDealValue } from '@/features/crm/utils';
 import { DATE_RANGE_OPTIONS } from '@/types';
-import type { DateRangeOption } from '@/types';
+import type { DateRangeOption, InsightScope } from '@/types';
 // 28/07/2026: tai su dung useDepartmentsQuery da co san (dung chung o MembersPage/InviteMemberModal)
 // cho bo loc "Phong ban" moi tren trang Bao cao & Phan tich, khong tao hook fetch phong ban rieng.
 import { useDepartmentsQuery } from '@/features/admin/hooks';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
-import { useAiInsightMutation, useDocumentActivityQuery, useProjectProgressQuery } from './hooks';
+import { useAiInsightsMutation, useDocumentActivityQuery, useProjectProgressQuery } from './hooks';
 import { ProjectProgressChart } from './components/ProjectProgressChart';
 import { ProjectProgressTable } from './components/ProjectProgressTable';
 import { DocumentActivityChart } from './components/DocumentActivityChart';
+import { AiInsightCard } from './components/AiInsightCard';
+import { AiInsightsChart } from './components/AiInsightsChart';
 
 export function AnalyticsPage() {
   const { t } = useTranslation();
@@ -43,9 +45,21 @@ export function AnalyticsPage() {
   const dealsQuery = useAllDealsQuery();
   const { map: projectNames } = useProjectNameMap();
 
-  // 28/07/2026: tinh nang "Nhan xet AI" - departmentName CHI de hien thi trong doan van AI sinh
-  // ra (xem fetchAiInsight()), lay tu du lieu departmentsQuery da co san cho dropdown ben tren.
-  const aiInsightMutation = useAiInsightMutation();
+  // 22/09/2026: tinh nang "Nhan xet AI" - thiet ke lai thanh insight co cau truc (xem
+  // AiInsightCard.tsx/AiInsightsChart.tsx), AI tu quet TOAN BO to chuc (khong con phu thuoc bo loc
+  // "Phong ban" cua trang nay - xem useAiInsightsMutation()).
+  const aiInsightsMutation = useAiInsightsMutation();
+
+  /** Backend chi tra ve scopeId (UUID tho, khong co ten - database-per-service). Dung LAI CHINH
+   *  2 nguon du lieu cross-service da co san tren trang nay (departmentsQuery/projectNames) thay
+   *  vi goi API rieng. */
+  function resolveInsightScopeLabel(scope: InsightScope, scopeId: string | null): string {
+    if (scope === 'organization') return t('analytics:aiInsight.scopeOrg');
+    if (scope === 'department') {
+      return (departmentsQuery.data ?? []).find((d) => d.id === scopeId)?.name ?? t('analytics:aiInsight.scopeDepartment');
+    }
+    return projectNames[scopeId ?? ''] ?? t('analytics:aiInsight.scopeProject');
+  }
 
   // State cho bộ lọc chu kỳ nhận xét AI độc lập (Tuần, Tháng, Quý, Năm)
   const [aiPeriod, setAiPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
@@ -65,15 +79,13 @@ export function AnalyticsPage() {
     }
   }, [aiPeriod]);
 
-  // 26/08/2026: Fix 5 - reset aiInsightMutation khi đổi bộ lọc hoặc chu kỳ nhận xét
+  // 26/08/2026: Fix 5 - reset aiInsightsMutation khi đổi chu kỳ nhận xét (22/09/2026: không còn
+  // phụ thuộc departmentId nữa - tính năng AI đã quét toàn bộ tổ chức, không còn bị lọc theo
+  // dropdown "Phòng ban" của trang này).
   useEffect(() => {
-    aiInsightMutation.reset();
+    aiInsightsMutation.reset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aiPeriod, departmentId]);
-
-  const selectedDepartmentName = departmentId
-    ? (departmentsQuery.data ?? []).find((d) => d.id === departmentId)?.name
-    : undefined;
+  }, [aiPeriod]);
 
   const progressRows = useMemo(() => {
     const rawRows = (progressQuery.data ?? []).map((item, idx) => {
@@ -329,14 +341,7 @@ export function AnalyticsPage() {
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                {selectedDepartmentName
-                  ? t('analytics:aiInsight.summaryWithDepartment', {
-                      period: t(`analytics:aiInsight.periods.${aiPeriod}`).toLowerCase(),
-                      department: selectedDepartmentName,
-                    })
-                  : t('analytics:aiInsight.summaryAllOrg', {
-                      period: t(`analytics:aiInsight.periods.${aiPeriod}`).toLowerCase(),
-                    })}
+                {t('analytics:aiInsight.summaryAllOrg', { period: t(`analytics:aiInsight.periods.${aiPeriod}`).toLowerCase() })}
               </p>
             </div>
           </div>
@@ -358,10 +363,8 @@ export function AnalyticsPage() {
 
             <Button
               size="sm"
-              isLoading={aiInsightMutation.isPending}
-              onClick={() =>
-                aiInsightMutation.mutate({ range: aiRange, departmentId: departmentId || undefined, departmentName: selectedDepartmentName })
-              }
+              isLoading={aiInsightsMutation.isPending}
+              onClick={() => aiInsightsMutation.mutate(aiRange)}
               className="bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs cursor-pointer"
             >
               <BarChartIcon className="h-4 w-4" />
@@ -371,80 +374,25 @@ export function AnalyticsPage() {
         </div>
 
         <div className="mt-4 pt-3.5 border-t border-indigo-100/60">
-          {aiInsightMutation.data ? (
-            <div className="rounded-xl bg-white/80 p-4 border border-indigo-50 shadow-2xs">
-              {(() => {
-                const text = aiInsightMutation.data.insight;
-                // Nhận diện hoặc phân tách nội dung thành 3 gạch đầu dòng rõ ràng: Điểm sáng, Rủi ro, Khuyến nghị
-                const lines = text
-                  .split(/\n+/)
-                  .map((l) => l.replace(/^[-*•\d.]+\s*/, '').trim())
-                  .filter(Boolean);
-
-                let highlight = '';
-                let risk = '';
-                let recommendation = '';
-
-                // 16/09/2026: cac chuoi tieng Viet trong .includes(...)/regex ben duoi (vd 'diem
-                // sang', 'rui ro', 'khuyen nghi'...) la HANG SO de doi chieu/tach doan van ban AI
-                // (Gemini/Groq) ma backend analytics-service sinh ra bang tieng Viet (xem
-                // useAiInsightMutation ben tren) - khong phai chuoi hien thi cho nguoi dung nen
-                // KHONG dua qua t(): noi dung AI insight luon la tieng Viet bat ke ngon ngu UI dang
-                // chon, boc qua t() se lam sai pattern matching. Moi dong .includes(...)/regex co
-                // dau duoi day duoc danh dau i18n-lint-ignore vi ly do tren.
-                // Tìm theo từ khóa nếu có sẵn trong câu
-                for (const line of lines) {
-                  const lower = line.toLowerCase();
-                  if (!highlight && (lower.includes('điểm sáng') || lower.includes('nổi bật') || lower.includes('tích cực') || lower.includes('hoàn thành'))) { // i18n-lint-ignore: khop van ban AI backend, khong phai chuoi UI
-                    highlight = line.replace(/^(điểm sáng|điểm nổi bật)[:\s-]*/i, '').trim(); // i18n-lint-ignore: regex khop van ban AI backend, khong phai chuoi UI
-                  } else if (!risk && (lower.includes('rủi ro') || lower.includes('chậm') || lower.includes('tồn đọng') || lower.includes('hạn chế'))) { // i18n-lint-ignore: khop van ban AI backend, khong phai chuoi UI
-                    risk = line.replace(/^(rủi ro|rủi ro tiềm ẩn)[:\s-]*/i, '').trim(); // i18n-lint-ignore: regex khop van ban AI backend, khong phai chuoi UI
-                  } else if (!recommendation && (lower.includes('khuyến nghị') || lower.includes('đề xuất') || lower.includes('gợi ý') || lower.includes('cần'))) { // i18n-lint-ignore: khop van ban AI backend, khong phai chuoi UI
-                    recommendation = line.replace(/^(khuyến nghị|đề xuất|gợi ý)[:\s-]*/i, '').trim(); // i18n-lint-ignore: regex khop van ban AI backend, khong phai chuoi UI
-                  }
-                }
-
-                // Nếu là 1 đoạn văn liền mạch hoặc chưa khớp đủ 3 mục, phân tách theo câu
-                if (!highlight || !risk || !recommendation) {
-                  const sentences = text
-                    .split(/(?<=[.?!])\s+/)
-                    .map((s) => s.trim())
-                    .filter((s) => s.length > 5);
-
-                  if (!highlight && sentences[0]) highlight = sentences[0];
-                  if (!risk && sentences[1]) risk = sentences[1];
-                  if (!recommendation && sentences[2]) recommendation = sentences.slice(2).join(' ');
-                  if (!risk && !recommendation && highlight) {
-                    risk = t('analytics:aiInsight.fallbacks.risk');
-                    recommendation = t('analytics:aiInsight.fallbacks.recommendationWhenHighlightOnly');
-                  } else if (!recommendation) {
-                    recommendation = t('analytics:aiInsight.fallbacks.recommendationDefault');
-                  }
-                }
-
-                return (
-                  <ul className="space-y-2.5 text-sm text-slate-700 leading-relaxed">
-                    <li className="flex items-start gap-2.5">
-                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-                      <span>
-                        <strong className="font-semibold text-slate-900">{t('analytics:aiInsight.labels.highlight')}</strong> {highlight}
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
-                      <span>
-                        <strong className="font-semibold text-slate-900">{t('analytics:aiInsight.labels.risk')}</strong> {risk}
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2.5">
-                      <span className="mt-1 h-1.5 w-1.5 rounded-full bg-indigo-500 shrink-0" />
-                      <span>
-                        <strong className="font-semibold text-slate-900">{t('analytics:aiInsight.labels.recommendation')}</strong> {recommendation}
-                      </span>
-                    </li>
-                  </ul>
-                );
-              })()}
+          {aiInsightsMutation.data ? (
+            <div className="space-y-4">
+              <div className="rounded-xl bg-white/80 p-4 border border-indigo-50 shadow-2xs">
+                <AiInsightsChart
+                  candidates={aiInsightsMutation.data.candidates}
+                  insights={aiInsightsMutation.data.insights}
+                  resolveLabel={resolveInsightScopeLabel}
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {aiInsightsMutation.data.insights.map((insight, index) => (
+                  <AiInsightCard
+                    key={`${insight.scope}-${insight.scopeId ?? 'org'}-${index}`}
+                    insight={insight}
+                    index={index}
+                    scopeLabel={resolveInsightScopeLabel(insight.scope, insight.scopeId)}
+                  />
+                ))}
+              </div>
             </div>
           ) : (
             <p className="text-xs text-slate-500 leading-relaxed">

@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
+import { PERMISSIONS } from '@app/common-dto';
 import { RedisService } from '../redis/redis.service';
 import { resolveDocumentActivityInterval, resolveTaskTrendConfig } from './utils/range.util';
 
@@ -51,6 +52,14 @@ export interface RecentActivityItem {
   actorId: string | null;
   payload: Record<string, unknown>;
 }
+
+/**
+ * 23/09/2026: pham vi hien thi cua getRecentActivity() - tra ve kem `data` de frontend hien thi
+ * ro rang dang xem pham vi nao (yeu cau nguoi dung). Mirror NotificationVisibilityScope ben
+ * Notification Service (khong dung chung 1 type qua common-dto - 2 tinh nang doc lap, chi tinh
+ * co giong nhau).
+ */
+export type RecentActivityVisibilityScope = 'organization' | 'department' | 'self';
 
 const SUMMARY_CACHE_TTL_SECONDS = 8;
 
@@ -508,20 +517,85 @@ export class AnalyticsService {
     });
   }
 
-  /** GET /analytics/recent-activity - feed su kien tho gan nhat, khac Notification ca nhan (Wireframe.md muc 3). */
-  async getRecentActivity(organizationId: string): Promise<RecentActivityItem[]> {
+  /**
+   * 22/09/2026: danh sach departmentId dang co it nhat 1 user cua to chuc nay - dung boi
+   * AiInsightsService de quet KPI cua NHIEU phong ban cung luc (xem buildCandidates()), mirror
+   * dung nguon du lieu voi departmentExists() o tren (dim_user, ban sao denormalize dong bo qua
+   * Kafka - khong co bang Department rieng trong Analytics Service).
+   */
+  async listActiveDepartmentIds(organizationId: string): Promise<string[]> {
+    const rows = await this.dataSource.query<{ department_id: string }[]>(
+      `SELECT DISTINCT department_id FROM dim_user WHERE organization_id = $1 AND department_id IS NOT NULL`,
+      [organizationId],
+    );
+    return rows.map((row) => row.department_id);
+  }
+
+  /**
+   * 23/09/2026: danh sach departmentId ma `managerId` nay dang la nguoi phu trach - dung boi
+   * getRecentActivity() de xac dinh pham vi hien thi cua 1 Manager (xem chu thich tai do). Nguon
+   * dim_department_manager (ban sao denormalize dong bo qua Kafka - xem DEPARTMENT_MANAGER_CHANGED,
+   * schema-bootstrap.ts), mirror dung cau truc voi listActiveDepartmentIds() o tren.
+   */
+  async listDepartmentIdsManagedBy(organizationId: string, managerId: string): Promise<string[]> {
+    const rows = await this.dataSource.query<{ department_id: string }[]>(
+      `SELECT department_id FROM dim_department_manager WHERE organization_id = $1 AND manager_id = $2`,
+      [organizationId, managerId],
+    );
+    return rows.map((row) => row.department_id);
+  }
+
+  /**
+   * GET /analytics/recent-activity - feed su kien tho gan nhat, khac Notification ca nhan
+   * (Wireframe.md muc 3).
+   *
+   * 23/09/2026: pham vi hien thi THEO CAP DO (yeu cau nguoi dung - can RO RANG, mirror dung tinh
+   * than NotificationsService.resolveVisibleUserIds() ben Notification Service):
+   *  - Org Admin (co PERMISSIONS.USER_MANAGE) -> toan bo to chuc (hanh vi cu, khong doi).
+   *  - Manager dang phu trach >=1 phong ban -> CHI hoat dong ma actor_id thuoc (cac) phong ban ho
+   *    phu trach (qua dim_user.department_id) + hoat dong cua CHINH HO.
+   *  - Con lai (Employee, hoac Manager khong phu trach phong ban nao) -> CHI hoat dong cua chinh
+   *    minh.
+   */
+  async getRecentActivity(
+    organizationId: string,
+    callerId: string,
+    callerPermissions: string[],
+  ): Promise<{ data: RecentActivityItem[]; scope: RecentActivityVisibilityScope }> {
+    let actorFilterSql = '';
+    const params: unknown[] = [organizationId];
+    let scope: RecentActivityVisibilityScope = 'organization';
+
+    if (!callerPermissions.includes(PERMISSIONS.USER_MANAGE)) {
+      const managedDepartmentIds = await this.listDepartmentIdsManagedBy(organizationId, callerId);
+      if (managedDepartmentIds.length > 0) {
+        params.push(callerId, managedDepartmentIds);
+        actorFilterSql = `
+          AND (
+            actor_id = $2
+            OR actor_id IN (SELECT user_id FROM dim_user WHERE department_id = ANY($3::uuid[]))
+          )`;
+        scope = 'department';
+      } else {
+        params.push(callerId);
+        actorFilterSql = `AND actor_id = $2`;
+        scope = 'self';
+      }
+    }
+
     const rows = await this.dataSource.query(
       `
       SELECT event_id, time, event_type, producer, actor_id, payload
       FROM fact_user_activity
       WHERE organization_id = $1
+      ${actorFilterSql}
       ORDER BY time DESC
       LIMIT 20
       `,
-      [organizationId],
+      params,
     );
 
-    return rows.map((row: Record<string, unknown>) => ({
+    const data = rows.map((row: Record<string, unknown>) => ({
       eventId: row.event_id as string,
       time: new Date(row.time as string).toISOString(),
       eventType: row.event_type as string,
@@ -529,6 +603,7 @@ export class AnalyticsService {
       actorId: (row.actor_id as string | null) ?? null,
       payload: (row.payload as Record<string, unknown>) ?? {},
     }));
+    return { data, scope };
   }
 }
 

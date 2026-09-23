@@ -6,6 +6,7 @@ import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectQueryDto } from './dto/project-query.dto';
+import { AddProjectMemberDto } from './dto/add-project-member.dto';
 
 /** Quan ly du an - Technical_Spec.md muc 3.3, Wireframe.md muc 4. */
 @ApiTags('Projects')
@@ -100,5 +101,35 @@ export class ProjectsController {
     @Param('id') id: string,
   ) {
     return this.projectsService.remove(organizationId, actorId, id);
+  }
+
+  // 22/09/2026: thanh vien du an (ProjectMember) - thay the co che gia lap bang localStorage o
+  // frontend. Mirror dung ranh gioi quyen cua nhung endpoint mutate/view khac cua chinh du an nay
+  // (PROJECT_UPDATE cho them/xoa, PROJECT_VIEW cho xem danh sach).
+  @Get(':id/members')
+  @RequirePermissions(PERMISSIONS.PROJECT_VIEW)
+  listMembers(@CurrentUser('organizationId') organizationId: string, @Param('id') id: string) {
+    return this.projectsService.listMembers(organizationId, id);
+  }
+
+  @Post(':id/members')
+  @RequirePermissions(PERMISSIONS.PROJECT_UPDATE)
+  addMember(
+    @CurrentUser('organizationId') organizationId: string,
+    @CurrentUser('userId') actorId: string,
+    @Param('id') id: string,
+    @Body() dto: AddProjectMemberDto,
+  ) {
+    return this.projectsService.addMember(organizationId, id, actorId, dto.userId);
+  }
+
+  @Delete(':id/members/:userId')
+  @RequirePermissions(PERMISSIONS.PROJECT_UPDATE)
+  removeMember(
+    @CurrentUser('organizationId') organizationId: string,
+    @Param('id') id: string,
+    @Param('userId') userId: string,
+  ) {
+    return this.projectsService.removeMember(organizationId, id, userId);
   }
 }

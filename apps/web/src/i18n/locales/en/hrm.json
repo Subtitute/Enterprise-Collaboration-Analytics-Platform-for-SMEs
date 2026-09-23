@@ -123,6 +123,21 @@
     "subtitle": "Create and track your leave requests.",
     "newRequestButton": "New request",
     "daysCount": "{{count}} days",
+    "balance": {
+      "cardTitle": "{{year}} leave balance",
+      "entitledLabel": "Entitled",
+      "usedLabel": "Used",
+      "remainingLabel": "Remaining",
+      "seniorityNote": "Includes {{bonusDays}} seniority day(s) (Vietnamese Labor Code: +1 day per {{yearsPerBonus}} years of service)",
+      "editPolicyButton": "Configure leave policy",
+      "policyModalTitle": "Configure leave policy",
+      "baseDaysLabel": "Base days per year",
+      "seniorityYearsLabel": "Years of service per bonus day",
+      "saveButton": "Save",
+      "cancelButton": "Cancel",
+      "policyUpdateSuccess": "Leave policy updated",
+      "policyUpdateError": "Could not update leave policy"
+    },
     "pending": {
       "cardTitle": "Pending ({{count}})",
       "reject": "Reject",
@@ -222,7 +237,10 @@
       "rejectButton": "Reject",
       "successSubmit": "Attendance adjustment submitted successfully",
       "successApprove": "Attendance adjustment approved",
-      "successReject": "Attendance adjustment rejected"
+      "successReject": "Attendance adjustment rejected",
+      "errorSubmit": "Could not submit attendance adjustment",
+      "errorApprove": "Could not approve attendance adjustment",
+      "errorReject": "Could not reject attendance adjustment"
     },
     "overtime": {
       "registerButton": "Register Overtime (OT)",
@@ -262,7 +280,10 @@
       "rejectButton": "Reject OT",
       "successSubmit": "Overtime request submitted successfully",
       "successApprove": "Overtime request approved",
-      "successReject": "Overtime request rejected"
+      "successReject": "Overtime request rejected",
+      "errorSubmit": "Could not submit overtime request",
+      "errorApprove": "Could not approve overtime request",
+      "errorReject": "Could not reject overtime request"
     },
     "payroll": {
       "exportButton": "Export for Payroll (MISA/Fast)",

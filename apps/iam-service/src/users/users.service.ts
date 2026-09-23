@@ -152,6 +152,7 @@ export class UsersService {
           userId: user.id,
           email: user.email,
           departmentId: user.departmentId ?? null,
+          actorId: user.id,
         };
         await this.outboxService.record(manager, {
           eventType: EVENT_TYPES.USER_REGISTERED,
@@ -177,6 +178,7 @@ export class UsersService {
     id: string,
     dto: UpdateUserDto,
     callerPermissions: string[],
+    actorId: string,
   ): Promise<PublicUser> {
     // 26/08/2026: fix loi MAJOR (race condition ghi de dong thoi) - pre-check bang findOne() o day
     // chi de fail-fast (tra 404 nhanh cho id chua tung ton tai/sai to chuc), KHONG con duoc dung de
@@ -268,6 +270,7 @@ export class UsersService {
         const payload: UserDepartmentChangedPayload = {
           userId: updated.id,
           departmentId: updated.departmentId ?? null,
+          actorId,
         };
         await this.outboxService.record(manager, {
           eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,

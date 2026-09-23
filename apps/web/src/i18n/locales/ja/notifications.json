@@ -2,6 +2,11 @@
   "page": {
     "title": "通知",
     "subtitle": "あなたの活動に関するすべての通知です。",
+    "scope": {
+      "organization": "組織全体",
+      "department": "担当部署",
+      "self": "自分のみ"
+    },
     "markAllRead": "すべて既読にする",
     "markRead": "既読にする",
     "unreadTitle": "未読",

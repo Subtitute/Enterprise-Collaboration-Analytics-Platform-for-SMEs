@@ -85,10 +85,15 @@ export class AnalyticsController {
 
   @ApiOperation({
     summary:
-      'Feed hoat dong tho gan nhat (toi da 20 ban ghi). CHI tra ve actorId (UUID) - frontend tu resolve ten nguoi dung',
+      'Feed hoat dong tho gan nhat (toi da 20 ban ghi). CHI tra ve actorId (UUID) - frontend tu resolve ten nguoi dung. ' +
+      'Pham vi hien thi theo cap do nguoi goi: Org Admin (toan to chuc), Manager (phong ban minh phu trach), con lai (chinh minh).',
   })
   @Get('recent-activity')
-  getRecentActivity(@CurrentUser('organizationId') organizationId: string) {
-    return this.analyticsService.getRecentActivity(organizationId);
+  getRecentActivity(
+    @CurrentUser('organizationId') organizationId: string,
+    @CurrentUser('userId') userId: string,
+    @CurrentUser('permissions') permissions: string[],
+  ) {
+    return this.analyticsService.getRecentActivity(organizationId, userId, permissions);
   }
 }

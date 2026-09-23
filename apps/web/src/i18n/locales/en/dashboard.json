@@ -2,7 +2,9 @@
   "page": {
     "title": "Dashboard",
     "subtitle": "Operations overview - Latest business metrics today.",
-    "exportPdf": "Export PDF Report"
+    "exportPdf": "Export PDF",
+    "exportPdfError": "Couldn't export PDF file",
+    "print": "Print"
   },
   "hero": {
     "title": "Enterprise-Wide Task Overview",
@@ -84,6 +86,11 @@
   "recentActivityFeed": {
     "live": "Live updates",
     "offline": "Offline",
+    "scope": {
+      "organization": "Whole organization",
+      "department": "Your department",
+      "self": "Your activity"
+    },
     "errorTitle": "Couldn't load recent activity",
     "emptyTitle": "No activity yet",
     "emptyDescription": "New activity in your organization will appear here in real time.",
@@ -114,6 +121,7 @@
       "document_shared": "shared a document",
       "document_deleted": "deleted a document",
       "iam_user_department_changed": "updated member department",
+      "iam_department_manager_changed": "updated the department's manager",
       "customer_created": "created a new customer",
       "customer_deleted": "deleted a customer",
       "deal_created": "created a new deal",

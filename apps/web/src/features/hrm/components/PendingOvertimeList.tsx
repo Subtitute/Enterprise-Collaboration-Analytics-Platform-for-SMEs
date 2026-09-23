@@ -5,10 +5,12 @@ import { Avatar } from '@/components/ui/Avatar';
 import { formatDate } from '@/lib/utils';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { CheckIcon, XIcon, ClockIcon } from '@/components/ui/Icons';
-import type { OvertimeRegistration } from '../attendance-extensions.types';
+import type { OvertimeRequest } from '@/types';
 
+// 22/09/2026: `userName` khong ton tai tren OvertimeRequest (du lieu that tu hrm-service) -
+// AttendancePage.tsx tu resolve qua useUserNameMap() roi enrich truoc khi truyen xuong day.
 interface PendingOvertimeListProps {
-  overtimeList: OvertimeRegistration[];
+  overtimeList: (OvertimeRequest & { userName: string })[];
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
 }

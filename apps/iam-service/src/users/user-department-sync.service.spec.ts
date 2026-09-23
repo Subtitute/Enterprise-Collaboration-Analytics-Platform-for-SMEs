@@ -61,19 +61,21 @@ describe('UserDepartmentSyncService', () => {
       eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,
       organizationId: 'org-1',
       producer: 'iam-service',
-      payload: { userId: 'user-1', departmentId: 'dept-1' },
+      // 23/09/2026: actorId: null - day la buoc TU DONG resync luc khoi dong, khong phai do 1
+      // nguoi vua thao tac (xem chu thich UserDepartmentChangedPayload.actorId, common-dto).
+      payload: { userId: 'user-1', departmentId: 'dept-1', actorId: null },
     });
     expect(outboxService.record).toHaveBeenNthCalledWith(2, managerMock, {
       eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,
       organizationId: 'org-1',
       producer: 'iam-service',
-      payload: { userId: 'user-2', departmentId: null },
+      payload: { userId: 'user-2', departmentId: null, actorId: null },
     });
     expect(outboxService.record).toHaveBeenNthCalledWith(3, managerMock, {
       eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,
       organizationId: 'org-2',
       producer: 'iam-service',
-      payload: { userId: 'user-3', departmentId: 'dept-9' },
+      payload: { userId: 'user-3', departmentId: 'dept-9', actorId: null },
     });
   });
 });

@@ -2,6 +2,7 @@ import { Column, Entity, Index, OneToMany } from 'typeorm';
 import { ProjectStatus } from '@app/common-dto';
 import { AppBaseEntity } from '../common/base.entity';
 import { Task } from './task.entity';
+import { ProjectMember } from './project-member.entity';
 
 // 26/08/2026 (fix code review, loi MAJOR - Fix 3): enum do uu tien du an. Khai bao CUC BO trong
 // service nay (KHONG dua vao packages/common-dto/enums nhu ProjectStatus/TaskStatus) vi pham vi
@@ -60,4 +61,9 @@ export class Project extends AppBaseEntity {
 
   @OneToMany(() => Task, (task) => task.project)
   tasks: Task[];
+
+  // 22/09/2026: quan he nguoc cho ProjectMember (xem project-member.entity.ts) - mirror dung cach
+  // khai bao OneToMany(Task) o tren.
+  @OneToMany(() => ProjectMember, (member) => member.project)
+  members: ProjectMember[];
 }

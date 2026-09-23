@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth.store';
 import { connectAnalyticsSocket, disconnectAnalyticsSocket } from '@/lib/socket';
-import type { DateRangeOption, RecentActivityItem } from '@/types';
+import type { DateRangeOption, RecentActivityItem, VisibilityScope } from '@/types';
 import { fetchAnalyticsSummary, fetchRecentActivity, fetchTaskStatusBreakdown, fetchTaskTrend, fetchUpcomingLeaves } from './api';
 
 // 28/07/2026: them tham so departmentId (tuy chon) cho bo loc "Phong ban" tren Dashboard - dua
@@ -48,7 +48,9 @@ const LIVE_FEED_LIMIT = 15;
  */
 export function useRecentActivityFeed(limit = LIVE_FEED_LIMIT) {
   const accessToken = useAuthStore((s) => s.accessToken);
+  const currentUserId = useAuthStore((s) => s.user?.id);
   const query = useQuery({ queryKey: ['analytics', 'recent-activity'], queryFn: fetchRecentActivity });
+  const scope: VisibilityScope = query.data?.scope ?? 'self';
   const [liveItems, setLiveItems] = useState<RecentActivityItem[]>([]);
   const [isLive, setIsLive] = useState(false);
 
@@ -65,7 +67,15 @@ export function useRecentActivityFeed(limit = LIVE_FEED_LIMIT) {
     // Payload tho tu AnalyticsGateway.emitActivity(): { eventId, eventType, occurredAt, actorId }
     // (apps/analytics-service/src/realtime/analytics.gateway.ts) - khong giong shape REST
     // /analytics/recent-activity, nen phai doi ten field tai day truoc khi dua vao danh sach.
+    //
+    // 23/09/2026: AnalyticsGateway phat WS theo PHONG TOAN TO CHUC (khong co phong rieng theo
+    // phong ban), nen 1 Manager dang o pham vi 'department' van NHAN duoc push cua ca to chuc qua
+    // socket - loc lai o day cho truong hop 'self' (co the xac dinh chac chan: actorId phai =
+    // chinh minh). Truong hop 'department' KHONG loc duoc chinh xac o FE (khong co danh sach
+    // thanh vien phong ban minh phu trach san o day) nen tam thoi van hien thi day du cho pham vi
+    // nay o phan LIVE PUSH - snapshot REST ban dau (query.data.items) van duoc loc DUNG server-side.
     const onActivity = (raw: { eventId: string; eventType: string; occurredAt: string; actorId: string | null }) => {
+      if (scope === 'self' && raw.actorId !== currentUserId) return;
       const item: RecentActivityItem = {
         id: raw.eventId,
         actorId: raw.actorId,
@@ -86,12 +96,12 @@ export function useRecentActivityFeed(limit = LIVE_FEED_LIMIT) {
       socket.off('analytics:activity', onActivity);
       disconnectAnalyticsSocket();
     };
-  }, [accessToken, limit]);
+  }, [accessToken, limit, scope, currentUserId]);
 
   const items = useMemo(() => {
     const seen = new Set<string>();
     const combined: RecentActivityItem[] = [];
-    for (const item of [...liveItems, ...(query.data ?? [])]) {
+    for (const item of [...liveItems, ...(query.data?.items ?? [])]) {
       if (!item?.id || seen.has(item.id)) continue;
       seen.add(item.id);
       combined.push(item);
@@ -99,7 +109,7 @@ export function useRecentActivityFeed(limit = LIVE_FEED_LIMIT) {
     return combined.slice(0, limit);
   }, [liveItems, query.data, limit]);
 
-  return { items, isLoading: query.isLoading, isError: query.isError, isLive };
+  return { items, isLoading: query.isLoading, isError: query.isError, isLive, scope };
 }
 
 /**

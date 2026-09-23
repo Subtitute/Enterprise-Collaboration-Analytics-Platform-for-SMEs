@@ -1,5 +1,13 @@
 import { apiClient } from '@/lib/api-client';
-import type { Attendance, LeaveRequest, LeaveRequestStatus, PaginatedResponse } from '@/types';
+import type {
+  Attendance,
+  AttendanceAdjustment,
+  LeaveRequest,
+  LeaveRequestStatus,
+  OvertimeMultiplierType,
+  OvertimeRequest,
+  PaginatedResponse,
+} from '@/types';
 import type { CheckInLocation } from './components/CheckInCamera';
 
 /** 13/08/2026: `location` la tuy chon - khong gui field neu khong co (xem CheckInCamera.tsx). */
@@ -84,5 +92,139 @@ export async function approveLeaveRequest(id: string, decisionNote?: string): Pr
 
 export async function rejectLeaveRequest(id: string, decisionNote?: string): Promise<LeaveRequest> {
   const { data } = await apiClient.patch<LeaveRequest>(`/leave-requests/${id}/reject`, { decisionNote });
+  return data;
+}
+
+// 22/09/2026: so du phep theo Luat LD VN (HRM-lite mo rong, theo de xuat cua Tien). `entitledDays`/
+// `remainingDays` CO Y KHONG co trong response nay - xem chu thich chi tiet tai
+// LeaveRequestsService.getMyBalance() (apps/hrm-service): can User.createdAt (ngay vao lam, song o
+// database rieng cua IAM Service) de tinh thuong nien, frontend tu ghep not qua useOrgUsersQuery()
+// da co san (xem LeaveRequestsPage.tsx).
+export interface LeaveBalance {
+  year: number;
+  usedDays: number;
+  baseDaysPerYear: number;
+  seniorityYearsPerBonusDay: number;
+}
+
+export async function fetchMyLeaveBalance(): Promise<LeaveBalance> {
+  const { data } = await apiClient.get<LeaveBalance>('/leave-requests/me/balance');
+  return data;
+}
+
+export interface LeavePolicy {
+  id: string;
+  organizationId: string;
+  baseDaysPerYear: number;
+  seniorityYearsPerBonusDay: number;
+}
+
+export interface UpdateLeavePolicyPayload {
+  baseDaysPerYear?: number;
+  seniorityYearsPerBonusDay?: number;
+}
+
+/** Khong yeu cau permission dac biet de XEM (moi nhan vien can biet chinh sach) - chi PATCH moi can PERMISSIONS.ORG_MANAGE. */
+export async function fetchLeavePolicy(): Promise<LeavePolicy> {
+  const { data } = await apiClient.get<LeavePolicy>('/leave-policy');
+  return data;
+}
+
+export async function updateLeavePolicy(payload: UpdateLeavePolicyPayload): Promise<LeavePolicy> {
+  const { data } = await apiClient.patch<LeavePolicy>('/leave-policy', payload);
+  return data;
+}
+
+// 22/09/2026: giai trinh cham cong - thay the du lieu gia lap bang localStorage truoc day (xem
+// attendance-adjustments.controller.ts, apps/hrm-service). Mirror dung cac ham LeaveRequest o tren.
+export interface CreateAttendanceAdjustmentPayload {
+  attendanceId: string;
+  proposedCheckInAt: string;
+  proposedCheckOutAt: string;
+  reason: string;
+}
+
+export async function createAttendanceAdjustment(payload: CreateAttendanceAdjustmentPayload): Promise<AttendanceAdjustment> {
+  const { data } = await apiClient.post<AttendanceAdjustment>('/attendance-adjustments', payload);
+  return data;
+}
+
+export async function fetchMyAttendanceAdjustments(params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<AttendanceAdjustment>> {
+  const { data } = await apiClient.get<PaginatedResponse<AttendanceAdjustment>>('/attendance-adjustments/me', { params });
+  return data;
+}
+
+/** Danh sach cho duyet toan to chuc - CHI Manager/Org Admin (PERMISSIONS.ATTENDANCE_ADJUSTMENT_VIEW) goi duoc. */
+export async function fetchPendingAttendanceAdjustments(params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<AttendanceAdjustment>> {
+  const { data } = await apiClient.get<PaginatedResponse<AttendanceAdjustment>>('/attendance-adjustments', {
+    params: { status: 'PENDING', ...params },
+  });
+  return data;
+}
+
+/** 22/09/2026: danh sach giai trinh DA DUYET toan to chuc, khong loc thang (to chuc quy mo nho) -
+ *  dung de hien badge "Đã sửa công" tren bang cham cong (xem AttendanceStatusBadge, AttendancePage.tsx). */
+export async function fetchApprovedAttendanceAdjustments(): Promise<AttendanceAdjustment[]> {
+  const { data } = await apiClient.get<PaginatedResponse<AttendanceAdjustment>>('/attendance-adjustments', {
+    params: { status: 'APPROVED', limit: 500 },
+  });
+  return data.data;
+}
+
+export async function approveAttendanceAdjustment(id: string, decisionNote?: string): Promise<AttendanceAdjustment> {
+  const { data } = await apiClient.patch<AttendanceAdjustment>(`/attendance-adjustments/${id}/approve`, { decisionNote });
+  return data;
+}
+
+export async function rejectAttendanceAdjustment(id: string, decisionNote?: string): Promise<AttendanceAdjustment> {
+  const { data } = await apiClient.patch<AttendanceAdjustment>(`/attendance-adjustments/${id}/reject`, { decisionNote });
+  return data;
+}
+
+// 22/09/2026: dang ky tang ca (OT) - thay the du lieu gia lap bang localStorage truoc day (xem
+// overtime-requests.controller.ts, apps/hrm-service). Mirror dung cac ham LeaveRequest o tren.
+export interface CreateOvertimeRequestPayload {
+  workDate: string;
+  otStart: string;
+  otEnd: string;
+  multiplierType: OvertimeMultiplierType;
+  reason: string;
+}
+
+export async function createOvertimeRequest(payload: CreateOvertimeRequestPayload): Promise<OvertimeRequest> {
+  const { data } = await apiClient.post<OvertimeRequest>('/overtime-requests', payload);
+  return data;
+}
+
+export async function fetchMyOvertimeRequests(params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<OvertimeRequest>> {
+  const { data } = await apiClient.get<PaginatedResponse<OvertimeRequest>>('/overtime-requests/me', { params });
+  return data;
+}
+
+/** Danh sach cho duyet toan to chuc - CHI Manager/Org Admin (PERMISSIONS.OVERTIME_REQUEST_VIEW) goi duoc. */
+export async function fetchPendingOvertimeRequests(params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<OvertimeRequest>> {
+  const { data } = await apiClient.get<PaginatedResponse<OvertimeRequest>>('/overtime-requests', {
+    params: { status: 'PENDING', ...params },
+  });
+  return data;
+}
+
+/** 22/09/2026: danh sach OT DA DUYET toan to chuc, khong loc thang (to chuc quy mo nho - xem
+ *  MonthlyTimesheetTable.tsx) - dung de tinh otHours THAT cho bang cong thang, thay heuristic
+ *  doan "checkout sau 17:30" truoc day. */
+export async function fetchApprovedOvertimeRequests(): Promise<OvertimeRequest[]> {
+  const { data } = await apiClient.get<PaginatedResponse<OvertimeRequest>>('/overtime-requests', {
+    params: { status: 'APPROVED', limit: 500 },
+  });
+  return data.data;
+}
+
+export async function approveOvertimeRequest(id: string, decisionNote?: string): Promise<OvertimeRequest> {
+  const { data } = await apiClient.patch<OvertimeRequest>(`/overtime-requests/${id}/approve`, { decisionNote });
+  return data;
+}
+
+export async function rejectOvertimeRequest(id: string, decisionNote?: string): Promise<OvertimeRequest> {
+  const { data } = await apiClient.patch<OvertimeRequest>(`/overtime-requests/${id}/reject`, { decisionNote });
   return data;
 }

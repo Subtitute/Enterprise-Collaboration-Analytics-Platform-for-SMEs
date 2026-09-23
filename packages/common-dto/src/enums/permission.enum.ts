@@ -62,6 +62,16 @@ export const PERMISSIONS = {
   // vao danh sach Manager/Employee - ngay le/su kien cong ty la thiet lap cap to chuc, khong phai
   // nghiep vu hang ngay cua tung phong ban.
   CALENDAR_MANAGE: 'calendar:manage',
+
+  // 22/09/2026: giai trinh/duyet cham cong va dang ky/duyet tang ca (HRM-lite mo rong) - mirror
+  // dung nhom 3 quyen LEAVE_REQUEST_CREATE/VIEW/APPROVE o tren (nhan vien tu tao yeu cau, Manager
+  // xem toan bo + duyet).
+  ATTENDANCE_ADJUSTMENT_CREATE: 'attendance_adjustment:create',
+  ATTENDANCE_ADJUSTMENT_VIEW: 'attendance_adjustment:view',
+  ATTENDANCE_ADJUSTMENT_APPROVE: 'attendance_adjustment:approve',
+  OVERTIME_REQUEST_CREATE: 'overtime_request:create',
+  OVERTIME_REQUEST_VIEW: 'overtime_request:view',
+  OVERTIME_REQUEST_APPROVE: 'overtime_request:approve',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -107,6 +117,14 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<DefaultRoleName, Permission[]> = {
     PERMISSIONS.LEAVE_REQUEST_CREATE,
     PERMISSIONS.LEAVE_REQUEST_VIEW,
     PERMISSIONS.LEAVE_REQUEST_APPROVE,
+    // 22/09/2026: Manager tu giai trinh/dang ky NHU MOI nhan vien khac, cong them quyen xem toan
+    // to chuc + duyet (mirror dung ly do voi nhom LEAVE_REQUEST ngay tren).
+    PERMISSIONS.ATTENDANCE_ADJUSTMENT_CREATE,
+    PERMISSIONS.ATTENDANCE_ADJUSTMENT_VIEW,
+    PERMISSIONS.ATTENDANCE_ADJUSTMENT_APPROVE,
+    PERMISSIONS.OVERTIME_REQUEST_CREATE,
+    PERMISSIONS.OVERTIME_REQUEST_VIEW,
+    PERMISSIONS.OVERTIME_REQUEST_APPROVE,
   ],
   [DefaultRoleName.EMPLOYEE]: [
     PERMISSIONS.PROJECT_VIEW,
@@ -127,5 +145,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<DefaultRoleName, Permission[]> = {
     // phep cho chinh minh; KHONG xem duoc du lieu toan to chuc/duyet nghi phep (thuoc Manager).
     PERMISSIONS.ATTENDANCE_CHECKIN,
     PERMISSIONS.LEAVE_REQUEST_CREATE,
+    // 22/09/2026: Employee tu giai trinh cham cong sai/dang ky tang ca cho chinh minh; KHONG xem
+    // duoc du lieu toan to chuc/duyet (thuoc Manager) - mirror dung LEAVE_REQUEST_CREATE ngay tren.
+    PERMISSIONS.ATTENDANCE_ADJUSTMENT_CREATE,
+    PERMISSIONS.OVERTIME_REQUEST_CREATE,
   ],
 };

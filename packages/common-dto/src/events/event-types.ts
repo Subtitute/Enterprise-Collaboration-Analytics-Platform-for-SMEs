@@ -31,6 +31,11 @@ export const EVENT_TYPES = {
   // USER_REGISTERED da mang san departmentId luc tao moi (UserRegisteredPayload), nhung truoc day
   // KHONG co event nao phat khi departmentId cua 1 user ĐÃ TỒN TẠI thay doi qua PATCH /users/:id.
   USER_DEPARTMENT_CHANGED: 'iam.user.department_changed',
+  // 23/09/2026: pham vi hien thi thong bao theo phong ban (Notification Service/Analytics Service
+  // can biet AI dang phu trach phong ban nao - xem Department.managerId) - truoc day thay doi
+  // managerId cua 1 phong ban KHONG phat event nao ca (DepartmentsService khong co OutboxService).
+  // `managerId: null` nghia la phong ban vua bi go nguoi phu trach.
+  DEPARTMENT_MANAGER_CHANGED: 'iam.department.manager_changed',
 
   // Project & Task Service (Technical_Spec.md muc 3.3)
   TASK_CREATED: 'task.created',
@@ -65,6 +70,14 @@ export const EVENT_TYPES = {
   // sua, chi CREATE/DELETE, giu nhat quan).
   CALENDAR_EVENT_CREATED: 'calendar_event.created',
   CALENDAR_EVENT_DELETED: 'calendar_event.deleted',
+
+  // 22/09/2026: giai trinh/duyet cham cong va tang ca (HRM-lite mo rong) - mirror dung
+  // LEAVE_REQUEST_APPROVED/REJECTED (chi phat khi co QUYET DINH, khong phat luc tao yeu cau -
+  // nguoi nhan thong bao ro rang la nguoi gui yeu cau).
+  ATTENDANCE_ADJUSTMENT_APPROVED: 'attendance_adjustment.approved',
+  ATTENDANCE_ADJUSTMENT_REJECTED: 'attendance_adjustment.rejected',
+  OVERTIME_REQUEST_APPROVED: 'overtime_request.approved',
+  OVERTIME_REQUEST_REJECTED: 'overtime_request.rejected',
 } as const;
 
 export type EventType = (typeof EVENT_TYPES)[keyof typeof EVENT_TYPES];
@@ -75,6 +88,7 @@ export const EVENT_TYPE_TOPIC_MAP: Record<EventType, KafkaTopic> = {
   [EVENT_TYPES.USER_REGISTERED]: KAFKA_TOPICS.IAM,
   [EVENT_TYPES.USER_DEACTIVATED]: KAFKA_TOPICS.IAM,
   [EVENT_TYPES.USER_DEPARTMENT_CHANGED]: KAFKA_TOPICS.IAM,
+  [EVENT_TYPES.DEPARTMENT_MANAGER_CHANGED]: KAFKA_TOPICS.IAM,
 
   [EVENT_TYPES.TASK_CREATED]: KAFKA_TOPICS.PROJECT_TASK,
   [EVENT_TYPES.TASK_STATUS_CHANGED]: KAFKA_TOPICS.PROJECT_TASK,
@@ -101,6 +115,10 @@ export const EVENT_TYPE_TOPIC_MAP: Record<EventType, KafkaTopic> = {
   [EVENT_TYPES.LEAVE_REQUEST_REJECTED]: KAFKA_TOPICS.HRM,
   [EVENT_TYPES.CALENDAR_EVENT_CREATED]: KAFKA_TOPICS.HRM,
   [EVENT_TYPES.CALENDAR_EVENT_DELETED]: KAFKA_TOPICS.HRM,
+  [EVENT_TYPES.ATTENDANCE_ADJUSTMENT_APPROVED]: KAFKA_TOPICS.HRM,
+  [EVENT_TYPES.ATTENDANCE_ADJUSTMENT_REJECTED]: KAFKA_TOPICS.HRM,
+  [EVENT_TYPES.OVERTIME_REQUEST_APPROVED]: KAFKA_TOPICS.HRM,
+  [EVENT_TYPES.OVERTIME_REQUEST_REJECTED]: KAFKA_TOPICS.HRM,
 };
 
 /** Consumer group id chuan - moi service subscribe dung 1 group rieng de nhan du 3 topic. */

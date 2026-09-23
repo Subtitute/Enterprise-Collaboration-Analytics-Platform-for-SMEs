@@ -288,6 +288,60 @@ describe('FactWriterService', () => {
     });
   });
 
+  // 23/09/2026: unit test cho upsertDepartmentManager() - mirror CHINH XAC bo test
+  // upsertUserDepartment() o tren (cung mau "ON CONFLICT ... WHERE last_event_at").
+  describe('upsertDepartmentManager', () => {
+    const managerChangedEvent: DomainEvent = {
+      ...baseEvent,
+      eventType: EVENT_TYPES.DEPARTMENT_MANAGER_CHANGED,
+      payload: { departmentId: 'dept-1', managerId: 'user-9' },
+    };
+
+    it('INSERT ... ON CONFLICT (department_id) DO UPDATE dung tham so tu payload (kem occurredAt)', async () => {
+      queryMock.mockResolvedValueOnce([{ department_id: 'dept-1' }]);
+
+      await service.upsertDepartmentManager(managerChangedEvent);
+
+      const [sql, params] = queryMock.mock.calls[0];
+      expect(sql).toContain('INSERT INTO dim_department_manager');
+      expect(sql).toContain('ON CONFLICT (department_id) DO UPDATE SET manager_id = EXCLUDED.manager_id');
+      expect(sql).toContain(
+        'WHERE dim_department_manager.last_event_at IS NULL OR EXCLUDED.last_event_at > dim_department_manager.last_event_at',
+      );
+      expect(params).toEqual(['dept-1', managerChangedEvent.organizationId, 'user-9', managerChangedEvent.occurredAt]);
+    });
+
+    it('dung managerId = null khi phong ban vua bi go nguoi phu trach', async () => {
+      const unassignedEvent: DomainEvent = {
+        ...baseEvent,
+        eventType: EVENT_TYPES.DEPARTMENT_MANAGER_CHANGED,
+        payload: { departmentId: 'dept-1', managerId: null },
+      };
+      queryMock.mockResolvedValueOnce([{ department_id: 'dept-1' }]);
+
+      await service.upsertDepartmentManager(unassignedEvent);
+
+      const [, params] = queryMock.mock.calls[0];
+      expect(params).toEqual(['dept-1', unassignedEvent.organizationId, null, unassignedEvent.occurredAt]);
+    });
+
+    it('bo qua (khong throw) khi Postgres bao RETURNING rong - event den CU hon last_event_at da luu', async () => {
+      queryMock.mockResolvedValueOnce([]);
+
+      await expect(service.upsertDepartmentManager(managerChangedEvent)).resolves.toBeUndefined();
+    });
+
+    it('dung runner.query() (vd EntityManager cua 1 transaction) thay vi this.dataSource.query() khi duoc truyen vao', async () => {
+      const managerQueryMock = jest.fn().mockResolvedValue([{ department_id: 'dept-1' }]);
+      const managerStub = { query: managerQueryMock };
+
+      await service.upsertDepartmentManager(managerChangedEvent, managerStub as unknown as DataSource);
+
+      expect(managerQueryMock).toHaveBeenCalledTimes(1);
+      expect(queryMock).not.toHaveBeenCalled();
+    });
+  });
+
   // 25/07/2026 (Fix 2 - Major, audit): chung minh 3 ham co the CHIA SE 1 runner DUY NHAT (mo
   // phong EntityManager cua 1 transaction) - dung tinh huong that ma KafkaConsumerService.handleEvent()
   // tao ra: recordUserActivity() + recordTaskEvent() cho CUNG 1 event, CUNG 1 transaction.

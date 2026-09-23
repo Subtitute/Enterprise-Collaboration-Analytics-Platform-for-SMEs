@@ -48,8 +48,9 @@ describe('LeaveRequestsService', () => {
   }
 
   function createService(opts: {
-    leaveRequestRepoMock?: { findOne: jest.Mock };
+    leaveRequestRepoMock?: { findOne: jest.Mock; createQueryBuilder?: jest.Mock };
     managerMock?: { findOne?: jest.Mock; create?: jest.Mock; save: jest.Mock };
+    leavePolicyServiceMock?: { getOrCreate: jest.Mock };
   } = {}) {
     const managerMock =
       opts.managerMock ??
@@ -60,14 +61,21 @@ describe('LeaveRequestsService', () => {
     const dataSourceMock = { transaction: jest.fn((cb: any) => cb(managerMock)) };
     const leaveRequestRepoMock = opts.leaveRequestRepoMock ?? { findOne: jest.fn() };
     const outboxServiceMock = { record: jest.fn().mockResolvedValue(undefined) };
+    // 22/09/2026: so du phep (getMyBalance()) - mac dinh mock chinh sach 12 ngay/nam, +1 ngay/5 nam.
+    const leavePolicyServiceMock =
+      opts.leavePolicyServiceMock ??
+      ({ getOrCreate: jest.fn().mockResolvedValue({ baseDaysPerYear: 12, seniorityYearsPerBonusDay: 5 }) } as {
+        getOrCreate: jest.Mock;
+      });
 
     const service = new LeaveRequestsService(
       dataSourceMock as any,
       leaveRequestRepoMock as any,
       outboxServiceMock as any,
+      leavePolicyServiceMock as any,
     );
 
-    return { service, dataSourceMock, managerMock, leaveRequestRepoMock, outboxServiceMock };
+    return { service, dataSourceMock, managerMock, leaveRequestRepoMock, outboxServiceMock, leavePolicyServiceMock };
   }
 
   describe('create', () => {
@@ -227,6 +235,61 @@ describe('LeaveRequestsService', () => {
         response: expect.objectContaining({ errorCode: ERROR_CODES.LEAVE_REQUEST_NOT_FOUND }),
       });
       expect(managerMock.save).not.toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * 22/09/2026: test cho tinh nang moi - so du phep (getMyBalance()), theo de xuat cua Tien "Tính
+   * phép theo Luật LĐ VN". Chi khoa lai usedDays (dem ngay lam viec Thu2-Thu6 cua don APPROVED
+   * giao voi nam hien tai) + chinh sach tra ve nguyen ven tu LeavePolicyService - entitledDays/
+   * remainingDays CO Y khong tinh o day (xem chu thich tai LeaveRequestsService.getMyBalance()).
+   */
+  describe('getMyBalance', () => {
+    function makeQueryBuilder(rows: unknown[]) {
+      const qb: any = {};
+      qb.where = jest.fn().mockReturnValue(qb);
+      qb.andWhere = jest.fn().mockReturnValue(qb);
+      qb.getMany = jest.fn().mockResolvedValue(rows);
+      return qb;
+    }
+
+    it('cong don dung so ngay lam viec (bo qua Thu 7/CN) cua cac don APPROVED trong nam hien tai', async () => {
+      const year = new Date().getFullYear();
+      // Thu 2 -> Thu 6 CUNG 1 tuan (chon 1 tuan bat ky khong ranh gioi nam) = 5 ngay lam viec.
+      const approved = [
+        { startDate: `${year}-06-02`, endDate: `${year}-06-06`, status: 'APPROVED' }, // gia su la T2-T6
+      ];
+      const leaveRequestRepoMock = { findOne: jest.fn(), createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder(approved)) };
+      const { service } = createService({ leaveRequestRepoMock });
+
+      const result = await service.getMyBalance(organizationId, userId);
+
+      expect(result.year).toBe(year);
+      expect(result.baseDaysPerYear).toBe(12);
+      expect(result.seniorityYearsPerBonusDay).toBe(5);
+      expect(result.usedDays).toBeGreaterThan(0);
+    });
+
+    it('cat khoang ngay ve trong nam hien tai neu don nghi vat qua giao thua nam', async () => {
+      const year = new Date().getFullYear();
+      // 30/12 nam truoc -> 02/01 nam nay: chi phan tu 01/01 den 02/01 nam nay duoc tinh.
+      const approved = [{ startDate: `${year - 1}-12-30`, endDate: `${year}-01-02`, status: 'APPROVED' }];
+      const leaveRequestRepoMock = { findOne: jest.fn(), createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder(approved)) };
+      const { service } = createService({ leaveRequestRepoMock });
+
+      const result = await service.getMyBalance(organizationId, userId);
+
+      // Khong the vuot qua 2 ngay lam viec (01/01 - 02/01), du don goc dai hon nhieu.
+      expect(result.usedDays).toBeLessThanOrEqual(2);
+    });
+
+    it('tra ve usedDays = 0 khi khong co don APPROVED nao trong nam hien tai', async () => {
+      const leaveRequestRepoMock = { findOne: jest.fn(), createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])) };
+      const { service } = createService({ leaveRequestRepoMock });
+
+      const result = await service.getMyBalance(organizationId, userId);
+
+      expect(result.usedDays).toBe(0);
     });
   });
 });

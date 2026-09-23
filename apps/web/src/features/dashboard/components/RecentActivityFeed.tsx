@@ -74,7 +74,7 @@ function getTimeGroup(dateStr: string): 'today' | 'yesterday' | 'earlier' {
 
 export function RecentActivityFeed() {
   const { t } = useTranslation();
-  const { items, isLoading, isError, isLive } = useRecentActivityFeed();
+  const { items, isLoading, isError, isLive, scope } = useRecentActivityFeed();
   const { map: userNames } = useUserNameMap();
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -111,6 +111,11 @@ export function RecentActivityFeed() {
           </span>
           <span className="text-xs font-medium text-slate-500">
             {isLive ? t('dashboard:recentActivityFeed.live') : t('dashboard:recentActivityFeed.offline')}
+          </span>
+          {/* 23/09/2026: the hien RO RANG pham vi dang xem (yeu cau nguoi dung) - Org Admin/Manager/
+              Employee thay muc do khac nhau, tranh hieu nham "danh sach ngan" la thieu du lieu. */}
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+            {t(`dashboard:recentActivityFeed.scope.${scope}`)}
           </span>
         </div>
         <span className="text-[11px] text-slate-400 font-normal">

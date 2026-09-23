@@ -14,9 +14,12 @@ export class NotificationsController {
   findAll(
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') userId: string,
+    // 23/09/2026: pham vi hien thi (to chuc/phong ban/ca nhan) suy ra tu permissions cua nguoi
+    // goi - xem NotificationsService.resolveVisibleUserIds().
+    @CurrentUser('permissions') permissions: string[],
     @Query() query: ListNotificationsQueryDto,
   ) {
-    return this.notificationsService.findForUser(organizationId, userId, query);
+    return this.notificationsService.findForUser(organizationId, userId, permissions, query);
   }
 
   // Khai bao TRUOC ':id/read' de tranh nham lan - du Nest phan biet duoc theo so segment

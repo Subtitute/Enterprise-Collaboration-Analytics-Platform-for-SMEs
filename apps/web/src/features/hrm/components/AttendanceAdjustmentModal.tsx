@@ -4,28 +4,19 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { FormField, Textarea } from '@/components/ui/Input';
 import { TimePicker } from '@/components/ui/TimePicker';
-import { toast } from '@/stores/toast.store';
 import { formatTime, formatDate } from '@/lib/utils';
 import type { Attendance } from '@/types';
-import type { AttendanceAdjustment } from '../attendance-extensions.types';
-import { getStoredAdjustments, saveStoredAdjustments } from '../attendance-extensions.types';
+import { useCreateAttendanceAdjustment } from '../hooks';
 
 interface AttendanceAdjustmentModalProps {
   record: Attendance | null;
-  userName: string;
   open: boolean;
   onClose: () => void;
-  onSuccess: () => void;
 }
 
-export function AttendanceAdjustmentModal({
-  record,
-  userName,
-  open,
-  onClose,
-  onSuccess,
-}: AttendanceAdjustmentModalProps) {
+export function AttendanceAdjustmentModal({ record, open, onClose }: AttendanceAdjustmentModalProps) {
   const { t } = useTranslation();
+  const createAdjustment = useCreateAttendanceAdjustment();
 
   // Khởi tạo giờ check-in / check-out mặc định từ record hiện tại (nếu có)
   const defaultInTime = record?.checkInAt
@@ -87,30 +78,18 @@ export function AttendanceAdjustmentModal({
       }
     }
 
-    // Lưu yêu cầu giải trình mới vào persistent storage
-    const newAdjustment: AttendanceAdjustment = {
-      id: `adj_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      attendanceId: record.id,
-      userId: record.userId,
-      userName,
-      workDate: record.workDate,
-      originalCheckInAt: record.checkInAt,
-      originalCheckOutAt: record.checkOutAt,
-      proposedCheckInAt: `${record.workDate}T${inTime}:00+07:00`,
-      proposedCheckOutAt: `${record.workDate}T${outTime}:00+07:00`,
-      reason: reason.trim(),
-      status: 'PENDING',
-      createdAt: new Date().toISOString(),
-    };
-
-    const currentList = getStoredAdjustments();
-    // Thay thế yêu cầu cũ cùng attendanceId nếu đang PENDING
-    const filtered = currentList.filter((a) => !(a.attendanceId === record.id && a.status === 'PENDING'));
-    saveStoredAdjustments([newAdjustment, ...filtered]);
-
-    toast.success(t('hrm:extensions.adjustment.successSubmit'));
-    onSuccess();
-    onClose();
+    // Gửi yêu cầu giải trình thật lên server - AttendanceAdjustmentsService validate lại TOÀN BỘ
+    // các điều kiện trên (7 ngày/thứ tự giờ/không vượt hiện tại) phía server, đây chỉ là lớp phản
+    // hồi nhanh cho trải nghiệm người dùng.
+    createAdjustment.mutate(
+      {
+        attendanceId: record.id,
+        proposedCheckInAt: `${record.workDate}T${inTime}:00+07:00`,
+        proposedCheckOutAt: `${record.workDate}T${outTime}:00+07:00`,
+        reason: reason.trim(),
+      },
+      { onSuccess: onClose },
+    );
   };
 
   return (
@@ -174,7 +153,7 @@ export function AttendanceAdjustmentModal({
           <Button type="button" variant="outline" size="sm" onClick={onClose}>
             {t('hrm:extensions.adjustment.cancelButton')}
           </Button>
-          <Button type="submit" size="sm">
+          <Button type="submit" size="sm" disabled={createAdjustment.isPending}>
             {t('hrm:extensions.adjustment.submitButton')}
           </Button>
         </div>

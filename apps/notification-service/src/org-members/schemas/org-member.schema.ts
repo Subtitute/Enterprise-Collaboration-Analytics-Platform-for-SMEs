@@ -25,6 +25,16 @@ export class OrgMember {
   /** false khi user bi vo hieu hoa (USER_DEACTIVATED) - khong dua vao danh sach fan-out thong bao. */
   @Prop({ default: true })
   isActive: boolean;
+
+  /**
+   * 23/09/2026: bo sung cho tinh nang "Manager chi thay thong bao cua phong ban minh phu trach"
+   * (xem DepartmentManager schema + NotificationsService.resolveVisibleUserIds()) - dong bo tu
+   * USER_REGISTERED (co san departmentId luc tao) va USER_DEPARTMENT_CHANGED (xem
+   * KafkaConsumerService.syncOrgMembership()). `null`/undefined nghia la user hien khong thuoc
+   * phong ban nao.
+   */
+  @Prop({ type: String, default: null })
+  departmentId?: string | null;
 }
 
 export const OrgMemberSchema = SchemaFactory.createForClass(OrgMember);
@@ -34,3 +44,6 @@ export const OrgMemberSchema = SchemaFactory.createForClass(OrgMember);
 OrgMemberSchema.index({ organizationId: 1, userId: 1 }, { unique: true });
 // Phuc vu truy van chinh: "danh sach userId active cua 1 to chuc" (listActiveUserIds()).
 OrgMemberSchema.index({ organizationId: 1, isActive: 1 });
+// 23/09/2026: phuc vu truy van "danh sach userId active thuoc 1 tap phong ban" (xem
+// listActiveUserIdsInDepartments()).
+OrgMemberSchema.index({ organizationId: 1, departmentId: 1 });

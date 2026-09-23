@@ -190,6 +190,36 @@ export class FactWriterService {
       );
     }
   }
+
+  /**
+   * 23/09/2026: upsert dim_department_manager tu event EVENT_TYPES.DEPARTMENT_MANAGER_CHANGED
+   * (DepartmentManagerChangedPayload) - mirror CHINH XAC upsertUserDepartment() o tren (cung mau
+   * "ON CONFLICT ... WHERE last_event_at" chong event den sai thu tu, xem ghi chu chi tiet tai do).
+   * Phuc vu scoping "Manager chi thay Hoat dong gan day cua phong ban minh phu trach"
+   * (AnalyticsService.getRecentActivity()/listDepartmentIdsManagedBy()).
+   */
+  async upsertDepartmentManager(event: DomainEvent, runner: QueryExecutor = this.dataSource): Promise<void> {
+    const rows = await runner.query(
+      `
+      INSERT INTO dim_department_manager (department_id, organization_id, manager_id, updated_at, last_event_at)
+      VALUES ($1, $2, $3, now(), $4)
+      ON CONFLICT (department_id) DO UPDATE SET manager_id = EXCLUDED.manager_id, updated_at = now(), last_event_at = EXCLUDED.last_event_at
+      WHERE dim_department_manager.last_event_at IS NULL OR EXCLUDED.last_event_at > dim_department_manager.last_event_at
+      RETURNING department_id
+      `,
+      [
+        extractString(event, 'departmentId'),
+        event.organizationId,
+        extractString(event, 'managerId'),
+        event.occurredAt,
+      ],
+    );
+    if (rows.length === 0) {
+      this.logger.debug(
+        `Bo qua upsertDepartmentManager cho event CU hon last_event_at da luu (departmentId=${extractString(event, 'departmentId')}, eventId=${event.eventId}, occurredAt=${event.occurredAt}).`,
+      );
+    }
+  }
 }
 
 /**

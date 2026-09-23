@@ -75,9 +75,14 @@ export class UserDepartmentSyncService implements OnApplicationBootstrap {
     // that.
     await this.dataSource.transaction(async (manager) => {
       for (const user of users) {
+        // 23/09/2026: actorId luon null o day - day la 1 buoc TU DONG phat lai (resync) luc khoi
+        // dong, khong phai do 1 nguoi vua thao tac (xem UserDepartmentChangedPayload.actorId,
+        // packages/common-dto). Ghi ro null (khong bo qua field) de phan biet ro voi truong hop
+        // that su co actor tu UsersService.update().
         const payload: UserDepartmentChangedPayload = {
           userId: user.id,
           departmentId: user.departmentId ?? null,
+          actorId: null,
         };
         await this.outboxService.record(manager, {
           eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,

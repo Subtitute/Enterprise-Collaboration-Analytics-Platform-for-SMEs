@@ -55,6 +55,8 @@ describe('KafkaConsumerService (Analytics Service) - handleEvent', () => {
     recordDocumentEvent: jest.Mock;
     // 28/07/2026: mock moi - nhanh USER_REGISTERED/USER_DEPARTMENT_CHANGED cua handleEvent().
     upsertUserDepartment: jest.Mock;
+    // 23/09/2026: mock moi - nhanh DEPARTMENT_MANAGER_CHANGED cua handleEvent().
+    upsertDepartmentManager: jest.Mock;
   };
   let gatewayMock: { emitActivity: jest.Mock };
   let dataSourceMock: { transaction: jest.Mock };
@@ -83,6 +85,7 @@ describe('KafkaConsumerService (Analytics Service) - handleEvent', () => {
       // 28/07/2026: upsertUserDepartment() khong tra ve gia tri co y nghia (Promise<void>) - mock
       // resolve undefined, cung ly do nhu 3 ham con lai deu mac dinh "thanh cong".
       upsertUserDepartment: jest.fn().mockResolvedValue(undefined),
+      upsertDepartmentManager: jest.fn().mockResolvedValue(undefined),
     };
     gatewayMock = { emitActivity: jest.fn() };
     // 25/07/2026: mo phong dataSource.transaction() CHAY THAT callback (giong hanh vi that cua
@@ -226,6 +229,37 @@ describe('KafkaConsumerService (Analytics Service) - handleEvent', () => {
       factWriterMock.upsertUserDepartment.mockRejectedValue(dbError);
 
       await expect(service['handleEvent'](registeredEvent, KAFKA_TOPICS.IAM)).rejects.toThrow(
+        'TimescaleDB connection timeout',
+      );
+      expect(gatewayMock.emitActivity).not.toHaveBeenCalled();
+    });
+  });
+
+  // 23/09/2026: bo sung - nhanh MOI cua handleEvent() cho scoping "Manager chi thay Hoat dong
+  // gan day cua phong ban minh phu trach", goi qua EVENT_TYPES.DEPARTMENT_MANAGER_CHANGED (topic
+  // KAFKA_TOPICS.IAM) - mirror CHINH XAC nhom test USER_REGISTERED/USER_DEPARTMENT_CHANGED o tren.
+  describe('cap nhat dim_department_manager tu event DEPARTMENT_MANAGER_CHANGED', () => {
+    const managerChangedEvent: DomainEvent = {
+      ...baseEvent,
+      eventType: EVENT_TYPES.DEPARTMENT_MANAGER_CHANGED,
+      payload: { departmentId: 'dept-1', managerId: 'user-9' },
+    };
+
+    it('goi upsertDepartmentManager() (khong phai recordTaskEvent/recordDocumentEvent/upsertUserDepartment), trong CUNG transaction', async () => {
+      await service['handleEvent'](managerChangedEvent, KAFKA_TOPICS.IAM);
+
+      expect(factWriterMock.upsertDepartmentManager).toHaveBeenCalledWith(managerChangedEvent, managerStub);
+      expect(factWriterMock.upsertUserDepartment).not.toHaveBeenCalled();
+      expect(factWriterMock.recordTaskEvent).not.toHaveBeenCalled();
+      expect(factWriterMock.recordDocumentEvent).not.toHaveBeenCalled();
+      expect(factWriterMock.recordUserActivity).toHaveBeenCalledWith(managerChangedEvent, managerStub);
+    });
+
+    it('RETHROW loi TAM THOI khi upsertDepartmentManager that bai (vd TimescaleDB down)', async () => {
+      const dbError = new Error('TimescaleDB connection timeout');
+      factWriterMock.upsertDepartmentManager.mockRejectedValue(dbError);
+
+      await expect(service['handleEvent'](managerChangedEvent, KAFKA_TOPICS.IAM)).rejects.toThrow(
         'TimescaleDB connection timeout',
       );
       expect(gatewayMock.emitActivity).not.toHaveBeenCalled();

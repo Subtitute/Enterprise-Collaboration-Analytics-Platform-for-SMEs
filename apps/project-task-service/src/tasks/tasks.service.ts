@@ -18,6 +18,7 @@ import {
 } from '@app/common-dto';
 import { Task } from '../entities/task.entity';
 import { TaskAssignee } from '../entities/task-assignee.entity';
+import { ProjectMember } from '../entities/project-member.entity';
 import { TaskComment } from '../entities/task-comment.entity';
 import { TaskStatusHistory } from '../entities/task-status-history.entity';
 import { Project } from '../entities/project.entity';
@@ -176,6 +177,10 @@ export class TasksService {
    * getRepository(Project)` thay vi them 1 @InjectRepository(Project) vao constructor - tranh doi
    * chu ky constructor cua TasksService (se lam vo hieu moi lenh `new TasksService(...)` co san
    * trong tasks.service.spec.ts).
+   *
+   * 22/09/2026: them nguon thu 3 - thanh vien du an "that" (ProjectMember), dung `this.dataSource.
+   * getRepository(ProjectMember)` cung ly do (khong doi chu ky constructor) - mirror CHINH XAC
+   * nhanh tuong ung vua them tai ProjectsService.getVisibleProjectIds() (xem chu thich tai do).
    */
   private async getVisibleProjectIds(organizationId: string, userId: string): Promise<string[]> {
     const assignedRows = await this.assigneeRepo
@@ -184,6 +189,15 @@ export class TasksService {
       .select('DISTINCT task.projectId', 'projectId')
       .where('assignee.userId = :userId', { userId })
       .andWhere('task.organizationId = :organizationId', { organizationId })
+      .getRawMany<{ projectId: string }>();
+
+    const memberRows = await this.dataSource
+      .getRepository(ProjectMember)
+      .createQueryBuilder('member')
+      .innerJoin(Project, 'project', 'project.id = member.projectId')
+      .select('DISTINCT member.projectId', 'projectId')
+      .where('member.userId = :userId', { userId })
+      .andWhere('project.organizationId = :organizationId', { organizationId })
       .getRawMany<{ projectId: string }>();
 
     const projectRepo = this.dataSource.getRepository(Project);
@@ -197,6 +211,7 @@ export class TasksService {
 
     const ids = new Set<string>();
     for (const row of assignedRows) ids.add(row.projectId);
+    for (const row of memberRows) ids.add(row.projectId);
     for (const project of ownedProjects) ids.add(project.id);
     return Array.from(ids);
   }
@@ -329,12 +344,18 @@ export class TasksService {
         }),
       );
 
+      // 22/09/2026: dinh kem san Project.leadUserId vao payload - Notification Service khong the tu
+      // tra cuu bang nay (database-per-service), can gia tri nay de biet gui thong bao "Task Done"
+      // cho ai (xem event-notification-builder.ts, apps/notification-service).
+      const project = await manager.findOne(Project, { where: { id: updated.projectId } });
+
       const payload: TaskStatusChangedPayload = {
         taskId: updated.id,
         projectId: updated.projectId,
         fromStatus,
         toStatus,
         actorId,
+        leadUserId: project?.leadUserId ?? null,
       };
       await this.outboxService.record(manager, {
         eventType: EVENT_TYPES.TASK_STATUS_CHANGED,

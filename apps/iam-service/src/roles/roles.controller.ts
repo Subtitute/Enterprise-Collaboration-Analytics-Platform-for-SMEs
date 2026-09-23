@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequirePermissions } from '@app/common-guard';
-import { PERMISSIONS } from '@app/common-dto';
+import { PaginationQueryDto, PERMISSIONS } from '@app/common-dto';
 import { RolesService } from './roles.service';
 import { UpdateRolePermissionsDto } from './dto/update-role-permissions.dto';
 // 25/07/2026: pipe dung chung validate :id la UUID hop le truoc khi cham toi DB - xem chu thich
@@ -51,7 +51,21 @@ export class RolesController {
     @CurrentUser('organizationId') organizationId: string,
     @Param('id', uuidParamPipe()) roleId: string,
     @Body() dto: UpdateRolePermissionsDto,
+    // 22/09/2026: can cho RolesService chan tu nang quyen + ghi audit log - xem chu thich chi tiet
+    // tai RolesService.updateRolePermissions().
+    @CurrentUser('userId') callerId: string,
+    @CurrentUser('roles') callerRoleNames: string[],
   ) {
-    return this.rolesService.updateRolePermissions(organizationId, roleId, dto.permissionKeys);
+    return this.rolesService.updateRolePermissions(organizationId, roleId, dto.permissionKeys, callerId, callerRoleNames ?? []);
+  }
+
+  /** 22/09/2026: nhat ky thay doi quyen han (RBAC audit log, theo de xuat "log moi thay doi"). */
+  @Get('audit-log')
+  @RequirePermissions(PERMISSIONS.ROLE_MANAGE)
+  findPermissionChangeLog(
+    @CurrentUser('organizationId') organizationId: string,
+    @Query() query: PaginationQueryDto,
+  ) {
+    return this.rolesService.findPermissionChangeLog(organizationId, query);
   }
 }

@@ -22,15 +22,22 @@ import { AttendanceAdjustmentModal } from './components/AttendanceAdjustmentModa
 import { OvertimeRegistrationModal } from './components/OvertimeRegistrationModal';
 import { PendingAdjustmentsList } from './components/PendingAdjustmentsList';
 import { PendingOvertimeList } from './components/PendingOvertimeList';
-import type { AttendanceAdjustment, OvertimeRegistration } from './attendance-extensions.types';
-import {
-  getStoredAdjustments,
-  saveStoredAdjustments,
-  getStoredOvertime,
-  saveStoredOvertime,
-} from './attendance-extensions.types';
 import { getAttendancePhotoUrl } from './api';
-import { useAllAttendanceQuery, useCheckIn, useCheckOut, useMyAttendanceQuery, useMyLeaveRequestsQuery } from './hooks';
+import {
+  useAllAttendanceQuery,
+  useApproveAttendanceAdjustment,
+  useApprovedAttendanceAdjustmentsQuery,
+  useApproveOvertimeRequest,
+  useApprovedOvertimeRequestsQuery,
+  useCheckIn,
+  useCheckOut,
+  useMyAttendanceQuery,
+  useMyLeaveRequestsQuery,
+  usePendingAttendanceAdjustmentsQuery,
+  usePendingOvertimeRequestsQuery,
+  useRejectAttendanceAdjustment,
+  useRejectOvertimeRequest,
+} from './hooks';
 
 /**
  * 13/08/2026 (Technical_Spec.md muc 17): huy hieu co "on-site"/"off-site" - `null`/`undefined`
@@ -252,15 +259,6 @@ export function AttendancePage() {
   const [adjustmentRecord, setAdjustmentRecord] = useState<import('@/types').Attendance | null>(null);
   const [showOtModal, setShowOtModal] = useState(false);
 
-  // Persistent storage state for adjustments and overtime
-  const [adjustments, setAdjustments] = useState<AttendanceAdjustment[]>(() => getStoredAdjustments());
-  const [overtimeList, setOvertimeList] = useState<OvertimeRegistration[]>(() => getStoredOvertime());
-
-  const reloadExtensions = () => {
-    setAdjustments(getStoredAdjustments());
-    setOvertimeList(getStoredOvertime());
-  };
-
   const currentUser = useAuthStore((s) => s.user);
 
   // Bộ lọc Dropdown Tháng/Năm (mặc định tháng hiện tại: 'YYYY-MM')
@@ -295,101 +293,76 @@ export function AttendancePage() {
   const checkInMutation = useCheckIn();
   const checkOutMutation = useCheckOut();
 
+  // 22/09/2026: giai trinh cham cong/tang ca - du lieu that tu server (thay localStorage truoc
+  // day). Danh sach "cho duyet" (Manager/Org Admin) va "cua toi" deu can cho trang nay: "cho duyet"
+  // de hien trong PendingAdjustmentsList/PendingOvertimeList, "cua toi" khong con can thiet truc
+  // tiep vi hau qua da phan anh THANG vao Attendance that (xem duoi) - nhung van giu useApprovedOvertimeRequestsQuery()
+  // rieng cho MonthlyTimesheetTable (otHours that).
+  const pendingAdjustmentsQuery = usePendingAttendanceAdjustmentsQuery();
+  const pendingOvertimeQuery = usePendingOvertimeRequestsQuery();
+  const approvedAdjustmentsQuery = useApprovedAttendanceAdjustmentsQuery();
+  const approvedOvertimeQuery = useApprovedOvertimeRequestsQuery();
+  const approveAdjustmentMutation = useApproveAttendanceAdjustment();
+  const rejectAdjustmentMutation = useRejectAttendanceAdjustment();
+  const approveOvertimeMutation = useApproveOvertimeRequest();
+  const rejectOvertimeMutation = useRejectOvertimeRequest();
+
   const today = useMemo(getTodayGmt7, []);
   const todayRecord = attendanceQuery.data?.data.find((a) => a.workDate === today);
   // 403 (khong co PERMISSIONS.ATTENDANCE_VIEW) la ket qua BINH THUONG cho Employee thuong - coi
   // nhu "khong ap dung", mirror canApprove cua LeaveRequestsPage.tsx.
   const canViewAll = !allAttendanceQuery.isError && allAttendanceQuery.isSuccess;
 
-  // Map các giải trình đã duyệt theo attendanceId
-  const approvedAdjustmentsMap = useMemo(() => {
-    const map = new Map<string, AttendanceAdjustment>();
-    for (const adj of adjustments) {
-      if (adj.status === 'APPROVED') {
-        map.set(adj.attendanceId, adj);
-      }
-    }
-    return map;
-  }, [adjustments]);
-
-  const approvedAdjustmentAttendanceIds = useMemo(() => {
-    return new Set<string>(approvedAdjustmentsMap.keys());
-  }, [approvedAdjustmentsMap]);
-
-  // Handler duyệt / từ chối giải trình
-  const handleApproveAdjustment = (id: string) => {
-    const updated = adjustments.map((a) =>
-      a.id === id ? { ...a, status: 'APPROVED' as const, reviewedBy: currentUser?.fullName || 'Manager', reviewedAt: new Date().toISOString() } : a
-    );
-    saveStoredAdjustments(updated);
-    setAdjustments(updated);
-  };
-
-  const handleRejectAdjustment = (id: string) => {
-    const updated = adjustments.map((a) =>
-      a.id === id ? { ...a, status: 'REJECTED' as const, reviewedBy: currentUser?.fullName || 'Manager', reviewedAt: new Date().toISOString() } : a
-    );
-    saveStoredAdjustments(updated);
-    setAdjustments(updated);
-  };
-
-  // Handler duyệt / từ chối OT
-  const handleApproveOt = (id: string) => {
-    const updated = overtimeList.map((ot) =>
-      ot.id === id ? { ...ot, status: 'APPROVED' as const, reviewedBy: currentUser?.fullName || 'Manager', reviewedAt: new Date().toISOString() } : ot
-    );
-    saveStoredOvertime(updated);
-    setOvertimeList(updated);
-  };
-
-  const handleRejectOt = (id: string) => {
-    const updated = overtimeList.map((ot) =>
-      ot.id === id ? { ...ot, status: 'REJECTED' as const, reviewedBy: currentUser?.fullName || 'Manager', reviewedAt: new Date().toISOString() } : ot
-    );
-    saveStoredOvertime(updated);
-    setOvertimeList(updated);
-  };
-
-  const pendingAdjustmentsCount = useMemo(
-    () => adjustments.filter((a) => a.status === 'PENDING').length,
-    [adjustments]
+  // 22/09/2026: duyet giai trinh THANH CONG se ghi de checkInAt/checkOutAt THAT cua Attendance
+  // ngay tren server (xem AttendanceAdjustmentsService.decide()), va useApproveAttendanceAdjustment()
+  // da invalidate ['attendance'] - attendanceQuery/allAttendanceQuery se tu dong tai lai gia tri
+  // DUNG, khong con can tu vá (patch) client-side nhu truoc (applyApprovedAdjustment() da bi xoa).
+  // Danh dau "da sua cong" (badge) van giu lai, chi doi nguon: quet PENDING/APPROVED tu ca 2 danh
+  // sach cho duyet lan cua toi thay vi 1 bien trang thai cuc bo.
+  const pendingAdjustments = useMemo(
+    () => pendingAdjustmentsQuery.data?.data.filter((a) => a.status === 'PENDING') ?? [],
+    [pendingAdjustmentsQuery.data],
   );
-  const pendingOtCount = useMemo(
-    () => overtimeList.filter((ot) => ot.status === 'PENDING').length,
-    [overtimeList]
+  const pendingOvertimeRequests = useMemo(
+    () => pendingOvertimeQuery.data?.data.filter((ot) => ot.status === 'PENDING') ?? [],
+    [pendingOvertimeQuery.data],
+  );
+  const pendingAdjustmentsCount = pendingAdjustments.length;
+  const pendingOtCount = pendingOvertimeRequests.length;
+
+  const approvedAdjustmentAttendanceIds = useMemo(
+    () => new Set((approvedAdjustmentsQuery.data ?? []).map((a) => a.attendanceId)),
+    [approvedAdjustmentsQuery.data],
   );
 
-  // Áp dụng giải trình đã duyệt vào bản ghi chấm công (cập nhật giờ vào/ra thực tế theo đề xuất đã duyệt)
-  const applyApprovedAdjustment = (r: import('@/types').Attendance): import('@/types').Attendance => {
-    const adj = approvedAdjustmentsMap.get(r.id);
-    if (!adj) return r;
-    return {
-      ...r,
-      checkInAt: adj.proposedCheckInAt || r.checkInAt,
-      checkOutAt: adj.proposedCheckOutAt || r.checkOutAt,
-    };
-  };
+  const pendingAdjustmentsWithName = useMemo(
+    () => pendingAdjustments.map((a) => ({ ...a, userName: userNameMap[a.userId] ?? a.userId })),
+    [pendingAdjustments, userNameMap],
+  );
+  const pendingOvertimeWithName = useMemo(
+    () => pendingOvertimeRequests.map((ot) => ({ ...ot, userName: userNameMap[ot.userId] ?? ot.userId })),
+    [pendingOvertimeRequests, userNameMap],
+  );
+
+  const handleApproveAdjustment = (id: string) => approveAdjustmentMutation.mutate(id);
+  const handleRejectAdjustment = (id: string) => rejectAdjustmentMutation.mutate(id);
+  const handleApproveOt = (id: string) => approveOvertimeMutation.mutate(id);
+  const handleRejectOt = (id: string) => rejectOvertimeMutation.mutate(id);
 
   // Lọc dữ liệu theo Tháng/Năm đã chọn
   const filteredMyRecords = useMemo(() => {
     const rawRecords = attendanceQuery.data?.data ?? [];
-    const adjusted = rawRecords.map(applyApprovedAdjustment);
-    if (selectedMonth === 'all') return adjusted;
-    return adjusted.filter((r) => r.workDate.startsWith(selectedMonth));
-  }, [attendanceQuery.data?.data, selectedMonth, approvedAdjustmentsMap]);
+    if (selectedMonth === 'all') return rawRecords;
+    return rawRecords.filter((r) => r.workDate.startsWith(selectedMonth));
+  }, [attendanceQuery.data?.data, selectedMonth]);
 
   const filteredAllRecords = useMemo(() => {
     const rawRecords = allAttendanceQuery.data?.data ?? [];
-    const adjusted = rawRecords.map(applyApprovedAdjustment);
-    if (orgSelectedMonth === 'all') return adjusted;
-    return adjusted.filter((r) => r.workDate.startsWith(orgSelectedMonth));
-  }, [allAttendanceQuery.data?.data, orgSelectedMonth, approvedAdjustmentsMap]);
+    if (orgSelectedMonth === 'all') return rawRecords;
+    return rawRecords.filter((r) => r.workDate.startsWith(orgSelectedMonth));
+  }, [allAttendanceQuery.data?.data, orgSelectedMonth]);
 
-  // Bản ghi hôm nay sau khi cập nhật giải trình (nếu có)
-  const effectiveTodayRecord = useMemo(() => {
-    if (!todayRecord) return undefined;
-    return applyApprovedAdjustment(todayRecord);
-  }, [todayRecord, approvedAdjustmentsMap]);
+  const effectiveTodayRecord = todayRecord;
 
   function handleConfirmPhoto(photo: Blob, location?: CheckInLocation) {
     const mutation = cameraMode === 'checkin' ? checkInMutation : checkOutMutation;
@@ -755,13 +728,13 @@ export function AttendancePage() {
           <CardContent className="pt-4">
             {orgSubTab === 'adjustments' ? (
               <PendingAdjustmentsList
-                adjustments={adjustments.filter((a) => a.status === 'PENDING')}
+                adjustments={pendingAdjustmentsWithName}
                 onApprove={handleApproveAdjustment}
                 onReject={handleRejectAdjustment}
               />
             ) : orgSubTab === 'overtime' ? (
               <PendingOvertimeList
-                overtimeList={overtimeList.filter((ot) => ot.status === 'PENDING')}
+                overtimeList={pendingOvertimeWithName}
                 onApprove={handleApproveOt}
                 onReject={handleRejectOt}
               />
@@ -784,6 +757,7 @@ export function AttendancePage() {
                     departments={departmentsQuery.data ?? []}
                     selectedMonth={orgSelectedMonth}
                     today={today}
+                    approvedOvertime={approvedOvertimeQuery.data ?? []}
                   />
                 ) : filteredAllRecords.length === 0 ? (
                   <EmptyState
@@ -907,19 +881,15 @@ export function AttendancePage() {
       {/* Modal giải trình / sửa công */}
       <AttendanceAdjustmentModal
         record={adjustmentRecord}
-        userName={currentUser?.fullName || currentUser?.email || 'Employee'}
         open={Boolean(adjustmentRecord)}
         onClose={() => setAdjustmentRecord(null)}
-        onSuccess={reloadExtensions}
       />
 
       {/* Modal đăng ký làm thêm giờ (OT) */}
       <OvertimeRegistrationModal
         userId={currentUser?.id || ''}
-        userName={currentUser?.fullName || currentUser?.email || 'Employee'}
         open={showOtModal}
         onClose={() => setShowOtModal(false)}
-        onSuccess={reloadExtensions}
         leaveRequests={myLeaveRequestsQuery.data?.data ?? []}
       />
     </div>

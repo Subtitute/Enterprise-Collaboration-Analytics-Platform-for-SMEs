@@ -2,13 +2,16 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatTime } from '@/lib/utils';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { CheckIcon, XIcon, FileTextIcon } from '@/components/ui/Icons';
-import type { AttendanceAdjustment } from '../attendance-extensions.types';
+import type { AttendanceAdjustment } from '@/types';
 
+// 22/09/2026: `userName` khong ton tai tren AttendanceAdjustment (du lieu that tu hrm-service,
+// khong luu ten cross-service) - AttendancePage.tsx tu resolve qua useUserNameMap() roi enrich
+// truoc khi truyen xuong day (mirror cach cac trang khac lam voi userId cross-service).
 interface PendingAdjustmentsListProps {
-  adjustments: AttendanceAdjustment[];
+  adjustments: (AttendanceAdjustment & { userName: string })[];
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
 }
@@ -34,10 +37,14 @@ export function PendingAdjustmentsList({
   return (
     <div className="space-y-3">
       {adjustments.map((adj) => {
-        const proposedIn = adj.proposedCheckInAt.slice(11, 16);
-        const proposedOut = adj.proposedCheckOutAt.slice(11, 16);
-        const origIn = adj.originalCheckInAt ? adj.originalCheckInAt.slice(11, 16) : '—';
-        const origOut = adj.originalCheckOutAt ? adj.originalCheckOutAt.slice(11, 16) : '—';
+        // 22/09/2026: du lieu that tu server la TIMESTAMPTZ (JSON hoa thanh ISO UTC, vd
+        // "...T01:00:00.000Z" cho 08:00 GMT+7) - PHAI quy doi qua formatTime() (Asia/Ho_Chi_Minh),
+        // khong con dung .slice(11,16) tho nhu truoc (chi dung voi chuoi localStorage cu da tu gan
+        // san hau to "+07:00", se hien SAI gio neu dung lai voi du lieu that).
+        const proposedIn = formatTime(adj.proposedCheckInAt);
+        const proposedOut = formatTime(adj.proposedCheckOutAt);
+        const origIn = formatTime(adj.originalCheckInAt);
+        const origOut = formatTime(adj.originalCheckOutAt);
 
         return (
           <div

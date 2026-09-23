@@ -182,6 +182,7 @@ export class AuthService {
           userId: user.id,
           email: user.email,
           departmentId: null,
+          actorId: user.id,
         };
         await this.outboxService.record(manager, {
           eventType: EVENT_TYPES.USER_REGISTERED,

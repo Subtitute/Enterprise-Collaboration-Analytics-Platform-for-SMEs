@@ -11,7 +11,7 @@ import { FolderKanbanIcon, PlusIcon, SearchIcon } from '@/components/ui/Icons';
 import { useAllTasksQuery, useProjectsQuery } from './hooks';
 import { ProjectCard } from './components/ProjectCard';
 import { NewProjectModal } from './components/NewProjectModal';
-import { computeProgressFromTasks, getProjectMemberIds } from './utils';
+import { computeProgressFromTasks } from './utils';
 import { matchesVietnameseSearch, canManageProjects } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
 import type { Project } from '@/types';
@@ -234,9 +234,20 @@ export function ProjectsListPage() {
       };
     }
     for (const p of rawProjects) {
+      // 22/09/2026: gop leadUserId + TaskAssignee cuc bo (tranh N+1 API rieng cho ProjectMember cua
+      // MOI project trong danh sach) roi lay max voi p.memberCount that tu server (TaskAssignee-only,
+      // xem ProjectsService.computeProjectStats()) - so lieu chi mang tinh XEM TRUOC o day, con so
+      // chinh xac tuyet doi (gom ca ProjectMember rieng, khong gan Task/khong phai lead) hien trong
+      // ProjectMembersModal khi mo tung du an.
       const pTasks = byProject[p.id] ?? [];
-      const mIds = getProjectMemberIds(p.id, p.leadUserId, pTasks);
-      membersMap[p.id] = Math.max(mIds.length, p.memberCount ?? 0);
+      const memberSet = new Set<string>();
+      if (p.leadUserId) memberSet.add(p.leadUserId);
+      for (const task of pTasks) {
+        for (const assignee of task.assignees ?? []) {
+          if (assignee.userId) memberSet.add(assignee.userId);
+        }
+      }
+      membersMap[p.id] = Math.max(memberSet.size, p.memberCount ?? 0);
     }
     return { progressByProject: pMap, taskStatsByProject: statsMap, memberCountByProject: membersMap };
   }, [tasksQuery.data, rawProjects, updateTick]);

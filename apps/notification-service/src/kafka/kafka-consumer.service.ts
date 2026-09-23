@@ -3,11 +3,13 @@ import { ConfigService } from '@nestjs/config';
 import { Consumer, EachMessagePayload, Kafka } from 'kafkajs';
 import {
   DeadLetterEnvelope,
+  DepartmentManagerChangedPayload,
   DomainEvent,
   EVENT_TYPES,
   KAFKA_CONSUMER_GROUPS,
   KAFKA_TOPICS,
   UserDeactivatedPayload,
+  UserDepartmentChangedPayload,
   UserRegisteredPayload,
 } from '@app/common-dto';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -18,6 +20,10 @@ import { KafkaProducerService } from './kafka-producer.service';
 // 17/09/2026: bo sung OrgMembersService - duy tri read-model danh sach thanh vien active + tra
 // cuu khi fan-out thong bao toan to chuc (xem syncOrgMembership()/handleMessage() ben duoi).
 import { OrgMembersService } from '../org-members/org-members.service';
+// 23/09/2026: bo sung DepartmentManagersService - duy tri read-model "phong ban nao dang do ai
+// phu trach" (xem syncDepartmentManager()/handleMessage() ben duoi), phuc vu pham vi hien thi
+// thong bao theo phong ban cua Manager (NotificationsService.resolveVisibleUserIds()).
+import { DepartmentManagersService } from '../department-managers/department-managers.service';
 
 /**
  * Kafka CONSUMER cho Notification Service (khac IAM la producer) - Technical_Spec.md muc 3.5,
@@ -60,6 +66,8 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     private readonly kafkaProducer: KafkaProducerService,
     // 17/09/2026: xem import o tren.
     private readonly orgMembersService: OrgMembersService,
+    // 23/09/2026: xem import o tren.
+    private readonly departmentManagersService: DepartmentManagersService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -227,6 +235,9 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       // co che retry/DLQ da co san (Mongo loi tam thoi o buoc nay cung phai duoc redeliver giong
       // het loi o buoc tao notification, khong can 1 bo dem retry rieng).
       await this.syncOrgMembership(event);
+      // 23/09/2026: xem chu thich syncDepartmentManager() ben duoi - cung ly do/co che voi
+      // syncOrgMembership() o tren.
+      await this.syncDepartmentManager(event);
 
       // 17/09/2026: mot so event (vd cong bo ngay nghi le) can thong bao cho TOAN BO thanh vien
       // to chuc thay vi 1 nguoi nhan duy nhat - xem buildBroadcastNotificationTemplate(). Uu tien
@@ -305,11 +316,37 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   private async syncOrgMembership(event: DomainEvent): Promise<void> {
     if (event.eventType === EVENT_TYPES.USER_REGISTERED) {
       const payload = event.payload as unknown as UserRegisteredPayload;
-      if (payload?.userId) await this.orgMembersService.markActive(event.organizationId, payload.userId);
+      // 23/09/2026: ghi luon departmentId co san trong payload nay - xem chu thich
+      // OrgMembersService.markActive().
+      if (payload?.userId) {
+        await this.orgMembersService.markActive(event.organizationId, payload.userId, payload.departmentId ?? null);
+      }
     } else if (event.eventType === EVENT_TYPES.USER_DEACTIVATED) {
       const payload = event.payload as unknown as UserDeactivatedPayload;
       if (payload?.userId) await this.orgMembersService.markInactive(event.organizationId, payload.userId);
+    } else if (event.eventType === EVENT_TYPES.USER_DEPARTMENT_CHANGED) {
+      // 23/09/2026: phong ban cua 1 user DA TON TAI thay doi (khac USER_REGISTERED o tren, luc tao
+      // moi) - can cho pham vi hien thi thong bao theo phong ban cua Manager (xem
+      // NotificationsService.resolveVisibleUserIds()).
+      const payload = event.payload as unknown as UserDepartmentChangedPayload;
+      if (payload?.userId) {
+        await this.orgMembersService.setDepartment(event.organizationId, payload.userId, payload.departmentId ?? null);
+      }
     }
+  }
+
+  /**
+   * 23/09/2026: duy tri read-model "phong ban nao dang do ai phu trach" (collection
+   * `department_managers`) tu EVENT_TYPES.DEPARTMENT_MANAGER_CHANGED - xem chu thich tong quan
+   * tai department-managers/schemas/department-manager.schema.ts. Tach rieng khoi
+   * syncOrgMembership() (khac doi tuong: phong ban, khong phai thanh vien) nhung goi cung 1 cho
+   * trong handleMessage(), cung co che retry/DLQ.
+   */
+  private async syncDepartmentManager(event: DomainEvent): Promise<void> {
+    if (event.eventType !== EVENT_TYPES.DEPARTMENT_MANAGER_CHANGED) return;
+    const payload = event.payload as unknown as DepartmentManagerChangedPayload;
+    if (!payload?.departmentId) return;
+    await this.departmentManagersService.setManager(event.organizationId, payload.departmentId, payload.managerId ?? null);
   }
 
   /**

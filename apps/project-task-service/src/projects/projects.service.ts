@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 // 17/09/2026: them `In` - can cho truy van "du an nam trong danh sach id duoc phep thay" khi loc
 // theo pham vi cho Employee (xem findAll()/findById()/getVisibleProjectIds() ben duoi).
-import { DataSource, FindOptionsWhere, ILike, In, Repository } from 'typeorm';
+import { DataSource, FindOptionsWhere, ILike, In, QueryFailedError, Repository } from 'typeorm';
 import {
   ERROR_CODES,
   EVENT_TYPES,
@@ -17,6 +17,7 @@ import {
   paginate,
 } from '@app/common-dto';
 import { Project, ProjectPriority } from '../entities/project.entity';
+import { ProjectMember } from '../entities/project-member.entity';
 import { Task } from '../entities/task.entity';
 import { TaskAssignee } from '../entities/task-assignee.entity';
 import { OutboxService } from '../outbox/outbox.service';
@@ -25,6 +26,8 @@ import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectQueryDto } from './dto/project-query.dto';
 
 const PRODUCER = 'project-task-service';
+/** Ma loi Postgres cho vi pham rang buoc unique (vd @Unique(['projectId','userId']) tren ProjectMember). */
+const POSTGRES_UNIQUE_VIOLATION = '23505';
 
 /** Du an kem thong tin tong hop cho danh sach du an (Wireframe.md muc 4.1). */
 export interface ProjectListItem extends Project {
@@ -371,6 +374,12 @@ export class ProjectsService {
    * `restrictToIds` (tuy chon) gioi han truy van trong 1 tap id cho truoc - dung boi findById()
    * (truyen [id]) de tranh quet toan bo du an nguoi dung co lien quan chi de kiem tra 1 id duy nhat,
    * mirror cach computeProjectStats() nhan mang id de tai su dung cho ca truong hop 1 phan tu.
+   *
+   * 22/09/2026: them nguon thu 4 - thanh vien du an "that" (ProjectMember, xem addMember() ben duoi),
+   * doc lap voi TaskAssignee (mot nguoi co the duoc them vao du an TRUOC KHI duoc giao Task cu the
+   * nao). Cung phai cap nhat GIONG HET logic nay tai TasksService.getVisibleProjectIds() (nhan ban
+   * co y, xem chu thich tai do) de mot thanh vien du an (chua co Task nao) cung thay duoc du an cua
+   * ho trong danh sach, dung tinh than "thanh vien du an -> thay duoc ca Task cua du an do".
    */
   private async getVisibleProjectIds(
     organizationId: string,
@@ -390,6 +399,18 @@ export class ProjectsService {
     }
     const assignedRows = await assigneeQuery.getRawMany<{ projectId: string }>();
 
+    const memberQuery = this.dataSource
+      .getRepository(ProjectMember)
+      .createQueryBuilder('member')
+      .innerJoin(Project, 'project', 'project.id = member.projectId')
+      .select('DISTINCT member.projectId', 'projectId')
+      .where('member.userId = :userId', { userId })
+      .andWhere('project.organizationId = :organizationId', { organizationId });
+    if (restrictToIds) {
+      memberQuery.andWhere('member.projectId IN (:...restrictToIds)', { restrictToIds });
+    }
+    const memberRows = await memberQuery.getRawMany<{ projectId: string }>();
+
     const ownedWhere: FindOptionsWhere<Project>[] = [
       { organizationId, leadUserId: userId },
       { organizationId, createdByUserId: userId },
@@ -401,8 +422,67 @@ export class ProjectsService {
 
     const ids = new Set<string>();
     for (const row of assignedRows) ids.add(row.projectId);
+    for (const row of memberRows) ids.add(row.projectId);
     for (const project of ownedProjects) ids.add(project.id);
     return Array.from(ids);
+  }
+
+  /**
+   * 22/09/2026: CRUD thanh vien du an (ProjectMember) - thay the co che gia lap hoan toan bang
+   * localStorage o frontend (ProjectMembersModal.tsx/utils.ts) truoc day, khong luu server-side va
+   * khong dong bo giua cac trinh duyet/thiet bi. Mirror dung pattern TasksService.assign()/unassign()
+   * (bat QueryFailedError 23505 cho truong hop 2 request them dong thoi CUNG 1 nguoi).
+   */
+  async listMembers(organizationId: string, projectId: string): Promise<ProjectMember[]> {
+    await this.findProjectOrFail(organizationId, projectId);
+    return this.dataSource.getRepository(ProjectMember).find({ where: { projectId } });
+  }
+
+  async addMember(
+    organizationId: string,
+    projectId: string,
+    actorId: string,
+    userId: string,
+  ): Promise<ProjectMember> {
+    await this.findProjectOrFail(organizationId, projectId);
+
+    const memberRepo = this.dataSource.getRepository(ProjectMember);
+    const existing = await memberRepo.findOne({ where: { projectId, userId } });
+    if (existing) return existing;
+
+    try {
+      return await memberRepo.save(memberRepo.create({ projectId, userId, addedByUserId: actorId }));
+    } catch (error) {
+      const pgErrorCode =
+        error instanceof QueryFailedError
+          ? (error.driverError as { code?: string } | undefined)?.code
+          : undefined;
+      if (pgErrorCode === POSTGRES_UNIQUE_VIOLATION) {
+        const race = await memberRepo.findOne({ where: { projectId, userId } });
+        if (race) return race;
+      }
+      throw error;
+    }
+  }
+
+  async removeMember(organizationId: string, projectId: string, userId: string): Promise<void> {
+    const project = await this.findProjectOrFail(organizationId, projectId);
+    if (project.leadUserId === userId) {
+      throw new BadRequestException({
+        message: 'Khong the go nguoi phu trach du an khoi danh sach thanh vien',
+        errorCode: ERROR_CODES.PROJECT_MEMBER_IS_LEAD,
+      });
+    }
+
+    const memberRepo = this.dataSource.getRepository(ProjectMember);
+    const member = await memberRepo.findOne({ where: { projectId, userId } });
+    if (member) await memberRepo.remove(member);
+  }
+
+  private async findProjectOrFail(organizationId: string, id: string): Promise<Project> {
+    const project = await this.projectRepo.findOne({ where: { id, organizationId } });
+    if (!project) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
+    return project;
   }
 
   /** Tinh completionRate/memberCount cho 1 tap projectId (trang hien tai) bang cac query GROUP BY, tranh N+1. */

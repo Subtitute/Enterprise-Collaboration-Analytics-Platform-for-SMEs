@@ -54,6 +54,21 @@ CREATE TABLE IF NOT EXISTS dim_user (
 CREATE INDEX IF NOT EXISTS idx_dim_user_org ON dim_user (organization_id);
 
 -- ============================================================
+-- 23/09/2026: Bang lookup: nguoi phu trach HIEN TAI cua tung phong ban (nguon: iam.events, event
+-- DEPARTMENT_MANAGER_CHANGED - xem packages/common-dto/src/events/event-types.ts). Phuc vu scoping
+-- "Manager chi thay Hoat dong gan day cua phong ban minh phu trach" (AnalyticsService.getRecentActivity()).
+-- Giu dong bo voi apps/analytics-service/src/database/schema-bootstrap.ts (xem ghi chu dau file).
+-- ============================================================
+CREATE TABLE IF NOT EXISTS dim_department_manager (
+  department_id    UUID             PRIMARY KEY,
+  organization_id  UUID             NOT NULL,
+  manager_id       UUID,
+  updated_at       TIMESTAMPTZ      NOT NULL DEFAULT now(),
+  last_event_at    TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_dim_department_manager_org_manager ON dim_department_manager (organization_id, manager_id);
+
+-- ============================================================
 -- Fact table: su kien Document (nguon: document.events)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS fact_document_events (

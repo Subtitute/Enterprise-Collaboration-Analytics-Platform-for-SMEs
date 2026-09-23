@@ -127,6 +127,10 @@ describe('TasksService', () => {
 
       const managerMock = {
         findOneOrFail: jest.fn().mockResolvedValue(lockedTask),
+        // 22/09/2026: updateStatus() gio doc them Project (leadUserId) trong CUNG transaction de
+        // dinh kem vao TaskStatusChangedPayload - tra null (khong co nguoi phu trach) o day, khong
+        // anh huong ket qua cac test nay (chi khoa lai hanh vi status/race-condition).
+        findOne: jest.fn().mockResolvedValue(null),
         save: jest.fn().mockImplementation((entity) => Promise.resolve(entity)),
         create: jest.fn().mockImplementation((_entityClass: unknown, data: unknown) => data),
       };
@@ -348,7 +352,13 @@ describe('TasksService', () => {
           return Promise.resolve([filtered, filtered.length]);
         }),
       };
-      const projectOwnedRepoMock = { find: jest.fn().mockResolvedValue([{ id: 'project-3' }]) };
+      // 22/09/2026: dataSourceMock.getRepository() tra CUNG 1 mock nay cho ca Project (owned) lan
+      // ProjectMember (getVisibleProjectIds() gio truy van ca 2) - them createQueryBuilder() rong de
+      // nhanh ProjectMember khong lam vo hieu test (test nay chi khoa lai TaskAssignee/lead/creator).
+      const projectOwnedRepoMock = {
+        find: jest.fn().mockResolvedValue([{ id: 'project-3' }]),
+        createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])),
+      };
       const assigneeRepoMock = {
         // getVisibleProjectIds(): employee dang duoc giao Task thuoc 'project-1'.
         createQueryBuilder: jest.fn().mockReturnValueOnce(makeQueryBuilder([{ projectId: 'project-1' }])),
@@ -380,7 +390,10 @@ describe('TasksService', () => {
 
     it('Employee: tu loc theo query.projectId cua 1 du an KHONG lien quan - tra ve rong thay vi bo qua scoping', async () => {
       const taskRepoMock = { findAndCount: jest.fn() };
-      const projectOwnedRepoMock = { find: jest.fn().mockResolvedValue([]) };
+      const projectOwnedRepoMock = {
+        find: jest.fn().mockResolvedValue([]),
+        createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])),
+      };
       const assigneeRepoMock = {
         createQueryBuilder: jest.fn().mockReturnValueOnce(makeQueryBuilder([])), // khong duoc giao Task nao
       };
@@ -445,7 +458,10 @@ describe('TasksService', () => {
     it('Employee: findById() nem NotFoundException (khong phai Forbidden) khi xem 1 Task ton tai nhung thuoc du an khong lien quan - tranh lo lieu ton tai', async () => {
       const task = { id: 'task-2', organizationId, projectId: 'project-2', title: 'B' };
       const taskRepoMock = { findOne: jest.fn().mockResolvedValue(task) };
-      const projectOwnedRepoMock = { find: jest.fn().mockResolvedValue([]) };
+      const projectOwnedRepoMock = {
+        find: jest.fn().mockResolvedValue([]),
+        createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])),
+      };
       const assigneeRepoMock = {
         createQueryBuilder: jest.fn().mockReturnValueOnce(makeQueryBuilder([])),
       };
@@ -468,7 +484,13 @@ describe('TasksService', () => {
     it('Employee: findById() cho xem binh thuong 1 Task thuoc du an ma minh la nguoi tao (createdByUserId)', async () => {
       const task = { id: 'task-3', organizationId, projectId: 'project-3', title: 'C' };
       const taskRepoMock = { findOne: jest.fn().mockResolvedValue(task) };
-      const projectOwnedRepoMock = { find: jest.fn().mockResolvedValue([{ id: 'project-3' }]) };
+      // 22/09/2026: dataSourceMock.getRepository() tra CUNG 1 mock nay cho ca Project (owned) lan
+      // ProjectMember (getVisibleProjectIds() gio truy van ca 2) - them createQueryBuilder() rong de
+      // nhanh ProjectMember khong lam vo hieu test (test nay chi khoa lai TaskAssignee/lead/creator).
+      const projectOwnedRepoMock = {
+        find: jest.fn().mockResolvedValue([{ id: 'project-3' }]),
+        createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])),
+      };
       const assigneeRepoMock = {
         createQueryBuilder: jest.fn().mockReturnValueOnce(makeQueryBuilder([])),
         find: jest.fn().mockResolvedValue([]),

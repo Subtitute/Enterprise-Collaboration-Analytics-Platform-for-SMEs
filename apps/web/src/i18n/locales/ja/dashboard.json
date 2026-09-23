@@ -2,7 +2,9 @@
   "page": {
     "title": "ダッシュボード",
     "subtitle": "組織の活動状況の概要です。",
-    "exportPdf": "PDFレポートを出力"
+    "exportPdf": "PDFを出力",
+    "exportPdfError": "PDFファイルを出力できませんでした",
+    "print": "印刷"
   },
   "hero": {
     "title": "組織全体のタスク概要",
@@ -84,6 +86,11 @@
   "recentActivityFeed": {
     "live": "リアルタイム更新中",
     "offline": "オフライン",
+    "scope": {
+      "organization": "組織全体",
+      "department": "担当部署",
+      "self": "自分の活動"
+    },
     "errorTitle": "最近のアクティビティを読み込めませんでした",
     "emptyTitle": "アクティビティはまだありません",
     "emptyDescription": "組織内の新しいアクティビティがここにリアルタイムで表示されます。",
@@ -114,6 +121,7 @@
       "document_shared": "ドキュメントを共有しました",
       "document_deleted": "ドキュメントを削除しました",
       "iam_user_department_changed": "部署情報を更新しました",
+      "iam_department_manager_changed": "部署の担当者を更新しました",
       "customer_created": "新しい顧客を登録しました",
       "customer_deleted": "顧客を削除しました",
       "deal_created": "新しい商談を作成しました",

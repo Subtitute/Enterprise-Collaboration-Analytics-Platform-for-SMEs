@@ -28,9 +28,8 @@
     "title": "社内分析アシスタント",
     "badge": "経営分析",
     "generateButton": "報告書の要約を作成",
-    "summaryWithDepartment": "{{period}}のデータに基づく · {{department}}部署",
-    "summaryAllOrg": "{{period}}のデータに基づく · 組織全体",
-    "placeholder": "「報告書の要約を作成」をクリックすると、社内分析アシスタントが運用ハイライト、潜在的リスク、迅速な改善提案を提示します。",
+    "summaryAllOrg": "組織全体を{{period}}でスキャン · 最も注目すべき点を検出",
+    "placeholder": "「報告書の要約を作成」をクリックすると、AIが組織全体・各部署・各プロジェクトをスキャンし、最も注目すべき点を抽出します。",
     "periodAriaLabel": "分析期間",
     "periods": {
       "week": "週次 (直近7日間)",
@@ -38,15 +37,18 @@
       "quarter": "四半期 (今四半期)",
       "year": "年次 (今年度)"
     },
-    "labels": {
-      "highlight": "ハイライト:",
-      "risk": "リスク:",
-      "recommendation": "推奨事項:"
+    "severity": {
+      "critical": "早急な対応が必要",
+      "warning": "要注視",
+      "info": "良好なポイント"
     },
-    "fallbacks": {
-      "risk": "未完了タスクの進捗を注視し、運用のペースを維持してください。",
-      "recommendationWhenHighlightOnly": "今期の重要タスクの解決に向けてリソース配分を優先してください。",
-      "recommendationDefault": "定期的なレビューを継続し、部署間の連携プロセスを最適化してください。"
+    "scopeOrg": "組織全体",
+    "scopeDepartment": "部署",
+    "scopeProject": "プロジェクト",
+    "comparisonLabel": "組織平均 {{value}}% との比較",
+    "chart": {
+      "completionRateLabel": "完了率:",
+      "otherLabel": "その他"
     }
   },
   "charts": {

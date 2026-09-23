@@ -10,7 +10,7 @@ import { SearchIcon, PlusIcon, TrashIcon, UsersIcon, CheckIcon, ChevronDownIcon 
 import { useOrgUsersQuery, useUserNameMap } from '@/hooks/useOrgUsers';
 import { useDepartmentsQuery } from '@/features/admin/hooks';
 import { canManageProjects } from '@/lib/utils';
-import { getProjectMemberIds, addProjectMember, removeProjectMember } from '../utils';
+import { useAddProjectMember, useProjectMembersQuery, useRemoveProjectMember } from '../hooks';
 import { removeAssignee } from '../api';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/auth.store';
@@ -22,10 +22,9 @@ interface ProjectMembersModalProps {
   onClose: () => void;
   project: Project;
   tasks?: Task[];
-  onMembersChanged?: () => void;
 }
 
-export function ProjectMembersModal({ open, onClose, project, tasks = [], onMembersChanged }: ProjectMembersModalProps) {
+export function ProjectMembersModal({ open, onClose, project, tasks = [] }: ProjectMembersModalProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const currentUser = useAuthStore((s) => s.user);
@@ -33,11 +32,13 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [], onMemb
 
   const { data: allUsers = [], isLoading: isUsersLoading } = useOrgUsersQuery({ enabled: open });
   const { data: departments = [] } = useDepartmentsQuery();
+  const projectMembersQuery = useProjectMembersQuery(open ? project.id : undefined);
+  const addMemberMutation = useAddProjectMember(project.id);
+  const removeMemberMutation = useRemoveProjectMember(project.id);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUserIdToAdd, setSelectedUserIdToAdd] = useState<string>('');
   const [userToRemove, setUserToRemove] = useState<{ id: string; name: string } | null>(null);
-  const [localTick, setLocalTick] = useState(0);
 
   const departmentMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -45,11 +46,20 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [], onMemb
     return map;
   }, [departments]);
 
-  // Danh sách ID thành viên dự án
+  // 22/09/2026: "thanh vien du an" = hop cua nguoi phu trach (leadUserId), nguoi dang duoc giao
+  // >=1 Task (TaskAssignee, qua prop `tasks`), va thanh vien duoc them THANG qua ProjectMember (du
+  // lieu that tu server - thay localStorage truoc day, xem ProjectsService.addMember()).
   const memberIds = useMemo(() => {
-    return getProjectMemberIds(project.id, project.leadUserId, tasks);
-    // localTick dùng để force recompute sau khi thêm/xóa
-  }, [project.id, project.leadUserId, tasks, localTick]);
+    const memberSet = new Set<string>();
+    if (project.leadUserId) memberSet.add(project.leadUserId);
+    for (const task of tasks) {
+      for (const assignee of task.assignees ?? []) {
+        if (assignee.userId) memberSet.add(assignee.userId);
+      }
+    }
+    for (const member of projectMembersQuery.data ?? []) memberSet.add(member.userId);
+    return Array.from(memberSet);
+  }, [project.leadUserId, tasks, projectMembersQuery.data]);
 
   // Danh sách thành viên đầy đủ thông tin
   const members = useMemo(() => {
@@ -85,13 +95,14 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [], onMemb
 
   function handleAddMember() {
     if (!selectedUserIdToAdd) return;
-    addProjectMember(project.id, selectedUserIdToAdd);
     const addedUser = allUsers.find((u) => u.id === selectedUserIdToAdd);
-    toast.success(t('projects:membersModal.toast.memberAdded', { name: addedUser?.fullName ?? '' }));
-    setSelectedUserIdToAdd('');
-    setSearchQuery('');
-    setLocalTick((t) => t + 1);
-    onMembersChanged?.();
+    addMemberMutation.mutate(selectedUserIdToAdd, {
+      onSuccess: () => {
+        toast.success(t('projects:membersModal.toast.memberAdded', { name: addedUser?.fullName ?? '' }));
+        setSelectedUserIdToAdd('');
+        setSearchQuery('');
+      },
+    });
   }
 
   function handleConfirmRemove() {
@@ -103,21 +114,22 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [], onMemb
       return;
     }
 
-    // 1. Gỡ khỏi danh sách lưu trữ
-    removeProjectMember(project.id, userToRemove.id);
-
-    // 2. Tự động gỡ các task được giao cho thành viên này trong dự án
-    const tasksWithUser = tasks.filter((t) => t.assignees?.some((a) => a.userId === userToRemove.id));
-    if (tasksWithUser.length > 0) {
-      Promise.allSettled(tasksWithUser.map((t) => removeAssignee(t.id, userToRemove.id))).then(() => {
-        queryClient.invalidateQueries({ queryKey: ['tasks', project.id] });
-      });
-    }
-
-    toast.success(t('projects:membersModal.toast.memberRemoved', { name: userToRemove.name }));
+    const removedId = userToRemove.id;
+    const removedName = userToRemove.name;
+    removeMemberMutation.mutate(removedId, {
+      onSuccess: () => {
+        // Tu dong go cac task dang giao cho thanh vien nay trong du an - hanh vi cascade UX doc
+        // lap voi ProjectMember (backend removeMember() KHONG dong cham TaskAssignee).
+        const tasksWithUser = tasks.filter((t) => t.assignees?.some((a) => a.userId === removedId));
+        if (tasksWithUser.length > 0) {
+          Promise.allSettled(tasksWithUser.map((t) => removeAssignee(t.id, removedId))).then(() => {
+            queryClient.invalidateQueries({ queryKey: ['tasks', project.id] });
+          });
+        }
+        toast.success(t('projects:membersModal.toast.memberRemoved', { name: removedName }));
+      },
+    });
     setUserToRemove(null);
-    setLocalTick((t) => t + 1);
-    onMembersChanged?.();
   }
 
   return (
@@ -232,7 +244,7 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [], onMemb
                 <Button
                   type="button"
                   size="sm"
-                  disabled={!selectedUserIdToAdd}
+                  disabled={!selectedUserIdToAdd || addMemberMutation.isPending}
                   onClick={handleAddMember}
                   className="shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm active:scale-[0.98] font-semibold"
                 >
@@ -254,7 +266,7 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [], onMemb
               </span>
             </div>
 
-            {isUsersLoading ? (
+            {isUsersLoading || projectMembersQuery.isLoading ? (
               <div className="flex justify-center py-8">
                 <Spinner size="sm" />
               </div>

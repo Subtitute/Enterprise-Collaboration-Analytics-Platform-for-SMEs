@@ -1,6 +1,6 @@
 import { apiClient } from '@/lib/api-client';
 import { useAuthStore } from '@/stores/auth.store';
-import type { AppNotification, PaginatedResponse } from '@/types';
+import type { AppNotification, PaginatedResponse, VisibilityScope } from '@/types';
 
 export interface FetchNotificationsParams {
   isRead?: boolean;
@@ -38,10 +38,18 @@ export function saveLocalNotification(recipientUserId: string, notification: App
   }
 }
 
-export async function fetchNotifications(params: FetchNotificationsParams = {}): Promise<PaginatedResponse<AppNotification>> {
-  let serverData: PaginatedResponse<AppNotification> = { data: [], meta: { page: 1, limit: params.limit ?? 15, total: 0 } };
+export type NotificationsResponse = PaginatedResponse<AppNotification> & { scope: VisibilityScope };
+
+// 23/09/2026: bo sung `scope` (yeu cau nguoi dung - the hien ro rang dang xem pham vi nao: toan
+// to chuc/phong ban minh phu trach/chi cua minh) - xem NotificationsService.resolveVisibleUserIds().
+export async function fetchNotifications(params: FetchNotificationsParams = {}): Promise<NotificationsResponse> {
+  let serverData: NotificationsResponse = {
+    data: [],
+    meta: { page: 1, limit: params.limit ?? 15, total: 0 },
+    scope: 'self',
+  };
   try {
-    const { data } = await apiClient.get<PaginatedResponse<AppNotification>>('/notifications', { params });
+    const { data } = await apiClient.get<NotificationsResponse>('/notifications', { params });
     serverData = data;
   } catch {
     // Fallback nếu server lỗi hoặc offline
@@ -78,6 +86,7 @@ export async function fetchNotifications(params: FetchNotificationsParams = {}):
       limit: params.limit ?? 15,
       total: serverData.meta.total + newLocal.length,
     },
+    scope: serverData.scope,
   };
 }
 

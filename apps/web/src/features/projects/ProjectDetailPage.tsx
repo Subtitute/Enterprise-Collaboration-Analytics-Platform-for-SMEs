@@ -14,8 +14,8 @@ import { formatDate, cn, canManageProjects } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
 import { useOrgUsersQuery } from '@/hooks/useOrgUsers';
 import { Avatar } from '@/components/ui/Avatar';
-import { useProjectQuery, useTasksQuery, useCompleteProject, useReopenProject } from './hooks';
-import { projectStatusMeta, computeProgressFromTasks, projectPriorityMeta, getProjectMemberIds } from './utils';
+import { useProjectQuery, useTasksQuery, useCompleteProject, useReopenProject, useProjectMembersQuery } from './hooks';
+import { projectStatusMeta, computeProgressFromTasks, projectPriorityMeta } from './utils';
 import { KanbanBoard } from './components/KanbanBoard';
 import { NewTaskModal } from './components/NewTaskModal';
 import { TaskDetailModal } from './components/TaskDetailModal';
@@ -32,13 +32,13 @@ export function ProjectDetailPage() {
   const completeProject = useCompleteProject(projectId);
   const reopenProject = useReopenProject(projectId);
   const orgUsersQuery = useOrgUsersQuery();
+  const projectMembersQuery = useProjectMembersQuery(projectId);
 
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const [newTaskColumn, setNewTaskColumn] = useState<TaskStatus | undefined>(undefined);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [highlightedTaskId, setHighlightedTaskId] = useState<string | null>(null);
-  const [membersUpdateTick, setMembersUpdateTick] = useState(0);
 
   // Xử lý Deep Link: Đọc taskId từ URL để tự động mở modal chi tiết & cuộn tới vị trí thẻ task
   const handledDeepLinkRef = useRef(false);
@@ -218,10 +218,22 @@ export function ProjectDetailPage() {
 
             {/* Widget Thành viên dự án */}
             {(() => {
-              const memberIds = getProjectMemberIds(project.id, project.leadUserId, tasks);
+              // 22/09/2026: "thanh vien du an" = hop cua 3 nguon (mirror dung logic server-side tai
+              // ProjectsService.getVisibleProjectIds()/addMember()): nguoi phu trach (leadUserId),
+              // nguoi dang duoc giao >=1 Task (TaskAssignee), va thanh vien duoc them THANG qua
+              // ProjectMember (that, server-side - thay localStorage truoc day).
+              const memberIdSet = new Set<string>();
+              if (project.leadUserId) memberIdSet.add(project.leadUserId);
+              for (const task of tasks) {
+                for (const assignee of task.assignees ?? []) {
+                  if (assignee.userId) memberIdSet.add(assignee.userId);
+                }
+              }
+              for (const member of projectMembersQuery.data ?? []) memberIdSet.add(member.userId);
+
               const allUsers = orgUsersQuery.data ?? [];
               const userMap = new Map(allUsers.map((u) => [u.id, u]));
-              const projectMembers = memberIds.map((id) => userMap.get(id)).filter(Boolean);
+              const projectMembers = Array.from(memberIdSet).map((id) => userMap.get(id)).filter(Boolean);
               const previewMembers = projectMembers.slice(0, 3);
               const remainingCount = Math.max(0, projectMembers.length - 3);
 
@@ -237,7 +249,7 @@ export function ProjectDetailPage() {
                       <span>{t('projects:detail.projectMembers')}</span>
                     </div>
                     <span className="block text-xs font-bold text-slate-800 truncate mt-0.5">
-                      {t('projects:detail.membersCountLabel', { count: memberIds.length })}
+                      {t('projects:detail.membersCountLabel', { count: projectMembers.length })}
                     </span>
                   </div>
 
@@ -255,7 +267,7 @@ export function ProjectDetailPage() {
                         +{remainingCount}
                       </span>
                     )}
-                    {memberIds.length === 0 && (
+                    {projectMembers.length === 0 && (
                       <span className="text-[11px] text-slate-400 italic">{t('projects:detail.noMembers')}</span>
                     )}
                   </div>
@@ -289,7 +301,6 @@ export function ProjectDetailPage() {
         ) : (
           <KanbanBoard
             projectId={projectId}
-            project={project}
             tasks={tasks}
             onTaskClick={(task) => setSelectedTaskId(task.id)}
             onQuickAdd={(status) => {
@@ -312,7 +323,6 @@ export function ProjectDetailPage() {
       />
       <TaskDetailModal
         projectId={projectId}
-        project={project}
         taskId={selectedTaskId}
         onClose={() => setSelectedTaskId(null)}
       />
@@ -321,7 +331,6 @@ export function ProjectDetailPage() {
         onClose={() => setIsMembersModalOpen(false)}
         project={project}
         tasks={tasks}
-        onMembersChanged={() => setMembersUpdateTick((t) => t + 1)}
       />
     </div>
   );

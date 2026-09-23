@@ -33,18 +33,25 @@ export class DepartmentsController {
 
   @Post()
   @RequirePermissions(PERMISSIONS.DEPARTMENT_MANAGE)
-  create(@CurrentUser('organizationId') organizationId: string, @Body() dto: CreateDepartmentDto) {
-    return this.departmentsService.create(organizationId, dto);
+  create(
+    @CurrentUser('organizationId') organizationId: string,
+    // 23/09/2026: nguoi thuc hien - dinh kem vao outbox event DEPARTMENT_MANAGER_CHANGED (khi dto
+    // co managerId) de "Hoat dong gan day" hien thi dung ten thay vi "Mot thanh vien".
+    @CurrentUser('userId') actorId: string,
+    @Body() dto: CreateDepartmentDto,
+  ) {
+    return this.departmentsService.create(organizationId, dto, actorId);
   }
 
   @Patch(':id')
   @RequirePermissions(PERMISSIONS.DEPARTMENT_MANAGE)
   update(
     @CurrentUser('organizationId') organizationId: string,
+    @CurrentUser('userId') actorId: string,
     @Param('id', uuidParamPipe()) id: string,
     @Body() dto: UpdateDepartmentDto,
   ) {
-    return this.departmentsService.update(organizationId, id, dto);
+    return this.departmentsService.update(organizationId, id, dto, actorId);
   }
 
   @Delete(':id')

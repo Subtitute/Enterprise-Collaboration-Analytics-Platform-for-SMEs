@@ -10,6 +10,7 @@ import { AllExceptionsFilter, InternalAuthGuard, PermissionsGuard } from '@app/c
 import { HttpMetricsInterceptor, MetricsController, MetricsService } from '@app/common-metrics';
 import configuration from './config/configuration';
 import { Project } from './entities/project.entity';
+import { ProjectMember } from './entities/project-member.entity';
 import { Task } from './entities/task.entity';
 import { TaskAssignee } from './entities/task-assignee.entity';
 import { TaskComment } from './entities/task-comment.entity';
@@ -33,7 +34,7 @@ import { HealthController } from './health/health.controller';
         username: config.get<string>('db.user'),
         password: config.get<string>('db.password'),
         database: config.get<string>('db.name'),
-        entities: [Project, Task, TaskAssignee, TaskComment, TaskStatusHistory, OutboxEvent],
+        entities: [Project, ProjectMember, Task, TaskAssignee, TaskComment, TaskStatusHistory, OutboxEvent],
         // MVP: dung synchronize thay vi migration thu cong - Technical_Spec.md muc 14 (gioi han da biet).
         synchronize: true,
       }),

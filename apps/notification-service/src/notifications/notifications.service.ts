@@ -1,11 +1,18 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { FilterQuery, Model, Types } from 'mongoose';
-import { ERROR_CODES, PaginatedResponse, paginate } from '@app/common-dto';
+import { ERROR_CODES, PaginatedResponse, PERMISSIONS, paginate } from '@app/common-dto';
 import { Notification, NotificationDocument } from './schemas/notification.schema';
 import { ListNotificationsQueryDto } from './dto/list-notifications-query.dto';
 import { NotificationsGateway } from '../realtime/notifications.gateway';
 import { NotificationDraft } from './interfaces/notification-draft.interface';
+// 23/09/2026: pham vi hien thi thong bao theo cap do (Org Admin/Manager/Employee) - xem
+// resolveVisibleUserIds() ben duoi.
+import { OrgMembersService } from '../org-members/org-members.service';
+import { DepartmentManagersService } from '../department-managers/department-managers.service';
+
+/** Ket qua resolveVisibleUserIds() - null nghia la KHONG loc theo userId (xem toan bo to chuc). */
+export type NotificationVisibilityScope = 'organization' | 'department' | 'self';
 
 @Injectable()
 export class NotificationsService {
@@ -14,6 +21,8 @@ export class NotificationsService {
   constructor(
     @InjectModel(Notification.name) private readonly notificationModel: Model<NotificationDocument>,
     private readonly gateway: NotificationsGateway,
+    private readonly orgMembersService: OrgMembersService,
+    private readonly departmentManagersService: DepartmentManagersService,
   ) {}
 
   /**
@@ -71,12 +80,49 @@ export class NotificationsService {
     return created;
   }
 
+  /**
+   * 23/09/2026: pham vi hien thi thong bao THEO CAP DO, thay vi luon co dinh "chi thong bao cua
+   * chinh minh" nhu truoc day:
+   *  - Org Admin (co PERMISSIONS.USER_MANAGE - quyen CHI Org Admin co, xem
+   *    DEFAULT_ROLE_PERMISSIONS trong permission.enum.ts) -> ca to chuc, khong loc theo userId.
+   *  - Manager dang phu trach >=1 phong ban (Department.managerId, dong bo qua
+   *    DepartmentManagersService) -> thong bao cua CHINH HO + cua moi thanh vien active thuoc
+   *    (cac) phong ban ho phu trach.
+   *  - Con lai (Employee, hoac Manager khong phu trach phong ban nao) -> chi thong bao cua
+   *    chinh minh (hanh vi cu, khong doi).
+   * Tra ve ca `scope` de controller/frontend the hien ro rang dang xem pham vi nao (yeu cau ro
+   * rang tu nguoi dung - tranh nguoi dung hieu nham "danh sach ngan" la thong bao bi thieu).
+   */
+  private async resolveVisibleUserIds(
+    organizationId: string,
+    callerId: string,
+    callerPermissions: string[],
+  ): Promise<{ userIds: string[] | null; scope: NotificationVisibilityScope }> {
+    if (callerPermissions.includes(PERMISSIONS.USER_MANAGE)) {
+      return { userIds: null, scope: 'organization' };
+    }
+
+    const managedDepartmentIds = await this.departmentManagersService.listDepartmentIdsManagedBy(
+      organizationId,
+      callerId,
+    );
+    if (managedDepartmentIds.length === 0) {
+      return { userIds: [callerId], scope: 'self' };
+    }
+
+    const memberIds = await this.orgMembersService.listActiveUserIdsInDepartments(organizationId, managedDepartmentIds);
+    return { userIds: [...new Set([callerId, ...memberIds])], scope: 'department' };
+  }
+
   async findForUser(
     organizationId: string,
-    userId: string,
+    callerId: string,
+    callerPermissions: string[],
     query: ListNotificationsQueryDto,
-  ): Promise<PaginatedResponse<NotificationDocument>> {
-    const filter: FilterQuery<NotificationDocument> = { organizationId, userId };
+  ): Promise<PaginatedResponse<NotificationDocument> & { scope: NotificationVisibilityScope }> {
+    const { userIds, scope } = await this.resolveVisibleUserIds(organizationId, callerId, callerPermissions);
+    const filter: FilterQuery<NotificationDocument> = { organizationId };
+    if (userIds !== null) filter.userId = { $in: userIds };
     if (query.isRead !== undefined) {
       filter.isRead = query.isRead;
     }
@@ -96,7 +142,7 @@ export class NotificationsService {
       this.notificationModel.countDocuments(filter).exec(),
     ]);
 
-    return paginate(data, total, query.page, query.limit);
+    return { ...paginate(data, total, query.page, query.limit), scope };
   }
 
   async markAsRead(organizationId: string, userId: string, id: string): Promise<NotificationDocument> {

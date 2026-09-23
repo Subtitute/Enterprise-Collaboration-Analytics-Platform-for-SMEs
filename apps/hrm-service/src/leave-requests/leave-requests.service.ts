@@ -14,11 +14,21 @@ import {
 import { LeaveRequest } from '../entities/leave-request.entity';
 import { OutboxService } from '../outbox/outbox.service';
 import { toGmt7DateString } from '../attendance/attendance-date.util';
+import { LeavePolicyService } from '../leave-policy/leave-policy.service';
+import { countWorkingDaysInclusive } from './working-days.util';
 import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
 import { DecideLeaveRequestDto } from './dto/decide-leave-request.dto';
 import { LeaveRequestQueryDto } from './dto/leave-request-query.dto';
 
 const PRODUCER = 'hrm-service';
+
+/** GET /leave-requests/me/balance - xem LeaveRequestsService.getMyBalance(). */
+export interface LeaveBalance {
+  year: number;
+  usedDays: number;
+  baseDaysPerYear: number;
+  seniorityYearsPerBonusDay: number;
+}
 
 @Injectable()
 export class LeaveRequestsService {
@@ -26,6 +36,7 @@ export class LeaveRequestsService {
     @InjectDataSource() private readonly dataSource: DataSource,
     @InjectRepository(LeaveRequest) private readonly leaveRequestRepo: Repository<LeaveRequest>,
     private readonly outboxService: OutboxService,
+    private readonly leavePolicyService: LeavePolicyService,
   ) {}
 
   async create(organizationId: string, userId: string, dto: CreateLeaveRequestDto): Promise<LeaveRequest> {
@@ -96,6 +107,49 @@ export class LeaveRequestsService {
       take: query.limit,
     });
     return paginate(data, total, query.page, query.limit);
+  }
+
+  /**
+   * 22/09/2026: So du phep nam hien tai (HRM-lite mo rong, theo de xuat cua Tien: "Số dư phép -
+   * Theo dõi còn/đã dùng - Cập nhật realtime sau khi duyệt"). Chi tra ve `usedDays` (so ngay lam
+   * viec cua CAC don APPROVED giao voi nam hien tai) + chinh sach hien hanh (baseDaysPerYear/
+   * seniorityYearsPerBonusDay) - KHONG tu tinh entitledDays/remainingDays o day vi con thieu 1
+   * thanh phan CHI frontend co san: ngay vao lam (User.createdAt, song o database rieng cua IAM
+   * Service - HRM Service khong duoc phep truy van truc tiep, database-per-service). Frontend
+   * (LeaveRequestsPage.tsx) da co san du lieu nay qua useOrgUsersQuery() (goi API that qua Gateway,
+   * khong phai truy van DB xuyen service) nen ghep not phia frontend, mirror dung pattern
+   * isNewMember/expectedDays cua MonthlyTimesheetTable.tsx cho cung 1 loai gioi han.
+   */
+  async getMyBalance(organizationId: string, userId: string): Promise<LeaveBalance> {
+    const policy = await this.leavePolicyService.getOrCreate(organizationId);
+    const year = new Date().getFullYear();
+    const yearStart = `${year}-01-01`;
+    const yearEnd = `${year}-12-31`;
+
+    const approvedThisYear = await this.leaveRequestRepo
+      .createQueryBuilder('lr')
+      .where('lr.organizationId = :organizationId', { organizationId })
+      .andWhere('lr.userId = :userId', { userId })
+      .andWhere('lr.status = :status', { status: LeaveRequestStatus.APPROVED })
+      .andWhere('lr.startDate <= :yearEnd', { yearEnd })
+      .andWhere('lr.endDate >= :yearStart', { yearStart })
+      .getMany();
+
+    let usedDays = 0;
+    for (const lr of approvedThisYear) {
+      // Cat khoang giao voi nam hien tai truoc khi dem ngay lam viec - phong truong hop don nghi
+      // vat qua giao thua nam (hiem nhung van dung).
+      const clampedStart = lr.startDate < yearStart ? yearStart : lr.startDate;
+      const clampedEnd = lr.endDate > yearEnd ? yearEnd : lr.endDate;
+      usedDays += countWorkingDaysInclusive(clampedStart, clampedEnd);
+    }
+
+    return {
+      year,
+      usedDays,
+      baseDaysPerYear: policy.baseDaysPerYear,
+      seniorityYearsPerBonusDay: policy.seniorityYearsPerBonusDay,
+    };
   }
 
   async approve(organizationId: string, id: string, approverId: string, dto: DecideLeaveRequestDto): Promise<LeaveRequest> {

@@ -1,4 +1,4 @@
-import { DealStage, DomainEvent, EVENT_TYPES } from '@app/common-dto';
+import { DealStage, DomainEvent, EVENT_TYPES, TaskStatus } from '@app/common-dto';
 import { buildBroadcastNotificationTemplate, buildNotificationFromEvent } from './event-notification-builder';
 
 /**
@@ -59,20 +59,14 @@ describe('buildNotificationFromEvent', () => {
     expect(draft?.payload).toEqual({ fileId: 'file-1', actorId: 'user-actor' });
   });
 
-  it('tra ve null cho cac event type khong duoc ho tro (vd. task.status_changed)', () => {
+  it('tra ve null cho cac event type khong duoc ho tro', () => {
     const event: DomainEvent = {
       eventId: 'evt-3',
-      eventType: EVENT_TYPES.TASK_STATUS_CHANGED,
+      eventType: 'project.created',
       occurredAt: '2026-07-18T09:30:00.000Z',
       organizationId: 'org-1',
       producer: 'project-task-service',
-      payload: {
-        taskId: 'task-1',
-        projectId: 'project-1',
-        fromStatus: 'DOING',
-        toStatus: 'DONE',
-        actorId: 'user-actor',
-      },
+      payload: { projectId: 'project-1', name: 'Du an', actorId: 'user-actor' },
     };
 
     expect(buildNotificationFromEvent(event)).toBeNull();
@@ -225,6 +219,193 @@ describe('buildNotificationFromEvent', () => {
       organizationId: 'org-1',
       producer: 'hrm-service',
       payload: { leaveRequestId: 'leave-1', actorId: 'user-manager' },
+    };
+
+    expect(buildNotificationFromEvent(event)).toBeNull();
+  });
+
+  // 22/09/2026: bo sung - thong bao cho nguoi phu trach du an (leadUserId) khi Task chuyen sang DONE
+  // (xem TasksService.updateStatus(), Project-Task Service, noi dinh kem san leadUserId vao payload).
+  it('sinh notification cho nguoi phu trach du an khi Task chuyen sang DONE (co leadUserId)', () => {
+    const event: DomainEvent = {
+      eventId: 'evt-13',
+      eventType: EVENT_TYPES.TASK_STATUS_CHANGED,
+      occurredAt: '2026-09-22T09:30:00.000Z',
+      organizationId: 'org-1',
+      producer: 'project-task-service',
+      payload: {
+        taskId: 'task-1',
+        projectId: 'project-1',
+        fromStatus: TaskStatus.DOING,
+        toStatus: TaskStatus.DONE,
+        actorId: 'user-actor',
+        leadUserId: 'user-lead',
+      },
+    };
+
+    const draft = buildNotificationFromEvent(event);
+
+    expect(draft).not.toBeNull();
+    expect(draft?.userId).toBe('user-lead');
+    expect(draft?.type).toBe(EVENT_TYPES.TASK_STATUS_CHANGED);
+    expect(draft?.message).toContain('task-1');
+    expect(draft?.payload).toEqual({ taskId: 'task-1', projectId: 'project-1', actorId: 'user-actor' });
+  });
+
+  it('tra ve null khi nguoi hoan thanh Task CUNG LA nguoi phu trach du an (chan tu thong bao cho chinh minh)', () => {
+    const event: DomainEvent = {
+      eventId: 'evt-15b',
+      eventType: EVENT_TYPES.TASK_STATUS_CHANGED,
+      occurredAt: '2026-09-22T09:30:00.000Z',
+      organizationId: 'org-1',
+      producer: 'project-task-service',
+      payload: {
+        taskId: 'task-1',
+        projectId: 'project-1',
+        fromStatus: TaskStatus.DOING,
+        toStatus: TaskStatus.DONE,
+        actorId: 'user-lead',
+        leadUserId: 'user-lead',
+      },
+    };
+
+    expect(buildNotificationFromEvent(event)).toBeNull();
+  });
+
+  it('tra ve null khi Task chuyen sang DONE nhung du an chua co nguoi phu trach (leadUserId rong)', () => {
+    const event: DomainEvent = {
+      eventId: 'evt-14',
+      eventType: EVENT_TYPES.TASK_STATUS_CHANGED,
+      occurredAt: '2026-09-22T09:30:00.000Z',
+      organizationId: 'org-1',
+      producer: 'project-task-service',
+      payload: {
+        taskId: 'task-1',
+        projectId: 'project-1',
+        fromStatus: TaskStatus.DOING,
+        toStatus: TaskStatus.DONE,
+        actorId: 'user-actor',
+        leadUserId: null,
+      },
+    };
+
+    expect(buildNotificationFromEvent(event)).toBeNull();
+  });
+
+  // 22/09/2026: giai trinh/duyet cham cong va tang ca (HRM-lite mo rong).
+  it('sinh notification cho nguoi gui khi yeu cau giai trinh cham cong duoc DUYET', () => {
+    const event: DomainEvent = {
+      eventId: 'evt-16',
+      eventType: EVENT_TYPES.ATTENDANCE_ADJUSTMENT_APPROVED,
+      occurredAt: '2026-09-22T09:30:00.000Z',
+      organizationId: 'org-1',
+      producer: 'hrm-service',
+      payload: { attendanceAdjustmentId: 'adj-1', userId: 'user-requester', actorId: 'user-manager' },
+    };
+
+    const draft = buildNotificationFromEvent(event);
+
+    expect(draft).not.toBeNull();
+    expect(draft?.userId).toBe('user-requester');
+    expect(draft?.type).toBe(EVENT_TYPES.ATTENDANCE_ADJUSTMENT_APPROVED);
+    expect(draft?.message).toContain('adj-1');
+    expect(draft?.payload).toEqual({ attendanceAdjustmentId: 'adj-1', actorId: 'user-manager' });
+  });
+
+  it('tra ve null neu payload attendance_adjustment.approved thieu userId', () => {
+    const event: DomainEvent = {
+      eventId: 'evt-17',
+      eventType: EVENT_TYPES.ATTENDANCE_ADJUSTMENT_APPROVED,
+      occurredAt: '2026-09-22T09:30:00.000Z',
+      organizationId: 'org-1',
+      producer: 'hrm-service',
+      payload: { attendanceAdjustmentId: 'adj-1', actorId: 'user-manager' },
+    };
+
+    expect(buildNotificationFromEvent(event)).toBeNull();
+  });
+
+  it('sinh notification cho nguoi gui khi yeu cau giai trinh cham cong bi TU CHOI', () => {
+    const event: DomainEvent = {
+      eventId: 'evt-18',
+      eventType: EVENT_TYPES.ATTENDANCE_ADJUSTMENT_REJECTED,
+      occurredAt: '2026-09-22T09:30:00.000Z',
+      organizationId: 'org-1',
+      producer: 'hrm-service',
+      payload: { attendanceAdjustmentId: 'adj-1', userId: 'user-requester', actorId: 'user-manager' },
+    };
+
+    const draft = buildNotificationFromEvent(event);
+
+    expect(draft).not.toBeNull();
+    expect(draft?.userId).toBe('user-requester');
+    expect(draft?.type).toBe(EVENT_TYPES.ATTENDANCE_ADJUSTMENT_REJECTED);
+  });
+
+  it('sinh notification cho nguoi gui khi yeu cau tang ca duoc DUYET', () => {
+    const event: DomainEvent = {
+      eventId: 'evt-19',
+      eventType: EVENT_TYPES.OVERTIME_REQUEST_APPROVED,
+      occurredAt: '2026-09-22T09:30:00.000Z',
+      organizationId: 'org-1',
+      producer: 'hrm-service',
+      payload: { overtimeRequestId: 'ot-1', userId: 'user-requester', actorId: 'user-manager' },
+    };
+
+    const draft = buildNotificationFromEvent(event);
+
+    expect(draft).not.toBeNull();
+    expect(draft?.userId).toBe('user-requester');
+    expect(draft?.type).toBe(EVENT_TYPES.OVERTIME_REQUEST_APPROVED);
+    expect(draft?.message).toContain('ot-1');
+    expect(draft?.payload).toEqual({ overtimeRequestId: 'ot-1', actorId: 'user-manager' });
+  });
+
+  it('tra ve null neu payload overtime_request.approved thieu userId', () => {
+    const event: DomainEvent = {
+      eventId: 'evt-20',
+      eventType: EVENT_TYPES.OVERTIME_REQUEST_APPROVED,
+      occurredAt: '2026-09-22T09:30:00.000Z',
+      organizationId: 'org-1',
+      producer: 'hrm-service',
+      payload: { overtimeRequestId: 'ot-1', actorId: 'user-manager' },
+    };
+
+    expect(buildNotificationFromEvent(event)).toBeNull();
+  });
+
+  it('sinh notification cho nguoi gui khi yeu cau tang ca bi TU CHOI', () => {
+    const event: DomainEvent = {
+      eventId: 'evt-21',
+      eventType: EVENT_TYPES.OVERTIME_REQUEST_REJECTED,
+      occurredAt: '2026-09-22T09:30:00.000Z',
+      organizationId: 'org-1',
+      producer: 'hrm-service',
+      payload: { overtimeRequestId: 'ot-1', userId: 'user-requester', actorId: 'user-manager' },
+    };
+
+    const draft = buildNotificationFromEvent(event);
+
+    expect(draft).not.toBeNull();
+    expect(draft?.userId).toBe('user-requester');
+    expect(draft?.type).toBe(EVENT_TYPES.OVERTIME_REQUEST_REJECTED);
+  });
+
+  it('tra ve null khi Task doi trang thai nhung KHONG PHAI chuyen sang DONE (vd DOING)', () => {
+    const event: DomainEvent = {
+      eventId: 'evt-15',
+      eventType: EVENT_TYPES.TASK_STATUS_CHANGED,
+      occurredAt: '2026-09-22T09:30:00.000Z',
+      organizationId: 'org-1',
+      producer: 'project-task-service',
+      payload: {
+        taskId: 'task-1',
+        projectId: 'project-1',
+        fromStatus: TaskStatus.TODO,
+        toStatus: TaskStatus.DOING,
+        actorId: 'user-actor',
+        leadUserId: 'user-lead',
+      },
     };
 
     expect(buildNotificationFromEvent(event)).toBeNull();

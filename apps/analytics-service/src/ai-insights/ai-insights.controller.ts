@@ -21,15 +21,10 @@ export class AiInsightsController {
 
   @ApiOperation({
     summary:
-      'Sinh nhan xet bang ngon ngu tu nhien (tieng Viet) tu so lieu KPI da tong hop, qua Google Gemini API (theo yeu cau, co cache 30 phut)',
+      'Quet KPI toan to chuc + tung phong ban + top du an, AI (Gemini/Groq) xep hang va tra ve 2-4 insight co cau truc dang chu y nhat (theo yeu cau, co cache 30 phut)',
   })
   @Get('ai-insights')
-  getAiInsight(@CurrentUser('organizationId') organizationId: string, @Query() query: AiInsightQueryDto) {
-    return this.aiInsightsService.generateInsight(
-      organizationId,
-      query.range ?? '7d',
-      query.departmentId,
-      query.departmentName,
-    );
+  getAiInsights(@CurrentUser('organizationId') organizationId: string, @Query() query: AiInsightQueryDto) {
+    return this.aiInsightsService.generateInsights(organizationId, query.range ?? '7d');
   }
 }

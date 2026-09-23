@@ -7,6 +7,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 // nang day DLQ (xem cac test moi ben duoi).
 import { KafkaProducerService } from './kafka-producer.service';
 import { OrgMembersService } from '../org-members/org-members.service';
+import { DepartmentManagersService } from '../department-managers/department-managers.service';
 
 /**
  * Unit test cho diem review 21/07/2026 (Technical_Spec.md muc 14 - "Kafka consumer chua co
@@ -31,7 +32,13 @@ describe('KafkaConsumerService (Notification Service)', () => {
   let service: KafkaConsumerService;
   let notificationsServiceMock: { createFromEvent: jest.Mock };
   let kafkaProducerMock: { publish: jest.Mock };
-  let orgMembersServiceMock: { markActive: jest.Mock; markInactive: jest.Mock; listActiveUserIds: jest.Mock };
+  let orgMembersServiceMock: {
+    markActive: jest.Mock;
+    markInactive: jest.Mock;
+    setDepartment: jest.Mock;
+    listActiveUserIds: jest.Mock;
+  };
+  let departmentManagersServiceMock: { setManager: jest.Mock };
 
   beforeEach(() => {
     notificationsServiceMock = { createFromEvent: jest.fn().mockResolvedValue({ id: 'notif-1' }) };
@@ -39,14 +46,17 @@ describe('KafkaConsumerService (Notification Service)', () => {
     orgMembersServiceMock = {
       markActive: jest.fn().mockResolvedValue(undefined),
       markInactive: jest.fn().mockResolvedValue(undefined),
+      setDepartment: jest.fn().mockResolvedValue(undefined),
       listActiveUserIds: jest.fn().mockResolvedValue([]),
     };
+    departmentManagersServiceMock = { setManager: jest.fn().mockResolvedValue(undefined) };
     const configServiceMock = { get: jest.fn() } as unknown as ConfigService;
     service = new KafkaConsumerService(
       configServiceMock,
       notificationsServiceMock as unknown as NotificationsService,
       kafkaProducerMock as unknown as KafkaProducerService,
       orgMembersServiceMock as unknown as OrgMembersService,
+      departmentManagersServiceMock as unknown as DepartmentManagersService,
     );
   });
 
@@ -117,7 +127,38 @@ describe('KafkaConsumerService (Notification Service)', () => {
 
       await expect(service['handleMessage'](makePayload(JSON.stringify(event), 'iam.events'))).resolves.toBeUndefined();
 
-      expect(orgMembersServiceMock.markActive).toHaveBeenCalledWith('org-1', 'user-1');
+      expect(orgMembersServiceMock.markActive).toHaveBeenCalledWith('org-1', 'user-1', null);
+      expect(notificationsServiceMock.createFromEvent).not.toHaveBeenCalled();
+    });
+
+    it('USER_DEPARTMENT_CHANGED: dong bo departmentId moi cua 1 user da ton tai', async () => {
+      const event = {
+        eventId: 'evt-dept-1',
+        eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,
+        occurredAt: '2026-09-23T09:00:00.000Z',
+        organizationId: 'org-1',
+        producer: 'iam-service',
+        payload: { userId: 'user-1', departmentId: 'dept-2' },
+      };
+
+      await service['handleMessage'](makePayload(JSON.stringify(event), 'iam.events'));
+
+      expect(orgMembersServiceMock.setDepartment).toHaveBeenCalledWith('org-1', 'user-1', 'dept-2');
+    });
+
+    it('DEPARTMENT_MANAGER_CHANGED: dong bo nguoi phu trach moi cua 1 phong ban', async () => {
+      const event = {
+        eventId: 'evt-mgr-1',
+        eventType: EVENT_TYPES.DEPARTMENT_MANAGER_CHANGED,
+        occurredAt: '2026-09-23T09:00:00.000Z',
+        organizationId: 'org-1',
+        producer: 'iam-service',
+        payload: { departmentId: 'dept-2', managerId: 'user-9' },
+      };
+
+      await service['handleMessage'](makePayload(JSON.stringify(event), 'iam.events'));
+
+      expect(departmentManagersServiceMock.setManager).toHaveBeenCalledWith('org-1', 'dept-2', 'user-9');
       expect(notificationsServiceMock.createFromEvent).not.toHaveBeenCalled();
     });
 

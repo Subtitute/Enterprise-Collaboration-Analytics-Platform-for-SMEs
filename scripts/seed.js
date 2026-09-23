@@ -42,6 +42,48 @@ const PROJECTS = [
   { name: 'Hệ thống báo cáo KPI', description: 'Xây dựng dashboard báo cáo KPI nội bộ cho ban giám đốc' },
 ];
 
+// 22/09/2026: danh dau san 1 phong ban tut hau (STRUGGLE), 1 phong ban vuot troi (THRIVE) va 1 du an
+// co nguy co (AT_RISK) - de tinh nang "Nhan xet AI" (analytics-service/src/ai-insights) LUON co it
+// nhat vai bat thuong dang chu y de phat hien khi demo, thay vi phu thuoc hoan toan vao may man cua
+// Math.random() nhu truoc day (co lan chay ra du lieu qua "phang", AI khong tim thay gi dang noi).
+// 2 phong ban con lai (Nhan su/Marketing) + 4 du an con lai van giu nguyen ty le ngau nhien trung lap
+// (xem biasedProbability() ben duoi) de du lieu khong "qua hoan hao"/de bi nhan ra la gia mao.
+const STRUGGLE_DEPT_NAME = 'Kinh doanh';
+const THRIVE_DEPT_NAME = 'Kỹ thuật';
+const AT_RISK_PROJECT_INDEX = 2; // 'Nâng cấp hạ tầng Docker'
+
+/**
+ * Nhan 1 ty le xac suat "trung lap" (baseline) theo dung boi canh (du an nay co phai AT_RISK
+ * khong, nguoi duoc giao thuoc phong ban nao) - dung CHUNG cho ca task tao qua API (vong lap chinh
+ * trong main()) LAN du lieu lich su gia lap chen thang vao TimescaleDB (seedHistoricalAnalyticsData),
+ * de 1 noi thien lech duy nhat ap dung nhat quan cho MOI khoang thoi gian AI co the quet (7d/30d/quy).
+ * isAtRiskProject duoc uu tien hon phong ban (1 nhan vien gioi lam viec tren du an nguy co van tinh
+ * la "nguy co" cho task do) - danh cho truong hop du an that su co van de bat ke ai dam nhan.
+ */
+function biasedProbability(baseline, { isAtRiskProject, deptId, struggleDeptId, thriveDeptId }) {
+  if (isAtRiskProject || deptId === struggleDeptId) return Math.max(0.05, baseline * 0.45);
+  if (deptId === thriveDeptId) return Math.min(0.95, baseline * 1.4);
+  return baseline;
+}
+
+/**
+ * Nhan ban cac thanh vien thuoc phong ban STRUGGLE/THRIVE trong 1 pool truoc khi randomFrom() -
+ * de 2 phong ban nay nhan TY TRONG khoi luong cong viec cao hon (that te: phong ban dang "ngap dau"
+ * hoac dang chay het cong suat thuong xu ly nhieu viec hon), THAY VI chi day xac suat DOING/DONE
+ * len gan 100% (se qua hoan hao/de nhan la gia mao - da thu va van bi nhieu tu 2 phong ban KHONG
+ * thien lech "may man" o mau nho). Tang N thuc su giup tin hieu da chu dich on dinh hon truoc bien
+ * thien ngau nhien cua Marketing/Nhan su (van giu nguyen KHONG thien lech, chi la mau nho hon).
+ */
+function weightedByDept(pool, getDeptId, { struggleDeptId, thriveDeptId, weight = 2 }) {
+  const weighted = [];
+  for (const item of pool) {
+    const deptId = getDeptId(item);
+    const copies = deptId === struggleDeptId || deptId === thriveDeptId ? weight : 1;
+    for (let i = 0; i < copies; i += 1) weighted.push(item);
+  }
+  return weighted;
+}
+
 const TASK_TITLES = [
   'Thiết kế giao diện trang chủ',
   'Tích hợp cổng thanh toán',
@@ -312,24 +354,43 @@ async function main() {
   const organizationId = registerRes.organization.id;
   const authHeaders = { Authorization: `Bearer ${accessToken}` };
 
+  // 23/09/2026: idempotent theo TEN (giong pattern adminEmail/DEMO_ORG_NAME o main()) - truoc day
+  // moi lan chay lai script deu POST 4 phong ban MOI (khong kiem tra da ton tai chua), khien to chuc
+  // demo tich luy phong ban trung ten qua nhieu lan chay (vd 2x "Kinh doanh"). Dieu nay khong chi xau
+  // ve du lieu ma con PHA VO tin hieu bat thuong da chu dich cai vao du lieu seed (xem STRUGGLE_DEPT_NAME
+  // dau file) - tin hieu bi chia deu ra 2 phong-ban-id thay vi tap trung vao 1.
+  const existingDepartments = await apiCall('/departments', { headers: authHeaders });
   const departments = [];
+  let newDeptCount = 0;
   for (const name of DEPARTMENTS) {
+    const existing = existingDepartments.find((d) => d.name === name);
+    if (existing) {
+      departments.push(existing);
+      continue;
+    }
     const dept = await apiCall('/departments', {
       method: 'POST',
       headers: authHeaders,
       body: JSON.stringify({ name }),
     });
     departments.push(dept);
+    newDeptCount += 1;
   }
-  console.log(`Da tao ${departments.length} phong ban`);
+  console.log(`Phong ban: ${newDeptCount} moi tao, ${departments.length - newDeptCount} da co san (tai su dung).`);
 
   const roles = await apiCall('/roles', { headers: authHeaders });
   const employeeRole = roles.find((r) => r.name === 'Employee');
 
   // Luu lai user duoc tra ve (co id) - CAN THIET de sau nay giao (assign) task cho nhan vien
   // that su qua API, thay vi chi "moi cho co" roi bo qua ket qua nhu ban truoc.
+  // 22/09/2026: doi tu randomFrom(departments) sang RAI DEU theo vong tron (round-robin) - dam bao
+  // moi phong ban (ke ca STRUGGLE_DEPT_NAME/THRIVE_DEPT_NAME) co it nhat 2 nhan vien co dinh, thay vi
+  // co the ngau nhien nhan 0-1 nguoi khien tin hieu bat thuong da danh dau qua yeu de nhan ra khi demo.
   const employees = [];
-  for (const emp of EMPLOYEES) {
+  const employeeDepartmentById = {};
+  for (let i = 0; i < EMPLOYEES.length; i += 1) {
+    const emp = EMPLOYEES[i];
+    const dept = departments[i % departments.length];
     // Email phai duy nhat TOAN CUC (UsersService.invite() kiem tra trung email khong loc theo
     // organizationId - shared-schema multi-tenant), khong chi trong pham vi 1 to chuc. Them
     // suffix ${suffix} cua lan chay nay (giong adminEmail o tren) de script THAT SU re-runnable
@@ -343,26 +404,52 @@ async function main() {
         email,
         fullName: emp.fullName,
         initialPassword: adminPassword,
-        departmentId: randomFrom(departments).id,
+        departmentId: dept.id,
         roleIds: employeeRole ? [employeeRole.id] : [],
       }),
     });
     employees.push(created);
+    employeeDepartmentById[created.id] = dept.id;
   }
   console.log(`Da moi ${employees.length} nhan vien (mat khau: ${adminPassword})`);
+
+  const struggleDept = departments.find((d) => d.name === STRUGGLE_DEPT_NAME);
+  const thriveDept = departments.find((d) => d.name === THRIVE_DEPT_NAME);
 
   await seedCustomersAndDeals(authHeaders);
 
   // Nguon nguoi dung co the giao viec / lam actor: nhan vien + chinh Org Admin (thuc te Org
   // Admin cung thuong tu nhan task nho trong doanh nghiep SME).
   const assignablePool = [...employees, registerRes.user];
+  // 23/09/2026: pool DA NHAN BAN cho phong ban STRUGGLE/THRIVE - dung khi CHON NGUOI DUOC GIAO task
+  // (xem weightedByDept() dau file) - CHI dung cho buoc chon assignee, KHONG dung cho cac muc dich
+  // khac (vd taskId ngau nhien, TASK_TITLES...).
+  const weightedAssignablePool = weightedByDept(assignablePool, (u) => employeeDepartmentById[u.id], {
+    struggleDeptId: struggleDept?.id,
+    thriveDeptId: thriveDept?.id,
+  });
+
+  // 23/09/2026: idempotent theo TEN du an - cung ly do nhu phong ban o tren (xem chu thich phia
+  // tren). Du an da co san thi TAI SU DUNG id, KHONG tao lai (bo qua thu muc/tai lieu/task moi cho
+  // no) - tranh tich luy trung ten qua nhieu lan chay VA giu AT_RISK_PROJECT_INDEX luon tro dung 1
+  // du an duy nhat thay vi bi chia thanh nhieu ban sao.
+  const existingProjectsRes = await apiCall('/projects?limit=100', { headers: authHeaders });
+  const existingProjectsList = existingProjectsRes.data || existingProjectsRes;
 
   const projectIds = [];
   const folderIds = [];
   let totalTasks = 0;
   let totalFiles = 0;
 
-  for (const proj of PROJECTS) {
+  for (let projectIndex = 0; projectIndex < PROJECTS.length; projectIndex += 1) {
+    const proj = PROJECTS[projectIndex];
+    const existingProject = existingProjectsList.find((p) => p.name === proj.name);
+    if (existingProject) {
+      projectIds.push(existingProject.id);
+      console.log(`Du an "${proj.name}": da co san - bo qua (khong tao lai thu muc/tai lieu/task).`);
+      continue;
+    }
+
     const project = await apiCall('/projects', {
       method: 'POST',
       headers: authHeaders,
@@ -389,7 +476,12 @@ async function main() {
     }
 
     // --- Cong viec cua du an ---
-    const taskCount = randomInt(6, 10);
+    // 23/09/2026: du an AT_RISK duoc tao NHIEU task hon han (thay vi cung random 6-10 nhu moi du
+    // an khac) - AiInsightsService chi xet 3 du an co KHOI LUONG TASK cao nhat lam candidate
+    // (MAX_PROJECT_CANDIDATES=3 - xem ai-insights.service.ts), du an nay neu chi co khoi luong
+    // trung binh se bi loai khoi danh sach xet duyet hoan toan (da xay ra khi kiem thu) - can dam
+    // bao no LUON lot vao top 3 de tin hieu "du an nguy co" that su duoc AI quet toi.
+    const taskCount = projectIndex === AT_RISK_PROJECT_INDEX ? randomInt(11, 15) : randomInt(6, 10);
     for (let i = 0; i < taskCount; i += 1) {
       const task = await apiCall('/tasks', {
         method: 'POST',
@@ -404,7 +496,9 @@ async function main() {
       // Luon giao (assign) task cho 1 nhan vien ngau nhien -> phat that su su kien
       // `task.assigned` qua Outbox/Kafka, de Notification Service co du lieu demo (truoc day
       // task khong bao gio duoc assign qua seed script nen Notification Service luon trong).
-      const assignee = randomFrom(assignablePool);
+      // 23/09/2026: dung weightedAssignablePool (khong phai assignablePool tho) - xem chu thich
+      // weightedByDept() dau file.
+      const assignee = randomFrom(weightedAssignablePool);
       await apiCall(`/tasks/${task.id}/assignees`, {
         method: 'POST',
         headers: authHeaders,
@@ -413,20 +507,28 @@ async function main() {
 
       // Mo phong hoat dong: mot vai task duoc chuyen sang DOING/DONE de sinh su kien
       // task.status_changed thuc su qua Kafka -> Analytics Service (khong chi task.created).
-      const roll = Math.random();
-      if (roll > 0.3) {
+      // 22/09/2026: thay "roll" phang bang biasedProbability() - giu nguyen ty le trung lap ~70%
+      // DOING / ~57% DONE-cho-truong-hop-da-DOING cho phan lon task, nhung thien lech thap cho du an
+      // AT_RISK/phong ban STRUGGLE va thien lech cao cho phong ban THRIVE (xem hang so dau file).
+      const bias = {
+        isAtRiskProject: projectIndex === AT_RISK_PROJECT_INDEX,
+        deptId: employeeDepartmentById[assignee.id],
+        struggleDeptId: struggleDept?.id,
+        thriveDeptId: thriveDept?.id,
+      };
+      if (Math.random() < biasedProbability(0.7, bias)) {
         await apiCall(`/tasks/${task.id}/status`, {
           method: 'PATCH',
           headers: authHeaders,
           body: JSON.stringify({ status: 'DOING' }),
         });
-      }
-      if (roll > 0.6) {
-        await apiCall(`/tasks/${task.id}/status`, {
-          method: 'PATCH',
-          headers: authHeaders,
-          body: JSON.stringify({ status: 'DONE' }),
-        });
+        if (Math.random() < biasedProbability(4 / 7, bias)) {
+          await apiCall(`/tasks/${task.id}/status`, {
+            method: 'PATCH',
+            headers: authHeaders,
+            body: JSON.stringify({ status: 'DONE' }),
+          });
+        }
       }
     }
     console.log(
@@ -460,6 +562,10 @@ async function main() {
     projectIds,
     folderIds,
     userIds: assignablePool.map((u) => u.id),
+    employeeDepartmentById,
+    struggleDeptId: struggleDept?.id,
+    thriveDeptId: thriveDept?.id,
+    atRiskProjectId: projectIds[AT_RISK_PROJECT_INDEX],
   });
 }
 
@@ -486,7 +592,16 @@ function randomTimestampInRange(startMs, endMs) {
  * + jitter ngau nhien de bieu do xu huong trong that hon), ham nay XOA cac hang synthetic CU cua
  * CHINH to chuc nay (time < now - 7 ngay) truoc khi chen lai - xem doan xoa dau khoi try{} ben duoi.
  */
-async function seedHistoricalAnalyticsData({ organizationId, projectIds, folderIds, userIds }) {
+async function seedHistoricalAnalyticsData({
+  organizationId,
+  projectIds,
+  folderIds,
+  userIds,
+  employeeDepartmentById,
+  struggleDeptId,
+  thriveDeptId,
+  atRiskProjectId,
+}) {
   console.log('\n--- [DEMO-ONLY] Bat dau chen du lieu lich su tong hop (~8 tuan) vao TimescaleDB ---');
 
   let Client;
@@ -549,6 +664,18 @@ async function seedHistoricalAnalyticsData({ organizationId, projectIds, folderI
       console.log(`Da xoa ${deletedTotal} hang synthetic cu (backfill tu lan chay truoc) truoc khi chen lai.`);
     }
 
+    // 23/09/2026: pool DA NHAN BAN cho phong ban STRUGGLE/THRIVE - dung khi chon NGUOI DUOC GIAO
+    // (assigneeId) cua task lich su gia lap, cung ky thuat/ly do nhu weightedAssignablePool o main()
+    // (xem chu thich weightedByDept() dau file). creatorId (nguoi tao/thuc hien hanh dong giao viec)
+    // KHONG can trong so nay - chi assignee moi anh huong toi KPI theo-phong-ban.
+    const weightedUserIds = weightedByDept(userIds, (id) => employeeDepartmentById?.[id], {
+      struggleDeptId,
+      thriveDeptId,
+    });
+    // 23/09/2026: du an AT_RISK duoc nhan ban them (cung ly do nhu taskCount o main()) - dam bao
+    // khoi luong task LICH SU cua no cung cao hon han, khong chi task "that" cua tuan hien tai.
+    const weightedProjectIds = atRiskProjectId ? [...projectIds, ...Array(2).fill(atRiskProjectId)] : projectIds;
+
     // 25/07/2026: dung lai o "weeksAgo >= 2" (bo qua tuan gan nhat, weeksAgo = 1) - tuan gan nhat
     // da duoc du lieu THAT (task/document vua tao qua API o tren) bao phu, dong thoi tranh chong
     // lan thoi gian voi nguong xoa historicalCutoffIso o tren (xem giai thich chi tiet o docstring).
@@ -565,8 +692,13 @@ async function seedHistoricalAnalyticsData({ organizationId, projectIds, folderI
 
       for (let i = 0; i < tasksThisWeek; i += 1) {
         const taskId = crypto.randomUUID();
-        const projectId = randomFrom(projectIds);
+        const projectId = randomFrom(weightedProjectIds);
         const creatorId = randomFrom(userIds);
+        // 23/09/2026: chon assigneeId NGAY TU DAU (thay vi chi trong nhanh task.assigned ben duoi)
+        // - can dung LAM CAN CU cho bias theo phong ban (xem "bias" ben duoi), vi truy van phong-ban
+        // that su cua Analytics Service loc theo NGUOI DUOC GIAO (assignee_id qua event task.assigned),
+        // KHONG phai nguoi tao task - xem AnalyticsService.computeSummary() departmentFilter.
+        const assigneeId = randomFrom(weightedUserIds);
         const createdAt = randomTimestampInRange(weekStartMs, weekEndMs);
         const createdEventId = crypto.randomUUID();
 
@@ -594,9 +726,17 @@ async function seedHistoricalAnalyticsData({ organizationId, projectIds, folderI
         activityEventCount += 1;
 
         if (Math.random() > 0.2) {
-          const assigneeId = randomFrom(userIds);
           const assignTime = new Date(createdAt.getTime() + Math.random() * MS_PER_DAY);
           const assignEventId = crypto.randomUUID();
+          // 23/09/2026: sua actor_id/assignee_id dung ngu nghia (BUG that su, khong lien quan bias) -
+          // truoc day gan nham assigneeId vao actor_id va KHONG bao gio ghi cot assignee_id (mac dinh
+          // NULL), khien fact_task_events.assignee_id luon rong cho TOAN BO du lieu lich su gia lap.
+          // Analytics Service loc "task cua 1 phong ban" bang JOIN dim_user qua CHINH cot assignee_id
+          // (xem computeSummary() departmentFilter) - assignee_id rong nghia la 7 tuan du lieu lich
+          // su chua tung duoc tinh vao bat ky KPI theo-phong-ban nao, chi con du lieu THAT cua tuan
+          // hien tai (vua seed qua API) la co dong gop - xem chu thich fact-writer.service.ts cho
+          // ngu nghia dung: actor_id = nguoi THUC HIEN hanh dong giao viec (o day la creatorId, dong
+          // vai "nguoi giao"), assignee_id = nguoi DUOC giao (assigneeId).
           await insertTaskEvent(client, {
             time: assignTime,
             eventId: assignEventId,
@@ -606,7 +746,8 @@ async function seedHistoricalAnalyticsData({ organizationId, projectIds, folderI
             taskId,
             fromStatus: null,
             toStatus: null,
-            actorId: assigneeId,
+            actorId: creatorId,
+            assigneeId,
           });
           await insertUserActivity(client, {
             time: assignTime,
@@ -614,14 +755,27 @@ async function seedHistoricalAnalyticsData({ organizationId, projectIds, folderI
             organizationId,
             eventType: 'task.assigned',
             producer: 'project-task-service',
-            actorId: assigneeId,
+            actorId: creatorId,
             payload: { taskId, projectId, assigneeId },
           });
           taskEventCount += 1;
           activityEventCount += 1;
         }
 
-        if (Math.random() < 0.85) {
+        // 22/09/2026: bias theo dung boi canh cua task nay (du an AT_RISK/phong ban STRUGGLE hay
+        // THRIVE cua NGUOI DUOC GIAO - 23/09/2026: doi tu creatorId sang assigneeId, vi truy van
+        // phong-ban that su cua Analytics Service nhom theo assignee_id, khong phai actor_id/nguoi
+        // tao - xem chu thich assigneeId o dau vong lap). completionRate (xu huong "cai thien dan
+        // theo thoi gian" theo recency) van duoc dung lam baseline cho ty le DONE-cho-truong-hop-da-
+        // DOING, chi khac muc do theo phong ban/du an trong CUNG 1 tuan.
+        const bias = {
+          isAtRiskProject: projectId === atRiskProjectId,
+          deptId: employeeDepartmentById[assigneeId],
+          struggleDeptId,
+          thriveDeptId,
+        };
+
+        if (Math.random() < biasedProbability(0.85, bias)) {
           const doingTime = new Date(createdAt.getTime() + Math.random() * 2 * MS_PER_DAY);
           const doingEventId = crypto.randomUUID();
           await insertTaskEvent(client, {
@@ -647,7 +801,7 @@ async function seedHistoricalAnalyticsData({ organizationId, projectIds, folderI
           taskEventCount += 1;
           activityEventCount += 1;
 
-          if (Math.random() < completionRate) {
+          if (Math.random() < biasedProbability(completionRate, bias)) {
             const doneTime = new Date(doingTime.getTime() + Math.random() * 3 * MS_PER_DAY);
             const doneEventId = crypto.randomUUID();
             await insertTaskEvent(client, {
@@ -774,10 +928,14 @@ async function seedHistoricalAnalyticsData({ organizationId, projectIds, folderI
 }
 
 async function insertTaskEvent(client, row) {
+  // 23/09/2026: them cot assignee_id (row.assigneeId - undefined o hau het loi goi ham nay ngoai
+  // task.assigned se tu thanh NULL qua tham so $10, dung nhu FactWriterService that - xem
+  // fact-writer.service.ts) - truoc day BO SOT cot nay hoan toan, xem chu thich noi goi ham cho
+  // task.assigned (main() -> seedHistoricalAnalyticsData) de biet tac dong.
   await client.query(
     `
-    INSERT INTO fact_task_events (time, event_id, organization_id, event_type, project_id, task_id, from_status, to_status, actor_id)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    INSERT INTO fact_task_events (time, event_id, organization_id, event_type, project_id, task_id, from_status, to_status, actor_id, assignee_id)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
     ON CONFLICT (time, event_id) DO NOTHING
     `,
     [
@@ -790,6 +948,7 @@ async function insertTaskEvent(client, row) {
       row.fromStatus,
       row.toStatus,
       row.actorId,
+      row.assigneeId ?? null,
     ],
   );
 }

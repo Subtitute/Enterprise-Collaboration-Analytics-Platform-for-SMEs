@@ -9,13 +9,16 @@ import { Avatar } from '@/components/ui/Avatar';
 import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { PlusIcon, CheckIcon, XIcon } from '@/components/ui/Icons';
+import { PlusIcon, CheckIcon, XIcon, EditIcon } from '@/components/ui/Icons';
 import { formatDate, calculateWorkingDays } from '@/lib/utils';
 import { useUserNameMap } from '@/hooks/useOrgUsers';
+import { useAuthStore, usePermissions } from '@/stores/auth.store';
 import type { LeaveRequestStatus } from '@/types';
 import { NewLeaveRequestModal } from './components/NewLeaveRequestModal';
+import { LeavePolicyModal } from './components/LeavePolicyModal';
 import {
   useApproveLeaveRequest,
+  useMyLeaveBalanceQuery,
   useMyLeaveRequestsQuery,
   usePendingLeaveRequestsQuery,
   useRejectLeaveRequest,
@@ -71,6 +74,11 @@ export function LeaveRequestsPage() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isNewOpen, setIsNewOpen] = useState(false);
+  const [isPolicyModalOpen, setIsPolicyModalOpen] = useState(false);
+  // 22/09/2026: chi Org Admin (PERMISSIONS.ORG_MANAGE) duoc cau hinh chinh sach nghi phep - xem
+  // LeavePolicyController.update() (apps/hrm-service).
+  const permissions = usePermissions();
+  const canManagePolicy = permissions.includes('organization:manage');
 
   useEffect(() => {
     if (searchParams.get('action') === 'create') {
@@ -81,9 +89,27 @@ export function LeaveRequestsPage() {
   }, [searchParams, setSearchParams]);
   const myRequestsQuery = useMyLeaveRequestsQuery({ limit: 20 });
   const pendingQuery = usePendingLeaveRequestsQuery();
-  const { map: userNameMap } = useUserNameMap();
+  const balanceQuery = useMyLeaveBalanceQuery();
+  const { map: userNameMap, users: orgUsers } = useUserNameMap();
+  const currentUser = useAuthStore((s) => s.user);
   const approve = useApproveLeaveRequest();
   const reject = useRejectLeaveRequest();
+
+  // 22/09/2026: so du phep theo Luat LD VN (de xuat cua Tien) - entitledDays ghep tu 2 nguon: chinh
+  // sach + usedDays THAT tu server (balanceQuery), va ngay vao lam (User.createdAt) CHI co san o
+  // day (qua useOrgUsersQuery(), goi API IAM that qua Gateway) - hrm-service khong duoc phep truy
+  // van truc tiep DB cua IAM Service (database-per-service), xem chu thich chi tiet tai
+  // LeaveRequestsService.getMyBalance() (apps/hrm-service).
+  const leaveBalance = (() => {
+    if (!balanceQuery.data) return null;
+    const { usedDays, baseDaysPerYear, seniorityYearsPerBonusDay, year } = balanceQuery.data;
+    const selfRecord = orgUsers.find((u) => u.id === currentUser?.id);
+    const joinDate = selfRecord?.createdAt ? new Date(selfRecord.createdAt) : null;
+    const yearsOfService = joinDate ? Math.max(0, Math.floor((Date.now() - joinDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000))) : 0;
+    const seniorityBonusDays = Math.floor(yearsOfService / seniorityYearsPerBonusDay);
+    const entitledDays = baseDaysPerYear + seniorityBonusDays;
+    return { year, usedDays, entitledDays, seniorityBonusDays, remainingDays: entitledDays - usedDays };
+  })();
   // 26/08/2026: sua loi thuc te - `approve`/`reject` chi duoc goi 1 LAN cho ca trang va dung chung
   // cho MOI dong trong danh sach cho duyet, nen `approve.isPending`/`reject.isPending` la trang thai
   // DUNG CHUNG: duyet 1 don se lam nut Duyet/Tu choi cua TAT CA cac dong khac cung disable/quay spin
@@ -117,6 +143,45 @@ export function LeaveRequestsPage() {
           <PlusIcon className="h-4 w-4" /> {t('hrm:leaveRequestsPage.newRequestButton')}
         </Button>
       </div>
+
+      {leaveBalance && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('hrm:leaveRequestsPage.balance.cardTitle', { year: leaveBalance.year })}</CardTitle>
+            {canManagePolicy && (
+              <Button variant="outline" size="sm" onClick={() => setIsPolicyModalOpen(true)}>
+                <EditIcon className="h-3.5 w-3.5" /> {t('hrm:leaveRequestsPage.balance.editPolicyButton')}
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-2xl font-bold text-slate-900">{leaveBalance.entitledDays}</p>
+                <p className="text-xs font-medium text-slate-500">{t('hrm:leaveRequestsPage.balance.entitledLabel')}</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-slate-900">{leaveBalance.usedDays}</p>
+                <p className="text-xs font-medium text-slate-500">{t('hrm:leaveRequestsPage.balance.usedLabel')}</p>
+              </div>
+              <div>
+                <p className={`text-2xl font-bold ${leaveBalance.remainingDays < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                  {leaveBalance.remainingDays}
+                </p>
+                <p className="text-xs font-medium text-slate-500">{t('hrm:leaveRequestsPage.balance.remainingLabel')}</p>
+              </div>
+            </div>
+            {leaveBalance.seniorityBonusDays > 0 && (
+              <p className="mt-3 text-center text-xs text-slate-400">
+                {t('hrm:leaveRequestsPage.balance.seniorityNote', {
+                  bonusDays: leaveBalance.seniorityBonusDays,
+                  yearsPerBonus: balanceQuery.data?.seniorityYearsPerBonusDay,
+                })}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {canApprove && (
         <Card>
@@ -282,6 +347,7 @@ export function LeaveRequestsPage() {
       </Card>
 
       <NewLeaveRequestModal open={isNewOpen} onClose={() => setIsNewOpen(false)} />
+      {canManagePolicy && <LeavePolicyModal open={isPolicyModalOpen} onClose={() => setIsPolicyModalOpen(false)} />}
     </div>
   );
 }

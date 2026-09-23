@@ -34,6 +34,15 @@ export class LeaveRequestsController {
     return this.leaveRequestsService.findMine(organizationId, userId, query);
   }
 
+  /** 22/09/2026: so du phep nam hien tai cua chinh nguoi goi - khong yeu cau permission dac biet. */
+  @Get('me/balance')
+  getMyBalance(
+    @CurrentUser('organizationId') organizationId: string,
+    @CurrentUser('userId') userId: string,
+  ) {
+    return this.leaveRequestsService.getMyBalance(organizationId, userId);
+  }
+
   @Get()
   @RequirePermissions(PERMISSIONS.LEAVE_REQUEST_VIEW)
   findAll(@CurrentUser('organizationId') organizationId: string, @Query() query: LeaveRequestQueryDto) {

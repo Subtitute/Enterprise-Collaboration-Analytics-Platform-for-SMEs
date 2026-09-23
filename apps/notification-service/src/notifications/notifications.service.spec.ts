@@ -1,10 +1,13 @@
 import { Model } from 'mongoose';
 import { NotFoundException } from '@nestjs/common';
+import { PERMISSIONS } from '@app/common-dto';
 import { NotificationsService } from './notifications.service';
 import { NotificationDocument } from './schemas/notification.schema';
 import { NotificationsGateway } from '../realtime/notifications.gateway';
 import { NotificationDraft } from './interfaces/notification-draft.interface';
 import { ListNotificationsQueryDto } from './dto/list-notifications-query.dto';
+import { OrgMembersService } from '../org-members/org-members.service';
+import { DepartmentManagersService } from '../department-managers/department-managers.service';
 
 /**
  * Unit test cho NotificationsService - tap trung vao 2 diem review 21/07/2026:
@@ -22,6 +25,8 @@ describe('NotificationsService', () => {
     updateMany: jest.Mock;
   };
   let gatewayMock: { emitNewNotification: jest.Mock; emitUnreadCount: jest.Mock };
+  let orgMembersServiceMock: { listActiveUserIdsInDepartments: jest.Mock };
+  let departmentManagersServiceMock: { listDepartmentIdsManagedBy: jest.Mock };
 
   const draft: NotificationDraft = {
     userId: 'user-1',
@@ -43,10 +48,16 @@ describe('NotificationsService', () => {
       emitNewNotification: jest.fn(),
       emitUnreadCount: jest.fn(),
     };
+    // 23/09/2026: mac dinh mo phong 1 Employee thuong (khong phu trach phong ban nao) - cac test
+    // rieng cho pham vi "to chuc"/"phong ban" se ghi de mock nay (xem describe('findForUser')).
+    orgMembersServiceMock = { listActiveUserIdsInDepartments: jest.fn().mockResolvedValue([]) };
+    departmentManagersServiceMock = { listDepartmentIdsManagedBy: jest.fn().mockResolvedValue([]) };
 
     service = new NotificationsService(
       modelMock as unknown as Model<NotificationDocument>,
       gatewayMock as unknown as NotificationsGateway,
+      orgMembersServiceMock as unknown as OrgMembersService,
+      departmentManagersServiceMock as unknown as DepartmentManagersService,
     );
   });
 
@@ -131,14 +142,24 @@ describe('NotificationsService', () => {
     // 'leave_request.approved'/'leave_request.rejected'), khong con so sanh chuoi tuyet doi nhu
     // truoc - test cu (mong doi `type: 'task.assigned'` dang chuoi) da loi thoi so voi code, phat
     // hien qua chay lai toan bo test suite sau khi merge nhanh frontend cua Tien.
+    //
+    // 23/09/2026: findForUser() gio nhan them `callerPermissions` va suy ra pham vi hien thi
+    // (xem resolveVisibleUserIds()) - cac test duoi day deu goi voi 1 Employee thuong (khong co
+    // PERMISSIONS.USER_MANAGE, khong phu trach phong ban nao qua mock beforeEach() o tren), nen
+    // filter.userId van thu gon ve { $in: ['user-1'] } (hanh vi tuong duong "chi thay cua minh"
+    // truoc day) - xem rieng describe('resolveVisibleUserIds') ben duoi cho 2 pham vi con lai.
     it('loc theo `type` khi query.type duoc truyen (GET /notifications?type=...)', async () => {
       mockFindChain([]);
 
-      await service.findForUser('org-1', 'user-1', { page: 1, limit: 20, type: 'task.assigned' } as ListNotificationsQueryDto);
+      await service.findForUser('org-1', 'user-1', [], {
+        page: 1,
+        limit: 20,
+        type: 'task.assigned',
+      } as ListNotificationsQueryDto);
 
       expect(modelMock.find).toHaveBeenCalledWith({
         organizationId: 'org-1',
-        userId: 'user-1',
+        userId: { $in: ['user-1'] },
         type: expect.any(RegExp),
       });
       const filterArg = modelMock.find.mock.calls[0][0] as { type: RegExp };
@@ -150,9 +171,9 @@ describe('NotificationsService', () => {
     it('khong them dieu kien `type` vao filter khi query.type = undefined', async () => {
       mockFindChain([]);
 
-      await service.findForUser('org-1', 'user-1', { page: 1, limit: 20 } as ListNotificationsQueryDto);
+      await service.findForUser('org-1', 'user-1', [], { page: 1, limit: 20 } as ListNotificationsQueryDto);
 
-      expect(modelMock.find).toHaveBeenCalledWith({ organizationId: 'org-1', userId: 'user-1' });
+      expect(modelMock.find).toHaveBeenCalledWith({ organizationId: 'org-1', userId: { $in: ['user-1'] } });
     });
 
     // 16/09/2026: cung ly do cap nhat voi test "loc theo type" o tren - filter.type gio la RegExp
@@ -160,7 +181,7 @@ describe('NotificationsService', () => {
     it('ket hop dong thoi `type` va `isRead` trong filter', async () => {
       mockFindChain([]);
 
-      await service.findForUser('org-1', 'user-1', {
+      await service.findForUser('org-1', 'user-1', [], {
         page: 1,
         limit: 20,
         type: 'document.shared',
@@ -169,12 +190,64 @@ describe('NotificationsService', () => {
 
       expect(modelMock.find).toHaveBeenCalledWith({
         organizationId: 'org-1',
-        userId: 'user-1',
+        userId: { $in: ['user-1'] },
         isRead: false,
         type: expect.any(RegExp),
       });
       const filterArg = modelMock.find.mock.calls[0][0] as { type: RegExp };
       expect(filterArg.type.test('document.shared')).toBe(true);
+    });
+  });
+
+  // 23/09/2026: 3 cap do pham vi hien thi thong bao (yeu cau nguoi dung - can RO RANG, xem
+  // NotificationsService.resolveVisibleUserIds()).
+  describe('resolveVisibleUserIds (qua findForUser)', () => {
+    function mockFindChain(data: unknown[]) {
+      const execMock = jest.fn().mockResolvedValue(data);
+      const limitMock = jest.fn().mockReturnValue({ exec: execMock });
+      const skipMock = jest.fn().mockReturnValue({ limit: limitMock });
+      const sortMock = jest.fn().mockReturnValue({ skip: skipMock });
+      modelMock.find.mockReturnValue({ sort: sortMock });
+    }
+
+    it('Org Admin (co PERMISSIONS.USER_MANAGE) - xem toan bo to chuc, KHONG loc theo userId', async () => {
+      mockFindChain([]);
+
+      const result = await service.findForUser(
+        'org-1',
+        'admin-1',
+        [PERMISSIONS.USER_MANAGE],
+        { page: 1, limit: 20 } as ListNotificationsQueryDto,
+      );
+
+      expect(departmentManagersServiceMock.listDepartmentIdsManagedBy).not.toHaveBeenCalled();
+      expect(modelMock.find).toHaveBeenCalledWith({ organizationId: 'org-1' });
+      expect(result.scope).toBe('organization');
+    });
+
+    it('Manager dang phu trach phong ban - xem thong bao cua CHINH HO + thanh vien active cua (cac) phong ban do', async () => {
+      mockFindChain([]);
+      departmentManagersServiceMock.listDepartmentIdsManagedBy.mockResolvedValue(['dept-1', 'dept-2']);
+      orgMembersServiceMock.listActiveUserIdsInDepartments.mockResolvedValue(['emp-1', 'emp-2']);
+
+      const result = await service.findForUser('org-1', 'mgr-1', [], { page: 1, limit: 20 } as ListNotificationsQueryDto);
+
+      expect(departmentManagersServiceMock.listDepartmentIdsManagedBy).toHaveBeenCalledWith('org-1', 'mgr-1');
+      expect(orgMembersServiceMock.listActiveUserIdsInDepartments).toHaveBeenCalledWith('org-1', ['dept-1', 'dept-2']);
+      expect(modelMock.find).toHaveBeenCalledWith({
+        organizationId: 'org-1',
+        userId: { $in: expect.arrayContaining(['mgr-1', 'emp-1', 'emp-2']) },
+      });
+      expect(result.scope).toBe('department');
+    });
+
+    it('Employee (khong USER_MANAGE, khong phu trach phong ban nao) - chi xem thong bao cua chinh minh', async () => {
+      mockFindChain([]);
+
+      const result = await service.findForUser('org-1', 'emp-1', [], { page: 1, limit: 20 } as ListNotificationsQueryDto);
+
+      expect(modelMock.find).toHaveBeenCalledWith({ organizationId: 'org-1', userId: { $in: ['emp-1'] } });
+      expect(result.scope).toBe('self');
     });
   });
 

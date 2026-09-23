@@ -124,7 +124,14 @@ export function NotificationsPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('notifications:page.title')}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('notifications:page.title')}</h1>
+            {/* 23/09/2026: the hien RO RANG pham vi dang xem (yeu cau nguoi dung) - Org Admin/Manager/
+                Employee thay muc do khac nhau, tranh hieu nham "danh sach ngan" la thieu du lieu. */}
+            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
+              {t(`notifications:page.scope.${query.data?.scope ?? 'self'}`)}
+            </span>
+          </div>
           <p className="mt-1 text-sm text-slate-500">{t('notifications:page.subtitle')}</p>
         </div>
         <Button variant="outline" onClick={() => markAllRead.mutate()} isLoading={markAllRead.isPending}>

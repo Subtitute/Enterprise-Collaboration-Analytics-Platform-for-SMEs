@@ -369,8 +369,15 @@ describe('ProjectsService', () => {
       };
       const taskRepoMock = emptyStatsRepos();
 
+      // 22/09/2026: getVisibleProjectIds() gio truy van them ProjectMember qua
+      // `this.dataSource.getRepository(ProjectMember)` - can mock getRepository() tra ve 1
+      // queryBuilder rong (test nay khong lien quan ProjectMember, chi khoa lai TaskAssignee/lead/creator).
+      const dataSourceMock = {
+        getRepository: jest.fn().mockReturnValue({ createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])) }),
+      };
+
       const service = new ProjectsService(
-        {} as any,
+        dataSourceMock as any,
         projectRepoMock as any,
         taskRepoMock as any,
         assigneeRepoMock as any,
@@ -399,8 +406,12 @@ describe('ProjectsService', () => {
         createQueryBuilder: jest.fn().mockReturnValueOnce(makeQueryBuilder([])),
       };
 
+      const dataSourceMock = {
+        getRepository: jest.fn().mockReturnValue({ createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])) }),
+      };
+
       const service = new ProjectsService(
-        {} as any,
+        dataSourceMock as any,
         projectRepoMock as any,
         {} as any,
         assigneeRepoMock as any,
@@ -468,8 +479,12 @@ describe('ProjectsService', () => {
         createQueryBuilder: jest.fn().mockReturnValueOnce(makeQueryBuilder([])),
       };
 
+      const dataSourceMock = {
+        getRepository: jest.fn().mockReturnValue({ createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])) }),
+      };
+
       const service = new ProjectsService(
-        {} as any,
+        dataSourceMock as any,
         projectRepoMock as any,
         {} as any,
         assigneeRepoMock as any,
@@ -495,8 +510,12 @@ describe('ProjectsService', () => {
       };
       const taskRepoMock = emptyStatsRepos();
 
+      const dataSourceMock = {
+        getRepository: jest.fn().mockReturnValue({ createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])) }),
+      };
+
       const service = new ProjectsService(
-        {} as any,
+        dataSourceMock as any,
         projectRepoMock as any,
         taskRepoMock as any,
         assigneeRepoMock as any,
@@ -511,6 +530,182 @@ describe('ProjectsService', () => {
       );
 
       expect(result).toMatchObject({ id: 'project-3' });
+    });
+  });
+
+  /**
+   * 22/09/2026: test cho ProjectMember - thanh vien du an "that" (thay the co che gia lap bang
+   * localStorage o frontend truoc day). Mirror phong cach mock cua TasksService.assign() (bat
+   * QueryFailedError 23505 cho truong hop dua idempotent).
+   */
+  describe('addMember/removeMember/listMembers - ProjectMember', () => {
+    const userId = 'user-1';
+
+    it('addMember: tao moi thanh vien khi chua ton tai', async () => {
+      const projectRepoMock = {
+        findOne: jest.fn().mockResolvedValue({ id: projectId, organizationId, leadUserId: 'lead-1' }),
+      };
+      const memberRepoMock = {
+        findOne: jest.fn().mockResolvedValue(undefined),
+        create: jest.fn().mockImplementation((data) => data),
+        save: jest.fn().mockImplementation((data) => Promise.resolve({ id: 'member-1', ...data })),
+      };
+      const dataSourceMock = { getRepository: jest.fn().mockReturnValue(memberRepoMock) };
+
+      const service = new ProjectsService(
+        dataSourceMock as any,
+        projectRepoMock as any,
+        {} as any,
+        {} as any,
+        {} as any,
+      );
+
+      const result = await service.addMember(organizationId, projectId, actorId, userId);
+
+      expect(result).toMatchObject({ projectId, userId, addedByUserId: actorId });
+      expect(memberRepoMock.save).toHaveBeenCalledTimes(1);
+    });
+
+    it('addMember: idempotent - tra ve ban ghi da co san neu da la thanh vien, khong tao trung', async () => {
+      const existingMember = { id: 'member-1', projectId, userId, addedByUserId: 'someone-else' };
+      const projectRepoMock = {
+        findOne: jest.fn().mockResolvedValue({ id: projectId, organizationId, leadUserId: 'lead-1' }),
+      };
+      const memberRepoMock = {
+        findOne: jest.fn().mockResolvedValue(existingMember),
+        create: jest.fn(),
+        save: jest.fn(),
+      };
+      const dataSourceMock = { getRepository: jest.fn().mockReturnValue(memberRepoMock) };
+
+      const service = new ProjectsService(
+        dataSourceMock as any,
+        projectRepoMock as any,
+        {} as any,
+        {} as any,
+        {} as any,
+      );
+
+      const result = await service.addMember(organizationId, projectId, actorId, userId);
+
+      expect(result).toBe(existingMember);
+      expect(memberRepoMock.save).not.toHaveBeenCalled();
+    });
+
+    it('addMember: nem NotFoundException khi du an khong ton tai trong to chuc cua nguoi goi', async () => {
+      const projectRepoMock = { findOne: jest.fn().mockResolvedValue(null) };
+      const service = new ProjectsService(
+        { getRepository: jest.fn() } as any,
+        projectRepoMock as any,
+        {} as any,
+        {} as any,
+        {} as any,
+      );
+
+      await expect(service.addMember(organizationId, projectId, actorId, userId)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('removeMember: go thanh vien binh thuong khi khong phai nguoi phu trach du an', async () => {
+      const existingMember = { id: 'member-1', projectId, userId };
+      const projectRepoMock = {
+        findOne: jest.fn().mockResolvedValue({ id: projectId, organizationId, leadUserId: 'lead-1' }),
+      };
+      const memberRepoMock = {
+        findOne: jest.fn().mockResolvedValue(existingMember),
+        remove: jest.fn().mockResolvedValue(undefined),
+      };
+      const dataSourceMock = { getRepository: jest.fn().mockReturnValue(memberRepoMock) };
+
+      const service = new ProjectsService(
+        dataSourceMock as any,
+        projectRepoMock as any,
+        {} as any,
+        {} as any,
+        {} as any,
+      );
+
+      await service.removeMember(organizationId, projectId, userId);
+
+      expect(memberRepoMock.remove).toHaveBeenCalledWith(existingMember);
+    });
+
+    it('removeMember: tu choi go nguoi dang la nguoi phu trach du an (leadUserId)', async () => {
+      const projectRepoMock = {
+        findOne: jest.fn().mockResolvedValue({ id: projectId, organizationId, leadUserId: userId }),
+      };
+      const memberRepoMock = { findOne: jest.fn(), remove: jest.fn() };
+      const dataSourceMock = { getRepository: jest.fn().mockReturnValue(memberRepoMock) };
+
+      const service = new ProjectsService(
+        dataSourceMock as any,
+        projectRepoMock as any,
+        {} as any,
+        {} as any,
+        {} as any,
+      );
+
+      await expect(service.removeMember(organizationId, projectId, userId)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(memberRepoMock.remove).not.toHaveBeenCalled();
+    });
+  });
+
+  /**
+   * 22/09/2026: Employee thay du an ma minh CHI la thanh vien duoc them qua ProjectMember (chua
+   * duoc giao Task nao, khong phai lead/nguoi tao) - nguon visibility thu 4 vua them vao
+   * getVisibleProjectIds().
+   */
+  describe('findAll - scoping: ProjectMember la nguon visibility doc lap voi TaskAssignee', () => {
+    function makeQueryBuilder(rawResult: unknown[]) {
+      const qb: any = {};
+      qb.select = jest.fn().mockReturnValue(qb);
+      qb.addSelect = jest.fn().mockReturnValue(qb);
+      qb.where = jest.fn().mockReturnValue(qb);
+      qb.andWhere = jest.fn().mockReturnValue(qb);
+      qb.innerJoin = jest.fn().mockReturnValue(qb);
+      qb.groupBy = jest.fn().mockReturnValue(qb);
+      qb.getRawMany = jest.fn().mockResolvedValue(rawResult);
+      return qb;
+    }
+
+    it('Employee: thay du an ma minh la thanh vien (ProjectMember) du chua duoc giao Task nao', async () => {
+      const employeeId = 'employee-2';
+      const allProjects = [{ id: 'project-9', organizationId, name: 'Chi la thanh vien' }];
+      const projectRepoMock = {
+        find: jest.fn().mockResolvedValue([]), // khong phai lead/nguoi tao
+        findAndCount: jest.fn().mockResolvedValue([allProjects, allProjects.length]),
+      };
+      const assigneeRepoMock = {
+        createQueryBuilder: jest
+          .fn()
+          .mockReturnValueOnce(makeQueryBuilder([])) // getVisibleProjectIds: khong duoc giao Task nao
+          .mockReturnValueOnce(makeQueryBuilder([])), // computeProjectStats memberRows
+      };
+      const memberRepoMock = {
+        createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([{ projectId: 'project-9' }])),
+      };
+      const taskRepoMock = { createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])) };
+      const dataSourceMock = { getRepository: jest.fn().mockReturnValue(memberRepoMock) };
+
+      const service = new ProjectsService(
+        dataSourceMock as any,
+        projectRepoMock as any,
+        taskRepoMock as any,
+        assigneeRepoMock as any,
+        {} as any,
+      );
+
+      const result = await service.findAll(
+        organizationId,
+        { page: 1, limit: 20 } as any,
+        employeeId,
+        [PERMISSIONS.PROJECT_VIEW],
+      );
+
+      expect(result.data.map((p) => p.id)).toEqual(['project-9']);
     });
   });
 });

@@ -6,6 +6,7 @@ import type { PaginatedResponse, Project, Task, TaskStatus } from '@/types';
 import {
   addAssignee,
   addComment,
+  addProjectMember,
   completeProject,
   reopenProject,
   createProject,
@@ -14,10 +15,12 @@ import {
   deleteTask,
   fetchComments,
   fetchProject,
+  fetchProjectMembers,
   fetchProjects,
   fetchTaskStatusHistory,
   fetchTasks,
   removeAssignee,
+  removeProjectMember,
   updateProject,
   updateTask,
   updateTaskStatus,
@@ -270,5 +273,42 @@ export function useTaskStatusHistory(taskId: string | undefined) {
     queryKey: ['task-status-history', taskId],
     queryFn: () => fetchTaskStatusHistory(taskId as string),
     enabled: Boolean(taskId),
+  });
+}
+
+// 22/09/2026: thanh vien du an (ProjectMember) - thay the co che gia lap bang localStorage truoc
+// day (xem ghi chu tai utils.ts). invalidate ca ['project', id] (memberCount trong ProjectListItem)
+// va ['projects'] (danh sach) vi ProjectsService.computeProjectStats() tinh memberCount tu
+// TaskAssignee, KHONG bao gom ProjectMember (2 khai niem doc lap - xem projects.service.ts) nen
+// invalidate o day chi de dam bao UI nao lo hien thi memberCount cu deu duoc lam moi, khong phai vi
+// so lieu do se doi.
+export function useProjectMembersQuery(projectId: string | undefined) {
+  return useQuery({
+    queryKey: ['project-members', projectId],
+    queryFn: () => fetchProjectMembers(projectId as string),
+    enabled: Boolean(projectId),
+  });
+}
+
+export function useAddProjectMember(projectId: string) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => addProjectMember(projectId, userId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['project-members', projectId] }),
+    onError: (error) => toast.error(t('projects:membersModal.toast.addError'), extractErrorMessage(error)),
+  });
+}
+
+export function useRemoveProjectMember(projectId: string) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => removeProjectMember(projectId, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-members', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+    },
+    onError: (error) => toast.error(t('projects:membersModal.toast.removeError'), extractErrorMessage(error)),
   });
 }

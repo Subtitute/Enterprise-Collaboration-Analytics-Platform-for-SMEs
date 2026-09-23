@@ -28,9 +28,8 @@
     "title": "Internal Analytical Assistant",
     "badge": "Executive Analysis",
     "generateButton": "Generate Executive Summary",
-    "summaryWithDepartment": "Summary based on {{period}} data · {{department}} department",
-    "summaryAllOrg": "Summary based on {{period}} data · Organization-wide",
-    "placeholder": "Click “Generate Executive Summary” for an executive briefing of operating highlights, bottlenecks, and recommendations.",
+    "summaryAllOrg": "Scanning the whole organization {{period}} · Finding what matters most",
+    "placeholder": "Click “Generate Executive Summary” to have AI scan the whole organization, every department and project, and surface what matters most.",
     "periodAriaLabel": "Report period",
     "periods": {
       "week": "Weekly (Last 7 days)",
@@ -38,15 +37,18 @@
       "quarter": "Quarterly (This quarter)",
       "year": "Yearly (This year)"
     },
-    "labels": {
-      "highlight": "Highlight:",
-      "risk": "Risk:",
-      "recommendation": "Recommendation:"
+    "severity": {
+      "critical": "Needs action now",
+      "warning": "Needs monitoring",
+      "info": "Positive highlight"
     },
-    "fallbacks": {
-      "risk": "Monitor outstanding tasks closely to maintain operational momentum.",
-      "recommendationWhenHighlightOnly": "Prioritize resource allocation to address the period's key tasks.",
-      "recommendationDefault": "Continue periodic reviews and optimize cross-department collaboration processes."
+    "scopeOrg": "Organization-wide",
+    "scopeDepartment": "Department",
+    "scopeProject": "Project",
+    "comparisonLabel": "vs organization average {{value}}%",
+    "chart": {
+      "completionRateLabel": "Completion rate:",
+      "otherLabel": "Other"
     }
   },
   "charts": {

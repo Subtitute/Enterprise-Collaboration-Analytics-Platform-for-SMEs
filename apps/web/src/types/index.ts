@@ -287,6 +287,12 @@ export interface RecentActivityItem {
   createdAt: string;
 }
 
+// 23/09/2026: pham vi hien thi thong bao/hoat dong theo cap do nguoi dung (Org Admin/Manager/
+// Employee) - xem NotificationsService.resolveVisibleUserIds() (notification-service) va
+// AnalyticsService.getRecentActivity() (analytics-service). Dung chung 1 type FE cho ca 2 tinh
+// nang vi cung 3 gia tri/y nghia, du 2 backend dinh nghia doc lap.
+export type VisibilityScope = 'organization' | 'department' | 'self';
+
 export type DateRangeOption = '7d' | '30d' | 'quarter';
 
 export const DATE_RANGE_OPTIONS: DateRangeOption[] = ['7d', '30d', 'quarter'];
@@ -295,9 +301,41 @@ export const DATE_RANGE_OPTIONS: DateRangeOption[] = ['7d', '30d', 'quarter'];
 // t('common:enums.dateRange.'+range) qua useTranslation() thay the.
 
 // 28/07/2026: kieu du lieu cho GET /analytics/ai-insights (tinh nang "Nhan xet AI").
-export interface AiInsight {
-  insight: string;
+// 22/09/2026: thiet ke lai - thay 1 doan van tu do (AI viet, frontend regex-tach 3 gach dau dong)
+// bang mang insight CO CAU TRUC (AI chi xep hang/dien giai, so lieu BACKEND tu tinh - xem
+// apps/analytics-service/src/ai-insights/ai-insights.service.ts). Moi insight -> 1 card rieng.
+export type InsightSeverity = 'critical' | 'warning' | 'info';
+export type InsightScope = 'organization' | 'department' | 'project';
+
+export interface StructuredInsight {
+  scope: InsightScope;
+  /** null khi scope='organization'. UUID tho (departmentId/projectId) - frontend tu resolve ten qua useDepartmentsQuery()/useProjectNameMap(). */
+  scopeId: string | null;
+  severity: InsightSeverity;
+  metric: string;
+  headline: string;
+  detail: string;
+  recommendation: string | null;
+  evidence: {
+    value: number;
+    comparisonValue: number | null;
+    unit: 'percent';
+  };
+}
+
+/** 22/09/2026: TOAN BO pham vi da quet (khong chi 2-4 muc duoc AI chon) - dung de ve bieu do so
+ *  sanh day du (xem AiInsightsChart.tsx), cho thay AI da can nhac tren nen du lieu day du. */
+export interface AiInsightCandidateSummary {
+  scope: InsightScope;
+  scopeId: string | null;
+  completionRate: number;
+}
+
+export interface AiInsightsResult {
+  range: string;
   generatedAt: string;
+  insights: StructuredInsight[];
+  candidates: AiInsightCandidateSummary[];
 }
 
 // 28/07/2026: kieu du lieu cho GET /failed-events (Dead Letter Queue) - Sự kiện xử lý nội bộ
@@ -402,6 +440,51 @@ export interface LeaveRequest {
   endDate: string;
   reason: string;
   status: LeaveRequestStatus;
+  approverId?: string | null;
+  decisionNote?: string | null;
+  decidedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 22/09/2026: giai trinh cham cong va dang ky tang ca (HRM-lite mo rong) - thay the du lieu gia
+// lap bang localStorage truoc day (xem apps/hrm-service/src/entities/attendance-adjustment.entity.ts,
+// overtime-request.entity.ts). Cung quy uoc "review metadata" voi LeaveRequest o tren
+// (approverId/decisionNote/decidedAt).
+export type AttendanceAdjustmentStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface AttendanceAdjustment {
+  id: string;
+  attendanceId: string;
+  userId: string;
+  workDate: string;
+  originalCheckInAt?: string | null;
+  originalCheckOutAt?: string | null;
+  proposedCheckInAt: string;
+  proposedCheckOutAt: string;
+  reason: string;
+  status: AttendanceAdjustmentStatus;
+  approverId?: string | null;
+  decisionNote?: string | null;
+  decidedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type OvertimeMultiplierType = 'WEEKDAY' | 'WEEKEND' | 'HOLIDAY';
+export type OvertimeRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface OvertimeRequest {
+  id: string;
+  userId: string;
+  workDate: string;
+  otStart: string;
+  otEnd: string;
+  multiplierType: OvertimeMultiplierType;
+  multiplier: number;
+  estimatedHours: number;
+  reason: string;
+  status: OvertimeRequestStatus;
   approverId?: string | null;
   decisionNote?: string | null;
   decidedAt?: string | null;

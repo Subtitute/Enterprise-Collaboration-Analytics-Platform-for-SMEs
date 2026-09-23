@@ -43,7 +43,20 @@ export const REST_PROXY_ROUTES: RestProxyRouteGroup[] = [
   {
     // 05/08/2026: HRM-lite Service (Technical_Spec.md muc 17).
     // 15/09/2026: them '/api/v1/calendar-events' (Lich cong ty, cung service hrm-service).
-    prefixes: ['/api/v1/attendance', '/api/v1/leave-requests', '/api/v1/calendar-events'],
+    // 22/09/2026: them '/api/v1/attendance-adjustments', '/api/v1/overtime-requests' (giai
+    // trinh/duyet cham cong, dang ky/duyet tang ca) va '/api/v1/leave-policy' (chinh sach nghi
+    // phep theo Luat LD VN) - ca 3 deu la endpoint MOI cung hrm-service, thieu prefix o day se
+    // khien Gateway tra 404 "Cannot GET/POST ..." du service da co san route (phat hien qua smoke
+    // test thu cong sau khi rebuild Docker - danh sach prefix nay PHAI duoc cap nhat THU CONG moi
+    // khi hrm-service co prefix route moi, khong tu dong suy ra tu controller).
+    prefixes: [
+      '/api/v1/attendance',
+      '/api/v1/leave-requests',
+      '/api/v1/calendar-events',
+      '/api/v1/attendance-adjustments',
+      '/api/v1/overtime-requests',
+      '/api/v1/leave-policy',
+    ],
     targetConfigKey: 'services.hrm',
   },
 ];

@@ -123,6 +123,21 @@
     "subtitle": "Tạo và theo dõi yêu cầu nghỉ phép của bạn.",
     "newRequestButton": "Yêu cầu mới",
     "daysCount": "{{count}} ngày",
+    "balance": {
+      "cardTitle": "Số dư phép năm {{year}}",
+      "entitledLabel": "Được nghỉ",
+      "usedLabel": "Đã dùng",
+      "remainingLabel": "Còn lại",
+      "seniorityNote": "Bao gồm {{bonusDays}} ngày thâm niên (theo Bộ luật Lao động VN: +1 ngày phép mỗi {{yearsPerBonus}} năm làm việc)",
+      "editPolicyButton": "Cấu hình chính sách phép",
+      "policyModalTitle": "Cấu hình chính sách nghỉ phép",
+      "baseDaysLabel": "Số ngày phép cơ bản / năm",
+      "seniorityYearsLabel": "Số năm thâm niên mỗi lần cộng thêm 1 ngày phép",
+      "saveButton": "Lưu",
+      "cancelButton": "Hủy",
+      "policyUpdateSuccess": "Đã cập nhật chính sách nghỉ phép",
+      "policyUpdateError": "Không thể cập nhật chính sách nghỉ phép"
+    },
     "pending": {
       "cardTitle": "Chờ duyệt ({{count}})",
       "reject": "Từ chối",
@@ -222,7 +237,10 @@
       "rejectButton": "Từ chối",
       "successSubmit": "Đã gửi giải trình điều chỉnh công thành công",
       "successApprove": "Đã duyệt yêu cầu giải trình công",
-      "successReject": "Đã từ chối yêu cầu giải trình công"
+      "successReject": "Đã từ chối yêu cầu giải trình công",
+      "errorSubmit": "Không thể gửi giải trình điều chỉnh công",
+      "errorApprove": "Không thể duyệt yêu cầu giải trình công",
+      "errorReject": "Không thể từ chối yêu cầu giải trình công"
     },
     "overtime": {
       "registerButton": "Đăng ký làm thêm (OT)",
@@ -262,7 +280,10 @@
       "rejectButton": "Từ chối OT",
       "successSubmit": "Đã gửi đơn đăng ký làm thêm giờ (OT) thành công",
       "successApprove": "Đã duyệt đăng ký làm thêm giờ (OT)",
-      "successReject": "Đã từ chối đăng ký làm thêm giờ (OT)"
+      "successReject": "Đã từ chối đăng ký làm thêm giờ (OT)",
+      "errorSubmit": "Không thể gửi đơn đăng ký làm thêm giờ (OT)",
+      "errorApprove": "Không thể duyệt đăng ký làm thêm giờ (OT)",
+      "errorReject": "Không thể từ chối đăng ký làm thêm giờ (OT)"
     },
     "payroll": {
       "exportButton": "Xuất bảng lương (MISA/Fast)",

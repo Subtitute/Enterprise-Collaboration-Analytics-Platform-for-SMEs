@@ -183,7 +183,9 @@
     "toast": {
       "memberAdded": "Đã thêm {{name}} vào dự án",
       "memberRemoved": "Đã gỡ {{name}} khỏi dự án",
-      "cannotRemoveLead": "Không thể gỡ Trưởng dự án. Hãy đổi người phụ trách khác trước khi gỡ."
+      "cannotRemoveLead": "Không thể gỡ Trưởng dự án. Hãy đổi người phụ trách khác trước khi gỡ.",
+      "addError": "Không thể thêm thành viên",
+      "removeError": "Không thể gỡ thành viên"
     }
   },
   "toast": {

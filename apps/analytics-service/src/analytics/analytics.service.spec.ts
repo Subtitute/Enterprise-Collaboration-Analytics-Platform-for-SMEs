@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { PERMISSIONS } from '@app/common-dto';
 import { AnalyticsService } from './analytics.service';
 import { RedisService } from '../redis/redis.service';
 
@@ -52,6 +53,44 @@ describe('AnalyticsService', () => {
       queryMock.mockResolvedValueOnce([{ exists: false }]);
 
       await expect(service.departmentExists('org-1', 'dept-gia-mao')).resolves.toBe(false);
+    });
+  });
+
+  // 22/09/2026: unit test moi cho listActiveDepartmentIds() - dung boi AiInsightsService de quet
+  // KPI nhieu phong ban cung luc (xem ai-insights.service.ts).
+  describe('listActiveDepartmentIds', () => {
+    it('tra ve danh sach departmentId tu dim_user, loc dung theo organizationId', async () => {
+      queryMock.mockResolvedValueOnce([{ department_id: 'dept-1' }, { department_id: 'dept-2' }]);
+
+      const result = await service.listActiveDepartmentIds('org-1');
+
+      expect(result).toEqual(['dept-1', 'dept-2']);
+      expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('dim_user'), ['org-1']);
+    });
+
+    it('tra ve mang rong khi to chuc chua co phong ban nao', async () => {
+      queryMock.mockResolvedValueOnce([]);
+
+      await expect(service.listActiveDepartmentIds('org-1')).resolves.toEqual([]);
+    });
+  });
+
+  // 23/09/2026: unit test moi cho listDepartmentIdsManagedBy() - dung boi getRecentActivity() de
+  // xac dinh pham vi hien thi cua 1 Manager (xem describe('getRecentActivity...') ben duoi).
+  describe('listDepartmentIdsManagedBy', () => {
+    it('tra ve danh sach departmentId tu dim_department_manager, loc dung theo organizationId + managerId', async () => {
+      queryMock.mockResolvedValueOnce([{ department_id: 'dept-1' }, { department_id: 'dept-2' }]);
+
+      const result = await service.listDepartmentIdsManagedBy('org-1', 'mgr-1');
+
+      expect(result).toEqual(['dept-1', 'dept-2']);
+      expect(queryMock).toHaveBeenCalledWith(expect.stringContaining('dim_department_manager'), ['org-1', 'mgr-1']);
+    });
+
+    it('tra ve mang rong khi khong phu trach phong ban nao', async () => {
+      queryMock.mockResolvedValueOnce([]);
+
+      await expect(service.listDepartmentIdsManagedBy('org-1', 'mgr-1')).resolves.toEqual([]);
     });
   });
 
@@ -558,6 +597,10 @@ describe('AnalyticsService', () => {
       await expect(service.getDocumentActivity('org-1', 'quarter')).rejects.toThrow(BadRequestException);
     });
 
+    // 23/09/2026: getRecentActivity() gio nhan them callerId/callerPermissions (pham vi hien thi
+    // theo cap do - xem describe('getRecentActivity - pham vi hien thi') ben duoi). 2 test nay
+    // van giu Org Admin (PERMISSIONS.USER_MANAGE) de khong phai mock them truy van
+    // listDepartmentIdsManagedBy(), tap trung dung vao hanh vi anh xa DB -> DTO/LIMIT nhu truoc.
     it('getRecentActivity() tra ve actorId = null va payload = {} khi DB tra null (khong lam sap FE)', async () => {
       queryMock.mockResolvedValue([
         {
@@ -570,9 +613,9 @@ describe('AnalyticsService', () => {
         },
       ]);
 
-      const result = await service.getRecentActivity('org-1');
+      const result = await service.getRecentActivity('org-1', 'admin-1', [PERMISSIONS.USER_MANAGE]);
 
-      expect(result).toEqual([
+      expect(result.data).toEqual([
         {
           eventId: 'evt-1',
           time: '2026-07-01T00:00:00.000Z',
@@ -582,16 +625,67 @@ describe('AnalyticsService', () => {
           payload: {},
         },
       ]);
+      expect(result.scope).toBe('organization');
     });
 
     it('getRecentActivity() gioi han truy van toi da 20 ban ghi va loc theo organizationId', async () => {
       queryMock.mockResolvedValue([]);
 
-      await service.getRecentActivity('org-1');
+      await service.getRecentActivity('org-1', 'admin-1', [PERMISSIONS.USER_MANAGE]);
 
       const [sql, params] = queryMock.mock.calls[0];
       expect(sql).toContain('LIMIT 20');
       expect(params).toEqual(['org-1']);
+    });
+  });
+
+  // 23/09/2026: 3 cap do pham vi hien thi "Hoat dong gan day" (yeu cau nguoi dung - can RO RANG,
+  // mirror dung tinh than NotificationsService.resolveVisibleUserIds() ben Notification Service).
+  describe('getRecentActivity - pham vi hien thi theo cap do', () => {
+    it('Org Admin (co PERMISSIONS.USER_MANAGE) - xem toan bo to chuc, KHONG goi listDepartmentIdsManagedBy, KHONG loc actor_id', async () => {
+      queryMock.mockResolvedValueOnce([]);
+
+      const result = await service.getRecentActivity('org-1', 'admin-1', [PERMISSIONS.USER_MANAGE]);
+
+      expect(queryMock).toHaveBeenCalledTimes(1);
+      const [sql, params] = queryMock.mock.calls[0];
+      expect(sql).not.toContain('actor_id =');
+      expect(params).toEqual(['org-1']);
+      expect(result.scope).toBe('organization');
+    });
+
+    it('Manager dang phu trach phong ban - chi loc hoat dong cua CHINH HO + actor thuoc (cac) phong ban do', async () => {
+      queryMock.mockReset();
+      queryMock
+        .mockResolvedValueOnce([{ department_id: 'dept-1' }, { department_id: 'dept-2' }]) // listDepartmentIdsManagedBy
+        .mockResolvedValueOnce([]); // truy van fact_user_activity chinh
+
+      const result = await service.getRecentActivity('org-1', 'mgr-1', []);
+
+      expect(queryMock).toHaveBeenCalledTimes(2);
+      const [, mgrParams] = queryMock.mock.calls[0];
+      expect(mgrParams).toEqual(['org-1', 'mgr-1']);
+      const [mainSql, mainParams] = queryMock.mock.calls[1];
+      expect(mainSql).toContain('actor_id = $2');
+      expect(mainSql).toContain('dim_user WHERE department_id = ANY($3::uuid[])');
+      expect(mainParams).toEqual(['org-1', 'mgr-1', ['dept-1', 'dept-2']]);
+      expect(result.scope).toBe('department');
+    });
+
+    it('Employee (khong USER_MANAGE, khong phu trach phong ban nao) - chi loc hoat dong cua chinh minh', async () => {
+      queryMock.mockReset();
+      queryMock
+        .mockResolvedValueOnce([]) // listDepartmentIdsManagedBy - mang rong
+        .mockResolvedValueOnce([]); // truy van fact_user_activity chinh
+
+      const result = await service.getRecentActivity('org-1', 'emp-1', []);
+
+      expect(queryMock).toHaveBeenCalledTimes(2);
+      const [mainSql, mainParams] = queryMock.mock.calls[1];
+      expect(mainSql).toContain('actor_id = $2');
+      expect(mainSql).not.toContain('dim_user');
+      expect(result.scope).toBe('self');
+      expect(mainParams).toEqual(['org-1', 'emp-1']);
     });
   });
 });

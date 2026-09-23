@@ -16,6 +16,7 @@ import { Role } from './entities/role.entity';
 import { Permission } from './entities/permission.entity';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { PasswordResetToken } from './entities/password-reset-token.entity';
+import { RolePermissionChangeLog } from './entities/role-permission-change-log.entity';
 import { OutboxEvent } from './entities/outbox-event.entity';
 import { KafkaModule } from './kafka/kafka.module';
 import { RedisModule } from './redis/redis.module';
@@ -49,6 +50,7 @@ import { HealthController } from './health/health.controller';
           Permission,
           RefreshToken,
           PasswordResetToken,
+          RolePermissionChangeLog,
           OutboxEvent,
         ],
         // MVP: dung synchronize thay vi migration thu cong - Technical_Spec.md muc 14 (gioi han da biet).

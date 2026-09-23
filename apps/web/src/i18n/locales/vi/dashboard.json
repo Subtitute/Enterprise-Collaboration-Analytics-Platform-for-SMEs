@@ -2,7 +2,9 @@
   "page": {
     "title": "Dashboard",
     "subtitle": "Tổng quan vận hành - Cập nhật dữ liệu kinh doanh mới nhất hôm nay.",
-    "exportPdf": "Xuất báo cáo PDF"
+    "exportPdf": "Xuất PDF",
+    "exportPdfError": "Không thể xuất file PDF",
+    "print": "In"
   },
   "hero": {
     "title": "Tổng quan Công việc Toàn Doanh nghiệp",
@@ -84,6 +86,11 @@
   "recentActivityFeed": {
     "live": "Đang cập nhật trực tiếp",
     "offline": "Ngoại tuyến",
+    "scope": {
+      "organization": "Toàn tổ chức",
+      "department": "Phòng ban bạn phụ trách",
+      "self": "Hoạt động của bạn"
+    },
     "errorTitle": "Không thể tải hoạt động gần đây",
     "emptyTitle": "Chưa có hoạt động nào",
     "emptyDescription": "Hoạt động mới trong tổ chức sẽ hiển thị tại đây theo thời gian thực.",
@@ -114,6 +121,7 @@
       "document_shared": "đã chia sẻ một tài liệu",
       "document_deleted": "đã xóa một tài liệu",
       "iam_user_department_changed": "đã cập nhật phòng ban nhân sự",
+      "iam_department_manager_changed": "đã cập nhật người phụ trách phòng ban",
       "customer_created": "đã thêm khách hàng mới",
       "customer_deleted": "đã xóa một khách hàng",
       "deal_created": "đã tạo cơ hội bán hàng mới",

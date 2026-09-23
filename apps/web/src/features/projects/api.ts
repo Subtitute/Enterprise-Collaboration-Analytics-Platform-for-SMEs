@@ -166,3 +166,28 @@ export async function fetchTaskStatusHistory(taskId: string): Promise<TaskStatus
   const { data } = await apiClient.get(`/tasks/${taskId}/status-history`);
   return unwrapList<TaskStatusHistoryEntry>(data);
 }
+
+// 22/09/2026: thanh vien du an (ProjectMember) - thay the co che gia lap bang localStorage o
+// utils.ts truoc day (khong luu server-side, khong dong bo giua trinh duyet/thiet bi). Xem
+// apps/project-task-service/src/entities/project-member.entity.ts.
+export interface ProjectMember {
+  id: string;
+  projectId: string;
+  userId: string;
+  addedByUserId: string;
+  createdAt: string;
+}
+
+export async function fetchProjectMembers(projectId: string): Promise<ProjectMember[]> {
+  const { data } = await apiClient.get<ProjectMember[]>(`/projects/${projectId}/members`);
+  return data;
+}
+
+export async function addProjectMember(projectId: string, userId: string): Promise<ProjectMember> {
+  const { data } = await apiClient.post<ProjectMember>(`/projects/${projectId}/members`, { userId });
+  return data;
+}
+
+export async function removeProjectMember(projectId: string, userId: string): Promise<void> {
+  await apiClient.delete(`/projects/${projectId}/members/${userId}`);
+}
