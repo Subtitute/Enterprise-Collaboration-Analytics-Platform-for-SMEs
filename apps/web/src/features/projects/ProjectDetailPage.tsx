@@ -33,6 +33,7 @@ export function ProjectDetailPage() {
   const reopenProject = useReopenProject(projectId);
   const orgUsersQuery = useOrgUsersQuery();
   const projectMembersQuery = useProjectMembersQuery(projectId);
+  const user = useAuthStore((s) => s.user);
 
   const [isNewTaskOpen, setIsNewTaskOpen] = useState(false);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
@@ -68,15 +69,16 @@ export function ProjectDetailPage() {
     }
   }, [searchParams, setSearchParams, tasksQuery.data]);
 
-  const user = useAuthStore((s) => s.user);
-  const canManage = canManageProjects(user?.roles);
-
   if (projectQuery.isLoading) return <FullPageSpinner label={t('projects:detail.loading')} />;
   if (projectQuery.isError || !projectQuery.data) {
     return <EmptyState title={t('projects:detail.notFoundTitle')} description={t('projects:detail.notFoundDescription')} />;
   }
 
   const project = projectQuery.data;
+
+  const isLead = Boolean(user?.id && project.leadUserId && user.id === project.leadUserId);
+  const isCreator = Boolean(user?.id && project.createdByUserId && user.id === project.createdByUserId);
+  const canManage = canManageProjects(user?.roles) || isLead || isCreator;
 
   // 26/08/2026 (fix code review, loi MAJOR - Fix 3): chi con doc `status` (override lac quan cua
   // completeProject()/reopenProject(), xem api.ts) tu localStorage - `priority` truoc day cung doc
@@ -308,6 +310,8 @@ export function ProjectDetailPage() {
               setIsNewTaskOpen(true);
             }}
             highlightedTaskId={highlightedTaskId}
+            isLead={isLead}
+            canManage={canManage}
           />
         )}
       </QueryState>

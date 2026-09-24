@@ -35,11 +35,12 @@ const EMPLOYEES = [
 ];
 
 const PROJECTS = [
-  { name: 'Website bán hàng SME', description: 'Xây dựng website thương mại điện tử cho SME' },
-  { name: 'Triển khai CRM nội bộ', description: 'Triển khai hệ thống CRM quản lý khách hàng' },
-  { name: 'Nâng cấp hạ tầng Docker', description: 'Container hóa toàn bộ hệ thống nội bộ' },
-  { name: 'Ứng dụng di động bán hàng', description: 'Xây dựng app mobile hỗ trợ nhân viên kinh doanh' },
-  { name: 'Hệ thống báo cáo KPI', description: 'Xây dựng dashboard báo cáo KPI nội bộ cho ban giám đốc' },
+  { name: 'Website bán hàng SME', description: 'Xây dựng website thương mại điện tử cho SME', priority: 'HIGH' },
+  { name: 'Triển khai CRM nội bộ', description: 'Triển khai hệ thống CRM quản lý khách hàng', priority: 'MEDIUM' },
+  { name: 'Nâng cấp hạ tầng Docker', description: 'Container hóa toàn bộ hệ thống nội bộ', priority: 'URGENT' },
+  { name: 'Ứng dụng di động bán hàng', description: 'Xây dựng app mobile hỗ trợ nhân viên kinh doanh', priority: 'LOW' },
+  { name: 'Hệ thống báo cáo KPI', description: 'Xây dựng dashboard báo cáo KPI nội bộ cho ban giám đốc', priority: 'HIGH' },
+  { name: 'Xây dựng bộ tài liệu Onboarding', description: 'Tài liệu hướng dẫn và quy trình hội nhập cho nhân sự mới', priority: 'MEDIUM' },
 ];
 
 // 22/09/2026: danh dau san 1 phong ban tut hau (STRUGGLE), 1 phong ban vuot troi (THRIVE) va 1 du an
@@ -457,6 +458,21 @@ async function main() {
     });
     projectIds.push(project.id);
 
+    // Seed 3-4 thanh vien thuc te cho tung du an
+    const projectMembersCount = Math.min(employees.length, 4);
+    const shuffledEmployees = [...employees].sort(() => 0.5 - Math.random());
+    for (let mi = 0; mi < projectMembersCount; mi += 1) {
+      try {
+        await apiCall(`/projects/${project.id}/members`, {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify({ userId: shuffledEmployees[mi].id }),
+        });
+      } catch {
+        // ignore duplicate
+      }
+    }
+
     // --- Thu muc + tai lieu mau cho du an (Document Activity analytics + MinIO khong con trong) ---
     const folder = await apiCall('/folders', {
       method: 'POST',
@@ -536,10 +552,59 @@ async function main() {
     );
   }
 
+  // --- Seed đơn nghỉ phép cho nhiều nhân sự khác nhau ---
+  let leaveCount = 0;
+  const leaveTypes = [
+    { type: 'ANNUAL', reason: '[ANNUAL] Nghỉ phép định kỳ gia đình' },
+    { type: 'SICK', reason: '[SICK] Nghỉ ốm sốt phát ban' },
+    { type: 'UNPAID', reason: '[UNPAID] Việc riêng bận việc cá nhân' },
+    { type: 'ANNUAL', reason: '[ANNUAL] Du lịch cùng gia đình' },
+  ];
+  const nowForLeaves = new Date();
+  for (let li = 0; li < Math.min(employees.length, leaveTypes.length); li += 1) {
+    const emp = employees[li];
+    const offsetDay = li === 0 ? 0 : li; // Nhân sự đầu tiên bắt đầu từ "Hôm nay", các nhân sự khác cách 1, 2, 3 ngày
+    const startDateObj = new Date(nowForLeaves);
+    startDateObj.setDate(nowForLeaves.getDate() + offsetDay);
+    const endDateObj = new Date(startDateObj);
+    endDateObj.setDate(startDateObj.getDate() + (li % 2 === 0 ? 1 : 2));
+
+    const startDate = startDateObj.toISOString().slice(0, 10);
+    const endDate = endDateObj.toISOString().slice(0, 10);
+    try {
+      // Đăng nhập tạm dưới quyền employee để tạo đơn nghỉ phép
+      const empLogin = await apiCall('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email: emp.email, password: adminPassword }),
+      });
+      const empHeaders = { Authorization: `Bearer ${empLogin.accessToken}` };
+      const createdLeave = await apiCall('/leave-requests', {
+        method: 'POST',
+        headers: empHeaders,
+        body: JSON.stringify({
+          startDate,
+          endDate,
+          reason: leaveTypes[li].reason,
+        }),
+      });
+
+      // Admin duyệt đơn nghỉ phép
+      await apiCall(`/leave-requests/${createdLeave.id}/approve`, {
+        method: 'PATCH',
+        headers: authHeaders,
+        body: JSON.stringify({ comment: 'Đã duyệt' }),
+      });
+      leaveCount += 1;
+    } catch (leaveErr) {
+      console.warn(`Bo qua seed don nghi phep cho ${emp.email}: ${leaveErr.message}`);
+    }
+  }
+  console.log(`Da tao va duyet ${leaveCount} don nghi phep mau cho cac nhan vien.`);
+
   console.log('\n=== Seed hoan tat (qua API cong khai) ===');
   console.log(`Dang nhap Org Admin: ${adminEmail} / ${adminPassword}`);
   console.log('Nhan vien demo dung chung mat khau tren.');
-  console.log(`Tong: ${projectIds.length} du an, ${totalTasks} task, ${totalFiles} tai lieu da upload.`);
+  console.log(`Tong: ${projectIds.length} du an, ${totalTasks} task, ${totalFiles} tai lieu da upload, ${leaveCount} don nghi.`);
   console.log('Mo dashboard va cho vai giay de Analytics Service xu ly xong hang doi Kafka.');
 
   // ==========================================================================================
@@ -886,8 +951,62 @@ async function seedHistoricalAnalyticsData({
       }
     }
 
+    // --- Rải đều 5-7 task hoàn thành trong 7 ngày gần nhất để biểu đồ đường hiển thị dạng sóng thực tế ---
+    const recentTasksCompletedCount = 6;
+    for (let dayOffset = 6; dayOffset >= 1; dayOffset -= 1) {
+      const taskDoneDate = new Date(now - dayOffset * MS_PER_DAY);
+      const taskCreateDate = new Date(taskDoneDate.getTime() - 4 * 60 * 60 * 1000); // 4 giờ trước
+      const rTaskId = crypto.randomUUID();
+      const rProjectId = randomFrom(weightedProjectIds);
+      const rCreatorId = randomFrom(userIds);
+      const rAssigneeId = randomFrom(weightedUserIds);
+
+      // 1. Tạo task event
+      const cEvId = crypto.randomUUID();
+      await insertTaskEvent(client, {
+        time: taskCreateDate,
+        eventId: cEvId,
+        organizationId,
+        eventType: 'task.created',
+        projectId: rProjectId,
+        taskId: rTaskId,
+        fromStatus: null,
+        toStatus: null,
+        actorId: rCreatorId,
+      });
+
+      // 2. Trạng thái hoàn thành (DONE)
+      const dEvId = crypto.randomUUID();
+      await insertTaskEvent(client, {
+        time: taskDoneDate,
+        eventId: dEvId,
+        organizationId,
+        eventType: 'task.status_changed',
+        projectId: rProjectId,
+        taskId: rTaskId,
+        fromStatus: 'DOING',
+        toStatus: 'DONE',
+        actorId: rCreatorId,
+        assigneeId: rAssigneeId,
+      });
+
+      // 3. User activity feed
+      await insertUserActivity(client, {
+        time: taskDoneDate,
+        eventId: dEvId,
+        organizationId,
+        eventType: 'task.status_changed',
+        producer: 'project-task-service',
+        actorId: rCreatorId,
+        payload: { taskId: rTaskId, projectId: rProjectId, fromStatus: 'DOING', toStatus: 'DONE', actorId: rCreatorId },
+      });
+
+      taskEventCount += 2;
+      activityEventCount += 1;
+    }
+
     console.log(
-      `Da chen ${taskEventCount} hang fact_task_events, ${documentEventCount} hang fact_document_events, ` +
+      `Da chen ${taskEventCount} hang fact_task_events (kem ${recentTasksCompletedCount} task hoàn thành trong 7 ngày qua), ${documentEventCount} hang fact_document_events, ` +
         // 25/07/2026: chi con ${WEEKS_OF_HISTORY - 1} tuan la synthetic (tuan gan nhat da duoc du
         // lieu THAT o buoc seed qua API bao phu - xem "weeksAgo >= 2" o tren).
         `${activityEventCount} hang fact_user_activity (trai dai ${WEEKS_OF_HISTORY - 1} tuan truoc, ` +

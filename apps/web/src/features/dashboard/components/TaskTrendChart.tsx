@@ -76,6 +76,7 @@ export function TaskTrendChart({ data, isLoading, isError, onRetry }: TaskTrendC
             />
             <YAxis
               allowDecimals={false}
+              domain={[0, 'dataMax + 2']}
               tick={{ fill: '#64748b', fontSize: 12 }}
               axisLine={false}
               tickLine={false}

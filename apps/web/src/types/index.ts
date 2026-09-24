@@ -105,6 +105,17 @@ export interface RoleWithPermissions extends Role {
   permissionKeys: string[];
 }
 
+export interface RolePermissionChangeLog {
+  id: string;
+  organizationId: string;
+  roleId: string;
+  roleName: string;
+  actorId: string;
+  previousPermissionKeys: string[];
+  newPermissionKeys: string[];
+  createdAt: string;
+}
+
 export type TaskStatus = 'TODO' | 'DOING' | 'DONE';
 
 export const TASK_STATUSES: TaskStatus[] = ['TODO', 'DOING', 'DONE'];
@@ -135,6 +146,7 @@ export interface Project {
    *  bi). Optional vi cac ban ghi Project tra ve tu endpoint cu/mock co the chua co 2 truong nay. */
   priority?: ProjectPriority;
   leadUserId?: string | null;
+  createdByUserId?: string | null;
   startDate?: string | null;
   dueDate?: string | null;
   createdAt: string;

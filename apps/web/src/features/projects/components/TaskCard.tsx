@@ -18,12 +18,23 @@ export function TaskCard({ task, index, onClick, isHighlighted = false }: TaskCa
   const { t } = useTranslation();
   const { map: userNames } = useUserNameMap();
   const isDone = task.status === 'DONE';
-  const overdue = !isDone && isOverdue(task.dueDate, task.status);
+  const now = Date.now();
+  const dueTimestamp = task.dueDate ? new Date(task.dueDate).getTime() : null;
+  const isOverdueTask = !isDone && dueTimestamp !== null && dueTimestamp < now;
+  const isDueSoon = !isDone && dueTimestamp !== null && dueTimestamp >= now && dueTimestamp - now <= 24 * 60 * 60 * 1000;
+  const overdue = isOverdueTask;
   const assigneeNames = (task.assignees ?? []).map((a) => a.fullName ?? userNames[a.userId] ?? t('projects:taskCard.unknownAssignee'));
 
-  // Xác định màu chấm ưu tiên (tương tự phẩm chất item trong Terraria/game RPG)
-  // Đọc từ task.priority nếu có, hoặc tính toán dựa trên độ khẩn cấp/hạn chót
-  const rawPriority = ((task as unknown as Record<string, unknown>).priority as string)?.toUpperCase();
+  // Đọc từ metadata hoặc trực tiếp
+  const metaPriority = (() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('ec_tasks_metadata') || '{}');
+      return stored[task.id]?.priority;
+    } catch {
+      return undefined;
+    }
+  })();
+  const rawPriority = (metaPriority || (task as unknown as Record<string, unknown>).priority as string)?.toUpperCase();
   const priorityColor =
     rawPriority === 'URGENT' || rawPriority === 'CRITICAL'
       ? 'bg-rose-500 ring-rose-200'
@@ -56,14 +67,14 @@ export function TaskCard({ task, index, onClick, isHighlighted = false }: TaskCa
             className={cn(
               'relative cursor-pointer rounded-xl border p-3 shadow-sm shadow-slate-900/5 transition-all duration-200',
               isHighlighted && 'ring-2 ring-indigo-500 border-indigo-400 bg-indigo-50/30 shadow-indigo-100 shadow-md animate-pulse',
-              // Giao diện mặc định & Hiệu ứng chìm cho task đã Hoàn thành
+              // Cột Hoàn thành: Bỏ opacity-50, nền slate-50 nhẹ nhàng, chữ gạch ngang text-slate-400
               isDone
-                ? 'border-slate-200/60 bg-slate-50/80 text-slate-500 opacity-80 hover:opacity-100 hover:bg-slate-50 hover:border-indigo-300'
+                ? 'border-slate-200/60 bg-slate-50/90 text-slate-500 hover:bg-slate-50 hover:border-indigo-300'
                 : 'border-slate-200/80 bg-white hover:border-indigo-300 hover:shadow-md active:scale-[0.98]',
               snapshot.isDragging && '!shadow-xl !border-primary-400 ring-2 ring-primary-500/20 !opacity-100',
             )}
           >
-            {/* Tín hiệu ưu tiên tối giản: Chấm màu siêu nhỏ ở góc thẻ (Terraria style) */}
+            {/* Tín hiệu ưu tiên tối giản: Chấm màu ở góc thẻ */}
             {priorityColor && !isDone && (
               <span
                 className={cn('absolute top-3 right-3 h-1.5 w-1.5 rounded-full ring-2 shrink-0', priorityColor)}
@@ -80,7 +91,7 @@ export function TaskCard({ task, index, onClick, isHighlighted = false }: TaskCa
               {task.title}
             </p>
             <div className="mt-2 flex items-center justify-between gap-2 pt-0.5">
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
                 <span
                   className={cn(
                     'font-mono text-[11px] font-semibold shrink-0',
@@ -92,20 +103,22 @@ export function TaskCard({ task, index, onClick, isHighlighted = false }: TaskCa
                 {task.dueDate && (
                   <span
                     className={cn(
-                      'flex items-center gap-1 text-xs shrink-0',
+                      'flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded shrink-0 font-medium',
                       isDone
-                        ? 'text-slate-300 line-through'
-                        : overdue
-                        ? 'font-medium text-rose-600'
-                        : 'text-slate-400',
+                        ? 'text-slate-400 line-through bg-slate-100'
+                        : isOverdueTask
+                        ? 'text-rose-700 bg-rose-50 border border-rose-200 font-semibold'
+                        : isDueSoon
+                        ? 'text-amber-700 bg-amber-50 border border-amber-200 font-semibold'
+                        : 'text-slate-500 bg-slate-50 border border-slate-200/60',
                     )}
                   >
-                    <CalendarIcon className="h-3.5 w-3.5" /> {formatDate(task.dueDate)}
+                    <CalendarIcon className="h-3 w-3" /> {formatDate(task.dueDate)}
                   </span>
                 )}
               </div>
               {assigneeNames.length > 0 && (
-                <div className={cn(isDone && 'opacity-60 grayscale')}>
+                <div className="shrink-0">
                   <AvatarStack names={assigneeNames} max={3} />
                 </div>
               )}

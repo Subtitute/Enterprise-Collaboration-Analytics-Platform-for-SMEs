@@ -23,6 +23,10 @@
     "newProject": "Tạo dự án",
     "viewAll": "Xem tất cả",
     "searchPlaceholder": "Tìm kiếm dự án…",
+    "tabs": {
+      "all": "Tất cả dự án",
+      "myProjects": "Dự án của tôi"
+    },
     "statusFilter": {
       "all": "Tất cả trạng thái"
     },
@@ -72,7 +76,10 @@
     "dueDateLabel": "Hạn hoàn thành",
     "priorityLabel": "Độ ưu tiên",
     "leadLabel": "Người phụ trách",
+    "membersLabel": "Thành viên tham gia",
+    "leadLockedHint": "Người phụ trách luôn là thành viên dự án",
     "searchMemberPlaceholder": "Tìm và chọn người phụ trách…",
+    "searchMembersPlaceholder": "Tìm và chọn thành viên tham gia…",
     "changeLead": "Đổi",
     "noMembersFound": "Không tìm thấy thành viên",
     "priorities": {
@@ -90,7 +97,11 @@
   },
   "kanban": {
     "scrollLeftAriaLabel": "Cuộn sang trái",
-    "scrollRightAriaLabel": "Cuộn sang phải"
+    "scrollRightAriaLabel": "Cuộn sang phải",
+    "emptyColumn": "Chưa có công việc trong cột này",
+    "confirmReopenTitle": "Mở lại công việc?",
+    "confirmReopenDescription": "Bạn có chắc muốn chuyển công việc \"{{title}}\" từ Hoàn thành về lại trạng thái đang xử lý không?",
+    "confirmReopenButton": "Xác nhận mở lại"
   },
   "newTaskModal": {
     "title": "Tạo công việc mới",
@@ -99,6 +110,9 @@
     "titlePlaceholder": "Ví dụ: Thiết kế giao diện trang chủ",
     "descriptionLabel": "Mô tả",
     "dueDateLabel": "Hạn hoàn thành",
+    "priorityLabel": "Độ ưu tiên",
+    "assigneeLabel": "Người thực hiện",
+    "unassigned": "Chưa giao cho ai",
     "cancel": "Hủy",
     "submit": "Tạo công việc"
   },
@@ -210,6 +224,8 @@
       "deleted": "Đã xoá công việc",
       "deleteError": "Không thể xoá công việc",
       "statusUpdateError": "Không thể cập nhật trạng thái công việc",
+      "autoAssigned": "Đã tự động nhận công việc cho bạn",
+      "reopenDenied": "Chỉ Quản lý hoặc Trưởng dự án mới có quyền mở lại công việc đã hoàn thành",
       "addAssigneeError": "Không thể thêm người phụ trách",
       "removeAssigneeError": "Không thể gỡ người phụ trách",
       "addCommentError": "Không thể gửi bình luận"

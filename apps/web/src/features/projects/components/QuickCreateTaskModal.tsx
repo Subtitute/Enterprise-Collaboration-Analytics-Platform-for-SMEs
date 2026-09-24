@@ -29,6 +29,7 @@ export function QuickCreateTaskModal({ open, onClose, defaultProjectId }: QuickC
   const [projectId, setProjectId] = useState(defaultProjectId || '');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [priority, setPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'>('MEDIUM');
   const [assigneeId, setAssigneeId] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,6 +48,7 @@ export function QuickCreateTaskModal({ open, onClose, defaultProjectId }: QuickC
   function handleClose() {
     setTitle('');
     setDescription('');
+    setPriority('MEDIUM');
     setAssigneeId('');
     setDueDate('');
     setError('');
@@ -75,6 +77,16 @@ export function QuickCreateTaskModal({ open, onClose, defaultProjectId }: QuickC
         dueDate: dueDate || undefined,
       });
 
+      if (created?.id) {
+        try {
+          const storedMeta = JSON.parse(localStorage.getItem('ec_tasks_metadata') || '{}');
+          storedMeta[created.id] = { ...(storedMeta[created.id] || {}), priority };
+          localStorage.setItem('ec_tasks_metadata', JSON.stringify(storedMeta));
+        } catch {
+          // ignore
+        }
+      }
+
       if (assigneeId && created?.id) {
         try {
           await addAssignee(created.id, assigneeId);
@@ -91,6 +103,15 @@ export function QuickCreateTaskModal({ open, onClose, defaultProjectId }: QuickC
       setIsSubmitting(false);
     }
   }
+
+  const PRIORITY_OPTIONS = [
+    { value: 'LOW', label: t('projects:newProjectModal.priorities.LOW'), color: 'text-slate-600 bg-slate-50 border-slate-200' },
+    { value: 'MEDIUM', label: t('projects:newProjectModal.priorities.MEDIUM'), color: 'text-blue-700 bg-blue-50 border-blue-200' },
+    { value: 'HIGH', label: t('projects:newProjectModal.priorities.HIGH'), color: 'text-amber-700 bg-amber-50 border-amber-200' },
+    { value: 'URGENT', label: t('projects:newProjectModal.priorities.URGENT'), color: 'text-rose-700 bg-rose-50 border-rose-200' },
+  ] as const;
+
+  const selectedUser = users.find((u) => u.id === assigneeId);
 
   return (
     <Modal
@@ -124,35 +145,81 @@ export function QuickCreateTaskModal({ open, onClose, defaultProjectId }: QuickC
           </Select>
         </div>
 
-        {/* Tiêu đề công việc */}
-        <FormField label={t('projects:newTaskModal.titleLabel')} htmlFor="quick-task-title" error={error} required>
+        {/* Tiêu đề công việc (Có inline validation) */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-xs font-semibold text-slate-700" htmlFor="quick-task-title">
+              {t('projects:newTaskModal.titleLabel')} *
+            </label>
+            {error && (
+              <span className="text-rose-500 text-xs font-medium animate-fade-in">{error}</span>
+            )}
+          </div>
           <Input
             id="quick-task-title"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              if (error) setError('');
+            }}
             placeholder={t('projects:newTaskModal.titlePlaceholder')}
+            className={error ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-200' : ''}
             autoFocus
           />
-        </FormField>
+        </div>
 
-        {/* Người thực hiện (Assignee) */}
+        {/* Người thực hiện (Assignee) kèm avatar */}
         <div>
           <label className="block text-xs font-semibold text-slate-700 mb-1.5" htmlFor="quick-task-assignee">
             {t('common:quickCreate.assigneeLabel')}
           </label>
-          <Select
-            id="quick-task-assignee"
-            value={assigneeId}
-            onChange={(e) => setAssigneeId(e.target.value)}
-            disabled={isSubmitting}
-          >
-            <option value="">{t('common:quickCreate.unassigned')}</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.fullName} ({u.email})
-              </option>
-            ))}
-          </Select>
+          <div className="relative">
+            <Select
+              id="quick-task-assignee"
+              value={assigneeId}
+              onChange={(e) => setAssigneeId(e.target.value)}
+              disabled={isSubmitting}
+              className={selectedUser ? 'pl-8' : ''}
+            >
+              <option value="">{t('common:quickCreate.unassigned')}</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.fullName} ({u.email})
+                </option>
+              ))}
+            </Select>
+            {selectedUser && (
+              <div className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2">
+                <Avatar name={selectedUser.fullName} size="sm" className="h-4.5 w-4.5 text-[9px]" />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Độ ưu tiên (Segmented control) */}
+        <div>
+          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+            {t('projects:newProjectModal.priorityLabel')}
+          </label>
+          <div className="grid grid-cols-4 gap-1.5">
+            {PRIORITY_OPTIONS.map((opt) => {
+              const isSelected = priority === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setPriority(opt.value)}
+                  className={`flex h-8 items-center justify-center rounded-lg border text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                    isSelected
+                      ? `${opt.color} ring-2 ring-primary-500 font-bold shadow-xs`
+                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Mô tả */}
@@ -162,7 +229,7 @@ export function QuickCreateTaskModal({ open, onClose, defaultProjectId }: QuickC
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder={t('common:quickCreate.descriptionPlaceholder')}
-            rows={3}
+            rows={2}
           />
         </FormField>
 

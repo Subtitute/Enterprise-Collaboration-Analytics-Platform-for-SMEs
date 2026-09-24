@@ -3,11 +3,16 @@ import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
 import { useTranslation } from 'react-i18next';
 import { PlusIcon, ChevronLeftIcon, ChevronRightIcon } from '@/components/ui/Icons';
+import { ConfirmDialog } from '@/components/ui/Modal';
 import { cn } from '@/lib/utils';
 import { TASK_STATUSES } from '@/types';
 import type { Task, TaskStatus } from '@/types';
 import { TaskCard } from './TaskCard';
 import { useUpdateTaskStatus } from '../hooks';
+import { addAssignee } from '../api';
+import { useAuthStore } from '@/stores/auth.store';
+import { toast } from '@/stores/toast.store';
+import { useQueryClient } from '@tanstack/react-query';
 
 const COLUMN_ACCENT: Record<TaskStatus, string> = {
   TODO: 'bg-slate-300',
@@ -21,15 +26,34 @@ interface KanbanBoardProps {
   onTaskClick: (task: Task) => void;
   onQuickAdd?: (status: TaskStatus) => void;
   highlightedTaskId?: string | null;
+  isLead?: boolean;
+  canManage?: boolean;
 }
 
-export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd, highlightedTaskId }: KanbanBoardProps) {
+export function KanbanBoard({
+  projectId,
+  tasks,
+  onTaskClick,
+  onQuickAdd,
+  highlightedTaskId,
+  isLead = false,
+  canManage = false,
+}: KanbanBoardProps) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const currentUser = useAuthStore((s) => s.user);
   const updateStatus = useUpdateTaskStatus(projectId);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [pendingReopen, setPendingReopen] = useState<{
+    task: Task;
+    destStatus: TaskStatus;
+    destIndex: number;
+    sourceStatus: TaskStatus;
+    sourceIndex: number;
+  } | null>(null);
 
   function checkScroll() {
     if (!scrollContainerRef.current) return;
@@ -132,22 +156,30 @@ export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd, highlig
     return () => window.removeEventListener('resize', checkScroll);
   }, []);
 
-  function handleDragEnd(result: DropResult) {
-    const { destination, source, draggableId } = result;
-    if (!destination) return;
-    if (destination.droppableId === source.droppableId && destination.index === source.index) return;
-
-    const sourceStatus = source.droppableId as TaskStatus;
-    const destStatus = destination.droppableId as TaskStatus;
-
+  function executeStatusMove(task: Task, sourceStatus: TaskStatus, sourceIndex: number, destStatus: TaskStatus, destIndex: number) {
     const sourceList = Array.from(columns[sourceStatus]);
     const destList = sourceStatus === destStatus ? sourceList : Array.from(columns[destStatus]);
 
-    const [movedTask] = sourceList.splice(source.index, 1);
+    const [movedTask] = sourceList.splice(sourceIndex, 1);
     if (!movedTask) return;
 
-    const updatedTask = { ...movedTask, status: destStatus };
-    destList.splice(destination.index, 0, updatedTask);
+    let updatedTask = { ...movedTask, status: destStatus };
+
+    // Tự động gán người nhận khi kéo từ TODO sang DOING nếu chưa có assignee và là Employee
+    const hasAssignee = (updatedTask.assignees && updatedTask.assignees.length > 0);
+    const isEmployee = !canManage;
+    if (sourceStatus === 'TODO' && destStatus === 'DOING' && !hasAssignee && isEmployee && currentUser?.id) {
+      updatedTask = {
+        ...updatedTask,
+        assignees: [{ userId: currentUser.id, fullName: currentUser.fullName, email: currentUser.email }],
+      };
+      addAssignee(task.id, currentUser.id).then(() => {
+        queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+      }).catch(() => {});
+      toast.info(t('projects:toast.task.autoAssigned'));
+    }
+
+    destList.splice(destIndex, 0, updatedTask);
 
     const newColumns = {
       ...columns,
@@ -155,10 +187,8 @@ export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd, highlig
       [destStatus]: destList,
     };
 
-    // Cập nhật State Cục bộ NGAY LẬP TỨC để thẻ rơi trúng đích 100% không bị nhảy vị trí
     setColumns(newColumns);
 
-    // Lưu thứ tự hiển thị toàn bộ vào localStorage
     const allTaskIds = [
       ...newColumns.TODO.map((t) => t.id),
       ...newColumns.DOING.map((t) => t.id),
@@ -170,12 +200,42 @@ export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd, highlig
       // ignore
     }
 
-    // Nếu chuyển cột thì gọi API cập nhật Backend
     if (sourceStatus !== destStatus) {
-      updateStatus.mutate({ taskId: draggableId, status: destStatus });
-      // 22/09/2026: thông báo "Task Done" cho người phụ trách dự án giờ được Project-Task Service
-      // tự động phát qua Kafka ngay trong updateStatus() ở trên - không cần gọi gì thêm ở đây.
+      updateStatus.mutate({ taskId: task.id, status: destStatus });
     }
+  }
+
+  function handleDragEnd(result: DropResult) {
+    const { destination, source, draggableId } = result;
+    if (!destination) return;
+    if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+
+    const sourceStatus = source.droppableId as TaskStatus;
+    const destStatus = destination.droppableId as TaskStatus;
+
+    const movedTask = columns[sourceStatus][source.index];
+    if (!movedTask) return;
+
+    // Kiểm tra quy tắc Reopen: Kéo từ DONE sang DOING hoặc TODO
+    if (sourceStatus === 'DONE' && destStatus !== 'DONE') {
+      const canReopen = canManage || isLead;
+      if (!canReopen) {
+        toast.error(t('projects:toast.task.reopenDenied'));
+        return;
+      }
+
+      // Quản lý / Lead: Mở ConfirmDialog trước khi thực hiện chuyển
+      setPendingReopen({
+        task: movedTask,
+        sourceStatus,
+        sourceIndex: source.index,
+        destStatus,
+        destIndex: destination.index,
+      });
+      return;
+    }
+
+    executeStatusMove(movedTask, sourceStatus, source.index, destStatus, destination.index);
   }
 
   return (
@@ -218,7 +278,7 @@ export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd, highlig
             const columnTasks = columns[status] ?? [];
 
             return (
-              <div key={status} className="flex w-[82vw] min-w-[280px] max-w-[340px] shrink-0 flex-col rounded-2xl bg-slate-100/90 lg:w-auto lg:max-w-none lg:shrink">
+              <div key={status} className="flex w-[82vw] min-w-[300px] max-w-[360px] shrink-0 flex-col rounded-2xl bg-slate-100/90 lg:w-auto lg:max-w-none lg:shrink">
                 <div
                   className={cn(
                     'flex items-center gap-2 px-4 py-3.5 border-b-2',
@@ -241,38 +301,64 @@ export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd, highlig
                       className={cn('flex-1 p-3 transition-colors', snapshot.isDraggingOver && 'bg-primary-50/50')}
                       style={{ minHeight: 120 }}
                     >
-                      {columnTasks.map((task, index) => (
-                        <TaskCard
-                          key={task.id}
-                          task={task}
-                          index={index}
-                          onClick={() => onTaskClick(task)}
-                          isHighlighted={task.id === highlightedTaskId}
-                        />
-                      ))}
+                      {columnTasks.length === 0 && !snapshot.isDraggingOver ? (
+                        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 py-8 px-4 text-center my-1">
+                          <p className="text-xs font-medium text-slate-400">
+                            {t('projects:kanban.emptyColumn')}
+                          </p>
+                        </div>
+                      ) : (
+                        columnTasks.map((task, index) => (
+                          <TaskCard
+                            key={task.id}
+                            task={task}
+                            index={index}
+                            onClick={() => onTaskClick(task)}
+                            isHighlighted={task.id === highlightedTaskId}
+                          />
+                        ))
+                      )}
                       {provided.placeholder}
                     </div>
                   )}
                 </Droppable>
 
-                {/* Nút thêm nhanh công việc ở đáy cột (Trello UX) - Chỉ hiển thị cho TODO và DOING */}
-                {status !== 'DONE' && (
-                  <div className="p-2.5 pt-0">
-                    <button
-                      type="button"
-                      onClick={() => onQuickAdd?.(status)}
-                      className="flex w-full items-center justify-start gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 transition-all duration-150 hover:bg-white hover:text-slate-900 hover:shadow-2xs active:scale-[0.98]"
-                    >
-                      <PlusIcon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                      <span>{t('projects:detail.newTask')}</span>
-                    </button>
-                  </div>
-                )}
+                {/* Nút thêm nhanh công việc ở chân mỗi cột Kanban */}
+                <div className="p-2.5 pt-0">
+                  <button
+                    type="button"
+                    onClick={() => onQuickAdd?.(status)}
+                    className="flex w-full items-center justify-start gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 transition-all duration-150 hover:bg-white hover:text-slate-900 hover:shadow-2xs active:scale-[0.98] cursor-pointer"
+                  >
+                    <PlusIcon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                    <span>{t('projects:detail.newTask')}</span>
+                  </button>
+                </div>
               </div>
             );
           })}
         </div>
       </div>
+
+      {pendingReopen && (
+        <ConfirmDialog
+          open={Boolean(pendingReopen)}
+          onClose={() => setPendingReopen(null)}
+          onConfirm={() => {
+            executeStatusMove(
+              pendingReopen.task,
+              pendingReopen.sourceStatus,
+              pendingReopen.sourceIndex,
+              pendingReopen.destStatus,
+              pendingReopen.destIndex,
+            );
+            setPendingReopen(null);
+          }}
+          title={t('projects:kanban.confirmReopenTitle')}
+          description={t('projects:kanban.confirmReopenDescription', { title: pendingReopen.task.title })}
+          confirmLabel={t('projects:kanban.confirmReopenButton')}
+        />
+      )}
     </DragDropContext>
   );
 }

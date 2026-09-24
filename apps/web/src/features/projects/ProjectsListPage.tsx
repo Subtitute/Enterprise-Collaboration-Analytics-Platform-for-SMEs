@@ -25,6 +25,11 @@ export function ProjectsListPage() {
   const canManage = canManageProjects(user?.roles);
   const [searchParams, setSearchParams] = useSearchParams();
   const [isNewOpen, setIsNewOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'my-projects'>(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'all' || tabParam === 'my-projects') return tabParam;
+    return canManage ? 'all' : 'my-projects';
+  });
 
   useEffect(() => {
     if (searchParams.get('action') === 'create') {
@@ -37,7 +42,7 @@ export function ProjectsListPage() {
   }, [searchParams, setSearchParams, canManage]);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState(() => searchParams.get('status')?.toUpperCase() || '');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [page, setPage] = useState(1);
   const [orderedProjects, setOrderedProjects] = useState<Project[]>([]);
@@ -96,7 +101,22 @@ export function ProjectsListPage() {
 
       let list = [...rawProjects];
 
-      // 1. Lọc theo TRẠNG THÁI thực tế (status filter)
+      // 1. Lọc theo TAB NGỮ CẢNH: "Tất cả dự án" vs "Dự án của tôi"
+      if (activeTab === 'my-projects' && user?.id) {
+        const myTasks = (tasksQuery.data ?? []).filter((t) =>
+          t.assignees?.some((a) => a.userId === user.id)
+        );
+        const myTaskProjectIds = new Set(myTasks.map((t) => t.projectId));
+
+        list = list.filter((p) => {
+          const isLead = p.leadUserId === user.id;
+          const isCreator = p.createdByUserId === user.id;
+          const hasAssignedTask = myTaskProjectIds.has(p.id);
+          return isLead || isCreator || hasAssignedTask;
+        });
+      }
+
+      // 2. Lọc theo TRẠNG THÁI thực tế (status filter)
       if (status) {
         list = list.filter((p) => {
           const pStatus = metaStore[p.id]?.status ?? p.status;
@@ -172,7 +192,7 @@ export function ProjectsListPage() {
     } catch {
       setOrderedProjects(rawProjects);
     }
-  }, [rawProjects, status, priorityFilter, search, updateTick]);
+  }, [rawProjects, status, priorityFilter, search, activeTab, tasksQuery.data, user?.id, updateTick]);
 
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -283,6 +303,40 @@ export function ProjectsListPage() {
             </Button>
           )}
         </div>
+      </div>
+
+      {/* Tabs chuyển đổi ngữ cảnh: "Tất cả dự án" & "Dự án của tôi" */}
+      <div className="flex border-b border-slate-200">
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('all');
+            searchParams.set('tab', 'all');
+            setSearchParams(searchParams, { replace: true });
+          }}
+          className={`px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            activeTab === 'all'
+              ? 'border-indigo-600 text-indigo-600 font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+          }`}
+        >
+          {t('projects:list.tabs.all')}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('my-projects');
+            searchParams.set('tab', 'my-projects');
+            setSearchParams(searchParams, { replace: true });
+          }}
+          className={`px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            activeTab === 'my-projects'
+              ? 'border-indigo-600 text-indigo-600 font-bold'
+              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+          }`}
+        >
+          {t('projects:list.tabs.myProjects')}
+        </button>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

@@ -2,6 +2,7 @@
   "page": {
     "title": "ダッシュボード",
     "subtitle": "組織の活動状況の概要です。",
+    "subtitlePersonal": "{{name}} さんの個人ワークスペース - 本日のタスクとスケジュール。",
     "exportPdf": "PDFを出力",
     "exportPdfError": "PDFファイルを出力できませんでした",
     "print": "印刷"
@@ -26,6 +27,37 @@
     "createFirstProject": "最初のプロジェクトを作成"
   },
   "kpi": {
+    "activeProjects": {
+      "label": "進行中プロジェクト",
+      "labelPersonal": "参加中のプロジェクト",
+      "hint": "現在進行中のプロジェクト数",
+      "hintPersonal": "あなたが現在参加しているプロジェクト"
+    },
+    "pendingLeaves": {
+      "label": "承認待ちの休暇申請",
+      "labelPersonal": "あなたの休暇申請",
+      "pendingBadge": "承認待ち",
+      "hint": "管理者の承認待ち",
+      "hintEmpty": "承認待ちの申請はありません",
+      "hintEmptyPersonal": "承認待ちの申請はありません"
+    },
+    "monthlyWorkDays": {
+      "label": "今月の出勤日数",
+      "days": "{{count}}日",
+      "hint": "今月記録された総出勤日数",
+      "hintEmpty": "今月の出勤記録はまだありません"
+    },
+    "newDocumentsCount": {
+      "label": "新規ドキュメント（7日間）",
+      "hint": "直近7日間にアップロードされたファイル",
+      "empty": "新規ドキュメントはありません"
+    },
+    "workProgress": {
+      "label": "タスク進捗状況",
+      "labelPersonal": "あなたのタスク進捗",
+      "ratio": "{{completed}}/{{total}}件",
+      "hint": "{{percent}}%完了（{{completed}}/{{total}}件）"
+    },
     "totalTasks": {
       "label": "タスク総数",
       "hint": "{{count}}件完了"
@@ -137,6 +169,7 @@
   "upcomingLeaves": {
     "title": "今後の休暇予定",
     "viewAll": "すべて見る",
+    "createRequest": "+ 休暇申請",
     "loading": "休暇予定を読み込み中…",
     "errorTitle": "休暇予定を読み込めませんでした",
     "retry": "再試行",
@@ -148,7 +181,8 @@
     "types": {
       "ANNUAL": "年次有給",
       "SICK": "病気休暇",
-      "UNPAID": "私用休暇"
+      "UNPAID": "私用休暇",
+      "GENERIC": "休暇"
     }
   }
 }

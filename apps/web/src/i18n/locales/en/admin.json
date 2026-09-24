@@ -130,6 +130,20 @@
       "role_manage": "Manage role permission matrix",
       "organization_manage": "Manage organization settings",
       "system_manage": "Infrastructure diagnostics & DLQ monitoring"
+    },
+    "auditLog": {
+      "title": "Role Permission Audit Log",
+      "subtitle": "Track permission update history for all organization roles to ensure compliance and audit security.",
+      "time": "Timestamp",
+      "actor": "Updated By",
+      "role": "Role",
+      "changes": "Permission Changes",
+      "empty": "No permission changes recorded yet",
+      "unknownActor": "System / Unknown",
+      "unknownRole": "Unknown Role",
+      "noChanges": "No permissions changed",
+      "added": "Added",
+      "removed": "Removed"
     }
   },
   "calendarPage": {

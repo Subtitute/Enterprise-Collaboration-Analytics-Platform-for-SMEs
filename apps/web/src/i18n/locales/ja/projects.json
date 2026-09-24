@@ -23,6 +23,10 @@
     "newProject": "新規プロジェクト",
     "viewAll": "すべて表示",
     "searchPlaceholder": "プロジェクトを検索…",
+    "tabs": {
+      "all": "すべてのプロジェクト",
+      "myProjects": "マ活動中のプロジェクト"
+    },
     "statusFilter": {
       "all": "すべてのステータス"
     },
@@ -72,7 +76,10 @@
     "dueDateLabel": "期限",
     "priorityLabel": "優先度",
     "leadLabel": "担当者",
+    "membersLabel": "参加メンバー",
+    "leadLockedHint": "プロジェクト担当者は常にメンバーに含まれます",
     "searchMemberPlaceholder": "担当者を検索して選択…",
+    "searchMembersPlaceholder": "参加メンバーを検索して選択…",
     "changeLead": "変更",
     "noMembersFound": "メンバーが見つかりません",
     "priorities": {
@@ -90,7 +97,11 @@
   },
   "kanban": {
     "scrollLeftAriaLabel": "左にスクロール",
-    "scrollRightAriaLabel": "右にスクロール"
+    "scrollRightAriaLabel": "右にスクロール",
+    "emptyColumn": "この列にはタスクがありません",
+    "confirmReopenTitle": "タスクを再開しますか？",
+    "confirmReopenDescription": "タスク「{{title}}」を完了から進行中に戻してもよろしいですか？",
+    "confirmReopenButton": "再開する"
   },
   "newTaskModal": {
     "title": "新規タスクを作成",
@@ -99,6 +110,9 @@
     "titlePlaceholder": "例: ホームページのデザイン",
     "descriptionLabel": "説明",
     "dueDateLabel": "期限",
+    "priorityLabel": "優先度",
+    "assigneeLabel": "担当者",
+    "unassigned": "未割り当て",
     "cancel": "キャンセル",
     "submit": "タスクを作成"
   },
@@ -210,6 +224,8 @@
       "deleted": "タスクを削除しました",
       "deleteError": "タスクを削除できませんでした",
       "statusUpdateError": "タスクのステータスを更新できませんでした",
+      "autoAssigned": "タスクが自動的にあなたに割り当てられました",
+      "reopenDenied": "完了したタスクを再開できるのは管理者またはプロジェクトリーダーのみです",
       "addAssigneeError": "担当者を追加できませんでした",
       "removeAssigneeError": "担当者を削除できませんでした",
       "addCommentError": "コメントを送信できませんでした"

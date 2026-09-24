@@ -130,6 +130,20 @@
       "role_manage": "ロール別権限マトリクスの設定管理",
       "organization_manage": "組織・企業プロファイルの管理",
       "system_manage": "システム診断とDLQ（デッドレター）監視"
+    },
+    "auditLog": {
+      "title": "権限変更履歴",
+      "subtitle": "セキュリティコンプライアンスと監査証跡の確保のため、組織内各ロールの権限更新履歴を追跡します。",
+      "time": "日時",
+      "actor": "更新者",
+      "role": "ロール",
+      "changes": "変更された権限",
+      "empty": "権限の変更履歴はまだありません",
+      "unknownActor": "システム / 不明",
+      "unknownRole": "不明なロール",
+      "noChanges": "変更された権限はありません",
+      "added": "付与",
+      "removed": "剥奪"
     }
   },
   "calendarPage": {

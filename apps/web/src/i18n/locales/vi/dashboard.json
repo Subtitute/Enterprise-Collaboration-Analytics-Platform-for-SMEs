@@ -2,6 +2,7 @@
   "page": {
     "title": "Dashboard",
     "subtitle": "Tổng quan vận hành - Cập nhật dữ liệu kinh doanh mới nhất hôm nay.",
+    "subtitlePersonal": "Không gian làm việc cá nhân của {{name}} - Theo dõi công việc và lịch trình hôm nay.",
     "exportPdf": "Xuất PDF",
     "exportPdfError": "Không thể xuất file PDF",
     "print": "In"
@@ -26,6 +27,37 @@
     "createFirstProject": "Tạo dự án đầu tiên"
   },
   "kpi": {
+    "activeProjects": {
+      "label": "Dự án đang chạy",
+      "labelPersonal": "Dự án bạn tham gia",
+      "hint": "Dự án đang trong trạng thái hoạt động",
+      "hintPersonal": "Dự án bạn đang trực tiếp tham gia"
+    },
+    "pendingLeaves": {
+      "label": "Đơn nghỉ chờ duyệt",
+      "labelPersonal": "Đơn nghỉ của bạn",
+      "pendingBadge": "Chờ duyệt",
+      "hint": "Cần người quản lý phê duyệt",
+      "hintEmpty": "Không có đơn nào chờ duyệt",
+      "hintEmptyPersonal": "Bạn không có đơn nghỉ nào chờ duyệt"
+    },
+    "monthlyWorkDays": {
+      "label": "Ngày công tháng này",
+      "days": "{{count}} ngày",
+      "hint": "Tổng số ngày công ghi nhận tháng này",
+      "hintEmpty": "Chưa có ngày công nào trong tháng này"
+    },
+    "newDocumentsCount": {
+      "label": "Tài liệu mới (7 ngày)",
+      "hint": "Tệp tải lên trong 7 ngày gần nhất",
+      "empty": "Không có tài liệu mới"
+    },
+    "workProgress": {
+      "label": "Tiến độ công việc",
+      "labelPersonal": "Tiến độ việc của bạn",
+      "ratio": "{{completed}}/{{total}} việc",
+      "hint": "{{percent}}% hoàn thành ({{completed}}/{{total}} việc)"
+    },
     "totalTasks": {
       "label": "Tổng công việc",
       "hint": "{{count}} đã hoàn thành"
@@ -137,6 +169,7 @@
   "upcomingLeaves": {
     "title": "Nghỉ phép sắp tới",
     "viewAll": "Xem tất cả",
+    "createRequest": "+ Tạo đơn nghỉ",
     "loading": "Đang tải danh sách nghỉ phép…",
     "errorTitle": "Không thể tải danh sách nghỉ phép",
     "retry": "Thử lại",
@@ -148,7 +181,8 @@
     "types": {
       "ANNUAL": "Phép năm",
       "SICK": "Nghỉ ốm",
-      "UNPAID": "Việc riêng"
+      "UNPAID": "Việc riêng",
+      "GENERIC": "Nghỉ phép"
     }
   }
 }

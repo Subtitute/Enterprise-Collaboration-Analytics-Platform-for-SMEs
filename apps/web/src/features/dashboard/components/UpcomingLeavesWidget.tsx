@@ -3,15 +3,16 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Avatar } from '@/components/ui/Avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
 import { CalendarIcon, ChevronRightIcon } from '@/components/ui/Icons';
 import { formatShortDate, calculateWorkingDays } from '@/lib/utils';
-import { useUserNameMap } from '@/hooks/useOrgUsers';
+import { useUserNameMap, useOrgUsersQuery } from '@/hooks/useOrgUsers';
+import { useAuthStore, usePermissions } from '@/stores/auth.store';
+import { PERMISSIONS } from '@/constants/permissions';
 import { useUpcomingLeavesQuery } from '../hooks';
 import type { LeaveRequest } from '@/types';
 
-/** Tách loại nghỉ phép và lý do thực tế từ chuỗi reason đã lưu */
+/** Tách loại nghỉ phép và lý do thực tế từ chuỗi reason đã lưu (Dành cho Quản trị viên) */
 function parseLeaveType(rawReason: string | undefined | null, t: (key: string) => string): { label: string; badgeStyle: string } {
   if (!rawReason) {
     return {
@@ -45,31 +46,73 @@ function parseLeaveType(rawReason: string | undefined | null, t: (key: string) =
 
 export function UpcomingLeavesWidget() {
   const { t } = useTranslation();
+  const permissions = usePermissions();
+  const currentUser = useAuthStore((s) => s.user);
+  const canViewAll = permissions.includes(PERMISSIONS.ANALYTICS_VIEW) || permissions.includes(PERMISSIONS.LEAVE_REQUEST_APPROVE);
+
   const { data, isLoading, isError, refetch } = useUpcomingLeavesQuery();
   const { map: userNameMap } = useUserNameMap();
+  const orgUsersQuery = useOrgUsersQuery();
+
+  // Bản đồ userId -> departmentId để lọc đồng nghiệp cùng phòng ban cho Employee
+  const userDeptMap = useMemo(() => {
+    const map = new Map<string, string | null>();
+    for (const u of orgUsersQuery.data ?? []) {
+      map.set(u.id, u.departmentId ?? null);
+    }
+    return map;
+  }, [orgUsersQuery.data]);
 
   // Ngày hiện tại GMT+7 định dạng YYYY-MM-DD
   const todayStr = useMemo(() => {
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
   }, []);
 
-  // Lọc chỉ các đơn có ngày kết thúc >= hôm nay, sắp xếp theo ngày bắt đầu tăng dần, lấy tối đa 5 bản ghi
+  // Lọc và sắp xếp danh sách nghỉ phép sắp tới:
+  // 1. Chỉ lấy các đơn APPROVED có endDate >= today
+  // 2. Phân quyền:
+  //    - Admin/Manager: Toàn tổ chức
+  //    - Employee: Đồng nghiệp cùng departmentId. Nếu departmentId === null, fallback hiển thị 3 người gần nhất toàn công ty.
+  // 3. Sắp xếp: Ưu tiên ghim trạng thái "Hôm nay" lên đầu, tiếp theo theo startDate tăng dần.
+  // 4. Giới hạn tối đa 4 mục (hoặc 3 nếu fallback).
   const upcomingList = useMemo(() => {
     if (!data || !Array.isArray(data)) return [];
 
-    const activeList = data.filter((item: LeaveRequest) => {
+    let activeList = data.filter((item: LeaveRequest) => {
       const endStr = item.endDate ? item.endDate.slice(0, 10) : '';
       return endStr >= todayStr && item.status === 'APPROVED';
     });
 
+    let maxItems = 4;
+
+    if (!canViewAll) {
+      const myDeptId = currentUser?.departmentId;
+      if (myDeptId) {
+        // Chỉ xem đồng nghiệp cùng phòng ban
+        activeList = activeList.filter((item) => userDeptMap.get(item.userId) === myDeptId);
+      } else {
+        // Fallback: nếu chưa có departmentId, giới hạn 3 người gần nhất toàn công ty
+        maxItems = 3;
+      }
+    }
+
+    // Sắp xếp: ưu tiên đơn đang diễn ra "Hôm nay" lên đầu, sau đó startDate ASC
     activeList.sort((a, b) => {
       const startA = a.startDate ? a.startDate.slice(0, 10) : '';
+      const endA = a.endDate ? a.endDate.slice(0, 10) : '';
+      const isTodayA = startA <= todayStr && endA >= todayStr;
+
       const startB = b.startDate ? b.startDate.slice(0, 10) : '';
+      const endB = b.endDate ? b.endDate.slice(0, 10) : '';
+      const isTodayB = startB <= todayStr && endB >= todayStr;
+
+      if (isTodayA && !isTodayB) return -1;
+      if (!isTodayA && isTodayB) return 1;
       return startA.localeCompare(startB);
     });
 
-    return activeList.slice(0, 5);
-  }, [data, todayStr]);
+    return activeList.slice(0, maxItems);
+  }, [data, todayStr, canViewAll, currentUser?.departmentId, userDeptMap]);
 
   return (
     <Card className="flex flex-col h-full">
@@ -80,13 +123,21 @@ export function UpcomingLeavesWidget() {
           </div>
           <CardTitle>{t('dashboard:upcomingLeaves.title')}</CardTitle>
         </div>
-        <Link
-          to="/leave-requests"
-          className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5 hover:underline no-print"
-        >
-          <span>{t('dashboard:upcomingLeaves.viewAll')}</span>
-          <ChevronRightIcon className="h-3.5 w-3.5" />
-        </Link>
+        <div className="flex items-center gap-2.5 no-print">
+          <Link
+            to="/leave-requests?action=create"
+            className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100/80 px-2 py-1 text-xs font-semibold text-indigo-700 transition-colors shadow-2xs"
+          >
+            <span>{t('dashboard:upcomingLeaves.createRequest')}</span>
+          </Link>
+          <Link
+            to="/leave"
+            className="text-xs font-semibold text-slate-500 hover:text-indigo-600 flex items-center gap-0.5 hover:underline"
+          >
+            <span>{t('dashboard:upcomingLeaves.viewAll')}</span>
+            <ChevronRightIcon className="h-3.5 w-3.5" />
+          </Link>
+        </div>
       </CardHeader>
 
       <CardContent className="flex-1">
@@ -125,7 +176,16 @@ export function UpcomingLeavesWidget() {
               const isSameDay = startStr === endStr;
               const daysCount = calculateWorkingDays(item.startDate, item.endDate);
               const employeeName = userNameMap[item.userId] || t('dashboard:upcomingLeaves.employee');
-              const { label: typeLabel, badgeStyle } = parseLeaveType(item.reason, t);
+              
+              // Privacy by Design / Data Masking:
+              // - Admin/Manager: Hiển thị đúng loại nghỉ & chi tiết
+              // - Employee: Luôn hiển thị badge trung tính "Nghỉ phép"
+              const { label: typeLabel, badgeStyle } = canViewAll
+                ? parseLeaveType(item.reason, t)
+                : {
+                    label: t('dashboard:upcomingLeaves.types.GENERIC'),
+                    badgeStyle: 'bg-sky-50 text-sky-700 border-sky-200/60',
+                  };
 
               return (
                 <div

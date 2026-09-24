@@ -130,6 +130,20 @@
       "role_manage": "Quản lý & cấu hình ma trận phân quyền",
       "organization_manage": "Quản lý thông tin tổ chức / doanh nghiệp",
       "system_manage": "Chẩn đoán hạ tầng & theo dõi Dead Letter Queue"
+    },
+    "auditLog": {
+      "title": "Nhật ký thay đổi phân quyền",
+      "subtitle": "Theo dõi lịch sử cập nhật quyền của từng vai trò trong tổ chức để đảm bảo tuân thủ bảo mật và an toàn kiểm toán.",
+      "time": "Thời gian",
+      "actor": "Người thực hiện",
+      "role": "Vai trò",
+      "changes": "Quyền thay đổi",
+      "empty": "Chưa có lịch sử thay đổi quyền nào",
+      "unknownActor": "Hệ thống / Không xác định",
+      "unknownRole": "Vai trò không xác định",
+      "noChanges": "Không có quyền nào thay đổi",
+      "added": "Thêm",
+      "removed": "Thu hồi"
     }
   },
   "calendarPage": {

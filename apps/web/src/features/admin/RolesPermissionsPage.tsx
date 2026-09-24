@@ -1,12 +1,16 @@
-import { Fragment, useMemo } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 import { Checkbox } from '@/components/ui/Input';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
-import { LockIcon, ShieldIcon } from '@/components/ui/Icons';
-import { usePermissionsQuery, useRolesQuery, useUpdateRolePermissions } from './hooks';
+import { Pagination } from '@/components/ui/Pagination';
+import { ClockIcon, LockIcon, ShieldIcon } from '@/components/ui/Icons';
+import { usePermissionsQuery, useRoleAuditLogQuery, useRolesQuery, useUpdateRolePermissions } from './hooks';
+import { useUserNameMap } from '@/hooks/useOrgUsers';
+import { formatDateTime } from '@/lib/utils';
 import type { Permission, RoleWithPermissions } from '@/types';
 // 16/09/2026: PERMISSION_META la hang so o module-level (ngoai component) nen khong the goi
 // useTranslation() o day (vi pham Rules of Hooks) - dung tham chieu `t` khong-qua-hook tu
@@ -118,12 +122,19 @@ function formatRoleName(roleName: string, t: (key: string) => string): string {
 
 export function RolesPermissionsPage() {
   const { t } = useTranslation();
+  const [auditPage, setAuditPage] = useState(1);
+  const auditLimit = 10;
+
   const rolesQuery = useRolesQuery();
   const permissionsQuery = usePermissionsQuery();
   const updatePermissions = useUpdateRolePermissions();
+  const auditLogQuery = useRoleAuditLogQuery({ page: auditPage, limit: auditLimit });
+  const { map: userNameMap } = useUserNameMap();
 
   const roles = rolesQuery.data ?? [];
   const permissions = permissionsQuery.data ?? [];
+  const auditLogs = auditLogQuery.data?.data ?? [];
+  const auditMeta = auditLogQuery.data?.meta ?? { page: 1, limit: auditLimit, total: 0 };
 
   // Nhóm danh sách quyền theo module nghiệp vụ và sắp xếp logic
   const groupedModules = useMemo(() => {
@@ -194,7 +205,8 @@ export function RolesPermissionsPage() {
   }
 
   return (
-    <QueryState
+    <div className="space-y-6">
+      <QueryState
       isLoading={rolesQuery.isLoading || permissionsQuery.isLoading}
       isError={rolesQuery.isError || permissionsQuery.isError}
       onRetry={() => {
@@ -365,6 +377,107 @@ export function RolesPermissionsPage() {
           </div>
         </Card>
       )}
-    </QueryState>
+      </QueryState>
+
+      {/* Bảng Nhật ký thay đổi phân quyền (RBAC Audit Log) */}
+      <Card className="overflow-hidden border border-slate-200/80 shadow-2xs">
+        <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-4">
+          <div className="flex items-center gap-2">
+            <ClockIcon className="h-4 w-4 text-indigo-600" />
+            <h3 className="text-sm font-semibold text-slate-900">{t('admin:rolesPermissionsPage.auditLog.title')}</h3>
+          </div>
+          <p className="mt-1 text-xs text-slate-500">{t('admin:rolesPermissionsPage.auditLog.subtitle')}</p>
+        </div>
+
+        <div className="overflow-x-auto">
+          {auditLogQuery.isLoading ? (
+            <div className="p-8 text-center text-xs text-slate-400">
+              {t('common:states.loading')}
+            </div>
+          ) : auditLogs.length === 0 ? (
+            <div className="p-8 text-center text-xs text-slate-400">
+              {t('admin:rolesPermissionsPage.auditLog.empty')}
+            </div>
+          ) : (
+            <table className="w-full min-w-[700px] border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/80 text-xs font-semibold uppercase tracking-wider text-slate-600">
+                  <th className="px-5 py-3.5 w-48">{t('admin:rolesPermissionsPage.auditLog.time')}</th>
+                  <th className="px-5 py-3.5 w-44">{t('admin:rolesPermissionsPage.auditLog.role')}</th>
+                  <th className="px-5 py-3.5 w-48">{t('admin:rolesPermissionsPage.auditLog.actor')}</th>
+                  <th className="px-5 py-3.5">{t('admin:rolesPermissionsPage.auditLog.changes')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {auditLogs.map((log) => {
+                  const actorName = log.actorId ? (userNameMap[log.actorId] ?? log.actorId) : t('admin:rolesPermissionsPage.auditLog.unknownActor');
+                  const roleDisplayName = log.roleName ? formatRoleName(log.roleName, t) : t('admin:rolesPermissionsPage.auditLog.unknownRole');
+
+                  const prevKeys = log.previousPermissionKeys ?? [];
+                  const newKeys = log.newPermissionKeys ?? [];
+
+                  const addedKeys = newKeys.filter((k) => !prevKeys.includes(k));
+                  const removedKeys = prevKeys.filter((k) => !newKeys.includes(k));
+
+                  return (
+                    <tr key={log.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="px-5 py-3.5 text-xs text-slate-600 whitespace-nowrap">
+                        {formatDateTime(log.createdAt)}
+                      </td>
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        <span className="font-medium text-slate-800 text-xs">
+                          {roleDisplayName}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-xs text-slate-700 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1.5 font-medium text-slate-800">
+                          {actorName}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex flex-wrap gap-1.5 items-center">
+                          {addedKeys.map((key) => {
+                            const safeKey = key.replace(':', '_');
+                            const label = t(`admin:rolesPermissionsPage.permissions.${safeKey}`, { defaultValue: key });
+                            return (
+                              <Badge key={`added-${key}`} variant="success" className="font-normal text-[11px]">
+                                + {label}
+                              </Badge>
+                            );
+                          })}
+                          {removedKeys.map((key) => {
+                            const safeKey = key.replace(':', '_');
+                            const label = t(`admin:rolesPermissionsPage.permissions.${safeKey}`, { defaultValue: key });
+                            return (
+                              <Badge key={`removed-${key}`} variant="danger" className="font-normal text-[11px]">
+                                - {label}
+                              </Badge>
+                            );
+                          })}
+                          {addedKeys.length === 0 && removedKeys.length === 0 && (
+                            <span className="text-xs text-slate-400 italic">
+                              {t('admin:rolesPermissionsPage.auditLog.noChanges')}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {auditMeta.total > auditLimit && (
+          <Pagination
+            page={auditMeta.page}
+            limit={auditMeta.limit}
+            total={auditMeta.total}
+            onPageChange={(p) => setAuditPage(p)}
+          />
+        )}
+      </Card>
+    </div>
   );
 }

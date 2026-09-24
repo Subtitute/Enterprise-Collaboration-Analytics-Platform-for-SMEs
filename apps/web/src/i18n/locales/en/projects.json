@@ -23,6 +23,10 @@
     "newProject": "New project",
     "viewAll": "View all",
     "searchPlaceholder": "Search projects…",
+    "tabs": {
+      "all": "All projects",
+      "myProjects": "My projects"
+    },
     "statusFilter": {
       "all": "All statuses"
     },
@@ -72,7 +76,10 @@
     "dueDateLabel": "Due date",
     "priorityLabel": "Priority",
     "leadLabel": "Lead",
+    "membersLabel": "Team members",
+    "leadLockedHint": "Project lead is always included in members",
     "searchMemberPlaceholder": "Search and select a lead…",
+    "searchMembersPlaceholder": "Search and select team members…",
     "changeLead": "Change",
     "noMembersFound": "No members found",
     "priorities": {
@@ -90,7 +97,11 @@
   },
   "kanban": {
     "scrollLeftAriaLabel": "Scroll left",
-    "scrollRightAriaLabel": "Scroll right"
+    "scrollRightAriaLabel": "Scroll right",
+    "emptyColumn": "No tasks in this column",
+    "confirmReopenTitle": "Reopen task?",
+    "confirmReopenDescription": "Are you sure you want to move task \"{{title}}\" from Done back to In Progress?",
+    "confirmReopenButton": "Reopen task"
   },
   "newTaskModal": {
     "title": "Create new task",
@@ -99,6 +110,9 @@
     "titlePlaceholder": "e.g. Design homepage layout",
     "descriptionLabel": "Description",
     "dueDateLabel": "Due date",
+    "priorityLabel": "Priority",
+    "assigneeLabel": "Assignee",
+    "unassigned": "Unassigned",
     "cancel": "Cancel",
     "submit": "Create task"
   },
@@ -210,6 +224,8 @@
       "deleted": "Task deleted",
       "deleteError": "Couldn't delete task",
       "statusUpdateError": "Couldn't update task status",
+      "autoAssigned": "Task was automatically assigned to you",
+      "reopenDenied": "Only Managers or Project Leads can reopen completed tasks",
       "addAssigneeError": "Couldn't add assignee",
       "removeAssigneeError": "Couldn't remove assignee",
       "addCommentError": "Couldn't post comment"

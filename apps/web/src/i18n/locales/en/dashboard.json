@@ -2,6 +2,7 @@
   "page": {
     "title": "Dashboard",
     "subtitle": "Operations overview - Latest business metrics today.",
+    "subtitlePersonal": "Personal workspace for {{name}} - Track tasks and schedule today.",
     "exportPdf": "Export PDF",
     "exportPdfError": "Couldn't export PDF file",
     "print": "Print"
@@ -26,6 +27,37 @@
     "createFirstProject": "Create first project"
   },
   "kpi": {
+    "activeProjects": {
+      "label": "Active Projects",
+      "labelPersonal": "Your Projects",
+      "hint": "Projects currently in progress",
+      "hintPersonal": "Projects you are actively participating in"
+    },
+    "pendingLeaves": {
+      "label": "Pending Leaves",
+      "labelPersonal": "Your Leave Requests",
+      "pendingBadge": "Pending",
+      "hint": "Awaiting manager approval",
+      "hintEmpty": "No pending leave requests",
+      "hintEmptyPersonal": "You have no pending leave requests"
+    },
+    "monthlyWorkDays": {
+      "label": "Work Days This Month",
+      "days": "{{count}} days",
+      "hint": "Total work days recorded this month",
+      "hintEmpty": "No work days recorded yet this month"
+    },
+    "newDocumentsCount": {
+      "label": "New Documents (7 days)",
+      "hint": "Files uploaded in the last 7 days",
+      "empty": "No new documents"
+    },
+    "workProgress": {
+      "label": "Work Progress",
+      "labelPersonal": "Your Work Progress",
+      "ratio": "{{completed}}/{{total}} tasks",
+      "hint": "{{percent}}% completed ({{completed}}/{{total}} tasks)"
+    },
     "totalTasks": {
       "label": "Total tasks",
       "hint": "{{count}} completed"
@@ -137,6 +169,7 @@
   "upcomingLeaves": {
     "title": "Upcoming Leaves",
     "viewAll": "View all",
+    "createRequest": "+ Request Leave",
     "loading": "Loading upcoming leaves…",
     "errorTitle": "Unable to load upcoming leaves",
     "retry": "Retry",
@@ -148,7 +181,8 @@
     "types": {
       "ANNUAL": "Annual",
       "SICK": "Sick",
-      "UNPAID": "Unpaid"
+      "UNPAID": "Unpaid",
+      "GENERIC": "On Leave"
     }
   }
 }

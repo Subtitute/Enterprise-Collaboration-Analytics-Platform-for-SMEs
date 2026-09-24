@@ -112,6 +112,7 @@ export default function App() {
           <Route path="/customers/:customerId" element={<CustomerDetailPage />} />
           <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/leave-requests" element={<LeaveRequestsPage />} />
+          <Route path="/leave" element={<Navigate to="/leave-requests" replace />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route

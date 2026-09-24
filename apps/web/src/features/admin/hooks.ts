@@ -12,6 +12,7 @@ import {
   fetchDepartments,
   fetchFailedEvents,
   fetchPermissions,
+  fetchRoleAuditLog,
   fetchRoles,
   fetchUsers,
   inviteUser,
@@ -148,8 +149,18 @@ export function useUpdateRolePermissions() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ roleId, permissionKeys }: { roleId: string; permissionKeys: string[] }) => updateRolePermissions(roleId, permissionKeys),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['roles'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
+      queryClient.invalidateQueries({ queryKey: ['roles', 'audit-log'] });
+    },
     onError: (error) => toast.error(t('admin:toast.permissionsUpdateFailed'), extractErrorMessage(error)),
+  });
+}
+
+export function useRoleAuditLogQuery(params: { page?: number; limit?: number } = {}) {
+  return useQuery({
+    queryKey: ['roles', 'audit-log', params],
+    queryFn: () => fetchRoleAuditLog(params),
   });
 }
 

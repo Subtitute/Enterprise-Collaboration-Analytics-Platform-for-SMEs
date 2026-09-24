@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/Button';
 import { FormField, Input, Textarea } from '@/components/ui/Input';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { Avatar } from '@/components/ui/Avatar';
-import { SearchIcon, CheckIcon } from '@/components/ui/Icons';
+import { SearchIcon, CheckIcon, XIcon, PlusIcon } from '@/components/ui/Icons';
 import { useOrgUsersQuery } from '@/hooks/useOrgUsers';
 import { useCreateProject } from '../hooks';
+import { addProjectMember } from '../api';
 
 export function NewProjectModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
@@ -20,8 +21,11 @@ export function NewProjectModal({ open, onClose }: { open: boolean; onClose: () 
   const [dueDate, setDueDate] = useState('');
   const [priority, setPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'>('MEDIUM');
   const [leadId, setLeadId] = useState<string>('');
+  const [memberIds, setMemberIds] = useState<string[]>([]);
   const [memberSearch, setMemberSearch] = useState('');
   const [isMemberDropdownOpen, setIsMemberDropdownOpen] = useState(false);
+  const [isAddMembersDropdownOpen, setIsAddMembersDropdownOpen] = useState(false);
+  const [teamMemberSearch, setTeamMemberSearch] = useState('');
   const [error, setError] = useState('');
 
   const createProject = useCreateProject();
@@ -35,6 +39,13 @@ export function NewProjectModal({ open, onClose }: { open: boolean; onClose: () 
     }
   }, [open]);
 
+  // Tự động đưa Người phụ trách (leadId) vào danh sách thành viên và khóa cứng
+  useEffect(() => {
+    if (leadId && !memberIds.includes(leadId)) {
+      setMemberIds((prev) => [leadId, ...prev.filter((id) => id !== leadId)]);
+    }
+  }, [leadId]);
+
   const allUsers = usersQuery.data ?? [];
   const selectedLead = allUsers.find((u) => u.id === leadId);
 
@@ -43,14 +54,22 @@ export function NewProjectModal({ open, onClose }: { open: boolean; onClose: () 
     u.email.toLowerCase().includes(memberSearch.toLowerCase())
   );
 
+  const filteredTeamCandidates = allUsers.filter((u) =>
+    u.fullName.toLowerCase().includes(teamMemberSearch.toLowerCase()) ||
+    u.email.toLowerCase().includes(teamMemberSearch.toLowerCase())
+  );
+
   function reset() {
     setName('');
     setDescription('');
     setDueDate('');
     setPriority('MEDIUM');
     setLeadId('');
+    setMemberIds([]);
     setMemberSearch('');
+    setTeamMemberSearch('');
     setIsMemberDropdownOpen(false);
+    setIsAddMembersDropdownOpen(false);
     setError('');
   }
 
@@ -71,16 +90,22 @@ export function NewProjectModal({ open, onClose }: { open: boolean; onClose: () 
         name: name.trim(),
         description: description.trim() || undefined,
         dueDate: dueDate || undefined,
-        // 26/08/2026 (fix code review, loi MAJOR - Fix 3): gui priority/leadUserId THANG len server
-        // (xem project.entity.ts/create-project.dto.ts, project-task-service) thay vi chi luu vao
-        // localStorage['ec_projects_metadata'] nhu truoc - gia tri nay truoc day CHI hien thi duoc
-        // tren dung trinh duyet da tao du an, nguoi dung/thiet bi khac khong bao gio thay.
         priority,
         leadUserId: leadId || undefined,
       },
       {
-        onSuccess: (newProject) => {
+        onSuccess: async (newProject) => {
           if (newProject?.id) {
+            try {
+              // Thêm các thành viên tham gia vào dự án
+              const toAdd = Array.from(new Set(memberIds.filter(Boolean)));
+              if (toAdd.length > 0) {
+                await Promise.allSettled(toAdd.map((uId) => addProjectMember(newProject.id, uId)));
+              }
+            } catch {
+              // ignore
+            }
+
             try {
               // Đưa ID dự án mới lên đầu danh sách sắp xếp
               const savedOrder: string[] = JSON.parse(localStorage.getItem('ec_projects_custom_order') || '[]');
@@ -264,6 +289,140 @@ export function NewProjectModal({ open, onClose }: { open: boolean; onClose: () 
                         {leadId === u.id && <CheckIcon className="h-4 w-4 text-emerald-600" />}
                       </button>
                     ))
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Thành viên tham gia (Multi-select, Lead bị khóa cứng) */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-xs font-semibold text-slate-700">
+              {t('projects:newProjectModal.membersLabel')}
+            </label>
+            <span className="text-[11px] text-slate-400">
+              {memberIds.length} {t('projects:projectCard.memberCount', { count: memberIds.length })}
+            </span>
+          </div>
+
+          {/* Danh sách thành viên đã chọn dạng pill/tag */}
+          <div className="flex flex-wrap gap-1.5 mb-2 min-h-[32px] p-1.5 rounded-lg border border-slate-200 bg-slate-50/50">
+            {memberIds.length === 0 ? (
+              <span className="text-xs text-slate-400 italic px-1 self-center">
+                {t('projects:newProjectModal.searchMembersPlaceholder')}
+              </span>
+            ) : (
+              memberIds.map((mId) => {
+                const u = allUsers.find((user) => user.id === mId);
+                if (!u) return null;
+                const isLead = mId === leadId;
+
+                return (
+                  <span
+                    key={mId}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium border ${
+                      isLead
+                        ? 'bg-indigo-50 text-indigo-700 border-indigo-200 shadow-2xs'
+                        : 'bg-white text-slate-700 border-slate-200 shadow-2xs'
+                    }`}
+                  >
+                    <Avatar name={u.fullName} size="sm" className="h-4 w-4 text-[8px]" />
+                    <span className="truncate max-w-[120px]">{u.fullName}</span>
+                    {isLead ? (
+                      <span
+                        className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-100/70 px-1 rounded"
+                        title={t('projects:newProjectModal.leadLockedHint')}
+                      >
+                        {t('projects:projectCard.leadLabel')}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setMemberIds((prev) => prev.filter((id) => id !== mId))}
+                        className="text-slate-400 hover:text-rose-600 cursor-pointer ml-0.5"
+                        aria-label={t('common:actions.cancel')}
+                      >
+                        <XIcon className="h-3 w-3" />
+                      </button>
+                    )}
+                  </span>
+                );
+              })
+            )}
+          </div>
+
+          {/* Nút dropdown thêm thành viên */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsAddMembersDropdownOpen((v) => !v)}
+              className="flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-primary-400 hover:bg-slate-50 transition-colors cursor-pointer w-full justify-center"
+            >
+              <PlusIcon className="h-3.5 w-3.5 text-slate-400" />
+              <span>{t('projects:newProjectModal.searchMembersPlaceholder')}</span>
+            </button>
+
+            {isAddMembersDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setIsAddMembersDropdownOpen(false)}
+                  aria-hidden
+                />
+                <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-200/80 animate-slide-up">
+                  <div className="relative mb-2">
+                    <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type="text"
+                      value={teamMemberSearch}
+                      onChange={(e) => setTeamMemberSearch(e.target.value)}
+                      placeholder={t('projects:newProjectModal.searchMembersPlaceholder')}
+                      autoFocus
+                      className="h-8 w-full rounded-md border border-slate-200 bg-slate-50 pl-8 pr-2.5 text-xs text-slate-700 placeholder:text-slate-400 focus:border-primary-500 focus:bg-white focus:outline-none"
+                    />
+                  </div>
+                  {filteredTeamCandidates.length === 0 ? (
+                    <p className="px-2 py-2 text-center text-xs text-slate-400">{t('projects:newProjectModal.noMembersFound')}</p>
+                  ) : (
+                    filteredTeamCandidates.map((u) => {
+                      const isSelected = memberIds.includes(u.id);
+                      const isLead = u.id === leadId;
+
+                      return (
+                        <button
+                          key={u.id}
+                          type="button"
+                          onClick={() => {
+                            if (isLead) return; // Khóa cứng người phụ trách
+                            if (isSelected) {
+                              setMemberIds((prev) => prev.filter((id) => id !== u.id));
+                            } else {
+                              setMemberIds((prev) => [...prev, u.id]);
+                            }
+                          }}
+                          className={`flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors hover:bg-slate-50 cursor-pointer ${
+                            isSelected ? 'bg-primary-50/50' : ''
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Avatar name={u.fullName} size="sm" className="h-6 w-6 text-[10px]" />
+                            <div className="min-w-0 truncate">
+                              <p className="font-semibold text-slate-900 truncate">{u.fullName}</p>
+                              <p className="text-[10px] text-slate-400 truncate">{u.email}</p>
+                            </div>
+                          </div>
+                          {isLead ? (
+                            <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
+                              {t('projects:projectCard.leadLabel')}
+                            </span>
+                          ) : isSelected ? (
+                            <CheckIcon className="h-4 w-4 text-emerald-600 shrink-0" />
+                          ) : null}
+                        </button>
+                      );
+                    })
                   )}
                 </div>
               </>

@@ -33,7 +33,8 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
   const { t } = useTranslation();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const canManage = canManageProjects(user?.roles);
+  const isCreator = Boolean(user?.id && project.createdByUserId && user.id === project.createdByUserId);
+  const canManage = canManageProjects(user?.roles) || isCreator;
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isMembersOpen, setIsMembersOpen] = useState(false);

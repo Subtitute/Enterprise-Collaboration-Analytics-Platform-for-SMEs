@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api-client';
-import type { CalendarEvent, CalendarEventType, Department, FailedEvent, PaginatedResponse, Permission, RoleWithPermissions, User } from '@/types';
+import type { CalendarEvent, CalendarEventType, Department, FailedEvent, PaginatedResponse, Permission, RolePermissionChangeLog, RoleWithPermissions, User } from '@/types';
 
 export interface InviteUserPayload {
   email: string;
@@ -81,6 +81,11 @@ export async function fetchPermissions(): Promise<Permission[]> {
 
 export async function updateRolePermissions(roleId: string, permissionKeys: string[]): Promise<RoleWithPermissions> {
   const { data } = await apiClient.patch<RoleWithPermissions>(`/roles/${roleId}/permissions`, { permissionKeys });
+  return data;
+}
+
+export async function fetchRoleAuditLog(params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<RolePermissionChangeLog>> {
+  const { data } = await apiClient.get<PaginatedResponse<RolePermissionChangeLog>>('/roles/audit-log', { params });
   return data;
 }
 
