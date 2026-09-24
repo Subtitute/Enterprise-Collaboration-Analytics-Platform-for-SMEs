@@ -87,12 +87,15 @@ export class FactWriterService {
    * 28/07/2026: them cot assignee_id (nguoi duoc GAN task, chi co gia tri o event `task.assigned`
    * theo TaskAssignedPayload - null o cac event khac) - phuc vu KPI theo phong ban (JOIN voi
    * dim_user.user_id de biet task duoc gan cho user thuoc phong ban nao, xem AnalyticsService).
+   * 24/09/2026: them cot due_date (han hoan thanh TAI THOI DIEM TAO task, chi co gia tri o event
+   * `task.created` theo TaskCreatedPayload.dueDate - da la chuoi ISO-8601 nen dung thang
+   * extractString(), driver pg tu cast sang TIMESTAMPTZ) - phuc vu getDrillDown() tinh "qua han".
    */
   async recordTaskEvent(event: DomainEvent, runner: QueryExecutor = this.dataSource): Promise<boolean> {
     const rows = await runner.query(
       `
-      INSERT INTO fact_task_events (time, event_id, organization_id, event_type, project_id, task_id, from_status, to_status, actor_id, assignee_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      INSERT INTO fact_task_events (time, event_id, organization_id, event_type, project_id, task_id, from_status, to_status, actor_id, assignee_id, due_date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       ON CONFLICT (time, event_id) DO NOTHING
       RETURNING event_id
       `,
@@ -107,6 +110,7 @@ export class FactWriterService {
         extractString(event, 'toStatus'),
         extractString(event, 'actorId'),
         extractString(event, 'assigneeId'),
+        extractString(event, 'dueDate'),
       ],
     );
     return rows.length > 0;

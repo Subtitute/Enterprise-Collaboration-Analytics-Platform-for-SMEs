@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { AlertCircleIcon, TrendingUpIcon, InfoIcon } from '@/components/ui/Icons';
-import type { StructuredInsight } from '@/types';
+import { AlertCircleIcon, TrendingUpIcon, InfoIcon, CheckCircleIcon } from '@/components/ui/Icons';
+import type { ActionPlanPriority, StructuredInsight } from '@/types';
 
 interface AiInsightCardProps {
   insight: StructuredInsight;
@@ -13,6 +13,15 @@ const SEVERITY_STYLE: Record<StructuredInsight['severity'], { border: string; bg
   critical: { border: 'border-rose-200', bg: 'bg-rose-50/60', icon: AlertCircleIcon, iconColor: 'text-rose-600' },
   warning: { border: 'border-amber-200', bg: 'bg-amber-50/60', icon: AlertCircleIcon, iconColor: 'text-amber-600' },
   info: { border: 'border-emerald-200', bg: 'bg-emerald-50/60', icon: TrendingUpIcon, iconColor: 'text-emerald-600' },
+};
+
+// 24/09/2026: Layer 5 - mau badge rieng cho tung muc uu tien cua "Ke hoach hanh dong" (khac
+// SEVERITY_STYLE o tren - 2 khai niem doc lap: severity la muc do dang chu y cua INSIGHT, priority
+// la muc do uu tien cua HANH DONG de xuat cho insight do).
+const PRIORITY_STYLE: Record<ActionPlanPriority, string> = {
+  high: 'text-rose-700 bg-rose-100',
+  medium: 'text-amber-700 bg-amber-100',
+  low: 'text-slate-600 bg-slate-100',
 };
 
 /**
@@ -60,6 +69,29 @@ export function AiInsightCard({ insight, scopeLabel, index }: AiInsightCardProps
         <div className="mt-2.5 flex items-start gap-1.5 rounded-lg bg-white/70 p-2 text-xs text-indigo-800">
           <InfoIcon className="h-3.5 w-3.5 shrink-0 mt-0.5 text-indigo-500" />
           <span>{insight.recommendation}</span>
+        </div>
+      )}
+
+      {insight.actionPlan && (
+        <div className="mt-2.5 rounded-lg border border-indigo-200 bg-white/70 p-2.5 text-xs">
+          <div className="flex items-center gap-1.5">
+            <CheckCircleIcon className="h-3.5 w-3.5 shrink-0 text-indigo-600" />
+            <span className="font-semibold text-indigo-900">{t('analytics:aiInsight.actionPlan.title')}</span>
+            <span className={cn('ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase', PRIORITY_STYLE[insight.actionPlan.priority])}>
+              {t(`analytics:aiInsight.actionPlan.priority.${insight.actionPlan.priority}`)}
+            </span>
+          </div>
+          <p className="mt-1.5 font-medium text-slate-800">{insight.actionPlan.action}</p>
+          <p className="mt-1 text-slate-500">{insight.actionPlan.reason}</p>
+          <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-slate-500">
+            <span>
+              <strong className="text-slate-600">{t('analytics:aiInsight.actionPlan.expectedEffect')}:</strong>{' '}
+              {insight.actionPlan.expectedEffect}
+            </span>
+            <span>
+              <strong className="text-slate-600">{t('analytics:aiInsight.actionPlan.effort')}:</strong> {insight.actionPlan.effort}
+            </span>
+          </div>
         </div>
       )}
     </div>

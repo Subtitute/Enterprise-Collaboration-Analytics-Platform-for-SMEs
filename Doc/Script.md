@@ -93,6 +93,7 @@ Mục tiêu: mỗi người làm việc trong phạm vi thư mục riêng, giả
 | Thư mục | Người phụ trách | Ghi chú |
 |---|---|---|
 | `apps/gateway/`, `apps/iam-service/`, `apps/project-task-service/`, `apps/document-service/`, `apps/notification-service/`, `apps/analytics-service/`, `apps/crm-service/`, `apps/hrm-service/` | Quang | Backend — 8 service nghiệp vụ + Gateway (`crm-service`/`hrm-service` bổ sung 05/08/2026) |
+| `apps/ml-service/` | Quang | Anomaly Detection (bổ sung 24/09/2026) — service **Python/FastAPI đầu tiên** của dự án (8 service còn lại đều Node/NestJS), tự xây read-model riêng qua Kafka giống các service khác, không đụng DB service khác |
 | `packages/common-dto/`, `packages/common-guard/`, `packages/common-metrics/` | Quang | Mã dùng chung giữa các service — đổi ở đây ảnh hưởng toàn bộ backend, cần cẩn trọng |
 | `infra/` | Quang | Docker Compose, biến môi trường, script khởi tạo TimescaleDB |
 | `apps/web/` | Tiến | Toàn bộ frontend — xem chia nhỏ theo tính năng bên dưới |

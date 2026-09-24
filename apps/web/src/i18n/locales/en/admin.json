@@ -40,6 +40,7 @@
   "membersPage": {
     "description": "Manage members, departments, and access permissions within your organization.",
     "inviteMember": "Invite member",
+    "importExcel": "Import from Excel",
     "searchPlaceholder": "Search by name or email…",
     "allDepartments": "All departments",
     "allStatuses": "All statuses",
@@ -232,6 +233,38 @@
       "fullNameRequired": "Please enter a full name",
       "passwordMinLength": "Password must be at least 8 characters"
     }
+  },
+  "importEmployeesModal": {
+    "title": "Import employees from Excel",
+    "instructions": "Download the template, fill in employee details in the matching columns, then select the file again to preview and bulk-import.",
+    "downloadTemplate": "Download Excel template",
+    "selectFile": "Select an Excel file (.xlsx)…",
+    "parseError": "Couldn't read this Excel file. Please use the downloaded template.",
+    "roleColumnIgnored": "You don't have permission to bulk-assign roles - the \"Role\" column will be ignored; every imported employee will have no role assigned.",
+    "validCount": "{{count}} valid rows",
+    "invalidCount": "{{count}} rows with errors",
+    "defaultPasswordNote": "(using default password)",
+    "rowSuccess": "Created",
+    "rowPending": "Pending",
+    "columns": {
+      "row": "Row",
+      "fullName": "Full name",
+      "email": "Email",
+      "department": "Department",
+      "role": "Role",
+      "status": "Status"
+    },
+    "rowErrors": {
+      "missingFullName": "Missing full name",
+      "invalidEmail": "Invalid email",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "departmentNotFound": "Department not found",
+      "roleNotFound": "Role not found"
+    },
+    "cancel": "Cancel",
+    "submit": "Import {{count}} employees",
+    "importSummary": "Imported {{success}} employees successfully, {{fail}} rows failed",
+    "importAllFailed": "Couldn't import any employees"
   },
   "toast": {
     "memberInvited": "Member invited",

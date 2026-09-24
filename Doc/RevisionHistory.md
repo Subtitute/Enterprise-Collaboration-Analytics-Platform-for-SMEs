@@ -1465,6 +1465,75 @@ API thật (không chỉ đọc code) bằng tài khoản Employee/Manager/Org A
 
 *Chi tiết: xem lịch sử làm việc giữa sinh viên và trợ lý AI ngày 17/09/2026.*
 
+## 2026-09-24 — Nhập Excel hàng loạt + Analytics nâng cao (Diagnostic drill-down, Anomaly Detection, Recommendation Engine)
+
+Hai hạng mục độc lập triển khai cùng đợt: (1) tính năng "quick add employees" — nhập hàng loạt qua
+Excel cho trang Quản trị > Thành viên; (2) nâng cấp trang Báo cáo & Phân tích thêm 3 tầng phân tích
+mới trên nền tảng "Nhận xét AI" đã có (kiến trúc AI/dữ liệu 5 tầng — mô tả/chẩn đoán/bất
+thường/dự đoán/khuyến nghị — đã bắt đầu triển khai thêm 3 tầng, 2 tầng dự đoán/mô phỏng còn lại cố ý
+chưa làm).
+
+**Nhập Excel hàng loạt**: không đổi backend — tái dùng nguyên vẹn `POST /users/invite` đã có, modal
+mới `ImportEmployeesModal.tsx` gọi tuần tự (không `Promise.all`, tránh vượt rate-limit Gateway) từng
+dòng hợp lệ sau khi xem trước (phân biệt rõ dòng hợp lệ/lỗi kèm lý do). Thư viện đọc Excel `xlsx`
+(SheetJS) bản npm registry có 2 lỗ hổng HIGH chưa vá (Prototype Pollution, ReDoS, "No fix
+available") — chuyển sang cài bản đã vá trực tiếp từ CDN của chính SheetJS thay vì bản registry.
+
+**Layer 2 Diagnostic — drill-down**: `fact_task_events` (TimescaleDB) bổ sung cột `due_date` (chỉ có
+giá trị ở event tạo task, phản ánh hạn hoàn thành TẠI THỜI ĐIỂM TẠO — chưa đồng bộ nếu đổi hạn sau
+đó qua `PATCH /tasks/:id`, ghi rõ như giới hạn đã biết). `AnalyticsService.getDrillDown()` tái dùng
+đúng pattern CTE của `computeSummary()`, tính thêm số công việc quá hạn và người đang tập trung nhiều
+việc chưa xong nhất — bấm vào 1 thanh trong biểu đồ so sánh của "Nhận xét AI" (đã thiết kế lại thành
+thẻ có cấu trúc từ 22/09) sẽ mở panel hiển thị kết quả này. Phạm vi drill-down theo dự án cố ý giới
+hạn chỉ Org Admin — Analytics Service không có bảng thành viên dự án riêng (database-per-service) nên
+không xác định được Manager có thuộc dự án đó hay không mà không phá vỡ quy ước Kafka-only.
+
+**Layer 3 Anomaly Detection**: service Python/FastAPI đầu tiên của dự án (`apps/ml-service`, Postgres
+riêng `postgres-ml`) — tự xây read-model qua Kafka (3 topic có sẵn `iam.events`/`project-task.events`/
+`hrm.events`, KHÔNG đọc DB service khác), chạy `IsolationForest` (scikit-learn) thật khi người dùng
+bấm "Chạy phát hiện bất thường" trên trang Báo cáo & Phân tích, tính theo từng nhân viên tỷ lệ hoàn
+thành/số việc quá hạn/tỷ lệ chấm công (xấp xỉ, không loại trừ cuối tuần vì chưa có dữ liệu Lịch công
+ty riêng). Permission mới `ml:view` cấp cho Org Admin + Manager (Manager chỉ xem được nhân viên thuộc
+phòng ban mình phụ trách). 2 lỗi thật phát hiện khi viết `pytest` (lần đầu có trong repo, cả unit lẫn
+tích hợp chạy trên `postgres-ml` thật): thiếu ép kiểu `::uuid[]` tường minh khi bind 1 mảng Python vào
+mệnh đề `ANY()` của Postgres (psycopg2 suy luận sai kiểu phần tử, lỗi thật lúc chạy chứ không phải lúc
+viết code); và phát hiện quan trọng hơn — `contamination='auto'` mặc định của `IsolationForest` (một
+ngưỡng CỐ ĐỊNH trên điểm bất thường, không phải "chọn top N%") khi xác minh bằng dữ liệu nhiễu gaussian
+thuần (không có bất thường thật nào) lại gắn cờ tới 25-44% nhân viên — quá ồn ào cho 1 tính năng "làm
+nổi bật vài trường hợp đáng chú ý"; đổi sang tỷ lệ cố định 10% cho kết quả dự đoán được.
+
+**Layer 5 Recommendation Engine**: mở rộng nguyên vẹn pipeline "Nhận xét AI" có sẵn (không xây lại) —
+thêm 1 route mới `POST /analytics/ai-insights` (route `GET` cũ giữ nguyên 100%, không đổi hành vi/cache)
+nhận kèm kết quả Anomaly Detection (frontend tự gọi `POST /ml/anomalies` trước, rồi truyền kết quả vào
+đây — Analytics Service không tự gọi HTTP sang ml-service) để AI đề xuất thêm "Kế hoạch hành động"
+(hành động/mức ưu tiên/lý do/tác động kỳ vọng/công sức ước tính) cho các insight có liên hệ hợp lý. Cố
+ý bỏ danh tính nhân viên (`userId`) khỏi dữ liệu gửi cho AI — chỉ gửi bối cảnh tổng quan (bao nhiêu
+trường hợp, lệch chỉ số gì), giữ đúng nguyên tắc AI không tiếp xúc dữ liệu cá nhân chi tiết ngoài mức
+cần thiết.
+
+**Giới hạn đã biết cần thao tác thủ công**: tổ chức demo được tạo trước khi permission `ml:view` tồn
+tại nên vai trò Org Admin của tổ chức đó không tự có quyền này — khác các lần bổ sung permission trước
+(CRM-lite/HRM-lite), lần này KHÔNG cấp được qua `PATCH /roles/:id/permissions` như thường lệ vì 1 guard
+bảo mật bổ sung sau đó (chặn tự nâng quyền, so sánh theo tên vai trò) chặn chính người đang giữ vai trò
+Org Admin tự sửa quyền của vai trò đó — kể cả tạo thêm 1 tài khoản Org Admin khác cũng không giúp được
+gì vì vẫn cùng 1 vai trò, cùng bị chặn, và tổ chức demo không có endpoint tạo vai trò mới. Việc cấp
+quyền qua database trực tiếp bị từ chối thực hiện (đúng đắn) vì đây chính là hành vi guard đó cố tình
+ngăn chặn — Org Admin của tổ chức demo cần tự bật quyền qua trang Vai trò & Phân quyền (thao tác 1
+lần, ~10 giây); quyền Manager đã cấp và xác minh sống thành công.
+
+**Xác minh**: gate `typecheck/lint/lint:i18n-strings` sạch toàn workspace, `npm run test` (root) 11/11
+test suite Node pass không hồi quy, `pytest` mới cho `ml-service` 18/18 pass (chạy trong container,
+kết nối `postgres-ml` thật). Rebuild + redeploy toàn bộ service liên quan (`analytics-service`/
+`project-task-service`/`gateway`/`iam-service`/`web`/`ml-service` mới/`postgres-ml` mới) — tất cả
+container healthy. Kiểm thử sống qua Gateway thật (không chỉ đọc code): nhập 1 file Excel mẫu → xem
+trước đúng số dòng hợp lệ/lỗi → nhập thành công, nhân viên mới xuất hiện thật trong danh sách; tạo
+"Nhận xét AI" thật (gọi Gemini thật) → bấm vào 1 thanh biểu đồ → panel drill-down hiện đúng số liệu
+thật; gọi phát hiện bất thường với dữ liệu demo thật trả về đúng cấu trúc, không lỗi/timeout; gọi kèm
+1 trường hợp bất thường tự tạo trả về đúng hợp đồng "Kế hoạch hành động"; tài khoản Employee bị từ
+chối rõ ràng (403) khi gọi phát hiện bất thường thay vì bị hiểu nhầm thành "quét xong, không thấy gì".
+
+*Chi tiết: Technical_Spec.md, mục "19. Nhập Excel hàng loạt + Analytics nâng cao".*
+
 ## Lịch sử thay đổi tài liệu này
 
 - **2026-08-24** — Khởi tạo file, gộp lại toàn bộ lịch sử rà soát/sửa lỗi từ 18/07/2026 (khởi tạo
@@ -1538,3 +1607,11 @@ API thật (không chỉ đọc code) bằng tài khoản Employee/Manager/Org A
   trò; giới hạn Project/Task/Customer theo "được giao" cho Employee; phát hiện + sửa 1 lỗi 500 thật
   ở `PATCH /users/:id` (Postgres từ chối khoá dòng qua outer join); mở rộng 8 → 23 nhân viên kèm
   lịch sử chấm công/nghỉ phép thật, kiểm thử sống bằng tài khoản thật cho cả 3 cấp vai trò.
+- **2026-09-24** — Bổ sung mục "Nhập Excel hàng loạt + Analytics nâng cao" — nhập nhân viên hàng
+  loạt qua Excel (tái dùng nguyên vẹn API mời thành viên có sẵn); Diagnostic drill-down (cột
+  `due_date` mới cho `fact_task_events`, panel phễu Tổng → Chưa xong → Quá hạn → Tập trung ở 1
+  người); Anomaly Detection — service Python/FastAPI đầu tiên của dự án (`apps/ml-service`,
+  scikit-learn `IsolationForest` thật, phát hiện + sửa 2 lỗi thật qua viết `pytest` lần đầu trong
+  repo); Recommendation Engine mở rộng "Nhận xét AI" có sẵn thêm "Kế hoạch hành động". Ghi nhận 1
+  giới hạn cần Org Admin tổ chức demo tự thao tác thủ công 1 lần (bật quyền mới cho chính vai trò
+  mình đang giữ — bị 1 guard chống tự-nâng-quyền chặn cấp qua API như thường lệ).

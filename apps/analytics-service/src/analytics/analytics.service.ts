@@ -1,7 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { PERMISSIONS } from '@app/common-dto';
+import { ERROR_CODES, PERMISSIONS } from '@app/common-dto';
 import { RedisService } from '../redis/redis.service';
 import { resolveDocumentActivityInterval, resolveTaskTrendConfig } from './utils/range.util';
 
@@ -60,6 +60,23 @@ export interface RecentActivityItem {
  * co giong nhau).
  */
 export type RecentActivityVisibilityScope = 'organization' | 'department' | 'self';
+
+/**
+ * 24/09/2026: pham vi cho GET /analytics/drill-down - CHI department|project (khac InsightScope
+ * cua AiInsightsService co them 'organization', vi drill-down luon can 1 scopeId cu the de tra loi
+ * "vi sao" cho 1 phong ban/du an - khong co y nghia drill-down cho toan to chuc).
+ */
+export type DrillDownScope = 'department' | 'project';
+
+export interface DrillDownResult {
+  scope: DrillDownScope;
+  scopeId: string;
+  totalTasks: number;
+  notDoneTasks: number;
+  overdueTasks: number;
+  /** null neu khong co task nao (trong pham vi) dang o trang thai chua xong co nguoi duoc gan. */
+  topAssignee: { userId: string; notDoneTaskCount: number } | null;
+}
 
 const SUMMARY_CACHE_TTL_SECONDS = 8;
 
@@ -588,6 +605,14 @@ export class AnalyticsService {
       SELECT event_id, time, event_type, producer, actor_id, payload
       FROM fact_user_activity
       WHERE organization_id = $1
+        -- 24/09/2026: loai bo hang KHONG CO actor_id - nguon DUY NHAT tao ra hang nhu vay la
+        -- UserDepartmentSyncService (resync tu dong MOI LAN iam-service khoi dong, khong phai do 1
+        -- nguoi vua thao tac - xem chu thich actorId tren UserDepartmentChangedPayload). Hang nay
+        -- van duoc ghi vao fact_user_activity (giu nguyen idempotency/audit trail) nhung KHONG nen
+        -- hien thi trong "Hoat dong gan day" - khong co "ai" de gan cho dong chu ngu, frontend chi
+        -- con cach fallback ve "Mot thanh vien" (xem RecentActivityFeed.tsx). Loc tai day (khong
+        -- phai luc ghi) de MOI truy van doc (REST + so dem) deu nhat quan.
+        AND actor_id IS NOT NULL
       ${actorFilterSql}
       ORDER BY time DESC
       LIMIT 20
@@ -604,6 +629,160 @@ export class AnalyticsService {
       payload: (row.payload as Record<string, unknown>) ?? {},
     }));
     return { data, scope };
+  }
+
+  /**
+   * GET /analytics/drill-down?scope=department|project&scopeId=X&range=Y - Layer 2 Diagnostic:
+   * tra loi "vi sao" cho 1 phong ban/du an cu the (phau: Tong task -> Chua xong -> Qua han -> Tap
+   * trung o 1 nguoi) - bam vao 1 thanh trong AiInsightsChart.tsx (chinh scope/scopeId cua
+   * StructuredInsight.evidence, xem ai-insights.service.ts) se goi endpoint nay.
+   *
+   * Pham vi truy cap (mirror getRecentActivity() o tren, KHONG de lo du lieu ngoai pham vi nguoi
+   * goi):
+   *  - Org Admin (co PERMISSIONS.USER_MANAGE) -> xem duoc moi scope/scopeId.
+   *  - scope=department -> CHI Manager dang phu trach DUNG phong ban do (qua
+   *    listDepartmentIdsManagedBy()) moi duoc xem; con lai bi tu choi.
+   *  - scope=project -> GIOI HAN CO CHU DICH cho doi nay: Analytics Service khong co bang thanh
+   *    vien du an rieng (database-per-service - Project-Task Service moi biet ai thuoc du an nao),
+   *    nen KHONG the xac dinh "Manager/Employee nay co thuoc du an X khong" ma khong goi HTTP
+   *    xuyen service (vi pham quy uoc Kafka-only). Vi vay drill-down theo du an TAM THOI chi danh
+   *    cho Org Admin - ghi trong Technical_Spec.md nhu 1 gioi han da biet cua dot nay.
+   *
+   * GIOI HAN DA BIET (mirror ghi chu TaskCreatedPayload.dueDate): overdueTasks/due_date phan anh
+   * han hoan thanh TAI THOI DIEM TAO task, chua dong bo neu doi han sau qua PATCH /tasks/:id.
+   */
+  async getDrillDown(
+    organizationId: string,
+    scope: DrillDownScope,
+    scopeId: string,
+    range: string,
+    callerId: string,
+    callerPermissions: string[],
+  ): Promise<DrillDownResult> {
+    if (!callerPermissions.includes(PERMISSIONS.USER_MANAGE)) {
+      if (scope === 'project') {
+        throw new ForbiddenException({
+          message: 'Chi Org Admin moi xem duoc chi tiet drill-down theo du an',
+          errorCode: ERROR_CODES.DRILL_DOWN_SCOPE_FORBIDDEN,
+        });
+      }
+      const managedDepartmentIds = await this.listDepartmentIdsManagedBy(organizationId, callerId);
+      if (!managedDepartmentIds.includes(scopeId)) {
+        throw new ForbiddenException({
+          message: 'Ban khong phu trach phong ban nay nen khong the xem chi tiet drill-down',
+          errorCode: ERROR_CODES.DRILL_DOWN_SCOPE_FORBIDDEN,
+        });
+      }
+    }
+
+    const { sinceInterval } = resolveTaskTrendConfig(range);
+    const params: unknown[] = [organizationId, sinceInterval, scopeId];
+    const scopeFilter =
+      scope === 'department'
+        ? `AND t.task_id IN (
+             SELECT DISTINCT fte.task_id
+             FROM fact_task_events fte
+             JOIN dim_user du ON du.user_id = fte.assignee_id
+             WHERE fte.event_type = 'task.assigned' AND du.department_id = $3
+           )`
+        : `AND t.project_id = $3`;
+
+    const [countsRow] = await this.dataSource.query(
+      `
+      WITH created_tasks AS (
+        SELECT DISTINCT task_id, due_date
+        FROM fact_task_events t
+        WHERE t.organization_id = $1
+          AND t.event_type = 'task.created'
+          AND t.task_id IS NOT NULL
+          AND t.time >= now() - $2::interval
+          ${scopeFilter}
+          AND NOT EXISTS (
+            SELECT 1 FROM fact_task_events d
+            WHERE d.task_id = t.task_id AND d.event_type = 'task.deleted'
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM fact_task_events pd
+            WHERE pd.project_id = t.project_id AND pd.event_type = 'project.deleted'
+          )
+      ),
+      latest_status AS (
+        SELECT DISTINCT ON (task_id) task_id, to_status
+        FROM fact_task_events
+        WHERE organization_id = $1
+          AND event_type = 'task.status_changed'
+          AND task_id IS NOT NULL
+        ORDER BY task_id, time DESC
+      )
+      SELECT
+        count(*)::int                                                                                        AS total_tasks,
+        count(*) FILTER (WHERE COALESCE(ls.to_status, 'TODO') != 'DONE')::int                                 AS not_done_tasks,
+        count(*) FILTER (
+          WHERE ct.due_date IS NOT NULL AND ct.due_date < now() AND COALESCE(ls.to_status, 'TODO') != 'DONE'
+        )::int                                                                                                AS overdue_tasks
+      FROM created_tasks ct
+      LEFT JOIN latest_status ls ON ls.task_id = ct.task_id
+      `,
+      params,
+    );
+
+    const [topAssigneeRow] = await this.dataSource.query(
+      `
+      WITH created_tasks AS (
+        SELECT DISTINCT task_id
+        FROM fact_task_events t
+        WHERE t.organization_id = $1
+          AND t.event_type = 'task.created'
+          AND t.task_id IS NOT NULL
+          AND t.time >= now() - $2::interval
+          ${scopeFilter}
+          AND NOT EXISTS (
+            SELECT 1 FROM fact_task_events d
+            WHERE d.task_id = t.task_id AND d.event_type = 'task.deleted'
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM fact_task_events pd
+            WHERE pd.project_id = t.project_id AND pd.event_type = 'project.deleted'
+          )
+      ),
+      latest_status AS (
+        SELECT DISTINCT ON (task_id) task_id, to_status
+        FROM fact_task_events
+        WHERE organization_id = $1
+          AND event_type = 'task.status_changed'
+          AND task_id IS NOT NULL
+        ORDER BY task_id, time DESC
+      ),
+      latest_assignee AS (
+        SELECT DISTINCT ON (task_id) task_id, assignee_id
+        FROM fact_task_events
+        WHERE organization_id = $1
+          AND event_type = 'task.assigned'
+          AND task_id IS NOT NULL
+        ORDER BY task_id, time DESC
+      )
+      SELECT la.assignee_id, count(*)::int AS not_done_count
+      FROM created_tasks ct
+      JOIN latest_assignee la ON la.task_id = ct.task_id
+      LEFT JOIN latest_status ls ON ls.task_id = ct.task_id
+      WHERE COALESCE(ls.to_status, 'TODO') != 'DONE' AND la.assignee_id IS NOT NULL
+      GROUP BY la.assignee_id
+      ORDER BY not_done_count DESC
+      LIMIT 1
+      `,
+      params,
+    );
+
+    return {
+      scope,
+      scopeId,
+      totalTasks: toNumber(countsRow?.total_tasks),
+      notDoneTasks: toNumber(countsRow?.not_done_tasks),
+      overdueTasks: toNumber(countsRow?.overdue_tasks),
+      topAssignee: topAssigneeRow
+        ? { userId: topAssigneeRow.assignee_id as string, notDoneTaskCount: toNumber(topAssigneeRow.not_done_count) }
+        : null,
+    };
   }
 }
 

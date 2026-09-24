@@ -29,6 +29,8 @@ export const PERMISSIONS = {
 
   // Analytics
   ANALYTICS_VIEW: 'analytics:view',
+  // 24/09/2026: Layer 3 Anomaly Detection (apps/ml-service) - mirror packages/common-dto/src/enums/permission.enum.ts.
+  ML_VIEW: 'ml:view',
 
   // CRM-lite
   CUSTOMER_VIEW: 'customer:view',

@@ -13,7 +13,10 @@ export async function loginAsAdmin(page: Page) {
   // khau" (aria-label="Hien mat khau" - chua chuoi con "mat khau") - ca o nhap va nut deu khop.
   // Loc theo role=textbox de chi lay o nhap, khong lay nut (role=button).
   await page.getByRole('textbox', { name: 'Mật khẩu' }).fill(ADMIN_PASSWORD);
-  await page.getByRole('button', { name: 'Đăng nhập' }).click();
+  // 24/09/2026: sau khi trang dang nhap co them the "Tai khoan trai nghiem & Demo" voi nut
+  // "Dang nhap ngay ->" (auth.json demoAccount.quickLogin), getByRole('button', {name:'Dang nhap'})
+  // khop CA 2 nut (nut submit form that su + nut demo). Them exact:true de chi lay nut submit.
+  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
   await page.waitForURL('**/dashboard');
 }
 

@@ -36,6 +36,14 @@ export interface TaskCreatedPayload {
   projectId: string;
   title: string;
   actorId: string;
+  /**
+   * 24/09/2026: han hoan thanh (Task.dueDate) tai thoi diem TAO task - dinh kem san de Analytics
+   * Service tinh "qua han" (fact_task_events.due_date) ma khong can goi HTTP xuyen service. GIOI
+   * HAN DA BIET: chi phan anh dueDate luc tao, KHONG cap nhat neu doi han sau qua PATCH /tasks/:id
+   * (PATCH thuong khong phat event rieng cho thay doi field, xem tasks.service.ts). `null` neu task
+   * khong co han.
+   */
+  dueDate: string | null;
 }
 
 export interface TaskAssignedPayload {

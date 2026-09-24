@@ -130,4 +130,8 @@ export const KAFKA_CONSUMER_GROUPS = {
   // instance khac, doc 1 topic khac, voi hinh dang message khac (DeadLetterEnvelope, khong phai
   // DomainEvent) - gop chung 1 group/consumer se lam 2 luong xu ly khac nhau tranh nhau partition.
   NOTIFICATION_SERVICE_DLQ: 'notification-service-dlq-group',
+  // 24/09/2026: apps/ml-service (Python/aiokafka, KHONG import duoc package TS nay xuyen ngon
+  // ngu) - gia tri chuoi nay duoc COPY THU CONG vao app/kafka_consumer.py cua ml-service, giu o
+  // day chi de tai lieu hoa/dong bo quy uoc dat ten. Sua 1 trong 2 noi PHAI sua noi con lai.
+  ML_SERVICE: 'ml-service-group',
 } as const;

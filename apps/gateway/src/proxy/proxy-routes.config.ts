@@ -59,6 +59,13 @@ export const REST_PROXY_ROUTES: RestProxyRouteGroup[] = [
     ],
     targetConfigKey: 'services.hrm',
   },
+  {
+    // 24/09/2026: ML Service (Layer 3 Anomaly Detection, Technical_Spec.md muc 19) - service
+    // Python/FastAPI dau tien cua du an, van la 1 muc trong bang dinh tuyen nay giong het cac
+    // service Node khac (Gateway khong phan biet ngon ngu backend, chi proxy HTTP thuan).
+    prefixes: ['/api/v1/ml'],
+    targetConfigKey: 'services.ml',
+  },
 ];
 
 export interface WsProxyRoute {

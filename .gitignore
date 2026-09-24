@@ -54,3 +54,10 @@ Doc/GraduationReport.*
 # Frontend
 apps/web/dist/
 apps/web/.vite/
+
+# 24/09/2026: apps/ml-service (Python, dau tien cua du an) - moi truong ao/cache bytecode cuc bo,
+# khong bao gio commit (mirror ly do node_modules/ o tren).
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/

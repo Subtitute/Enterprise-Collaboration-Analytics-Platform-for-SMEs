@@ -40,6 +40,7 @@
   "membersPage": {
     "description": "組織内のメンバー、部署、アクセス権限を管理します。",
     "inviteMember": "メンバーを招待",
+    "importExcel": "Excelから読み込む",
     "searchPlaceholder": "名前またはメールアドレスで検索…",
     "allDepartments": "すべての部署",
     "allStatuses": "すべてのステータス",
@@ -232,6 +233,38 @@
       "fullNameRequired": "氏名を入力してください",
       "passwordMinLength": "パスワードは8文字以上で入力してください"
     }
+  },
+  "importEmployeesModal": {
+    "title": "Excelから従業員を一括登録",
+    "instructions": "テンプレートをダウンロードし、列に合わせて従業員情報を入力してから、そのファイルを再度選択してプレビュー・一括登録してください。",
+    "downloadTemplate": "Excelテンプレートをダウンロード",
+    "selectFile": "Excelファイルを選択 (.xlsx)…",
+    "parseError": "このExcelファイルを読み込めませんでした。ダウンロードしたテンプレートをご使用ください。",
+    "roleColumnIgnored": "役割を一括で割り当てる権限がありません - 「役割」列は無視されます。登録される従業員には役割が設定されません。",
+    "validCount": "有効な行: {{count}}件",
+    "invalidCount": "エラーのある行: {{count}}件",
+    "defaultPasswordNote": "(既定のパスワードを使用)",
+    "rowSuccess": "作成済み",
+    "rowPending": "登録待ち",
+    "columns": {
+      "row": "行",
+      "fullName": "氏名",
+      "email": "メールアドレス",
+      "department": "部署",
+      "role": "役割",
+      "status": "ステータス"
+    },
+    "rowErrors": {
+      "missingFullName": "氏名が未入力です",
+      "invalidEmail": "メールアドレスが正しくありません",
+      "passwordTooShort": "パスワードは8文字以上必要です",
+      "departmentNotFound": "この部署が見つかりません",
+      "roleNotFound": "この役割が見つかりません"
+    },
+    "cancel": "キャンセル",
+    "submit": "{{count}}名を登録",
+    "importSummary": "{{success}}名を登録しました（{{fail}}件失敗）",
+    "importAllFailed": "従業員を登録できませんでした"
   },
   "toast": {
     "memberInvited": "メンバーを招待しました",

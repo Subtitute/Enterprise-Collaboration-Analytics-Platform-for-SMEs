@@ -110,6 +110,7 @@ describe('FactWriterService', () => {
         null, // toStatus - task.created khong co truong nay
         'user-1',
         null, // 28/07/2026: assigneeId - task.created khong co truong nay (chi task.assigned moi co)
+        null, // 24/09/2026: dueDate - baseEvent khong co truong nay
       ]);
     });
 
@@ -139,6 +140,35 @@ describe('FactWriterService', () => {
         null,
         'user-1',
         'user-2', // assigneeId
+        null, // dueDate - khong co truong nay o event task.assigned
+      ]);
+    });
+
+    // 24/09/2026: bo sung - cot due_date MOI, chi co gia tri thuc su o event task.created
+    // (TaskCreatedPayload.dueDate) - phuc vu AnalyticsService.getDrillDown() tinh "qua han".
+    it('ghi dung gia tri due_date tu payload cho event task.created co han hoan thanh', async () => {
+      const createdWithDueDate: DomainEvent = {
+        ...baseEvent,
+        payload: { ...baseEvent.payload, dueDate: '2026-08-01T00:00:00.000Z' },
+      };
+      queryMock.mockResolvedValueOnce([{ event_id: 'evt-1' }]);
+
+      await service.recordTaskEvent(createdWithDueDate);
+
+      const [sql, params] = queryMock.mock.calls[0];
+      expect(sql).toContain('due_date');
+      expect(params).toEqual([
+        createdWithDueDate.occurredAt,
+        createdWithDueDate.eventId,
+        createdWithDueDate.organizationId,
+        createdWithDueDate.eventType,
+        'project-1',
+        'task-1',
+        null,
+        null,
+        'user-1',
+        null,
+        '2026-08-01T00:00:00.000Z', // dueDate
       ]);
     });
 

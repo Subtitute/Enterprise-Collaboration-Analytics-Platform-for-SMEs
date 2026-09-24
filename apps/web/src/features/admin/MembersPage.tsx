@@ -11,12 +11,13 @@ import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { Pagination } from '@/components/ui/Pagination';
 import { FullPageSpinner } from '@/components/ui/Spinner';
-import { EditIcon, MoreVerticalIcon, PlusIcon, RefreshIcon, SearchIcon, UserIcon } from '@/components/ui/Icons';
+import { EditIcon, MoreVerticalIcon, PlusIcon, RefreshIcon, SearchIcon, UploadIcon, UserIcon } from '@/components/ui/Icons';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { useDeactivateUser, useDepartmentsQuery, useReactivateUser, useUsersQuery } from './hooks';
 import { InviteMemberModal } from './components/InviteMemberModal';
+import { ImportEmployeesModal } from './components/ImportEmployeesModal';
 import { EditMemberModal } from './components/EditMemberModal';
 import type { User } from '@/types';
 
@@ -76,6 +77,7 @@ export function MembersPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deactivatingUser, setDeactivatingUser] = useState<User | null>(null);
 
@@ -130,9 +132,15 @@ export function MembersPage() {
       {/* Header dòng mô tả và nút mời thành viên */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-slate-500">{t('admin:membersPage.description')}</p>
-        <Button onClick={() => setIsInviteOpen(true)}>
-          <PlusIcon className="h-4 w-4" /> {t('admin:membersPage.inviteMember')}
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* 24/09/2026: "Nhap Excel" - nhap hang loat nhan vien tu file .xlsx, xem ImportEmployeesModal.tsx */}
+          <Button variant="outline" onClick={() => setIsImportOpen(true)}>
+            <UploadIcon className="h-4 w-4" /> {t('admin:membersPage.importExcel')}
+          </Button>
+          <Button onClick={() => setIsInviteOpen(true)}>
+            <PlusIcon className="h-4 w-4" /> {t('admin:membersPage.inviteMember')}
+          </Button>
+        </div>
       </div>
 
       {/* Thanh công cụ quản trị (Toolbar): Tìm kiếm + Lọc Phòng ban + Lọc Trạng thái */}
@@ -344,6 +352,7 @@ export function MembersPage() {
       </Card>
 
       <InviteMemberModal open={isInviteOpen} onClose={() => setIsInviteOpen(false)} />
+      <ImportEmployeesModal open={isImportOpen} onClose={() => setIsImportOpen(false)} />
       <EditMemberModal user={editingUser} onClose={() => setEditingUser(null)} />
       <ConfirmDialog
         open={Boolean(deactivatingUser)}

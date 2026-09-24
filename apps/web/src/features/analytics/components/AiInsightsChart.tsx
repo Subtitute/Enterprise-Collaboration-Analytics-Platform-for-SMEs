@@ -1,7 +1,7 @@
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import { CHART_INK, STATUS } from '@/lib/chart-colors';
-import type { AiInsightCandidateSummary, InsightScope, InsightSeverity, StructuredInsight } from '@/types';
+import type { AiInsightCandidateSummary, DrillDownScope, InsightScope, InsightSeverity, StructuredInsight } from '@/types';
 
 /** 22/09/2026: mau "khong duoc AI chon" - KHONG lay tu STATUS (4 mau do danh rieng cho trang thai
  *  duoc gan co chu dich, khong dung lai cho "khong co gi dang chu y" - xem dataviz skill "Status
@@ -18,6 +18,8 @@ function severityColor(severity: InsightSeverity | null): string {
 
 interface ChartRow {
   key: string;
+  scope: InsightScope;
+  scopeId: string | null;
   name: string;
   completionRate: number;
   severity: InsightSeverity | null;
@@ -43,6 +45,10 @@ interface AiInsightsChartProps {
   candidates: AiInsightCandidateSummary[];
   insights: StructuredInsight[];
   resolveLabel: (scope: InsightScope, scopeId: string | null) => string;
+  /** 24/09/2026: Layer 2 Diagnostic - tuy chon (khong truyen = giu nguyen hanh vi cu, khong the
+   *  bam duoc). Chi goi cho thanh scope=department|project (scope='organization' khong co 1
+   *  scopeId cu the de drill-down). */
+  onDrillDown?: (scope: DrillDownScope, scopeId: string) => void;
 }
 
 /**
@@ -52,7 +58,7 @@ interface AiInsightsChartProps {
  * la xam trung tinh - giup nguoi xem THAY NGAY cac diem bat thuong noi bat len tren nen so sanh
  * day du, thay vi chi doc 1 con so rieng le.
  */
-export function AiInsightsChart({ candidates, insights, resolveLabel }: AiInsightsChartProps) {
+export function AiInsightsChart({ candidates, insights, resolveLabel, onDrillDown }: AiInsightsChartProps) {
   const { t } = useTranslation();
 
   const rows: ChartRow[] = candidates
@@ -60,6 +66,8 @@ export function AiInsightsChart({ candidates, insights, resolveLabel }: AiInsigh
       const matched = insights.find((i) => i.scope === c.scope && i.scopeId === c.scopeId);
       return {
         key: `${c.scope}-${c.scopeId ?? 'org'}`,
+        scope: c.scope,
+        scopeId: c.scopeId,
         name: resolveLabel(c.scope, c.scopeId),
         completionRate: c.completionRate,
         severity: matched?.severity ?? null,
@@ -89,6 +97,8 @@ export function AiInsightsChart({ candidates, insights, resolveLabel }: AiInsigh
         </span>
       </div>
 
+      {onDrillDown && <p className="mb-1.5 text-[11px] text-slate-400">{t('analytics:aiInsight.chart.drillDownHint')}</p>}
+
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 36, left: 4, bottom: 4 }} barCategoryGap={8}>
           <CartesianGrid stroke={CHART_INK.grid} horizontal={false} />
@@ -110,9 +120,19 @@ export function AiInsightsChart({ candidates, insights, resolveLabel }: AiInsigh
           />
           <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
           <Bar dataKey="completionRate" radius={[0, 4, 4, 0]} maxBarSize={20}>
-            {rows.map((row) => (
-              <Cell key={row.key} fill={severityColor(row.severity)} />
-            ))}
+            {rows.map((row) => {
+              const canDrillDown = row.scope !== 'organization' && Boolean(row.scopeId);
+              const handleClick =
+                onDrillDown && canDrillDown ? () => onDrillDown(row.scope as DrillDownScope, row.scopeId as string) : undefined;
+              return (
+                <Cell
+                  key={row.key}
+                  fill={severityColor(row.severity)}
+                  cursor={handleClick ? 'pointer' : undefined}
+                  onClick={handleClick}
+                />
+              );
+            })}
             <LabelList
               dataKey="completionRate"
               position="right"

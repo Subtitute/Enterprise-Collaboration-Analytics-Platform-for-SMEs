@@ -48,8 +48,30 @@
     "comparisonLabel": "vs organization average {{value}}%",
     "chart": {
       "completionRateLabel": "Completion rate:",
-      "otherLabel": "Other"
+      "otherLabel": "Other",
+      "drillDownHint": "Click a bar (department/project) to see why"
+    },
+    "actionPlan": {
+      "title": "Action plan",
+      "expectedEffect": "Expected effect",
+      "effort": "Effort",
+      "priority": {
+        "high": "High priority",
+        "medium": "Medium priority",
+        "low": "Low priority"
+      }
     }
+  },
+  "drillDown": {
+    "description": "Task detail for this scope (Layer 2 - Total → Not done → Overdue → Concentrated on one person).",
+    "totalTasks": "Total tasks",
+    "notDoneTasks": "Not done",
+    "overdueTasks": "Overdue",
+    "topAssignee": "Most concentrated on",
+    "topAssigneeCount": "{{count}} not-done tasks",
+    "noTopAssignee": "No tasks are currently assigned in this scope.",
+    "dueDateLimitationNote": "* \"Overdue\" is based on the due date as of task creation - it may not reflect a later due-date change.",
+    "error": "Couldn't load drill-down detail"
   },
   "charts": {
     "projectProgressTitle": "Project Progress Comparison",
@@ -84,7 +106,23 @@
     }
   },
   "hooks": {
-    "aiInsightError": "Couldn't generate AI insight"
+    "aiInsightError": "Couldn't generate AI insight",
+    "drillDownError": "Couldn't load drill-down detail",
+    "anomalyError": "Couldn't run anomaly detection"
+  },
+  "anomaly": {
+    "title": "Anomaly Detection",
+    "subtitle": "Scan every employee with an Isolation Forest model to find who's diverging sharply from the team baseline.",
+    "runButton": "Run anomaly detection",
+    "placeholder": "Click \"Run anomaly detection\" to scan every employee's task and attendance data and find cases that diverge sharply from the team baseline.",
+    "noAnomalies": "No anomalies found among the {{count}} employees scanned.",
+    "sampleSizeNote": "* Scanned {{count}} employees. At least 4 employees are needed for a meaningful comparison.",
+    "teamAverageLabel": "vs team average {{value}}",
+    "metricLabels": {
+      "completionRate": "Completion rate",
+      "overdueTasks": "Overdue tasks",
+      "attendanceRate": "Attendance rate"
+    }
   },
   "mockProjects": {
     "crmUpgrade": "CRM & Sales System Upgrade",

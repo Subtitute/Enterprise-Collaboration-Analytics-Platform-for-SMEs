@@ -307,6 +307,19 @@ export const DATE_RANGE_OPTIONS: DateRangeOption[] = ['7d', '30d', 'quarter'];
 export type InsightSeverity = 'critical' | 'warning' | 'info';
 export type InsightScope = 'organization' | 'department' | 'project';
 
+// 24/09/2026: Layer 5 Recommendation Engine - mo rong "Nhan xet AI" (POST /analytics/ai-insights,
+// xem AiInsightsService.generateInsights()) de tra ve them "Ke hoach hanh dong" khi request kem
+// du lieu Phat hien bat thuong (AnomalyItem[], xem AnomalySection.tsx).
+export type ActionPlanPriority = 'high' | 'medium' | 'low';
+
+export interface ActionPlanItem {
+  action: string;
+  priority: ActionPlanPriority;
+  reason: string;
+  expectedEffect: string;
+  effort: string;
+}
+
 export interface StructuredInsight {
   scope: InsightScope;
   /** null khi scope='organization'. UUID tho (departmentId/projectId) - frontend tu resolve ten qua useDepartmentsQuery()/useProjectNameMap(). */
@@ -316,6 +329,8 @@ export interface StructuredInsight {
   headline: string;
   detail: string;
   recommendation: string | null;
+  /** null khi AI khong de xuat gi them, HOAC khi goi qua GET (khong kem du lieu bat thuong). */
+  actionPlan: ActionPlanItem | null;
   evidence: {
     value: number;
     comparisonValue: number | null;
@@ -336,6 +351,51 @@ export interface AiInsightsResult {
   generatedAt: string;
   insights: StructuredInsight[];
   candidates: AiInsightCandidateSummary[];
+}
+
+// 24/09/2026: kieu du lieu cho GET /analytics/drill-down (Layer 2 Diagnostic - xem
+// apps/analytics-service/src/analytics/analytics.service.ts getDrillDown()). Khac InsightScope o
+// tren (khong co 'organization' - drill-down luon can 1 scopeId cu the).
+export type DrillDownScope = 'department' | 'project';
+
+export interface DrillDownResult {
+  scope: DrillDownScope;
+  scopeId: string;
+  totalTasks: number;
+  notDoneTasks: number;
+  overdueTasks: number;
+  /** null neu khong co task nao (trong pham vi) dang chua xong co nguoi duoc gan. */
+  topAssignee: { userId: string; notDoneTaskCount: number } | null;
+}
+
+// 24/09/2026: kieu du lieu cho POST /ml/anomalies (Layer 3 Anomaly Detection - apps/ml-service,
+// scikit-learn IsolationForest that). userId la UUID tho (database-per-service, khong resolve ten
+// - frontend tu join qua useUserNameMap() nhu cac tinh nang khac).
+export type AnomalyMetric = 'completionRate' | 'overdueTasks' | 'attendanceRate';
+
+export interface AnomalyDeviation {
+  metric: AnomalyMetric;
+  value: number;
+  teamAverage: number;
+  direction: 'down' | 'up';
+}
+
+export interface AnomalyItem {
+  userId: string;
+  metrics: {
+    totalTasks: number;
+    completionRate: number;
+    overdueTasks: number;
+    attendanceRate: number;
+  };
+  topDeviation: AnomalyDeviation;
+}
+
+export interface AnomaliesResult {
+  range: string;
+  generatedAt: string;
+  sampleSize: number;
+  anomalies: AnomalyItem[];
 }
 
 // 28/07/2026: kieu du lieu cho GET /failed-events (Dead Letter Queue) - Sự kiện xử lý nội bộ

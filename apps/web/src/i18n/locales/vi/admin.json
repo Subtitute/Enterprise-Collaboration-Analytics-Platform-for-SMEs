@@ -40,6 +40,7 @@
   "membersPage": {
     "description": "Quản lý thành viên, phòng ban và phân quyền truy cập trong tổ chức.",
     "inviteMember": "Mời thành viên",
+    "importExcel": "Nhập từ Excel",
     "searchPlaceholder": "Tìm theo tên hoặc email…",
     "allDepartments": "Tất cả phòng ban",
     "allStatuses": "Tất cả trạng thái",
@@ -232,6 +233,38 @@
       "fullNameRequired": "Vui lòng nhập họ tên",
       "passwordMinLength": "Mật khẩu tối thiểu 8 ký tự"
     }
+  },
+  "importEmployeesModal": {
+    "title": "Nhập nhân viên từ Excel",
+    "instructions": "Tải file mẫu, điền thông tin nhân viên theo đúng cột, rồi chọn lại file để xem trước và nhập hàng loạt.",
+    "downloadTemplate": "Tải mẫu Excel",
+    "selectFile": "Chọn file Excel (.xlsx)…",
+    "parseError": "Không đọc được file Excel này. Vui lòng dùng đúng mẫu đã tải về.",
+    "roleColumnIgnored": "Bạn không có quyền gán vai trò hàng loạt - cột \"Vai trò\" sẽ bị bỏ qua, mọi nhân viên nhập vào sẽ chưa có vai trò nào.",
+    "validCount": "{{count}} dòng hợp lệ",
+    "invalidCount": "{{count}} dòng có lỗi",
+    "defaultPasswordNote": "(dùng mật khẩu mặc định)",
+    "rowSuccess": "Đã tạo",
+    "rowPending": "Chờ nhập",
+    "columns": {
+      "row": "Dòng",
+      "fullName": "Họ và tên",
+      "email": "Email",
+      "department": "Phòng ban",
+      "role": "Vai trò",
+      "status": "Trạng thái"
+    },
+    "rowErrors": {
+      "missingFullName": "Thiếu họ và tên",
+      "invalidEmail": "Email không hợp lệ",
+      "passwordTooShort": "Mật khẩu tối thiểu 8 ký tự",
+      "departmentNotFound": "Không tìm thấy phòng ban này",
+      "roleNotFound": "Không tìm thấy vai trò này"
+    },
+    "cancel": "Hủy",
+    "submit": "Nhập {{count}} nhân viên",
+    "importSummary": "Đã nhập {{success}} nhân viên thành công, {{fail}} dòng lỗi",
+    "importAllFailed": "Không nhập được nhân viên nào"
   },
   "toast": {
     "memberInvited": "Đã mời thành viên mới",
