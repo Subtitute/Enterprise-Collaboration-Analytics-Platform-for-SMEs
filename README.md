@@ -174,3 +174,48 @@ biết chi tiết.
   mục 14).
 - `synchronize: true` được dùng cho TypeORM thay vì migration thủ công - phù hợp phạm vi 1 học kỳ
   (xem giới hạn đã biết trong `Doc/Technical_Spec.md`).
+
+
+# Debezium chạy thử nghiệm (3 bươc)
+### Bước 1: Khởi động lại các container liên quan
+Mở terminal PowerShell tại thư mục gốc của dự án:
+```powershell 
+cd infra
+#Khởi động lại postgres-pt (để ăn cấu hình wal_level=logical) và bật container debezium
+docker compose --env-file .env up -d postgres-pt kafka debezium project-task-service analytics-service
+#(Đợi khoảng 15-20 giây để container debezium hoàn tất nạp plugin).
+```
+### Bước 2: Đăng ký Debezium Connector
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\register-debezium.ps1
+
+#Kết quả mong đợi:  Kiem tra ket noi Debezium Connect tai http://localhost:8083...
+# Dang tao moi connector 'pt-outbox-connector'...
+
+# === Trang thai Connector ===
+# Connector State: RUNNING
+# Task #0 State: RUNNING
+```
+
+### Bước 3: Kiểm chứng kết quả (Tắt polling để chứng minh Debezium hoạt động)
+- (Tùy chọn - Khuyến nghị) Tắt Outbox Polling cũ trong project-task-service để đảm bảo 100% sự kiện được gửi từ Debezium CDC: Trong file infra/.env, thêm hoặc sửa dòng:
+    OUTBOX_POLLING_ENABLED=false
+
+sau đó restart lại service
+```powershell
+cd infra
+docker compose --env-file .env up -d project-task-service
+```
+- Kích hoạt sự kiện nghiệp vụ:
+Mở web hoặc gọi API đổi trạng thái một công việc Kanban (TODO ➔ DOING).
+Hoặc chạy test e2e tạo task nhanh:
+```powershell
+npm run seed
+```
+- Kiểm tra log của Debezium và Analytics Service:
+```powershell
+docker logs --tail 30 -f debezium   #Xem log của Debezium để thấy nó bắt WAL và đẩy sang Kafka:
+docker logs --tail 30 -f analytics-service  #Xem log của Analytics Service
+```
+Ta sẽ thấy analytics-service nhận được task.status_changed ngay tức thì (< 50ms) từ topic project-task.events mà không cần đợi chu kỳ 2.5s của polling job!
+
