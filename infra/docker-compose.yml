@@ -47,15 +47,16 @@ services:
     # qua LAN/Cloudflare Tunnel de tai presigned URL, xem MINIO_PUBLIC_ENDPOINT).
     ports:
       - "127.0.0.1:5433:5432"
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_IAM_USER} -d ${POSTGRES_IAM_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_IAM_USER} -d ${POSTGRES_IAM_DB}" ]
       interval: 5s
       timeout: 5s
       retries: 10
 
   postgres-pt:
     image: postgres:16-alpine
+    command: [ "postgres", "-c", "wal_level=logical", "-c", "max_wal_senders=10", "-c", "max_replication_slots=10" ]
     container_name: postgres-pt
     restart: unless-stopped
     environment:
@@ -66,9 +67,9 @@ services:
       - postgres-pt-data:/var/lib/postgresql/data
     ports:
       - "127.0.0.1:5434:5432"
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_PT_USER} -d ${POSTGRES_PT_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_PT_USER} -d ${POSTGRES_PT_DB}" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -85,9 +86,9 @@ services:
       - postgres-doc-data:/var/lib/postgresql/data
     ports:
       - "127.0.0.1:5435:5432"
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_DOC_USER} -d ${POSTGRES_DOC_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_DOC_USER} -d ${POSTGRES_DOC_DB}" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -106,9 +107,9 @@ services:
       - postgres-crm-data:/var/lib/postgresql/data
     ports:
       - "127.0.0.1:5438:5432"
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_CRM_USER} -d ${POSTGRES_CRM_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_CRM_USER} -d ${POSTGRES_CRM_DB}" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -127,9 +128,9 @@ services:
       - postgres-hrm-data:/var/lib/postgresql/data
     ports:
       - "127.0.0.1:5439:5432"
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_HRM_USER} -d ${POSTGRES_HRM_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_HRM_USER} -d ${POSTGRES_HRM_DB}" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -150,9 +151,9 @@ services:
       - ./timescale-init:/docker-entrypoint-initdb.d
     ports:
       - "127.0.0.1:5436:5432"
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${TIMESCALE_USER} -d ${TIMESCALE_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${TIMESCALE_USER} -d ${TIMESCALE_DB}" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -169,7 +170,7 @@ services:
       - mongo-data:/data/db
     ports:
       - "127.0.0.1:27017:27017"
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
       interval: 5s
@@ -180,7 +181,7 @@ services:
     image: redis:7-alpine
     container_name: redis
     restart: unless-stopped
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}" ]
     volumes:
       - redis-data:/data
     # Host port 6380 (khong phai 6379 mac dinh) - may host da co Redis khac dang chay o 6379
@@ -188,12 +189,12 @@ services:
     # 6379 qua ten service "redis" (khong bi anh huong boi viec doi cong host o day).
     ports:
       - "127.0.0.1:6380:6379"
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
       # $$ (shell-expand trong container) khong hoat dong vi container KHONG co bien moi
       # truong REDIS_PASSWORD (chi duoc truyen qua `command:` o tren) - dung $ don de
       # docker compose thay the truc tiep gia tri that tu .env luc parse file nay.
-      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep PONG"]
+      test: [ "CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep PONG" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -221,9 +222,9 @@ services:
       - "9010:9000"
       - "127.0.0.1:9011:9001"
     command: server /data --console-address ":9001"
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: [ "CMD", "mc", "ready", "local" ]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -236,17 +237,12 @@ services:
     depends_on:
       minio:
         condition: service_healthy
-    networks: [internal-net]
+    networks: [ internal-net ]
     # (Sua 21/07/2026) Bo lenh "mc anonymous set download" - bucket MinIO PHAI o che do private
     # (mac dinh khi tao khong khai bao policy). Moi truy cap tai file bat buoc di qua presigned URL
     # do Document Service cap sau khi xac thuc organizationId (xem Technical_Spec.md muc 3.4/8).
     entrypoint: >
-      /bin/sh -c "
-      mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
-      mc mb -p local/${MINIO_BUCKET};
-      mc mb -p local/${MINIO_HRM_BUCKET};
-      exit 0;
-      "
+      /bin/sh -c " mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}; mc mb -p local/${MINIO_BUCKET}; mc mb -p local/${MINIO_HRM_BUCKET}; exit 0; "
 
   kafka:
     image: apache/kafka:3.8.0
@@ -256,7 +252,7 @@ services:
       - "127.0.0.1:9092:9092"
     volumes:
       - kafka-data:/var/lib/kafka/data
-    networks: [internal-net]
+    networks: [ internal-net ]
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -272,7 +268,7 @@ services:
     healthcheck:
       # KRaft mode (khong Zookeeper): dung CLI co san trong image apache/kafka de kiem tra
       # broker da san sang nhan request tren listener noi bo (localhost:9092 = PLAINTEXT_HOST).
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1 || exit 1"]
+      test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1 || exit 1" ]
       interval: 10s
       timeout: 10s
       retries: 15
@@ -314,9 +310,9 @@ services:
       CORS_ORIGIN: ${CORS_ORIGIN}
     # ports: ["3001:3001"]  # go bo 21/07/2026 - khong expose ra host, chi Gateway/noi bo moi
     # goi duoc qua internal-net, tranh bypass Gateway/JWT/rate-limit (xem Technical_Spec.md muc 8).
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3001/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -358,9 +354,9 @@ services:
       HRM_SERVICE_URL: http://hrm-service:3006
     ports:
       - "3000:3000"
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3000/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -385,11 +381,12 @@ services:
       DB_PASSWORD: ${POSTGRES_PT_PASSWORD}
       KAFKA_BROKER: kafka:29092
       INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
+      ENABLE_OUTBOX_POLLING: ${ENABLE_OUTBOX_POLLING:-true}
     # ports: ["3002:3002"]  # go bo 21/07/2026 - khong expose ra host, chi Gateway/noi bo moi
     # goi duoc qua internal-net, tranh bypass Gateway/JWT/rate-limit (xem Technical_Spec.md muc 8).
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3002/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -441,9 +438,9 @@ services:
       INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
     # ports: ["3003:3003"]  # go bo 21/07/2026 - khong expose ra host, chi Gateway/noi bo moi
     # goi duoc qua internal-net, tranh bypass Gateway/JWT/rate-limit (xem Technical_Spec.md muc 8).
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3003/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3003/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -492,9 +489,9 @@ services:
       INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
     # ports: ["3004:3004"]  # go bo 21/07/2026 - khong expose ra host, chi Gateway/noi bo moi
     # goi duoc qua internal-net, tranh bypass Gateway/JWT/rate-limit (xem Technical_Spec.md muc 8).
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3004/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3004/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -538,9 +535,9 @@ services:
       GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
     # ports: ["3005:3005"]  # go bo 21/07/2026 - khong expose ra host, chi Gateway/noi bo moi
     # goi duoc qua internal-net, tranh bypass Gateway/JWT/rate-limit (xem Technical_Spec.md muc 8).
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3005/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3005/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -567,9 +564,9 @@ services:
       INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
     # Khong map port ra host, chi Gateway/noi bo moi goi duoc qua internal-net - cung quy uoc
     # voi 5 service nghiep vu con lai (Technical_Spec.md muc 8).
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3007/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3007/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -622,9 +619,9 @@ services:
       OFFICE_GEOFENCE_RADIUS_METERS: ${OFFICE_GEOFENCE_RADIUS_METERS:-200}
     # Khong map port ra host, chi Gateway/noi bo moi goi duoc qua internal-net - cung quy uoc
     # voi cac service nghiep vu con lai (Technical_Spec.md muc 8).
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3006/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3006/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -644,12 +641,12 @@ services:
       gateway: { condition: service_healthy }
     ports:
       - "80:80"
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
       # 21/07/2026: dung 127.0.0.1 thay vi "localhost" - nginx (custom nginx.conf) chi listen
       # IPv4 (0.0.0.0:80, khong co "listen [::]:80"), trong khi wget/musl libc trong Alpine
       # uu tien resolve "localhost" ra ::1 (IPv6) truoc, gay ECONNREFUSED du app hoan toan binh thuong.
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/"]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -675,9 +672,9 @@ services:
     # thiet ke cho moi truong co the truy cap tu ben ngoai (giong cac container ha tang khac).
     ports:
       - "127.0.0.1:9090:9090"
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9090/-/healthy"]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9090/-/healthy" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -696,9 +693,9 @@ services:
       - alertmanager-data:/alertmanager
     ports:
       - "127.0.0.1:9095:9093"
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9093/-/healthy"]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9093/-/healthy" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -713,10 +710,10 @@ services:
     image: danielqsj/kafka-exporter:latest@sha256:a51b280b55a763deaa1bc5024310bc2954995d9160014d7445055dac6a090868
     container_name: kafka-exporter
     restart: unless-stopped
-    command: ["--kafka.server=kafka:29092"]
+    command: [ "--kafka.server=kafka:29092" ]
     depends_on:
       kafka: { condition: service_healthy }
-    networks: [internal-net]
+    networks: [ internal-net ]
 
   grafana:
     # 22/08/2026: pin theo digest - mirror ly do o timescaledb.
@@ -740,10 +737,40 @@ services:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
     ports:
       - "127.0.0.1:3010:3000"
-    networks: [internal-net]
+    networks: [ internal-net ]
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health" ]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 15s
+
+  debezium:
+    image: debezium/connect:2.7.3.Final
+    container_name: debezium
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8083:8083"
+    depends_on:
+      kafka: { condition: service_healthy }
+      postgres-pt: { condition: service_healthy }
+    networks: [ internal-net ]
+    environment:
+      BOOTSTRAP_SERVERS: kafka:29092
+      GROUP_ID: debezium-cluster
+      CONFIG_STORAGE_TOPIC: debezium_configs
+      OFFSET_STORAGE_TOPIC: debezium_offsets
+      STATUS_STORAGE_TOPIC: debezium_statuses
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      KEY_CONVERTER_SCHEMAS_ENABLE: "false"
+      VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8083/connectors" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s

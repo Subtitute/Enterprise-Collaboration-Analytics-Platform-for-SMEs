@@ -1,0 +1,29 @@
+{
+  "name": "pt-outbox-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "tasks.max": "1",
+    "plugin.name": "pgoutput",
+    "database.hostname": "postgres-pt",
+    "database.port": "5432",
+    "database.user": "pt_user",
+    "database.password": "pt_password",
+    "database.dbname": "project_task_db",
+    "topic.prefix": "pt_pg",
+    "table.include.list": "public.outbox_events",
+    "tombstones.on.delete": "false",
+    "decimal.handling.mode": "double",
+
+    "transforms": "outbox",
+    "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+    "transforms.outbox.table.field.event.id": "event_id",
+    "transforms.outbox.table.field.event.key": "organization_id",
+    "transforms.outbox.table.field.event.type": "event_type",
+    "transforms.outbox.table.field.event.timestamp": "occurred_at",
+    "transforms.outbox.table.field.event.payload": "payload",
+    "transforms.outbox.table.expand.json.payload": "true",
+    "transforms.outbox.table.fields.additional.placement": "event_id:envelope:eventId,event_type:envelope:eventType,organization_id:envelope:organizationId,producer:envelope:producer,occurred_at:envelope:occurredAt",
+    "transforms.outbox.route.by.field": "producer",
+    "transforms.outbox.route.topic.replacement": "project-task.events"
+  }
+}

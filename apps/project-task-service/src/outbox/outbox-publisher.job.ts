@@ -24,6 +24,9 @@ export class OutboxPublisherJob {
 
   @Interval(2500)
   async publishPendingEvents(): Promise<void> {
+    if (process.env.ENABLE_OUTBOX_POLLING === 'false') {
+      return;
+    }
     if (this.isRunning) return;
     this.isRunning = true;
     try {
