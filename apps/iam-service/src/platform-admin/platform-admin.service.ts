@@ -7,6 +7,7 @@ import { Organization } from '../entities/organization.entity';
 import { User } from '../entities/user.entity';
 import { RedisService } from '../redis/redis.service';
 import { parseDurationMs } from '../auth/auth.service';
+import { RolesService } from '../roles/roles.service';
 
 export interface PlatformOrganizationSummary {
   id: string;
@@ -40,6 +41,7 @@ export class PlatformAdminService {
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     private readonly redisService: RedisService,
     private readonly configService: ConfigService,
+    private readonly rolesService: RolesService,
   ) {}
 
   async listOrganizations(query: PaginationQueryDto): Promise<PaginatedResponse<PlatformOrganizationSummary>> {
@@ -80,6 +82,25 @@ export class PlatformAdminService {
     }
 
     return this.toSummary(saved);
+  }
+
+  /**
+   * 25/09/2026: gian thoat hop le cho tinh huong "chi co 1 Org Admin duy nhat trong to chuc, can
+   * cap quyen MOI (vd ml:view, them sau khi vai tro da duoc seed) cho chinh vai tro Org Admin".
+   * RolesService.updateRolePermissions() (ROLES_CONTROLLER) chan tu nang quyen bang cach so sanh
+   * callerRoleNames voi ten vai tro dang sua - chan dung 1 Org Admin tu sua vai tro CHINH HO dang
+   * giu, nhung KHONG co le thoat neu to chuc chi co dung 1 Org Admin (khong "nho quan tri vien
+   * khac" duoc, tao them 1 tai khoan Org Admin thu 2 van cung ten vai tro nen van bi chan y het -
+   * loi phat hien thuc te sau khi them PERMISSIONS.ML_VIEW, xem RevisionHistory.md).
+   *
+   * Super Admin KHONG giu vai tro nao trong bat ky to chuc nghiep vu nao (User.roles rong, xem
+   * PlatformAdminController) nen goi lai CHINH XAC ham RolesService.updateRolePermissions() voi
+   * callerRoleNames=[] - guard tu nang quyen tu nhien khong kich hoat (Super Admin dung la "1 quan
+   * tri vien khac" ma thong bao loi cua guard do de cap), khong can nhan ban/bo qua logic nao.
+   */
+  async updateOrgRolePermissions(organizationId: string, roleId: string, permissionKeys: string[], callerId: string) {
+    await this.findManagedOrganization(organizationId);
+    return this.rolesService.updateRolePermissions(organizationId, roleId, permissionKeys, callerId, []);
   }
 
   async getPlatformStats(): Promise<PlatformStats> {

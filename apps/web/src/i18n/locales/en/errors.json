@@ -13,6 +13,8 @@
   "FORBIDDEN_ASSIGN_ROLE": "You do not have permission to assign a role when inviting a new member (requires the user:manage permission).",
   "FORBIDDEN_CHANGE_ROLE": "You do not have permission to change this user's role (requires the user:manage permission).",
   "CANNOT_DEACTIVATE_SELF": "You cannot deactivate your own account.",
+  "CANNOT_DELETE_SELF": "You cannot delete your own account.",
+  "CANNOT_DELETE_ACTIVE_USER": "You can only permanently delete an account that has already been deactivated.",
 
   "MISSING_REFRESH_TOKEN": "Missing refresh token. Please log in again.",
   "EMAIL_ALREADY_USED_BY_ORG": "This email is already used by another organization.",

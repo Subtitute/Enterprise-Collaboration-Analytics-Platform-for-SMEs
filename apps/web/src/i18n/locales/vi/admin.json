@@ -67,12 +67,18 @@
     "actionsMenu": {
       "editRoleDepartment": "Đổi phòng ban / vai trò",
       "deactivate": "Vô hiệu hoá",
-      "reactivate": "Kích hoạt lại"
+      "reactivate": "Kích hoạt lại",
+      "delete": "Xoá vĩnh viễn"
     },
     "deactivateConfirm": {
       "title": "Vô hiệu hoá tài khoản này?",
       "description": "\"{{fullName}}\" sẽ không thể đăng nhập cho đến khi được kích hoạt lại.",
       "confirmLabel": "Vô hiệu hoá"
+    },
+    "deleteConfirm": {
+      "title": "Xoá vĩnh viễn tài khoản này?",
+      "description": "\"{{fullName}}\" sẽ bị xoá HOÀN TOÀN khỏi tổ chức - không thể hoàn tác, khác với vô hiệu hoá.",
+      "confirmLabel": "Xoá vĩnh viễn"
     }
   },
   "rolesPermissionsPage": {
@@ -275,6 +281,8 @@
     "memberDeactivateFailed": "Không thể vô hiệu hoá tài khoản",
     "memberReactivated": "Đã kích hoạt lại tài khoản",
     "memberReactivateFailed": "Không thể kích hoạt lại tài khoản",
+    "memberDeleted": "Đã xoá vĩnh viễn tài khoản",
+    "memberDeleteFailed": "Không thể xoá tài khoản",
     "departmentCreated": "Đã tạo phòng ban mới",
     "departmentCreateFailed": "Không thể tạo phòng ban",
     "departmentUpdated": "Đã cập nhật phòng ban",

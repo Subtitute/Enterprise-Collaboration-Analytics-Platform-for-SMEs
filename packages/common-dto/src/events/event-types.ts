@@ -26,6 +26,12 @@ export const EVENT_TYPES = {
   ORGANIZATION_REGISTERED: 'iam.organization.registered',
   USER_REGISTERED: 'iam.user.registered',
   USER_DEACTIVATED: 'iam.user.deactivated',
+  // 25/09/2026: xoa vinh vien (UsersService.remove(), chi cho phep sau khi da deactivate()) - khac
+  // 2 event tren, event nay THUC SU can duoc cac service tieu thu xu ly (khong chi de audit): moi
+  // service tu xay read-model rieng qua Kafka (dim_user o Analytics Service, apps/ml-service) se
+  // giu "user ma" vinh vien neu khong biet user da bi xoa cung ben IAM Service - phat hien qua
+  // phan hoi thuc te (Anomaly Detection hien UUID tho thay vi ten cho nhan vien da bi xoa).
+  USER_DELETED: 'iam.user.deleted',
   // 28/07/2026: nang cap KPI theo phong ban - Analytics Service can biet phong ban HIEN TAI cua
   // moi user de gop KPI theo phong ban (xem UserDepartmentChangedPayload, event-envelope.ts).
   // USER_REGISTERED da mang san departmentId luc tao moi (UserRegisteredPayload), nhung truoc day
@@ -87,6 +93,7 @@ export const EVENT_TYPE_TOPIC_MAP: Record<EventType, KafkaTopic> = {
   [EVENT_TYPES.ORGANIZATION_REGISTERED]: KAFKA_TOPICS.IAM,
   [EVENT_TYPES.USER_REGISTERED]: KAFKA_TOPICS.IAM,
   [EVENT_TYPES.USER_DEACTIVATED]: KAFKA_TOPICS.IAM,
+  [EVENT_TYPES.USER_DELETED]: KAFKA_TOPICS.IAM,
   [EVENT_TYPES.USER_DEPARTMENT_CHANGED]: KAFKA_TOPICS.IAM,
   [EVENT_TYPES.DEPARTMENT_MANAGER_CHANGED]: KAFKA_TOPICS.IAM,
 

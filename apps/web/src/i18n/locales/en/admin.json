@@ -67,12 +67,18 @@
     "actionsMenu": {
       "editRoleDepartment": "Change department / role",
       "deactivate": "Deactivate",
-      "reactivate": "Reactivate"
+      "reactivate": "Reactivate",
+      "delete": "Delete permanently"
     },
     "deactivateConfirm": {
       "title": "Deactivate this account?",
       "description": "\"{{fullName}}\" won't be able to sign in until reactivated.",
       "confirmLabel": "Deactivate"
+    },
+    "deleteConfirm": {
+      "title": "Permanently delete this account?",
+      "description": "\"{{fullName}}\" will be COMPLETELY removed from the organization - this cannot be undone, unlike deactivation.",
+      "confirmLabel": "Delete permanently"
     }
   },
   "rolesPermissionsPage": {
@@ -275,6 +281,8 @@
     "memberDeactivateFailed": "Couldn't deactivate account",
     "memberReactivated": "Account reactivated",
     "memberReactivateFailed": "Couldn't reactivate account",
+    "memberDeleted": "Account permanently deleted",
+    "memberDeleteFailed": "Couldn't delete account",
     "departmentCreated": "Department created",
     "departmentCreateFailed": "Couldn't create department",
     "departmentUpdated": "Department updated",

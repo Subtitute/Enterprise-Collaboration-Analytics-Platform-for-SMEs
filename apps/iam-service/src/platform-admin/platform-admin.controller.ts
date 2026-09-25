@@ -1,9 +1,10 @@
-import { Controller, Get, Param, Patch, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { RequireSuperAdmin } from '@app/common-guard';
+import { CurrentUser, RequireSuperAdmin } from '@app/common-guard';
 import { PaginationQueryDto } from '@app/common-dto';
 import { PlatformAdminService } from './platform-admin.service';
 import { uuidParamPipe } from '../common/uuid-param.pipe';
+import { UpdateRolePermissionsDto } from '../roles/dto/update-role-permissions.dto';
 
 /**
  * 16/09/2026: "Super Admin" (tinh nang moi) - quan ly to chuc (tenant) o cap nen tang. Ca 5
@@ -44,5 +45,19 @@ export class PlatformAdminController {
   @RequireSuperAdmin()
   getStats() {
     return this.platformAdminService.getPlatformStats();
+  }
+
+  // 25/09/2026: gian thoat cho tinh huong "to chuc chi co 1 Org Admin, khong tu cap them duoc
+  // quyen MOI cho chinh vai tro cua minh" - xem chu thich chi tiet tai
+  // PlatformAdminService.updateOrgRolePermissions().
+  @Patch('organizations/:id/roles/:roleId/permissions')
+  @RequireSuperAdmin()
+  updateOrgRolePermissions(
+    @CurrentUser('userId') callerId: string,
+    @Param('id', uuidParamPipe()) organizationId: string,
+    @Param('roleId', uuidParamPipe()) roleId: string,
+    @Body() dto: UpdateRolePermissionsDto,
+  ) {
+    return this.platformAdminService.updateOrgRolePermissions(organizationId, roleId, dto.permissionKeys, callerId);
   }
 }

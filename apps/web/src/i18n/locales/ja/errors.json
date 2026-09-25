@@ -13,6 +13,8 @@
   "FORBIDDEN_ASSIGN_ROLE": "新しいメンバーを招待する際にロールを割り当てる権限がありません（user:manage 権限が必要です）。",
   "FORBIDDEN_CHANGE_ROLE": "このユーザーのロールを変更する権限がありません（user:manage 権限が必要です）。",
   "CANNOT_DEACTIVATE_SELF": "自分自身のアカウントを無効化することはできません。",
+  "CANNOT_DELETE_SELF": "自分自身のアカウントを削除することはできません。",
+  "CANNOT_DELETE_ACTIVE_USER": "既に無効化されたアカウントのみ完全に削除できます。",
 
   "MISSING_REFRESH_TOKEN": "リフレッシュトークンがありません。再度ログインしてください。",
   "EMAIL_ALREADY_USED_BY_ORG": "このメールアドレスは既に別の組織で使用されています。",

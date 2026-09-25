@@ -196,6 +196,23 @@ export class FactWriterService {
   }
 
   /**
+   * 25/09/2026: xoa dong dim_user tuong ung khi nhan EVENT_TYPES.USER_DELETED (UserDeletedPayload) -
+   * IAM Service vua bo sung DELETE /users/:id (hard delete, chi cho tai khoan da vo hieu hoa) nhung
+   * dim_user (bang lookup phong ban, xem upsertUserDepartment() o tren) khong tu biet dieu do neu
+   * khong co event rieng - phat hien qua phan hoi thuc te: 1 dim_user "ma" (user da bi xoa ben IAM
+   * nhung van con trong bang lookup nay) khien scoping theo phong ban (Manager xem KPI/drill-down
+   * cua phong ban minh) van tinh nham nguoi da roi to chuc. Khong dong thoi xoa fact_task_events/
+   * fact_user_activity (lich su su kien, khong phai bang lookup danh tinh - giu nguyen de khong mat
+   * du lieu bao cao qua khu, cung tinh than "xoa danh tinh, giu lich su" nhu moi service khac).
+   */
+  async deleteUser(event: DomainEvent, runner: QueryExecutor = this.dataSource): Promise<void> {
+    await runner.query(
+      `DELETE FROM dim_user WHERE user_id = $1 AND organization_id = $2`,
+      [extractString(event, 'userId'), event.organizationId],
+    );
+  }
+
+  /**
    * 23/09/2026: upsert dim_department_manager tu event EVENT_TYPES.DEPARTMENT_MANAGER_CHANGED
    * (DepartmentManagerChangedPayload) - mirror CHINH XAC upsertUserDepartment() o tren (cung mau
    * "ON CONFLICT ... WHERE last_event_at" chong event den sai thu tu, xem ghi chu chi tiet tai do).

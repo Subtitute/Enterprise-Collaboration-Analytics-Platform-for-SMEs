@@ -24,6 +24,7 @@ import {
   PaginationQueryDto,
   PERMISSIONS,
   UserDeactivatedPayload,
+  UserDeletedPayload,
   UserDepartmentChangedPayload,
   UserRegisteredPayload,
   paginate,
@@ -361,6 +362,83 @@ export class UsersService {
     user.isActive = true;
     const saved = await this.userRepo.save(user);
     return this.toPublicUser(saved);
+  }
+
+  /**
+   * 25/09/2026: xoa vinh vien 1 tai khoan - truoc day User la entity DUY NHAT trong toan du an
+   * khong co API xoa nao (chi deactivate()/reactivate()), khac Customer/Deal/Task/Project/Document
+   * deu co DELETE that su. Phat sinh nhu cau thuc te: du lieu rac do E2E test tao ra (vd "Thanh
+   * vien E2E <timestamp>", nay da tach sang to chuc E2E rieng - xem e2e/README.md) khi con trong to
+   * chuc demo chi deactivate() duoc, van hien vinh vien trong Quan tri > Thanh vien/Cham cong/...
+   * (2 man hinh nay doc danh sach nguoi dung TRUC TIEP tu day, khong loc theo isActive) - nguoi
+   * dung phan anh nhieu lan. Xoa CUNG (hard delete), dung quy uoc da co cua du an cho moi entity
+   * khac (Doc/Upgrade.md Tier 3: "hien moi thao tac xoa deu la hard delete tren toan du an").
+   *
+   * Bat buoc PHAI deactivate() truoc (kiem tra isActive=false ben duoi) - rao an toan o tang
+   * service (khong chi an nut o UI) cho 1 thao tac khong the hoan tac, tranh xoa nham 1 nhan vien
+   * dang lam viec binh thuong.
+   *
+   * An toan ve rang buoc FK: refresh_tokens/password_reset_tokens (ON DELETE CASCADE tren user_id)
+   * va user_roles (ON DELETE CASCADE tren user_id, KHONG cascade tren role_id) tu dong don theo -
+   * da xac minh truc tiep tren schema Postgres dang chay truoc khi viet ham nay. hrm/document/
+   * project-task-service KHONG giu ban sao User nao (chi luu userId dang UUID tho) nen xoa o day
+   * khong anh huong 3 service do.
+   *
+   * 25/09/2026 (phat hien qua phan hoi thuc te NGAY SAU khi trien khai ban dau, xem
+   * RevisionHistory.md): Analytics Service VA ml-service (apps/ml-service) LAI CO tu xay read-model
+   * rieng qua Kafka (bang `dim_user`, phuc vu KPI/scoping theo phong ban) - ban dau tuong lam KHONG
+   * co, dan den user vua xoa cung o day van "song sot" trong 2 bang do vinh vien (khong service nao
+   * tung bao chung "user nay da bi xoa"), lam Anomaly Detection hien UUID tho thay vi ten cho nhung
+   * nhan vien da xoa. Sua bang cach PHAT outbox event EVENT_TYPES.USER_DELETED (khac
+   * USER_DEACTIVATED/reactivate() o tren - 2 cai do KHONG can event vi user van TON TAI, chi doi
+   * trang thai) - Analytics Service/ml-service consume event nay de xoa dong `dim_user` tuong ung.
+   */
+  async remove(organizationId: string, id: string, actorId: string): Promise<void> {
+    if (id === actorId) {
+      throw new BadRequestException({
+        message: 'Khong the tu xoa chinh tai khoan cua minh',
+        errorCode: ERROR_CODES.CANNOT_DELETE_SELF,
+      });
+    }
+
+    const existing = await this.userRepo.findOne({ where: { id, organizationId } });
+    if (!existing) throw new NotFoundException({ message: 'Khong tim thay nguoi dung', errorCode: ERROR_CODES.USER_NOT_FOUND });
+
+    if (existing.isActive) {
+      throw new BadRequestException({
+        message: 'Chi co the xoa vinh vien tai khoan da bi vo hieu hoa - hay vo hieu hoa truoc',
+        errorCode: ERROR_CODES.CANNOT_DELETE_ACTIVE_USER,
+      });
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager.delete(User, { id, organizationId });
+
+      // 25/09/2026: phat USER_DELETED - cac service tu xay read-model rieng qua Kafka (dim_user o
+      // Analytics Service, apps/ml-service) can biet de xoa "user ma" khoi bang lookup cua ho,
+      // khac USER_DEACTIVATED/reactivate() (khong can, vi user van con TON TAI, chi doi trang thai).
+      const payload: UserDeletedPayload = { userId: id, actorId };
+      await this.outboxService.record(manager, {
+        eventType: EVENT_TYPES.USER_DELETED,
+        organizationId,
+        producer: 'iam-service',
+        payload: payload as unknown as Record<string, unknown>,
+      });
+    });
+
+    // Mirror deactivate() - phong truong hop con token chua het han (vd deactivate() va remove()
+    // cach nhau du lau de token cu bi cap lai qua refresh, hiem nhung khong phai khong the).
+    const accessExpiresIn = this.configService.get<string>('jwt.accessExpiresIn') ?? '15m';
+    const ttlSeconds = Math.floor(parseDurationMs(accessExpiresIn) / 1000);
+    try {
+      await this.redisService.blacklistUser(id, ttlSeconds);
+    } catch (err) {
+      this.logger.warn(
+        `Ghi Redis blacklist that bai sau khi xoa ${id} (bo qua, tai khoan van DA bi xoa trong DB): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
   }
 
   private toPublicUser(user: User): PublicUser {

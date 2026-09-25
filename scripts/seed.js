@@ -157,9 +157,13 @@ const DEAL_TEMPLATES = [
 // giua chung (vi du fetchWithRetry() het luot thu lai do 429), to chuc partial do bi "mo coi" vinh
 // vien (khong co duong phuc hoi) va lan chay lai ke tiep chi tao THEM 1 to chuc moi khac thay vi
 // tiep tuc/thay the to chuc loi (loi MAJOR, audit 25/07/2026).
-const DEMO_ORG_NAME = 'Demo SME (Seed Script)';
-const DEMO_ADMIN_EMAIL = 'admin@demo-sme.vn';
-const DEMO_ADMIN_PASSWORD = 'Password123!';
+// 25/09/2026: cho phep ghi de qua bien moi truong - dung de `npm run seed:e2e` seed 1 to chuc
+// RIENG BIET danh cho Playwright (xem package.json), khong bao gio dung chung to chuc demo mac
+// dinh nay (noi nguoi dung THAT xem/trinh bay dan chung do an) - fix loi du lieu rac ("Khach hang
+// E2E ...", "Thanh vien E2E ...") tich luy vinh vien vao to chuc demo qua nhieu lan chay E2E.
+const DEMO_ORG_NAME = process.env.SEED_ORG_NAME || 'Demo SME (Seed Script)';
+const DEMO_ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || 'admin@demo-sme.vn';
+const DEMO_ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || 'Password123!';
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));

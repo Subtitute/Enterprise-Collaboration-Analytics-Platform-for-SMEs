@@ -1534,6 +1534,86 @@ chối rõ ràng (403) khi gọi phát hiện bất thường thay vì bị hi�
 
 *Chi tiết: Technical_Spec.md, mục "19. Nhập Excel hàng loạt + Analytics nâng cao".*
 
+## 2026-09-25 — Khắc phục sau phản hồi trực tiếp trên hệ thống thật (dữ liệu rác E2E + không thấy tính năng Anomaly Detection)
+
+Sau đợt 24/09, người dùng xem trực tiếp tổ chức demo và phản hồi 2 vấn đề: (1) vẫn thấy dữ liệu rác
+kiểu "Thanh viên E2E ...", "NV Excel ..." trong Quản trị > Thành viên, Chấm công, và cả dòng "Hoạt
+động gần đây" trông như chính tài khoản Admin bị vô hiệu hoá; (2) hoàn toàn không thấy tính năng
+Anomaly Detection/Recommendation Engine ở đâu trên giao diện, dù đã báo cáo là hoàn tất ở đợt trước.
+Điều tra ra 4 nguyên nhân độc lập, không cái nào là "code chưa build" như nghi ngờ ban đầu.
+
+**Đọc ngược nghĩa "Hoạt động gần đây"**: `RecentActivityFeed.tsx` luôn hiển thị tên theo `actorId`
+(người THỰC HIỆN hành động) cho MỌI loại sự kiện, nhưng 4/29 khoá dịch trong `dashboard.json`
+(`iam_user_deactivated`/`task_assigned`/`leave_request_approved`/`leave_request_rejected`) lại được
+viết ở thể bị động ("đã bị vô hiệu hoá tài khoản", "đã được giao một công việc"...) thay vì chủ động
+như 25 khoá còn lại. Kết quả: khi Admin vô hiệu hoá 1 tài khoản test rác, dòng hoạt động hiển thị y
+hệt như chính Admin bị vô hiệu hoá — khiến người dùng tưởng nhầm tài khoản của mình gặp sự cố. Sửa cả
+4 khoá sang thể chủ động ở cả 3 ngôn ngữ (vi/en/ja), không đổi field backend nào.
+
+**Gốc rễ dữ liệu rác — E2E chạy thẳng vào tổ chức demo**: `e2e/tests/helpers.ts` đăng nhập bằng CHÍNH
+tài khoản Org Admin demo (`admin@demo-sme.vn`) cho MỌI lần chạy Playwright — README cũ từng mô tả đây
+là "giới hạn cố ý chấp nhận được" (dữ liệu tích luỹ dần, không dọn dẹp), nhưng thực tế dữ liệu đó ghi
+thẳng vào tổ chức người dùng đang xem/trình bày làm đồ án, không phải 1 tổ chức test tách biệt — sau
+rất nhiều lần chạy trong 1 phiên làm việc dài, tổ chức demo có hơn một nửa số nhân viên là rác. Fix
+triệt để: `scripts/seed.js` đọc `SEED_ORG_NAME`/`SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD` từ biến môi
+trường (mặc định giữ nguyên hành vi cũ); `scripts/seed-e2e.js` (mới) seed 1 tổ chức "E2E Test Org"
+hoàn toàn tách biệt bằng cách spawn `seed.js` với 3 biến trên đã ghi đè (dùng spawn thay vì đặt biến
+môi trường ngay trong `package.json` để tránh khác cú pháp giữa PowerShell/bash, không cần thêm
+dependency); `e2e/tests/helpers.ts` đổi sang tài khoản của tổ chức này. Xác minh: chạy `auth.spec.ts` +
+`analytics.spec.ts` (bao gồm luồng bấm-vào-biểu-đồ-mở-drill-down) — cả 6 test pass trên tổ chức mới,
+không hồi quy hành vi test.
+
+**Không có lối thoát cấp quyền `ml:view` — nguyên nhân thật khiến Anomaly Detection "biến mất"**: đợt
+24/09 từng ghi nhận đây là giới hạn cần "Org Admin tự bật quyền qua UI, ~10 giây". Khi thực sự thử,
+phát hiện điều đó SAI — guard chặn tự nâng quyền (thêm 22/09, so sánh theo TÊN vai trò) chặn đúng như
+mô tả, và tổ chức demo chỉ có 1 Org Admin, không có cách nào lách qua bằng UI (tạo thêm tài khoản Org
+Admin thứ 2 vẫn cùng vai trò, vẫn bị chặn y hệt). `AnomalySection.tsx` ẩn hẳn (`return null`) khi thiếu
+`ml:view` — nên với tài khoản Org Admin demo, toàn bộ khối "Phát hiện bất thường" và "Kế hoạch hành
+động" đi kèm chưa bao giờ hiển thị trên giao diện, đúng như người dùng phản ánh. Giải pháp: tận dụng
+tài khoản Super Admin có sẵn (`superadmin@ecap-platform.local`, bootstrap tự động lúc iam-service khởi
+động, KHÔNG giữ vai trò nào trong bất kỳ tổ chức nghiệp vụ nào) — thêm route mới
+`PATCH /platform-admin/organizations/:id/roles/:roleId/permissions` (`@RequireSuperAdmin()`), gọi lại
+NGUYÊN VẸN `RolesService.updateRolePermissions()` với `callerRoleNames=[]` (đúng bản chất thật của Super
+Admin, không phải giá trị giả để lách guard) — vì Super Admin không giữ vai trò nào để so khớp, guard tự
+nâng quyền tự nhiên không kích hoạt, không cần nhân bản hay bỏ qua logic đã có. Đã dùng route này cấp
+`ml:view` cho Org Admin của tổ chức demo thành công, xác minh qua gọi API thật.
+
+**`User` là entity duy nhất chưa có API xoá cứng**: `Quan tri > Thanh vien`/`Cham cong` đọc danh sách
+người dùng trực tiếp, không lọc `isActive` — 17 tài khoản rác dù đã vô hiệu hoá vẫn hiển thị vĩnh viễn,
+khác Customer/Deal/Task/Project/Document đều đã hỗ trợ xoá cứng từ trước. Bổ sung `DELETE /users/:id`
+(`UsersService.remove()`) — CHỈ cho phép khi tài khoản đã bị vô hiệu hoá trước (rào an toàn tầng
+service cho 1 thao tác không thể hoàn tác). Trước khi viết, xác minh trực tiếp trên schema Postgres
+đang chạy: `refresh_tokens`/`password_reset_tokens`/`user_roles` đều có `ON DELETE CASCADE` theo
+`user_id` nên xoá an toàn, không vướng ràng buộc khoá ngoại. Các service khác (hrm/document/
+project-task/analytics/ml-service) không giữ bản sao `User` nào (chỉ lưu `userId` dạng UUID thô, đúng
+database-per-service) nên xoá ở iam-service không làm gãy dữ liệu service khác — các màn hình đó đơn
+giản không resolve được tên nữa thay vì hiện tên rác. Frontend: `MembersPage.tsx` thêm mục "Xoá vĩnh
+viễn" (chỉ hiện khi tài khoản đã vô hiệu hoá) kèm `ConfirmDialog` riêng cảnh báo rõ không thể hoàn tác,
+khác nút "Vô hiệu hoá" hiện có.
+
+**Tham khảo `Data/Models`/`Data samples`** (thư mục ngoài repo chứa mã nguồn LightGBM/neuralforecast/
+SDV và 3 bộ dữ liệu mẫu, dùng làm tham khảo khi thiết kế đặc tả gốc): bộ dữ liệu
+`End-to-End-HR-Analytics-with-PostgreSQL` (1.000 nhân viên tổng hợp, tỷ lệ nghỉ việc thực tế 11.4%)
+xác nhận lựa chọn `contamination=0.1` của `ml-service` (đợt 24/09) đặt ở mức hợp lý so với tỷ lệ "bất
+thường/rủi ro" thường gặp trong dữ liệu HR thật — không cần điều chỉnh. Không phát sinh thay đổi kiến
+trúc mới từ `Data/Models` (LightGBM/neuralforecast/SDV) — hướng "thống kê nhẹ, không dùng deep learning
+cho dữ liệu demo nhỏ" đã chốt ở Tier 4 (`Upgrade.md`) vẫn là lựa chọn đúng.
+
+**Dọn dữ liệu rác thực tế**: xoá 5 khách hàng CRM và 17 tài khoản nhân viên do E2E test tạo ra tích luỹ
+trong tổ chức demo trước khi có fix cách ly ở trên (qua chính `DELETE /customers/:id`/`DELETE
+/users/:id` vừa xác minh) — tổ chức demo hiện chỉ còn đúng roster nhân viên thật do `scripts/seed.js`
+tạo (tên tiếng Việt thật, không phải placeholder theo timestamp).
+
+**Xác minh**: `npx tsc --noEmit` sạch cho `iam-service`/`web`; `npm run lint`/`lint:i18n-strings` sạch
+(0 lỗi, chỉ cảnh báo có từ trước không liên quan); `npm run test -w apps/iam-service` 14/14 test suite
+(90/90 test) pass, bao gồm test mới cho `updateOrgRolePermissions()`. Rebuild + redeploy
+`iam-service`/`web`, cả 2 container healthy. Kiểm thử sống qua API thật (không chỉ đọc code): cấp
+`ml:view` qua route Super Admin mới → xác nhận vai trò Org Admin có quyền; xoá vĩnh viễn 17 tài khoản
+rác → xác nhận roster còn lại đúng 17 nhân viên thật + tài khoản Admin + 1 tài khoản test riêng của
+người dùng (cố ý không đụng tới).
+
+*Chi tiết: Technical_Spec.md, mục "19.6 Khắc phục sau phản hồi trực tiếp trên hệ thống thật".*
+
 ## Lịch sử thay đổi tài liệu này
 
 - **2026-08-24** — Khởi tạo file, gộp lại toàn bộ lịch sử rà soát/sửa lỗi từ 18/07/2026 (khởi tạo
@@ -1615,3 +1695,10 @@ chối rõ ràng (403) khi gọi phát hiện bất thường thay vì bị hi�
   repo); Recommendation Engine mở rộng "Nhận xét AI" có sẵn thêm "Kế hoạch hành động". Ghi nhận 1
   giới hạn cần Org Admin tổ chức demo tự thao tác thủ công 1 lần (bật quyền mới cho chính vai trò
   mình đang giữ — bị 1 guard chống tự-nâng-quyền chặn cấp qua API như thường lệ).
+- **2026-09-25** — Bổ sung mục "Khắc phục sau phản hồi trực tiếp trên hệ thống thật" — 4 nguyên nhân
+  độc lập đứng sau 2 phản hồi của người dùng (dữ liệu rác E2E vẫn thấy, không thấy tính năng Anomaly
+  Detection): 4 khoá dịch "Hoạt động gần đây" viết ngược thể (chủ động/bị động); E2E test tách sang
+  1 tổ chức riêng thay vì chạy thẳng vào tổ chức demo; endpoint Super Admin mới giải quyết triệt để
+  giới hạn "không tự cấp được `ml:view`" ghi nhận ngày 24/09 (hoá ra không tự làm được qua UI như
+  từng nghĩ); `DELETE /users/:id` mới (chỉ tài khoản đã vô hiệu hoá) — entity `User` cuối cùng có
+  API xoá cứng. Đã dọn 5 khách hàng + 17 tài khoản rác thực tế trong tổ chức demo.

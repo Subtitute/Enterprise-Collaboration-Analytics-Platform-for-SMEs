@@ -67,12 +67,18 @@
     "actionsMenu": {
       "editRoleDepartment": "部署・ロールを変更",
       "deactivate": "無効化",
-      "reactivate": "再有効化"
+      "reactivate": "再有効化",
+      "delete": "完全に削除"
     },
     "deactivateConfirm": {
       "title": "このアカウントを無効化しますか?",
       "description": "「{{fullName}}」は再度有効化されるまでログインできなくなります。",
       "confirmLabel": "無効化"
+    },
+    "deleteConfirm": {
+      "title": "このアカウントを完全に削除しますか?",
+      "description": "「{{fullName}}」は組織から完全に削除されます - 無効化と異なり、元に戻せません。",
+      "confirmLabel": "完全に削除"
     }
   },
   "rolesPermissionsPage": {
@@ -275,6 +281,8 @@
     "memberDeactivateFailed": "アカウントを無効化できませんでした",
     "memberReactivated": "アカウントを再有効化しました",
     "memberReactivateFailed": "アカウントを再有効化できませんでした",
+    "memberDeleted": "アカウントを完全に削除しました",
+    "memberDeleteFailed": "アカウントを削除できませんでした",
     "departmentCreated": "部署を作成しました",
     "departmentCreateFailed": "部署を作成できませんでした",
     "departmentUpdated": "部署を更新しました",

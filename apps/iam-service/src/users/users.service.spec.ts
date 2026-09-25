@@ -25,7 +25,7 @@ describe('UsersService', () => {
   let outboxService: { record: jest.Mock };
   let redisService: { blacklistUser: jest.Mock };
   let configService: { get: jest.Mock };
-  let managerMock: { find: jest.Mock; save: jest.Mock; create: jest.Mock; findOneOrFail: jest.Mock };
+  let managerMock: { find: jest.Mock; save: jest.Mock; create: jest.Mock; findOneOrFail: jest.Mock; delete: jest.Mock };
   let dataSource: { transaction: jest.Mock };
   let service: UsersService;
 
@@ -44,6 +44,7 @@ describe('UsersService', () => {
       create: jest.fn((_entity, data) => data),
       save: jest.fn(),
       findOneOrFail: jest.fn(),
+      delete: jest.fn().mockResolvedValue(undefined),
     };
     dataSource = {
       transaction: jest.fn(async (cb: (manager: typeof managerMock) => unknown) => cb(managerMock)),
@@ -311,6 +312,41 @@ describe('UsersService', () => {
 
       expect(result.isActive).toBe(true);
       expect(saveSpy).toHaveBeenCalledWith(expect.objectContaining({ isActive: true }));
+    });
+  });
+
+  describe('remove()', () => {
+    it('tu choi (400) khi tu xoa chinh minh', async () => {
+      await expect(service.remove(ORG_ID, 'user-1', 'user-1')).rejects.toThrow(BadRequestException);
+      expect(userRepo.findOne).not.toHaveBeenCalled();
+    });
+
+    it('tu choi (404) neu user khong ton tai trong to chuc', async () => {
+      userRepo.findOne.mockResolvedValue(null);
+      await expect(service.remove(ORG_ID, 'user-2', 'actor-1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('tu choi (400) neu tai khoan van dang active - phai vo hieu hoa truoc', async () => {
+      userRepo.findOne.mockResolvedValue({ id: 'user-2', organizationId: ORG_ID, isActive: true });
+      await expect(service.remove(ORG_ID, 'user-2', 'actor-1')).rejects.toThrow(BadRequestException);
+      expect(managerMock.delete).not.toHaveBeenCalled();
+    });
+
+    it('xoa cung thanh cong 1 tai khoan da vo hieu hoa VA phat event USER_DELETED', async () => {
+      userRepo.findOne.mockResolvedValue({ id: 'user-2', organizationId: ORG_ID, isActive: false });
+
+      await service.remove(ORG_ID, 'user-2', 'actor-1');
+
+      expect(managerMock.delete).toHaveBeenCalledWith(expect.anything(), { id: 'user-2', organizationId: ORG_ID });
+      expect(outboxService.record).toHaveBeenCalledWith(
+        managerMock,
+        expect.objectContaining({
+          eventType: EVENT_TYPES.USER_DELETED,
+          organizationId: ORG_ID,
+          payload: { userId: 'user-2', actorId: 'actor-1' },
+        }),
+      );
+      expect(redisService.blacklistUser).toHaveBeenCalledWith('user-2', expect.any(Number));
     });
   });
 });

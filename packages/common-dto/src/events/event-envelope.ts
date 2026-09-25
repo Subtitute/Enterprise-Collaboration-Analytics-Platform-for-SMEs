@@ -115,6 +115,12 @@ export interface UserDeactivatedPayload {
   actorId: string;
 }
 
+/** 25/09/2026: xem chu thich EVENT_TYPES.USER_DELETED - phat khi UsersService.remove() xoa cung. */
+export interface UserDeletedPayload {
+  userId: string;
+  actorId: string;
+}
+
 // 28/07/2026: payload cho EVENT_TYPES.USER_DEPARTMENT_CHANGED - xem ghi chu tai event-types.ts.
 // `departmentId: null` nghia la user vua bi GO khoi phong ban (khong con thuoc phong ban nao).
 // 23/09/2026: bo sung actorId (nguoi THUC HIEN thay doi, vd Org Admin goi PATCH /users/:id) - de

@@ -8,6 +8,7 @@ import {
   deactivateUser,
   deleteCalendarEvent,
   deleteDepartment,
+  deleteUser,
   fetchCalendarEvents,
   fetchDepartments,
   fetchFailedEvents,
@@ -88,6 +89,22 @@ export function useReactivateUser() {
       toast.success(t('admin:toast.memberReactivated'));
     },
     onError: (error) => toast.error(t('admin:toast.memberReactivateFailed'), extractErrorMessage(error)),
+  });
+}
+
+// 25/09/2026: hook cho DELETE /users/:id (xoa vinh vien, chi tai khoan da vo hieu hoa) - xem
+// ghi chu chi tiet tai deleteUser() (admin/api.ts) va UsersService.remove() (iam-service).
+export function useDeleteUser() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'all'] });
+      toast.success(t('admin:toast.memberDeleted'));
+    },
+    onError: (error) => toast.error(t('admin:toast.memberDeleteFailed'), extractErrorMessage(error)),
   });
 }
 

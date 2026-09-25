@@ -68,6 +68,23 @@ def _handle_user_registered(session, org_id: str, payload: dict) -> None:
     )
 
 
+def _handle_user_deleted(session, org_id: str, payload: dict) -> None:
+    """25/09/2026: IAM Service them DELETE /users/:id (hard delete, chi cho tai khoan da vo hieu
+    hoa) va phat EVENT_TYPES.USER_DELETED tuong ung - truoc do dim_user cua ml-service khong bao
+    gio biet 1 user da bi xoa, khien compute_employee_features() (app/features.py, liet ke tu
+    dim_user) tiep tuc dua nhung user "ma" nay vao IsolationForest, hien UUID tho (khong resolve
+    duoc ten qua GET /users da xoa) thay vi bo qua han - phat hien qua phan hoi thuc te tren giao
+    dien Phat hien bat thuong. Chi xoa dim_user (ban ghi lookup danh tinh/phong ban), GIU NGUYEN
+    fact_task_events/fact_attendance (lich su su kien, khong phai lookup danh tinh)."""
+    user_id = _as_uuid_or_none(payload.get("userId"))
+    if not user_id:
+        return
+    session.execute(
+        text("DELETE FROM dim_user WHERE user_id = :user_id AND organization_id = :org_id"),
+        {"user_id": user_id, "org_id": org_id},
+    )
+
+
 def _handle_department_manager_changed(session, org_id: str, payload: dict) -> None:
     department_id = _as_uuid_or_none(payload.get("departmentId"))
     if not department_id:
@@ -147,6 +164,8 @@ def _dispatch(envelope: dict) -> None:
     try:
         if event_type in ("iam.user.registered", "iam.user.department_changed"):
             _handle_user_registered(session, org_id, payload)
+        elif event_type == "iam.user.deleted":
+            _handle_user_deleted(session, org_id, payload)
         elif event_type == "iam.department.manager_changed":
             _handle_department_manager_changed(session, org_id, payload)
         elif event_type in _TASK_EVENT_TYPES:

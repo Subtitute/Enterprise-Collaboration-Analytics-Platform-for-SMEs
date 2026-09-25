@@ -26,6 +26,7 @@ describe('PlatformAdminService', () => {
     organizationRepoMock?: Partial<Record<string, jest.Mock>>;
     userRepoMock?: Partial<Record<string, jest.Mock>>;
     redisServiceMock?: Partial<Record<string, jest.Mock>>;
+    rolesServiceMock?: Partial<Record<string, jest.Mock>>;
     configValues?: Record<string, string>;
   } = {}) {
     const organizationRepoMock = {
@@ -47,14 +48,21 @@ describe('PlatformAdminService', () => {
     const configServiceMock = {
       get: jest.fn((key: string) => (opts.configValues ?? {})[key] ?? '15m'),
     };
+    // 25/09/2026: mock cho RolesService (tinh nang moi - Super Admin sua quyen han 1 vai tro trong
+    // 1 to chuc bat ky, xem PlatformAdminService.updateOrgRolePermissions()).
+    const rolesServiceMock = {
+      updateRolePermissions: jest.fn().mockResolvedValue({ id: 'role-1', name: 'Org Admin', permissions: [] }),
+      ...opts.rolesServiceMock,
+    };
 
     const service = new PlatformAdminService(
       organizationRepoMock as any,
       userRepoMock as any,
       redisServiceMock as any,
       configServiceMock as any,
+      rolesServiceMock as any,
     );
-    return { service, organizationRepoMock, userRepoMock, redisServiceMock };
+    return { service, organizationRepoMock, userRepoMock, redisServiceMock, rolesServiceMock };
   }
 
   describe('listOrganizations', () => {
@@ -144,6 +152,27 @@ describe('PlatformAdminService', () => {
       const result = await service.setOrganizationActive(orgId, false);
       expect(result.isActive).toBe(false);
       expect(organizationRepoMock.save).toHaveBeenCalledWith(expect.objectContaining({ isActive: false }));
+    });
+  });
+
+  describe('updateOrgRolePermissions', () => {
+    it('goi lai RolesService.updateRolePermissions voi callerRoleNames=[] (Super Admin khong giu vai tro nao trong to chuc)', async () => {
+      const { service, rolesServiceMock } = createService();
+
+      await service.updateOrgRolePermissions(orgId, 'role-1', ['ml:view'], 'super-admin-id');
+
+      expect(rolesServiceMock.updateRolePermissions).toHaveBeenCalledWith(orgId, 'role-1', ['ml:view'], 'super-admin-id', []);
+    });
+
+    it('nem NotFoundException/ORGANIZATION_NOT_FOUND khi to chuc khong ton tai, KHONG goi RolesService', async () => {
+      const { service, rolesServiceMock } = createService({
+        organizationRepoMock: { findOne: jest.fn().mockResolvedValue(null) },
+      });
+
+      await expect(service.updateOrgRolePermissions('khong-ton-tai', 'role-1', ['ml:view'], 'super-admin-id')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(rolesServiceMock.updateRolePermissions).not.toHaveBeenCalled();
     });
   });
 

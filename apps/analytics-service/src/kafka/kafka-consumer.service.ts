@@ -269,6 +269,9 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
           // phong ban) - phuc vu scoping "Manager chi thay Hoat dong gan day cua phong ban minh
           // phu trach" (AnalyticsService.getRecentActivity()/listDepartmentIdsManagedBy()).
           await this.factWriter.upsertDepartmentManager(event, manager);
+        } else if (event.eventType === EVENT_TYPES.USER_DELETED) {
+          // 25/09/2026: xoa dong dim_user "ma" - xem chu thich chi tiet tai FactWriterService.deleteUser().
+          await this.factWriter.deleteUser(event, manager);
         }
       });
 
