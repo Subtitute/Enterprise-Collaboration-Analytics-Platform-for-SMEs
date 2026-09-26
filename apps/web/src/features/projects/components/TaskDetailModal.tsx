@@ -281,16 +281,16 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
                 </div>
               </div>
 
-              {/* CỘT PHẢI (1/3): Sidebar thuộc tính (Trạng thái, Hạn chót, Phụ trách, Xoá) */}
-              <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 space-y-4 lg:col-span-1 shadow-2xs">
+              {/* CỘT PHẢI (35%): Sidebar thuộc tính (Trạng thái, Hạn chót, Phụ trách, Xoá) */}
+              <div className="rounded-md border border-slate-200/80 bg-slate-50/60 p-4 space-y-4 lg:col-span-1 shadow-2xs">
                 {/* 1. Trạng thái */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-800 mb-1.5" id="task-status-label">
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5" id="task-status-label">
                     {t('projects:taskDetail.statusLabel')}
                   </label>
                   <Dropdown
                     align="left"
-                    panelClassName="w-48 p-1.5 rounded-2xl border border-slate-200/80 bg-white shadow-xl shadow-slate-900/10 space-y-1"
+                    panelClassName="w-48 p-1 rounded-md border border-slate-200 bg-white shadow-md space-y-0.5"
                     trigger={({ open, toggle }) => {
                       const cfg = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.TODO;
                       return (
@@ -299,16 +299,16 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
                           onClick={toggle}
                           aria-labelledby="task-status-label"
                           className={cn(
-                            'flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-2xs transition-all duration-150 hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
-                            open && 'border-primary-500 ring-2 ring-primary-500/20 bg-slate-50/80',
+                            'flex w-full items-center justify-between gap-2 rounded-md border border-slate-200/80 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-2xs transition-all duration-150 hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-600 focus:border-indigo-600',
+                            open && 'border-indigo-600 ring-1 ring-indigo-600 bg-slate-50/80',
                           )}
                         >
                           <div className="flex items-center gap-2 min-w-0">
-                            <span className={cn('h-2 w-2 rounded-full ring-2 ring-white shrink-0', cfg.dotColor)} />
+                            <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', cfg.dotColor)} />
                             <span className="truncate">{t(`projects:enums.taskStatus.${task.status}`)}</span>
                           </div>
                           <ChevronDownIcon
-                            className={cn('h-4 w-4 text-slate-400 shrink-0 transition-transform duration-200', open && 'rotate-180 text-slate-600')}
+                            className={cn('h-3.5 w-3.5 text-slate-400 shrink-0 transition-transform duration-200', open && 'rotate-180 text-slate-600')}
                           />
                         </button>
                       );

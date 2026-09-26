@@ -65,19 +65,19 @@ export function TaskCard({ task, index, onClick, isHighlighted = false }: TaskCa
         >
           <div
             className={cn(
-              'relative cursor-pointer rounded-xl border p-3 shadow-sm shadow-slate-900/5 transition-all duration-200',
-              isHighlighted && 'ring-2 ring-indigo-500 border-indigo-400 bg-indigo-50/30 shadow-indigo-100 shadow-md animate-pulse',
+              'relative cursor-pointer rounded-md border p-3 shadow-2xs transition-all duration-150',
+              isHighlighted && 'ring-1 ring-indigo-500 border-indigo-400 bg-indigo-50/30 shadow-xs',
               // Cột Hoàn thành: Bỏ opacity-50, nền slate-50 nhẹ nhàng, chữ gạch ngang text-slate-400
               isDone
-                ? 'border-slate-200/60 bg-slate-50/90 text-slate-500 hover:bg-slate-50 hover:border-indigo-300'
-                : 'border-slate-200/80 bg-white hover:border-indigo-300 hover:shadow-md active:scale-[0.98]',
-              snapshot.isDragging && '!shadow-xl !border-primary-400 ring-2 ring-primary-500/20 !opacity-100',
+                ? 'border-slate-200/80 bg-slate-50/80 text-slate-500 hover:border-slate-300'
+                : 'border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-xs active:scale-[0.98]',
+              snapshot.isDragging && '!shadow-md !border-indigo-500 ring-1 ring-indigo-500/20 !opacity-100',
             )}
           >
-            {/* Tín hiệu ưu tiên tối giản: Chấm màu ở góc thẻ */}
+            {/* Tín hiệu ưu tiên tối giản: Chấm vi mô 6px ở góc thẻ */}
             {priorityColor && !isDone && (
               <span
-                className={cn('absolute top-3 right-3 h-1.5 w-1.5 rounded-full ring-2 shrink-0', priorityColor)}
+                className={cn('absolute top-3 right-3 h-1.5 w-1.5 rounded-full shrink-0', priorityColor)}
                 title={rawPriority || (overdue ? t('projects:taskCard.overdue') : undefined)}
               />
             )}
@@ -90,11 +90,11 @@ export function TaskCard({ task, index, onClick, isHighlighted = false }: TaskCa
             >
               {task.title}
             </p>
-            <div className="mt-2 flex items-center justify-between gap-2 pt-0.5">
+            <div className="mt-2.5 flex items-center justify-between gap-2 pt-0.5">
               <div className="flex items-center gap-1.5 min-w-0">
                 <span
                   className={cn(
-                    'font-mono text-[11px] font-semibold shrink-0',
+                    'font-mono text-[11px] font-semibold tabular-nums shrink-0',
                     isDone ? 'text-slate-300' : 'text-slate-400',
                   )}
                 >
@@ -103,7 +103,7 @@ export function TaskCard({ task, index, onClick, isHighlighted = false }: TaskCa
                 {task.dueDate && (
                   <span
                     className={cn(
-                      'flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded shrink-0 font-medium',
+                      'flex items-center gap-1 text-[11px] font-mono tabular-nums px-1.5 py-0.2 rounded-sm shrink-0 font-medium',
                       isDone
                         ? 'text-slate-400 line-through bg-slate-100'
                         : isOverdueTask

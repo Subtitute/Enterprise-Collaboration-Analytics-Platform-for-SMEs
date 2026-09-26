@@ -136,7 +136,7 @@ export function Modal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 animate-fade-in bg-slate-900/40 backdrop-blur-sm" onClick={requestClose} aria-hidden />
+      <div className="absolute inset-0 animate-fade-in bg-slate-900/40" onClick={requestClose} aria-hidden />
       <div
         ref={dialogRef}
         role="dialog"
@@ -144,32 +144,32 @@ export function Modal({
         aria-label={typeof title === 'string' ? title : undefined}
         tabIndex={-1}
         className={cn(
-          'relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl animate-slide-up',
+          'relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden rounded-md border border-slate-200/90 bg-white shadow-lg animate-slide-up',
           sizeClasses[size],
         )}
       >
         {title && (
-          <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100/90 px-6 pt-6 pb-4.5 bg-slate-50/50">
+          <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-200/80 px-5 py-4 bg-slate-50/50">
             <div className="pt-0.5 flex-1 min-w-0">
               {typeof title === 'string' ? (
-                <h2 className="font-display text-base font-bold text-slate-900 truncate">{title}</h2>
+                <h2 className="text-base font-bold text-slate-900 truncate tracking-tight">{title}</h2>
               ) : (
                 title
               )}
-              {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
+              {description && <p className="mt-1 text-xs text-slate-500">{description}</p>}
             </div>
             <button
               type="button"
               onClick={requestClose}
               aria-label={t('common:actions.close')}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+              className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
             >
               <CloseIcon />
             </button>
           </div>
         )}
-        <div className="overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] max-h-[calc(90vh-140px)] px-6 py-5">{children}</div>
-        {footer && <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-slate-100 px-6 py-3.5 bg-slate-50/30">{footer}</div>}
+        <div className="overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] max-h-[calc(90vh-140px)] px-5 py-4">{children}</div>
+        {footer && <div className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-200/80 px-5 py-3 bg-slate-50/40">{footer}</div>}
       </div>
     </div>,
     document.body,

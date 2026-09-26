@@ -166,7 +166,7 @@ export function FilePreviewModal({ file, open, onClose, onDownload }: FilePrevie
         {/* Lỗi tải file hoặc render */}
         {!isLoadingUrl && !isLoadingText && (urlError || hasRenderError) && (
           <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 border border-rose-200/60 shadow-2xs">
+            <div className="flex h-12 w-12 items-center justify-center rounded-md bg-rose-50 text-rose-600 border border-rose-200/60 shadow-2xs">
               <AlertCircleIcon className="h-6 w-6" />
             </div>
             <div>
@@ -193,7 +193,7 @@ export function FilePreviewModal({ file, open, onClose, onDownload }: FilePrevie
           !hasRenderError &&
           (isOverSize || previewType === 'unsupported') && (
             <div className="flex flex-col items-center justify-center gap-3.5 p-6 text-center max-w-md">
-              <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-indigo-50 text-indigo-600 border border-indigo-200/60 shadow-xs">
+              <div className="flex h-16 w-16 items-center justify-center rounded-md bg-indigo-50 text-indigo-600 border border-indigo-200/60 shadow-xs">
                 <FileIcon className="h-8 w-8" />
               </div>
               <div>

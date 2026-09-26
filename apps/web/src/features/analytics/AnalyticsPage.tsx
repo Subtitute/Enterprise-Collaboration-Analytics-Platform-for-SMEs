@@ -367,7 +367,7 @@ export function AnalyticsPage() {
       </div>
 
       {/* THIẾT KẾ LẠI KHỐI TRỢ LÝ PHÂN TÍCH NỘI BỘ (DE-HYPE AI UI) */}
-      <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-5 shadow-xs transition-all">
+      <div className="rounded-md border border-indigo-100 bg-indigo-50/40 p-5 shadow-xs transition-all">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-xs">

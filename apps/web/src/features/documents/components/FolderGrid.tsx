@@ -174,7 +174,7 @@ function FolderCardItem({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="cursor-pointer">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100/80 transition-colors shadow-2xs">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100/80 transition-colors shadow-2xs">
             <FolderIcon className="h-6.5 w-6.5" />
           </span>
         </div>

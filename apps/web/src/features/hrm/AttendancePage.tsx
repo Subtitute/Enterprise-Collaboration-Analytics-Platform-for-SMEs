@@ -146,7 +146,7 @@ function PhotoProofModal({
           <OnSiteBadge isOnSite={target.isOnSite} />
         </div>
 
-        <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-slate-900 border border-slate-200 flex items-center justify-center shadow-inner">
+        <div className="relative aspect-square w-full overflow-hidden rounded-md bg-slate-900 border border-slate-200 flex items-center justify-center shadow-inner">
           {isLoading && (
             <div className="flex flex-col items-center gap-2 text-slate-300">
               <Spinner />
@@ -406,7 +406,7 @@ export function AttendancePage() {
             <CardContent className="pt-6 pb-6 flex flex-col items-center text-center flex-1 justify-between">
               <div>
                 {/* Đồng hồ số điện tử lớn */}
-                <div className="mb-2 inline-flex items-center justify-center rounded-2xl bg-slate-50 border border-slate-100 px-6 py-3.5 shadow-2xs">
+                <div className="mb-2 inline-flex items-center justify-center rounded-md bg-slate-50 border border-slate-100 px-6 py-3.5 shadow-2xs">
                   <span className="font-mono text-4xl sm:text-5xl font-black tracking-tight text-slate-900 tabular-nums">
                     {timeString}
                   </span>

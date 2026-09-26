@@ -392,7 +392,7 @@ export function MonthlyTimesheetTable({
       {/* Hiển thị bảng số liệu trên màn hình Desktop */}
       <div className="hidden sm:block overflow-x-auto max-h-[460px] overflow-y-auto rounded-xl border border-slate-200/70">
         <table className="w-full text-xs">
-          <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-xs z-10 border-b border-slate-200">
+          <thead className="sticky top-0 bg-slate-50/95  z-10 border-b border-slate-200">
             <tr className="text-left font-semibold uppercase tracking-wider text-slate-500">
               <th className="py-2.5 px-3">{t('hrm:attendancePage.allAttendance.timesheet.columns.employee')}</th>
               <th className="py-2.5 px-3">{t('hrm:attendancePage.allAttendance.timesheet.columns.department')}</th>

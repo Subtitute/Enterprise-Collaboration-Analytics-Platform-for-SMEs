@@ -22,10 +22,10 @@ function DonutTooltip({ active, payload }: { active?: boolean; payload?: Array<{
   if (!active || !payload?.length) return null;
   const p = payload[0];
   return (
-    <div className="rounded-xl border border-slate-200/90 bg-white/95 px-3 py-2 text-xs shadow-xl shadow-slate-200/60 backdrop-blur-md">
+    <div className="rounded-md border border-slate-200 bg-white p-2 text-xs shadow-xs">
       <p className="flex items-center gap-1.5 text-slate-700 font-medium">
-        <span className="h-2.5 w-2.5 rounded-full shadow-sm" style={{ background: p.payload.fill }} />
-        {statusLabel(p.payload.status)}: <span className="font-bold text-slate-900">{p.value}</span>
+        <span className="h-2 w-2 rounded-full" style={{ background: p.payload.fill }} />
+        {statusLabel(p.payload.status)}: <span className="font-mono font-bold text-slate-900 tabular-nums">{p.value}</span>
       </p>
     </div>
   );
@@ -131,10 +131,10 @@ export function TaskStatusDonut({ data, isLoading, isError, onRetry }: TaskStatu
                   onMouseEnter={() => setHoveredStatus(d.status)}
                   onMouseLeave={() => setHoveredStatus(null)}
                   className={cn(
-                    'flex items-center justify-between gap-2 text-xs sm:text-sm rounded-lg px-3 py-2 mb-2 border transition-colors duration-150 cursor-pointer min-w-0',
+                    'flex items-center justify-between gap-2 text-xs sm:text-sm rounded-md px-3 py-1.5 mb-1.5 border transition-colors duration-150 cursor-pointer min-w-0',
                     isHovered
-                      ? 'bg-slate-100 border-slate-300 shadow-2xs'
-                      : 'bg-slate-50 border-slate-200/60 hover:bg-slate-100/60 hover:border-slate-300/50',
+                      ? 'bg-slate-100/80 border-slate-300'
+                      : 'bg-slate-50/60 border-slate-200/80 hover:bg-slate-100/60 hover:border-slate-300',
                   )}
                 >
                   <span className="flex items-center gap-2 text-slate-700 min-w-0 truncate">

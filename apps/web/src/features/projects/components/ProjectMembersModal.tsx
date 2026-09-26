@@ -158,7 +158,7 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
         <div className="space-y-4 py-1">
           {/* Cụm Thêm Thành Viên Mới (Chỉ hiển thị cho Admin / Manager) */}
           {canManage && (
-            <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-3.5 space-y-2.5">
+            <div className="rounded-md border border-indigo-100 bg-indigo-50/40 p-3.5 space-y-2.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                 {t('projects:membersModal.addMemberTitle')}
               </label>
@@ -166,7 +166,7 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <Dropdown
                   align="left"
-                  panelClassName="w-72 sm:w-80 p-2 rounded-2xl border border-slate-200/80 bg-white shadow-xl space-y-1.5"
+                  panelClassName="w-72 sm:w-80 p-2 rounded-md border border-slate-200/80 bg-white shadow-xl space-y-1.5"
                   trigger={({ open: isOpen, toggle }) => (
                     <button
                       type="button"
@@ -271,7 +271,7 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
                 <Spinner size="sm" />
               </div>
             ) : members.length === 0 ? (
-              <div className="py-8 text-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+              <div className="py-8 text-center border border-dashed border-slate-200 rounded-md bg-slate-50/50">
                 <UsersIcon className="h-8 w-8 text-slate-300 mx-auto mb-2" />
                 <p className="text-xs font-semibold text-slate-600">{t('projects:membersModal.emptyTitle')}</p>
                 <p className="text-[11px] text-slate-400 mt-0.5">{t('projects:membersModal.emptyDescription')}</p>

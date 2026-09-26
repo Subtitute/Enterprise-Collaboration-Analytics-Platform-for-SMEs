@@ -161,7 +161,7 @@ export function TimePicker({
       {isOpen && (
         <div
           className={cn(
-            'absolute z-50 w-64 rounded-2xl border border-slate-200/90 bg-white p-3 shadow-xl shadow-slate-900/10 animate-slide-up select-none flex flex-col gap-2.5',
+            'absolute z-50 w-64 rounded-md border border-slate-200/90 bg-white p-3 shadow-xl shadow-slate-900/10 animate-slide-up select-none flex flex-col gap-2.5',
             popoverAlignClass,
             popoverPositionClass
           )}

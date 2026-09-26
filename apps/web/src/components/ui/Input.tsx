@@ -5,8 +5,8 @@ import { cn, containsVietnameseDiacritics } from '@/lib/utils';
 import { AlertCircleIcon, EyeIcon, EyeOffIcon, ChevronDownIcon } from './Icons';
 
 const fieldBase =
-  'block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 ' +
-  'focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100 disabled:bg-slate-50 disabled:text-slate-400';
+  'block w-full rounded-md border border-slate-300/80 bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 ' +
+  'focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 disabled:bg-slate-50 disabled:text-slate-400 shadow-2xs transition-colors';
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(({ className, ...props }, ref) => (
   <input ref={ref} className={cn(fieldBase, className)} {...props} />

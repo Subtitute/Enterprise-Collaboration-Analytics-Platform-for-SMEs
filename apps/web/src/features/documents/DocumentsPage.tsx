@@ -150,8 +150,8 @@ export function DocumentsPage() {
     <div className="relative min-h-[calc(100vh-140px)] space-y-5">
       {/* Lớp phủ Dropzone Overlay mờ ảo toàn màn hình kèm viền đứt nét nổi bật khi kéo tệp vào */}
       {isWindowDragging && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center border-4 border-dashed border-primary-500 bg-slate-900/60 backdrop-blur-md text-center text-white transition-all animate-fade-in pointer-events-none p-6">
-          <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white shadow-2xl text-primary-600 mb-4 animate-bounce">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center border-4 border-dashed border-primary-500 bg-slate-900/60  text-center text-white transition-all animate-fade-in pointer-events-none p-6">
+          <div className="flex h-20 w-20 items-center justify-center rounded-md bg-white shadow-2xl text-primary-600 mb-4 animate-bounce">
             <UploadIcon className="h-10 w-10" />
           </div>
           <h3 className="font-display text-2xl font-bold text-white tracking-tight">{t('documents:documentsPage.dropzone.title')}</h3>
@@ -211,7 +211,7 @@ export function DocumentsPage() {
       </div>
 
       {/* Hàng 2: Dải Control Bar (Thanh tìm kiếm bên trái + Nút chuyển chế độ xem Lưới/Danh sách bên phải) */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-2.5 shadow-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200/80 bg-white p-2.5 shadow-xs">
         {/* Ô tìm kiếm tài liệu & thư mục */}
         <div className="relative flex-1 min-w-[240px] sm:max-w-md">
           <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -290,7 +290,7 @@ export function DocumentsPage() {
             }
           />
         ) : isFilteredEmpty ? (
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-10 text-center">
+          <div className="rounded-md border border-slate-200/80 bg-white p-10 text-center">
             <p className="text-sm font-semibold text-slate-700">{t('documents:documentsPage.filteredEmpty.title')}</p>
             <p className="mt-1 text-xs text-slate-400">{t('documents:documentsPage.filteredEmpty.description')}</p>
           </div>

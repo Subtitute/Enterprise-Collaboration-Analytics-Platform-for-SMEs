@@ -81,7 +81,7 @@ export function CustomerDetailPage() {
               {canReassignOwner && (
                 <Dropdown
                   align="left"
-                  panelClassName="w-64 p-1.5 rounded-2xl border border-slate-200/80 bg-white shadow-xl shadow-slate-900/10 space-y-1"
+                  panelClassName="w-64 p-1.5 rounded-md border border-slate-200/80 bg-white shadow-xl shadow-slate-900/10 space-y-1"
                   trigger={({ toggle }) => (
                     <button
                       type="button"

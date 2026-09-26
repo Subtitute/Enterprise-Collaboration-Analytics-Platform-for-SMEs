@@ -91,14 +91,14 @@ function GlobalSearchBox() {
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-controls="global-search-listbox"
-        className="h-9 w-full rounded-xl border border-slate-200/80 bg-slate-100/70 pl-9 pr-3 text-sm text-slate-800 placeholder:text-slate-400 transition-all hover:bg-slate-100 focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 shadow-xs"
+        className="h-9 w-full rounded-md border border-slate-300/80 bg-slate-50 pl-9 pr-4 text-sm text-slate-800 placeholder:text-slate-400 transition-colors hover:bg-slate-100/70 focus:border-indigo-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-600 shadow-2xs"
       />
       {open && (
         <div
           id="global-search-listbox"
           role="listbox"
           aria-live="polite"
-          className="absolute left-0 right-0 z-40 mt-2 max-h-96 animate-slide-up overflow-y-auto rounded-xl border border-slate-200/90 bg-white/95 py-2 shadow-2xl shadow-slate-300/60 ring-1 ring-slate-900/5 backdrop-blur-md transition-all duration-200"
+          className="absolute left-0 right-0 z-40 mt-1.5 max-h-96 animate-slide-up overflow-y-auto rounded-md border border-slate-200 bg-white py-1.5 shadow-lg ring-1 ring-slate-900/5 transition-all duration-150"
         >
           {isLoading && (
             <div className="flex items-center justify-center py-8 text-primary-600 animate-fade-in">
@@ -228,15 +228,15 @@ export function Topbar() {
       {/* Nút Tạo nhanh (Quick Create Action Dropdown) */}
       <Dropdown
         align="right"
-        panelClassName="w-60 p-1.5"
+        panelClassName="w-60 p-1"
         trigger={({ toggle, open }) => (
           <button
             type="button"
             onClick={toggle}
             title={t('common:quickCreate.tooltip')}
             aria-label={t('common:quickCreate.tooltip')}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 md:px-3 md:py-2 text-xs font-semibold text-white transition-all duration-150 shadow-sm shrink-0 cursor-pointer active:scale-[0.98] ${
-              open ? 'bg-indigo-700 ring-2 ring-indigo-500/30' : 'bg-indigo-600 hover:bg-indigo-700 ring-1 ring-inset ring-white/20'
+            className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 md:px-3 md:py-2 text-xs font-semibold text-white transition-all duration-150 shadow-xs shrink-0 cursor-pointer active:scale-[0.98] ${
+              open ? 'bg-indigo-700 ring-1 ring-indigo-500' : 'bg-indigo-600 hover:bg-indigo-700 ring-1 ring-inset ring-white/10'
             }`}
           >
             <PlusIcon className="h-4 w-4 stroke-[2.2]" />

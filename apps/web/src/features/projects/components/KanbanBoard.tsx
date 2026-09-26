@@ -278,18 +278,18 @@ export function KanbanBoard({
             const columnTasks = columns[status] ?? [];
 
             return (
-              <div key={status} className="flex w-[82vw] min-w-[300px] max-w-[360px] shrink-0 flex-col rounded-2xl bg-slate-100/90 lg:w-auto lg:max-w-none lg:shrink">
+              <div key={status} className="flex w-[82vw] min-w-[300px] max-w-[360px] shrink-0 flex-col rounded-md border border-slate-200/80 bg-slate-100/70 lg:w-auto lg:max-w-none lg:shrink">
                 <div
                   className={cn(
-                    'flex items-center gap-2 px-4 py-3.5 border-b-2',
-                    status === 'TODO' && 'border-b-slate-200/80',
-                    status === 'DOING' && 'border-b-primary-500/50',
-                    status === 'DONE' && 'border-b-emerald-500/50',
+                    'flex items-center gap-2 px-3.5 py-3 border-b',
+                    status === 'TODO' && 'border-b-slate-200',
+                    status === 'DOING' && 'border-b-indigo-200',
+                    status === 'DONE' && 'border-b-emerald-200',
                   )}
                 >
-                  <span className={cn('h-2.5 w-2.5 rounded-full ring-2 ring-white', COLUMN_ACCENT[status])} />
-                  <p className="text-sm font-bold text-slate-800">{t(`projects:enums.taskStatus.${status}`)}</p>
-                  <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs font-bold text-slate-700 border border-slate-200/80 shadow-2xs">
+                  <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', COLUMN_ACCENT[status])} />
+                  <p className="text-xs font-bold text-slate-800 uppercase tracking-wider">{t(`projects:enums.taskStatus.${status}`)}</p>
+                  <span className="ml-auto rounded-sm bg-white px-1.5 py-0.2 font-mono text-[11px] font-bold text-slate-600 border border-slate-200/80 tabular-nums">
                     {columnTasks.length}
                   </span>
                 </div>
@@ -298,11 +298,11 @@ export function KanbanBoard({
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={cn('flex-1 p-3 transition-colors', snapshot.isDraggingOver && 'bg-primary-50/50')}
+                      className={cn('flex-1 p-2.5 transition-colors', snapshot.isDraggingOver && 'bg-indigo-50/40')}
                       style={{ minHeight: 120 }}
                     >
                       {columnTasks.length === 0 && !snapshot.isDraggingOver ? (
-                        <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 py-8 px-4 text-center my-1">
+                        <div className="flex flex-col items-center justify-center rounded-md border border-dashed border-slate-200/80 py-8 px-4 text-center my-1">
                           <p className="text-xs font-medium text-slate-400">
                             {t('projects:kanban.emptyColumn')}
                           </p>
@@ -324,11 +324,11 @@ export function KanbanBoard({
                 </Droppable>
 
                 {/* Nút thêm nhanh công việc ở chân mỗi cột Kanban */}
-                <div className="p-2.5 pt-0">
+                <div className="p-2 pt-0">
                   <button
                     type="button"
                     onClick={() => onQuickAdd?.(status)}
-                    className="flex w-full items-center justify-start gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 transition-all duration-150 hover:bg-white hover:text-slate-900 hover:shadow-2xs active:scale-[0.98] cursor-pointer"
+                    className="flex w-full items-center justify-start gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:bg-white hover:text-slate-800 hover:border hover:border-slate-200/80 active:scale-[0.98] cursor-pointer"
                   >
                     <PlusIcon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                     <span>{t('projects:detail.newTask')}</span>

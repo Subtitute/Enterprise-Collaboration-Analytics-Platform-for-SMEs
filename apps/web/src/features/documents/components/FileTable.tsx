@@ -379,7 +379,7 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
       {/* Floating Action Bar (Thanh công cụ nổi ở giữa lề dưới màn hình khi có tệp được tích chọn) */}
       {selectedFileIds.length > 0 && (
         <div className="fixed inset-x-0 bottom-6 z-40 flex justify-center pointer-events-none px-4">
-          <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/95 px-5 py-2.5 text-slate-800 shadow-2xl shadow-slate-300/60 backdrop-blur-md transition-all animate-slide-up">
+          <div className="pointer-events-auto flex items-center gap-3 rounded-md border border-slate-200/90 bg-white/95 px-5 py-2.5 text-slate-800 shadow-2xl shadow-slate-300/60  transition-all animate-slide-up">
             <div className="flex items-center gap-2 pr-3 border-r border-slate-200">
               <span className="flex min-w-[20px] h-5 px-1.5 shrink-0 items-center justify-center rounded-full bg-primary-600 text-[11px] font-bold text-white shadow-2xs leading-none">
                 {selectedFileIds.length}

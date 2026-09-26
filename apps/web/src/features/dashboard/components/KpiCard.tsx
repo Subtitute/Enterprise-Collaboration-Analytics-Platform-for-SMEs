@@ -52,7 +52,7 @@ export function KpiCard({ label, value, hint, icon, accentClassName, isLoading, 
       </div>
       <div
         className={cn(
-          'flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl shadow-xs transition-transform duration-200 group-hover:scale-105',
+          'flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-md shadow-xs transition-transform duration-200 group-hover:scale-105',
           accentClassName ?? 'bg-indigo-100 text-indigo-600',
         )}
       >

@@ -25,7 +25,7 @@ export function AssigneePicker({
   return (
     <Dropdown
       align="right"
-      panelClassName="w-64 p-1.5 rounded-2xl border border-slate-200/80 bg-white shadow-xl shadow-slate-900/10 space-y-1"
+      panelClassName="w-64 p-1.5 rounded-md border border-slate-200/80 bg-white shadow-xl shadow-slate-900/10 space-y-1"
       trigger={({ open, toggle }) => (
         <button
           type="button"

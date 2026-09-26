@@ -336,39 +336,37 @@ export function DashboardPage() {
         </Card>
       )}
 
-      {/* 1. LƯỚI 4 THẺ KPI ĐỒNG DẠNG:
+      {/* 1. LƯỚI 4 THẺ KPI ĐỒNG DẠNG (Industrial Precision & Glanceable Semantics):
           - Responsive Grid: grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4
-          - Hiệu ứng: cursor-pointer border border-slate-200 hover:border-indigo-300 transition-all rounded-xl p-4 bg-white shadow-sm */}
+          - Hiệu ứng: cursor-pointer border border-slate-200/80 hover:border-slate-300 transition-all rounded-md p-4 bg-white shadow-xs */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Thẻ 1 - Điểm neo thị giác (Tiến độ công việc) */}
         <Link
           to="/projects"
-          className="group flex flex-col justify-between cursor-pointer border border-slate-200/80 hover:border-indigo-300 hover:shadow-md transition-all rounded-xl p-4 bg-white shadow-sm"
+          className="group flex flex-col justify-between cursor-pointer border border-slate-200/80 hover:border-slate-300 transition-all rounded-md p-4 bg-white shadow-xs"
         >
           <div>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-semibold text-slate-500 group-hover:text-slate-700 transition-colors">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 group-hover:text-slate-600 transition-colors">
                 {canViewAnalytics
                   ? t('dashboard:kpi.workProgress.label')
                   : t('dashboard:kpi.workProgress.labelPersonal')}
               </span>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 group-hover:scale-105 transition-transform">
-                <CheckCircleIcon className="h-4 w-4" />
-              </div>
+              <CheckCircleIcon className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 transition-colors" />
             </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+            <div className="mt-2.5 flex items-baseline gap-2">
+              <span className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
                 {completionRate}%
               </span>
-              <span className="text-xs font-medium text-slate-500">
+              <span className="font-mono text-xs font-medium text-slate-500 tabular-nums">
                 ({t('dashboard:kpi.workProgress.ratio', { completed: totalTasksCompleted, total: totalTasksCreated })})
               </span>
             </div>
           </div>
-          {/* Mini progress bar dày 6px màu Indigo đậm dưới chân thẻ */}
-          <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+          {/* Mini progress bar vi mô 4px màu Indigo đậm dưới chân thẻ */}
+          <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-slate-100">
             <div
-              className="h-full rounded-full bg-indigo-600 transition-all duration-500 ease-out"
+              className="h-full rounded-full bg-indigo-600 transition-all duration-300 ease-out"
               style={{ width: `${Math.max(2, Math.min(100, completionRate))}%` }}
             />
           </div>
@@ -377,26 +375,24 @@ export function DashboardPage() {
         {/* Thẻ 2 - Dự án đang chạy */}
         <Link
           to="/projects?status=active"
-          className="group flex flex-col justify-between cursor-pointer border border-slate-200/80 hover:border-indigo-300 hover:shadow-md transition-all rounded-xl p-4 bg-white shadow-sm"
+          className="group flex flex-col justify-between cursor-pointer border border-slate-200/80 hover:border-slate-300 transition-all rounded-md p-4 bg-white shadow-xs"
         >
           <div>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-semibold text-slate-500 group-hover:text-slate-700 transition-colors">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 group-hover:text-slate-600 transition-colors">
                 {canViewAnalytics
                   ? t('dashboard:kpi.activeProjects.label')
                   : t('dashboard:kpi.activeProjects.labelPersonal')}
               </span>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600 group-hover:scale-105 transition-transform">
-                <FolderKanbanIcon className="h-4 w-4" />
-              </div>
+              <FolderKanbanIcon className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 transition-colors" />
             </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+            <div className="mt-2.5 flex items-baseline gap-2">
+              <span className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
                 {activeProjectsCount}
               </span>
             </div>
           </div>
-          <p className="mt-4 text-[11px] font-medium text-slate-500 group-hover:text-indigo-600 transition-colors">
+          <p className="mt-3 text-[11px] text-slate-500 group-hover:text-slate-700 transition-colors">
             {canViewAnalytics
               ? t('dashboard:kpi.activeProjects.hint')
               : t('dashboard:kpi.activeProjects.hintPersonal')}
@@ -409,29 +405,28 @@ export function DashboardPage() {
         {canApproveLeave ? (
           <Link
             to="/leave-requests?status=pending"
-            className="group flex flex-col justify-between cursor-pointer border border-slate-200/80 hover:border-indigo-300 hover:shadow-md transition-all rounded-xl p-4 bg-white shadow-sm"
+            className="group flex flex-col justify-between cursor-pointer border border-slate-200/80 hover:border-slate-300 transition-all rounded-md p-4 bg-white shadow-xs"
           >
             <div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold text-slate-500 group-hover:text-slate-700 transition-colors">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 group-hover:text-slate-600 transition-colors">
                   {t('dashboard:kpi.pendingLeaves.label')}
                 </span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 group-hover:scale-105 transition-transform">
-                  <CalendarIcon className="h-4 w-4" />
-                </div>
+                <CalendarIcon className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 transition-colors" />
               </div>
-              <div className="mt-2 flex items-center gap-2.5">
-                <span className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+              <div className="mt-2.5 flex items-center gap-2.5">
+                <span className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
                   {pendingLeavesCount}
                 </span>
                 {pendingLeavesCount > 0 && (
-                  <span className="inline-flex items-center rounded-md bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                  <span className="inline-flex items-center rounded-sm bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-700 border border-amber-200">
+                    <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-amber-500" />
                     {t('dashboard:kpi.pendingLeaves.pendingBadge')}
                   </span>
                 )}
               </div>
             </div>
-            <p className="mt-4 text-[11px] font-medium text-slate-500 group-hover:text-indigo-600 transition-colors">
+            <p className="mt-3 text-[11px] text-slate-500 group-hover:text-slate-700 transition-colors">
               {pendingLeavesCount > 0
                 ? t('dashboard:kpi.pendingLeaves.hint')
                 : t('dashboard:kpi.pendingLeaves.hintEmpty')}
@@ -440,27 +435,25 @@ export function DashboardPage() {
         ) : (
           <Link
             to="/attendance"
-            className="group flex flex-col justify-between cursor-pointer border border-slate-200/80 hover:border-indigo-300 hover:shadow-md transition-all rounded-xl p-4 bg-white shadow-sm"
+            className="group flex flex-col justify-between cursor-pointer border border-slate-200/80 hover:border-slate-300 transition-all rounded-md p-4 bg-white shadow-xs"
           >
             <div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold text-slate-500 group-hover:text-slate-700 transition-colors">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 group-hover:text-slate-600 transition-colors">
                   {t('dashboard:kpi.monthlyWorkDays.label')}
                 </span>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 group-hover:scale-105 transition-transform">
-                  <ClockIcon className="h-4 w-4" />
-                </div>
+                <ClockIcon className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 transition-colors" />
               </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+              <div className="mt-2.5 flex items-baseline gap-2">
+                <span className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
                   {monthlyWorkDaysCount}
                 </span>
-                <span className="text-xs font-medium text-slate-500">
+                <span className="font-mono text-xs font-medium text-slate-500 tabular-nums">
                   {t('dashboard:kpi.monthlyWorkDays.days', { count: monthlyWorkDaysCount })}
                 </span>
               </div>
             </div>
-            <p className="mt-4 text-[11px] font-medium text-slate-500 group-hover:text-indigo-600 transition-colors">
+            <p className="mt-3 text-[11px] text-slate-500 group-hover:text-slate-700 transition-colors">
               {monthlyWorkDaysCount > 0
                 ? t('dashboard:kpi.monthlyWorkDays.hint')
                 : t('dashboard:kpi.monthlyWorkDays.hintEmpty')}
@@ -471,24 +464,22 @@ export function DashboardPage() {
         {/* Thẻ 4 - Tài liệu mới (7 ngày) */}
         <Link
           to="/documents"
-          className="group flex flex-col justify-between cursor-pointer border border-slate-200/80 hover:border-indigo-300 hover:shadow-md transition-all rounded-xl p-4 bg-white shadow-sm"
+          className="group flex flex-col justify-between cursor-pointer border border-slate-200/80 hover:border-slate-300 transition-all rounded-md p-4 bg-white shadow-xs"
         >
           <div>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-semibold text-slate-500 group-hover:text-slate-700 transition-colors">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 group-hover:text-slate-600 transition-colors">
                 {t('dashboard:kpi.newDocumentsCount.label')}
               </span>
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 group-hover:scale-105 transition-transform">
-                <FileTextIcon className="h-4 w-4" />
-              </div>
+              <FileTextIcon className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 transition-colors" />
             </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+            <div className="mt-2.5 flex items-baseline gap-2">
+              <span className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
                 {newDocumentsCount}
               </span>
             </div>
           </div>
-          <p className="mt-4 text-[11px] font-medium text-slate-500 group-hover:text-indigo-600 transition-colors">
+          <p className="mt-3 text-[11px] text-slate-500 group-hover:text-slate-700 transition-colors">
             {newDocumentsCount === 0
               ? t('dashboard:kpi.newDocumentsCount.empty')
               : t('dashboard:kpi.newDocumentsCount.hint')}

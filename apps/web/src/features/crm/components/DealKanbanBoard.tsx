@@ -129,7 +129,7 @@ export function DealKanbanBoard({ customerId, deals, onDealClick }: { customerId
           {DEAL_STAGES.map((stage) => {
             const columnDeals = deals.filter((d) => d.stage === stage);
             return (
-              <div key={stage} className="flex w-64 min-w-[240px] 2xl:w-full shrink-0 flex-col rounded-2xl border border-slate-200/80 bg-slate-50 shadow-2xs">
+              <div key={stage} className="flex w-64 min-w-[240px] 2xl:w-full shrink-0 flex-col rounded-md border border-slate-200/80 bg-slate-50 shadow-2xs">
                 <div className="flex items-center gap-2 border-b border-slate-200/80 px-3.5 py-3 bg-slate-100/60 rounded-t-2xl">
                   <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', COLUMN_ACCENT[stage])} />
                   <p className="text-xs font-bold text-slate-700 truncate" title={t(`crm:enums.dealStage.${stage}`)}>
