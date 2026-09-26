@@ -8,6 +8,7 @@ import { TaskStatusBreakdownQueryDto } from './dto/task-status-breakdown-query.d
 import { DocumentActivityQueryDto } from './dto/document-activity-query.dto';
 import { SummaryQueryDto } from './dto/summary-query.dto';
 import { ProjectProgressQueryDto } from './dto/project-progress-query.dto';
+import { DrillDownQueryDto } from './dto/drill-down-query.dto';
 
 /**
  * REST API cho Dashboard tong quan (Wireframe.md muc 3) va trang Bao cao & Phan tich
@@ -95,5 +96,27 @@ export class AnalyticsController {
     @CurrentUser('permissions') permissions: string[],
   ) {
     return this.analyticsService.getRecentActivity(organizationId, userId, permissions);
+  }
+
+  @ApiOperation({
+    summary:
+      'Layer 2 Diagnostic: chi tiet "vi sao" cho 1 phong ban/du an cu the (tong task, chua xong, qua han, nguoi tap trung nhieu task chua xong nhat). ' +
+      'Pham vi truy cap: Org Admin xem duoc moi scope, Manager chi xem duoc scope=department minh phu trach, scope=project chi danh cho Org Admin.',
+  })
+  @Get('drill-down')
+  getDrillDown(
+    @CurrentUser('organizationId') organizationId: string,
+    @CurrentUser('userId') userId: string,
+    @CurrentUser('permissions') permissions: string[],
+    @Query() query: DrillDownQueryDto,
+  ) {
+    return this.analyticsService.getDrillDown(
+      organizationId,
+      query.scope,
+      query.scopeId,
+      query.range ?? '7d',
+      userId,
+      permissions,
+    );
   }
 }

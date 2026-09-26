@@ -7,6 +7,34 @@ import { RedisService } from '../redis/redis.service';
 export type InsightSeverity = 'critical' | 'warning' | 'info';
 export type InsightScope = 'organization' | 'department' | 'project';
 
+/**
+ * 24/09/2026: Layer 5 Recommendation Engine - mo rong tinh nang "Nhan xet AI" da co (khong xay
+ * lai) de tich hop them ket qua Layer 3 Anomaly Detection (apps/ml-service) vao CUNG 1 prompt/1
+ * lan goi LLM da co san. Cung nguyen tac "AI KHONG BAO GIO tu tinh so lieu" - actionPlan la VAN
+ * BAN dinh tinh (hanh dong/ly do/tac dong ky vong), khong mang theo so lieu moi nao AI tu bia.
+ */
+export type ActionPlanPriority = 'high' | 'medium' | 'low';
+
+export interface ActionPlanItem {
+  action: string;
+  priority: ActionPlanPriority;
+  reason: string;
+  expectedEffect: string;
+  effort: string;
+}
+
+/**
+ * 24/09/2026: du lieu 1 truong hop bi gan co bat thuong tu POST /ml/anomalies (apps/ml-service) -
+ * frontend da tu goi endpoint do rieng (analytics-service KHONG duoc phep goi HTTP noi bo sang
+ * service khac - database-per-service) va truyen ket qua vao day de lam giau prompt. CO Y bo
+ * userId khoi kieu du lieu nay (chi giu topDeviation) - xem buildAnomalyContext(): prompt gui cho
+ * AI KHONG mang danh tinh cu the, tranh AI "bia" ten/nhac lai UUID tho trong van ban tra ve.
+ */
+export interface AnomalyInput {
+  metrics: { totalTasks: number; completionRate: number; overdueTasks: number; attendanceRate: number };
+  topDeviation: { metric: string; value: number; teamAverage: number; direction: 'down' | 'up' };
+}
+
 export interface StructuredInsight {
   scope: InsightScope;
   /** null khi scope='organization'. UUID tho (department/project) - frontend tu resolve ten qua API rieng, cung quy uoc voi ProjectProgress.projectId (analytics.service.ts). */
@@ -17,6 +45,10 @@ export interface StructuredInsight {
   headline: string;
   detail: string;
   recommendation: string | null;
+  /** 24/09/2026: null khi AI khong de xuat gi them (binh thuong) HOAC khi request khong kem du
+   *  lieu bat thuong (GET /analytics/ai-insights cu, khong doi) - CHI co gia tri khi goi qua
+   *  POST /analytics/ai-insights kem `anomalies`, xem generateInsights(). */
+  actionPlan: ActionPlanItem | null;
   evidence: {
     value: number;
     /** null khi scope='organization' (khong co gi de so sanh) - nguoc lai la completionRate cua toan to chuc, TU BACKEND TINH (khong lay tu AI) de dam bao chinh xac. */
@@ -58,6 +90,9 @@ interface RawLlmInsight {
   headline: string;
   detail: string;
   recommendation: string | null;
+  /** 24/09/2026: TUY CHON - chi AI dien khi prompt co kem boi canh bat thuong (xem
+   *  buildAnomalyContext()). undefined/thieu truong duoc coi la null, khong phai loi. */
+  actionPlan?: ActionPlanItem | null;
 }
 
 // 28/07/2026: TTL cache DAI HON han cache KPI thuong (SUMMARY_CACHE_TTL_SECONDS = 8s trong
@@ -117,16 +152,26 @@ export class AiInsightsService {
     private readonly configService: ConfigService,
   ) {}
 
-  async generateInsights(organizationId: string, range: string): Promise<AiInsightsResult> {
+  /**
+   * 24/09/2026: them tham so `anomalies` (mac dinh [] - GIU NGUYEN hanh vi cu 100% cho
+   * GET /analytics/ai-insights, khong doi cache key/logic). Khi POST /analytics/ai-insights goi
+   * kem du lieu bat thuong THAT (khong rong), CHU DINH bo qua Redis cache (ca doc lan ghi) - day
+   * la duong goi "lam giau" theo yeu cau ngay sau 1 lan quet Anomaly Detection moi, khong nen tra
+   * ve/ghi de 1 ket qua da cache TU LAN GOI KHONG co boi canh bat thuong (hoac nguoc lai).
+   */
+  async generateInsights(organizationId: string, range: string, anomalies: AnomalyInput[] = []): Promise<AiInsightsResult> {
+    const useCache = anomalies.length === 0;
     const cacheKey = `analytics:ai-insights:${organizationId}:${range}`;
 
-    try {
-      const cached = await this.redisService.getJson<AiInsightsResult>(cacheKey);
-      if (cached) return cached;
-    } catch (err) {
-      this.logger.warn(
-        `Doc cache Redis that bai (key=${cacheKey}) - coi nhu cache miss va tao nhan xet moi: ${(err as Error).message}`,
-      );
+    if (useCache) {
+      try {
+        const cached = await this.redisService.getJson<AiInsightsResult>(cacheKey);
+        if (cached) return cached;
+      } catch (err) {
+        this.logger.warn(
+          `Doc cache Redis that bai (key=${cacheKey}) - coi nhu cache miss va tao nhan xet moi: ${(err as Error).message}`,
+        );
+      }
     }
 
     const geminiApiKey = this.configService.get<string>('gemini.apiKey');
@@ -139,7 +184,7 @@ export class AiInsightsService {
     }
 
     const candidates = await this.buildCandidates(organizationId, range);
-    const prompt = buildStructuredPrompt(range, candidates);
+    const prompt = buildStructuredPrompt(range, candidates, anomalies);
     const rawInsights = await this.generateStructuredInsights(prompt, geminiApiKey, groqApiKey);
 
     const orgCandidate = candidates[0];
@@ -158,6 +203,7 @@ export class AiInsightsService {
         headline: raw.headline,
         detail: raw.detail,
         recommendation: raw.recommendation,
+        actionPlan: raw.actionPlan ?? null,
         evidence: {
           value: candidate.completionRate,
           comparisonValue: candidate.scope === 'organization' ? null : orgCandidate.completionRate,
@@ -181,12 +227,14 @@ export class AiInsightsService {
       candidates: candidates.map((c) => ({ scope: c.scope, scopeId: c.scopeId, completionRate: c.completionRate })),
     };
 
-    try {
-      await this.redisService.setJson(cacheKey, result, INSIGHT_CACHE_TTL_SECONDS);
-    } catch (err) {
-      this.logger.warn(
-        `Ghi cache Redis that bai (key=${cacheKey}) - bo qua, van tra ve ket qua da tao cho request nay: ${(err as Error).message}`,
-      );
+    if (useCache) {
+      try {
+        await this.redisService.setJson(cacheKey, result, INSIGHT_CACHE_TTL_SECONDS);
+      } catch (err) {
+        this.logger.warn(
+          `Ghi cache Redis that bai (key=${cacheKey}) - bo qua, van tra ve ket qua da tao cho request nay: ${(err as Error).message}`,
+        );
+      }
     }
 
     return result;
@@ -428,6 +476,11 @@ function parseInsightsJson(text: string): RawLlmInsight[] {
       ((item as Record<string, unknown>).recommendation === null ||
         typeof (item as Record<string, unknown>).recommendation === 'string')
     ) {
+      // 24/09/2026: "actionPlan" la TRUONG TUY CHON (chi xuat hien khi prompt kem boi canh bat
+      // thuong) - loc rieng, KHONG lam hong ca insight (severity/headline/detail van hop le) chi
+      // vi actionPlan dien sai dinh dang; chuan hoa ve null neu khong hop le/vang mat thay vi nem
+      // loi ca item, mirror tinh than "bo qua muc khong hop le, khong huy hoai ca mang" cua ham nay.
+      (item as Record<string, unknown>).actionPlan = validateActionPlan((item as Record<string, unknown>).actionPlan);
       validated.push(item as unknown as RawLlmInsight);
     }
   }
@@ -438,6 +491,28 @@ function parseInsightsJson(text: string): RawLlmInsight[] {
   return validated;
 }
 
+const VALID_ACTION_PLAN_PRIORITIES = new Set(['high', 'medium', 'low']);
+
+function validateActionPlan(raw: unknown): ActionPlanItem | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  if (
+    typeof r.action === 'string' &&
+    r.action.trim().length > 0 &&
+    typeof r.priority === 'string' &&
+    VALID_ACTION_PLAN_PRIORITIES.has(r.priority) &&
+    typeof r.reason === 'string' &&
+    r.reason.trim().length > 0 &&
+    typeof r.expectedEffect === 'string' &&
+    r.expectedEffect.trim().length > 0 &&
+    typeof r.effort === 'string' &&
+    r.effort.trim().length > 0
+  ) {
+    return r as unknown as ActionPlanItem;
+  }
+  return null;
+}
+
 /**
  * 22/09/2026: prompt YEU CAU JSON THUAN (khong phai 1 doan van tu do nhu ban thiet ke cu) - dan
  * ro rang schema tung truong + 1 vi du dinh dang. Nhac lai NHIEU LAN "KHONG duoc neu ten rieng"
@@ -445,7 +520,44 @@ function parseInsightsJson(text: string): RawLlmInsight[] {
  * danh) - frontend se tu resolve ten qua scopeId sau khi nhan phan hoi (cung quy uoc voi
  * ProjectProgress.projectId, xem StructuredInsight).
  */
-function buildStructuredPrompt(range: string, candidates: Candidate[]): string {
+/**
+ * 24/09/2026: Layer 5 - tom tat cac truong hop bi gan co bat thuong (POST /ml/anomalies) thanh
+ * VAN BAN boi canh cho prompt. CO Y KHONG dua userId/danh tinh vao day (xem AnomalyInput) - AI chi
+ * thay "co bao nhieu truong hop, lech chi so gi, lech bao nhieu" o muc TONG QUAN, khong biet la
+ * ai, giu dung nguyen tac "AI khong tiep xuc du lieu ca nhan chi tiet ngoai muc can thiet".
+ */
+function buildAnomalyContext(anomalies: AnomalyInput[]): string {
+  if (anomalies.length === 0) return '';
+
+  const metricLabel: Record<string, string> = {
+    completionRate: 'tỷ lệ hoàn thành công việc',
+    overdueTasks: 'số công việc quá hạn',
+    attendanceRate: 'tỷ lệ chấm công',
+  };
+  const lines = anomalies
+    .map((a, i) => {
+      const label = metricLabel[a.topDeviation.metric] ?? a.topDeviation.metric;
+      const directionLabel = a.topDeviation.direction === 'down' ? 'thấp hơn' : 'cao hơn';
+      return `- Trường hợp ${i + 1}: ${label} = ${a.topDeviation.value}, ${directionLabel} trung bình đội nhóm (${a.topDeviation.teamAverage})`;
+    })
+    .join('\n');
+
+  return `
+
+BỔ SUNG - hệ thống phát hiện bất thường (mô hình Isolation Forest) vừa quét riêng và tìm thấy ${anomalies.length} trường hợp nhân viên có chỉ số lệch hẳn so với mặt bằng chung đội nhóm (KHÔNG gắn với danh tính cụ thể nào - chỉ dùng làm bối cảnh bổ sung, không phải số liệu của các phạm vi ở trên):
+${lines}
+
+Với MỖI mục bạn đã chọn ở trên, nếu xét thấy có liên hệ hợp lý với các trường hợp bất thường này (hoặc với chính số liệu của mục đó), hãy bổ sung thêm trường "actionPlan" - một object gồm:
+- "action": MỘT hành động cụ thể nên làm, 1 câu tiếng Việt
+- "priority": "high" (cần làm ngay) | "medium" | "low"
+- "reason": vì sao hành động này quan trọng, dựa trên số liệu/bối cảnh đã cho, không bịa thêm số liệu mới
+- "expectedEffect": tác động kỳ vọng nếu thực hiện, 1 câu ngắn
+- "effort": mức công sức ước tính bằng tiếng Việt, ví dụ "Thấp - 1 buổi họp" hoặc "Trung bình - cần theo dõi khoảng 2 tuần"
+
+"actionPlan" là TUỲ CHỌN - bỏ qua hẳn trường này (không thêm "actionPlan": null) ở những mục không có gì cụ thể để đề xuất, KHÔNG bắt buộc phải có ở mọi mục.`;
+}
+
+function buildStructuredPrompt(range: string, candidates: Candidate[], anomalies: AnomalyInput[] = []): string {
   const rangeLabel = RANGE_LABELS[range] ?? range;
   const lines = candidates
     .map((c, index) => {
@@ -458,17 +570,18 @@ function buildStructuredPrompt(range: string, candidates: Candidate[]): string {
 
 NHIỆM VỤ: KHÔNG liệt kê hết - chỉ CHỌN RA 2 đến 4 mục ĐÁNG CHÚ Ý NHẤT (bất thường so với các mục còn lại, có rủi ro cần theo dõi, hoặc tích cực đáng ghi nhận).
 
-Với MỖI mục được chọn, trả về một object JSON với ĐÚNG các trường sau, không thêm trường khác:
+Với MỖI mục được chọn, trả về một object JSON với các trường sau:
 - "itemIndex": số nguyên, đúng bằng số [n] của mục trong danh sách dưới đây
 - "severity": "critical" (cần hành động ngay) | "warning" (cần theo dõi) | "info" (điểm tích cực đáng ghi nhận)
 - "metric": tên chỉ số ngắn gọn bằng tiếng Anh không dấu, ví dụ "completion_rate"
 - "headline": MỘT câu tiếng Việt có dấu, dưới 20 từ. QUAN TRỌNG: bạn KHÔNG biết tên thật của phòng ban/dự án (chỉ thấy số thứ tự ẩn danh) - TUYỆT ĐỐI không nêu tên riêng hay số thứ tự, chỉ mô tả hiện tượng, ví dụ "Tỷ lệ hoàn thành công việc thấp hơn đáng kể so với phần còn lại của tổ chức"
 - "detail": 1-2 câu tiếng Việt giải thích thêm, CHỈ dựa trên số liệu đã cho, không bịa thêm số liệu nào khác
 - "recommendation": một câu gợi ý hành động bằng tiếng Việt, hoặc null nếu mục này không cần hành động gì (vd điểm tích cực đơn thuần)
+${anomalies.length > 0 ? '- "actionPlan": xem hướng dẫn riêng bên dưới (tuỳ chọn)' : ''}
 
 Chỉ trả về DUY NHẤT một mảng JSON hợp lệ, KHÔNG kèm markdown code fence, KHÔNG kèm bất kỳ chữ giải thích nào khác. Ví dụ định dạng phản hồi:
 [{"itemIndex":1,"severity":"warning","metric":"completion_rate","headline":"...","detail":"...","recommendation":"..."}]
 
 Danh sách chỉ số:
-${lines}`;
+${lines}${buildAnomalyContext(anomalies)}`;
 }

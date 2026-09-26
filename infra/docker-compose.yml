@@ -12,6 +12,7 @@ volumes:
   postgres-doc-data:
   postgres-crm-data:
   postgres-hrm-data:
+  postgres-ml-data:
   timescale-data:
   mongo-data:
   kafka-data:
@@ -130,6 +131,27 @@ services:
     networks: [internal-net]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_HRM_USER} -d ${POSTGRES_HRM_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # 24/09/2026: Postgres rieng cho ML Service (Layer 3 Anomaly Detection, Technical_Spec.md muc
+  # 19) - dung quy uoc database-per-service nhu cac Postgres nghiep vu hien co.
+  postgres-ml:
+    image: postgres:16-alpine
+    container_name: postgres-ml
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_ML_DB}
+      POSTGRES_USER: ${POSTGRES_ML_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_ML_PASSWORD}
+    volumes:
+      - postgres-ml-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5440:5432"
+    networks: [internal-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_ML_USER} -d ${POSTGRES_ML_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -375,6 +397,7 @@ services:
       analytics-service: { condition: service_healthy }
       crm-service: { condition: service_healthy }
       hrm-service: { condition: service_healthy }
+      ml-service: { condition: service_healthy }
       # 25/07/2026: kiem tra vong 2 phat hien - gateway dung REDIS_HOST/PORT ben duoi (rate-limit,
       # blacklist token) nhung truoc day khong khai bao phu thuoc "redis" nen co the khoi dong
       # truoc khi Redis san sang, gay loi tam thoi luc "docker compose up" lan dau.
@@ -395,6 +418,7 @@ services:
       ANALYTICS_SERVICE_URL: http://analytics-service:3005
       CRM_SERVICE_URL: http://crm-service:3007
       HRM_SERVICE_URL: http://hrm-service:3006
+      ML_SERVICE_URL: http://ml-service:8000
     ports:
       - "3000:3000"
     networks: [internal-net]
@@ -664,6 +688,42 @@ services:
     networks: [internal-net]
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3006/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # 24/09/2026: ML Service (Layer 3 Anomaly Detection, Python/FastAPI - service dau tien KHONG
+  # phai Node/NestJS cua du an - Technical_Spec.md muc 19). Tu xay read-model rieng qua Kafka
+  # (iam.events/project-task.events/hrm.events) vao postgres-ml, KHONG doc truc tiep DB cua service
+  # khac - cung quy uoc "database-per-service" nhu 6 service Node hien co.
+  ml-service:
+    build:
+      context: ..
+      dockerfile: apps/ml-service/Dockerfile
+    container_name: ml-service
+    restart: unless-stopped
+    depends_on:
+      postgres-ml: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+    environment:
+      DB_HOST: postgres-ml
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_ML_DB}
+      DB_USER: ${POSTGRES_ML_USER}
+      DB_PASSWORD: ${POSTGRES_ML_PASSWORD}
+      KAFKA_BROKER: kafka:29092
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
+    # Khong map port ra host, chi Gateway/noi bo moi goi duoc qua internal-net - cung quy uoc voi
+    # cac service nghiep vu con lai (Technical_Spec.md muc 8).
+    networks: [internal-net]
+    healthcheck:
+      # 24/09/2026: image runner khong co curl/wget (python:3.12-slim toi gian) - dung thang
+      # urllib cua Python (luon co san, mirror tinh than cach cac service Node dung `node -e`
+      # thay vi cai them cong cu he thong chi de healthcheck). Khong bat exception rieng - urlopen
+      # nem loi (vd connection refused/non-2xx) se tu lam tien trinh python thoat voi ma khac 0,
+      # dung y nghia "unhealthy" can co.
+      test: ["CMD", "python", "-c", "import urllib.request as u; assert u.urlopen('http://localhost:8000/api/v1/health').status == 200"]
       interval: 10s
       timeout: 5s
       retries: 10

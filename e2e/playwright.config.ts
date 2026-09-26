@@ -8,8 +8,11 @@ import { defineConfig, devices } from '@playwright/test';
 //
 // Dieu kien tien quyet de chay bo test nay (KHONG tu dong hoa trong file nay - xem e2e/README.md):
 //   1) `docker compose up -d` (toan bo stack, xem infra/docker-compose.yml) dang chay va healthy.
-//   2) `npm run seed` da chay it nhat 1 lan - cac test dung lai tai khoan Org Admin demo co san
-//      (admin@demo-sme.vn) thay vi tu dang ky to chuc moi, xem e2e/tests/helpers.ts.
+//   2) `npm run seed:e2e` da chay it nhat 1 lan - cac test dung lai tai khoan Org Admin cua 1 to
+//      chuc E2E RIENG (admin@e2e-test.local, xem scripts/seed-e2e.js) thay vi tu dang ky to chuc
+//      moi. 25/09/2026: doi tu `npm run seed`/to chuc demo (admin@demo-sme.vn) sang to chuc rieng
+//      nay - tranh du lieu rac cac test tu tao tich luy vinh vien vao to chuc dung de demo/trinh
+//      bay that, xem e2e/tests/helpers.ts.
 export default defineConfig({
   testDir: './tests',
   timeout: 30_000,

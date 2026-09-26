@@ -29,6 +29,19 @@ export class OrgMembersService {
     );
   }
 
+  /**
+   * 25/09/2026: xoa han dong org_member khi nhan EVENT_TYPES.USER_DELETED - IAM Service vua bo
+   * sung DELETE /users/:id (hard delete, chi cho tai khoan da vo hieu hoa) va phat event tuong
+   * ung. Khac markInactive() (chi doi trang thai, con giu dong de biet "user nay TUNG ton tai"),
+   * o day XOA HAN vi user khong con ton tai nua - giu lai chi la 1 dong "ma" vinh vien trong read-
+   * model nay. Phat hien qua rieng soat cung dot voi loi tuong tu o Analytics Service/ml-service
+   * (dim_user) - org_members chua bi anh huong QUAN SAT DUOC (markInactive() da chay truoc khi xoa
+   * nen isActive da la false), nhung van la cung 1 lop ho kien truc can vac cho nhat quan.
+   */
+  async remove(organizationId: string, userId: string): Promise<void> {
+    await this.orgMemberModel.deleteOne({ organizationId, userId });
+  }
+
   /** 23/09/2026: dong bo tu EVENT_TYPES.USER_DEPARTMENT_CHANGED - xem kafka-consumer.service.ts. */
   async setDepartment(organizationId: string, userId: string, departmentId: string | null): Promise<void> {
     await this.orgMemberModel.updateOne({ organizationId, userId }, { $set: { departmentId } }, { upsert: true });

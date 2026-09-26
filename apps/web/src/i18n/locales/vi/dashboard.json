@@ -139,11 +139,12 @@
     "actions": {
       "iam_organization_registered": "đã đăng ký tổ chức mới",
       "iam_user_registered": "đã tham gia tổ chức",
-      "iam_user_deactivated": "đã bị vô hiệu hóa tài khoản",
+      "iam_user_deactivated": "đã vô hiệu hóa một tài khoản",
+      "iam_user_deleted": "đã xoá vĩnh viễn một tài khoản",
       "task_created": "đã tạo một công việc mới",
       "task_updated": "đã cập nhật một công việc",
       "task_status_changed": "đã cập nhật trạng thái công việc",
-      "task_assigned": "đã được giao một công việc",
+      "task_assigned": "đã giao một công việc",
       "task_deleted": "đã xóa một công việc",
       "project_created": "đã tạo một dự án mới",
       "project_updated": "đã cập nhật một dự án",
@@ -162,8 +163,8 @@
       "attendance_checked_in": "đã điểm danh vào ca làm việc",
       "attendance_checked_out": "đã kết thúc ca làm việc",
       "leave_request_created": "đã gửi đơn yêu cầu nghỉ phép",
-      "leave_request_approved": "đã được duyệt đơn nghỉ phép",
-      "leave_request_rejected": "đã bị từ chối đơn nghỉ phép"
+      "leave_request_approved": "đã duyệt một đơn nghỉ phép",
+      "leave_request_rejected": "đã từ chối một đơn nghỉ phép"
     }
   },
   "upcomingLeaves": {

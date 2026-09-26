@@ -139,11 +139,12 @@
     "actions": {
       "iam_organization_registered": "新しい組織を登録しました",
       "iam_user_registered": "組織に参加しました",
-      "iam_user_deactivated": "アカウントが無効化されました",
+      "iam_user_deactivated": "アカウントを無効化しました",
+      "iam_user_deleted": "アカウントを完全に削除しました",
       "task_created": "新しいタスクを作成しました",
       "task_updated": "タスクを更新しました",
       "task_status_changed": "タスクのステータスを更新しました",
-      "task_assigned": "タスクを割り当てられました",
+      "task_assigned": "タスクを割り当てました",
       "task_deleted": "タスクを削除しました",
       "project_created": "新しいプロジェクトを作成しました",
       "project_updated": "プロジェクトを更新しました",
@@ -162,8 +163,8 @@
       "attendance_checked_in": "出勤を打刻しました",
       "attendance_checked_out": "退勤を打刻しました",
       "leave_request_created": "休暇申請を提出しました",
-      "leave_request_approved": "休暇申請が承認されました",
-      "leave_request_rejected": "休暇申請が却下されました"
+      "leave_request_approved": "休暇申請を承認しました",
+      "leave_request_rejected": "休暇申請を却下しました"
     }
   },
   "upcomingLeaves": {

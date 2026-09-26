@@ -87,12 +87,15 @@ export class FactWriterService {
    * 28/07/2026: them cot assignee_id (nguoi duoc GAN task, chi co gia tri o event `task.assigned`
    * theo TaskAssignedPayload - null o cac event khac) - phuc vu KPI theo phong ban (JOIN voi
    * dim_user.user_id de biet task duoc gan cho user thuoc phong ban nao, xem AnalyticsService).
+   * 24/09/2026: them cot due_date (han hoan thanh TAI THOI DIEM TAO task, chi co gia tri o event
+   * `task.created` theo TaskCreatedPayload.dueDate - da la chuoi ISO-8601 nen dung thang
+   * extractString(), driver pg tu cast sang TIMESTAMPTZ) - phuc vu getDrillDown() tinh "qua han".
    */
   async recordTaskEvent(event: DomainEvent, runner: QueryExecutor = this.dataSource): Promise<boolean> {
     const rows = await runner.query(
       `
-      INSERT INTO fact_task_events (time, event_id, organization_id, event_type, project_id, task_id, from_status, to_status, actor_id, assignee_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      INSERT INTO fact_task_events (time, event_id, organization_id, event_type, project_id, task_id, from_status, to_status, actor_id, assignee_id, due_date)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       ON CONFLICT (time, event_id) DO NOTHING
       RETURNING event_id
       `,
@@ -107,6 +110,7 @@ export class FactWriterService {
         extractString(event, 'toStatus'),
         extractString(event, 'actorId'),
         extractString(event, 'assigneeId'),
+        extractString(event, 'dueDate'),
       ],
     );
     return rows.length > 0;
@@ -189,6 +193,23 @@ export class FactWriterService {
         `Bo qua upsertUserDepartment cho event CU hon last_event_at da luu (userId=${extractString(event, 'userId')}, eventId=${event.eventId}, occurredAt=${event.occurredAt}).`,
       );
     }
+  }
+
+  /**
+   * 25/09/2026: xoa dong dim_user tuong ung khi nhan EVENT_TYPES.USER_DELETED (UserDeletedPayload) -
+   * IAM Service vua bo sung DELETE /users/:id (hard delete, chi cho tai khoan da vo hieu hoa) nhung
+   * dim_user (bang lookup phong ban, xem upsertUserDepartment() o tren) khong tu biet dieu do neu
+   * khong co event rieng - phat hien qua phan hoi thuc te: 1 dim_user "ma" (user da bi xoa ben IAM
+   * nhung van con trong bang lookup nay) khien scoping theo phong ban (Manager xem KPI/drill-down
+   * cua phong ban minh) van tinh nham nguoi da roi to chuc. Khong dong thoi xoa fact_task_events/
+   * fact_user_activity (lich su su kien, khong phai bang lookup danh tinh - giu nguyen de khong mat
+   * du lieu bao cao qua khu, cung tinh than "xoa danh tinh, giu lich su" nhu moi service khac).
+   */
+  async deleteUser(event: DomainEvent, runner: QueryExecutor = this.dataSource): Promise<void> {
+    await runner.query(
+      `DELETE FROM dim_user WHERE user_id = $1 AND organization_id = $2`,
+      [extractString(event, 'userId'), event.organizationId],
+    );
   }
 
   /**

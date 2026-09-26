@@ -56,6 +56,10 @@ export async function bootstrapDepartmentKpiSchema(dataSource: DataSource): Prom
   await dataSource.query(`
     ALTER TABLE fact_task_events ADD COLUMN IF NOT EXISTS assignee_id UUID
   `);
+  // 24/09/2026: due_date - dong bo voi infra/timescale-init/001-init.sql (xem ghi chu tai do).
+  await dataSource.query(`
+    ALTER TABLE fact_task_events ADD COLUMN IF NOT EXISTS due_date TIMESTAMPTZ
+  `);
   // 23/09/2026: dim_department_manager - bang lookup THUAN (department_id -> nguoi phu trach
   // HIEN TAI), cung mau voi dim_user o tren (last_event_at de chong event den sai thu tu - xem
   // FactWriterService.upsertDepartmentManager()). Phuc vu scoping "Manager chi thay Hoat dong gan
@@ -73,6 +77,6 @@ export async function bootstrapDepartmentKpiSchema(dataSource: DataSource): Prom
     CREATE INDEX IF NOT EXISTS idx_dim_department_manager_org_manager ON dim_department_manager (organization_id, manager_id)
   `);
   logger.log(
-    'Da kiem tra/tao xong schema KPI theo phong ban (dim_user + dim_user.last_event_at, fact_task_events.assignee_id, dim_department_manager).',
+    'Da kiem tra/tao xong schema KPI theo phong ban (dim_user + dim_user.last_event_at, fact_task_events.assignee_id/due_date, dim_department_manager).',
   );
 }

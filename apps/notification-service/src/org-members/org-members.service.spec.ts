@@ -9,12 +9,13 @@ import { OrgMemberDocument } from './schemas/org-member.schema';
  */
 describe('OrgMembersService', () => {
   let service: OrgMembersService;
-  let modelMock: { updateOne: jest.Mock; find: jest.Mock };
+  let modelMock: { updateOne: jest.Mock; find: jest.Mock; deleteOne: jest.Mock };
 
   beforeEach(() => {
     modelMock = {
       updateOne: jest.fn().mockResolvedValue({ acknowledged: true }),
       find: jest.fn(),
+      deleteOne: jest.fn().mockResolvedValue({ acknowledged: true }),
     };
     service = new OrgMembersService(modelMock as unknown as Model<OrgMemberDocument>);
   });
@@ -72,6 +73,14 @@ describe('OrgMembersService', () => {
         { $set: { isActive: false } },
         { upsert: true },
       );
+    });
+  });
+
+  describe('remove', () => {
+    it('xoa han dong org_member theo cap (organizationId, userId)', async () => {
+      await service.remove('org-1', 'user-1');
+
+      expect(modelMock.deleteOne).toHaveBeenCalledWith({ organizationId: 'org-1', userId: 'user-1' });
     });
   });
 

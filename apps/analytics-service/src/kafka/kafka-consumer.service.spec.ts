@@ -190,7 +190,9 @@ describe('KafkaConsumerService (Analytics Service) - handleEvent', () => {
     const registeredEvent: DomainEvent = {
       ...baseEvent,
       eventType: EVENT_TYPES.USER_REGISTERED,
-      payload: { userId: 'user-1', email: 'a@example.com', departmentId: 'dept-1' },
+      // 23/09/2026: actorId = chinh userId (nguoi "gia nhap" la chu the - xem UsersService.invite()/
+      // AuthService, UserRegisteredPayload.actorId trong common-dto).
+      payload: { userId: 'user-1', email: 'a@example.com', departmentId: 'dept-1', actorId: 'user-1' },
     };
 
     it('goi upsertUserDepartment() (khong phai recordTaskEvent/recordDocumentEvent) cho event USER_REGISTERED, trong CUNG transaction', async () => {
@@ -213,6 +215,25 @@ describe('KafkaConsumerService (Analytics Service) - handleEvent', () => {
       await service['handleEvent'](departmentChangedEvent, KAFKA_TOPICS.IAM);
 
       expect(factWriterMock.upsertUserDepartment).toHaveBeenCalledWith(departmentChangedEvent, managerStub);
+    });
+
+    // 24/09/2026: khi USER_DEPARTMENT_CHANGED den tu UserDepartmentSyncService (resync tu dong luc
+    // iam-service khoi dong, KHONG phai do 1 nguoi vua thao tac) - payload khong co actorId (xem
+    // UserDepartmentChangedPayload.actorId, common-dto). Van phai ghi fact_user_activity binh
+    // thuong (giu idempotency/audit trail) nhung KHONG duoc day WS - khong co "ai" de gan cho hoat
+    // dong nay, hien thi se chi con cach fallback ve "Mot thanh vien" (mirror bo loc
+    // "actor_id IS NOT NULL" trong AnalyticsService.getRecentActivity()).
+    it('KHONG day WS activity cho USER_DEPARTMENT_CHANGED tu resync (payload khong co actorId)', async () => {
+      const resyncEvent: DomainEvent = {
+        ...baseEvent,
+        eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,
+        payload: { userId: 'user-1', departmentId: null },
+      };
+
+      await service['handleEvent'](resyncEvent, KAFKA_TOPICS.IAM);
+
+      expect(factWriterMock.recordUserActivity).toHaveBeenCalledWith(resyncEvent, managerStub);
+      expect(gatewayMock.emitActivity).not.toHaveBeenCalled();
     });
 
     it('day WS activity binh thuong (isNewEvent=true) sau khi upsertUserDepartment() thanh cong', async () => {

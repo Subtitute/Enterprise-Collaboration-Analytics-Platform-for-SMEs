@@ -48,8 +48,30 @@
     "comparisonLabel": "組織平均 {{value}}% との比較",
     "chart": {
       "completionRateLabel": "完了率:",
-      "otherLabel": "その他"
+      "otherLabel": "その他",
+      "drillDownHint": "バー(部署/プロジェクト)をクリックすると詳細が表示されます"
+    },
+    "actionPlan": {
+      "title": "アクションプラン",
+      "expectedEffect": "期待される効果",
+      "effort": "工数",
+      "priority": {
+        "high": "優先度: 高",
+        "medium": "優先度: 中",
+        "low": "優先度: 低"
+      }
     }
+  },
+  "drillDown": {
+    "description": "この範囲のタスク詳細(レイヤー2 - 総数 → 未完了 → 期限超過 → 1人への集中)。",
+    "totalTasks": "タスク総数",
+    "notDoneTasks": "未完了",
+    "overdueTasks": "期限超過",
+    "topAssignee": "最も集中している担当者",
+    "topAssigneeCount": "未完了タスク {{count}} 件",
+    "noTopAssignee": "この範囲には割り当てられたタスクがありません。",
+    "dueDateLimitationNote": "※「期限超過」はタスク作成時点の期限に基づいています。後で期限が変更された場合、反映されないことがあります。",
+    "error": "ドリルダウン詳細を読み込めませんでした"
   },
   "charts": {
     "projectProgressTitle": "プロジェクト進捗比較",
@@ -84,7 +106,23 @@
     }
   },
   "hooks": {
-    "aiInsightError": "AIインサイトを生成できませんでした"
+    "aiInsightError": "AIインサイトを生成できませんでした",
+    "drillDownError": "ドリルダウン詳細を読み込めませんでした",
+    "anomalyError": "異常検知を実行できませんでした"
+  },
+  "anomaly": {
+    "title": "異常検知",
+    "subtitle": "Isolation Forestモデルで全従業員をスキャンし、チームの基準から大きく外れている人を検出します。",
+    "runButton": "異常検知を実行",
+    "placeholder": "「異常検知を実行」をクリックすると、全従業員のタスク・勤怠データをスキャンし、チームの基準から大きく外れているケースを検出します。",
+    "noAnomalies": "スキャンした{{count}}名の従業員の中に異常は検出されませんでした。",
+    "sampleSizeNote": "※ {{count}}名の従業員をスキャンしました。意味のある比較には最低4名が必要です。",
+    "teamAverageLabel": "チーム平均 {{value}} との比較",
+    "metricLabels": {
+      "completionRate": "完了率",
+      "overdueTasks": "期限超過タスク数",
+      "attendanceRate": "出勤率"
+    }
   },
   "mockProjects": {
     "crmUpgrade": "CRM・営業システムのアップグレード",

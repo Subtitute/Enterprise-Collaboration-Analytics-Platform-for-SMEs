@@ -46,8 +46,17 @@ Nguồn gốc: 1 đợt review toàn dự án (vai trò giảng viên phản bi�
 - [ ] Nâng cấp TypeORM 0.3 → 1.0 — là 1 dự án migration thật sự (breaking change), **không làm trước khi bảo vệ đồ án**
 - [ ] Nâng cấp React 18→19, Vite 5→8, ESLint 8→10 — mỗi thư viện lệch 1-3 major, chấp nhận được ở quy mô đồ án, chỉ đáng quan tâm nếu dự án còn tiếp tục sau khi tốt nghiệp
 
+## Tier 4 — Analytics nâng cao, phần chưa triển khai của đợt 24/09/2026
+
+**⏳ Chưa triển khai — cố ý chưa làm, ghi nhận là phạm vi tương lai** (xem `Technical_Spec.md` §19 để biết phần ĐÃ triển khai cùng đợt: Diagnostic drill-down, Anomaly Detection, Recommendation Engine, nhập Excel hàng loạt)
+
+- [ ] **Layer 4 — Predictive/Forecasting:** dự báo xu hướng KPI (vd số công việc hoàn thành tuần tới) — không triển khai NeuralForecast/mô hình deep learning như định hướng ban đầu vì dữ liệu demo quá nhỏ để mô hình có ý nghĩa; nếu làm sau này nên bắt đầu bằng phương pháp thống kê nhẹ (vd trung bình trượt/hồi quy tuyến tính đơn giản) trước khi cân nhắc mô hình phức tạp hơn.
+- [ ] **Layer 6 — What-if Simulation:** mô phỏng "nếu thay đổi X thì Y đổi thế nào" (vd thêm người vào phòng ban thì tỷ lệ hoàn thành đổi ra sao) — cần Layer 4 làm nền trước.
+- [ ] **Demo Data Scenario Generator:** tính năng cho Org Admin chọn 1 trong nhiều kịch bản demo dựng sẵn (vd "đội nhóm đang quá tải", "phòng ban hoạt động tốt") kèm 1 seed số để sinh dữ liệu tái lập được — hiện dữ liệu demo vẫn dựa vào `scripts/seed.js` cố định, không có giao diện chọn kịch bản.
+
 ---
 
 ## Lịch sử thay đổi file này
 
 - **2026-08-22** — Khởi tạo file, ghi nhận trạng thái Tier 1 và Tier 2 (đã hoàn tất, xác minh sống) cùng Tier 3 (cố ý chưa làm, hướng phát triển) từ đợt review toàn dự án cùng ngày.
+- **2026-09-24** — Bổ sung Tier 4: phần cố ý chưa làm của đợt nâng cấp Analytics 24/09/2026 (Layer 4 Forecasting, Layer 6 What-if Simulation, Demo Data Scenario Generator) — xem `Technical_Spec.md` §19 cho phần đã triển khai cùng đợt.

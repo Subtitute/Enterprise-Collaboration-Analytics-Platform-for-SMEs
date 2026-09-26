@@ -23,6 +23,11 @@ CREATE TABLE IF NOT EXISTS fact_task_events (
   -- khong co truong nay). KHAC voi actor_id (nguoi THUC HIEN hanh dong). Phuc vu KPI theo phong
   -- ban: JOIN voi dim_user ben duoi de biet 1 task duoc gan cho user thuoc phong ban nao.
   assignee_id      UUID,
+  -- 24/09/2026: han hoan thanh (Task.dueDate) TAI THOI DIEM TAO task - chi co gia tri o event
+  -- `task.created` (TaskCreatedPayload.dueDate), NULL o cac event khac. Phuc vu drill-down "task
+  -- qua han" (AnalyticsService.getDrillDown()). GIOI HAN DA BIET: khong cap nhat neu doi han sau
+  -- qua PATCH /tasks/:id (PATCH khong phat event rieng cho thay doi field thuong).
+  due_date         TIMESTAMPTZ,
   PRIMARY KEY (time, event_id)
 );
 SELECT create_hypertable('fact_task_events', by_range('time'), if_not_exists => TRUE);

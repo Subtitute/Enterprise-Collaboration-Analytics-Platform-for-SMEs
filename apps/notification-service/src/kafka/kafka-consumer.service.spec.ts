@@ -35,6 +35,7 @@ describe('KafkaConsumerService (Notification Service)', () => {
   let orgMembersServiceMock: {
     markActive: jest.Mock;
     markInactive: jest.Mock;
+    remove: jest.Mock;
     setDepartment: jest.Mock;
     listActiveUserIds: jest.Mock;
   };
@@ -46,6 +47,7 @@ describe('KafkaConsumerService (Notification Service)', () => {
     orgMembersServiceMock = {
       markActive: jest.fn().mockResolvedValue(undefined),
       markInactive: jest.fn().mockResolvedValue(undefined),
+      remove: jest.fn().mockResolvedValue(undefined),
       setDepartment: jest.fn().mockResolvedValue(undefined),
       listActiveUserIds: jest.fn().mockResolvedValue([]),
     };
@@ -175,6 +177,21 @@ describe('KafkaConsumerService (Notification Service)', () => {
       await service['handleMessage'](makePayload(JSON.stringify(event), 'iam.events'));
 
       expect(orgMembersServiceMock.markInactive).toHaveBeenCalledWith('org-1', 'user-1');
+    });
+
+    it('USER_DELETED: xoa han dong org_member (khac USER_DEACTIVATED - user khong con ton tai)', async () => {
+      const event = {
+        eventId: 'evt-del-1',
+        eventType: EVENT_TYPES.USER_DELETED,
+        occurredAt: '2026-09-25T09:00:00.000Z',
+        organizationId: 'org-1',
+        producer: 'iam-service',
+        payload: { userId: 'user-1', actorId: 'admin-1' },
+      };
+
+      await service['handleMessage'](makePayload(JSON.stringify(event), 'iam.events'));
+
+      expect(orgMembersServiceMock.remove).toHaveBeenCalledWith('org-1', 'user-1');
     });
 
     it('CALENDAR_EVENT_CREATED (type=HOLIDAY): fan-out 1 notification cho MOI thanh vien active, dung chung eventId', async () => {

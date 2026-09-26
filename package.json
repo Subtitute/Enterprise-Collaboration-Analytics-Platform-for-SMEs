@@ -27,6 +27,7 @@
     "dev:hrm": "npm run start:dev -w apps/hrm-service",
     "dev:web": "npm run dev -w apps/web",
     "seed": "node scripts/seed.js",
+    "seed:e2e": "node scripts/seed-e2e.js",
     "backup": "node scripts/backup.js",
     "restore": "node scripts/restore.js"
   },

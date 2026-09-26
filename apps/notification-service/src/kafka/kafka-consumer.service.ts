@@ -9,6 +9,7 @@ import {
   KAFKA_CONSUMER_GROUPS,
   KAFKA_TOPICS,
   UserDeactivatedPayload,
+  UserDeletedPayload,
   UserDepartmentChangedPayload,
   UserRegisteredPayload,
 } from '@app/common-dto';
@@ -324,6 +325,10 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     } else if (event.eventType === EVENT_TYPES.USER_DEACTIVATED) {
       const payload = event.payload as unknown as UserDeactivatedPayload;
       if (payload?.userId) await this.orgMembersService.markInactive(event.organizationId, payload.userId);
+    } else if (event.eventType === EVENT_TYPES.USER_DELETED) {
+      // 25/09/2026: xem chu thich chi tiet tai OrgMembersService.remove().
+      const payload = event.payload as unknown as UserDeletedPayload;
+      if (payload?.userId) await this.orgMembersService.remove(event.organizationId, payload.userId);
     } else if (event.eventType === EVENT_TYPES.USER_DEPARTMENT_CHANGED) {
       // 23/09/2026: phong ban cua 1 user DA TON TAI thay doi (khac USER_REGISTERED o tren, luc tao
       // moi) - can cho pham vi hien thi thong bao theo phong ban cua Manager (xem

@@ -265,6 +265,7 @@ export class TasksService {
         projectId: task.projectId,
         title: task.title,
         actorId,
+        dueDate: task.dueDate ? task.dueDate.toISOString() : null,
       };
       await this.outboxService.record(manager, {
         eventType: EVENT_TYPES.TASK_CREATED,

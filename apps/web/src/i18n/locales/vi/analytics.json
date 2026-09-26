@@ -48,8 +48,30 @@
     "comparisonLabel": "so với trung bình tổ chức {{value}}%",
     "chart": {
       "completionRateLabel": "Tỷ lệ hoàn thành:",
-      "otherLabel": "Khác"
+      "otherLabel": "Khác",
+      "drillDownHint": "Bấm vào 1 thanh (phòng ban/dự án) để xem chi tiết vì sao"
+    },
+    "actionPlan": {
+      "title": "Kế hoạch hành động",
+      "expectedEffect": "Tác động kỳ vọng",
+      "effort": "Công sức",
+      "priority": {
+        "high": "Ưu tiên cao",
+        "medium": "Ưu tiên vừa",
+        "low": "Ưu tiên thấp"
+      }
     }
+  },
+  "drillDown": {
+    "description": "Chi tiết công việc trong phạm vi này (Layer 2 - phễu Tổng → Chưa xong → Quá hạn → Tập trung ở 1 người).",
+    "totalTasks": "Tổng công việc",
+    "notDoneTasks": "Chưa xong",
+    "overdueTasks": "Quá hạn",
+    "topAssignee": "Tập trung nhiều nhất ở",
+    "topAssigneeCount": "{{count}} công việc chưa xong",
+    "noTopAssignee": "Không có công việc nào đang được giao trong phạm vi này.",
+    "dueDateLimitationNote": "* \"Quá hạn\" tính theo hạn hoàn thành tại thời điểm tạo công việc, có thể chưa cập nhật nếu hạn được đổi sau đó.",
+    "error": "Không thể tải chi tiết drill-down"
   },
   "charts": {
     "projectProgressTitle": "So sánh tiến độ dự án",
@@ -84,7 +106,23 @@
     }
   },
   "hooks": {
-    "aiInsightError": "Không thể tạo nhận xét AI"
+    "aiInsightError": "Không thể tạo nhận xét AI",
+    "drillDownError": "Không thể tải chi tiết drill-down",
+    "anomalyError": "Không thể chạy Phát hiện bất thường"
+  },
+  "anomaly": {
+    "title": "Phát hiện bất thường",
+    "subtitle": "Quét toàn bộ nhân viên bằng mô hình Isolation Forest, tìm ai đang lệch hẳn so với mặt bằng chung của đội nhóm.",
+    "runButton": "Chạy phát hiện bất thường",
+    "placeholder": "Bấm \"Chạy phát hiện bất thường\" để quét dữ liệu công việc và chấm công của toàn bộ nhân viên, tìm những trường hợp lệch hẳn so với mặt bằng chung.",
+    "noAnomalies": "Không phát hiện bất thường nào trong {{count}} nhân viên đã quét.",
+    "sampleSizeNote": "* Đã quét {{count}} nhân viên. Cần tối thiểu 4 nhân viên để mô hình so sánh có ý nghĩa.",
+    "teamAverageLabel": "so với trung bình đội nhóm {{value}}",
+    "metricLabels": {
+      "completionRate": "Tỷ lệ hoàn thành",
+      "overdueTasks": "Số công việc quá hạn",
+      "attendanceRate": "Tỷ lệ chấm công"
+    }
   },
   "mockProjects": {
     "crmUpgrade": "Nâng cấp Hệ thống CRM & Bán hàng",

@@ -269,6 +269,9 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
           // phong ban) - phuc vu scoping "Manager chi thay Hoat dong gan day cua phong ban minh
           // phu trach" (AnalyticsService.getRecentActivity()/listDepartmentIdsManagedBy()).
           await this.factWriter.upsertDepartmentManager(event, manager);
+        } else if (event.eventType === EVENT_TYPES.USER_DELETED) {
+          // 25/09/2026: xoa dong dim_user "ma" - xem chu thich chi tiet tai FactWriterService.deleteUser().
+          await this.factWriter.deleteUser(event, manager);
         }
       });
 
@@ -285,12 +288,19 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
 
       const payload = (event.payload ?? {}) as Record<string, unknown>;
       const actorId = typeof payload.actorId === 'string' ? payload.actorId : null;
-      this.gateway.emitActivity(event.organizationId, {
-        eventId: event.eventId,
-        eventType: event.eventType,
-        occurredAt: event.occurredAt,
-        actorId,
-      });
+      // 24/09/2026: bo qua push real-time khi khong co actorId - cung ly do voi bo loc
+      // "actor_id IS NOT NULL" trong AnalyticsService.getRecentActivity() (mirror dung o day de
+      // kenh WS va REST nhat quan): nguon DUY NHAT tao event khong actor la
+      // UserDepartmentSyncService resync tu dong luc khoi dong, khong phai hoat dong cua 1 nguoi
+      // dung - khong nen xuat hien trong "Hoat dong gan day" du qua REST hay real-time.
+      if (actorId) {
+        this.gateway.emitActivity(event.organizationId, {
+          eventId: event.eventId,
+          eventType: event.eventType,
+          occurredAt: event.occurredAt,
+          actorId,
+        });
+      }
     } catch (error) {
       // 22/07/2026: bo sung nhanh loi DU LIEU vinh vien (Postgres SQLSTATE 22P02/23502/23503 -
       // vd 1 truong trong payload khong phai UUID hop le, hoac thieu truong bat buoc) - retry

@@ -29,6 +29,11 @@ export const PERMISSIONS = {
 
   // Analytics
   ANALYTICS_VIEW: 'analytics:view',
+  // 24/09/2026: Layer 3 Anomaly Detection (apps/ml-service, IsolationForest theo yeu cau bam nut)
+  // - quyen RIENG (khong dung chung ANALYTICS_VIEW) vi day la du lieu nhay cam hon (danh gia bat
+  // thuong ve TUNG nhan vien cu the, khong chi so tong hop) - cho phep cap rieng biet neu can sau
+  // nay, mirror dung cach tach ATTENDANCE_VIEW rieng khoi cac quyen HRM khac.
+  ML_VIEW: 'ml:view',
 
   // CRM-lite (bo sung 04/08/2026) - khach hang va co hoi ban hang (deal pipeline)
   CUSTOMER_VIEW: 'customer:view',
@@ -98,6 +103,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<DefaultRoleName, Permission[]> = {
     PERMISSIONS.DOCUMENT_SHARE,
     PERMISSIONS.DOCUMENT_VIEW,
     PERMISSIONS.ANALYTICS_VIEW,
+    // 24/09/2026: Manager duoc xem Phat hien bat thuong cua PHONG BAN minh phu trach (xem gioi
+    // han pham vi tai apps/ml-service - mirror dung cach Manager duoc ANALYTICS_VIEW ngay tren).
+    PERMISSIONS.ML_VIEW,
     PERMISSIONS.USER_INVITE,
     // 04/08/2026: CRM-lite - Manager quan ly toan bo khach hang/deal, mirror dung nhom quyen
     // Project (CRUD day du) vi Customer la thuc the "cap cao" tuong tu Project.

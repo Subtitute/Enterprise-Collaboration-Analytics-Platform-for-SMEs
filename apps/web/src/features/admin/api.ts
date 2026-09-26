@@ -42,6 +42,13 @@ export async function reactivateUser(id: string): Promise<void> {
   await apiClient.patch(`/users/${id}/reactivate`);
 }
 
+// 25/09/2026: xoa vinh vien - chi cho phep voi tai khoan da vo hieu hoa (backend tu kiem tra, xem
+// UsersService.remove()) - dung de don du lieu rac (vd tai khoan E2E test tao ra) khoi Quan tri >
+// Thanh vien/Cham cong vinh vien, thay vi chi an duoi trang thai "Da vo hieu hoa" mai mai.
+export async function deleteUser(id: string): Promise<void> {
+  await apiClient.delete(`/users/${id}`);
+}
+
 export async function fetchDepartments(): Promise<Department[]> {
   const { data } = await apiClient.get<PaginatedResponse<Department> | Department[]>('/departments', { params: { limit: 200 } });
   return Array.isArray(data) ? data : data.data;

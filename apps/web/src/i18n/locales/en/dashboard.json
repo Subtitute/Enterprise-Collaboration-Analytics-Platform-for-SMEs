@@ -139,11 +139,12 @@
     "actions": {
       "iam_organization_registered": "registered a new organization",
       "iam_user_registered": "joined the organization",
-      "iam_user_deactivated": "was deactivated",
+      "iam_user_deactivated": "deactivated an account",
+      "iam_user_deleted": "permanently deleted an account",
       "task_created": "created a new task",
       "task_updated": "updated a task",
       "task_status_changed": "updated a task's status",
-      "task_assigned": "was assigned a task",
+      "task_assigned": "assigned a task",
       "task_deleted": "deleted a task",
       "project_created": "created a new project",
       "project_updated": "updated a project",
@@ -162,8 +163,8 @@
       "attendance_checked_in": "checked in for shift",
       "attendance_checked_out": "checked out from shift",
       "leave_request_created": "submitted a leave request",
-      "leave_request_approved": "had a leave request approved",
-      "leave_request_rejected": "had a leave request rejected"
+      "leave_request_approved": "approved a leave request",
+      "leave_request_rejected": "rejected a leave request"
     }
   },
   "upcomingLeaves": {

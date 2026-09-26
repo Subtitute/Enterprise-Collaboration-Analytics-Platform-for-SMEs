@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequirePermissions } from '@app/common-guard';
 import { ERROR_CODES, PaginationQueryDto, PERMISSIONS } from '@app/common-dto';
@@ -124,5 +124,17 @@ export class UsersController {
     @Param('id', uuidParamPipe()) id: string,
   ) {
     return this.usersService.reactivate(organizationId, id);
+  }
+
+  // 25/09/2026: xoa vinh vien - chi cho phep voi tai khoan DA vo hieu hoa (UsersService.remove()
+  // tu kiem tra, xem chu thich chi tiet tai do). Cung quyen voi deactivate()/reactivate().
+  @Delete(':id')
+  @RequirePermissions(PERMISSIONS.USER_MANAGE)
+  remove(
+    @CurrentUser('organizationId') organizationId: string,
+    @CurrentUser('userId') actorId: string,
+    @Param('id', uuidParamPipe()) id: string,
+  ) {
+    return this.usersService.remove(organizationId, id, actorId);
   }
 }

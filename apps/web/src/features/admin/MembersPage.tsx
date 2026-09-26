@@ -11,12 +11,13 @@ import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { Pagination } from '@/components/ui/Pagination';
 import { FullPageSpinner } from '@/components/ui/Spinner';
-import { EditIcon, MoreVerticalIcon, PlusIcon, RefreshIcon, SearchIcon, UserIcon } from '@/components/ui/Icons';
+import { EditIcon, MoreVerticalIcon, PlusIcon, RefreshIcon, SearchIcon, TrashIcon, UploadIcon, UserIcon } from '@/components/ui/Icons';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
-import { useDeactivateUser, useDepartmentsQuery, useReactivateUser, useUsersQuery } from './hooks';
+import { useDeactivateUser, useDeleteUser, useDepartmentsQuery, useReactivateUser, useUsersQuery } from './hooks';
 import { InviteMemberModal } from './components/InviteMemberModal';
+import { ImportEmployeesModal } from './components/ImportEmployeesModal';
 import { EditMemberModal } from './components/EditMemberModal';
 import type { User } from '@/types';
 
@@ -76,8 +77,10 @@ export function MembersPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deactivatingUser, setDeactivatingUser] = useState<User | null>(null);
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
 
   // Bộ lọc nhanh (Toolbar)
   const [search, setSearch] = useState('');
@@ -88,6 +91,7 @@ export function MembersPage() {
   const departmentsQuery = useDepartmentsQuery();
   const deactivateUser = useDeactivateUser();
   const reactivateUser = useReactivateUser();
+  const deleteUser = useDeleteUser();
   // 17/09/2026: Manager gio cung vao duoc trang nay (co USER_INVITE, xem canAccessAdminArea/
   // AdminPage.tsx) nhung KHONG co USER_MANAGE - an (khong chi disable) cac hanh dong sua vai
   // tro/phong ban, vo hieu hoa, kich hoat lai, giu nguyen nut "Moi thanh vien" (chi can USER_INVITE
@@ -130,9 +134,15 @@ export function MembersPage() {
       {/* Header dòng mô tả và nút mời thành viên */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-slate-500">{t('admin:membersPage.description')}</p>
-        <Button onClick={() => setIsInviteOpen(true)}>
-          <PlusIcon className="h-4 w-4" /> {t('admin:membersPage.inviteMember')}
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* 24/09/2026: "Nhap Excel" - nhap hang loat nhan vien tu file .xlsx, xem ImportEmployeesModal.tsx */}
+          <Button variant="outline" onClick={() => setIsImportOpen(true)}>
+            <UploadIcon className="h-4 w-4" /> {t('admin:membersPage.importExcel')}
+          </Button>
+          <Button onClick={() => setIsInviteOpen(true)}>
+            <PlusIcon className="h-4 w-4" /> {t('admin:membersPage.inviteMember')}
+          </Button>
+        </div>
       </div>
 
       {/* Thanh công cụ quản trị (Toolbar): Tìm kiếm + Lọc Phòng ban + Lọc Trạng thái */}
@@ -313,18 +323,33 @@ export function MembersPage() {
                                   <UserIcon className="h-4 w-4" /> {t('admin:membersPage.actionsMenu.deactivate')}
                                 </DropdownItem>
                               ) : (
-                                // 22/07/2026 (review toan du an): truoc day KHONG co cach nao kich
-                                // hoat lai 1 tai khoan da vo hieu hoa tu giao dien - backend da bo
-                                // sung PATCH /users/:id/reactivate (fix loi Major) nhung thieu diem
-                                // vao tu UI. Chi hien khi tai khoan dang bi vo hieu hoa.
-                                <DropdownItem
-                                  onClick={() => {
-                                    reactivateUser.mutate(u.id);
-                                    close();
-                                  }}
-                                >
-                                  <RefreshIcon className="h-4 w-4" /> {t('admin:membersPage.actionsMenu.reactivate')}
-                                </DropdownItem>
+                                <>
+                                  {/* 22/07/2026 (review toan du an): truoc day KHONG co cach nao
+                                      kich hoat lai 1 tai khoan da vo hieu hoa tu giao dien - backend
+                                      da bo sung PATCH /users/:id/reactivate (fix loi Major) nhung
+                                      thieu diem vao tu UI. Chi hien khi tai khoan dang bi vo hieu hoa. */}
+                                  <DropdownItem
+                                    onClick={() => {
+                                      reactivateUser.mutate(u.id);
+                                      close();
+                                    }}
+                                  >
+                                    <RefreshIcon className="h-4 w-4" /> {t('admin:membersPage.actionsMenu.reactivate')}
+                                  </DropdownItem>
+                                  {/* 25/09/2026: xoa vinh vien - chi hien khi tai khoan DA vo hieu
+                                      hoa (backend cung tu kiem tra dieu nay, xem UsersService.remove()) -
+                                      dung de don han du lieu rac (vd tai khoan E2E test tao ra) khoi
+                                      danh sach, khac voi "Vo hieu hoa" (van con hien, khong xoa). */}
+                                  <DropdownItem
+                                    className="text-rose-600 hover:bg-rose-50"
+                                    onClick={() => {
+                                      setDeletingUser(u);
+                                      close();
+                                    }}
+                                  >
+                                    <TrashIcon className="h-4 w-4" /> {t('admin:membersPage.actionsMenu.delete')}
+                                  </DropdownItem>
+                                </>
                               )}
                             </div>
                           )}
@@ -344,6 +369,7 @@ export function MembersPage() {
       </Card>
 
       <InviteMemberModal open={isInviteOpen} onClose={() => setIsInviteOpen(false)} />
+      <ImportEmployeesModal open={isImportOpen} onClose={() => setIsImportOpen(false)} />
       <EditMemberModal user={editingUser} onClose={() => setEditingUser(null)} />
       <ConfirmDialog
         open={Boolean(deactivatingUser)}
@@ -357,6 +383,18 @@ export function MembersPage() {
           deactivatingUser ? t('admin:membersPage.deactivateConfirm.description', { fullName: deactivatingUser.fullName }) : undefined
         }
         confirmLabel={t('admin:membersPage.deactivateConfirm.confirmLabel')}
+        danger
+      />
+      <ConfirmDialog
+        open={Boolean(deletingUser)}
+        onClose={() => setDeletingUser(null)}
+        onConfirm={() => {
+          if (deletingUser) deleteUser.mutate(deletingUser.id);
+          setDeletingUser(null);
+        }}
+        title={t('admin:membersPage.deleteConfirm.title')}
+        description={deletingUser ? t('admin:membersPage.deleteConfirm.description', { fullName: deletingUser.fullName }) : undefined}
+        confirmLabel={t('admin:membersPage.deleteConfirm.confirmLabel')}
         danger
       />
     </div>

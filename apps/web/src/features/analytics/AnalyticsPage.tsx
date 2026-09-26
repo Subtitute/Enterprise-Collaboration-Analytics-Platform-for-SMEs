@@ -15,20 +15,29 @@ import {
   HelpCircleIcon,
 } from '@/components/ui/Icons';
 import { useProjectNameMap } from '@/hooks/useOrgProjects';
+import { useUserNameMap } from '@/hooks/useOrgUsers';
 import { useAllDealsQuery } from '@/features/crm/hooks';
 import { formatDealValue } from '@/features/crm/utils';
 import { DATE_RANGE_OPTIONS } from '@/types';
-import type { DateRangeOption, InsightScope } from '@/types';
+import type { DateRangeOption, DrillDownScope, InsightScope } from '@/types';
 // 28/07/2026: tai su dung useDepartmentsQuery da co san (dung chung o MembersPage/InviteMemberModal)
 // cho bo loc "Phong ban" moi tren trang Bao cao & Phan tich, khong tao hook fetch phong ban rieng.
 import { useDepartmentsQuery } from '@/features/admin/hooks';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
-import { useAiInsightsMutation, useDocumentActivityQuery, useProjectProgressQuery } from './hooks';
+import {
+  useAiInsightsMutation,
+  useAnomaliesMutation,
+  useDocumentActivityQuery,
+  useDrillDownMutation,
+  useProjectProgressQuery,
+} from './hooks';
 import { ProjectProgressChart } from './components/ProjectProgressChart';
 import { ProjectProgressTable } from './components/ProjectProgressTable';
 import { DocumentActivityChart } from './components/DocumentActivityChart';
 import { AiInsightCard } from './components/AiInsightCard';
 import { AiInsightsChart } from './components/AiInsightsChart';
+import { DrillDownPanel } from './components/DrillDownPanel';
+import { AnomalySection } from './components/AnomalySection';
 
 export function AnalyticsPage() {
   const { t } = useTranslation();
@@ -44,11 +53,16 @@ export function AnalyticsPage() {
   const activityQuery = useDocumentActivityQuery(range);
   const dealsQuery = useAllDealsQuery();
   const { map: projectNames } = useProjectNameMap();
+  const { map: userNames } = useUserNameMap();
 
   // 22/09/2026: tinh nang "Nhan xet AI" - thiet ke lai thanh insight co cau truc (xem
   // AiInsightCard.tsx/AiInsightsChart.tsx), AI tu quet TOAN BO to chuc (khong con phu thuoc bo loc
   // "Phong ban" cua trang nay - xem useAiInsightsMutation()).
   const aiInsightsMutation = useAiInsightsMutation();
+
+  // 24/09/2026: Layer 3 Anomaly Detection - state nay dua LEN day (thay vi de AnomalySection tu
+  // quan ly rieng) de Layer 5 (ngay duoi) doc duoc ket qua da quet gan nhat khi tao Nhan xet AI.
+  const anomaliesMutation = useAnomaliesMutation();
 
   /** Backend chi tra ve scopeId (UUID tho, khong co ten - database-per-service). Dung LAI CHINH
    *  2 nguon du lieu cross-service da co san tren trang nay (departmentsQuery/projectNames) thay
@@ -59,6 +73,29 @@ export function AnalyticsPage() {
       return (departmentsQuery.data ?? []).find((d) => d.id === scopeId)?.name ?? t('analytics:aiInsight.scopeDepartment');
     }
     return projectNames[scopeId ?? ''] ?? t('analytics:aiInsight.scopeProject');
+  }
+
+  // 24/09/2026: Layer 2 Diagnostic - bam vao 1 thanh trong AiInsightsChart.tsx mo panel drill-down
+  // cho DUNG scope/scopeId cua thanh do (mirror useAiInsightsMutation() ve cach dung useMutation
+  // cho 1 hanh dong theo yeu cau, xem hooks.ts).
+  const drillDownMutation = useDrillDownMutation();
+  const [drillDownTarget, setDrillDownTarget] = useState<{ scope: DrillDownScope; scopeId: string } | null>(null);
+
+  function handleDrillDown(scope: DrillDownScope, scopeId: string) {
+    setDrillDownTarget({ scope, scopeId });
+    // Dung dung range CUA KET QUA dang hien thi (khong phai aiRange hien tai) - tranh lech neu
+    // aiPeriod da doi nhung nguoi dung chua bam "Tao tom tat bao cao" lai (du o truong hop do
+    // AiInsightsChart cung da bi useEffect ben duoi reset mat, chi la phong thu 2 lop).
+    drillDownMutation.mutate({
+      scope,
+      scopeId,
+      range: (aiInsightsMutation.data?.range as DateRangeOption | undefined) ?? aiRange,
+    });
+  }
+
+  function closeDrillDown() {
+    setDrillDownTarget(null);
+    drillDownMutation.reset();
   }
 
   // State cho bộ lọc chu kỳ nhận xét AI độc lập (Tuần, Tháng, Quý, Năm)
@@ -84,6 +121,9 @@ export function AnalyticsPage() {
   // dropdown "Phòng ban" của trang này).
   useEffect(() => {
     aiInsightsMutation.reset();
+    // 24/09/2026: dong luon panel drill-down (neu dang mo) khi doi chu ky - chart ben duoi se bi
+    // reset mat nen 1 panel dang tham chieu scope/scopeId cua lan quet TRUOC khong con y nghia.
+    closeDrillDown();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aiPeriod]);
 
@@ -364,7 +404,10 @@ export function AnalyticsPage() {
             <Button
               size="sm"
               isLoading={aiInsightsMutation.isPending}
-              onClick={() => aiInsightsMutation.mutate(aiRange)}
+              // 24/09/2026: Layer 5 - dinh kem ket qua Phat hien bat thuong GAN NHAT (neu nguoi
+              // dung da bam "Chay phat hien bat thuong" truoc do, bat ke range) de AI de xuat them
+              // "Ke hoach hanh dong" cho tung insight co lien quan - xem fetchAiInsights().
+              onClick={() => aiInsightsMutation.mutate({ range: aiRange, anomalies: anomaliesMutation.data?.anomalies })}
               className="bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs cursor-pointer"
             >
               <BarChartIcon className="h-4 w-4" />
@@ -381,6 +424,7 @@ export function AnalyticsPage() {
                   candidates={aiInsightsMutation.data.candidates}
                   insights={aiInsightsMutation.data.insights}
                   resolveLabel={resolveInsightScopeLabel}
+                  onDrillDown={handleDrillDown}
                 />
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -401,6 +445,8 @@ export function AnalyticsPage() {
           )}
         </div>
       </div>
+
+      <AnomalySection range={range} mutation={anomaliesMutation} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
@@ -464,6 +510,18 @@ export function AnalyticsPage() {
           </QueryState>
         </CardContent>
       </Card>
+
+      {drillDownTarget && (
+        <DrillDownPanel
+          open
+          onClose={closeDrillDown}
+          title={resolveInsightScopeLabel(drillDownTarget.scope, drillDownTarget.scopeId)}
+          isLoading={drillDownMutation.isPending}
+          isError={drillDownMutation.isError}
+          data={drillDownMutation.data}
+          resolveUserName={(userId) => userNames[userId] ?? userId}
+        />
+      )}
     </div>
   );
 }
