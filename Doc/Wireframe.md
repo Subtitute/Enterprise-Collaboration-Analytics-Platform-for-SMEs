@@ -1,5 +1,9 @@
 # Wireframe — Enterprise Collaboration & Analytics Platform for SMEs
 
+> Trạng thái: **ĐÃ TRIỂN KHAI** — mô tả wireframe khớp với giao diện đã lập trình và xác minh sống
+> cho toàn bộ màn hình MVP và các module mở rộng (CRM-lite, HRM-lite, i18n, Analytics nâng cao).
+> Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
+
 **Tài liệu liên quan:** [General_idea.md](General_idea.md) · [Technical_Spec.md](Technical_Spec.md)
 **Ngày khởi tạo:** 18/07/2026
 **Mức độ:** Low-fidelity (wireframe văn bản/ASCII) — mô tả bố cục và luồng, chưa phải thiết kế UI cuối cùng.
@@ -8,12 +12,12 @@
 
 ## 0. Quy ước chung
 
-- **Ngôn ngữ giao diện:** Tiếng Việt mặc định; thuật ngữ kỹ thuật/tên riêng (Dashboard, Kanban, Task, Upload...) giữ nguyên tiếng Anh khi đã quen dùng trong ngành. **(Bổ sung 20-21/08/2026)** Người dùng có thể đổi sang English/日本語 bất kỳ lúc nào qua nút chọn ngôn ngữ (icon địa cầu 🌐) — góc trên-phải màn Đăng nhập/Đăng ký (mục 1), cạnh chuông thông báo trên Topbar ở mọi trang đã đăng nhập (mục 2). Lựa chọn được ghi nhớ cho lần mở lại sau. Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §18.
+- **Ngôn ngữ giao diện:** Tiếng Việt mặc định; thuật ngữ kỹ thuật/tên riêng (Dashboard, Kanban, Task, Upload...) giữ nguyên tiếng Anh khi đã quen dùng trong ngành. **(Bổ sung 20-21/08/2026)** Người dùng có thể đổi sang English/日本語 bất kỳ lúc nào qua nút chọn ngôn ngữ (icon địa cầu 🌐) — góc trên-phải màn Đăng nhập/Đăng ký (§1), cạnh chuông thông báo trên Topbar ở mọi trang đã đăng nhập (§2). Lựa chọn được ghi nhớ cho lần mở lại sau. Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §18.
 - **Component base:** shadcn/ui (dựa trên Radix + TailwindCSS) — dùng chung bộ Button/Input/Modal/Table/Toast xuyên suốt để đảm bảo nhất quán.
 - **Bố cục khung (shell):** Sidebar trái cố định + Topbar trên + vùng nội dung chính — áp dụng cho mọi trang sau khi đăng nhập.
 - **Thời gian hiển thị:** toàn bộ mốc thời gian hiển thị theo GMT+7, định dạng `dd/MM/yyyy HH:mm`.
 - **Trạng thái tải dữ liệu:** mọi bảng/danh sách đều có 3 trạng thái — loading (skeleton), empty (empty-state kèm CTA), error (thông báo + nút thử lại).
-- **Responsive:** breakpoint chính ở `768px` (mobile) và `1024px` (tablet/desktop) — chi tiết ở [mục 10](#10-ghi-chú-responsive).
+- **Responsive:** breakpoint chính ở `768px` (mobile) và `1024px` (tablet/desktop) — chi tiết ở [§10](#10-ghi-chú-responsive).
 
 ---
 
@@ -40,8 +44,8 @@
 
 - **Đăng ký tổ chức mới** (multi-step): (1) Thông tin tổ chức (tên, mã số thuế tùy chọn) → (2) Tài khoản Org Admin đầu tiên (email, mật khẩu) → (3) Hoàn tất, chuyển vào Dashboard rỗng kèm gợi ý "mời thành viên" / "tạo dự án đầu tiên".
 - Sau đăng nhập thành công, JWT lưu ở memory + refresh token ở httpOnly cookie (không lưu access token ở `localStorage` để giảm rủi ro XSS).
-- **(Bổ sung 20/08/2026)** Ô mật khẩu có nút hiện/ẩn riêng của ứng dụng (icon con mắt) — tự vẽ bằng React thay vì dựa vào nút "reveal password" có sẵn của trình duyệt (từng mất đồng bộ với state, xem `Technical_Spec.md` mục 2026-08-20). Nếu phát hiện dấu tiếng Việt trong mật khẩu đang gõ (thường do bộ gõ tự động ghép dấu ngoài ý muốn), hiện 1 dòng cảnh báo nhỏ ngay dưới ô — chỉ cảnh báo, không chặn ký tự.
-- **(Bổ sung 20-21/08/2026)** Nút chọn ngôn ngữ (🌐) cố định ở góc trên-phải màn hình này — xem mục 0.
+- **(Bổ sung 20/08/2026)** Ô mật khẩu có nút hiện/ẩn riêng của ứng dụng (icon con mắt) — tự vẽ bằng React thay vì dựa vào nút "reveal password" có sẵn của trình duyệt (từng mất đồng bộ với state, xem `Technical_Spec.md` mục 20/08/2026). Nếu phát hiện dấu tiếng Việt trong mật khẩu đang gõ (thường do bộ gõ tự động ghép dấu ngoài ý muốn), hiện 1 dòng cảnh báo nhỏ ngay dưới ô — chỉ cảnh báo, không chặn ký tự.
+- **(Bổ sung 20-21/08/2026)** Nút chọn ngôn ngữ (🌐) cố định ở góc trên-phải màn hình này — xem §0.
 
 ## 2. Khung bố cục tổng thể (App Shell)
 
@@ -64,8 +68,8 @@
 
 - Sidebar có thể thu gọn (collapse) chỉ còn icon trên tablet.
 - Chuông thông báo (🔔) hiển thị badge số lượng chưa đọc, cập nhật real-time qua WebSocket không cần reload.
-- **[Tên user ▾]** mở menu: **Hồ sơ cá nhân** (mục 11) và **Đăng xuất**.
-- **(Bổ sung 20-21/08/2026)** Icon **[🌐]** mở nút chọn ngôn ngữ (Tiếng Việt/English/日本語) — xem mục 0.
+- **[Tên user ▾]** mở menu: **Hồ sơ cá nhân** (§11) và **Đăng xuất**.
+- **(Bổ sung 20-21/08/2026)** Icon **[🌐]** mở nút chọn ngôn ngữ (Tiếng Việt/English/日本語) — xem §0.
 - **(Bổ sung 22/07/2026)** Ô **[🔍 Tìm kiếm]**: tìm kiếm tổng hợp, gõ tối thiểu 1 ký tự (debounce 300ms) → hiển thị kết quả nhóm theo loại (Dự án / Công việc / Thành viên / Tài liệu — tên thư mục cấp gốc), so khớp chuỗi con không phân biệt hoa/thường, hoàn toàn phía client trên dữ liệu đã tải sẵn (không gọi endpoint tìm kiếm riêng, phù hợp quy mô SME — xem Technical_Spec.md §14 về giới hạn: chưa tìm theo nội dung/tên tệp bên trong thư mục con). Click 1 kết quả điều hướng thẳng tới trang tương ứng.
 
 ## 3. Dashboard tổng quan
@@ -91,7 +95,7 @@
 ```
 
 - KPI card + biểu đồ nạp dữ liệu ban đầu qua REST (`GET /api/v1/analytics/summary`), sau đó nhận cập nhật tăng dần qua WebSocket (không poll lại toàn bộ).
-- Feed "Hoạt động gần đây" là danh sách event thô gần nhất (giới hạn 20 item), khác với Notification cá nhân (mục 6).
+- Feed "Hoạt động gần đây" là danh sách event thô gần nhất (giới hạn 20 item), khác với Notification cá nhân (§6).
 - Bộ lọc "Khoảng thời gian" (7 ngày / 30 ngày / Quý) áp dụng cho toàn bộ chart trên trang, không riêng lẻ từng biểu đồ.
 - **(Bổ sung 28/07/2026) Bộ lọc "Phòng ban"** đặt cạnh bộ lọc "Khoảng thời gian" — áp dụng cho 4 KPI card và biểu đồ "Trạng thái công việc hiện tại", **KHÔNG áp dụng** cho "Xu hướng hoàn thành công việc theo tuần" (giới hạn kỹ thuật đã ghi nhận, xem Technical_Spec.md §4.6). Đây là lần thứ 2 xuất hiện bộ lọc này — lần đầu (trước 18/07/2026) đã bị gỡ khỏi trang này và trang Dự án vì `Project`/`Task` chưa lưu được `departmentId`; nay quay lại đúng cách qua bảng chiều `dim_user` bên Analytics Service.
 
@@ -185,9 +189,9 @@ Dropdown từ Topbar (🔔):
 └───────────────────────────────┴──────────────────────────────┘
 ```
 
-- Khác với Dashboard (mục 3 — tổng quan, real-time), trang này phục vụ **phân tích sâu, có bộ lọc thời gian tùy chỉnh**. **(Sửa 28/07/2026, chính xác lại mô tả)** "Tiến độ theo dự án"/bảng chi tiết đọc trực tiếp từ `fact_task_events` (không phải continuous aggregate như mô tả trước đây — đã cần chuyển sang đọc trực tiếp từ 22/07/2026 để loại trừ được task/dự án đã xóa cứng, xem Technical_Spec.md §4.6/§14); chỉ riêng "Xu hướng hoàn thành công việc theo tuần" ở Dashboard (mục 3) mới thực sự dùng continuous aggregate (`daily_task_summary`).
+- Khác với Dashboard (§3 — tổng quan, real-time), trang này phục vụ **phân tích sâu, có bộ lọc thời gian tùy chỉnh**. **(Sửa 28/07/2026, chính xác lại mô tả)** "Tiến độ theo dự án"/bảng chi tiết đọc trực tiếp từ `fact_task_events` (không phải continuous aggregate như mô tả trước đây — đã cần chuyển sang đọc trực tiếp từ 22/07/2026 để loại trừ được task/dự án đã xóa cứng, xem Technical_Spec.md §4.6/§14); chỉ riêng "Xu hướng hoàn thành công việc theo tuần" ở Dashboard (§3) mới thực sự dùng continuous aggregate (`daily_task_summary`).
 - "Xuất báo cáo" xuất CSV/PDF từ bảng chi tiết (nếu còn thời gian triển khai — không thuộc tiêu chí bắt buộc của MVP).
-- **(Điều chỉnh 21/07/2026, bổ sung lại 28/07/2026)** Bộ lọc "Phòng ban" từng bị gỡ (cùng lý do ở mục 3) nay quay lại đúng cách — áp dụng cho cả "Tiến độ theo dự án" lẫn bảng chi tiết KPI. Bảng chi tiết vẫn giữ "theo dự án" (không đổi lại "theo phòng ban") vì 1 dự án có thể có người phụ trách từ nhiều phòng ban — bộ lọc phòng ban chỉ THU HẸP tập dự án/công việc được tính, không đổi chiều nhóm của bảng.
+- **(Điều chỉnh 21/07/2026, bổ sung lại 28/07/2026)** Bộ lọc "Phòng ban" từng bị gỡ (cùng lý do ở §3) nay quay lại đúng cách — áp dụng cho cả "Tiến độ theo dự án" lẫn bảng chi tiết KPI. Bảng chi tiết vẫn giữ "theo dự án" (không đổi lại "theo phòng ban") vì 1 dự án có thể có người phụ trách từ nhiều phòng ban — bộ lọc phòng ban chỉ THU HẸP tập dự án/công việc được tính, không đổi chiều nhóm của bảng.
 - **(Bổ sung 28/07/2026 — tính năng "Nhận xét AI", Technical_Spec.md §4.7)** Thẻ mới "Nhận xét AI" ngay dưới thanh bộ lọc, phía trên 2 biểu đồ: nút "Tạo nhận xét AI" (theo yêu cầu, không tự động gọi khi vào trang hay đổi bộ lọc — tránh tốn hạn ngạch miễn phí của Google Gemini API) sinh ra một đoạn văn bản tiếng Việt ngắn (3-5 câu) nhận xét về số liệu KPI đang hiển thị (dựa trên đúng bộ lọc "Khoảng thời gian"/"Phòng ban" tại thời điểm bấm nút), kèm dòng chú thích nhỏ ghi rõ phạm vi/khoảng thời gian đã dùng để tạo ra nhận xét đó.
 - **(Bổ sung 22/09/2026, thiết kế lại)** "Nhận xét AI" không còn là 1 đoạn văn tự do — nay là bộ thẻ insight CÓ CẤU TRÚC (severity/scope/số liệu riêng biệt, xem Technical_Spec.md §4.7 phiên bản mới) kèm 1 biểu đồ cột ngang so sánh TOÀN BỘ phạm vi đã quét (toàn tổ chức + từng phòng ban + top dự án), chỉ các mục được AI chọn mới tô màu theo mức độ (đỏ/cam/xanh), còn lại tô xám trung tính làm nền so sánh.
 - **(Bổ sung 24/09/2026 — Layer 2 Diagnostic drill-down, Technical_Spec.md §19.2)** Mỗi thanh trong biểu đồ so sánh ở trên (trừ thanh "Toàn tổ chức") có thể bấm vào — mở 1 panel chi tiết hiển thị phễu "Tổng công việc → Chưa xong → Quá hạn → Tập trung ở 1 người" cho đúng phòng ban/dự án đó, giúp trả lời "vì sao" thay vì chỉ dừng ở con số tổng hợp. Panel ghi rõ ghi chú giới hạn: "quá hạn" tính theo hạn hoàn thành tại thời điểm tạo công việc, có thể chưa cập nhật nếu hạn được đổi sau đó.
@@ -212,8 +216,8 @@ Dropdown từ Topbar (🔔):
 - Tab **Vai trò & Phân quyền**: ma trận checkbox `Role x Permission` (ví dụ hàng `Manager`, cột `task:create`, `document:delete`...).
 - Hành động `⋮` trên mỗi thành viên: Đổi vai trò, Vô hiệu hóa tài khoản (không xóa cứng — soft delete để giữ toàn vẹn dữ liệu lịch sử/audit). **(Bổ sung 22/07/2026)** Với thành viên đang bị vô hiệu hoá, hành động `⋮` đổi thành **"Kích hoạt lại"** — trước bản sửa này, một tài khoản đã vô hiệu hoá không có đường quay lại nào qua giao diện (kể cả khi vô hiệu hoá nhầm); không thể tự vô hiệu hoá chính tài khoản đang đăng nhập (chặn ở tầng API, tránh khoá tổ chức khỏi toàn bộ chức năng quản trị nếu đó là Org Admin duy nhất).
 - **(Bổ sung 25/09/2026 — xoá vĩnh viễn, Technical_Spec.md §19.6)** Với thành viên đang bị vô hiệu hoá, hành động `⋮` có thêm mục **"Xoá vĩnh viễn"** (kèm `ConfirmDialog` cảnh báo riêng, không thể hoàn tác) — `User` từng là entity duy nhất trong dự án chưa có đường xoá cứng nào, khiến tài khoản rác (vd do kiểm thử tự động tạo ra) hiển thị vĩnh viễn dù đã vô hiệu hoá. Chỉ áp dụng được cho tài khoản ĐÃ vô hiệu hoá (chặn ở tầng API) — khác "Vô hiệu hoá" (có thể kích hoạt lại), đây là thao tác một chiều.
-- **(Bổ sung 28/07/2026) Tab "Sự kiện lỗi hệ thống"** — bảng chỉ-đọc liệt kê các sự kiện xử lý nội bộ (Kafka) đã thất bại vĩnh viễn hoặc hết lượt tự động thử lại (Dead Letter Queue — xem Technical_Spec.md mục 4.5): thời điểm, loại lỗi, **phạm vi**, service/topic nguồn, thông báo lỗi. Đây là công cụ chẩn đoán vận hành cho Org Admin, không phải lỗi do người dùng gây ra và không có hành động sửa/xoá nào trên trang này.
-- **(Bổ sung 28/07/2026, đợt "ultimate check") Cột "Phạm vi"** — huy hiệu "Tổ chức của bạn" hoặc "Không xác định tổ chức". Cột mới này xuất hiện sau khi phát hiện các sự kiện lỗi `MALFORMED_JSON` (hỏng ngay từ khâu đọc JSON, trước khi xác định được tổ chức nào) trước đó **vô hình hoàn toàn** với mọi Org Admin do bị lọc nhầm theo `organizationId`. Nay các bản ghi này hiển thị cho MỌI Org Admin kèm nhãn "Không xác định tổ chức" (kèm ghi chú giải thích phía trên bảng) — chấp nhận được vì đây là dữ liệu chẩn đoán hạ tầng dùng chung, không phải dữ liệu nghiệp vụ riêng tổ chức nào (xem lý do đầy đủ ở Technical_Spec.md mục 4.5).
+- **(Bổ sung 28/07/2026) Tab "Sự kiện lỗi hệ thống"** — bảng chỉ-đọc liệt kê các sự kiện xử lý nội bộ (Kafka) đã thất bại vĩnh viễn hoặc hết lượt tự động thử lại (Dead Letter Queue — xem Technical_Spec.md §4.5): thời điểm, loại lỗi, **phạm vi**, service/topic nguồn, thông báo lỗi. Đây là công cụ chẩn đoán vận hành cho Org Admin, không phải lỗi do người dùng gây ra và không có hành động sửa/xoá nào trên trang này.
+- **(Bổ sung 28/07/2026, đợt "ultimate check") Cột "Phạm vi"** — huy hiệu "Tổ chức của bạn" hoặc "Không xác định tổ chức". Cột mới này xuất hiện sau khi phát hiện các sự kiện lỗi `MALFORMED_JSON` (hỏng ngay từ khâu đọc JSON, trước khi xác định được tổ chức nào) trước đó **vô hình hoàn toàn** với mọi Org Admin do bị lọc nhầm theo `organizationId`. Nay các bản ghi này hiển thị cho MỌI Org Admin kèm nhãn "Không xác định tổ chức" (kèm ghi chú giải thích phía trên bảng) — chấp nhận được vì đây là dữ liệu chẩn đoán hạ tầng dùng chung, không phải dữ liệu nghiệp vụ riêng tổ chức nào (xem lý do đầy đủ ở Technical_Spec.md §4.5).
 
 ## 9. Chấm công & Nghỉ phép (HRM-lite) *(triển khai 05/08/2026, xem Technical_Spec.md §17)*
 
@@ -239,7 +243,7 @@ Bản mô tả này thay thế khung sườn phác thảo trước đó (ghi tr�
 └──────────────────────────────────────────────────────────────┘
 ```
 
-- Bấm "Check-in"/"Check-out" mở **modal camera** (`CheckInCamera.tsx`, mục 9.3) thay vì đi thẳng vào API — bắt buộc chụp 1 ảnh trước khi xác nhận.
+- Bấm "Check-in"/"Check-out" mở **modal camera** (`CheckInCamera.tsx`, §9.3) thay vì đi thẳng vào API — bắt buộc chụp 1 ảnh trước khi xác nhận.
 - **Không** hiển thị dạng lịch tháng đánh dấu đi trễ/nghỉ như bản phác thảo ban đầu — đơn giản hoá thành bảng danh sách theo ngày (đủ dùng cho phạm vi đồ án, tránh xây thêm logic tính "đi trễ" chưa có yêu cầu rõ ràng).
 - 1 ngày chỉ check-in/check-out được 1 lần — nút tương ứng biến mất/đổi trạng thái sau khi đã thực hiện, không cho bấm lại (máy chủ cũng từ chối nếu cố gọi API trực tiếp).
 - **(Bổ sung 13/08/2026, Technical_Spec.md §17):** nhãn "Tại văn phòng"/"Ngoài văn phòng" là cờ mềm dựa trên GPS — CHỈ hiện khi có dữ liệu để đánh giá (thiếu quyền vị trí/toạ độ văn phòng chưa cấu hình thì không hiện gì, không phải lỗi), KHÔNG chặn check-in/out. Khối "Chấm công toàn tổ chức" là bảng MỚI, cho Manager/Org Admin đối chiếu cờ này của cả tổ chức (ẩn hoàn toàn với Employee thường, cùng cơ chế 403-tự-ẩn với mục "Chờ duyệt" ở 9.2).
@@ -306,10 +310,10 @@ Toàn bộ bảng dữ liệu (danh sách dự án, tài liệu, thành viên) c
 └──────────────────────────────────────────────────────────────┘
 ```
 
-- Truy cập qua menu `[Tên user ▾]` ở Topbar (mục 2) → **Hồ sơ cá nhân**.
+- Truy cập qua menu `[Tên user ▾]` ở Topbar (§2) → **Hồ sơ cá nhân**.
 - Chỉ-đọc trong MVP: hiển thị dữ liệu thật của chính người dùng đang đăng nhập (`GET /users/:id` — IAM Service, mọi thành viên đã xác thực đều tự xem được chính mình, không cần quyền quản trị).
 - **Không** thêm field ngoài entity `User` hiện có (Technical_Spec.md §5: `fullName`, `email`, `departmentId`, `roles`, `isActive`, `createdAt`) — chưa có avatar ảnh thật/số điện thoại/tiểu sử trong phạm vi MVP.
-- Đổi phòng ban/vai trò vẫn thực hiện ở Quản trị > Thành viên (mục 8, yêu cầu quyền `user:manage`) — trang này không có form chỉnh sửa để tránh trùng lặp logic phân quyền.
+- Đổi phòng ban/vai trò vẫn thực hiện ở Quản trị > Thành viên (§8, yêu cầu quyền `user:manage`) — trang này không có form chỉnh sửa để tránh trùng lặp logic phân quyền.
 
 ## 12. Khách hàng & Cơ hội bán hàng (CRM-lite) *(bổ sung 05/08/2026)*
 
@@ -330,7 +334,7 @@ Toàn bộ bảng dữ liệu (danh sách dự án, tài liệu, thành viên) c
 └──────────────────────────────────────────────────────────────┘
 ```
 
-- Click vào thẻ khách hàng → trang chi tiết (mục 12.2). Menu `⋮` trên thẻ có mục "Xoá khách hàng" (xoá cascade toàn bộ deal của khách hàng đó — xác nhận qua hộp thoại).
+- Click vào thẻ khách hàng → trang chi tiết (§12.2). Menu `⋮` trên thẻ có mục "Xoá khách hàng" (xoá cascade toàn bộ deal của khách hàng đó — xác nhận qua hộp thoại).
 - Số deal/tổng giá trị hiển thị trên thẻ CHỈ tính deal đang hoạt động (chưa `WON`/`LOST`) — `GET /customers` trả kèm sẵn, không tính lại ở client.
 
 ### 12.2 Chi tiết khách hàng — Kanban pipeline bán hàng
@@ -348,37 +352,70 @@ Toàn bộ bảng dữ liệu (danh sách dự án, tài liệu, thành viên) c
 └─────────┴───────────┴──────────┴─────────────┴────────┴───────┘
 ```
 
-- Kéo-thả (drag & drop) thẻ deal giữa các cột → gọi `PATCH /api/v1/deals/:id/stage` → phát sự kiện `deal.stage_changed`. **Khác với Kanban Công việc (mục 4.2, 3 cột tuyến tính):** 4 cột đầu (Mới/Đã liên hệ/Đề xuất/Đàm phán) di chuyển tự do qua lại lẫn nhau (đúng thực tế bán hàng — khách hàng có thể đổi ý, quay lại giai đoạn trước); "Thắng"/"Thua" là cột **cuối cùng** — deal đã vào 1 trong 2 cột này không kéo đi tiếp được nữa (máy chủ từ chối, trả lỗi rõ ràng nếu cố tình gọi API trực tiếp).
-- Deal chuyển sang "Thắng" tự động ghi nhận thời điểm chốt (`closedAt`) và gửi 1 thông báo real-time chúc mừng cho người thực hiện thao tác (Module Thông báo, mục 6).
+- Kéo-thả (drag & drop) thẻ deal giữa các cột → gọi `PATCH /api/v1/deals/:id/stage` → phát sự kiện `deal.stage_changed`. **Khác với Kanban Công việc (§4.2, 3 cột tuyến tính):** 4 cột đầu (Mới/Đã liên hệ/Đề xuất/Đàm phán) di chuyển tự do qua lại lẫn nhau (đúng thực tế bán hàng — khách hàng có thể đổi ý, quay lại giai đoạn trước); "Thắng"/"Thua" là cột **cuối cùng** — deal đã vào 1 trong 2 cột này không kéo đi tiếp được nữa (máy chủ từ chối, trả lỗi rõ ràng nếu cố tình gọi API trực tiếp).
+- Deal chuyển sang "Thắng" tự động ghi nhận thời điểm chốt (`closedAt`) và gửi 1 thông báo real-time chúc mừng cho người thực hiện thao tác (Module Thông báo, §6).
 - Click vào thẻ deal mở **Modal chi tiết Deal**: tiêu đề, giá trị, ngày dự kiến chốt, nút Xoá. **Không** có ô đổi giai đoạn trong modal này — đổi giai đoạn chỉ qua kéo-thả, tránh 2 nơi cùng sửa 1 giá trị theo 2 cơ chế khác nhau.
+
+## 13. Nhắn tin nội bộ *(bổ sung 28/09/2026, xem Technical_Spec.md §20)*
+
+```
+Mục điều hướng mới "Nhắn tin" (Sidebar, có badge số tin chưa đọc) → trang 2 cột:
+┌──────────────────┬───────────────────────────────────────┐
+│ [+ Cuộc trò chuyện mới]                                    │
+│ ● Nguyễn Văn A     2 phút trước │  Nguyễn Văn A            │
+│   "Chào bạn..."                 │  ┌─────────────────────┐│
+│ ○ Nhóm Kinh doanh  1 giờ trước  │  │ Chào bạn, dự án...  ││
+│   "Đã gửi báo cáo..."           │  └─────────────────────┘│
+│                                  │        ┌───────────────┐│
+│                                  │        │ Vâng, em nhận ││
+│                                  │        │ được rồi ạ    ││
+│                                  │        └───────────────┘│
+│                                  ├───────────────────────────┤
+│                                  │ [Nhập tin nhắn...]  [Gửi]│
+└──────────────────┴───────────────────────────────────────┘
+```
+
+- Cột trái: danh sách hội thoại (1:1 và nhóm trộn chung), sắp xếp theo hoạt động gần nhất, chấm
+  `●`/`○` = có/không có tin chưa đọc (mirror quy ước §6).
+- "Cuộc trò chuyện mới" mở modal 2 tab: **Tin nhắn trực tiếp** (chọn đúng 1 người — nếu đã có hội
+  thoại 1:1 với người đó, mở lại hội thoại cũ thay vì tạo mới) và **Nhóm** (chọn nhiều người + đặt
+  tên nhóm bắt buộc).
+- Cột phải: lịch sử tin nhắn (cũ → mới), ô nhập ở dưới cùng. Với nhóm, nút "Quản lý thành viên"
+  chỉ hiện với người đã tạo nhóm hoặc người giữ quyền quản lý nhóm (Org Admin/Manager) — Employee
+  bình thường trong nhóm không thấy nút này.
+- Cập nhật tức thời qua WebSocket riêng (`/ws/messaging`, mirror §6) — tin nhắn mới, hội thoại mới,
+  thay đổi thành viên nhóm đều không cần tải lại trang.
+- **`ecap-mobile`:** tab thứ 7 mới "Nhắn tin" — cùng chức năng gửi/nhận 1:1 và nhóm, KHÔNG có màn
+  hình quản lý thành viên nhóm (để lại cho web, xem `Doc/ECAP_Mobile.md` §17).
 
 ---
 
 ## Lịch sử thay đổi tài liệu
 
-- **2026-07-18** — Khởi tạo tài liệu `Wireframe.md`: mô tả wireframe văn bản cho toàn bộ màn hình MVP (Đăng nhập/Đăng ký, App Shell, Dashboard, Dự án & Công việc, Tài liệu, Thông báo, Báo cáo & Phân tích, Quản trị), phác thảo trước màn hình Chấm công (Phase 2), và ghi chú responsive.
-- **2026-07-21** — Cập nhật sau đợt code review toàn diện: bỏ bộ lọc "Phòng ban" khỏi danh sách dự án (mục 4.1) và trang Báo cáo & Phân tích (mục 7, đổi bảng chi tiết từ "theo phòng ban" sang "theo dự án"); làm rõ Modal Chia sẻ tài liệu (mục 5) trong MVP chỉ mang tính hiển thị, chưa phải access-control thực sự. Lý do: `Project`/`Task` không lưu `departmentId`, và `FileShare` hiện chưa được service enforce như quyền truy cập — xem Technical_Spec.md §14 để biết chi tiết và hướng phát triển.
-- **2026-07-22** — Bổ sung sau phản hồi kiểm thử thực tế của người dùng trên bản build đã sửa lỗi ngày 22/07/2026 (xem Technical_Spec.md để biết chi tiết kỹ thuật đầy đủ):
-  - Mục 2 (App Shell): ô tìm kiếm Topbar từ chỗ chỉ là placeholder tĩnh ("sắp ra mắt") trở thành tìm kiếm tổng hợp thật (client-side, theo Dự án/Công việc/Thành viên/Thư mục); menu `[Tên user ▾]` mở thêm mục "Hồ sơ cá nhân" (trước đó bị khoá/không làm gì).
-  - Mục 5 (Tài liệu): bổ sung khả năng mở/xem tệp trực tiếp trong tab trình duyệt (click tên tệp hoặc mục "Xem tệp"), tách biệt với "Tải xuống" (luôn ép lưu file).
-  - Mục 11 (mới): trang Hồ sơ cá nhân — hiển thị dữ liệu thật của người dùng đang đăng nhập, không bịa field mới ngoài entity `User` đã đặc tả.
-- **2026-07-22 (review toàn dự án)** — Sau đợt walkthrough toàn bộ dự án theo vai trò giảng viên phản biện (ClaudeRule.md mục 6) và sửa lỗi theo mức độ nghiêm trọng (chi tiết kỹ thuật đầy đủ ở Technical_Spec.md, mục review 22/07/2026), phần thay đổi có ảnh hưởng trực tiếp tới UI:
-  - Mục 8 (Quản trị > Thành viên): hành động `⋮` bổ sung "Kích hoạt lại" cho tài khoản đã bị vô hiệu hoá (trước đó không có đường quay lại nào qua giao diện).
+- **18/07/2026** — Khởi tạo tài liệu `Wireframe.md`: mô tả wireframe văn bản cho toàn bộ màn hình MVP (Đăng nhập/Đăng ký, App Shell, Dashboard, Dự án & Công việc, Tài liệu, Thông báo, Báo cáo & Phân tích, Quản trị), phác thảo trước màn hình Chấm công (Phase 2), và ghi chú responsive.
+- **21/07/2026** — Cập nhật sau đợt code review toàn diện: bỏ bộ lọc "Phòng ban" khỏi danh sách dự án (§4.1) và trang Báo cáo & Phân tích (§7, đổi bảng chi tiết từ "theo phòng ban" sang "theo dự án"); làm rõ Modal Chia sẻ tài liệu (§5) trong MVP chỉ mang tính hiển thị, chưa phải access-control thực sự. Lý do: `Project`/`Task` không lưu `departmentId`, và `FileShare` hiện chưa được service enforce như quyền truy cập — xem Technical_Spec.md §14 để biết chi tiết và hướng phát triển.
+- **22/07/2026** — Bổ sung sau phản hồi kiểm thử thực tế của người dùng trên bản build đã sửa lỗi ngày 22/07/2026 (xem Technical_Spec.md để biết chi tiết kỹ thuật đầy đủ):
+  - §2 (App Shell): ô tìm kiếm Topbar từ chỗ chỉ là placeholder tĩnh ("sắp ra mắt") trở thành tìm kiếm tổng hợp thật (client-side, theo Dự án/Công việc/Thành viên/Thư mục); menu `[Tên user ▾]` mở thêm mục "Hồ sơ cá nhân" (trước đó bị khoá/không làm gì).
+  - §5 (Tài liệu): bổ sung khả năng mở/xem tệp trực tiếp trong tab trình duyệt (click tên tệp hoặc mục "Xem tệp"), tách biệt với "Tải xuống" (luôn ép lưu file).
+  - §11 (mới): trang Hồ sơ cá nhân — hiển thị dữ liệu thật của người dùng đang đăng nhập, không bịa field mới ngoài entity `User` đã đặc tả.
+- **22/07/2026 (review toàn dự án)** — Sau đợt walkthrough toàn bộ dự án theo vai trò giảng viên phản biện (ClaudeRule.md mục 6) và sửa lỗi theo mức độ nghiêm trọng (chi tiết kỹ thuật đầy đủ ở Technical_Spec.md, mục review 22/07/2026), phần thay đổi có ảnh hưởng trực tiếp tới UI:
+  - §8 (Quản trị > Thành viên): hành động `⋮` bổ sung "Kích hoạt lại" cho tài khoản đã bị vô hiệu hoá (trước đó không có đường quay lại nào qua giao diện).
   - Không có màn hình/luồng UI mới nào khác phát sinh từ đợt review này — phần lớn phát hiện và sửa lỗi nằm ở tầng backend (RBAC, race condition, xác thực, xử lý dữ liệu) hoặc là sửa lại đúng hành vi đã đặc tả (ví dụ: mở tệp trực tiếp không còn im lặng bị chặn bởi popup blocker) thay vì thay đổi giao diện.
-- **2026-07-25 (review vòng 2)** — Đợt walkthrough lần 2 theo cùng quy trình (chi tiết kỹ thuật đầy đủ ở Technical_Spec.md, mục review 25/07/2026). Thay đổi có ảnh hưởng trực tiếp tới UI:
-  - **Mục 10 (Ghi chú Responsive):** hành vi "Sidebar thu gọn còn icon" ở breakpoint tablet (`768px–1023px`) đã có trong đặc tả từ 18/07/2026 nhưng CHƯA từng được lập trình (hạ tầng state đã có sẵn nhưng không nơi nào gọi tới) — phát hiện qua đợt review này, nay đã lập trình đúng đặc tả: tự thu gọn khi vào khoảng tablet, tự mở lại khi ra khỏi khoảng đó, TRỪ khi người dùng đã tự tay bật/tắt sidebar thủ công (giữ nguyên lựa chọn của người dùng, không tự ý ghi đè).
+- **25/07/2026 (review vòng 2)** — Đợt walkthrough lần 2 theo cùng quy trình (chi tiết kỹ thuật đầy đủ ở Technical_Spec.md, mục review 25/07/2026). Thay đổi có ảnh hưởng trực tiếp tới UI:
+  - **§10 (Ghi chú Responsive):** hành vi "Sidebar thu gọn còn icon" ở breakpoint tablet (`768px–1023px`) đã có trong đặc tả từ 18/07/2026 nhưng CHƯA từng được lập trình (hạ tầng state đã có sẵn nhưng không nơi nào gọi tới) — phát hiện qua đợt review này, nay đã lập trình đúng đặc tả: tự thu gọn khi vào khoảng tablet, tự mở lại khi ra khỏi khoảng đó, TRỪ khi người dùng đã tự tay bật/tắt sidebar thủ công (giữ nguyên lựa chọn của người dùng, không tự ý ghi đè).
   - Thông báo lỗi validate dữ liệu đầu vào (vd nhập sai định dạng email, mật khẩu quá ngắn ở form Mời thành viên/Đăng ký tổ chức) trước đó hiện bằng tiếng Anh — nay hiện bằng tiếng Việt, đúng ClaudeRule.md mục 1 (không phát sinh màn hình/luồng mới, chỉ đổi nội dung thông báo lỗi đã có).
   - Không có màn hình/luồng UI mới nào khác — phần lớn phát hiện của đợt này (leo thang đặc quyền RBAC, nguy cơ sập tiến trình Gateway, sai lệch KPI, hạ tầng Docker/seed script) đều thuộc tầng backend, không đổi giao diện.
-- **2026-07-28 (nâng cấp chất lượng Frontend)** — Đợt nâng cấp đầu tiên trong loạt nâng cấp đã lên kế hoạch (chi tiết kỹ thuật đầy đủ ở Technical_Spec.md, mục 2026-07-28). Không có màn hình/bố cục mới nào — thay đổi chủ yếu là chia nhỏ bundle theo route (không ảnh hưởng giao diện), bộ kiểm thử E2E mới, và khả năng tiếp cận (a11y): mọi modal/dialog trong ứng dụng giờ quản lý focus đúng chuẩn (focus vào bên trong khi mở, "nhốt" Tab trong dialog, trả focus khi đóng — không thấy được bằng mắt nhưng thay đổi hành vi thao tác bằng bàn phím), thêm liên kết "Bỏ qua tới nội dung chính" (ẩn, chỉ hiện khi Tab tới), và một loạt `aria-label` cho các control trước đó chỉ nhận diện được bằng mắt (ma trận phân quyền, tìm kiếm, avatar người phụ trách...).
-- **2026-07-28 (Dead Letter Queue)** — Hạng mục thứ 2 trong loạt nâng cấp (chi tiết kỹ thuật ở Technical_Spec.md mục 4.5). Duy nhất 1 thay đổi UI-visible: mục 8 (Quản trị hệ thống) có thêm tab "Sự kiện lỗi hệ thống".
-- **2026-07-28 (Access-control tài liệu theo thư mục)** — Hạng mục thứ 3 (chi tiết kỹ thuật ở Technical_Spec.md, mục cùng tên). Mục 5 (Tài liệu) cập nhật: biểu tượng khoá cho thư mục "Hạn chế truy cập", menu `⋮` của thư mục có thêm "Hạn chế truy cập"/"Mở cho cả tổ chức" và "Quản lý chia sẻ" (chỉ hiện với người tạo thư mục/Org Admin), modal chia sẻ (cả thư mục lẫn tệp) có thêm lựa chọn chia sẻ theo Phòng ban bên cạnh Người dùng.
-- **2026-07-28 (KPI theo phòng ban)** — Hạng mục thứ 4 và cuối cùng trước tính năng AI (chi tiết kỹ thuật ở Technical_Spec.md §4.6). Mục 3 (Dashboard) và mục 7 (Báo cáo & Phân tích) đều có lại bộ lọc "Phòng ban" (từng bị gỡ 21/07/2026) — không áp dụng cho biểu đồ xu hướng theo tuần (giới hạn kỹ thuật). Nhân tiện sửa lại mô tả sai lệch ở mục 7 (nguồn dữ liệu thực tế là `fact_task_events`, không phải continuous aggregate như bản mô tả cũ).
-- **2026-07-28 (Kiểm tra tổng thể hệ thống — "ultimate check")** — Trước khi bắt đầu tính năng AI, thực hiện kiểm tra toàn diện toàn hệ thống (chi tiết kỹ thuật đầy đủ ở Technical_Spec.md, mục cùng ngày). Duy nhất 1 thay đổi UI-visible: mục 8 (Quản trị hệ thống) — tab "Sự kiện lỗi hệ thống" có thêm cột "Phạm vi" (xem mục 8 ở trên) sau khi phát hiện một nhóm lỗi DLQ trước đó vô hình hoàn toàn với giao diện.
-- **2026-07-28 (Nhận xét AI)** — Hạng mục đầu tiên của loạt nâng cấp tính năng AI (chi tiết kỹ thuật ở Technical_Spec.md §4.7). Mục 7 (Báo cáo & Phân tích) có thêm thẻ "Nhận xét AI" với nút bấm theo yêu cầu (không tự động) — xem mục 7 ở trên. Không có màn hình/luồng UI mới nào khác.
-- **2026-08-05 (CRM-lite)** — Hạng mục thứ hai trong 2 hạng mục mở rộng còn lại sau khi dự án chuyển sang mô hình 3 người (chi tiết kỹ thuật ở Technical_Spec.md §16). Mục 12 (mới): danh sách khách hàng + Kanban pipeline bán hàng 6 giai đoạn cho từng khách hàng — khác Kanban Công việc (mục 4.2) ở chỗ 4 giai đoạn đầu di chuyển tự do qua lại lẫn nhau, chỉ "Thắng"/"Thua" là trạng thái cuối.
-- **2026-08-05 (HRM-lite, tiếp)** — Hạng mục cuối cùng trong danh sách mở rộng đã thống nhất ban đầu (chi tiết kỹ thuật ở Technical_Spec.md §17). Mục 9 viết lại hoàn toàn (thay thế khung sườn phác thảo từ 18/07/2026) để khớp đúng những gì đã lập trình: bỏ dạng lịch tháng đánh dấu đi trễ/nghỉ (đơn giản hoá thành bảng danh sách), thêm mục 9.3 mô tả modal camera chấm công — component camera đầu tiên của dự án, chỉ chụp ảnh làm bằng chứng, không nhận diện khuôn mặt (xem Technical_Spec.md §17).
-- **2026-08-13 (cờ vị trí chấm công)** — Mục 9.1 cập nhật: nhãn "Tại văn phòng"/"Ngoài văn phòng" (cờ mềm dựa trên GPS, không chặn check-in/out) trên khối "Hôm nay"/"Lịch sử chấm công", cộng thêm khối bảng mới "Chấm công toàn tổ chức" chỉ hiện với Manager/Org Admin (cùng cơ chế 403-tự-ẩn với "Chờ duyệt" ở mục 9.2). Chi tiết kỹ thuật đầy đủ ở Technical_Spec.md §17 (mục bổ sung 13/08/2026).
-- **2026-08-20 (sửa 4 báo cáo lỗi thủ công)** — Mục 1 cập nhật: ô mật khẩu có nút hiện/ẩn tự vẽ (thay cho nút có sẵn của trình duyệt, từng mất đồng bộ) và cảnh báo (không chặn) khi phát hiện dấu tiếng Việt gõ nhầm vào mật khẩu. Không có màn hình/luồng UI mới nào khác — 2 báo cáo còn lại đã sửa (dữ liệu thành viên/tài liệu của tổ chức cũ còn sót lại sau khi đổi tài khoản, modal mất focus khi gõ) là lỗi hành vi/cache, không đổi bố cục hay thêm phần tử giao diện nào. Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md`, mục cùng ngày.
-- **2026-08-20 → 21 (Đa ngôn ngữ Việt/Anh/Nhật)** — Mục 0 và mục 2 cập nhật: nút chọn ngôn ngữ (🌐) mới ở góc trên-phải màn Đăng nhập/Đăng ký (mục 1) và trên Topbar mọi trang đã đăng nhập (mục 2), đổi được giữa Tiếng Việt (mặc định)/English/日本語, lựa chọn được ghi nhớ. Áp dụng cho TOÀN BỘ màn hình đã mô tả trong tài liệu này — không liệt kê lại từng mục vì không đổi bố cục/thêm phần tử nào khác ngoài việc mọi nhãn/nút/thông báo đều có bản dịch. Chi tiết kỹ thuật đầy đủ (kiến trúc i18next, danh mục mã lỗi backend, 2 lỗi thật phát hiện qua xác minh trực tiếp) ở `Technical_Spec.md` §18.
-- **2026-09-24 (nhập Excel hàng loạt + Analytics nâng cao)** — Mục 7 (Báo cáo & Phân tích) cập nhật lại cho khớp thiết kế "Nhận xét AI" đã đổi từ 22/09/2026 (bộ thẻ có cấu trúc + biểu đồ so sánh, không còn 1 đoạn văn tự do), cộng 3 mục mới: bấm vào 1 thanh biểu đồ mở panel drill-down (phễu Tổng → Chưa xong → Quá hạn → Tập trung ở 1 người); khối "Phát hiện bất thường" mới (Isolation Forest thật, `apps/ml-service` — service Python đầu tiên của dự án); khối "Kế hoạch hành động" xuất hiện trong thẻ Nhận xét AI khi đã có dữ liệu bất thường. Mục 8 (Quản trị > Thành viên) thêm nút "Nhập từ Excel" cạnh "Mời thành viên". Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §19.
-- **2026-09-25 (xoá vĩnh viễn tài khoản)** — Mục 8 (Quản trị > Thành viên) cập nhật: hành động `⋮` của tài khoản đã vô hiệu hoá có thêm "Xoá vĩnh viễn" (kèm `ConfirmDialog` cảnh báo riêng, khác "Vô hiệu hoá" ở chỗ không thể hoàn tác) — khắc phục sau khi người dùng phản hồi tài khoản rác (do kiểm thử tự động tạo ra) hiển thị vĩnh viễn dù đã vô hiệu hoá. Không có màn hình/luồng UI mới nào khác — phần còn lại của đợt sửa lỗi này (endpoint Super Admin mới, tách môi trường kiểm thử tự động) không thuộc phạm vi tài liệu này. Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §19.6.
+- **28/07/2026 (nâng cấp chất lượng Frontend)** — Đợt nâng cấp đầu tiên trong loạt nâng cấp đã lên kế hoạch (chi tiết kỹ thuật đầy đủ ở Technical_Spec.md, mục 28/07/2026). Không có màn hình/bố cục mới nào — thay đổi chủ yếu là chia nhỏ bundle theo route (không ảnh hưởng giao diện), bộ kiểm thử E2E mới, và khả năng tiếp cận (a11y): mọi modal/dialog trong ứng dụng giờ quản lý focus đúng chuẩn (focus vào bên trong khi mở, "nhốt" Tab trong dialog, trả focus khi đóng — không thấy được bằng mắt nhưng thay đổi hành vi thao tác bằng bàn phím), thêm liên kết "Bỏ qua tới nội dung chính" (ẩn, chỉ hiện khi Tab tới), và một loạt `aria-label` cho các control trước đó chỉ nhận diện được bằng mắt (ma trận phân quyền, tìm kiếm, avatar người phụ trách...).
+- **28/07/2026 (Dead Letter Queue)** — Hạng mục thứ 2 trong loạt nâng cấp (chi tiết kỹ thuật ở Technical_Spec.md §4.5). Duy nhất 1 thay đổi UI-visible: §8 (Quản trị hệ thống) có thêm tab "Sự kiện lỗi hệ thống".
+- **28/07/2026 (Access-control tài liệu theo thư mục)** — Hạng mục thứ 3 (chi tiết kỹ thuật ở Technical_Spec.md, mục cùng tên). §5 (Tài liệu) cập nhật: biểu tượng khoá cho thư mục "Hạn chế truy cập", menu `⋮` của thư mục có thêm "Hạn chế truy cập"/"Mở cho cả tổ chức" và "Quản lý chia sẻ" (chỉ hiện với người tạo thư mục/Org Admin), modal chia sẻ (cả thư mục lẫn tệp) có thêm lựa chọn chia sẻ theo Phòng ban bên cạnh Người dùng.
+- **28/07/2026 (KPI theo phòng ban)** — Hạng mục thứ 4 và cuối cùng trước tính năng AI (chi tiết kỹ thuật ở Technical_Spec.md §4.6). §3 (Dashboard) và §7 (Báo cáo & Phân tích) đều có lại bộ lọc "Phòng ban" (từng bị gỡ 21/07/2026) — không áp dụng cho biểu đồ xu hướng theo tuần (giới hạn kỹ thuật). Nhân tiện sửa lại mô tả sai lệch ở §7 (nguồn dữ liệu thực tế là `fact_task_events`, không phải continuous aggregate như bản mô tả cũ).
+- **28/07/2026 (Kiểm tra tổng thể hệ thống — "ultimate check")** — Trước khi bắt đầu tính năng AI, thực hiện kiểm tra toàn diện toàn hệ thống (chi tiết kỹ thuật đầy đủ ở Technical_Spec.md, mục cùng ngày). Duy nhất 1 thay đổi UI-visible: §8 (Quản trị hệ thống) — tab "Sự kiện lỗi hệ thống" có thêm cột "Phạm vi" (xem §8 ở trên) sau khi phát hiện một nhóm lỗi DLQ trước đó vô hình hoàn toàn với giao diện.
+- **28/07/2026 (Nhận xét AI)** — Hạng mục đầu tiên của loạt nâng cấp tính năng AI (chi tiết kỹ thuật ở Technical_Spec.md §4.7). §7 (Báo cáo & Phân tích) có thêm thẻ "Nhận xét AI" với nút bấm theo yêu cầu (không tự động) — xem §7 ở trên. Không có màn hình/luồng UI mới nào khác.
+- **05/08/2026 (CRM-lite)** — Hạng mục thứ hai trong 2 hạng mục mở rộng còn lại sau khi dự án chuyển sang mô hình 3 người (chi tiết kỹ thuật ở Technical_Spec.md §16). §12 (mới): danh sách khách hàng + Kanban pipeline bán hàng 6 giai đoạn cho từng khách hàng — khác Kanban Công việc (§4.2) ở chỗ 4 giai đoạn đầu di chuyển tự do qua lại lẫn nhau, chỉ "Thắng"/"Thua" là trạng thái cuối.
+- **05/08/2026 (HRM-lite, tiếp)** — Hạng mục cuối cùng trong danh sách mở rộng đã thống nhất ban đầu (chi tiết kỹ thuật ở Technical_Spec.md §17). §9 viết lại hoàn toàn (thay thế khung sườn phác thảo từ 18/07/2026) để khớp đúng những gì đã lập trình: bỏ dạng lịch tháng đánh dấu đi trễ/nghỉ (đơn giản hoá thành bảng danh sách), thêm §9.3 mô tả modal camera chấm công — component camera đầu tiên của dự án, chỉ chụp ảnh làm bằng chứng, không nhận diện khuôn mặt (xem Technical_Spec.md §17).
+- **13/08/2026 (cờ vị trí chấm công)** — §9.1 cập nhật: nhãn "Tại văn phòng"/"Ngoài văn phòng" (cờ mềm dựa trên GPS, không chặn check-in/out) trên khối "Hôm nay"/"Lịch sử chấm công", cộng thêm khối bảng mới "Chấm công toàn tổ chức" chỉ hiện với Manager/Org Admin (cùng cơ chế 403-tự-ẩn với "Chờ duyệt" ở §9.2). Chi tiết kỹ thuật đầy đủ ở Technical_Spec.md §17 (mục bổ sung 13/08/2026).
+- **20/08/2026 (sửa 4 báo cáo lỗi thủ công)** — §1 cập nhật: ô mật khẩu có nút hiện/ẩn tự vẽ (thay cho nút có sẵn của trình duyệt, từng mất đồng bộ) và cảnh báo (không chặn) khi phát hiện dấu tiếng Việt gõ nhầm vào mật khẩu. Không có màn hình/luồng UI mới nào khác — 2 báo cáo còn lại đã sửa (dữ liệu thành viên/tài liệu của tổ chức cũ còn sót lại sau khi đổi tài khoản, modal mất focus khi gõ) là lỗi hành vi/cache, không đổi bố cục hay thêm phần tử giao diện nào. Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md`, mục cùng ngày.
+- **20/08/2026 → 21 (Đa ngôn ngữ Việt/Anh/Nhật)** — §0 và §2 cập nhật: nút chọn ngôn ngữ (🌐) mới ở góc trên-phải màn Đăng nhập/Đăng ký (§1) và trên Topbar mọi trang đã đăng nhập (§2), đổi được giữa Tiếng Việt (mặc định)/English/日本語, lựa chọn được ghi nhớ. Áp dụng cho TOÀN BỘ màn hình đã mô tả trong tài liệu này — không liệt kê lại từng mục vì không đổi bố cục/thêm phần tử nào khác ngoài việc mọi nhãn/nút/thông báo đều có bản dịch. Chi tiết kỹ thuật đầy đủ (kiến trúc i18next, danh mục mã lỗi backend, 2 lỗi thật phát hiện qua xác minh trực tiếp) ở `Technical_Spec.md` §18.
+- **24/09/2026 (nhập Excel hàng loạt + Analytics nâng cao)** — §7 (Báo cáo & Phân tích) cập nhật lại cho khớp thiết kế "Nhận xét AI" đã đổi từ 22/09/2026 (bộ thẻ có cấu trúc + biểu đồ so sánh, không còn 1 đoạn văn tự do), cộng 3 mục mới: bấm vào 1 thanh biểu đồ mở panel drill-down (phễu Tổng → Chưa xong → Quá hạn → Tập trung ở 1 người); khối "Phát hiện bất thường" mới (Isolation Forest thật, `apps/ml-service` — service Python đầu tiên của dự án); khối "Kế hoạch hành động" xuất hiện trong thẻ Nhận xét AI khi đã có dữ liệu bất thường. §8 (Quản trị > Thành viên) thêm nút "Nhập từ Excel" cạnh "Mời thành viên". Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §19.
+- **25/09/2026 (xoá vĩnh viễn tài khoản)** — §8 (Quản trị > Thành viên) cập nhật: hành động `⋮` của tài khoản đã vô hiệu hoá có thêm "Xoá vĩnh viễn" (kèm `ConfirmDialog` cảnh báo riêng, khác "Vô hiệu hoá" ở chỗ không thể hoàn tác) — khắc phục sau khi người dùng phản hồi tài khoản rác (do kiểm thử tự động tạo ra) hiển thị vĩnh viễn dù đã vô hiệu hoá. Không có màn hình/luồng UI mới nào khác — phần còn lại của đợt sửa lỗi này (endpoint Super Admin mới, tách môi trường kiểm thử tự động) không thuộc phạm vi tài liệu này. Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §19.6.
+- **28/09/2026 (Nhắn tin nội bộ)** — §13 (mới): trang Nhắn tin 2 cột (danh sách hội thoại + khung chat), hỗ trợ cả 1:1 và nhóm, cập nhật tức thời qua WebSocket riêng. Mục còn treo lại từ 17/09/2026, lần đầu được đặc tả và lập trình. Cùng đợt: `ecap-mobile` có thêm tab thứ 7 cùng chức năng (trừ quản lý thành viên nhóm). Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §20.

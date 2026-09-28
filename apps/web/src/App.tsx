@@ -32,6 +32,9 @@ const AttendancePage = lazy(() => import('@/features/hrm/AttendancePage').then((
 const LeaveRequestsPage = lazy(() => import('@/features/hrm/LeaveRequestsPage').then((m) => ({ default: m.LeaveRequestsPage })));
 const ProfilePage = lazy(() => import('@/features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })));
 const NotificationsPage = lazy(() => import('@/features/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })));
+// 28/09/2026: Messaging Service (nhan tin noi bo 1:1 va nhom/kenh) - cung khuon mau lazy() voi cac
+// trang con lai, khong permission gate rieng tren route (xem ghi chu tai nav-items.ts).
+const ConversationsPage = lazy(() => import('@/features/messaging/ConversationsPage').then((m) => ({ default: m.ConversationsPage })));
 const AnalyticsPage = lazy(() => import('@/features/analytics/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })));
 const AdminPage = lazy(() => import('@/features/admin/AdminPage').then((m) => ({ default: m.AdminPage })));
 const MembersPage = lazy(() => import('@/features/admin/MembersPage').then((m) => ({ default: m.MembersPage })));
@@ -114,6 +117,7 @@ export default function App() {
           <Route path="/leave-requests" element={<LeaveRequestsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/messages" element={<ConversationsPage />} />
           <Route
             path="/analytics"
             element={

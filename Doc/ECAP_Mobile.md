@@ -1,10 +1,15 @@
 # ECAP Mobile (Flutter) — Ứng dụng đồng hành trên điện thoại Android
 
+> Trạng thái: **ĐÃ TRIỂN KHAI** — ứng dụng Flutter/Android đã scaffold, mở rộng và xác minh sống
+> qua §1–§16 (chấm công, nghỉ phép, công việc, tài liệu, thông báo); phần chưa làm (bản `--release`
+> đã ký, WebSocket real-time, test widget cho màn hình gọi mạng) liệt kê rõ ở §14. Chi tiết lịch
+> sử đầy đủ: xem `RevisionHistory.md`.
+
 Tài liệu đặc tả cho `ecap-mobile` — một dự án Flutter/Dart **độc lập ở tầng mã nguồn/build**
 khỏi `Enterprise Collaboration and Analytics Platform for SMEs` (repo chính, sau đây gọi tắt là
 "nền tảng"). Từ 12/08/2026, `ecap-mobile/` là thư mục con nằm TRONG repo Git của nền tảng (lý do
 và lịch sử chuyển vị trí — xem "Lịch sử thay đổi tài liệu" — thuần tuý để có một lịch sử
-commit/một chỗ lưu trữ duy nhất, KHÔNG đổi bất kỳ đặc điểm kỹ thuật nào mô tả ở mục 1 dưới đây:
+commit/một chỗ lưu trữ duy nhất, KHÔNG đổi bất kỳ đặc điểm kỹ thuật nào mô tả ở §1 dưới đây:
 vẫn không dùng chung mã nguồn, không dùng chung `node_modules`/npm workspaces, không có mặt
 trong bất kỳ pipeline build nào của nền tảng (`package.json`/Docker Compose ở gốc repo giữ
 nguyên, không thêm toolchain Flutter/Dart nào vào đó). Bổ sung 06/08/2026, sau khi Observability,
@@ -27,7 +32,7 @@ agnostic) ngay từ đầu — không có gì trong 7 service nghiệp vụ gi�
 duyệt. Một ứng dụng khách hoàn toàn mới, ở một ngôn ngữ khác, không import bất kỳ dòng nào từ
 `apps/web`, không chung `pubspec.yaml`/`package.json` hay pipeline build nào với nền tảng, là
 cách duy nhất đảm bảo lỗi ở một bên (vd nhánh frontend web) không bao giờ lan sang bên còn lại —
-đúng tinh thần tách bạch đã áp dụng cho nền tảng nói chung (`Doc/Script.md` mục 4). Ranh giới
+đúng tinh thần tách bạch đã áp dụng cho nền tảng nói chung (`Doc/Script.md` §4). Ranh giới
 tách biệt nằm ở TẦNG MÃ NGUỒN/BUILD (không import, không chung dependency, không chung Docker
 image) — việc `ecap-mobile/` và phần còn lại của nền tảng có nằm trong cùng một repo Git hay
 không là một quyết định KHÁC, độc lập với ranh giới này (xem đoạn mở đầu tài liệu).
@@ -35,7 +40,7 @@ không là một quyết định KHÁC, độc lập với ranh giới này (xem
 **Hệ quả quan trọng: `ecap-mobile` không đổi bất kỳ dòng code nào của nền tảng.** Toàn bộ 7
 service NestJS, `apps/web`, Docker Compose, test suite của nền tảng giữ nguyên 100%.
 `ecap-mobile` chỉ là một client mới gọi các endpoint REST đã tồn tại sẵn và đã được xác minh
-sống trong các đợt kiểm thử trước (Technical_Spec.md mục 16, 17).
+sống trong các đợt kiểm thử trước (Technical_Spec.md §16, §17).
 
 ## 2. Phạm vi — "ứng dụng đồng hành tập trung" (không phải bản sao toàn bộ nền tảng)
 
@@ -47,17 +52,20 @@ camera (giờ là camera thật của điện thoại thay vì webcam laptop tro
   trạng thái hôm nay và lịch sử.
 - **Nghỉ phép**: tạo yêu cầu nghỉ phép mới, xem trạng thái các yêu cầu của chính mình.
 - **Thông báo**: xem danh sách, đánh dấu đã đọc (từng cái hoặc tất cả).
-- **Công việc** (bổ sung 12/08/2026 — xem mục 12): xem danh sách công việc được giao cho chính
+- **Công việc** (bổ sung 12/08/2026 — xem §12): xem danh sách công việc được giao cho chính
   mình ở mọi dự án, đổi trạng thái theo đúng luồng TODO → DOING → DONE. Không có bảng Kanban
   kéo-thả, không tạo/xoá công việc mới trên điện thoại.
-- **Tài liệu** (bổ sung 12/08/2026 — xem mục 12): duyệt cây thư mục, xem file trực tiếp (mở
+- **Tài liệu** (bổ sung 12/08/2026 — xem §12): duyệt cây thư mục, xem file trực tiếp (mở
   ngay trong trình duyệt/trình xem PDF mặc định của điện thoại, không tải về thủ công), tải file
   mới lên. Không tạo/xoá/đổi tên thư mục, không quản lý chia sẻ.
-- Hồ sơ cá nhân (chỉ đọc) + đăng xuất.
+- Hồ sơ cá nhân (chỉ đọc) + đăng xuất; Quên/Đặt lại mật khẩu (bổ sung 28/09/2026 — xem §17).
+- **Nhắn tin nội bộ** (bổ sung 28/09/2026 — xem §17): nhắn tin 1:1 và nhóm/kênh với đồng nghiệp
+  cùng tổ chức, cập nhật tức thời qua WebSocket (real-time đầu tiên của ứng dụng này, mọi tính
+  năng trước đó đều polling). Không có màn hình quản lý thành viên nhóm (để lại cho web).
 
 **Cố ý KHÔNG đưa vào phạm vi này** (để giữ đúng tinh thần tối giản, ClaudeRule.md mục 8):
 CRM (khách hàng/cơ hội bán hàng — quản lý pipeline bán hàng không phải thao tác tự nhiên trên
-điện thoại, dù `Employee` có quyền `customer:view`/`deal:*`, xem tranh luận ở mục 12), Báo cáo &
+điện thoại, dù `Employee` có quyền `customer:view`/`deal:*`, xem tranh luận ở §12), Báo cáo &
 Phân tích (biểu đồ), Quản trị (người dùng/vai trò/phòng ban), quản trị Dự án và Kanban kéo-thả
 đầy đủ, quản trị thư mục/chia sẻ tài liệu, và chức năng duyệt/từ chối nghỉ phép (dành cho
 Manager/Org Admin — vốn là thao tác quản trị, tự nhiên hơn khi thực hiện trên màn hình lớn của
@@ -68,7 +76,7 @@ nhất.
 
 `POST /api/v1/auth/login`/`refresh` của `iam-service` trả `refreshToken` qua **httpOnly
 cookie** (`ecap_refresh_token`, giới hạn `path=/api/v1/auth`), không bao giờ trả trong JSON
-body — cố ý, để chống XSS đọc cắp token (xem `Technical_Spec.md` mục 6, sửa 21/07/2026). Trình
+body — cố ý, để chống XSS đọc cắp token (xem `Technical_Spec.md` §6, sửa 21/07/2026). Trình
 duyệt xử lý cookie này tự động; một ứng dụng native thì không.
 
 Thay vì mở lại token qua body cho riêng client mobile (sẽ làm yếu đúng lớp phòng thủ vừa nêu),
@@ -106,7 +114,7 @@ mới).
 
 Yêu cầu duy nhất: điện thoại và máy chạy Docker Compose ở cùng mạng Wi-Fi/LAN, và Windows
 Firewall cho phép kết nối đến vào cổng 3000 (đã xác minh có sẵn quy tắc cho phép trên máy phát
-triển — xem mục 7). Vì backend hiện chỉ chạy HTTP thuần (không TLS, đúng quy ước môi trường
+triển — xem §7). Vì backend hiện chỉ chạy HTTP thuần (không TLS, đúng quy ước môi trường
 dev/demo cục bộ của toàn nền tảng), `AndroidManifest.xml` khai báo
 `android:usesCleartextTraffic="true"`.
 
@@ -168,7 +176,7 @@ với `--platforms=android`, đúng phạm vi "không có ngân sách iOS" đã 
 
 Thông báo hiện lấy theo kiểu polling khi vào trang/kéo-để-làm-mới (`RefreshIndicator`), không
 nối `/ws/notifications` (WebSocket real-time mà web đang dùng) — chấp nhận được cho phạm vi
-bản đầu (mục 2); có thể bổ sung sau nếu cần cập nhật tức thời.
+bản đầu (§2); có thể bổ sung sau nếu cần cập nhật tức thời.
 
 ## 7. Xác minh đã thực hiện (06/08/2026)
 
@@ -258,7 +266,7 @@ Bổ sung 08/08/2026: đặt tên hiển thị chính thức và icon cho ứng 
   `android/app/src/main/res/`. Lệnh sinh icon: `flutter pub run flutter_launcher_icons` — lưu ý
   dùng `flutter pub run` chứ KHÔNG phải `dart run flutter_launcher_icons`, vì `dart run` (khác
   với các lệnh con của `flutter`) gọi một bước kiểm tra phiên bản engine cần `git`, và máy phát
-  triển hiện chưa cài Git (xem mục 14).
+  triển hiện chưa cài Git (xem §14).
 
 **Xác minh:** rebuild `flutter build apk --debug` thành công; dùng `aapt dump badging` trên APK
 đã build xác nhận đúng `application: label='CollabNAnalytic'` và
@@ -267,7 +275,7 @@ Bổ sung 08/08/2026: đặt tên hiển thị chính thức và icon cho ứng 
 ## 10. Kết nối qua Internet — Cloudflare Tunnel (10/08/2026)
 
 Bối cảnh: cộng tác viên Nguyễn Lê Tiến thử đăng nhập bằng CNA nhưng không cùng mạng Wi-Fi/LAN
-với máy chạy Docker Compose — theo đúng thiết kế ở mục 4, trường hợp này KHÔNG kết nối được
+với máy chạy Docker Compose — theo đúng thiết kế ở §4, trường hợp này KHÔNG kết nối được
 (`192.168.1.40` là địa chỉ LAN riêng, không định tuyến được từ bên ngoài mạng đó; đây không phải
 lỗi, xác nhận qua `ApiClient._toApiException()` rơi đúng vào nhánh "không có response" khi test).
 Giải pháp được chọn là mở một tunnel công khai thay vì VPN hay triển khai lên máy chủ thật (nằm
@@ -277,27 +285,29 @@ ngoài phạm vi/thời gian hiện có).
   (`C:\D\cloudflared\cloudflared.exe`) — không cần cài đặt qua trình cài đặt, không cần tài
   khoản Cloudflare cho loại "quick tunnel" đang dùng.
 - **Lệnh chạy:** `cloudflared tunnel --url http://localhost:3000` — trỏ thẳng vào cổng Gateway
-  (giống hệt cách CNA gọi trực tiếp Gateway qua LAN ở mục 4, chỉ đổi địa chỉ đích), KHÔNG qua
+  (giống hệt cách CNA gọi trực tiếp Gateway qua LAN ở §4, chỉ đổi địa chỉ đích), KHÔNG qua
   cổng 80/Nginx của `web` vì CNA không dùng đường đó.
   Tunnel sinh ra 1 URL HTTPS ngẫu nhiên, ví dụ `https://repairs-age-wish-evanescence.trycloudflare.com`.
 - **Cập nhật `app_config.dart`:** `gatewayBaseUrl` đổi từ địa chỉ LAN sang URL tunnel này. CNA
   gọi tới đây y hệt cách gọi LAN trước đó — không có thay đổi logic nào khác trong app, vì bản
   chất vẫn là "gọi thẳng REST API của Gateway", chỉ khác địa chỉ đích.
-- **QUAN TRỌNG — tính chất tạm thời:** đây là "quick tunnel" không đăng ký tài khoản
-  (`cloudflared` tự in cảnh báo "no uptime guarantee" khi khởi động). URL **sẽ đổi** mỗi khi
-  tiến trình `cloudflared` khởi động lại (tắt máy, mất mạng, đóng terminal đang chạy nó...) —
-  không có cách giữ cố định URL này mà không tạo tài khoản Cloudflare + tunnel có tên riêng.
-  Khi URL đổi, `app_config.dart` phải cập nhật lại và **build lại APK mới** (`flutter build apk
-  --debug`) rồi gửi lại cho người dùng cuối — APK cũ với URL cũ sẽ báo lỗi "Không kết nối được
-  tới máy chủ" y hệt như trước khi có tunnel.
-- **Đánh đổi bảo mật cần biết:** khác với LAN (chỉ máy trong cùng mạng Wi-Fi mới chạm tới
-  được), tunnel khiến Gateway của máy phát triển **truy cập được từ toàn bộ Internet** bởi bất
-  kỳ ai biết URL (chuỗi ngẫu nhiên, không dễ đoán/không được lập chỉ mục, nhưng không phải bí
-  mật mật mã học). Rủi ro được giảm nhẹ nhờ các lớp bảo vệ đã có sẵn từ trước (rate-limit theo
-  IP+organization, JWT bắt buộc cho mọi route trừ `/auth/login`, `/auth/register-organization`,
-  `/health` — xem `Technical_Spec.md` mục 6/9) nhưng đây vẫn là thay đổi có chủ đích, chỉ nên
-  bật khi cần demo/chia sẻ thật sự, tắt tiến trình `cloudflared` khi xong (đóng cửa sổ đang chạy
-  nó) để đóng lại đường truy cập công khai này.
+> ⚠️ **Tính chất tạm thời:** đây là "quick tunnel" không đăng ký tài khoản (`cloudflared` tự in
+> cảnh báo "no uptime guarantee" khi khởi động). URL **sẽ đổi** mỗi khi tiến trình `cloudflared`
+> khởi động lại (tắt máy, mất mạng, đóng terminal đang chạy nó...) — không có cách giữ cố định
+> URL này mà không tạo tài khoản Cloudflare + tunnel có tên riêng. Khi URL đổi, `app_config.dart`
+> phải cập nhật lại và **build lại APK mới** (`flutter build apk --debug`) rồi gửi lại cho người
+> dùng cuối — APK cũ với URL cũ sẽ báo lỗi "Không kết nối được tới máy chủ" y hệt như trước khi
+> có tunnel.
+
+> ⚠️ **Đánh đổi bảo mật:** khác với LAN (chỉ máy trong cùng mạng Wi-Fi mới chạm tới được), tunnel
+> khiến Gateway của máy phát triển **truy cập được từ toàn bộ Internet** bởi bất kỳ ai biết URL
+> (chuỗi ngẫu nhiên, không dễ đoán/không được lập chỉ mục, nhưng không phải bí mật mật mã học).
+> Rủi ro được giảm nhẹ nhờ các lớp bảo vệ đã có sẵn từ trước (rate-limit theo IP+organization,
+> JWT bắt buộc cho mọi route trừ `/auth/login`, `/auth/register-organization`, `/health` — xem
+> `Technical_Spec.md` §6/§9) nhưng đây vẫn là thay đổi có chủ đích, chỉ nên bật khi cần demo/chia
+> sẻ thật sự, tắt tiến trình `cloudflared` khi xong (đóng cửa sổ đang chạy nó) để đóng lại đường
+> truy cập công khai này.
+
 - Muốn quay lại chế độ LAN thuần (không cần Internet, không có rủi ro truy cập công khai): đổi
   `gatewayBaseUrl` về lại `http://<IP-LAN-cua-may>:3000/api/v1` và build lại APK — không cần
   đổi gì khác trong `AndroidManifest.xml` (`usesCleartextTraffic="true"` vẫn giữ nguyên, phục vụ
@@ -341,13 +351,13 @@ chối ở chấm công/nghỉ phép/CRM".
 và Employee của tổ chức demo này khớp đúng `DEFAULT_ROLE_PERMISSIONS` hiện tại trong code
 (Manager: 13 → 26 quyền; Employee: 7 → 13 quyền).
 
-**Lưu ý cho tổ chức MỚI đăng ký:** vấn đề này chỉ ảnh hưởng tổ chức demo cố định đã tồn tại từ
-trước — bất kỳ tổ chức nào đăng ký MỚI từ bây giờ sẽ được seed đúng, đầy đủ quyền hiện hành
-ngay từ đầu, không gặp lại vấn đề này.
+> **Lưu ý:** vấn đề này (tổ chức MỚI đăng ký) chỉ ảnh hưởng tổ chức demo cố định đã tồn tại từ
+> trước — bất kỳ tổ chức nào đăng ký MỚI từ bây giờ sẽ được seed đúng, đầy đủ quyền hiện hành
+> ngay từ đầu, không gặp lại vấn đề này.
 
 **Xác minh:** đăng nhập lại bằng `an.nguyen+141603@demo-sme.vn`, giải mã JWT xác nhận có đủ
 `attendance:checkin`/`leave_request:create`; gọi thật `POST /attendance/check-in` qua tunnel
-(mục 10) với ảnh thật — trả về `200` kèm bản ghi `Attendance` đầy đủ, xác nhận sửa đúng vấn đề.
+(§10) với ảnh thật — trả về `200` kèm bản ghi `Attendance` đầy đủ, xác nhận sửa đúng vấn đề.
 
 ## 12. Mở rộng phạm vi — Công việc & Tài liệu (12/08/2026)
 
@@ -357,7 +367,7 @@ Employee trên web có nhiều hơn 4 tính năng đã đưa vào CNA. Trước 
 phạm vi (không triển khai ngay) — kết luận rút ra từ tra cứu trực tiếp
 `packages/common-dto/src/enums/permission.enum.ts` thay vì suy đoán:
 
-- Giả định ban đầu khi scaffold CNA (mục 2) — coi Dự án/Công việc và Tài liệu là "việc bàn giấy,
+- Giả định ban đầu khi scaffold CNA (§2) — coi Dự án/Công việc và Tài liệu là "việc bàn giấy,
   tự nhiên hơn trên web" — không được đối chiếu với quyền `DEFAULT_ROLE_PERMISSIONS` thực tế của
   vai trò `Employee`. Trên thực tế Employee có `PROJECT_VIEW`, `TASK_CREATE/UPDATE/VIEW`,
   `DOCUMENT_UPLOAD/VIEW/SHARE` — đây là công việc thường nhật của một nhân viên, không phải thao
@@ -388,7 +398,7 @@ tảng — endpoint đều đã tồn tại sẵn và được `apps/web` dùng 
   mở bằng gói `url_launcher` (`LaunchMode.externalApplication`) — trình duyệt/trình xem PDF mặc
   định của điện thoại tự render nhờ đúng `Content-Disposition: inline` đã xác minh khi làm trang
   Tài liệu thật trên web (`Technical_Spec.md`, mục Lịch sử thay đổi tài liệu, mục
-  2026-08-10 "dữ liệu thật cho trang Tài liệu"), KHÔNG viết
+  10/08/2026 "dữ liệu thật cho trang Tài liệu"), KHÔNG viết
   logic render PDF riêng trong app. Nút tải lên dùng gói `file_picker` chọn file bất kỳ từ bộ nhớ
   máy, gửi `POST /files/upload` qua `ApiClient.postFile()` (hàm multipart mới, khác `postPhoto()`
   ở tên field `file` và cho phép kèm field text `folderId`).
@@ -408,14 +418,14 @@ tảng — endpoint đều đã tồn tại sẵn và được `apps/web` dùng 
   từ chối build (cảnh báo rõ trong log, chưa phải lỗi) và thực tế build thất bại thật trên máy
   này (thiếu class `FilePickerPlugin` lúc biên dịch) — hạ xuống bản `10.3.10` (bản `10.3.11` mới
   hơn đã bị chính nhà phát triển gói rút lại - "retracted" trên pub.dev) build thành công, chỉ
-  còn cảnh báo (không phải lỗi) về Kotlin Gradle Plugin, xem thêm mục 14.
+  còn cảnh báo (không phải lỗi) về Kotlin Gradle Plugin, xem thêm §14.
 
 **Xác minh:** `flutter analyze` (0 lỗi), `flutter test` (2/2 qua, không đổi so với trước),
 `flutter build apk --debug` build thành công (~164 MB, chưa tối ưu/minify — tăng so với bản
 trước do 2 phụ thuộc mới). Chưa thử trên thiết bị Android thật luồng Công việc/Tài liệu đầy đủ
 (đăng nhập → đổi trạng thái Task thật → mở 1 PDF thật từ trang Tài liệu, vốn đã có dữ liệu thật
-(xem `Technical_Spec.md`, mục 2026-08-10 "dữ liệu thật cho trang Tài liệu") → tải lên 1 file
-mới) — bước tiếp theo hợp lý trước khi dùng để trình bày, giống lưu ý đã có ở mục 7 cho bản đầu
+(xem `Technical_Spec.md`, mục 10/08/2026 "dữ liệu thật cho trang Tài liệu") → tải lên 1 file
+mới) — bước tiếp theo hợp lý trước khi dùng để trình bày, giống lưu ý đã có ở §7 cho bản đầu
 tiên.
 
 **Rà soát ngay sau đó (cùng ngày 12/08/2026):** đọc lại toàn bộ mã
@@ -424,10 +434,10 @@ hay không", phát hiện và sửa 2 vấn đề thật:
 
 - **Lỗi thật — có thể crash âm thầm khi tải tài liệu lên:** `DocumentsPage._uploadFile()` dùng
   `result?.files.single`, ném `StateError` KHÔNG được bắt nếu vì lý do nào đó platform trả về
-  danh sách rỗng hoặc nhiều hơn 1 file — đúng dạng lỗi đã từng sửa ở mục 8 (gọi camera nằm ngoài
+  danh sách rỗng hoặc nhiều hơn 1 file — đúng dạng lỗi đã từng sửa ở §8 (gọi camera nằm ngoài
   `try/catch`). Sửa bằng cách kiểm tra `isEmpty` trước, dùng `.first` thay vì `.single`.
 - **Nội dung lỗi thời — không phải lỗi code:** màn hình đăng nhập (`LoginPage`) vẫn ghi tagline
-  "Chấm công & Nghỉ phép" từ bản đầu tiên (mục 2), chưa cập nhật sau khi thêm Công việc/Tài liệu
+  "Chấm công & Nghỉ phép" từ bản đầu tiên (§2), chưa cập nhật sau khi thêm Công việc/Tài liệu
   ở trên cùng ngày. Sửa thành "Chấm công · Nghỉ phép · Công việc · Tài liệu".
 
 Xác minh lại sau khi sửa: `flutter analyze` (0 lỗi), `flutter test` (2/2 qua), `flutter build apk
@@ -439,7 +449,7 @@ Hai hạng mục riêng, cùng ngày.
 
 ### 13.1. Địa chỉ Gateway không cần build lại APK mỗi khi tunnel đổi URL
 
-Vấn đề còn tồn đọng từ mục 10: Cloudflare Tunnel loại "quick tunnel" đổi URL mỗi khi khởi động
+Vấn đề còn tồn đọng từ §10: Cloudflare Tunnel loại "quick tunnel" đổi URL mỗi khi khởi động
 lại — trước đây mỗi lần đổi phải sửa `AppConfig.gatewayBaseUrl`, build lại APK, cài lại cho từng
 người dùng. Giải pháp: `GatewayConfig.resolveBaseUrl()` (`lib/core/gateway_config.dart`) đọc địa
 chỉ Gateway từ 1 file JSON công khai nhỏ lúc khởi động app, theo thứ tự ưu tiên:
@@ -471,7 +481,7 @@ chỉ Gateway từ 1 file JSON công khai nhỏ lúc khởi động app, theo th
 
 Vẫn cần Docker Compose + tunnel đang chạy trên máy phát triển để app thực sự kết nối được — cơ
 chế này chỉ giải quyết "APK biết địa chỉ nào để gọi", KHÔNG giải quyết "địa chỉ đó có đang hoạt
-động hay không" (vẫn phụ thuộc máy phát triển bật, giống mục 10).
+động hay không" (vẫn phụ thuộc máy phát triển bật, giống §10).
 
 ### 13.2. Cờ "on-site"/"off-site" cho chấm công (soft flag, không chặn check-in/out)
 
@@ -487,18 +497,18 @@ này thì ai cũng có thể né bằng cách luôn chấm công qua web.
 
 ## 14. Giới hạn đã biết & hướng mở rộng
 
-- Địa chỉ Gateway gốc (tunnel Cloudflare, mục 10) vẫn đổi mỗi khi `cloudflared` khởi động lại —
-  mục 13.1 đã bỏ được bước "build lại APK" mỗi lần đổi, nhưng vẫn cần 1 bước thủ công (sửa Gist)
+- Địa chỉ Gateway gốc (tunnel Cloudflare, §10) vẫn đổi mỗi khi `cloudflared` khởi động lại —
+  §13.1 đã bỏ được bước "build lại APK" mỗi lần đổi, nhưng vẫn cần 1 bước thủ công (sửa Gist)
   và không có màn hình cài đặt để nhập địa chỉ Gateway ngay trong app (phải sửa qua
   `gist.github.com`, ngoài ứng dụng).
 - Không có test widget cho các màn hình gọi mạng thật (`LoginPage`, `AttendancePage`,
   `LeaveRequestsPage`, `NotificationsPage`) — cần mock `Dio`/`path_provider` để test cô lập,
   chưa thực hiện trong bản đầu.
 - Thông báo dùng polling (kéo-để-làm-mới), chưa nối WebSocket real-time.
-- Duyệt/từ chối nghỉ phép (phía Manager) không có trên mobile — xem mục 2.
+- Duyệt/từ chối nghỉ phép (phía Manager) không có trên mobile — xem §2.
 - Không có phiên bản `--release` đã ký (signing key) — bản `debug` đủ dùng để cài thử/trình bày
   qua `adb install`, nhưng không phù hợp phân phối thật.
-- Cờ "on-site"/"off-site" (mục 13.2) dựa vào GPS của thiết bị — có thể bị giả mạo qua ứng dụng
+- Cờ "on-site"/"off-site" (§13.2) dựa vào GPS của thiết bị — có thể bị giả mạo qua ứng dụng
   giả lập vị trí khi bật Tuỳ chọn nhà phát triển trên Android, và độ chính xác GPS trong nhà có
   thể lệch vài chục mét. Đây là lý do thiết kế CỐ Ý không dùng để chặn check-in/out (xem
   `Technical_Spec.md` §17) — chấp nhận được vì chỉ là tín hiệu tham khảo, không phải kiểm soát an
@@ -507,20 +517,20 @@ này thì ai cũng có thể né bằng cách luôn chấm công qua web.
   chức" mới) — Manager hiện chỉ đối chiếu được cờ vị trí, chưa xem trực tiếp ảnh trên cùng màn
   hình.
 - Vai trò Manager/Employee của các tổ chức khác (nếu có, đăng ký trước 04-05/08/2026) có thể
-  gặp đúng lỗi thiếu quyền mô tả ở mục 11 — cần rà soát/cập nhật tương tự nếu phát hiện.
-- **Công việc** (mục 12): chỉ xem/đổi trạng thái Task đã được giao — không tạo Task mới dù
+  gặp đúng lỗi thiếu quyền mô tả ở §11 — cần rà soát/cập nhật tương tự nếu phát hiện.
+- **Công việc** (§12): chỉ xem/đổi trạng thái Task đã được giao — không tạo Task mới dù
   Employee có quyền `TASK_CREATE`, không có Kanban kéo-thả, không xem/sửa Task của người khác,
   không bình luận. Danh sách "của tôi" lọc ở client trên tối đa 500 Task gần nhất của tổ chức
-  (đủ dùng ở quy mô SME, xem `General_idea.md` mục 7) — tổ chức có hơn 500 Task đang mở cùng lúc
+  (đủ dùng ở quy mô SME, xem `General_idea.md` §7) — tổ chức có hơn 500 Task đang mở cùng lúc
   sẽ cần cách lọc phía server (ngoài phạm vi bản này).
-- **Tài liệu** (mục 12): chỉ xem/tải lên — không tạo/xoá/đổi tên thư mục, không quản lý chia sẻ,
+- **Tài liệu** (§12): chỉ xem/tải lên — không tạo/xoá/đổi tên thư mục, không quản lý chia sẻ,
   không xoá/thay phiên bản file. `file_picker` (chọn file tải lên) đang ghim ở bản `10.3.10` do
-  bản mới hơn (`11.x`) build lỗi trên máy phát triển hiện tại (xem mục 12) — cần thử lại khi
+  bản mới hơn (`11.x`) build lỗi trên máy phát triển hiện tại (xem §12) — cần thử lại khi
   nâng cấp Flutter/Android Gradle Plugin trên máy phát triển.
 
 ## 15. Rà soát lỗi treo/sập ứng dụng (24/08/2026)
 
-Trong đợt rà soát toàn dự án lần 2 (xem `Doc/Technical_Spec.md`, mục "2026-08-24" và
+Trong đợt rà soát toàn dự án lần 2 (xem `Doc/Technical_Spec.md`, mục "24/08/2026" và
 `Doc/RevisionHistory.md`), một hướng rà soát riêng tập trung vào `ecap-mobile` — cụ thể là liệu
 `ApiClient` có thể **crash/kẹt vĩnh viễn** với bất kỳ hình dạng response nào mà Gateway thật có
 thể trả về hay không (không chỉ đọc lại code của chính mình như đợt 07/08/2026, mà đối chiếu trực
@@ -542,17 +552,17 @@ tiếp với `AllExceptionsFilter`/`AuthService` thật ở backend). Phát hi�
   2 hàm này (best-effort, không phải luồng bắt buộc phải thành công).
 
 **Xác minh sau khi sửa:** `flutter analyze` (0 lỗi, chạy trên `api_client.dart`). Không có test
-widget/unit nào sẵn cho `ApiClient` (xem mục 14 — giới hạn kiểm thử đã biết) nên không thêm test
+widget/unit nào sẵn cho `ApiClient` (xem §14 — giới hạn kiểm thử đã biết) nên không thêm test
 Dart cho lần sửa này, theo đúng phạm vi tối thiểu của đợt rà soát (không mở rộng hạ tầng test
 `ecap-mobile` ngoài yêu cầu).
 
 ## 16. Rà soát lỗi lần 2 — đồng bộ hoá bản vá 24/08 + lỗi mới (25/08/2026)
 
-Trong đợt rà soát toàn dự án lần 3 (xem `Doc/RevisionHistory.md` mục "2026-08-25"), rà soát lại
+Trong đợt rà soát toàn dự án lần 3 (xem `Doc/RevisionHistory.md` mục "25/08/2026"), rà soát lại
 `ecap-mobile` với phạm vi rộng hơn (không chỉ lỗi treo/sập). Phát hiện bản vá "bắt mọi lỗi ép
-kiểu" của mục 15 (24/08/2026) chưa được áp dụng ĐỒNG BỘ, cộng 1 lỗi mới cùng lớp ở file khác:
+kiểu" của §15 (24/08/2026) chưa được áp dụng ĐỒNG BỘ, cộng 1 lỗi mới cùng lớp ở file khác:
 
-- **`login()` và 6 hàm gọi API còn lại của `ApiClient` chưa có `on TypeError`:** mục 15 chỉ sửa
+- **`login()` và 6 hàm gọi API còn lại của `ApiClient` chưa có `on TypeError`:** §15 chỉ sửa
   `_refresh()`/`tryAutoLogin()`; `login()`, `get()`, `getList()`, `postJson()`, `patch()`,
   `postPhoto()`, `postFile()` vẫn chỉ bắt `on DioException`, dù cùng 1 kiểu ép kiểu
   `response.data as Map<String,dynamic>`/`as List<dynamic>` có thể ném `TypeError`. Với `login()`
@@ -563,11 +573,11 @@ kiểu" của mục 15 (24/08/2026) chưa được áp dụng ĐỒNG BỘ, cộ
 - **`_refresh()`/`tryAutoLogin()` bắt lỗi nhưng không ghi log:** `catch (_)` không lưu lại đối
   tượng lỗi nào — không thể phân biệt "refresh token thật sự hết hạn" (bình thường) với "lỗi phân
   tích response" (bug) khi debug từ xa. Thêm `debugPrint` (không ảnh hưởng bản release AOT).
-- **`GatewayConfig.resolveBaseUrl()` — lỗi mới cùng lớp với mục 15:** `cacheFile.writeAsString()`
+- **`GatewayConfig.resolveBaseUrl()` — lỗi mới cùng lớp với §15:** `cacheFile.writeAsString()`
   không có `try/catch`, trong khi `_fetchRemote()`/`_readCache()` (2 bước còn lại của cùng hàm) đều
   có. Nếu ghi cache thất bại (hết dung lượng, quyền bị thu hồi giữa chừng), lỗi thoát ra khỏi
   `resolveBaseUrl()` mà `main.dart`'s `_bootstrap()` (nơi gọi hàm này) không có `try/catch` nào bọc
-  ngoài — đúng kiểu "màn hình khởi động treo vĩnh viễn" mà mục 15 vừa sửa, chỉ tái diễn ở 1 file
+  ngoài — đúng kiểu "màn hình khởi động treo vĩnh viễn" mà §15 vừa sửa, chỉ tái diễn ở 1 file
   khác. Sửa: bọc riêng bước ghi cache, thất bại thì bỏ qua (vẫn trả về địa chỉ vừa fetch được).
 - **3 trang thiếu kiểm tra `mounted` trước khi gọi lại `_load()` sau 1 `await`:**
   `notifications_page.dart` (2 chỗ), `leave_requests_page.dart`, `tasks_page.dart` — `_load()` gọi
@@ -578,54 +588,92 @@ kiểu" của mục 15 (24/08/2026) chưa được áp dụng ĐỒNG BỘ, cộ
 **Xác minh sau khi sửa:** `flutter analyze` sạch (1 cảnh báo info-level có sẵn từ trước ở
 `app_config.dart`, không liên quan tới các file vừa sửa).
 
+## 17. Nhắn tin nội bộ + Quên/Đặt lại mật khẩu (28/09/2026)
+
+Hai hạng mục cùng đợt, theo đúng phạm vi hẹp đã thống nhất ở §2 (chỉ thêm tính năng tự nhiên trên
+điện thoại, không mở rộng sang Kanban/CRM/Admin/Analytics).
+
+**Nhắn tin nội bộ** (`apps/messaging-service` mới ở nền tảng, xem `Technical_Spec.md` §20): thêm
+`socket_io_client` (`pubspec.yaml`) — lần đầu ứng dụng dùng real-time thay vì kéo-để-làm-mới như
+mọi tính năng trước đó. Model mới `lib/models/conversation.dart`/`message.dart`. `UserDirectory`
+mới (`lib/core/user_directory.dart`) — gọi `GET /users` một lần mỗi phiên, cache `id -> tên` trong
+bộ nhớ, không bao giờ hiện UUID thô (fallback "Thành viên" nếu tra không ra). 2 trang mới:
+`conversations_page.dart` (danh sách, badge chưa đọc, tạo hội thoại 1:1/nhóm) và `chat_page.dart`
+(khung chat, join/leave phòng WebSocket đúng lúc mở/đóng). `HomeShell` mở từ 6 lên 7 tab. Cố ý
+KHÔNG có màn hình quản lý thành viên nhóm — để lại cho web (đúng tinh thần "thao tác quản trị tự
+nhiên hơn trên màn hình lớn" đã áp dụng cho duyệt/từ chối nghỉ phép, xem §2).
+
+Đối chiếu trực tiếp hợp đồng API với mã nguồn `apps/messaging-service` (không chỉ tin đặc tả) phát
+hiện 1 điểm lệch thật: response của `POST /conversations` không có `lastMessage`/`unreadCount`
+(chỉ `GET /conversations` mới có) — `Conversation.fromJson` đặt giá trị mặc định thay vì ép kiểu
+cứng, tránh `TypeError` ngay sau khi tạo hội thoại mới.
+
+**Quên/Đặt lại mật khẩu**: 2 trang mới (`forgot_password_page.dart`/`reset_password_page.dart`),
+tái dùng đúng 2 endpoint đã có ở nền tảng từ 15/09/2026 (`POST /auth/forgot-password`/
+`reset-password`). Vì ứng dụng chưa xử lý deep-link, `ResetPasswordPage` để người dùng tự dán mã
+token (kèm hướng dẫn trên màn hình) thay vì tự động đọc từ link email — đơn giản hoá có chủ đích,
+không phải thiếu sót.
+
+**Kiểm tra riêng, xác nhận là giới hạn thật (không phải bỏ sót):** đọc trực tiếp
+`apps/iam-service/src/users/users.controller.ts` xác nhận `PATCH /users/:id` yêu cầu quyền
+`user:manage`, KHÔNG có lối tắt `id === callerId` như `GET /users/:id` đã có — nghĩa là một nhân
+viên bình thường không tự sửa được hồ sơ của chính mình qua bất kỳ API nào hiện có. Không thêm
+route backend mới ngoài phạm vi đã chốt; giữ nguyên màn hình Hồ sơ cá nhân ở dạng chỉ-đọc, ghi lại
+đây làm giới hạn đã biết (bổ sung vào §14).
+
+**Xác minh:** `flutter analyze` (0 lỗi), `flutter test` (10/10, 8 test mới cho logic thuần của
+tin nhắn/badge chưa đọc/tiêu đề hội thoại), `flutter build apk --debug` thành công. Xác minh sống
+qua Gateway thật (2 tài khoản, không chỉ đọc code): tạo hội thoại 1:1 → dedup đúng khi tạo lại lần
+2 → gửi tin → người nhận thấy đúng số chưa đọc → tạo nhóm 3 người → gửi tin nhóm thành công.
+
 ## Lịch sử thay đổi tài liệu
 
-- **2026-08-06** — Khởi tạo tài liệu, đồng thời với việc scaffold `ecap-mobile` (Flutter/Dart,
+- **06/08/2026** — Khởi tạo tài liệu, đồng thời với việc scaffold `ecap-mobile` (Flutter/Dart,
   repo tách biệt hoàn toàn khỏi nền tảng chính). Quyết định kỹ thuật chính: tái sử dụng nguyên
   cơ chế xác thực cookie hiện có qua `dio` + `cookie_jar` (không sửa backend), gọi trực tiếp
   Gateway qua Wi-Fi/LAN (không cần cáp USB/`adb reverse`), phạm vi giới hạn ở chấm công/nghỉ
   phép/thông báo. Xác minh: `flutter analyze`/`flutter test` sạch, build APK debug thành công.
-- **2026-08-07 (rà soát lỗi)** — Rà soát toàn bộ mã nguồn, phát hiện và
+- **07/08/2026 (rà soát lỗi)** — Rà soát toàn bộ mã nguồn, phát hiện và
   sửa 4 lỗi thật (1 lỗi khiến app vỡ trên mọi lỗi validate dữ liệu, 1 lỗi có thể lặp vô hạn khi
-  refresh token, 2 lỗi UX). Chi tiết đầy đủ ở mục 8 (mới). Bổ sung `README.md` cho `ecap-mobile`
+  refresh token, 2 lỗi UX). Chi tiết đầy đủ ở §8 (mới). Bổ sung `README.md` cho `ecap-mobile`
   (trước đó vẫn là README mặc định do `flutter create` sinh ra).
-- **2026-08-08 (thương hiệu)** — Đặt tên chính thức "CollabNAnalytic" (viết tắt "CNA") và icon
+- **08/08/2026 (thương hiệu)** — Đặt tên chính thức "CollabNAnalytic" (viết tắt "CNA") và icon
   (từ `Pic/Icon.png` của repo chính) cho ứng dụng. Chi tiết đầy đủ ở
-  mục 9 (mới, các mục sau dịch xuống 1 số). Xác minh bằng `aapt dump badging` trên APK debug đã
+  §9 (mới, các mục sau dịch xuống 1 số). Xác minh bằng `aapt dump badging` trên APK debug đã
   build lại.
-- **2026-08-10 (Cloudflare Tunnel + sửa lỗi RBAC)** — Cộng tác viên Nguyễn Lê Tiến không kết nối
+- **10/08/2026 (Cloudflare Tunnel + sửa lỗi RBAC)** — Cộng tác viên Nguyễn Lê Tiến không kết nối
   được bằng CNA vì không cùng Wi-Fi/LAN với máy chạy Docker Compose (đúng thiết kế ban đầu, xem
-  mục 4). Mở Cloudflare Tunnel (quick tunnel, không cần tài khoản) trỏ
+  §4). Mở Cloudflare Tunnel (quick tunnel, không cần tài khoản) trỏ
   vào Gateway để CNA kết nối được qua Internet — chi tiết đầy đủ, gồm cảnh báo về tính tạm thời
-  của URL và đánh đổi bảo mật, ở mục 11 (mới). Trong lúc xác minh, phát hiện và sửa 1 vấn đề dữ
+  của URL và đánh đổi bảo mật, ở §11 (mới). Trong lúc xác minh, phát hiện và sửa 1 vấn đề dữ
   liệu thật (không phải lỗi code): vai trò Manager/Employee của tổ chức demo cố định thiếu toàn
   bộ quyền CRM-lite/HRM-lite do được đăng ký trước khi 2 hạng mục đó tồn tại trong code — chi
-  tiết đầy đủ, gồm danh sách tài khoản demo, ở mục 12 (mới). Các mục giới hạn/lịch sử dịch số
+  tiết đầy đủ, gồm danh sách tài khoản demo, ở §12 (mới). Các mục giới hạn/lịch sử dịch số
   tương ứng. Xác minh: đăng nhập + chấm công thật thành công đầu-cuối qua tunnel bằng tài khoản
   Employee sau khi sửa quyền.
-- **2026-08-12 (mở rộng phạm vi — Công việc & Tài liệu)** — Sau khi dùng thử CNA, nảy sinh
+- **12/08/2026 (mở rộng phạm vi — Công việc & Tài liệu)** — Sau khi dùng thử CNA, nảy sinh
   câu hỏi vì sao ứng dụng thiếu nhiều chức năng so với web; cân nhắc lại phạm vi trước khi sửa
   code, đối chiếu trực tiếp `DEFAULT_ROLE_PERMISSIONS` của vai trò Employee thay vì suy đoán —
-  phát hiện phạm vi ban đầu (mục 2) hẹp hơn mức Employee thực sự được phép làm trên web (có
+  phát hiện phạm vi ban đầu (§2) hẹp hơn mức Employee thực sự được phép làm trên web (có
   quyền Task/Document nhưng CNA chưa có màn hình tương ứng). Quyết định: thêm `TasksPage` (xem +
   đổi trạng thái, không Kanban/không tạo) và `DocumentsPage` (duyệt + xem inline + tải lên,
   không quản trị thư mục); cố ý loại CRM (Deal) dù Employee cũng có quyền — không phải thao tác
   tự nhiên trên điện thoại. Chi tiết đầy đủ, gồm 1 sự cố công cụ build (`compileSdk`/xung đột
-  phiên bản `file_picker`) phát sinh khi thêm phụ thuộc mới, ở mục 12 (mới, chèn trước mục Giới
-  hạn — đồng thời lấp khoảng trống đánh số mục 10 còn sót từ lần sửa trước). Mục Kết nối
+  phiên bản `file_picker`) phát sinh khi thêm phụ thuộc mới, ở §12 (mới, chèn trước mục Giới
+  hạn — đồng thời lấp khoảng trống đánh số §10 còn sót từ lần sửa trước). Mục Kết nối
   Internet (11→10) và Tài khoản demo & RBAC (12→11) dịch số tương ứng. Xác minh: `flutter
   analyze`/`flutter test` sạch, `flutter build apk --debug` thành công.
-- **2026-08-12 (rà soát mã nguồn + chuyển `ecap-mobile/` và `Doc/` vào repo Git chính)** — Hai
+- **12/08/2026 (rà soát mã nguồn + chuyển `ecap-mobile/` và `Doc/` vào repo Git chính)** — Hai
   việc riêng trong cùng ngày. (1) Rà soát lại toàn bộ mã nguồn
   `ecap-mobile` (không chỉ dựa vào `flutter analyze`) ngay sau khi thêm Công việc/Tài liệu ở
-  trên — phát hiện và sửa 2 vấn đề, chi tiết ở cuối mục 12. (2) Đưa cả
+  trên — phát hiện và sửa 2 vấn đề, chi tiết ở cuối §12. (2) Đưa cả
   `ecap-mobile/` và `Doc/` (trừ `ClaudeRule.md` — chỉ dẫn nội bộ cho trợ lý AI, không phải tài
   liệu dự án, thêm vào `.gitignore`) vào lịch sử Git của repo `Enterprise Collaboration and
   Analytics Platform for SMEs` — máy phát triển không có `git` cài đặt độc lập, dùng bản `git`
   đi kèm GitHub Desktop đã cài sẵn (`resources/app/git/mingw64/bin/git.exe`). Vì git chỉ theo
   dõi được nội dung NẰM TRONG thư mục gốc của repo, và `Doc/`/`ecap-mobile/` trước đó nằm CÙNG
   CẤP với thư mục repo (không phải bên trong), cả hai được **di chuyển vật lý** vào làm thư mục
-  con ở gốc repo. Đây là lý do đoạn mở đầu tài liệu và mục 1 được viết lại: ranh giới "tách
+  con ở gốc repo. Đây là lý do đoạn mở đầu tài liệu và §1 được viết lại: ranh giới "tách
   biệt" của `ecap-mobile` luôn nằm ở TẦNG MÃ NGUỒN/BUILD (không import, không chung dependency,
   không chung Docker image) — quyết định ban đầu (06/08/2026) đặt nó cùng cấp vật lý với repo là
   một lựa chọn KHÁC, độc lập với ranh giới đó, và nay đã đổi để đưa vào cùng lịch sử Git của repo
@@ -635,31 +683,39 @@ kiểu" của mục 15 (24/08/2026) chưa được áp dụng ĐỒNG BỘ, cộ
   `.gitignore` lồng nhau theo đúng thư mục chứa nó. Xác minh: `git status` sau khi di chuyển +
   trước khi commit xác nhận đúng tập file dự kiến (không có `ClaudeRule.md`, không có artifact
   build của Flutter/Android).
-- **2026-08-13 (kết nối bền vững + cờ vị trí chấm công)** — Hai hạng mục riêng, cùng ngày. (1)
+- **13/08/2026 (kết nối bền vững + cờ vị trí chấm công)** — Hai hạng mục riêng, cùng ngày. (1)
   `GatewayConfig.resolveBaseUrl()` (mới) — địa chỉ Gateway đọc từ 1 file JSON công khai lúc khởi
   động app thay vì hardcode, giải quyết dứt điểm việc phải build lại APK mỗi khi tunnel
   Cloudflare đổi URL. (2) Cờ "on-site"/"off-site" (soft flag) cho chấm công — gửi kèm toạ độ GPS
   tuỳ chọn cùng ảnh check-in/out, không chặn cham công nếu thiếu. Chi tiết đầy đủ, gồm hướng dẫn
-  thiết lập Gist và lý do thiết kế soft flag, ở mục 13 (mới). Xác minh: `flutter analyze`/
+  thiết lập Gist và lý do thiết kế soft flag, ở §13 (mới). Xác minh: `flutter analyze`/
   `flutter test`/`flutter build apk --debug` đều sạch; build+test toàn workspace của nền tảng
   cũng sạch (backend + `apps/web` cùng áp dụng cờ vị trí, xem `Technical_Spec.md` mục cùng ngày).
-- **2026-08-20 → 21 (Đa ngôn ngữ Việt/Anh/Nhật ở nền tảng — không đổi CNA)** — Nền tảng triển
+- **20/08/2026 → 21 (Đa ngôn ngữ Việt/Anh/Nhật ở nền tảng — không đổi CNA)** — Nền tảng triển
   khai rollout đa ngôn ngữ đầy đủ cho `apps/web`, kèm mở rộng CỘNG THÊM 3 trường tùy chọn vào
   body lỗi JSON (`errorCode`/`errorParams`/`details`, xem `Technical_Spec.md` §18). Ghi chú ngắn
-  thêm ở mục 3 xác nhận `_toApiException()` không bị ảnh hưởng (4 trường gốc giữ nguyên, field
+  thêm ở §3 xác nhận `_toApiException()` không bị ảnh hưởng (4 trường gốc giữ nguyên, field
   mới bị bỏ qua tự nhiên) — đã xác minh bằng cách gọi thật API sai mật khẩu qua Gateway đã
   rebuild. CNA không có nút chọn ngôn ngữ và không nằm trong phạm vi rollout này, tiếp tục 100%
   tiếng Việt như từ đầu.
-- **2026-08-24 (rà soát lỗi treo/sập ứng dụng)** — Một hướng trong đợt rà soát toàn dự án lần 2
+- **24/08/2026 (rà soát lỗi treo/sập ứng dụng)** — Một hướng trong đợt rà soát toàn dự án lần 2
   của nền tảng (xem `Technical_Spec.md`/`RevisionHistory.md` mục cùng ngày) rà lại `ApiClient` với
   câu hỏi cụ thể "có hình dạng response nào từ Gateway thật khiến app crash/kẹt vĩnh viễn không?".
   Phát hiện và sửa 1 lỗi Nghiêm trọng: `tryAutoLogin()`/`_refresh()` chỉ bắt `DioException`, không
   bắt được `TypeError` từ ép kiểu sai khi gặp response 200 sai hình dạng (captive portal Wi-Fi,
-  proxy doanh nghiệp) — khiến màn hình khởi động app kẹt vĩnh viễn. Chi tiết đầy đủ ở mục 15
+  proxy doanh nghiệp) — khiến màn hình khởi động app kẹt vĩnh viễn. Chi tiết đầy đủ ở §15
   (mới). Xác minh: `flutter analyze` sạch.
-- **2026-08-25 (rà soát lỗi lần 2 — đồng bộ hoá bản vá 24/08)** — Đợt rà soát toàn dự án lần 3 của
-  nền tảng (xem `RevisionHistory.md` mục cùng ngày) phát hiện bản vá mục 15 chỉ áp dụng cho
+- **25/08/2026 (rà soát lỗi lần 2 — đồng bộ hoá bản vá 24/08)** — Đợt rà soát toàn dự án lần 3 của
+  nền tảng (xem `RevisionHistory.md` mục cùng ngày) phát hiện bản vá §15 chỉ áp dụng cho
   `_refresh()`/`tryAutoLogin()`, chưa lan sang `login()` + 6 hàm gọi API còn lại của `ApiClient`,
   cộng 1 lỗi mới cùng lớp ở `GatewayConfig.resolveBaseUrl()` (ghi cache không `try/catch`) và 3
-  trang thiếu kiểm tra `mounted` trước khi gọi lại `_load()`. Chi tiết đầy đủ ở mục 16 (mới). Xác
+  trang thiếu kiểm tra `mounted` trước khi gọi lại `_load()`. Chi tiết đầy đủ ở §16 (mới). Xác
   minh: `flutter analyze` sạch.
+- **28/09/2026 (Nhắn tin nội bộ + Quên/Đặt lại mật khẩu)** — Tính năng nhắn tin 1:1/nhóm mới
+  hoàn toàn ở nền tảng (`apps/messaging-service`, xem `Technical_Spec.md` §20) được thêm luôn vào
+  `ecap-mobile` — lần đầu ứng dụng dùng real-time (`socket_io_client`) thay vì polling. Đồng thời
+  thêm Quên/Đặt lại mật khẩu (tái dùng API có sẵn từ 15/09/2026). Kiểm tra riêng khả năng tự sửa
+  hồ sơ cá nhân — xác nhận `apps/iam-service` chưa có endpoint self-service này, giữ nguyên màn
+  hình chỉ-đọc thay vì tự thêm route backend ngoài phạm vi. Chi tiết đầy đủ ở §17 (mới). Xác minh:
+  `flutter analyze`/`test`/`build apk --debug` sạch; kiểm thử sống qua Gateway thật với 2 tài
+  khoản (1:1 + nhóm 3 người).

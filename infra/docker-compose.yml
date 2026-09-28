@@ -13,6 +13,7 @@ volumes:
   postgres-crm-data:
   postgres-hrm-data:
   postgres-ml-data:
+  postgres-messaging-data:
   timescale-data:
   mongo-data:
   kafka-data:
@@ -152,6 +153,28 @@ services:
     networks: [internal-net]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_ML_USER} -d ${POSTGRES_ML_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # 28/09/2026: Postgres rieng cho Messaging Service - dung quy uoc database-per-service nhu cac
+  # Postgres nghiep vu hien co. Cong host 5441 (tiep theo sau 5440 cua postgres-ml - gap 5437 trong
+  # day so da khong duoc dung tu truoc, khong backfill lai de tranh nham lan voi ban ghi cu).
+  postgres-messaging:
+    image: postgres:16-alpine
+    container_name: postgres-messaging
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_MESSAGING_DB}
+      POSTGRES_USER: ${POSTGRES_MESSAGING_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_MESSAGING_PASSWORD}
+    volumes:
+      - postgres-messaging-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5441:5432"
+    networks: [internal-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_MESSAGING_USER} -d ${POSTGRES_MESSAGING_DB}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -398,6 +421,7 @@ services:
       crm-service: { condition: service_healthy }
       hrm-service: { condition: service_healthy }
       ml-service: { condition: service_healthy }
+      messaging-service: { condition: service_healthy }
       # 25/07/2026: kiem tra vong 2 phat hien - gateway dung REDIS_HOST/PORT ben duoi (rate-limit,
       # blacklist token) nhung truoc day khong khai bao phu thuoc "redis" nen co the khoi dong
       # truoc khi Redis san sang, gay loi tam thoi luc "docker compose up" lan dau.
@@ -419,6 +443,7 @@ services:
       CRM_SERVICE_URL: http://crm-service:3007
       HRM_SERVICE_URL: http://hrm-service:3006
       ML_SERVICE_URL: http://ml-service:8000
+      MESSAGING_SERVICE_URL: http://messaging-service:3009
     ports:
       - "3000:3000"
     networks: [internal-net]
@@ -724,6 +749,42 @@ services:
       # nem loi (vd connection refused/non-2xx) se tu lam tien trinh python thoat voi ma khac 0,
       # dung y nghia "unhealthy" can co.
       test: ["CMD", "python", "-c", "import urllib.request as u; assert u.urlopen('http://localhost:8000/api/v1/health').status == 200"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # 28/09/2026: Messaging Service (nhan tin noi bo 1:1 va nhom/kenh) - KHONG phu thuoc Kafka (khong
+  # phat/tieu thu event, xem chu thich apps/messaging-service/src/app.module.ts), nhung CO dung
+  # Redis (kiem tra blacklist token cho WebSocket handshake, mirror notification-service/analytics-service).
+  messaging-service:
+    build:
+      context: ..
+      dockerfile: apps/messaging-service/Dockerfile
+    container_name: messaging-service
+    restart: unless-stopped
+    depends_on:
+      postgres-messaging: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      PORT: 3009
+      DB_HOST: postgres-messaging
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_MESSAGING_DB}
+      DB_USER: ${POSTGRES_MESSAGING_USER}
+      DB_PASSWORD: ${POSTGRES_MESSAGING_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+    # Khong map port ra host, chi Gateway/noi bo moi goi duoc qua internal-net - cung quy uoc voi
+    # cac service nghiep vu con lai (Technical_Spec.md muc 8).
+    networks: [internal-net]
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3009/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 10

@@ -1,4 +1,4 @@
-import { BarChartIcon, BriefcaseIcon, CalendarIcon, ClockIcon, FileTextIcon, FolderKanbanIcon, GridIcon, BellIcon, ShieldIcon } from '@/components/ui/Icons';
+import { BarChartIcon, BriefcaseIcon, CalendarIcon, ClockIcon, FileTextIcon, FolderKanbanIcon, GridIcon, BellIcon, MessageIcon, ShieldIcon } from '@/components/ui/Icons';
 import type { IconProps } from '@/components/ui/Icons';
 import { PERMISSIONS } from '@/constants/permissions';
 
@@ -29,6 +29,10 @@ export const NAV_ITEMS: NavItem[] = [
   // 05/08/2026: HRM-lite (Technical_Spec.md muc 17) - cham cong (photo-proof) + nghi phep.
   { to: '/attendance', labelKey: 'common:nav.attendance', icon: ClockIcon },
   { to: '/leave-requests', labelKey: 'common:nav.leaveRequests', icon: CalendarIcon },
+  // 28/09/2026: Messaging Service (nhan tin noi bo 1:1 va nhom/kenh) - khong requiredPermission vi
+  // MESSAGE_VIEW/MESSAGE_SEND duoc cap cho ca 3 vai tro (Org Admin/Manager/Employee), gate DUY
+  // NHAT boi dang nhap. Badge so tin nhan chua doc duoc Sidebar.tsx tu ve rieng (useUnreadMessagesCount).
+  { to: '/messages', labelKey: 'common:nav.messages', icon: MessageIcon },
   { to: '/notifications', labelKey: 'common:nav.notifications', icon: BellIcon },
   { to: '/analytics', labelKey: 'common:nav.analytics', icon: BarChartIcon, requiredPermission: PERMISSIONS.ANALYTICS_VIEW },
   { to: '/admin/members', labelKey: 'common:nav.admin', icon: ShieldIcon, adminOnly: true },

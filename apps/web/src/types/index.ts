@@ -551,3 +551,38 @@ export interface OvertimeRequest {
   createdAt: string;
   updatedAt: string;
 }
+
+// 28/09/2026: Messaging Service (nhắn tin nội bộ 1:1 và nhóm/kênh) - khớp CHÍNH XÁC với response
+// của apps/messaging-service (xem ConversationsService/MessagesService, không sửa được backend).
+export type ConversationType = 'DIRECT' | 'GROUP';
+
+/** GET /conversations (ConversationListItem) - KHÔNG có trường createdBy (backend cố ý không trả
+ *  về trong danh sách, chỉ có ở response tạo/cập nhật - xem ConversationWithOwner bên dưới và
+ *  features/messaging/hooks.ts về cách FE suy ra "người tạo nhóm" từ các nguồn khác). */
+export interface Conversation {
+  id: string;
+  type: ConversationType;
+  name: string | null;
+  participantUserIds: string[];
+  lastMessage: { body: string; senderId: string; createdAt: string } | null;
+  unreadCount: number;
+}
+
+/** Response của POST /conversations và PATCH /conversations/:id/participants - CÓ createdBy
+ *  (khác Conversation ở trên, vốn dùng cho GET /conversations dạng danh sách). */
+export interface ConversationWithOwner {
+  id: string;
+  type: ConversationType;
+  name: string | null;
+  participantUserIds: string[];
+  createdBy: string;
+  createdAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  body: string;
+  createdAt: string;
+}

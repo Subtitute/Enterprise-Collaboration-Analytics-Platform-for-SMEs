@@ -63,6 +63,12 @@ dependencies:
   file_picker: ^10.3.10
   url_launcher: ^6.3.1
 
+  # 28/09/2026: Nhan tin noi bo (Doc/ECAP_Mobile.md) - tinh nang dau tien dung WebSocket that su,
+  # moi thu khac trong app hien dang polling qua REST (vd RefreshIndicator/keo-de-lam-moi). Server
+  # (apps/messaging-service) dung socket.io ^4.7.0 (Node) - ban 2.x cua goi Dart nay noi Engine.IO
+  # v4 (khop socket.io-client v4 JS ma apps/web dang dung, xem apps/web/src/lib/socket.ts).
+  socket_io_client: ^2.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

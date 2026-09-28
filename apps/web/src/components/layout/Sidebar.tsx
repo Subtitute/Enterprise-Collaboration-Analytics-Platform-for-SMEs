@@ -6,6 +6,7 @@ import { NAV_ITEMS } from './nav-items';
 import { ChevronLeftIcon, ChevronRightIcon, LayersIcon } from '@/components/ui/Icons';
 import { useUIStore } from '@/stores/ui.store';
 import { usePermissions } from '@/stores/auth.store';
+import { useUnreadMessagesCount } from '@/features/messaging/hooks';
 
 interface SidebarContentProps {
   collapsed: boolean;
@@ -20,6 +21,11 @@ function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
   const items = NAV_ITEMS.filter(
     (item) => (!item.adminOnly || canSeeAdmin) && (!item.requiredPermission || permissions.includes(item.requiredPermission)),
   );
+  // 28/09/2026: badge so tin nhan chua doc tren muc "Nhan tin" - hien tren MOI trang (Sidebar luon
+  // mount), mirror NotificationBell o Topbar. Goi useConversationsQuery() gian tiep qua day nen
+  // GET /conversations duoc fetch ngay ca khi chua vao trang Nhan tin (chap nhan duoc, cung danh
+  // doi voi useUnreadNotificationsPreview() da co san).
+  const unreadMessagesCount = useUnreadMessagesCount();
 
   return (
     <nav className="flex-1 space-y-1 overflow-x-hidden overflow-y-auto px-2.5 py-2">
@@ -53,13 +59,18 @@ function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
                 {isItemActive && (
                   <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r bg-primary-600 animate-fade-in" />
                 )}
-                <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+                <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
                   <item.icon
                     className={cn(
                       'h-5 w-5 transition-colors duration-150',
                       isItemActive ? 'text-primary-600' : 'text-slate-400 group-hover:text-slate-600',
                     )}
                   />
+                  {item.to === '/messages' && unreadMessagesCount > 0 && (
+                    <span className="absolute -top-1 -right-1.5 flex h-3.5 min-w-[0.875rem] items-center justify-center rounded-full bg-primary-600 px-0.5 text-[9px] font-semibold text-white ring-2 ring-white">
+                      {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
+                    </span>
+                  )}
                 </div>
                 <div
                   className={cn(

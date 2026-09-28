@@ -404,6 +404,14 @@ export const InfoIcon = (p: IconProps) => (
   </svg>
 );
 
+// 28/09/2026: icon moi (kieu may bay giay) - dung cho nut Gui tin nhan (Nhan tin noi bo).
+export const SendIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M22 2 11 13" />
+    <path d="M22 2 15 22l-4-9-9-4 20-7Z" />
+  </svg>
+);
+
 export const PrinterIcon = (p: IconProps) => (
   <svg {...base(p)}>
     <polyline points="6 9 6 2 18 2 18 9" />

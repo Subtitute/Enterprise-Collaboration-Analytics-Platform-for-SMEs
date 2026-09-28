@@ -77,6 +77,14 @@ export const PERMISSIONS = {
   OVERTIME_REQUEST_CREATE: 'overtime_request:create',
   OVERTIME_REQUEST_VIEW: 'overtime_request:view',
   OVERTIME_REQUEST_APPROVE: 'overtime_request:approve',
+
+  // 28/09/2026: Messaging Service (nhan tin noi bo 1:1 va nhom/kenh) - MESSAGE_MANAGE_GROUP tach
+  // rieng khoi MESSAGE_SEND vi "them/bot thanh vien nhom" la hanh dong quan tri nhom khac voi "gui
+  // tin nhan" (nguoi tao nhom van thao tac duoc nhom cua chinh minh du khong giu quyen nay - xem
+  // ConversationsService.updateParticipants() trong apps/messaging-service).
+  MESSAGE_VIEW: 'message:view',
+  MESSAGE_SEND: 'message:send',
+  MESSAGE_MANAGE_GROUP: 'message:manage_group',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -133,6 +141,11 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<DefaultRoleName, Permission[]> = {
     PERMISSIONS.OVERTIME_REQUEST_CREATE,
     PERMISSIONS.OVERTIME_REQUEST_VIEW,
     PERMISSIONS.OVERTIME_REQUEST_APPROVE,
+    // 28/09/2026: Messaging Service - Manager quan ly duoc nhom/kenh (them/bot thanh vien) cong
+    // them quyen nhan tin co ban, mirror nhom quyen LEAVE_REQUEST (tu thao tac + quyen quan ly rieng).
+    PERMISSIONS.MESSAGE_VIEW,
+    PERMISSIONS.MESSAGE_SEND,
+    PERMISSIONS.MESSAGE_MANAGE_GROUP,
   ],
   [DefaultRoleName.EMPLOYEE]: [
     PERMISSIONS.PROJECT_VIEW,
@@ -157,5 +170,11 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<DefaultRoleName, Permission[]> = {
     // duoc du lieu toan to chuc/duyet (thuoc Manager) - mirror dung LEAVE_REQUEST_CREATE ngay tren.
     PERMISSIONS.ATTENDANCE_ADJUSTMENT_CREATE,
     PERMISSIONS.OVERTIME_REQUEST_CREATE,
+    // 28/09/2026: Messaging Service - Employee nhan tin binh thuong (1:1 va trong nhom da duoc
+    // them vao) nhung KHONG duoc tu them/bot thanh vien nhom NGUOI KHAC tao (MESSAGE_MANAGE_GROUP
+    // thuoc Manager/Org Admin) - rieng nhom DO CHINH Employee do tao, ho van quan ly duoc qua
+    // dieu kien createdBy (xem ConversationsService.updateParticipants()), khong can permission nay.
+    PERMISSIONS.MESSAGE_VIEW,
+    PERMISSIONS.MESSAGE_SEND,
   ],
 };

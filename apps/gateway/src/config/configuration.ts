@@ -22,6 +22,8 @@ export default () => ({
     hrm: process.env.HRM_SERVICE_URL ?? 'http://localhost:3006',
     // 24/09/2026: ML Service (Layer 3 Anomaly Detection, Python/FastAPI - Technical_Spec.md muc 19).
     ml: process.env.ML_SERVICE_URL ?? 'http://localhost:3008',
+    // 28/09/2026: Messaging Service (nhan tin noi bo 1:1 va nhom/kenh).
+    messaging: process.env.MESSAGING_SERVICE_URL ?? 'http://localhost:3009',
   },
   rateLimit: {
     max: parseInt(process.env.RATE_LIMIT_MAX ?? '100', 10),

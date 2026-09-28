@@ -19,6 +19,8 @@ import adminVi from './locales/vi/admin.json';
 import notificationsVi from './locales/vi/notifications.json';
 import profileVi from './locales/vi/profile.json';
 import errorsVi from './locales/vi/errors.json';
+// 28/09/2026: Messaging Service (nhan tin noi bo 1:1 va nhom/kenh) - xem features/messaging/.
+import messagingVi from './locales/vi/messaging.json';
 // 16/09/2026: "Super Admin" (tinh nang moi) - xem features/platform-admin/.
 import platformAdminVi from './locales/vi/platformAdmin.json';
 
@@ -34,6 +36,7 @@ import adminEn from './locales/en/admin.json';
 import notificationsEn from './locales/en/notifications.json';
 import profileEn from './locales/en/profile.json';
 import errorsEn from './locales/en/errors.json';
+import messagingEn from './locales/en/messaging.json';
 import platformAdminEn from './locales/en/platformAdmin.json';
 
 import commonJa from './locales/ja/common.json';
@@ -48,6 +51,7 @@ import adminJa from './locales/ja/admin.json';
 import notificationsJa from './locales/ja/notifications.json';
 import profileJa from './locales/ja/profile.json';
 import errorsJa from './locales/ja/errors.json';
+import messagingJa from './locales/ja/messaging.json';
 import platformAdminJa from './locales/ja/platformAdmin.json';
 
 export const SUPPORTED_LANGUAGES = ['vi', 'en', 'ja'] as const;
@@ -69,6 +73,7 @@ const resources = {
     profile: profileVi,
     errors: errorsVi,
     platformAdmin: platformAdminVi,
+    messaging: messagingVi,
   },
   en: {
     common: commonEn,
@@ -84,6 +89,7 @@ const resources = {
     profile: profileEn,
     errors: errorsEn,
     platformAdmin: platformAdminEn,
+    messaging: messagingEn,
   },
   ja: {
     common: commonJa,
@@ -99,6 +105,7 @@ const resources = {
     profile: profileJa,
     errors: errorsJa,
     platformAdmin: platformAdminJa,
+    messaging: messagingJa,
   },
 };
 

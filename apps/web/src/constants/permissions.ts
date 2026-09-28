@@ -52,6 +52,15 @@ export const PERMISSIONS = {
   // Hệ thống & Quản trị
   SYSTEM_MANAGE: 'system:manage',
   CALENDAR_MANAGE: 'calendar:manage',
+
+  // 28/09/2026: Messaging Service (nhắn tin nội bộ 1:1 và nhóm/kênh) - mirror
+  // packages/common-dto/src/enums/permission.enum.ts. MESSAGE_MANAGE_GROUP tách riêng khỏi
+  // MESSAGE_SEND vì "thêm/bớt thành viên nhóm" là hành động quản trị nhóm khác với "gửi tin nhắn"
+  // (người tạo nhóm vẫn thao tác được nhóm của chính mình dù không giữ quyền này - xem
+  // ConversationsService.updateParticipants() trong apps/messaging-service).
+  MESSAGE_VIEW: 'message:view',
+  MESSAGE_SEND: 'message:send',
+  MESSAGE_MANAGE_GROUP: 'message:manage_group',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

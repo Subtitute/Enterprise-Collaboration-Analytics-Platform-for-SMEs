@@ -6,9 +6,12 @@ import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:path_provider/path_provider.dart';
+import 'package:socket_io_client/socket_io_client.dart' as sio;
 
 import 'auth_session.dart';
 import '../models/user.dart';
+import '../models/conversation.dart';
+import '../models/message.dart';
 
 /// Loi nghiep vu tra ve tu Gateway - khop dinh dang chuan { statusCode, error, message,
 /// timestamp } (Technical_Spec.md muc 7). UI chi can doc [message] (da la tieng Viet).
@@ -165,6 +168,31 @@ class ApiClient {
     }
   }
 
+  /// 28/09/2026: "Quen mat khau" (Technical_Spec.md, bo sung 15/09/2026 - xem
+  /// AuthController.forgotPassword() cua apps/iam-service). Backend LUON tra ve { success: true }
+  /// du email co ton tai hay khong (chong do email) - man hinh goi ham nay chi can biet request co
+  /// toi duoc server hay khong (loi mang/HTTP that su), khong co "khong tim thay email" de phan biet.
+  Future<void> forgotPassword(String email) async {
+    try {
+      await _dio.post('/auth/forgot-password', data: {'email': email});
+    } on DioException catch (e) {
+      throw _toApiException(e);
+    }
+    // Khong doc response.data (chi { success: true }, khong dung toi) - khong co buoc ep kieu nao
+    // co the nem TypeError, nen khong can "on TypeError" o day (khac cac ham doc response.data ben duoi).
+  }
+
+  /// "Quen mat khau" buoc 2 - dat mat khau moi bang token nhan qua email (AuthController.resetPassword()).
+  /// Backend tra ve 1 ma loi CHUNG DUY NHAT (token sai/het han/da dung roi deu chung 1 thong bao) -
+  /// _toApiException() da tu doc dung [message] tieng Viet do, khong can xu ly rieng o day.
+  Future<void> resetPassword({required String token, required String newPassword}) async {
+    try {
+      await _dio.post('/auth/reset-password', data: {'token': token, 'newPassword': newPassword});
+    } on DioException catch (e) {
+      throw _toApiException(e);
+    }
+  }
+
   Future<void> logout() async {
     try {
       await _dio.post('/auth/logout');
@@ -268,6 +296,128 @@ class ApiClient {
     } on TypeError {
       throw ApiException('Phản hồi từ máy chủ không hợp lệ, vui lòng thử lại');
     }
+  }
+
+  /// 28/09/2026: danh ba noi bo toi thieu (UserDirectory, xem core/user_directory.dart) - GET
+  /// /users mo cho MOI nguoi dung da xac thuc (khong chi Admin, xem chu thich UsersController.findAll()
+  /// cua apps/iam-service), dung cung nguong limit: 500 nhu TasksPage._load() dung cho /tasks, /projects
+  /// (quy mo SME ~10-200 nhan su, 1 trang la du "toan bo").
+  Future<List<AppUser>> getOrgUsers() async {
+    try {
+      final response = await _dio.get('/users', queryParameters: {'limit': 500});
+      final data = response.data as Map<String, dynamic>;
+      final list = data['data'] as List<dynamic>;
+      return list.map((e) => AppUser.fromJson(e as Map<String, dynamic>)).toList();
+    } on DioException catch (e) {
+      throw _toApiException(e);
+    } on TypeError {
+      throw ApiException('Phản hồi từ máy chủ không hợp lệ, vui lòng thử lại');
+    }
+  }
+
+  /// GET /conversations - danh sach cuoc tro chuyen cua nguoi dung, da sap xep theo hoat dong gan
+  /// nhat (ConversationsService.findAllForUser() cua apps/messaging-service).
+  Future<List<Conversation>> getConversations() async {
+    try {
+      final response = await _dio.get('/conversations');
+      final list = response.data as List<dynamic>;
+      return list.map((e) => Conversation.fromJson(e as Map<String, dynamic>)).toList();
+    } on DioException catch (e) {
+      throw _toApiException(e);
+    } on TypeError {
+      throw ApiException('Phản hồi từ máy chủ không hợp lệ, vui lòng thử lại');
+    }
+  }
+
+  /// POST /conversations - [type] la 'DIRECT' hoac 'GROUP' (dung conversationTypeToJson()). DIRECT
+  /// server tu dedup (tra ve cuoc tro chuyen co san giua dung 2 nguoi neu da ton tai) - xem
+  /// ConversationsService.create().
+  Future<Conversation> createConversation({
+    required String type,
+    required List<String> participantUserIds,
+    String? name,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/conversations',
+        data: {'type': type, 'participantUserIds': participantUserIds, 'name': ?name},
+      );
+      return Conversation.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw _toApiException(e);
+    } on TypeError {
+      throw ApiException('Phản hồi từ máy chủ không hợp lệ, vui lòng thử lại');
+    }
+  }
+
+  /// GET /conversations/:id/messages - phan trang kieu cursor (beforeMessageId, KHONG dung
+  /// page/limit) - xem chu thich MessagesService.listMessages(). Tra ve THEO THU TU TANG DAN
+  /// (cu -> moi), server da tu dao nguoc truoc khi tra ve.
+  Future<List<Message>> getMessages(String conversationId, {int limit = 50, String? beforeMessageId}) async {
+    try {
+      final response = await _dio.get(
+        '/conversations/$conversationId/messages',
+        queryParameters: {'limit': limit, 'beforeMessageId': ?beforeMessageId},
+      );
+      final list = response.data as List<dynamic>;
+      return list.map((e) => Message.fromJson(e as Map<String, dynamic>)).toList();
+    } on DioException catch (e) {
+      throw _toApiException(e);
+    } on TypeError {
+      throw ApiException('Phản hồi từ máy chủ không hợp lệ, vui lòng thử lại');
+    }
+  }
+
+  /// POST /conversations/:id/messages - gui xong server tu phat lai qua WebSocket ('message:new')
+  /// cho MOI thanh vien (bao gom ca nguoi gui) - xem insertMessageSorted() (models/message.dart)
+  /// ve cach man hinh chat loai trung giua response nay va su kien WebSocket cho CUNG 1 tin nhan.
+  Future<Message> sendConversationMessage(String conversationId, String body) async {
+    try {
+      final response = await _dio.post('/conversations/$conversationId/messages', data: {'body': body});
+      return Message.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw _toApiException(e);
+    } on TypeError {
+      throw ApiException('Phản hồi từ máy chủ không hợp lệ, vui lòng thử lại');
+    }
+  }
+
+  /// PATCH /conversations/:id/read - khong doc response.data (khong dung toi) nen khong can "on
+  /// TypeError" o day, giong logout()/markRead cua NotificationsPage.
+  Future<void> markConversationRead(String conversationId) async {
+    try {
+      await _dio.patch('/conversations/$conversationId/read');
+    } on DioException catch (e) {
+      throw _toApiException(e);
+    }
+  }
+
+  /// 28/09/2026: Nhan tin thoi gian thuc - tinh nang DAU TIEN cua app dung WebSocket (moi thu khac
+  /// hien dang polling qua REST/RefreshIndicator). Ket noi toi CUNG host Gateway ma [_dio] dang
+  /// dung (da duoc GatewayConfig.resolveBaseUrl() giai quyet TRUOC do - xem gateway_config.dart,
+  /// KHONG hardcode dia chi rieng o day) - chi bo phan duong dan ('/api/v1') vi Socket.IO tu ghep
+  /// [path] ('/ws/messaging', xem Gateway's WS_PROXY_ROUTES) vao GOC host, khong qua tien to REST.
+  ///
+  /// Dung setAuthFn() (khong phai setAuth() voi 1 Map tinh) - doc [session.accessToken] MOI moi
+  /// lan (ket noi that su LAN DAU cung nhu moi lan Socket.IO tu dong reconnect() sau mat mang), nen
+  /// van dung token MOI NHAT ke ca sau khi ApiClient tu lam moi token (interceptor 401 o create())
+  /// trong luc socket dang ket noi - tranh loi da biet cua cac he thong tuong tu (token tinh chup 1
+  /// lan luc tao socket, reconnect sau khi token het han se that bai am tham).
+  ///
+  /// [autoConnect] tat - ben goi (conversations_page.dart/chat_page.dart) tu gan listener (on(),
+  /// onConnect()) TRUOC roi moi goi connect(), tranh lo mat su kien dau tien neu ket noi qua nhanh.
+  sio.Socket connectMessagingSocket() {
+    final baseUri = Uri.parse(_dio.options.baseUrl);
+    final origin = '${baseUri.scheme}://${baseUri.host}:${baseUri.port}';
+    return sio.io(
+      origin,
+      sio.OptionBuilder()
+          .setPath('/ws/messaging')
+          .setTransports(['websocket', 'polling'])
+          .setAuthFn((cb) => cb({'token': session.accessToken}))
+          .disableAutoConnect()
+          .build(),
+    );
   }
 
   /// 07/08/2026: sua loi that - AllExceptionsFilter (packages/common-guard) tra ve `message`

@@ -1,6 +1,10 @@
 # Nâng cấp dự án — theo dõi hạng mục review toàn diện
 
-Nguồn gốc: 1 đợt review toàn dự án (vai trò giảng viên phản biện, theo `ClaudeRule.md` mục 6) thực hiện ngày 22/08/2026, chia thành 3 nhóm theo mức ưu tiên/chi phí. File này chỉ để **tra cứu nhanh trạng thái từng hạng mục** — chi tiết kỹ thuật đầy đủ (file:line, cách xác minh, số liệu trước/sau) nằm ở `Technical_Spec.md` → mục "Lịch sử thay đổi tài liệu", 2 đoạn ngày 2026-08-22.
+> Trạng thái: **HỖN HỢP — TIER 1–2 ĐÃ TRIỂN KHAI, TIER 3–4 CHƯA TRIỂN KHAI** — Tier 1 (chi phí thấp)
+> và Tier 2 (testing/hạ tầng) đã hoàn tất, xác minh sống từ 22/08/2026; Tier 3 và Tier 4 (Analytics
+> nâng cao) là các hạng mục cố ý để dành cho tương lai. Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
+
+Nguồn gốc: 1 đợt review toàn dự án (vai trò giảng viên phản biện, theo `ClaudeRule.md` mục 6) thực hiện ngày 22/08/2026, chia thành 3 nhóm theo mức ưu tiên/chi phí. File này chỉ để **tra cứu nhanh trạng thái từng hạng mục** — chi tiết kỹ thuật đầy đủ (file:line, cách xác minh, số liệu trước/sau) nằm ở `Technical_Spec.md` → mục "Lịch sử thay đổi tài liệu", 2 đoạn ngày 22/08/2026.
 
 **Xem thêm:** `Doc/RevisionHistory.md` gộp TOÀN BỘ dòng thời gian rà soát/sửa lỗi của dự án (kể cả trước và sau 3 Tier ở đây) thành 1 file duy nhất — bao gồm đợt rà soát ngày 22/08/2026 gốc ra 3 tier này, VÀ đợt rà soát tiếp theo ngày 24/08/2026 (độc lập với 3 tier, nhắm riêng vào lỗi có thể treo/sập hệ thống — 7 lỗi Nghiêm trọng + ~13 lỗi Nghiêm trọng vừa, tất cả đã sửa).
 
@@ -58,5 +62,5 @@ Nguồn gốc: 1 đợt review toàn dự án (vai trò giảng viên phản bi�
 
 ## Lịch sử thay đổi file này
 
-- **2026-08-22** — Khởi tạo file, ghi nhận trạng thái Tier 1 và Tier 2 (đã hoàn tất, xác minh sống) cùng Tier 3 (cố ý chưa làm, hướng phát triển) từ đợt review toàn dự án cùng ngày.
-- **2026-09-24** — Bổ sung Tier 4: phần cố ý chưa làm của đợt nâng cấp Analytics 24/09/2026 (Layer 4 Forecasting, Layer 6 What-if Simulation, Demo Data Scenario Generator) — xem `Technical_Spec.md` §19 cho phần đã triển khai cùng đợt.
+- **22/08/2026** — Khởi tạo file, ghi nhận trạng thái Tier 1 và Tier 2 (đã hoàn tất, xác minh sống) cùng Tier 3 (cố ý chưa làm, hướng phát triển) từ đợt review toàn dự án cùng ngày.
+- **24/09/2026** — Bổ sung Tier 4: phần cố ý chưa làm của đợt nâng cấp Analytics 24/09/2026 (Layer 4 Forecasting, Layer 6 What-if Simulation, Demo Data Scenario Generator) — xem `Technical_Spec.md` §19 cho phần đã triển khai cùng đợt.
