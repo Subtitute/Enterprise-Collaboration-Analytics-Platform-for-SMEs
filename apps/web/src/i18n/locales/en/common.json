@@ -103,6 +103,12 @@
     "restoring": "Restoring your session…"
   },
   "nav": {
+    "groups": {
+      "overview": "Overview",
+      "workspace": "Workspace",
+      "hrm": "HRM & Time",
+      "insights": "Insights & Admin"
+    },
     "dashboard": "Dashboard",
     "projects": "Projects & Tasks",
     "documents": "Documents",

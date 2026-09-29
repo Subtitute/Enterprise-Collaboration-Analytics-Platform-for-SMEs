@@ -35,9 +35,9 @@ export const CHART_INK = {
 
 /** TODO = Xám trung tính (slate-500 #64748b), DOING = Xanh dương (blue-500 #3b82f6), DONE = Xanh lá (emerald-500 #10b981). */
 export const TASK_STATUS_COLOR: Record<string, string> = {
-  TODO: '#64748b', // slate-500 (Cần làm)
-  DOING: '#3b82f6', // blue-500 (Đang làm)
-  DONE: '#10b981', // emerald-500 (Hoàn thành)
+  TODO: '#9CA3AF', // xám (#9CA3AF)
+  DOING: '#3B82F6', // xanh dương (#3B82F6)
+  DONE: '#10B981', // xanh ngọc (#10B981)
 };
 
 // 25/07/2026: xoa TASK_STATUS_BADGE_VARIANT - export chet, xac nhan qua grep khong co noi nao

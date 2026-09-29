@@ -6,26 +6,26 @@ import { cn } from '@/lib/utils';
 // @hello-pangea/dnd truc tiep vao node DOM thuc su - neu khong forwardRef, ref se khong gan
 // duoc va tinh nang keo-tha se hong.
 export const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn('rounded-md border border-slate-200/80 bg-white shadow-xs transition-all duration-150', className)} {...props} />
+  <div ref={ref} className={cn('rounded-[12px] border border-[#E5E7EB] bg-white shadow-2xs transition-colors duration-150', className)} {...props} />
 ));
 Card.displayName = 'Card';
 
 export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('flex items-center justify-between gap-3 border-b border-slate-100/90 px-6 pt-5 pb-4', className)} {...props} />;
+  return <div className={cn('flex items-center justify-between gap-3 border-b border-[#E5E7EB]/80 px-5 py-4', className)} {...props} />;
 }
 
 export function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn('font-display text-sm font-bold text-slate-900', className)} {...props} />;
+  return <h3 className={cn('font-heading text-[15px] font-semibold text-[#374151] normal-case tracking-normal', className)} {...props} />;
 }
 
 export function CardDescription({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn('text-xs text-slate-500', className)} {...props} />;
+  return <p className={cn('text-xs text-[#6B7280]', className)} {...props} />;
 }
 
 export function CardContent({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('px-6 py-5', className)} {...props} />;
+  return <div className={cn('p-5', className)} {...props} />;
 }
 
 export function CardFooter({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('flex items-center justify-end gap-2.5 border-t border-slate-100/90 px-6 py-3.5', className)} {...props} />;
+  return <div className={cn('flex items-center justify-end gap-2 border-t border-slate-100 px-4 py-2.5', className)} {...props} />;
 }

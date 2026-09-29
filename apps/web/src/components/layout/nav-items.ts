@@ -2,34 +2,25 @@ import { BarChartIcon, BriefcaseIcon, CalendarIcon, ClockIcon, FileTextIcon, Fol
 import type { IconProps } from '@/components/ui/Icons';
 import { PERMISSIONS } from '@/constants/permissions';
 
+export type NavGroup = 'overview' | 'workspace' | 'hrm' | 'insights';
+
 export interface NavItem {
   to: string;
-  /** 20/08/2026: doi tu chuoi tieng Viet tinh sang key i18next (rollout i18n) - Sidebar.tsx/
-   *  Topbar.tsx goi t(labelKey) de lay nhan dung ngon ngu dang chon. Xem
-   *  i18n/locales/{vi,en,ja}/common.json, muc "nav". */
   labelKey: string;
   icon: (props: IconProps) => JSX.Element;
-  /** Chi hien thi voi nguoi dung co quyen vao khu vuc Quan tri (xem lib/utils.ts:canAccessAdminArea). */
+  group: NavGroup;
   adminOnly?: boolean;
-  /** 17/09/2026: chi hien thi voi nguoi dung co dung permission nay (khac adminOnly - kiem tra 1
-   *  permission cu the thay vi ca nhom quyen quan tri). Dung cho "Bao cao & Phan tich": Employee
-   *  KHONG co ANALYTICS_VIEW (xem DEFAULT_ROLE_PERMISSIONS.EMPLOYEE, permission.enum.ts) - truoc
-   *  ban sua nay, Sidebar van hien link cho Employee du moi lenh goi API cua trang deu bi 403
-   *  (AnalyticsController da @RequirePermissions(ANALYTICS_VIEW) tu truoc), khien trang vo dung. */
   requiredPermission?: string;
 }
 
-// Wireframe.md muc 2: Dashboard, Du an & Cong viec, Tai lieu, Thong bao, Bao cao & Phan tich, Quan tri.
 export const NAV_ITEMS: NavItem[] = [
-  { to: '/dashboard', labelKey: 'common:nav.dashboard', icon: GridIcon },
-  { to: '/projects', labelKey: 'common:nav.projects', icon: FolderKanbanIcon },
-  { to: '/documents', labelKey: 'common:nav.documents', icon: FileTextIcon },
-  // 04/08/2026: CRM-lite (Technical_Spec.md muc 16) - khach hang + pipeline ban hang.
-  { to: '/customers', labelKey: 'common:nav.customers', icon: BriefcaseIcon },
-  // 05/08/2026: HRM-lite (Technical_Spec.md muc 17) - cham cong (photo-proof) + nghi phep.
-  { to: '/attendance', labelKey: 'common:nav.attendance', icon: ClockIcon },
-  { to: '/leave-requests', labelKey: 'common:nav.leaveRequests', icon: CalendarIcon },
-  { to: '/notifications', labelKey: 'common:nav.notifications', icon: BellIcon },
-  { to: '/analytics', labelKey: 'common:nav.analytics', icon: BarChartIcon, requiredPermission: PERMISSIONS.ANALYTICS_VIEW },
-  { to: '/admin/members', labelKey: 'common:nav.admin', icon: ShieldIcon, adminOnly: true },
+  { to: '/dashboard', labelKey: 'common:nav.dashboard', icon: GridIcon, group: 'overview' },
+  { to: '/projects', labelKey: 'common:nav.projects', icon: FolderKanbanIcon, group: 'workspace' },
+  { to: '/documents', labelKey: 'common:nav.documents', icon: FileTextIcon, group: 'workspace' },
+  { to: '/customers', labelKey: 'common:nav.customers', icon: BriefcaseIcon, group: 'workspace' },
+  { to: '/attendance', labelKey: 'common:nav.attendance', icon: ClockIcon, group: 'hrm' },
+  { to: '/leave-requests', labelKey: 'common:nav.leaveRequests', icon: CalendarIcon, group: 'hrm' },
+  { to: '/notifications', labelKey: 'common:nav.notifications', icon: BellIcon, group: 'insights' },
+  { to: '/analytics', labelKey: 'common:nav.analytics', icon: BarChartIcon, group: 'insights', requiredPermission: PERMISSIONS.ANALYTICS_VIEW },
+  { to: '/admin/members', labelKey: 'common:nav.admin', icon: ShieldIcon, group: 'insights', adminOnly: true },
 ];

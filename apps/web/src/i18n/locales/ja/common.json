@@ -103,6 +103,12 @@
     "restoring": "セッションを復元しています…"
   },
   "nav": {
+    "groups": {
+      "overview": "概要",
+      "workspace": "業務・運用",
+      "hrm": "人事・勤怠",
+      "insights": "レポート・設定"
+    },
     "dashboard": "ダッシュボード",
     "projects": "プロジェクト・タスク",
     "documents": "ドキュメント",

@@ -65,13 +65,12 @@ export function TaskCard({ task, index, onClick, isHighlighted = false }: TaskCa
         >
           <div
             className={cn(
-              'relative cursor-pointer rounded-md border p-3 shadow-2xs transition-all duration-150',
-              isHighlighted && 'ring-1 ring-indigo-500 border-indigo-400 bg-indigo-50/30 shadow-xs',
-              // Cột Hoàn thành: Bỏ opacity-50, nền slate-50 nhẹ nhàng, chữ gạch ngang text-slate-400
+              'relative cursor-pointer rounded-md border p-3 transition-colors duration-150',
+              isHighlighted && 'ring-1 ring-slate-900 border-slate-900 bg-slate-50/50',
               isDone
-                ? 'border-slate-200/80 bg-slate-50/80 text-slate-500 hover:border-slate-300'
-                : 'border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-xs active:scale-[0.98]',
-              snapshot.isDragging && '!shadow-md !border-indigo-500 ring-1 ring-indigo-500/20 !opacity-100',
+                ? 'border-slate-200/60 bg-slate-50/60 text-slate-400 hover:border-slate-300'
+                : 'border-slate-200/90 bg-white hover:border-slate-400',
+              snapshot.isDragging && '!border-slate-900 shadow-md !opacity-100',
             )}
           >
             {/* Tín hiệu ưu tiên tối giản: Chấm vi mô 6px ở góc thẻ */}

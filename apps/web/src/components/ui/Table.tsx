@@ -9,14 +9,14 @@ import { cn } from '@/lib/utils';
 // ProjectProgressTable... deu duoc huong tu dong).
 export function Table({ className, ...props }: HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="w-full rounded-xl border border-slate-200 bg-white md:overflow-x-auto">
+    <div className="w-full rounded-md border border-slate-200/80 bg-white md:overflow-x-auto">
       <table className={cn('w-full border-collapse text-sm max-md:block md:min-w-[560px]', className)} {...props} />
     </div>
   );
 }
 
 export function TableHead({ className, ...props }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn('bg-slate-50 text-left max-md:hidden', className)} {...props} />;
+  return <thead className={cn('bg-slate-50/60 text-left border-b border-slate-200/70 max-md:hidden', className)} {...props} />;
 }
 
 export function TableBody({ className, ...props }: HTMLAttributes<HTMLTableSectionElement>) {
@@ -32,7 +32,7 @@ export function TableRow({ className, ...props }: HTMLAttributes<HTMLTableRowEle
   return (
     <tr
       className={cn(
-        'hover:bg-slate-50/70 max-md:block max-md:rounded-lg max-md:border max-md:border-slate-200 max-md:p-3 max-md:shadow-sm max-md:hover:bg-transparent',
+        'hover:bg-slate-50/50 max-md:block max-md:rounded-md max-md:border max-md:border-slate-200 max-md:p-3 max-md:hover:bg-transparent transition-colors',
         className,
       )}
       {...props}
@@ -43,7 +43,7 @@ export function TableRow({ className, ...props }: HTMLAttributes<HTMLTableRowEle
 export function TableHeadCell({ className, ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
-      className={cn('whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500', className)}
+      className={cn('whitespace-nowrap px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400', className)}
       {...props}
     />
   );

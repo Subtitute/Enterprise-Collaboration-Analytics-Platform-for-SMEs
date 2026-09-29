@@ -6,17 +6,19 @@ import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { Button } from '@/components/ui/Button';
 import {
   FolderKanbanIcon,
+  FolderIcon,
   CalendarIcon,
   FileTextIcon,
   PrinterIcon,
   DownloadIcon,
+  UploadIcon,
   CheckCircleIcon,
   ClockIcon,
 } from '@/components/ui/Icons';
 import { DATE_RANGE_OPTIONS } from '@/types';
 import type { DateRangeOption } from '@/types';
 import { useAuthStore, usePermissions } from '@/stores/auth.store';
-import { canAccessAdminArea, canManageProjects, getTodayGmt7DateString } from '@/lib/utils';
+import { canAccessAdminArea, canManageProjects, formatDate, formatShortDate, formatTime, getTodayGmt7DateString } from '@/lib/utils';
 import { PERMISSIONS } from '@/constants/permissions';
 import { exportElementToPdf } from '@/lib/pdf-export';
 import { toast } from '@/stores/toast.store';
@@ -183,9 +185,16 @@ export function DashboardPage() {
     ];
   }, [allTasksQuery.data, breakdownQuery.data, validTasks]);
 
-  // Tính toán dữ liệu xu hướng (Trend Chart) theo ngày dựa trên khoảng thời gian và phòng ban
+  // Tính toán dữ liệu xu hướng (Trend Chart) theo ngày:
+  // Dashboard tự tính toán 100% dựa trên thời gian thực tế của công việc (createdAt / updatedAt từ validTasks).
+  // Việc này giải quyết độ trễ làm mới (refresh lag) của TimescaleDB continuous aggregate (daily_task_summary / weekly_project_progress),
+  // giúp các công việc vừa được tạo hoặc hoàn thành hôm nay xuất hiện NGAY LẬP TỨC trên cả 3 chế độ: 7 ngày, 30 ngày (tuần hiện tại) và Quý này (tháng hiện tại).
+  // Khi chưa tải xong tasks, fallback về trendQuery.data từ backend.
   const dynamicTaskTrend = useMemo(() => {
-    if (!allTasksQuery.data || validTasks.length === 0) return trendQuery.data ?? [];
+    // Nếu chưa tải xong tasks thực tế từ API, dùng tạm trendQuery.data nếu có
+    if (!allTasksQuery.data) {
+      return trendQuery.data ?? [];
+    }
 
     const now = new Date();
     const daysMap: Record<DateRangeOption, number> = {
@@ -200,44 +209,40 @@ export function DashboardPage() {
 
     const map: Record<string, { created: number; completed: number }> = {};
 
-    // Khởi tạo các mốc ngày trong khoảng thời gian để biểu đồ liền mạch
-    const step = days <= 7 ? 1 : days <= 30 ? 2 : days <= 90 ? 7 : 30;
-    for (let i = days; i >= 0; i -= step) {
+    // Khởi tạo các mốc ngày trong khoảng thời gian để biểu đồ liền mạch (mỗi ngày 1 điểm cho tất cả các khoảng)
+    for (let i = days; i >= 0; i--) {
       const d = new Date();
       d.setDate(now.getDate() - i);
       const dStr = d.toISOString().slice(0, 10);
       map[dStr] = { created: 0, completed: 0 };
     }
 
+    // Đếm số công việc được tạo đúng ngày thực tế
     for (const t of validTasks) {
-      const cDate = t.createdAt ? t.createdAt.slice(0, 10) : new Date().toISOString().slice(0, 10);
-      if (cDate >= cutoffStr) {
-        map[cDate] = map[cDate] || { created: 0, completed: 0 };
+      const cDate = t.createdAt ? t.createdAt.slice(0, 10) : '';
+      if (cDate && cDate >= cutoffStr) {
+        if (!map[cDate]) {
+          map[cDate] = { created: 0, completed: 0 };
+        }
         map[cDate].created++;
       }
     }
 
+    // Đếm số công việc hoàn thành đúng ngày thực tế (dựa vào updatedAt lúc chuyển sang DONE)
     const doneTasks = validTasks.filter((t) => t.status === 'DONE');
-    for (let idx = 0; idx < doneTasks.length; idx++) {
-      const t = doneTasks[idx];
-      let uDate = t.updatedAt ? t.updatedAt.slice(0, 10) : (t.createdAt ? t.createdAt.slice(0, 10) : '');
-      // Nếu toàn bộ task hoàn thành dồn vào cùng ngày (do vừa chạy seed một lúc),
-      // tự động rải đều 5-7 task qua các ngày trong 7 ngày gần nhất để biểu đồ hiển thị dạng sóng thực tế
-      if (doneTasks.length >= 4) {
-        const offset = idx % Math.min(days, 7);
-        const simDate = new Date();
-        simDate.setDate(now.getDate() - offset);
-        uDate = simDate.toISOString().slice(0, 10);
-      }
+    for (const t of doneTasks) {
+      const uDate = t.updatedAt ? t.updatedAt.slice(0, 10) : (t.createdAt ? t.createdAt.slice(0, 10) : '');
       if (uDate && uDate >= cutoffStr) {
-        map[uDate] = map[uDate] || { created: 0, completed: 0 };
+        if (!map[uDate]) {
+          map[uDate] = { created: 0, completed: 0 };
+        }
         map[uDate].completed++;
       }
     }
 
     const dates = Object.keys(map).sort();
     return dates.map((d) => ({ date: d, ...map[d] }));
-  }, [allTasksQuery.data, validTasks, trendQuery.data, range]);
+  }, [allTasksQuery.data, validTasks, range, trendQuery.data]);
 
   // 23/09/2026: "Xuat PDF" gio la lua chon DAU TIEN va that su tao/tai ve 1 file .pdf (khong con
   // mo hop thoai in ngay lap tuc) - xem exportElementToPdf() trong lib/pdf-export.ts. "In" (hop
@@ -258,10 +263,12 @@ export function DashboardPage() {
     <div className="space-y-6" ref={printableRef}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('dashboard:page.title')}</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="font-heading text-[28px] font-semibold tracking-tight text-[#1E3A8A] leading-tight">
+            {t('dashboard:page.title')}
+          </h1>
+          <p className="mt-1 text-[13px] text-[#6B7280]">
             {canViewAnalytics
-              ? t('dashboard:page.subtitle')
+              ? `Tổng quan hoạt động kinh doanh của tổ chức, cập nhật lúc ${formatTime(new Date().toISOString())} ngày ${formatDate(new Date().toISOString())}.`
               : t('dashboard:page.subtitlePersonal', { name: currentUser?.fullName || '' })}
           </p>
         </div>
@@ -282,19 +289,19 @@ export function DashboardPage() {
             />
           )}
 
-          {/* Nút Xuất PDF và In: Ẩn hoàn toàn đối với tài khoản Employee */}
+          {/* Nút Xuất PDF và In: Outline #1E3A8A, chữ #1E3A8A, nền trắng */}
           {canViewAnalytics && (
             <>
               <Button
                 type="button"
-                variant="primary"
+                variant="outline"
                 size="sm"
                 isLoading={isExportingPdf}
                 onClick={handleExportPdf}
                 title={t('dashboard:page.exportPdf')}
-                className="font-medium cursor-pointer active:scale-[0.98]"
+                className="border-[#1E3A8A] bg-white text-[#1E3A8A] hover:bg-[#EFF6FF] font-medium cursor-pointer active:scale-[0.98]"
               >
-                <DownloadIcon className="h-4 w-4 mr-1.5" />
+                <DownloadIcon className="h-4 w-4 mr-1.5 text-[#1E3A8A]" />
                 <span>{t('dashboard:page.exportPdf')}</span>
               </Button>
               <Button
@@ -303,9 +310,9 @@ export function DashboardPage() {
                 size="sm"
                 onClick={() => window.print()}
                 title={t('dashboard:page.print')}
-                className="border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs font-medium cursor-pointer active:scale-[0.98]"
+                className="border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#374151] font-medium cursor-pointer active:scale-[0.98]"
               >
-                <PrinterIcon className="h-4 w-4 text-slate-500 mr-1.5" />
+                <PrinterIcon className="h-4 w-4 text-[#6B7280] mr-1.5" />
                 <span>{t('dashboard:page.print')}</span>
               </Button>
             </>
@@ -314,10 +321,10 @@ export function DashboardPage() {
       </div>
 
       {showOnboarding && (
-        <Card className="flex flex-col items-start gap-3 border-primary-100 bg-primary-50/40 p-5 sm:flex-row sm:items-center sm:justify-between no-print">
+        <Card className="flex flex-col items-start gap-3 border-[#E5E7EB] bg-[#EFF6FF]/60 p-5 sm:flex-row sm:items-center sm:justify-between no-print">
           <div>
-            <p className="text-sm font-semibold text-slate-900">{t('dashboard:onboarding.welcomeTitle')}</p>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="text-sm font-semibold text-[#1E3A8A]">{t('dashboard:onboarding.welcomeTitle')}</p>
+            <p className="mt-1 text-sm text-[#6B7280]">
               {t('dashboard:onboarding.welcomeDescription')}
             </p>
           </div>
@@ -329,162 +336,153 @@ export function DashboardPage() {
             )}
             {canCreateProject && (
               <Link to="/projects">
-                <Button>{t('dashboard:onboarding.createFirstProject')}</Button>
+                <Button className="bg-[#1E3A8A] hover:bg-[#1a3275] text-white">{t('dashboard:onboarding.createFirstProject')}</Button>
               </Link>
             )}
           </div>
         </Card>
       )}
 
-      {/* 1. LƯỚI 4 THẺ KPI ĐỒNG DẠNG (Industrial Precision & Glanceable Semantics):
-          - Responsive Grid: grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4
-          - Hiệu ứng: cursor-pointer border border-slate-200/80 hover:border-slate-300 transition-all rounded-md p-4 bg-white shadow-xs */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Thẻ 1 - Điểm neo thị giác (Tiến độ công việc) */}
-        <Link
-          to="/projects"
-          className="group flex flex-col justify-between cursor-pointer border border-slate-200/80 hover:border-slate-300 transition-all rounded-md p-4 bg-white shadow-xs"
-        >
-          <div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 group-hover:text-slate-600 transition-colors">
-                {canViewAnalytics
-                  ? t('dashboard:kpi.workProgress.label')
-                  : t('dashboard:kpi.workProgress.labelPersonal')}
-              </span>
-              <CheckCircleIcon className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 transition-colors" />
-            </div>
-            <div className="mt-2.5 flex items-baseline gap-2">
-              <span className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
-                {completionRate}%
-              </span>
-              <span className="font-mono text-xs font-medium text-slate-500 tabular-nums">
-                ({t('dashboard:kpi.workProgress.ratio', { completed: totalTasksCompleted, total: totalTasksCreated })})
-              </span>
-            </div>
-          </div>
-          {/* Mini progress bar vi mô 4px màu Indigo đậm dưới chân thẻ */}
-          <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-indigo-600 transition-all duration-300 ease-out"
-              style={{ width: `${Math.max(2, Math.min(100, completionRate))}%` }}
-            />
-          </div>
-        </Link>
-
-        {/* Thẻ 2 - Dự án đang chạy */}
-        <Link
-          to="/projects?status=active"
-          className="group flex flex-col justify-between cursor-pointer border border-slate-200/80 hover:border-slate-300 transition-all rounded-md p-4 bg-white shadow-xs"
-        >
-          <div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 group-hover:text-slate-600 transition-colors">
-                {canViewAnalytics
-                  ? t('dashboard:kpi.activeProjects.label')
-                  : t('dashboard:kpi.activeProjects.labelPersonal')}
-              </span>
-              <FolderKanbanIcon className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 transition-colors" />
-            </div>
-            <div className="mt-2.5 flex items-baseline gap-2">
-              <span className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
-                {activeProjectsCount}
-              </span>
-            </div>
-          </div>
-          <p className="mt-3 text-[11px] text-slate-500 group-hover:text-slate-700 transition-colors">
-            {canViewAnalytics
-              ? t('dashboard:kpi.activeProjects.hint')
-              : t('dashboard:kpi.activeProjects.hintPersonal')}
-          </p>
-        </Link>
-
-        {/* Thẻ 3 - Phân quyền hiển thị:
-            - Quản trị (Admin/Manager): Đơn nghỉ chờ duyệt (danh sách toàn tổ chức)
-            - Nhân viên (Employee): Ngày công tháng này (từ bảng chấm công cá nhân) */}
-        {canApproveLeave ? (
+      {/* 1. THANH TRẠNG THÁI KPI NẰM NGANG DUY NHẤT (STATUS BAR)
+          - Phần A (chiếm 1/3): Thẻ "Tiến độ công việc" (col-span-1)
+          - Phần B (chiếm 2/3): 3 khối nhỏ (col-span-2) dùng grid grid-cols-3 divide-x divide-[#E5E7EB]
+          - Nền trắng, viền 1px #E5E7EB, bo góc 12px, padding 20px, KHÔNG đổ bóng */}
+      <div className="rounded-[12px] border border-[#E5E7EB] bg-white p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-[#1E3A8A]">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-0">
+          {/* PHẦN A (1/3 chiều rộng, col-span-1): Thẻ "Tiến độ công việc" */}
           <Link
-            to="/leave-requests?status=pending"
-            className="group flex flex-col justify-between cursor-pointer border border-slate-200/80 hover:border-slate-300 transition-all rounded-md p-4 bg-white shadow-xs"
+            to="/projects"
+            className="group col-span-1 flex flex-col justify-between lg:pr-6"
           >
             <div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 group-hover:text-slate-600 transition-colors">
-                  {t('dashboard:kpi.pendingLeaves.label')}
+              {/* Tiêu đề thẻ: Sentence case "Tiến độ công việc", Lora 600, 14-15px, #374151 */}
+              <span className="font-heading text-[15px] font-semibold text-[#374151]">
+                {canViewAnalytics ? 'Tiến độ công việc' : 'Tiến độ cá nhân'}
+              </span>
+
+              {/* Số lớn: Roboto 700, 32px, #1E3A8A */}
+              <div className="mt-1">
+                <span className="font-sans text-[32px] font-bold text-[#1E3A8A] leading-tight">
+                  {completionRate}%
                 </span>
-                <CalendarIcon className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 transition-colors" />
               </div>
-              <div className="mt-2.5 flex items-center gap-2.5">
-                <span className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
-                  {pendingLeavesCount}
-                </span>
-                {pendingLeavesCount > 0 && (
-                  <span className="inline-flex items-center rounded-sm bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-700 border border-amber-200">
-                    <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-amber-500" />
-                    {t('dashboard:kpi.pendingLeaves.pendingBadge')}
+
+              {/* Dòng phụ: size 13px, #6B7280 */}
+              <p className="mt-1 text-[13px] text-[#6B7280]">
+                {totalTasksCompleted}/{totalTasksCreated} công việc đã hoàn thành
+              </p>
+
+              {/* Thanh progress bar: nền #E5E7EB, fill #10B981, cao 8px, bo góc 999px */}
+              <div className="mt-3.5 h-2 w-full overflow-hidden rounded-full bg-[#E5E7EB]">
+                <div
+                  className="h-full rounded-full bg-[#10B981] transition-all duration-300"
+                  style={{ width: `${Math.max(2, Math.min(100, completionRate))}%` }}
+                />
+              </div>
+            </div>
+
+            {/* 3 sub-metrics nằm ngang, mỗi cái có chấm tròn màu + text */}
+            <div className="mt-4 pt-3.5 border-t border-[#E5E7EB] flex items-center justify-between text-[12px]">
+              <span className="flex items-center gap-1.5 text-[#374151]">
+                <span className="h-2 w-2 rounded-full bg-[#10B981] shrink-0" />
+                <span>Đã xong: <strong className="font-medium">{totalTasksCompleted}</strong></span>
+              </span>
+              <span className="flex items-center gap-1.5 text-[#374151]">
+                <span className="h-2 w-2 rounded-full bg-[#3B82F6] shrink-0" />
+                <span>Đang làm: <strong className="font-medium">{validTasks.filter((t) => t.status === 'DOING').length}</strong></span>
+              </span>
+              <span className="flex items-center gap-1.5 text-[#374151]">
+                <span className="h-2 w-2 rounded-full bg-[#9CA3AF] shrink-0" />
+                <span>Cần làm: <strong className="font-medium">{validTasks.filter((t) => t.status === 'TODO').length}</strong></span>
+              </span>
+            </div>
+          </Link>
+
+          {/* PHẦN B (2/3 chiều rộng, col-span-2): 3 khối nhỏ nằm ngang dùng grid grid-cols-3 divide-x divide-[#E5E7EB] */}
+          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[#E5E7EB] lg:border-l lg:border-[#E5E7EB]">
+            {/* Khối 1: "Dự án đang chạy" */}
+            <Link
+              to="/projects?status=active"
+              className="group flex flex-col justify-between py-4 sm:py-0 sm:px-5 first:sm:pl-6"
+            >
+              <div>
+                {/* Icon: Folder trong ô vuông nền nhạt #EFF6FF 40x40px, bo góc 8px, icon #1E3A8A */}
+                <div className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-[#EFF6FF] text-[#1E3A8A] shrink-0">
+                  <FolderIcon className="h-5 w-5" />
+                </div>
+
+                {/* Số lớn: Roboto 700, size 24px, màu #374151 */}
+                <div className="mt-3 mb-1">
+                  <span className="font-sans text-[24px] font-bold text-[#374151] leading-none">
+                    {activeProjectsCount}
+                  </span>
+                </div>
+              </div>
+
+              {/* Text mô tả: size 12px, #6B7280 */}
+              <p className="mt-2 text-[12px] leading-relaxed text-[#6B7280]">
+                Dự án đang trong trạng thái hoạt động, cần theo dõi tiến độ.
+              </p>
+            </Link>
+
+            {/* Khối 2: "Đơn nghỉ chờ duyệt" */}
+            <Link
+              to={canApproveLeave ? '/leave-requests?status=pending' : '/attendance'}
+              className="group flex flex-col justify-between py-4 sm:py-0 sm:px-5"
+            >
+              <div>
+                {/* Icon: FileText trong ô vuông nền nhạt #FEF3C7 40x40px, bo góc 8px, icon #F59E0B */}
+                <div className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-[#FEF3C7] text-[#F59E0B] shrink-0">
+                  <FileTextIcon className="h-5 w-5" />
+                </div>
+
+                {/* Số lớn: Roboto 700, size 24px, màu #374151 */}
+                <div className="mt-3 mb-1">
+                  <span className="font-sans text-[24px] font-bold text-[#374151] leading-none">
+                    {canApproveLeave ? pendingLeavesCount : monthlyWorkDaysCount}
+                  </span>
+                </div>
+              </div>
+
+              {/* Badge inline đặt dưới số "1", cạnh text mô tả */}
+              <div className="mt-2 flex items-start gap-1.5">
+                {canApproveLeave && pendingLeavesCount > 0 && (
+                  <span className="inline-flex shrink-0 items-center rounded bg-[#F59E0B] px-1.5 py-0.5 text-[10px] font-medium text-white shadow-2xs">
+                    Chờ duyệt
                   </span>
                 )}
+                <p className="text-[12px] leading-relaxed text-[#6B7280]">
+                  {canApproveLeave ? 'Đơn xin nghỉ phép đang chờ quản lý phê duyệt.' : 'Số ngày công ghi nhận tháng này'}
+                </p>
               </div>
-            </div>
-            <p className="mt-3 text-[11px] text-slate-500 group-hover:text-slate-700 transition-colors">
-              {pendingLeavesCount > 0
-                ? t('dashboard:kpi.pendingLeaves.hint')
-                : t('dashboard:kpi.pendingLeaves.hintEmpty')}
-            </p>
-          </Link>
-        ) : (
-          <Link
-            to="/attendance"
-            className="group flex flex-col justify-between cursor-pointer border border-slate-200/80 hover:border-slate-300 transition-all rounded-md p-4 bg-white shadow-xs"
-          >
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 group-hover:text-slate-600 transition-colors">
-                  {t('dashboard:kpi.monthlyWorkDays.label')}
-                </span>
-                <ClockIcon className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 transition-colors" />
-              </div>
-              <div className="mt-2.5 flex items-baseline gap-2">
-                <span className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
-                  {monthlyWorkDaysCount}
-                </span>
-                <span className="font-mono text-xs font-medium text-slate-500 tabular-nums">
-                  {t('dashboard:kpi.monthlyWorkDays.days', { count: monthlyWorkDaysCount })}
-                </span>
-              </div>
-            </div>
-            <p className="mt-3 text-[11px] text-slate-500 group-hover:text-slate-700 transition-colors">
-              {monthlyWorkDaysCount > 0
-                ? t('dashboard:kpi.monthlyWorkDays.hint')
-                : t('dashboard:kpi.monthlyWorkDays.hintEmpty')}
-            </p>
-          </Link>
-        )}
+            </Link>
 
-        {/* Thẻ 4 - Tài liệu mới (7 ngày) */}
-        <Link
-          to="/documents"
-          className="group flex flex-col justify-between cursor-pointer border border-slate-200/80 hover:border-slate-300 transition-all rounded-md p-4 bg-white shadow-xs"
-        >
-          <div>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 group-hover:text-slate-600 transition-colors">
-                {t('dashboard:kpi.newDocumentsCount.label')}
-              </span>
-              <FileTextIcon className="h-4 w-4 text-slate-400 group-hover:text-indigo-600 transition-colors" />
-            </div>
-            <div className="mt-2.5 flex items-baseline gap-2">
-              <span className="font-mono text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
-                {newDocumentsCount}
-              </span>
-            </div>
+            {/* Khối 3: "Tài liệu mới (7 ngày)" */}
+            <Link
+              to="/documents"
+              className="group flex flex-col justify-between py-4 sm:py-0 sm:px-5 last:sm:pr-0"
+            >
+              <div>
+                {/* Icon: Upload trong ô vuông nền nhạt #D1FAE5 40x40px, bo góc 8px, icon #10B981 */}
+                <div className="flex h-10 w-10 items-center justify-center rounded-[8px] bg-[#D1FAE5] text-[#10B981] shrink-0">
+                  <UploadIcon className="h-5 w-5" />
+                </div>
+
+                {/* Số lớn: Roboto 700, size 24px, màu #374151 */}
+                <div className="mt-3 mb-1">
+                  <span className="font-sans text-[24px] font-bold text-[#374151] leading-none">
+                    {newDocumentsCount}
+                  </span>
+                </div>
+              </div>
+
+              {/* Text mô tả: size 12px, #6B7280 */}
+              <p className="mt-2 text-[12px] leading-relaxed text-[#6B7280]">
+                Tài liệu được tải lên trong 7 ngày gần nhất.
+              </p>
+            </Link>
           </div>
-          <p className="mt-3 text-[11px] text-slate-500 group-hover:text-slate-700 transition-colors">
-            {newDocumentsCount === 0
-              ? t('dashboard:kpi.newDocumentsCount.empty')
-              : t('dashboard:kpi.newDocumentsCount.hint')}
-          </p>
-        </Link>
+        </div>
       </div>
 
       {/* 2. BẢO TOÀN VÀ ĐIỀU CHỈNH 2 BIỂU ĐỒ (LINE & DONUT):
@@ -493,10 +491,18 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
         <Card className="lg:col-span-8">
           <CardHeader>
-            <CardTitle>{t('dashboard:charts.taskTrendTitle')}</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle>{t('dashboard:charts.taskTrendTitle')}</CardTitle>
+              {/* Dấu chấm nhỏ (dot) màu #10B981 nhấp nháy nhẹ (pulse animation 2s) */}
+              <span className="relative flex h-2 w-2" title="Dữ liệu thời gian thực">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#10B981] opacity-75 [animation-duration:2s]" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#10B981]" />
+              </span>
+            </div>
             {/* Bộ lọc thời gian cục bộ (Local filter) */}
             <div className="flex items-center gap-2">
               <CustomFilterSelect
+                id="dashboard-date-range-filter"
                 value={range}
                 onChange={(val) => setRange(val as DateRangeOption)}
                 ariaLabel={t('dashboard:filters.dateRangeAriaLabel')}
@@ -510,6 +516,8 @@ export function DashboardPage() {
           <CardContent>
             <TaskTrendChart
               data={dynamicTaskTrend}
+              range={range}
+              filterSelectId="dashboard-date-range-filter"
               isLoading={trendQuery.isLoading || allTasksQuery.isLoading}
               isError={trendQuery.isError && allTasksQuery.isError}
               onRetry={() => {

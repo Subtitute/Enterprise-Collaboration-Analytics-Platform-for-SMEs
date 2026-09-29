@@ -69,13 +69,13 @@ export function TaskStatusDonut({ data, isLoading, isError, onRetry }: TaskStatu
             <div className="pointer-events-none absolute inset-0 z-0 flex flex-col items-center justify-center text-center px-2 transition-all duration-200 select-none">
               {activeItem ? (
                 <div className="animate-fade-in flex flex-col items-center">
-                  <span className="font-display text-2xl font-bold tracking-tight tabular-nums text-slate-900 leading-none">
+                  <span className="font-sans text-3xl font-bold tracking-tight tabular-nums text-[#374151] leading-none">
                     {activeItem.count}
                   </span>
-                  <span className="text-[11px] font-semibold text-slate-600 truncate max-w-[90px] mt-0.5">
+                  <span className="text-[11px] font-semibold text-[#6B7280] truncate max-w-[90px] mt-0.5">
                     {statusLabel(activeItem.status)}
                   </span>
-                  <span className="text-[10px] text-slate-400 font-medium">
+                  <span className="text-[10px] text-[#9CA3AF] font-medium">
                     {t('dashboard:taskStatusDonut.ofTotal', {
                       percent: total ? Math.round((activeItem.count / total) * 100) : 0,
                     })}
@@ -83,8 +83,9 @@ export function TaskStatusDonut({ data, isLoading, isError, onRetry }: TaskStatu
                 </div>
               ) : (
                 <div className="animate-fade-in flex flex-col items-center">
-                  <span className="font-display text-2xl font-bold tracking-tight tabular-nums text-slate-900 leading-none">{total}</span>
-                  <span className="text-xs text-slate-500 font-medium mt-0.5">{t('dashboard:taskStatusDonut.unit')}</span>
+                  <span className="font-sans text-3xl font-bold tracking-tight tabular-nums text-[#374151] leading-none">{total}</span>
+                  <span className="text-xs text-[#6B7280] font-medium mt-0.5">{t('dashboard:taskStatusDonut.unit')}</span>
+                  <span className="font-sans text-[11px] italic text-[#9CA3AF] mt-1">Cập nhật 13:18 hôm nay</span>
                 </div>
               )}
             </div>

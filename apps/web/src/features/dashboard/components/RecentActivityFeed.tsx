@@ -78,25 +78,56 @@ export function RecentActivityFeed() {
   const { map: userNames } = useUserNameMap();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Giới hạn 5 mục khi chưa mở rộng
-  const displayItems = isExpanded ? items : items.slice(0, 5);
-
-  // Phân nhóm hoạt động theo thời gian: Hôm nay, Hôm qua, Trước đó
-  const groupedItems = useMemo(() => {
-    const groups: { key: 'today' | 'yesterday' | 'earlier'; title: string; list: RecentActivityItem[] }[] = [
-      { key: 'today', title: t('dashboard:recentActivityFeed.groups.today'), list: [] },
-      { key: 'yesterday', title: t('dashboard:recentActivityFeed.groups.yesterday'), list: [] },
-      { key: 'earlier', title: t('dashboard:recentActivityFeed.groups.earlier'), list: [] },
+  // 5 mục hoạt động gần đây mẫu riêng biệt theo đúng yêu cầu:
+  // - tạo dự án / 5 phút / #D1FAE5-#10B981
+  // - tải tài liệu / 12 phút / #D1FAE5-#10B981
+  // - phê duyệt đơn nghỉ / 34 phút / #FEF3C7-#F59E0B
+  // - cập nhật công việc / 1 giờ / #DBEAFE-#3B82F6
+  // - bình luận / 2 giờ / #F3F4F6-#6B7280
+  const recentActivitiesList = useMemo(() => {
+    return [
+      {
+        id: 'act-1',
+        actorName: 'Nguyễn Văn An',
+        actionText: 'đã tạo một dự án mới',
+        timeText: '5 phút trước',
+        dotColor: 'bg-[#10B981] ring-[#D1FAE5]',
+        badgeColor: 'bg-[#D1FAE5] text-[#10B981] border-[#10B981]/30 font-semibold',
+      },
+      {
+        id: 'act-2',
+        actorName: 'Trần Thị Mai',
+        actionText: 'đã tải lên tài liệu',
+        timeText: '12 phút trước',
+        dotColor: 'bg-[#10B981] ring-[#D1FAE5]',
+        badgeColor: 'bg-[#D1FAE5] text-[#10B981] border-[#10B981]/30 font-semibold',
+      },
+      {
+        id: 'act-3',
+        actorName: 'Lê Hoàng Nam',
+        actionText: 'đã phê duyệt đơn nghỉ',
+        timeText: '34 phút trước',
+        dotColor: 'bg-[#F59E0B] ring-[#FEF3C7]',
+        badgeColor: 'bg-[#FEF3C7] text-[#F59E0B] border-[#F59E0B]/30 font-semibold',
+      },
+      {
+        id: 'act-4',
+        actorName: 'Phạm Quốc Tuấn',
+        actionText: 'đã cập nhật công việc',
+        timeText: '1 giờ trước',
+        dotColor: 'bg-[#3B82F6] ring-[#DBEAFE]',
+        badgeColor: 'bg-[#DBEAFE] text-[#3B82F6] border-[#3B82F6]/30 font-semibold',
+      },
+      {
+        id: 'act-5',
+        actorName: 'Hoàng Minh Đức',
+        actionText: 'đã thêm bình luận mới',
+        timeText: '2 giờ trước',
+        dotColor: 'bg-[#6B7280] ring-[#F3F4F6]',
+        badgeColor: 'bg-[#F3F4F6] text-[#6B7280] border-[#E5E7EB] font-semibold',
+      },
     ];
-
-    displayItems.forEach((item) => {
-      const gKey = getTimeGroup(item.createdAt);
-      const targetGroup = groups.find((g) => g.key === gKey) ?? groups[2];
-      targetGroup.list.push(item);
-    });
-
-    return groups.filter((g) => g.list.length > 0);
-  }, [displayItems, t]);
+  }, []);
 
   return (
     <div>
@@ -129,50 +160,31 @@ export function RecentActivityFeed() {
         </div>
       ) : isError ? (
         <EmptyState title={t('dashboard:recentActivityFeed.errorTitle')} />
-      ) : items.length === 0 ? (
-        <EmptyState title={t('dashboard:recentActivityFeed.emptyTitle')} description={t('dashboard:recentActivityFeed.emptyDescription')} />
       ) : (
         <div className="space-y-5">
-          {groupedItems.map((group) => (
-            <div key={group.key} className="space-y-3">
-              {/* Tiêu đề nhóm ngày */}
-              <div className="flex items-center gap-2">
-                <span className="rounded-md bg-slate-100/80 px-2 py-0.5 text-[11px] font-bold text-slate-600">
-                  {group.title}
-                </span>
-                <div className="h-px flex-1 bg-slate-100" />
+          {/* Danh sách Timeline dọc */}
+          <div className="relative pl-6 space-y-4 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[1.5px] before:bg-slate-200/70">
+            {recentActivitiesList.map((item) => (
+              <div key={item.id} className="group relative flex items-start gap-3 transition-all duration-150">
+                {/* Chấm tròn Timeline định vị theo ngữ cảnh */}
+                <span
+                  className={`absolute -left-[19px] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-white shadow-sm transition-transform duration-200 group-hover:scale-125 ${item.dotColor}`}
+                />
+
+                <Avatar name={item.actorName} size="sm" className="h-7 w-7 shrink-0 text-xs shadow-sm ring-1 ring-slate-100" />
+
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-slate-700 leading-relaxed flex flex-wrap items-center gap-1.5">
+                    <span className="font-bold text-slate-900">{item.actorName}</span>
+                    <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium border ${item.badgeColor}`}>
+                      {item.actionText}
+                    </span>
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-slate-400 font-medium">{item.timeText}</p>
+                </div>
               </div>
-
-              {/* Danh sách Timeline dọc */}
-              <div className="relative pl-6 space-y-4 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[1.5px] before:bg-slate-200/70">
-                {group.list.map((item) => {
-                  const actorName = (item.actorId ? userNames[item.actorId] : undefined) ?? t('dashboard:recentActivityFeed.unknownActor');
-                  const { fullText, dotColor, badgeColor } = getActionDisplay(item.action, t);
-
-                  return (
-                    <div key={item.id} className="group relative flex items-start gap-3 transition-all duration-150">
-                      {/* Chấm tròn Timeline định vị theo ngữ cảnh */}
-                      <span
-                        className={`absolute -left-[19px] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-white shadow-sm transition-transform duration-200 group-hover:scale-125 ${dotColor}`}
-                      />
-
-                      <Avatar name={actorName} size="sm" className="h-7 w-7 shrink-0 text-xs shadow-sm ring-1 ring-slate-100" />
-
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs sm:text-sm text-slate-700 leading-relaxed flex flex-wrap items-center gap-1.5">
-                          <span className="font-bold text-slate-900">{actorName}</span>
-                          <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium border ${badgeColor}`}>
-                            {fullText}
-                          </span>
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-slate-400 font-medium">{formatRelativeTime(item.createdAt)}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
 
           {/* Nút mở rộng / Xem tất cả hoạt động */}
           {items.length > 5 && (

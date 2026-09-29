@@ -114,11 +114,41 @@ export function UpcomingLeavesWidget() {
     return activeList.slice(0, maxItems);
   }, [data, todayStr, canViewAll, currentUser?.departmentId, userDeptMap]);
 
+  // Danh sách 3 nhân sự nghỉ phép mẫu theo yêu cầu:
+  // - Nguyễn Thị B - Nghỉ ốm - 2 ngày nữa
+  // - Trần Văn C - Nghỉ phép năm - 5 ngày nữa
+  // - Lê Thị D - Nghỉ thai sản - 12 ngày nữa
+  const displayLeavesList = useMemo(() => {
+    return [
+      {
+        id: 'leave-1',
+        employeeName: 'Nguyễn Thị B',
+        typeLabel: 'Nghỉ ốm',
+        badgeStyle: 'bg-[#FEF3C7] text-[#D97706] border-[#F59E0B]/30',
+        timeLabel: '2 ngày nữa',
+      },
+      {
+        id: 'leave-2',
+        employeeName: 'Trần Văn C',
+        typeLabel: 'Nghỉ phép năm',
+        badgeStyle: 'bg-[#D1FAE5] text-[#059669] border-[#10B981]/30',
+        timeLabel: '5 ngày nữa',
+      },
+      {
+        id: 'leave-3',
+        employeeName: 'Lê Thị D',
+        typeLabel: 'Nghỉ thai sản',
+        badgeStyle: 'bg-[#EFF6FF] text-[#1E3A8A] border-[#1E3A8A]/30',
+        timeLabel: '12 ngày nữa',
+      },
+    ];
+  }, []);
+
   return (
     <Card className="flex flex-col h-full">
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#EFF6FF] text-[#1E3A8A]">
             <CalendarIcon className="h-4 w-4" />
           </div>
           <CardTitle>{t('dashboard:upcomingLeaves.title')}</CardTitle>
@@ -126,13 +156,13 @@ export function UpcomingLeavesWidget() {
         <div className="flex items-center gap-2.5 no-print">
           <Link
             to="/leave-requests?action=create"
-            className="inline-flex items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100/80 px-2 py-1 text-xs font-semibold text-indigo-700 transition-colors shadow-2xs"
+            className="inline-flex items-center gap-1 rounded-lg border border-[#E5E7EB] bg-[#EFF6FF] hover:bg-[#DBEAFE] px-2 py-1 text-xs font-semibold text-[#1E3A8A] transition-colors shadow-2xs"
           >
             <span>{t('dashboard:upcomingLeaves.createRequest')}</span>
           </Link>
           <Link
             to="/leave"
-            className="text-xs font-semibold text-slate-500 hover:text-indigo-600 flex items-center gap-0.5 hover:underline"
+            className="text-xs font-semibold text-[#6B7280] hover:text-[#1E3A8A] flex items-center gap-0.5 hover:underline"
           >
             <span>{t('dashboard:upcomingLeaves.viewAll')}</span>
             <ChevronRightIcon className="h-3.5 w-3.5" />
@@ -142,9 +172,9 @@ export function UpcomingLeavesWidget() {
 
       <CardContent className="flex-1">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-10 text-slate-400 gap-2">
-            <Spinner className="h-5 w-5 text-indigo-600" />
-            <p className="text-xs text-slate-500">{t('dashboard:upcomingLeaves.loading')}</p>
+          <div className="flex flex-col items-center justify-center py-10 text-[#6B7280] gap-2">
+            <Spinner className="h-5 w-5 text-[#1E3A8A]" />
+            <p className="text-xs text-[#6B7280]">{t('dashboard:upcomingLeaves.loading')}</p>
           </div>
         ) : isError ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -152,7 +182,7 @@ export function UpcomingLeavesWidget() {
             <button
               type="button"
               onClick={() => refetch()}
-              className="mt-2 text-xs font-semibold text-indigo-600 hover:underline"
+              className="mt-2 text-xs font-semibold text-[#1E3A8A] hover:underline"
             >
               {t('dashboard:upcomingLeaves.retry')}
             </button>
@@ -169,63 +199,42 @@ export function UpcomingLeavesWidget() {
           </div>
         ) : (
           <div className="space-y-3">
-            {upcomingList.map((item) => {
-              const startStr = item.startDate ? item.startDate.slice(0, 10) : '';
-              const endStr = item.endDate ? item.endDate.slice(0, 10) : '';
-              const isToday = startStr <= todayStr && endStr >= todayStr;
-              const isSameDay = startStr === endStr;
-              const daysCount = calculateWorkingDays(item.startDate, item.endDate);
-              const employeeName = userNameMap[item.userId] || t('dashboard:upcomingLeaves.employee');
-              
-              // Privacy by Design / Data Masking:
-              // - Admin/Manager: Hiển thị đúng loại nghỉ & chi tiết
-              // - Employee: Luôn hiển thị badge trung tính "Nghỉ phép"
-              const { label: typeLabel, badgeStyle } = canViewAll
-                ? parseLeaveType(item.reason, t)
-                : {
-                    label: t('dashboard:upcomingLeaves.types.GENERIC'),
-                    badgeStyle: 'bg-sky-50 text-sky-700 border-sky-200/60',
-                  };
-
-              return (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between gap-3 p-2 rounded-md border border-slate-200/80 bg-slate-50/50 hover:bg-slate-100/60 transition-colors"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <Avatar name={employeeName} size="sm" className="shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold text-slate-900 truncate" title={employeeName}>
-                        {employeeName}
-                      </p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className={`inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium border ${badgeStyle}`}>
-                          {typeLabel}
-                        </span>
-                        <span className="text-[11px] text-slate-400">
-                          • {t('dashboard:upcomingLeaves.daysCount', { count: daysCount })}
-                        </span>
-                      </div>
+            {displayLeavesList.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between gap-3 p-2 rounded-md border border-slate-200/80 bg-slate-50/50 hover:bg-slate-100/60 transition-colors"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Avatar name={item.employeeName} size="sm" className="shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-slate-900 truncate" title={item.employeeName}>
+                      {item.employeeName}
+                    </p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border ${item.badgeStyle}`}>
+                        {item.typeLabel}
+                      </span>
                     </div>
                   </div>
-
-                  <div className="shrink-0 text-right">
-                    {isToday ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-                        <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
-                        {t('dashboard:upcomingLeaves.today')}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-white text-slate-700 border border-slate-200 shadow-2xs">
-                        {isSameDay
-                          ? formatShortDate(item.startDate)
-                          : `${formatShortDate(item.startDate)} - ${formatShortDate(item.endDate)}`}
-                      </span>
-                    )}
-                  </div>
                 </div>
-              );
-            })}
+
+                <div className="shrink-0 text-right">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-white text-slate-700 border border-slate-200 shadow-2xs">
+                    {item.timeLabel}
+                  </span>
+                </div>
+              </div>
+            ))}
+
+            {/* Cuối cột thêm link "Xem tất cả →" */}
+            <div className="pt-2 text-right border-t border-slate-100">
+              <Link
+                to="/leave"
+                className="inline-flex items-center text-xs font-medium text-[#1E3A8A] hover:underline"
+              >
+                <span>Xem tất cả →</span>
+              </Link>
+            </div>
           </div>
         )}
       </CardContent>

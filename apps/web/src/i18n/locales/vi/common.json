@@ -103,7 +103,13 @@
     "restoring": "Đang khôi phục phiên đăng nhập…"
   },
   "nav": {
-    "dashboard": "Dashboard",
+    "groups": {
+      "overview": "Tổng quan",
+      "workspace": "Quản lý & Vận hành",
+      "hrm": "Nhân sự & Thời gian",
+      "insights": "Báo cáo & Cài đặt"
+    },
+    "dashboard": "Tổng quan",
     "projects": "Dự án & Công việc",
     "documents": "Tài liệu",
     "customers": "Khách hàng",
@@ -111,7 +117,7 @@
     "leaveRequests": "Nghỉ phép",
     "notifications": "Thông báo",
     "analytics": "Báo cáo & Phân tích",
-    "admin": "Quản trị"
+    "admin": "Quản trị hệ thống"
   },
   "datePicker": {
     "openCalendarAria": "Mở bảng chọn lịch",

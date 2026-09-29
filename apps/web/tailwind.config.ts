@@ -7,26 +7,45 @@ export default {
     extend: {
       colors: {
         primary: {
-          50: '#eef2ff',   // indigo-50
-          100: '#e0e7ff',  // indigo-100
-          200: '#c7d2fe',  // indigo-200
-          300: '#a5b4fc',  // indigo-300
-          400: '#818cf8',  // indigo-400
-          500: '#6366f1',  // indigo-500
-          600: '#4f46e5',  // indigo-600 (chủ đạo)
-          700: '#4338ca',  // indigo-700
-          800: '#3730a3',  // indigo-800
-          900: '#312e81',  // indigo-900
-          950: '#1e1b4b',  // indigo-950
+          50: '#f0f4f8',
+          100: '#d9e2ec',
+          200: '#bcccdc',
+          300: '#9fb3c8',
+          400: '#627d98',
+          500: '#334e68',
+          600: '#1E3A8A',  // Navy đậm chuẩn (#1E3A8A)
+          700: '#1e305e',
+          800: '#18274b',
+          900: '#0f172a',
+          950: '#090d16',
         },
-        violetBrand: {
-          500: '#8b5cf6',  // violet-500
-          600: '#7c3aed',  // violet-600
-          700: '#6d28d9',  // violet-700
+        navy: {
+          50: '#f0f4f8',
+          100: '#d9e2ec',
+          200: '#bcccdc',
+          600: '#1E3A8A',
+          700: '#1a3275',
+          800: '#142557',
+          900: '#0e1a3d',
+        },
+        secondary: {
+          50: '#ecfdf5',
+          100: '#d1fae5',
+          500: '#10B981',  // Xanh ngọc lục bảo
+          600: '#059669',
+          700: '#047857',
+        },
+        accent: {
+          50: '#fffbeb',
+          100: '#fef3c7',
+          500: '#F59E0B',  // Hổ phách / Cam đất
+          600: '#d97706',
+          700: '#b45309',
         },
       },
       fontFamily: {
-        display: ['Roboto', 'sans-serif'],
+        heading: ['Lora', 'serif'],
+        display: ['Lora', 'serif'],
         body: ['Roboto', 'sans-serif'],
         sans: ['Roboto', 'sans-serif'],
       },

@@ -278,18 +278,11 @@ export function KanbanBoard({
             const columnTasks = columns[status] ?? [];
 
             return (
-              <div key={status} className="flex w-[82vw] min-w-[300px] max-w-[360px] shrink-0 flex-col rounded-md border border-slate-200/80 bg-slate-100/70 lg:w-auto lg:max-w-none lg:shrink">
-                <div
-                  className={cn(
-                    'flex items-center gap-2 px-3.5 py-3 border-b',
-                    status === 'TODO' && 'border-b-slate-200',
-                    status === 'DOING' && 'border-b-indigo-200',
-                    status === 'DONE' && 'border-b-emerald-200',
-                  )}
-                >
+              <div key={status} className="flex w-[82vw] min-w-[300px] max-w-[360px] shrink-0 flex-col rounded-md border border-slate-200/70 bg-slate-50/50 lg:w-auto lg:max-w-none lg:shrink">
+                <div className="flex items-center gap-2 px-3 py-2.5 border-b border-slate-200/60">
                   <span className={cn('h-1.5 w-1.5 rounded-full shrink-0', COLUMN_ACCENT[status])} />
-                  <p className="text-xs font-bold text-slate-800 uppercase tracking-wider">{t(`projects:enums.taskStatus.${status}`)}</p>
-                  <span className="ml-auto rounded-sm bg-white px-1.5 py-0.2 font-mono text-[11px] font-bold text-slate-600 border border-slate-200/80 tabular-nums">
+                  <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">{t(`projects:enums.taskStatus.${status}`)}</p>
+                  <span className="ml-auto font-mono text-[11px] font-medium text-slate-400 tabular-nums">
                     {columnTasks.length}
                   </span>
                 </div>

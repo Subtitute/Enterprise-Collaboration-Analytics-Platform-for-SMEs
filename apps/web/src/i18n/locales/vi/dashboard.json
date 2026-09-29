@@ -30,14 +30,14 @@
     "activeProjects": {
       "label": "Dự án đang chạy",
       "labelPersonal": "Dự án bạn tham gia",
-      "hint": "Dự án đang trong trạng thái hoạt động",
+      "hint": "Dự án đang ở trạng thái hoạt động, cần theo dõi tiến độ.",
       "hintPersonal": "Dự án bạn đang trực tiếp tham gia"
     },
     "pendingLeaves": {
       "label": "Đơn nghỉ chờ duyệt",
       "labelPersonal": "Đơn nghỉ của bạn",
       "pendingBadge": "Chờ duyệt",
-      "hint": "Cần người quản lý phê duyệt",
+      "hint": "Đơn xin nghỉ phép đang chờ quản lý phê duyệt.",
       "hintEmpty": "Không có đơn nào chờ duyệt",
       "hintEmptyPersonal": "Bạn không có đơn nghỉ nào chờ duyệt"
     },
@@ -49,7 +49,7 @@
     },
     "newDocumentsCount": {
       "label": "Tài liệu mới (7 ngày)",
-      "hint": "Tệp tải lên trong 7 ngày gần nhất",
+      "hint": "Tài liệu được tải lên trong 7 ngày gần nhất.",
       "empty": "Không có tài liệu mới"
     },
     "workProgress": {

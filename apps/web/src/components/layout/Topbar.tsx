@@ -199,7 +199,7 @@ export function Topbar() {
   }, [showQuickTaskModal, showLogoutConfirm]);
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2.5 md:gap-4 border-b border-slate-200 bg-white px-3 md:px-6">
+    <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 md:gap-4 border-b border-slate-200/70 bg-white px-4 md:px-8">
       {/* Nút menu mở Mobile Sidebar */}
       <button
         type="button"
@@ -236,12 +236,12 @@ export function Topbar() {
             title={t('common:quickCreate.tooltip')}
             aria-label={t('common:quickCreate.tooltip')}
             className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 md:px-3 md:py-2 text-xs font-semibold text-white transition-all duration-150 shadow-xs shrink-0 cursor-pointer active:scale-[0.98] ${
-              open ? 'bg-indigo-700 ring-1 ring-indigo-500' : 'bg-indigo-600 hover:bg-indigo-700 ring-1 ring-inset ring-white/10'
+              open ? 'bg-[#18274b] ring-1 ring-primary-500' : 'bg-[#1E3A8A] hover:bg-[#1a3275] ring-1 ring-inset ring-white/10'
             }`}
           >
             <PlusIcon className="h-4 w-4 stroke-[2.2]" />
             <span className="hidden sm:inline">{t('common:quickCreate.button')}</span>
-            <ChevronDownIcon className={`hidden sm:inline h-3 w-3 text-indigo-200 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+            <ChevronDownIcon className={`hidden sm:inline h-3 w-3 text-slate-200 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
           </button>
         )}
       >

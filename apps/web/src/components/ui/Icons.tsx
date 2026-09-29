@@ -73,6 +73,18 @@ export const ShieldIcon = (p: IconProps) => (
   </svg>
 );
 
+export const BrandLogoIcon = (p: IconProps) => (
+  <svg {...base(p)} viewBox="0 0 24 24">
+    {/* Vòng cung phân tích (Analytics Arc) */}
+    <path d="M21 12A9 9 0 0 0 12 3v9Z" fill="currentColor" fillOpacity="0.25" stroke="currentColor" />
+    <path d="M12 12V3a9 9 0 1 0 9 9h-9Z" stroke="currentColor" />
+    {/* 3 Nút tròn liên kết cộng tác (Collaboration Nodes) */}
+    <circle cx="12" cy="3" r="2" fill="currentColor" stroke="none" />
+    <circle cx="21" cy="12" r="2" fill="currentColor" stroke="none" />
+    <circle cx="6" cy="18" r="2" fill="currentColor" stroke="none" />
+  </svg>
+);
+
 export const LayersIcon = (p: IconProps) => (
   <svg {...base(p)}>
     <polygon points="12 2 2 7 12 12 22 7 12 2" />

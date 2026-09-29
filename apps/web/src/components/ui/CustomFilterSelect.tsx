@@ -9,6 +9,7 @@ export interface FilterOption {
 }
 
 interface CustomFilterSelectProps {
+  id?: string;
   value: string;
   options: FilterOption[];
   onChange: (value: string) => void;
@@ -19,6 +20,7 @@ interface CustomFilterSelectProps {
 }
 
 export function CustomFilterSelect({
+  id,
   value,
   options,
   onChange,
@@ -93,6 +95,7 @@ export function CustomFilterSelect({
   return (
     <div ref={rootRef} className={cn('relative inline-block text-left', className)}>
       <button
+        id={id}
         type="button"
         onClick={toggle}
         aria-label={ariaLabel}
