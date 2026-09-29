@@ -69,8 +69,8 @@ export function useRegisterOrganization() {
       toast.success(t('auth:hooks.register.successTitle'), t('auth:hooks.register.successDescription', { fullName: data.user.fullName }));
       navigate('/dashboard', { replace: true });
     },
-    onError: (error) => {
-      toast.error(t('auth:hooks.register.errorTitle'), extractErrorMessage(error));
+    onError: () => {
+      // Khong hien thi toast loi o day vi loi da duoc hien thi truc tiep trong ngữ cảnh (in-context) tai Buoc 3 (Hoan tat)
     },
   });
 }

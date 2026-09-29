@@ -6,6 +6,7 @@ import { NAV_ITEMS } from './nav-items';
 import { ChevronLeftIcon, ChevronRightIcon, BrandLogoIcon } from '@/components/ui/Icons';
 import { useUIStore } from '@/stores/ui.store';
 import { usePermissions, useAuthStore } from '@/stores/auth.store';
+import { useUnreadMessagesCount } from '@/features/messaging/hooks';
 import { Avatar } from '@/components/ui/Avatar';
 import type { NavGroup } from './nav-items';
 
@@ -29,7 +30,7 @@ function SidebarFooter({ collapsed }: { collapsed: boolean }) {
               {user?.fullName || 'Người dùng'}
             </p>
             <p className="truncate text-[11px] text-[#9CA3AF]">
-              {user?.roles?.[0]?.name || user?.email || ''}
+              {typeof user?.roles?.[0] === 'object' ? user.roles[0]?.name : (typeof user?.roles?.[0] === 'string' ? user.roles[0] : (user?.email || ''))}
             </p>
           </div>
         )}
@@ -89,13 +90,18 @@ function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
                 >
                   {() => (
                     <>
-                      <div className="flex h-4 w-4 shrink-0 items-center justify-center">
+                      <div className="relative flex h-4 w-4 shrink-0 items-center justify-center">
                         <item.icon
                           className={cn(
                             'h-4 w-4 transition-colors duration-150',
                             isItemActive ? 'text-[#1E3A8A] stroke-[2.2]' : 'text-[#6B7280] group-hover:text-[#374151]',
                           )}
                         />
+                        {item.to === '/messages' && unreadMessagesCount > 0 && (
+                          <span className="absolute -top-1 -right-1.5 flex h-3 min-w-[0.75rem] items-center justify-center rounded-full bg-primary-600 px-0.5 text-[8px] font-semibold text-white ring-2 ring-white">
+                            {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
+                          </span>
+                        )}
                       </div>
                       <div
                         className={cn(

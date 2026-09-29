@@ -6,7 +6,7 @@ import { AlertCircleIcon, EyeIcon, EyeOffIcon, ChevronDownIcon } from './Icons';
 
 const fieldBase =
   'block w-full rounded-md border border-slate-300/80 bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 ' +
-  'focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 disabled:bg-slate-50 disabled:text-slate-400 shadow-2xs transition-colors';
+  'focus:border-[#1E3A8A] focus:outline-none focus:ring-1 focus:ring-[#1E3A8A] disabled:bg-slate-50 disabled:text-slate-400 shadow-2xs transition-colors';
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(({ className, ...props }, ref) => (
   <input ref={ref} className={cn(fieldBase, className)} {...props} />

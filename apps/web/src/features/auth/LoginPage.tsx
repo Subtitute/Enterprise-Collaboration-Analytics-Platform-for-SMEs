@@ -4,10 +4,18 @@ import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth.store';
 import { useLogin } from './hooks';
-import { AuthLayout } from './components/AuthLayout';
 import { FormField, Input, PasswordInput } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { CopyIcon, CheckIcon, ChevronDownIcon } from '@/components/ui/Icons';
+import {
+  CopyIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  MailIcon,
+  LockIcon,
+  InfoIcon,
+  BrandLogoIcon,
+} from '@/components/ui/Icons';
+import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -25,7 +33,7 @@ const DEMO_ACCOUNTS: DemoAccountItem[] = [
     id: 'admin',
     roleNameKey: 'auth:loginPage.demoAccount.roles.admin',
     descKey: 'auth:loginPage.demoAccount.roles.adminDesc',
-    badgeClass: 'bg-purple-100 text-purple-700 border-purple-200',
+    badgeClass: 'bg-[#EFF6FF] text-[#1E3A8A] border-[#1E3A8A]/30',
     email: 'admin@demo-sme.vn',
     password: 'Password123!',
   },
@@ -33,7 +41,7 @@ const DEMO_ACCOUNTS: DemoAccountItem[] = [
     id: 'manager',
     roleNameKey: 'auth:loginPage.demoAccount.roles.manager',
     descKey: 'auth:loginPage.demoAccount.roles.managerDesc',
-    badgeClass: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+    badgeClass: 'bg-blue-100 text-blue-700 border-blue-200',
     email: 'an.nguyen+246317@demo-sme.vn',
     password: 'Password123!',
   },
@@ -45,10 +53,6 @@ const DEMO_ACCOUNTS: DemoAccountItem[] = [
     email: 'binh.tran+246317@demo-sme.vn',
     password: 'Password123!',
   },
-  // 16/09/2026: "Super Admin" (tinh nang moi) - khop dung gia tri mac dinh cua
-  // SUPER_ADMIN_EMAIL/PASSWORD trong infra/.env.example (chi co tac dung khi tinh nang duoc bat -
-  // xem bootstrap/super-admin-bootstrap.service.ts). Dang nhap thanh cong se dieu huong thang toi
-  // /platform-admin (xem useLogin()), khac han 3 tai khoan con lai.
   {
     id: 'superAdmin',
     roleNameKey: 'auth:loginPage.demoAccount.roles.superAdmin',
@@ -70,12 +74,7 @@ export function LoginPage() {
   const [errorKeys, setErrorKeys] = useState<{ email?: 'emailRequired' | 'emailInvalid'; password?: 'passwordRequired' }>({});
   const [copiedField, setCopiedField] = useState<'email' | 'password' | null>(null);
   const [activeRoleIndex, setActiveRoleIndex] = useState<number>(0);
-  const [isDemoCollapsed, setIsDemoCollapsed] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth < 768;
-    }
-    return false;
-  });
+  const [isDemoOpen, setIsDemoOpen] = useState(false);
 
   const from = (location.state as { from?: { pathname: string; search?: string } })?.from;
   const redirectTarget = from ? `${from.pathname}${from.search || ''}` : '/dashboard';
@@ -126,102 +125,232 @@ export function LoginPage() {
   const passwordError = errorKeys.password ? t(`auth:loginPage.errors.${errorKeys.password}`) : undefined;
 
   return (
-    <>
-      <AuthLayout title={t('auth:loginPage.title')} subtitle={t('auth:loginPage.subtitle')}>
-        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-          <FormField label={t('auth:loginPage.emailLabel')} htmlFor="email" error={emailError} required>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              placeholder={t('auth:loginPage.emailPlaceholder')}
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (errorKeys.email) setErrorKeys((prev) => ({ ...prev, email: undefined }));
-              }}
-            />
-          </FormField>
-          <FormField label={t('auth:loginPage.passwordLabel')} htmlFor="password" error={passwordError} required>
-            <PasswordInput
-              id="password"
-              autoComplete="current-password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                if (errorKeys.password) setErrorKeys((prev) => ({ ...prev, password: undefined }));
-              }}
-            />
-          </FormField>
-          <div className="-mt-2 text-right">
-            <Link
-              to="/forgot-password"
-              className="inline-block text-xs font-medium text-primary-600 transition-all duration-200 hover:text-primary-700 hover:underline"
-            >
-              {t('auth:loginPage.forgotPasswordLink')}
-            </Link>
-          </div>
-          <Button type="submit" className="w-full" isLoading={login.isPending}>
-            {t('auth:loginPage.submit')}
-          </Button>
-        </form>
-        <p className="mt-6 text-center text-sm text-slate-500">
-          {t('auth:loginPage.noOrganization')}{' '}
-          <Link
-            to="/register"
-            className="inline-block font-medium text-primary-600 transition-all duration-200 hover:text-primary-700 hover:-translate-y-[0.5px] active:translate-y-0 hover:underline"
-          >
-            {t('auth:loginPage.registerLink')}
-          </Link>
-        </p>
-      </AuthLayout>
+    <div className="flex min-h-screen w-full flex-col lg:flex-row antialiased select-text">
+      {/* CỘT TRÁI: Chiếm 55-60% chiều rộng màn hình, nền Navy #1E3A8A đậm */}
+      <div className="relative hidden w-full lg:flex lg:w-[58%] flex-col justify-between overflow-hidden bg-[#1E3A8A] p-10 xl:p-14 text-white">
+        {/* Họa tiết hình học mờ: đường chéo mảnh, chấm tròn nhỏ rải rác, opacity ~8% */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.08]"
+          style={{
+            backgroundImage: `
+              radial-gradient(circle at 25px 25px, rgba(255, 255, 255, 0.4) 1.5px, transparent 0),
+              linear-gradient(45deg, rgba(255, 255, 255, 0.08) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.08) 75%, transparent 75%, transparent)
+            `,
+            backgroundSize: '40px 40px, 80px 80px',
+          }}
+        />
 
-      {/* Widget trực quan trải nghiệm Đăng nhập nhanh 3 vai trò (Org Admin / Manager / Employee) - Có thể thu gọn linh hoạt trên màn hình nhỏ */}
-      <div className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-30 transition-all duration-300 rounded-md border border-slate-200/90 bg-white/95 shadow-xl shadow-slate-200/80  ${
-        isDemoCollapsed ? 'w-auto max-w-[calc(100vw-2rem)] p-2.5 sm:p-3' : 'w-84 max-w-[calc(100vw-2rem)] p-4 hover:shadow-2xl animate-slide-up'
-      }`}>
-        <div className={`flex items-center justify-between gap-2 ${isDemoCollapsed ? '' : 'pb-2.5 mb-2.5 border-b border-slate-100'}`}>
-          <button
-            type="button"
-            onClick={() => setIsDemoCollapsed(!isDemoCollapsed)}
-            className="flex items-center gap-1.5 min-w-0 text-left cursor-pointer group"
-            title={isDemoCollapsed ? t('auth:loginPage.demoAccount.expand') : t('auth:loginPage.demoAccount.collapse')}
-          >
-            <span className="flex h-2 w-2 shrink-0 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-bold text-slate-900 group-hover:text-primary-600 transition-colors truncate">
-              {t('auth:loginPage.demoAccount.title')}
+        {/* Vệt sáng nhẹ góc chéo để tạo chiều sâu tự nhiên */}
+        <div className="pointer-events-none absolute -left-20 -top-20 h-96 w-96 rounded-full bg-white/5 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 -right-20 h-96 w-96 rounded-full bg-[#10B981]/10 blur-3xl" />
+
+        {/* TRÊN CÙNG: Logo ECAP font Lora trắng */}
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-white backdrop-blur-md ring-1 ring-white/20 shadow-md">
+            <BrandLogoIcon className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <span className="font-heading text-2xl font-bold tracking-wider text-white">
+              ECAP
             </span>
-            <ChevronDownIcon
-              className={`h-3.5 w-3.5 text-slate-400 group-hover:text-slate-600 transition-transform duration-200 shrink-0 ${
-                isDemoCollapsed ? '-rotate-90' : 'rotate-0'
-              }`}
-            />
-          </button>
-          {!isDemoCollapsed && (
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => handleFillDemo(selectedDemo)}
-                className="text-[11px] font-semibold text-primary-600 hover:text-primary-700 hover:underline cursor-pointer"
-              >
-                {t('auth:loginPage.demoAccount.autofill')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsDemoCollapsed(true)}
-                className="text-slate-400 hover:text-slate-600 p-0.5 rounded hover:bg-slate-100 transition-colors cursor-pointer text-[11px]"
-                title={t('auth:loginPage.demoAccount.collapse')}
-              >
-                {t('auth:loginPage.demoAccount.collapse')}
-              </button>
-            </div>
-          )}
+            <span className="ml-2 rounded bg-white/15 px-1.5 py-0.5 font-sans text-[10px] font-semibold tracking-wider text-white/90">
+              for SMEs
+            </span>
+          </div>
         </div>
 
-        {/* Nội dung chi tiết chỉ hiển thị khi không thu gọn */}
-        {!isDemoCollapsed && (
-          <>
+        {/* Ở GIỮA: Câu tagline lớn font Lora trắng, size 28-32px */}
+        <div className="relative z-10 max-w-xl my-auto py-12">
+          <h1 className="font-heading text-3xl xl:text-[34px] font-semibold leading-snug text-white">
+            {t('auth:loginPage.hero.tagline')}
+          </h1>
+          <p className="mt-4 font-sans text-sm xl:text-base leading-relaxed text-white/80 max-w-lg">
+            {t('auth:loginPage.hero.description')}
+          </p>
+
+          {/* 3 đặc trưng nhận diện nhanh */}
+          <div className="mt-8 grid grid-cols-3 gap-4 border-t border-white/15 pt-6 text-white/85">
+            <div>
+              <p className="font-sans text-lg font-bold text-white">100%</p>
+              <p className="font-sans text-xs text-white/70 mt-0.5">{t('auth:loginPage.hero.statRealtime')}</p>
+            </div>
+            <div>
+              <p className="font-sans text-lg font-bold text-white">Microservices</p>
+              <p className="font-sans text-xs text-white/70 mt-0.5">{t('auth:loginPage.hero.statMicroservices')}</p>
+            </div>
+            <div>
+              <p className="font-sans text-lg font-bold text-white">SME-Ready</p>
+              <p className="font-sans text-xs text-white/70 mt-0.5">{t('auth:loginPage.hero.statSmeReady')}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* DƯỚI CÙNG: Dòng copyright nhỏ font Lora/Roboto trắng mờ (opacity 60%) */}
+        <div className="relative z-10 flex items-center justify-between font-sans text-xs text-white/60">
+          <span>&copy; 2026 ECAP for SMEs &middot; v0.1.0</span>
+          <span>{t('auth:loginPage.hero.securityStandard')}</span>
+        </div>
+      </div>
+
+      {/* CỘT PHẢI: Chiếm 40-45% chiều rộng, nền trắng #FAFAF9 */}
+      <div className="relative flex flex-1 flex-col justify-between bg-[#FAFAF9] px-6 py-8 sm:px-12 md:px-16 lg:px-[60px] xl:px-20 min-h-screen">
+        {/* HÀNG TRÊN CÙNG: Thông báo thử nghiệm (bên trái) + Nút chọn ngôn ngữ (bên phải) */}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 border border-amber-200/80 text-amber-800">
+            <InfoIcon className="h-3.5 w-3.5 text-[#F59E0B] shrink-0" />
+            <span className="font-sans text-[11px] font-medium text-[#F59E0B]">
+              {t('auth:loginPage.pilotNotice')}
+            </span>
+          </div>
+
+          <div className="shrink-0">
+            <LanguageSwitcher />
+          </div>
+        </div>
+
+        {/* KHU VỰC GIỮA: Form đăng nhập căn giữa theo chiều dọc */}
+        <div className="my-auto w-full max-w-md mx-auto py-8">
+          {/* Header hiển thị logo trên mobile khi cột trái bị ẩn */}
+          <div className="mb-6 flex items-center gap-2.5 lg:hidden">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#1E3A8A] text-white shadow-xs">
+              <BrandLogoIcon className="h-5 w-5 text-white" />
+            </div>
+            <span className="font-heading text-xl font-bold tracking-wider text-[#1E3A8A]">
+              ECAP
+            </span>
+          </div>
+
+          {/* Tiêu đề & Dòng phụ */}
+          <div className="mb-6">
+            <h2 className="font-heading text-[28px] font-semibold text-[#1E3A8A] tracking-tight">
+              {t('auth:loginPage.title')}
+            </h2>
+            <p className="mt-1.5 font-sans text-sm text-[#6B7280]">
+              {t('auth:loginPage.welcomeBack')}
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+            {/* Input Email với icon Mail */}
+            <FormField label={t('auth:loginPage.emailLabel')} htmlFor="email" error={emailError} required>
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                  <MailIcon className="h-4 w-4" />
+                </div>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder={t('auth:loginPage.emailPlaceholder')}
+                  value={email}
+                  className="pl-9 h-11 border-[#E5E7EB] focus:border-[#1E3A8A] focus:ring-[#1E3A8A]"
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errorKeys.email) setErrorKeys((prev) => ({ ...prev, email: undefined }));
+                  }}
+                />
+              </div>
+            </FormField>
+
+            {/* Input Mật khẩu với icon Lock */}
+            <FormField label={t('auth:loginPage.passwordLabel')} htmlFor="password" error={passwordError} required>
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 z-10">
+                  <LockIcon className="h-4 w-4" />
+                </div>
+                <PasswordInput
+                  id="password"
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  value={password}
+                  className="pl-9 h-11 border-[#E5E7EB] focus:border-[#1E3A8A] focus:ring-[#1E3A8A]"
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errorKeys.password) setErrorKeys((prev) => ({ ...prev, password: undefined }));
+                  }}
+                />
+              </div>
+            </FormField>
+
+            {/* Link Quên mật khẩu: màu Navy #1E3A8A đồng bộ */}
+            <div className="-mt-1 flex justify-end">
+              <Link
+                to="/forgot-password"
+                className="font-sans text-xs font-bold text-[#1E3A8A] transition-colors duration-150 hover:underline hover:text-[#1E40AF]"
+              >
+                {t('auth:loginPage.forgotPasswordLink')}
+              </Link>
+            </div>
+
+            {/* Nút Đăng nhập: nền #1E3A8A, chữ trắng, bo góc 8px, cao 44px, hover #1E40AF */}
+            <Button
+              type="submit"
+              className="w-full h-[44px] rounded-[8px] bg-[#1E3A8A] hover:bg-[#1E40AF] text-white font-sans text-sm font-semibold transition-colors duration-200 shadow-xs cursor-pointer active:scale-[0.98]"
+              isLoading={login.isPending}
+            >
+              {t('auth:loginPage.submit')}
+            </Button>
+          </form>
+
+          {/* Link Đăng ký tổ chức mới: màu Navy #1E3A8A đồng bộ */}
+          <p className="mt-6 text-center font-sans text-sm text-[#6B7280]">
+            {t('auth:loginPage.noOrganization')}{' '}
+            <Link
+              to="/register"
+              className="font-bold text-[#1E3A8A] transition-colors duration-150 hover:underline hover:text-[#1E40AF]"
+            >
+              {t('auth:loginPage.registerLink')}
+            </Link>
+          </p>
+        </div>
+
+        {/* HÀNG DƯỚI CÙNG: Dòng hỗ trợ người dùng */}
+        <div className="pt-4 border-t border-slate-200/60 text-center font-sans text-xs text-[#6B7280]">
+          <span>{t('auth:loginPage.supportContact')} <a href="mailto:support@ecap.vn" className="text-[#1E3A8A] font-medium hover:underline">support@ecap.vn</a></span>
+        </div>
+      </div>
+
+      {/* 3. PANEL TÀI KHOẢN TRẢI NGHIỆM & DEMO (Thu gọn thành nút nhỏ góc dưới bên phải) */}
+      <div className="fixed bottom-4 right-4 z-40 select-none">
+        {!isDemoOpen ? (
+          <button
+            type="button"
+            onClick={() => setIsDemoOpen(true)}
+            className="flex items-center gap-1.5 rounded-full border border-[#1E3A8A]/30 bg-white/95 px-3 py-1.5 font-sans text-xs font-semibold text-[#1E3A8A] shadow-md backdrop-blur transition-all duration-150 hover:bg-[#EFF6FF] hover:border-[#1E3A8A] active:scale-95 cursor-pointer"
+            title={t('auth:loginPage.demoToggleTitle')}
+          >
+            <span className="flex h-2 w-2 rounded-full bg-[#10B981] animate-pulse" />
+            <span>Demo</span>
+            <ChevronDownIcon className="h-3.5 w-3.5 -rotate-90 text-[#1E3A8A]" />
+          </button>
+        ) : (
+          <div className="w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-slate-200 bg-white p-4 shadow-2xl animate-slide-up">
+            <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-100">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="flex h-2 w-2 rounded-full bg-[#10B981]" />
+                <span className="text-xs font-bold text-slate-900">
+                  {t('auth:loginPage.demoAccount.title')}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleFillDemo(selectedDemo)}
+                  className="text-[11px] font-semibold text-[#10B981] hover:underline cursor-pointer"
+                >
+                  {t('auth:loginPage.demoAccount.autofill')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsDemoOpen(false)}
+                  className="text-slate-400 hover:text-slate-700 p-0.5 rounded text-xs cursor-pointer"
+                  title={t('auth:loginPage.closePanelTitle')}
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
             {/* Tab chuyển đổi 4 vai trò */}
             <div className="grid grid-cols-4 gap-1 rounded-lg bg-slate-100 p-1 mb-2.5">
               {DEMO_ACCOUNTS.map((acc, index) => {
@@ -235,7 +364,7 @@ export function LoginPage() {
                     onClick={() => setActiveRoleIndex(index)}
                     className={`py-1 text-[11px] font-semibold rounded-md transition-all cursor-pointer ${
                       isActive
-                        ? 'bg-white text-indigo-700 shadow-xs ring-1 ring-slate-200'
+                        ? 'bg-white text-[#1E3A8A] shadow-xs ring-1 ring-slate-200'
                         : 'text-slate-500 hover:text-slate-900'
                     }`}
                   >
@@ -245,9 +374,9 @@ export function LoginPage() {
               })}
             </div>
 
-            {/* Thông tin chi tiết của vai trò đang chọn */}
+            {/* Thông tin chi tiết */}
             <div className="space-y-2 text-xs">
-              <div className="rounded-lg bg-slate-50/80 p-2 border border-slate-100 space-y-1">
+              <div className="rounded-lg bg-slate-50 p-2 border border-slate-100 space-y-1">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-bold text-slate-800 text-[11px] truncate">{t(selectedDemo.roleNameKey)}</span>
                   <span className={`inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold border ${selectedDemo.badgeClass}`}>
@@ -259,7 +388,8 @@ export function LoginPage() {
                 </p>
               </div>
 
-              <div className="flex items-center justify-between gap-2 rounded-lg bg-slate-50/80 px-2.5 py-1.5 border border-slate-100">
+              {/* Email */}
+              <div className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5 border border-slate-100">
                 <div className="min-w-0 flex-1">
                   <span className="block text-[10px] text-slate-400 font-medium">Email:</span>
                   <span className="block truncate font-mono text-slate-800 text-[11px]">{selectedDemo.email}</span>
@@ -268,7 +398,7 @@ export function LoginPage() {
                   type="button"
                   onClick={() => handleCopy(selectedDemo.email, 'email')}
                   title={t('auth:loginPage.demoAccount.copyEmailTitle')}
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-400 transition-colors hover:bg-slate-200/70 hover:text-slate-700 cursor-pointer"
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-400 hover:text-slate-700 cursor-pointer"
                 >
                   {copiedField === 'email' ? (
                     <CheckIcon className="h-3.5 w-3.5 text-emerald-600 animate-fade-in" />
@@ -278,7 +408,8 @@ export function LoginPage() {
                 </button>
               </div>
 
-              <div className="flex items-center justify-between gap-2 rounded-lg bg-slate-50/80 px-2.5 py-1.5 border border-slate-100">
+              {/* Password */}
+              <div className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5 border border-slate-100">
                 <div className="min-w-0 flex-1">
                   <span className="block text-[10px] text-slate-400 font-medium">{t('auth:loginPage.demoAccount.passwordLabel')}</span>
                   <span className="block truncate font-mono text-slate-800 text-[11px]">{selectedDemo.password}</span>
@@ -287,7 +418,7 @@ export function LoginPage() {
                   type="button"
                   onClick={() => handleCopy(selectedDemo.password, 'password')}
                   title={t('auth:loginPage.demoAccount.copyPasswordTitle')}
-                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-400 transition-colors hover:bg-slate-200/70 hover:text-slate-700 cursor-pointer"
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-400 hover:text-slate-700 cursor-pointer"
                 >
                   {copiedField === 'password' ? (
                     <CheckIcon className="h-3.5 w-3.5 text-emerald-600 animate-fade-in" />
@@ -297,24 +428,24 @@ export function LoginPage() {
                 </button>
               </div>
 
-              {/* Nút Đăng nhập 1-Click trực tiếp */}
+              {/* Nút Đăng nhập 1-Click nhanh */}
               <button
                 type="button"
                 onClick={() => handleQuickLogin(selectedDemo)}
                 disabled={login.isPending}
-                className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white text-xs font-semibold shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-[#1E3A8A] hover:bg-[#1E40AF] active:scale-[0.98] text-white text-xs font-semibold shadow-xs transition-all cursor-pointer disabled:opacity-50 mt-1"
               >
                 {login.isPending ? '...' : (
                   <>
                     <span>{t('auth:loginPage.demoAccount.quickLogin')}</span>
-                    <span>→</span>
+                    <span>&rarr;</span>
                   </>
                 )}
               </button>
             </div>
-          </>
+          </div>
         )}
       </div>
-    </>
+    </div>
   );
 }

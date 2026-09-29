@@ -154,6 +154,9 @@ export function RecentActivityFeed() {
         </span>
       </div>
 
+      {/* Đường kẻ ngang mảnh màu #E5E7EB ngăn cách giữa dòng trạng thái trực tiếp và danh sách hoạt động */}
+      <div className="border-b border-[#E5E7EB] my-3" />
+
       {isLoading ? (
         <div className="flex justify-center py-8">
           <Spinner />
@@ -163,15 +166,18 @@ export function RecentActivityFeed() {
       ) : (
         <div className="space-y-5">
           {/* Danh sách Timeline dọc */}
-          <div className="relative pl-6 space-y-4 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[1.5px] before:bg-slate-200/70">
+          <div className="relative pl-6 space-y-1.5 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[1.5px] before:bg-slate-200/70">
             {recentActivitiesList.map((item) => (
-              <div key={item.id} className="group relative flex items-start gap-3 transition-all duration-150">
+              <div
+                key={item.id}
+                className="group relative flex items-start gap-3 rounded-lg p-2 transition-colors duration-150 hover:bg-[#F9FAFB] cursor-pointer"
+              >
                 {/* Chấm tròn Timeline định vị theo ngữ cảnh */}
                 <span
-                  className={`absolute -left-[19px] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-white shadow-sm transition-transform duration-200 group-hover:scale-125 ${item.dotColor}`}
+                  className={`absolute -left-[19px] top-3.5 h-2.5 w-2.5 rounded-full ring-4 ring-white shadow-sm transition-transform duration-200 group-hover:scale-125 ${item.dotColor}`}
                 />
 
-                <Avatar name={item.actorName} size="sm" className="h-7 w-7 shrink-0 text-xs shadow-sm ring-1 ring-slate-100" />
+                <Avatar name={item.actorName} size="sm" className="h-7 w-7 shrink-0 text-xs shadow-sm ring-1 ring-slate-100 mt-0.5" />
 
                 <div className="min-w-0 flex-1">
                   <p className="text-xs sm:text-sm text-slate-700 leading-relaxed flex flex-wrap items-center gap-1.5">

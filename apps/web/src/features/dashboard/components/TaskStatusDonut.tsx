@@ -64,63 +64,69 @@ export function TaskStatusDonut({ data, isLoading, isError, onRetry }: TaskStatu
         <EmptyState title={t('dashboard:taskStatusDonut.emptyTitle')} description={t('dashboard:taskStatusDonut.emptyDescription')} />
       ) : (
         <div className="flex flex-col 2xl:flex-row items-center justify-between gap-4 w-full min-w-0 overflow-hidden">
-          <div className="relative h-44 w-44 sm:h-48 sm:w-48 shrink-0 mx-auto">
-            {/* Tương tác tâm (Center Text) nằm ở tầng nền z-0 với pointer-events-none tuyệt đối để chuột xuyên qua */}
-            <div className="pointer-events-none absolute inset-0 z-0 flex flex-col items-center justify-center text-center px-2 transition-all duration-200 select-none">
-              {activeItem ? (
-                <div className="animate-fade-in flex flex-col items-center">
-                  <span className="font-sans text-3xl font-bold tracking-tight tabular-nums text-[#374151] leading-none">
-                    {activeItem.count}
-                  </span>
-                  <span className="text-[11px] font-semibold text-[#6B7280] truncate max-w-[90px] mt-0.5">
-                    {statusLabel(activeItem.status)}
-                  </span>
-                  <span className="text-[10px] text-[#9CA3AF] font-medium">
-                    {t('dashboard:taskStatusDonut.ofTotal', {
-                      percent: total ? Math.round((activeItem.count / total) * 100) : 0,
-                    })}
-                  </span>
-                </div>
-              ) : (
-                <div className="animate-fade-in flex flex-col items-center">
-                  <span className="font-sans text-3xl font-bold tracking-tight tabular-nums text-[#374151] leading-none">{total}</span>
-                  <span className="text-xs text-[#6B7280] font-medium mt-0.5">{t('dashboard:taskStatusDonut.unit')}</span>
-                  <span className="font-sans text-[11px] italic text-[#9CA3AF] mt-1">Cập nhật 13:18 hôm nay</span>
-                </div>
-              )}
+          <div className="flex flex-col items-center shrink-0 mx-auto">
+            <div className="relative h-44 w-44 sm:h-48 sm:w-48">
+              {/* Tương tác tâm (Center Text) nằm ở tầng nền z-0 với pointer-events-none tuyệt đối để chuột xuyên qua */}
+              <div className="pointer-events-none absolute inset-0 z-0 flex flex-col items-center justify-center text-center px-2 transition-all duration-200 select-none">
+                {activeItem ? (
+                  <div className="animate-fade-in flex flex-col items-center">
+                    <span className="font-sans text-3xl font-bold tracking-tight tabular-nums text-[#374151] leading-none">
+                      {activeItem.count}
+                    </span>
+                    <span className="text-[11px] font-semibold text-[#6B7280] truncate max-w-[90px] mt-0.5">
+                      {statusLabel(activeItem.status)}
+                    </span>
+                    <span className="text-[10px] text-[#9CA3AF] font-medium">
+                      {t('dashboard:taskStatusDonut.ofTotal', {
+                        percent: total ? Math.round((activeItem.count / total) * 100) : 0,
+                      })}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="animate-fade-in flex flex-col items-center">
+                    <span className="font-sans text-3xl font-bold tracking-tight tabular-nums text-[#374151] leading-none">{total}</span>
+                    <span className="text-xs text-[#6B7280] font-medium mt-0.5">{t('dashboard:taskStatusDonut.unit')}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Lớp vẽ biểu đồ Donut nằm ở tầng z-10 */}
+              <div className="relative z-10 h-full w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      dataKey="count"
+                      nameKey="status"
+                      innerRadius={56}
+                      outerRadius={80}
+                      paddingAngle={3}
+                      cornerRadius={6}
+                      strokeWidth={0}
+                      onMouseEnter={(_, index) => {
+                        if (chartData[index]) setHoveredStatus(chartData[index].status);
+                      }}
+                      onMouseLeave={() => setHoveredStatus(null)}
+                    >
+                      {chartData.map((d) => (
+                        <Cell
+                          key={d.status}
+                          fill={d.fill}
+                          className="transition-all duration-200 cursor-pointer"
+                          opacity={hoveredStatus === null || hoveredStatus === d.status ? 1 : 0.45}
+                          style={{ outline: 'none' }}
+                        />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             </div>
 
-            {/* Lớp vẽ biểu đồ Donut nằm ở tầng z-10 */}
-            <div className="relative z-10 h-full w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    dataKey="count"
-                    nameKey="status"
-                    innerRadius={56}
-                    outerRadius={80}
-                    paddingAngle={3}
-                    cornerRadius={6}
-                    strokeWidth={0}
-                    onMouseEnter={(_, index) => {
-                      if (chartData[index]) setHoveredStatus(chartData[index].status);
-                    }}
-                    onMouseLeave={() => setHoveredStatus(null)}
-                  >
-                    {chartData.map((d) => (
-                      <Cell
-                        key={d.status}
-                        fill={d.fill}
-                        className="transition-all duration-200 cursor-pointer"
-                        opacity={hoveredStatus === null || hoveredStatus === d.status ? 1 : 0.45}
-                        style={{ outline: 'none' }}
-                      />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            {/* Dòng cập nhật thời gian nằm hoàn toàn bên dưới vòng tròn, canh giữa, không chồng chéo */}
+            <p className="mt-2 text-center font-sans text-[10px] italic text-[#9CA3AF]">
+              Cập nhật 13:18 hôm nay
+            </p>
           </div>
 
           <ul className="w-full min-w-0 flex-1">
