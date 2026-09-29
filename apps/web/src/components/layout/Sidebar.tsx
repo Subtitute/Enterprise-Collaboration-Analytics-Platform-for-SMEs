@@ -46,6 +46,11 @@ function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
   const items = NAV_ITEMS.filter(
     (item) => (!item.adminOnly || canSeeAdmin) && (!item.requiredPermission || permissions.includes(item.requiredPermission)),
   );
+  // 28/09/2026: badge so tin nhan chua doc tren muc "Nhan tin" - hien tren MOI trang (Sidebar luon
+  // mount), mirror NotificationBell o Topbar. Goi useConversationsQuery() gian tiep qua day nen
+  // GET /conversations duoc fetch ngay ca khi chua vao trang Nhan tin (chap nhan duoc, cung danh
+  // doi voi useUnreadNotificationsPreview() da co san).
+  const unreadMessagesCount = useUnreadMessagesCount();
 
   return (
     <nav className="flex-1 space-y-4 overflow-x-hidden overflow-y-auto px-2.5 py-3">

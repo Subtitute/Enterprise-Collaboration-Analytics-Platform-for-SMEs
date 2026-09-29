@@ -66,6 +66,11 @@ export const REST_PROXY_ROUTES: RestProxyRouteGroup[] = [
     prefixes: ['/api/v1/ml'],
     targetConfigKey: 'services.ml',
   },
+  {
+    // 28/09/2026: Messaging Service (nhan tin noi bo 1:1 va nhom/kenh).
+    prefixes: ['/api/v1/conversations'],
+    targetConfigKey: 'services.messaging',
+  },
 ];
 
 export interface WsProxyRoute {
@@ -84,5 +89,11 @@ export const WS_PROXY_ROUTES: WsProxyRoute[] = [
     prefix: '/ws/analytics',
     targetConfigKey: 'services.analytics',
     pathRewrite: { '^/ws/analytics': '/socket.io' },
+  },
+  {
+    // 28/09/2026: Messaging Service - mirror y het '/ws/notifications' o tren.
+    prefix: '/ws/messaging',
+    targetConfigKey: 'services.messaging',
+    pathRewrite: { '^/ws/messaging': '/socket.io' },
   },
 ];

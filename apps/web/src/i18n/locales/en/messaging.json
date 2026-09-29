@@ -1,0 +1,58 @@
+{
+  "page": {
+    "title": "Messages",
+    "subtitle": "Chat directly or in groups with members of your organization.",
+    "newConversation": "New conversation",
+    "loading": "Loading messages…",
+    "errorTitle": "Unable to load conversations",
+    "errorDescription": "An error occurred while loading conversations. Please try again.",
+    "emptyListTitle": "No conversations yet",
+    "emptyListDescription": "Start your first conversation with a colleague.",
+    "noMessagesYet": "No messages yet",
+    "lastMessagePreviewMine": "You: {{body}}",
+    "selectConversationTitle": "Select a conversation",
+    "selectConversationDescription": "Choose a conversation from the list on the left, or start a new one.",
+    "groupLabel": "Group",
+    "unknownUser": "User",
+    "membersCount": "{{count}} members",
+    "manageMembers": "Manage members",
+    "loadOlder": "Load older messages",
+    "messagePlaceholder": "Type a message…",
+    "send": "Send",
+    "deleteMessageTooltip": "Recall message",
+    "confirmDeleteTitle": "Recall this message?",
+    "confirmDeleteDescription": "The message will be removed from your conversation. This action cannot be undone."
+  },
+  "newConversationModal": {
+    "title": "New conversation",
+    "tabDirect": "Direct message",
+    "tabGroup": "Group",
+    "groupNameLabel": "Group name",
+    "groupNamePlaceholder": "E.g. Website project team",
+    "searchPlaceholder": "Search by name or email…",
+    "selectedCount": "{{count}} selected",
+    "noUsersFound": "No matching users found",
+    "selectRecipientError": "Please select a recipient",
+    "groupNameRequiredError": "Please enter a group name",
+    "selectMembersError": "Please select at least 1 member",
+    "submit": "Start conversation",
+    "submitGroup": "Create group"
+  },
+  "manageMembersModal": {
+    "title": "Manage group members",
+    "addMemberTitle": "Add member",
+    "noAvailableCandidates": "No one left to add",
+    "currentMembersTitle": "Current members",
+    "removeTooltip": "Remove from group",
+    "confirmRemoveTitle": "Remove member from group?",
+    "confirmRemoveDescription": "\"{{name}}\" will be removed from this group."
+  },
+  "toast": {
+    "createConversationError": "Unable to create conversation",
+    "loadOlderError": "Unable to load older messages",
+    "sendError": "Unable to send message",
+    "participantsUpdated": "Group members updated",
+    "participantsUpdateError": "Unable to update group members",
+    "deleteMessageError": "Unable to recall message"
+  }
+}

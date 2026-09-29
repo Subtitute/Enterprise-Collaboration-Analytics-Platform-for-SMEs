@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
+import 'forgot_password_page.dart';
 
 class LoginPage extends StatefulWidget {
   final ApiClient apiClient;
@@ -80,7 +81,17 @@ class _LoginPageState extends State<LoginPage> {
                   const SizedBox(height: 12),
                   Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
                 ],
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => ForgotPasswordPage(apiClient: widget.apiClient)),
+                    ),
+                    child: const Text('Quên mật khẩu?'),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 FilledButton(
                   onPressed: _submitting ? null : _submit,
                   child: _submitting

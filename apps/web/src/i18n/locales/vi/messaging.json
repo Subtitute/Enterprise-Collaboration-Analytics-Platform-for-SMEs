@@ -1,0 +1,58 @@
+{
+  "page": {
+    "title": "Nhắn tin",
+    "subtitle": "Trò chuyện trực tiếp và theo nhóm với các thành viên trong tổ chức.",
+    "newConversation": "Cuộc trò chuyện mới",
+    "loading": "Đang tải tin nhắn…",
+    "errorTitle": "Không thể tải danh sách cuộc trò chuyện",
+    "errorDescription": "Đã xảy ra lỗi khi tải danh sách cuộc trò chuyện. Vui lòng thử lại.",
+    "emptyListTitle": "Chưa có cuộc trò chuyện nào",
+    "emptyListDescription": "Bắt đầu cuộc trò chuyện đầu tiên với đồng nghiệp của bạn.",
+    "noMessagesYet": "Chưa có tin nhắn nào",
+    "lastMessagePreviewMine": "Bạn: {{body}}",
+    "selectConversationTitle": "Chọn một cuộc trò chuyện",
+    "selectConversationDescription": "Chọn một cuộc trò chuyện ở danh sách bên trái hoặc bắt đầu cuộc trò chuyện mới.",
+    "groupLabel": "Nhóm",
+    "unknownUser": "Người dùng",
+    "membersCount": "{{count}} thành viên",
+    "manageMembers": "Quản lý thành viên",
+    "loadOlder": "Tải tin nhắn cũ hơn",
+    "messagePlaceholder": "Nhập tin nhắn…",
+    "send": "Gửi",
+    "deleteMessageTooltip": "Thu hồi tin nhắn",
+    "confirmDeleteTitle": "Thu hồi tin nhắn này?",
+    "confirmDeleteDescription": "Tin nhắn sẽ bị xoá khỏi cuộc trò chuyện của bạn. Hành động này không thể hoàn tác."
+  },
+  "newConversationModal": {
+    "title": "Cuộc trò chuyện mới",
+    "tabDirect": "Tin nhắn trực tiếp",
+    "tabGroup": "Nhóm",
+    "groupNameLabel": "Tên nhóm",
+    "groupNamePlaceholder": "Ví dụ: Nhóm dự án Website",
+    "searchPlaceholder": "Tìm theo tên hoặc email…",
+    "selectedCount": "Đã chọn {{count}} người",
+    "noUsersFound": "Không tìm thấy người dùng phù hợp",
+    "selectRecipientError": "Vui lòng chọn người nhận",
+    "groupNameRequiredError": "Vui lòng nhập tên nhóm",
+    "selectMembersError": "Vui lòng chọn ít nhất 1 thành viên",
+    "submit": "Bắt đầu trò chuyện",
+    "submitGroup": "Tạo nhóm"
+  },
+  "manageMembersModal": {
+    "title": "Quản lý thành viên nhóm",
+    "addMemberTitle": "Thêm thành viên",
+    "noAvailableCandidates": "Không còn ai để thêm",
+    "currentMembersTitle": "Thành viên hiện tại",
+    "removeTooltip": "Xoá khỏi nhóm",
+    "confirmRemoveTitle": "Xoá thành viên khỏi nhóm?",
+    "confirmRemoveDescription": "\"{{name}}\" sẽ bị xoá khỏi nhóm này."
+  },
+  "toast": {
+    "createConversationError": "Không thể tạo cuộc trò chuyện",
+    "loadOlderError": "Không thể tải thêm tin nhắn cũ",
+    "sendError": "Không thể gửi tin nhắn",
+    "participantsUpdated": "Đã cập nhật thành viên nhóm",
+    "participantsUpdateError": "Không thể cập nhật thành viên nhóm",
+    "deleteMessageError": "Không thể thu hồi tin nhắn"
+  }
+}

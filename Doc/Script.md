@@ -1,5 +1,9 @@
 # Script.md — Kế hoạch phối hợp nhóm 3 người
 
+> Trạng thái: **ĐANG XÂY DỰNG (BẢN NHÁP v1)** — mô tả kế hoạch phối hợp nhóm 3 người; phân công
+> backend/frontend (Quang/Tiến) đã áp dụng, vai trò của Thiều Quang Thành (§3.3) và định hướng mở
+> rộng ứng dụng đồng bộ dữ liệu (§7) vẫn còn để ngỏ. Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
+
 > Tài liệu mô tả cách nhóm 3 người phối hợp làm việc trên đồ án, kể từ khi dự án mở rộng từ hình thức 1 người thực hiện sang nhóm 3 người. Đây là bản nháp đầu tiên (v1) — các mục còn để ngỏ (đặc biệt là vai trò của thành viên thứ 3) sẽ được cập nhật dần khi nhóm thống nhất cụ thể hơn.
 
 ## 1. Giới thiệu nhóm
@@ -8,7 +12,7 @@
 |---|---|---|---|
 | **Dương Minh Quang** | Base code & kiến trúc hệ thống | `main` | Toàn bộ backend (6 service + Gateway), 2 package dùng chung, hạ tầng Docker, 3 tài liệu kỹ thuật hiện có |
 | **Nguyễn Lê Tiến** | Phát triển giao diện (HTML/CSS/JS/TypeScript) | Nhánh riêng (đề xuất: `frontend`) | `apps/web` — toàn bộ frontend React/TypeScript |
-| **Thiều Quang Thành** | CDC (Debezium) và dự báo xu hướng ML/thống kê (phân công tạm thời, xem mục 3.3) | Chưa xác định | Analytics Service — 2 hạng mục mở rộng chưa triển khai (CDC, dự báo xu hướng) |
+| **Thiều Quang Thành** | CDC (Debezium) và dự báo xu hướng ML/thống kê (phân công tạm thời, xem §3.3) | Chưa xác định | Analytics Service — 2 hạng mục mở rộng chưa triển khai (CDC, dự báo xu hướng) |
 
 ## 2. Bối cảnh
 
@@ -18,7 +22,7 @@ Hệ thống đã đạt trạng thái hoạt động đầy đủ (MVP + 4 đ�
 - Cách một thành viên không trực tiếp làm việc với backend/hạ tầng (Tiến) vẫn có đủ môi trường để code frontend mà không cần tự cài đặt database/message queue.
 - Ranh giới module rõ ràng để chia việc mà không giẫm chân nhau, giảm xung đột merge.
 - Tài liệu kỹ thuật hiện có (`General_idea.md`/`Technical_Spec.md`/`Wireframe.md`) sẽ được điều chỉnh/mở rộng thế nào khi có thêm người phụ trách chuyên môn khác (giao diện, kiểm thử...).
-- Định hướng mở rộng sau khi phần web hoàn thiện (mục 7).
+- Định hướng mở rộng sau khi phần web hoàn thiện (§7).
 
 ## 3. Phân chia công việc
 
@@ -28,11 +32,11 @@ Chịu trách nhiệm toàn bộ backend (kiến trúc microservices, Kafka even
 
 ### 3.2 Nguyễn Lê Tiến — Giao diện (HTML/CSS/JS/TypeScript)
 
-Phụ trách toàn bộ `apps/web` (React 18 + TypeScript + Vite + Tailwind). Làm việc trên một nhánh riêng, không cần trực tiếp chỉnh sửa mã nguồn backend — chỉ cần chạy được backend qua Docker (xem mục 5) để có API thật gọi vào. Xem mục 6 để biết chia nhỏ theo từng khu vực trong `apps/web` nếu cần giao việc chi tiết hơn.
+Phụ trách toàn bộ `apps/web` (React 18 + TypeScript + Vite + Tailwind). Làm việc trên một nhánh riêng, không cần trực tiếp chỉnh sửa mã nguồn backend — chỉ cần chạy được backend qua Docker (xem §5) để có API thật gọi vào. Xem §6 để biết chia nhỏ theo từng khu vực trong `apps/web` nếu cần giao việc chi tiết hơn.
 
 ### 3.3 Thiều Quang Thành — CDC & Dự báo xu hướng (phân công tạm thời)
 
-Phân công tạm thời, áp dụng cho tới khi có xác nhận cụ thể hơn về vai trò: phụ trách 2 hạng mục mở rộng còn lại trong `General_idea.md` mục 3 mà chưa được triển khai và không nằm trong phạm vi của Backend (Quang) hay Frontend (Tiến) hiện tại:
+Phân công tạm thời, áp dụng cho tới khi có xác nhận cụ thể hơn về vai trò: phụ trách 2 hạng mục mở rộng còn lại trong `General_idea.md` §3 mà chưa được triển khai và không nằm trong phạm vi của Backend (Quang) hay Frontend (Tiến) hiện tại:
 
 - **CDC (Change Data Capture) bằng Debezium** — thay thế cơ chế Outbox polling đơn giản hiện tại (`Technical_Spec.md` §4.1) bằng CDC đọc trực tiếp write-ahead log của Postgres/MongoDB, giảm độ trễ và tải polling khi hệ thống mở rộng.
 - **Dự báo xu hướng bằng mô hình thống kê/ML** trong Analytics Service — hướng mở rộng tiếp theo sau tính năng "Nhận xét AI" đã triển khai (`Technical_Spec.md` §4.7), ví dụ cảnh báo rủi ro trễ hạn dự án dựa trên xu hướng dữ liệu lịch sử.
@@ -49,7 +53,7 @@ Quy trình đề xuất cho việc mở rộng nhóm:
 2. Thêm Tiến (và Thành, nếu công việc có liên quan tới code) làm collaborator trên GitHub repo để có quyền push.
 3. Tiến làm việc trên `frontend`, định kỳ đồng bộ ngược từ `main` (`git merge main` hoặc `git rebase main`) để tránh lệch quá xa, giảm xung đột lớn khi hợp nhất.
 4. Khi hoàn thành một phần việc, mở Pull Request/merge nhánh `frontend` về `main` để rà soát trước khi gộp.
-5. Nhánh cho Thành sẽ quyết định sau khi rõ vai trò (mục 3.3) — nếu công việc thiên về tài liệu/điều phối thì có thể không cần nhánh code riêng.
+5. Nhánh cho Thành sẽ quyết định sau khi rõ vai trò (§3.3) — nếu công việc thiên về tài liệu/điều phối thì có thể không cần nhánh code riêng.
 
 **Bảo vệ nhánh `main` khỏi lỗi phát sinh từ nhánh khác:** hai lớp bảo vệ độc lập được áp dụng:
 
@@ -98,7 +102,7 @@ Mục tiêu: mỗi người làm việc trong phạm vi thư mục riêng, giả
 | `infra/` | Quang | Docker Compose, biến môi trường, script khởi tạo TimescaleDB |
 | `apps/web/` | Tiến | Toàn bộ frontend — xem chia nhỏ theo tính năng bên dưới |
 | `e2e/` | Chưa gán cố định | Kiểm thử Playwright — chưa có người phụ trách cụ thể |
-| `Doc/` | Quang (hiện tại) | Xem mục 8 — quyền phụ trách từng phần có thể mở rộng khi vai trò của Tiến/Thành rõ hơn |
+| `Doc/` | Quang (hiện tại) | Xem §8 — quyền phụ trách từng phần có thể mở rộng khi vai trò của Tiến/Thành rõ hơn |
 
 Nếu cần chia việc chi tiết hơn ngay trong `apps/web/`, các khu vực tính năng đã tách sẵn theo thư mục (mỗi thư mục độc lập tương đối, có thể giao cho từng người/đợt việc khác nhau mà ít đụng chạm nhau):
 
@@ -136,5 +140,5 @@ Việc này không cần quyết định ngay — chỉ cần ghi nhận trướ
 
 - **Tên nhánh của Tiến:** tài liệu đề xuất `frontend` — có thể đổi theo ý muốn của nhóm.
 - **Quyền truy cập GitHub repo:** cần thêm Tiến (và Thành, nếu liên quan tới code) làm collaborator để có quyền push nhánh riêng.
-- **Vai trò cụ thể của Thiều Quang Thành:** cần trao đổi thêm giữa cả nhóm rồi cập nhật lại mục 3.3 và bảng ở mục 6.
-- **Nền tảng cho ứng dụng đồng bộ dữ liệu (mục 7):** chưa quyết định (di động/desktop, framework cụ thể).
+- **Vai trò cụ thể của Thiều Quang Thành:** cần trao đổi thêm giữa cả nhóm rồi cập nhật lại §3.3 và bảng ở §6.
+- **Nền tảng cho ứng dụng đồng bộ dữ liệu (§7):** chưa quyết định (di động/desktop, framework cụ thể).

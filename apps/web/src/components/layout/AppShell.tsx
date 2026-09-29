@@ -5,6 +5,7 @@ import { Sidebar, MobileSidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { useNotificationSocket } from '@/features/notifications/hooks';
+import { useMessagingSocket } from '@/features/messaging/hooks';
 // 25/07/2026: them useSidebarAutoCollapse - xem hooks/useSidebarAutoCollapse.ts. Goi o day (goc
 // layout, mount dung 1 lan cho toan bo cac trang da dang nhap) de Sidebar tu thu gon o do rong
 // tablet theo Wireframe.md muc 10, thay vi giu nguyen trang thai cu bat ke kich thuoc man hinh.
@@ -16,6 +17,9 @@ export function AppShell() {
   // Socket /ws/analytics chi can thiet o Dashboard nen duoc quan ly rieng trong
   // features/dashboard/hooks.ts (useRecentActivityFeed) de tranh ket noi thua khi khong dung toi.
   useNotificationSocket();
+  // 28/09/2026: mirror useNotificationSocket() o tren - can ket noi toan cuc (khong chi trong trang
+  // Nhan tin) de badge so tin nhan chua doc o Sidebar hoat dong tren MOI trang.
+  useMessagingSocket();
   useSidebarAutoCollapse(); // 25/07/2026: xem ghi chu import o tren.
 
   // 28/07/2026: bo sung "skip to content" + chuyen focus khi doi trang (phat hien qua ra soat kha
