@@ -91,7 +91,7 @@ function GlobalSearchBox() {
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-controls="global-search-listbox"
-        className="h-9 w-full rounded-md border border-slate-300/80 bg-slate-50 pl-9 pr-4 text-sm text-slate-800 placeholder:text-slate-400 transition-colors hover:bg-slate-100/70 focus:border-indigo-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-600 shadow-2xs"
+        className="h-9 w-full rounded-lg border border-slate-300/80 bg-slate-50 pl-10 pr-4 text-sm text-slate-800 placeholder:text-slate-400 transition-colors hover:bg-slate-100/70 focus:border-indigo-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-600 shadow-2xs"
       />
       {open && (
         <div
@@ -199,7 +199,10 @@ export function Topbar() {
   }, [showQuickTaskModal, showLogoutConfirm]);
 
   return (
-    <header className="sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 md:gap-4 border-b border-slate-200/70 bg-white px-4 md:px-8">
+    <header className="relative sticky top-0 z-30 flex h-12 shrink-0 items-center gap-3 md:gap-4 border-b border-slate-200/70 bg-white px-4 md:px-8">
+      {/* Brand accent bar: dải ngang cao 3px màu Navy #1E3A8A chạy sát mép trên cùng */}
+      <div className="absolute top-0 left-0 right-0 h-[3px] bg-[#1E3A8A] pointer-events-none" />
+
       {/* Nút menu mở Mobile Sidebar */}
       <button
         type="button"
@@ -235,7 +238,7 @@ export function Topbar() {
             onClick={toggle}
             title={t('common:quickCreate.tooltip')}
             aria-label={t('common:quickCreate.tooltip')}
-            className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 md:px-3 md:py-2 text-xs font-semibold text-white transition-all duration-150 shadow-xs shrink-0 cursor-pointer active:scale-[0.98] ${
+            className={`inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold text-white transition-all duration-150 shadow-xs shrink-0 cursor-pointer active:scale-[0.98] ${
               open ? 'bg-[#18274b] ring-1 ring-primary-500' : 'bg-[#1E3A8A] hover:bg-[#1a3275] ring-1 ring-inset ring-white/10'
             }`}
           >

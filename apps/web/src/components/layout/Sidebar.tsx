@@ -5,9 +5,8 @@ import { cn, canAccessAdminArea } from '@/lib/utils';
 import { NAV_ITEMS } from './nav-items';
 import { ChevronLeftIcon, ChevronRightIcon, BrandLogoIcon } from '@/components/ui/Icons';
 import { useUIStore } from '@/stores/ui.store';
-import { usePermissions, useAuthStore } from '@/stores/auth.store';
+import { usePermissions } from '@/stores/auth.store';
 import { useUnreadMessagesCount } from '@/features/messaging/hooks';
-import { Avatar } from '@/components/ui/Avatar';
 import type { NavGroup } from './nav-items';
 
 interface SidebarContentProps {
@@ -18,23 +17,17 @@ interface SidebarContentProps {
 const GROUPS_ORDER: NavGroup[] = ['overview', 'workspace', 'hrm', 'insights'];
 
 function SidebarFooter({ collapsed }: { collapsed: boolean }) {
-  const user = useAuthStore((s) => s.user);
-
   return (
-    <div className={cn('border-t border-[#E5E7EB] p-2.5', collapsed ? 'flex justify-center' : 'flex items-center gap-2.5')}>
-      <Link to="/profile" className="flex items-center gap-2.5 min-w-0 group hover:opacity-80 transition-opacity" title={user?.fullName || 'Tài khoản'}>
-        <Avatar name={user?.fullName} size="sm" className="h-8 w-8 shrink-0 ring-1 ring-slate-200" />
-        {!collapsed && (
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-semibold text-[#374151] group-hover:text-[#1E3A8A]">
-              {user?.fullName || 'Người dùng'}
-            </p>
-            <p className="truncate text-[11px] text-[#9CA3AF]">
-              {typeof user?.roles?.[0] === 'object' ? user.roles[0]?.name : (typeof user?.roles?.[0] === 'string' ? user.roles[0] : (user?.email || ''))}
-            </p>
-          </div>
-        )}
-      </Link>
+    <div className="shrink-0 border-t border-[#E5E7EB] p-3 text-center">
+      {collapsed ? (
+        <span className="font-mono text-[11px] text-[#9CA3AF] select-none" title="ECAP Platform v0.1.0">
+          v0.1.0
+        </span>
+      ) : (
+        <span className="font-mono text-[11px] text-[#9CA3AF] select-none whitespace-nowrap">
+          ECAP Platform v0.1.0
+        </span>
+      )}
     </div>
   );
 }
@@ -53,16 +46,22 @@ function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
   // doi voi useUnreadNotificationsPreview() da co san).
   const unreadMessagesCount = useUnreadMessagesCount();
 
+  let renderedGroupCount = 0;
+
   return (
     <nav className="flex-1 space-y-4 overflow-x-hidden overflow-y-auto px-2.5 py-3">
       {GROUPS_ORDER.map((groupKey) => {
         const groupItems = items.filter((i) => i.group === groupKey);
         if (groupItems.length === 0) return null;
 
+        const isSubsequentGroup = renderedGroupCount > 0;
+        renderedGroupCount += 1;
+
         return (
           <div key={groupKey} className="space-y-1">
+            {isSubsequentGroup && <div className="border-t border-[#E5E7EB] mx-3 mb-2" />}
             {!collapsed && (
-              <div className="px-2 pt-1 pb-1 font-sans text-[11px] font-bold uppercase tracking-[0.08em] text-[#9CA3AF] select-none">
+              <div className="px-2 pt-1 pb-1 font-sans text-[11px] font-semibold uppercase tracking-[0.05em] text-[#9CA3AF] select-none">
                 {t(`common:nav.groups.${groupKey}`)}
               </div>
             )}
@@ -205,7 +204,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'sticky top-0 hidden h-screen shrink-0 flex-col border-r border-[#E5E7EB] bg-slate-50/60 md:flex transition-[width] duration-150 ease-in-out',
+        'sticky top-0 hidden h-screen shrink-0 flex-col border-r border-[#E5E7EB] bg-[#FFFFFF] md:flex transition-[width] duration-150 ease-in-out',
         collapsed ? 'w-14' : 'w-56',
       )}
     >
@@ -246,7 +245,7 @@ export function MobileSidebar() {
       <div
         ref={drawerRef}
         tabIndex={-1}
-        className="relative z-10 flex h-full w-72 max-w-[80vw] animate-slide-up flex-col bg-white shadow-xl focus:outline-none"
+        className="relative z-10 flex h-full w-72 max-w-[80vw] animate-slide-up flex-col bg-[#FFFFFF] shadow-xl focus:outline-none"
       >
         <SidebarHeader collapsed={false} onNavigate={() => setOpen(false)} />
         <SidebarLinks collapsed={false} onNavigate={() => setOpen(false)} />
