@@ -1763,3 +1763,52 @@ hưởng trình duyệt thật hay `ecap-mobile` (Dio). Dọn sạch ngay 2 hộ
 lúc kiểm thử khỏi tổ chức demo trước khi kết thúc. Gate cuối: `typecheck`/`lint`/`lint:i18n-strings`/
 `test` sạch toàn workspace (`messaging-service` 43/43, `apps/web`/`ecap-mobile` không hồi quy),
 `flutter analyze`/`test`/`build apk --debug` sạch. Chi tiết đầy đủ: `Doc/Technical_Spec.md` §20.
+
+## 03/10/2026 — Tái cấu trúc điều hướng + gộp Lịch công ty + phát hiện nghỉ phép qua chat + khắc phục ERR_EMPTY_RESPONSE
+
+6 yêu cầu lớn cùng lúc, bàn bạc kỹ trước khi code (không code ngay — đúng cách làm việc đã thống
+nhất), sau đó triển khai song song bằng 6 agent độc lập cộng 1 việc nhỏ tự làm trực tiếp (Gateway).
+
+**1. Điều hướng ("Trang chủ" gộp 3 mục):** Sidebar chính đổi hẳn sang icon-rail cố định
+(`w-[68px]`), chỉ mở rộng (overlay, không đẩy nội dung) khi con trỏ chuột di vào — thay thế hoàn
+toàn nút thu/phóng thủ công cũ và luôn cả logic tự thu gọn ở breakpoint tablet (nay dư thừa).
+"Trang chủ" (route gốc `/dashboard`) hiện thêm 1 sidebar phụ cố định liệt kê Tổng quan/Dự án và
+công việc/Tài liệu/Khách hàng khi đang ở trong nhóm route đó — các route giữ nguyên, chỉ đổi cách
+trình bày điều hướng. Thứ tự mới: Trang chủ → Chấm công → Nghỉ phép → Nhắn tin → Báo cáo & Phân
+tích → Quản trị.
+
+**2. Xoá trang Thông báo riêng:** gộp hết vào dropdown chuông — hiện toàn bộ thông báo (không chỉ
+chưa đọc), phân trang bằng nút "Tải thêm", bấm vào đánh dấu đã đọc + điều hướng bằng
+`react-router-dom` (trước dùng `window.location.href`, gây tải lại cả trang không cần thiết) hoặc
+mở rộng tại chỗ nếu không có link. Cố ý bỏ bộ lọc theo loại và nhãn phạm vi hiển thị để giữ
+dropdown gọn.
+
+**3. Lịch công ty gộp vào Nghỉ phép (60:40), đổi hẳn mô hình phân quyền:** rời khỏi Quản trị hoàn
+toàn. Mô hình cũ (chỉ Org Admin CRUD) đổi thành: mọi người xem/tạo được sự kiện thường; ngày lễ
+chính thức (ảnh hưởng thật tới chấm công) chỉ Org Admin/Manager tạo được; sửa/xoá dựa trên so
+sánh cấp bậc snapshot lúc tạo (1=Employee/2=Manager/3=Org Admin, suy từ bộ quyền người gọi —
+không so tên vai trò, đúng bài học 17/09/2026), riêng ngày lễ thì giữ quyền quản lý lịch là đủ
+không cần so cấp bậc. Thêm 2 trang xem lịch sử theo từng nhân viên (chấm công + nghỉ phép) cho
+Manager/Org Admin — hoá ra backend đã hỗ trợ sẵn tham số `userId` cho cả 2 endpoint liên quan từ
+trước, chỉ chưa từng được gọi tới.
+
+**4. Phát hiện nghỉ phép qua chat:** cả web lẫn `ecap-mobile` cùng triển khai 1 bộ quy tắc nhận
+diện ngày/giờ tiếng Việt bằng regex thuần (ngày tuyệt đối, ngày tương đối, thứ trong tuần, mốc
+tương đối, giờ/khoảng thời gian) — khớp trong tin nhắn của CHÍNH người đang đăng nhập (không bao
+giờ hiện cho tin người khác, kể cả trong nhóm) thì hiện chip "Hẹn lịch nghỉ", bấm vào tạo đơn nghỉ
+thật qua API sẵn có, đi đúng quy trình duyệt bình thường.
+
+**5. Khắc phục `ERR_EMPTY_RESPONSE` sau khi chạy rảnh rỗi:** gốc rễ là Gateway/mọi service đều
+dùng `keepAliveTimeout` mặc định ~5 giây của Node trong khi trình duyệt giữ kết nối lâu hơn nhiều
+— sau một lúc rảnh rỗi, trình duyệt tái sử dụng 1 socket đã bị server âm thầm đóng. Khắc phục bằng
+cách tắt hẳn HTTP keep-alive ở Gateway (ép `Connection: close` lên mọi response, cả route Nest
+thật lẫn route proxy) thay vì cố tinh chỉnh timeout cho khớp nhau.
+
+**Xác minh:** gate `typecheck`/`lint`/`lint:i18n-strings`/`test` sạch toàn bộ 6 nhánh gộp lại (34
+test mới web, 14 test mới hrm-service, 14 test mới ecap-mobile). Rebuild + redeploy
+`web`/`gateway`/`hrm-service`/`iam-service`. Kiểm thử sống qua Gateway thật: đúng ma trận phân
+quyền lịch (Employee tạo EVENT được/HOLIDAY bị chặn, Manager tạo HOLIDAY được/xoá EVENT của
+Employee được/bị chặn xoá HOLIDAY của người cấp cao hơn), tra cứu lịch sử nghỉ phép theo nhân
+viên đúng quyền, header `Connection: close` xác nhận có trên cả route thật lẫn route proxy. Cấp
+quyền `calendar:manage` cho Manager của tổ chức demo (đúng tiền lệ `ml:view`/`message:*`). Dọn
+sạch toàn bộ dữ liệu thử nghiệm trước khi kết thúc. Chi tiết đầy đủ: `Doc/Technical_Spec.md` §21.

@@ -156,6 +156,63 @@
       "decisionNote": "Ghi chú: {{note}}"
     }
   },
+  "employeePicker": {
+    "label": "Xem lịch sử theo nhân viên",
+    "searchPlaceholder": "Tìm theo tên hoặc email…",
+    "emptyResult": "Không tìm thấy nhân viên phù hợp"
+  },
+  "leaveRequestDetailPage": {
+    "backLink": "Quay lại Nghỉ phép",
+    "title": "Lịch sử nghỉ phép của {{name}}",
+    "listTitle": "Danh sách yêu cầu nghỉ phép",
+    "loading": "Đang tải lịch sử nghỉ phép…",
+    "errorTitle": "Không thể tải lịch sử nghỉ phép",
+    "errorDescription": "Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại.",
+    "emptyTitle": "Chưa có yêu cầu nghỉ phép nào",
+    "emptyDescription": "Nhân viên này chưa gửi yêu cầu nghỉ phép nào."
+  },
+  "attendanceDetailPage": {
+    "backLink": "Quay lại Chấm công",
+    "title": "Lịch sử chấm công của {{name}}",
+    "loading": "Đang tải lịch sử chấm công…",
+    "errorTitle": "Không thể tải lịch sử chấm công",
+    "errorDescription": "Đã xảy ra lỗi khi tải dữ liệu. Vui lòng thử lại.",
+    "emptyTitle": "Chưa có lịch sử chấm công",
+    "emptyDescription": "Nhân viên này chưa có dữ liệu chấm công nào."
+  },
+  "companyCalendar": {
+    "description": "Lịch dùng chung của tổ chức. Ai cũng có thể tạo sự kiện; chỉ Quản lý và Quản trị viên mới thiết lập được ngày lễ. Bấm vào 1 ngày để tạo mục mới, bấm vào 1 mục có sẵn để xem/sửa.",
+    "newEntry": "Mục mới",
+    "loading": "Đang tải lịch…",
+    "errorTitle": "Không thể tải lịch công ty",
+    "moreEntries": "+{{count}} mục khác",
+    "deleteConfirm": {
+      "title": "Xoá mục lịch này?",
+      "description": "\"{{title}}\" sẽ bị xoá khỏi lịch công ty. Hành động này không thể hoàn tác."
+    }
+  },
+  "calendarEventModal": {
+    "createTitle": "Thêm mục lịch mới",
+    "editTitle": "Sửa mục lịch",
+    "viewTitle": "Chi tiết mục lịch",
+    "type": {
+      "HOLIDAY": "Ngày lễ",
+      "EVENT": "Sự kiện"
+    },
+    "holidayHint": "Toàn bộ nhân viên sẽ không thể chấm công vào (các) ngày này và sẽ nhận được thông báo.",
+    "titleLabel": "Tiêu đề",
+    "titlePlaceholder": "Ví dụ: Nghỉ Tết Nguyên Đán",
+    "titleRequiredError": "Vui lòng nhập tiêu đề",
+    "startDateLabel": "Ngày bắt đầu",
+    "endDateLabel": "Ngày kết thúc",
+    "startDateRequiredError": "Vui lòng chọn ngày bắt đầu",
+    "endDateBeforeStartError": "Ngày kết thúc không được trước ngày bắt đầu",
+    "descriptionLabel": "Mô tả",
+    "cancel": "Huỷ",
+    "create": "Tạo mục lịch",
+    "saveChanges": "Lưu thay đổi",
+    "delete": "Xoá"
+  },
   "newLeaveRequestModal": {
     "title": "Tạo yêu cầu nghỉ phép",
     "typeLabel": "Loại nghỉ phép",
@@ -204,7 +261,13 @@
     "approveLeaveRequestSuccess": "Đã duyệt yêu cầu nghỉ phép",
     "approveLeaveRequestError": "Không thể duyệt yêu cầu",
     "rejectLeaveRequestSuccess": "Đã từ chối yêu cầu nghỉ phép",
-    "rejectLeaveRequestError": "Không thể từ chối yêu cầu"
+    "rejectLeaveRequestError": "Không thể từ chối yêu cầu",
+    "calendarEventCreated": "Đã thêm mục lịch mới",
+    "calendarEventCreateFailed": "Không thể thêm mục lịch",
+    "calendarEventUpdated": "Đã cập nhật mục lịch",
+    "calendarEventUpdateFailed": "Không thể cập nhật mục lịch",
+    "calendarEventDeleted": "Đã xoá mục lịch",
+    "calendarEventDeleteFailed": "Không thể xoá mục lịch"
   },
   "extensions": {
     "adjustment": {

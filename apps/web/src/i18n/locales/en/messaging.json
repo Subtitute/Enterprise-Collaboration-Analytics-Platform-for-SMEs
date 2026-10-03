@@ -54,5 +54,20 @@
     "participantsUpdated": "Group members updated",
     "participantsUpdateError": "Unable to update group members",
     "deleteMessageError": "Unable to recall message"
+  },
+  "leaveSuggestion": {
+    "chipLabel": "Schedule leave",
+    "confirmed": "Leave request sent",
+    "formTitle": "Quick leave request",
+    "dateLabel": "Leave date",
+    "typeLabel": "Leave type",
+    "reasonLabel": "Reason",
+    "cancel": "Cancel",
+    "submit": "Submit request",
+    "errors": {
+      "missingDate": "Please select a leave date",
+      "dateInPast": "The leave date cannot be in the past",
+      "missingReason": "Please enter a reason"
+    }
   }
 }

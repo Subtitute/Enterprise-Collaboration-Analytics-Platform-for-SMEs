@@ -2,14 +2,12 @@ import { Suspense, useEffect, useRef } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Sidebar, MobileSidebar } from './Sidebar';
+import { SecondarySidebar } from './SecondarySidebar';
+import { HOME_ROUTE_PREFIXES } from './nav-items';
 import { Topbar } from './Topbar';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { useNotificationSocket } from '@/features/notifications/hooks';
 import { useMessagingSocket } from '@/features/messaging/hooks';
-// 25/07/2026: them useSidebarAutoCollapse - xem hooks/useSidebarAutoCollapse.ts. Goi o day (goc
-// layout, mount dung 1 lan cho toan bo cac trang da dang nhap) de Sidebar tu thu gon o do rong
-// tablet theo Wireframe.md muc 10, thay vi giu nguyen trang thai cu bat ke kich thuoc man hinh.
-import { useSidebarAutoCollapse } from '@/hooks/useSidebarAutoCollapse';
 
 export function AppShell() {
   const { t } = useTranslation();
@@ -20,7 +18,6 @@ export function AppShell() {
   // 28/09/2026: mirror useNotificationSocket() o tren - can ket noi toan cuc (khong chi trong trang
   // Nhan tin) de badge so tin nhan chua doc o Sidebar hoat dong tren MOI trang.
   useMessagingSocket();
-  useSidebarAutoCollapse(); // 25/07/2026: xem ghi chu import o tren.
 
   // 28/07/2026: bo sung "skip to content" + chuyen focus khi doi trang (phat hien qua ra soat kha
   // nang tiep can) - SPA dieu huong phia client KHONG reload trang nhu web truyen thong, nen focus
@@ -37,6 +34,13 @@ export function AppShell() {
     mainRef.current?.focus({ preventScroll: true });
   }, [location.pathname]);
 
+  // 03/10/2026: SecondarySidebar.tsx (panel "Trang chủ") chi hien thi khi dang o trong nhom 4 route
+  // Dashboard/Du an/Tai lieu/Khach hang (HOME_ROUTE_PREFIXES, nav-items.ts) - cac trang con lai
+  // (Cham cong, Nghi phep, Nhan tin, Bao cao & Phan tich, Quan tri) giu nguyen rail + noi dung don gian.
+  const showHomeSecondarySidebar = HOME_ROUTE_PREFIXES.some(
+    (prefix) => location.pathname === prefix || location.pathname.startsWith(`${prefix}/`),
+  );
+
   return (
     <div className="flex min-h-screen bg-slate-50">
       <a
@@ -47,6 +51,7 @@ export function AppShell() {
       </a>
       <Sidebar />
       <MobileSidebar />
+      {showHomeSecondarySidebar && <SecondarySidebar />}
       {/* 20/08/2026: them min-w-0 - phat hien qua bao loi thuc te: div nay la flex item trong hang
           flex ben ngoai (chung voi Sidebar) nhung khong co min-w-0 nen mac dinh min-width: auto,
           tu choi thu nho hon do rong noi dung ben trong (bang co md:min-w-[560px], luoi KPI

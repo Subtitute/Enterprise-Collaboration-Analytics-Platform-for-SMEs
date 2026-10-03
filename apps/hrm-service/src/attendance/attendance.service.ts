@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, IsNull, QueryFailedError, Repository } from 'typeorm';
+import { Between, DataSource, FindOperator, IsNull, LessThanOrEqual, MoreThanOrEqual, QueryFailedError, Repository } from 'typeorm';
 import {
   AttendanceCheckedInPayload,
   AttendanceCheckedOutPayload,
@@ -242,10 +242,19 @@ export class AttendanceService {
     return paginate(data, total, query.page, query.limit);
   }
 
-  /** Danh sach cham cong TOAN TO CHUC (Manager/Org Admin, PERMISSIONS.ATTENDANCE_VIEW) - loc duoc theo userId. */
+  /**
+   * Danh sach cham cong TOAN TO CHUC (Manager/Org Admin, PERMISSIONS.ATTENDANCE_VIEW) - loc duoc
+   * theo userId va/hoac khoang ngay (startDate/endDate, xem AttendanceQueryDto - bo sung 03/10/2026
+   * de bo loc thang tren AttendancePage.tsx loc dung tai server thay vi tu cat client-side tren 1
+   * trang limit co dinh, von co the "mat" du lieu thang cu mot khi to chuc vuot qua `limit` dong
+   * cham cong tong).
+   */
   async findAll(organizationId: string, query: AttendanceQueryDto): Promise<PaginatedResponse<Attendance>> {
-    const where: { organizationId: string; userId?: string } = { organizationId };
+    const where: { organizationId: string; userId?: string; workDate?: string | FindOperator<string> } = { organizationId };
     if (query.userId) where.userId = query.userId;
+    if (query.startDate && query.endDate) where.workDate = Between(query.startDate, query.endDate);
+    else if (query.startDate) where.workDate = MoreThanOrEqual(query.startDate);
+    else if (query.endDate) where.workDate = LessThanOrEqual(query.endDate);
 
     const [data, total] = await this.attendanceRepo.findAndCount({
       where,

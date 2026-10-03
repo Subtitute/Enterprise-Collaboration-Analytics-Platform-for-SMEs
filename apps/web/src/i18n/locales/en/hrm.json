@@ -156,6 +156,63 @@
       "decisionNote": "Note: {{note}}"
     }
   },
+  "employeePicker": {
+    "label": "View history by employee",
+    "searchPlaceholder": "Search by name or email…",
+    "emptyResult": "No matching employees found"
+  },
+  "leaveRequestDetailPage": {
+    "backLink": "Back to Leave Requests",
+    "title": "{{name}}'s leave history",
+    "listTitle": "Leave request list",
+    "loading": "Loading leave history…",
+    "errorTitle": "Couldn't load leave history",
+    "errorDescription": "Something went wrong loading the data. Please try again.",
+    "emptyTitle": "No leave requests yet",
+    "emptyDescription": "This employee hasn't submitted any leave requests yet."
+  },
+  "attendanceDetailPage": {
+    "backLink": "Back to Attendance",
+    "title": "{{name}}'s attendance history",
+    "loading": "Loading attendance history…",
+    "errorTitle": "Couldn't load attendance history",
+    "errorDescription": "Something went wrong loading the data. Please try again.",
+    "emptyTitle": "No attendance history yet",
+    "emptyDescription": "This employee doesn't have any attendance data yet."
+  },
+  "companyCalendar": {
+    "description": "The organization's shared calendar. Anyone can create an event; only Managers and Org Admins can set up holidays. Click a day to create a new entry, or click an existing entry to view/edit it.",
+    "newEntry": "New entry",
+    "loading": "Loading calendar…",
+    "errorTitle": "Couldn't load the company calendar",
+    "moreEntries": "+{{count}} more",
+    "deleteConfirm": {
+      "title": "Delete this calendar entry?",
+      "description": "\"{{title}}\" will be removed from the company calendar. This action cannot be undone."
+    }
+  },
+  "calendarEventModal": {
+    "createTitle": "Add calendar entry",
+    "editTitle": "Edit calendar entry",
+    "viewTitle": "Calendar entry details",
+    "type": {
+      "HOLIDAY": "Holiday",
+      "EVENT": "Event"
+    },
+    "holidayHint": "All employees will be unable to check in on this date range and will receive a notification.",
+    "titleLabel": "Title",
+    "titlePlaceholder": "e.g. Lunar New Year break",
+    "titleRequiredError": "Please enter a title",
+    "startDateLabel": "Start date",
+    "endDateLabel": "End date",
+    "startDateRequiredError": "Please select a start date",
+    "endDateBeforeStartError": "The end date cannot be before the start date",
+    "descriptionLabel": "Description",
+    "cancel": "Cancel",
+    "create": "Create entry",
+    "saveChanges": "Save changes",
+    "delete": "Delete"
+  },
   "newLeaveRequestModal": {
     "title": "Create leave request",
     "typeLabel": "Leave type",
@@ -204,7 +261,13 @@
     "approveLeaveRequestSuccess": "Leave request approved",
     "approveLeaveRequestError": "Couldn't approve the request",
     "rejectLeaveRequestSuccess": "Leave request rejected",
-    "rejectLeaveRequestError": "Couldn't reject the request"
+    "rejectLeaveRequestError": "Couldn't reject the request",
+    "calendarEventCreated": "Calendar entry added",
+    "calendarEventCreateFailed": "Couldn't add calendar entry",
+    "calendarEventUpdated": "Calendar entry updated",
+    "calendarEventUpdateFailed": "Couldn't update calendar entry",
+    "calendarEventDeleted": "Calendar entry deleted",
+    "calendarEventDeleteFailed": "Couldn't delete calendar entry"
   },
   "extensions": {
     "adjustment": {

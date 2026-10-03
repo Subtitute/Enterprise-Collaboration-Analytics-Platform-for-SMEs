@@ -1,35 +1,5 @@
 {
   "page": {
-    "title": "Notifications",
-    "subtitle": "All notifications related to your activity.",
-    "scope": {
-      "organization": "Whole organization",
-      "department": "Your department",
-      "self": "Yours"
-    },
-    "markAllRead": "Mark all as read",
-    "markRead": "Mark as read",
-    "unreadTitle": "Unread",
-    "viewDetails": "View details →",
-    "loadMoreButton": "Load more notifications ({{loaded}}/{{total}})",
-    "loading": "Loading notifications…",
-    "loadError": "Couldn't load notifications",
-    "empty": "No notifications",
-    "tabs": {
-      "all": "All",
-      "unread": "Unread"
-    },
-    "typeFilter": {
-      "all": "All types",
-      "task": "Task",
-      "deal": "Sales (Deal)",
-      "leave_request": "Leave request",
-      "document": "Document",
-      "system": "System"
-    },
-    "viewDetails": "View details →",
-    "unreadBadge": "Unread",
-    "loadMore": "Load more notifications ({{current}}/{{total}})",
     "targets": {
       "leave_request": "Leave request",
       "deal": "Sales (Deal)",
@@ -53,8 +23,8 @@
     "markAllRead": "Mark all as read",
     "unreadTitle": "Unread",
     "empty": "No new notifications",
-    "viewAll": "View all notifications",
-    "unreadBadge": "Unread"
+    "unreadBadge": "Unread",
+    "loadMore": "Load more notifications ({{loaded}}/{{total}})"
   },
   "visual": {
     "leave": "Leave",

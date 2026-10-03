@@ -54,5 +54,20 @@
     "participantsUpdated": "Đã cập nhật thành viên nhóm",
     "participantsUpdateError": "Không thể cập nhật thành viên nhóm",
     "deleteMessageError": "Không thể thu hồi tin nhắn"
+  },
+  "leaveSuggestion": {
+    "chipLabel": "Hẹn lịch nghỉ",
+    "confirmed": "Đã gửi yêu cầu nghỉ",
+    "formTitle": "Tạo nhanh yêu cầu nghỉ phép",
+    "dateLabel": "Ngày nghỉ",
+    "typeLabel": "Loại nghỉ phép",
+    "reasonLabel": "Lý do",
+    "cancel": "Hủy",
+    "submit": "Gửi yêu cầu",
+    "errors": {
+      "missingDate": "Vui lòng chọn ngày nghỉ",
+      "dateInPast": "Ngày nghỉ không được ở trong quá khứ",
+      "missingReason": "Vui lòng nhập lý do"
+    }
   }
 }

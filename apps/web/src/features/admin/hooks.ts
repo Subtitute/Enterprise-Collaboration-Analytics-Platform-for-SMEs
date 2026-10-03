@@ -3,13 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { toast } from '@/stores/toast.store';
 import { extractErrorMessage } from '@/lib/api-client';
 import {
-  createCalendarEvent,
   createDepartment,
   deactivateUser,
-  deleteCalendarEvent,
   deleteDepartment,
   deleteUser,
-  fetchCalendarEvents,
   fetchDepartments,
   fetchFailedEvents,
   fetchPermissions,
@@ -17,12 +14,11 @@ import {
   fetchUsers,
   inviteUser,
   reactivateUser,
-  updateCalendarEvent,
   updateDepartment,
   updateRolePermissions,
   updateUser,
 } from './api';
-import type { CalendarEventPayload, InviteUserPayload, UpdateUserPayload } from './api';
+import type { InviteUserPayload, UpdateUserPayload } from './api';
 
 export function useUsersQuery(params: { page?: number; limit?: number } = {}) {
   return useQuery({ queryKey: ['admin', 'users', params], queryFn: () => fetchUsers(params) });
@@ -176,46 +172,5 @@ export function useFailedEventsQuery(params: { page?: number; limit?: number } =
   return useQuery({ queryKey: ['admin', 'failed-events', params], queryFn: () => fetchFailedEvents(params) });
 }
 
-// 15/09/2026: Lich cong ty (HRM-lite mo rong) - CRUD ngay le/su kien cho Org Admin.
-export function useCalendarEventsQuery(params: { startDate?: string; endDate?: string } = {}) {
-  return useQuery({ queryKey: ['admin', 'calendar-events', params], queryFn: () => fetchCalendarEvents(params) });
-}
-
-export function useCreateCalendarEvent() {
-  const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: CalendarEventPayload) => createCalendarEvent(payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'calendar-events'] });
-      toast.success(t('admin:toast.calendarEventCreated'));
-    },
-    onError: (error) => toast.error(t('admin:toast.calendarEventCreateFailed'), extractErrorMessage(error)),
-  });
-}
-
-export function useUpdateCalendarEvent() {
-  const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: Partial<CalendarEventPayload> }) => updateCalendarEvent(id, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'calendar-events'] });
-      toast.success(t('admin:toast.calendarEventUpdated'));
-    },
-    onError: (error) => toast.error(t('admin:toast.calendarEventUpdateFailed'), extractErrorMessage(error)),
-  });
-}
-
-export function useDeleteCalendarEvent() {
-  const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => deleteCalendarEvent(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'calendar-events'] });
-      toast.success(t('admin:toast.calendarEventDeleted'));
-    },
-    onError: (error) => toast.error(t('admin:toast.calendarEventDeleteFailed'), extractErrorMessage(error)),
-  });
-}
+// 03/10/2026: hook Lich cong ty (CRUD ngay le/su kien) chuyen sang features/hrm/hooks.ts cung voi
+// api.ts - xem ghi chu tai features/admin/api.ts.

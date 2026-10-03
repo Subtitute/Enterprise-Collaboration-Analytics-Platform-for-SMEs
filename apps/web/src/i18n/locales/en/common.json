@@ -82,8 +82,6 @@
     "descriptionPlaceholder": "Optional task description..."
   },
   "sidebar": {
-    "expand": "Expand sidebar",
-    "collapse": "Collapse sidebar",
     "collapseMenu": "Collapse menu",
     "orgAriaLabel": "Organization: {{orgName}}",
     "subtitle": "Business / Organization"
@@ -103,16 +101,18 @@
     "restoring": "Restoring your session…"
   },
   "nav": {
-    "dashboard": "Dashboard",
-    "projects": "Projects & Tasks",
-    "documents": "Documents",
-    "customers": "Customers",
+    "home": "Home",
     "attendance": "Attendance",
     "leaveRequests": "Leave Requests",
     "messages": "Messages",
-    "notifications": "Notifications",
     "analytics": "Reports & Analytics",
-    "admin": "Administration"
+    "admin": "Administration",
+    "homeNav": {
+      "overview": "Overview",
+      "projects": "Projects & Tasks",
+      "documents": "Documents",
+      "customers": "Customers"
+    }
   },
   "datePicker": {
     "openCalendarAria": "Open calendar",

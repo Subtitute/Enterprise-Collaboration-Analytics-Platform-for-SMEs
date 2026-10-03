@@ -1,35 +1,5 @@
 {
   "page": {
-    "title": "Thông báo",
-    "subtitle": "Toàn bộ thông báo liên quan đến hoạt động của bạn.",
-    "scope": {
-      "organization": "Toàn tổ chức",
-      "department": "Phòng ban bạn phụ trách",
-      "self": "Của bạn"
-    },
-    "markAllRead": "Đánh dấu tất cả đã đọc",
-    "markRead": "Đánh dấu đã đọc",
-    "unreadTitle": "Chưa đọc",
-    "viewDetails": "Xem chi tiết →",
-    "loadMoreButton": "Tải thêm thông báo ({{loaded}}/{{total}})",
-    "loading": "Đang tải thông báo…",
-    "loadError": "Không thể tải thông báo",
-    "empty": "Không có thông báo",
-    "tabs": {
-      "all": "Tất cả",
-      "unread": "Chưa đọc"
-    },
-    "typeFilter": {
-      "all": "Tất cả loại",
-      "task": "Công việc",
-      "deal": "Bán hàng (Deal)",
-      "leave_request": "Nghỉ phép",
-      "document": "Tài liệu",
-      "system": "Hệ thống"
-    },
-    "viewDetails": "Xem chi tiết →",
-    "unreadBadge": "Chưa đọc",
-    "loadMore": "Tải thêm thông báo ({{current}}/{{total}})",
     "targets": {
       "leave_request": "Nghỉ phép",
       "deal": "Bán hàng (Deal)",
@@ -53,8 +23,8 @@
     "markAllRead": "Đánh dấu tất cả đã đọc",
     "unreadTitle": "Chưa đọc",
     "empty": "Không có thông báo mới",
-    "viewAll": "Xem tất cả thông báo",
-    "unreadBadge": "Chưa đọc"
+    "unreadBadge": "Chưa đọc",
+    "loadMore": "Tải thêm thông báo ({{loaded}}/{{total}})"
   },
   "visual": {
     "leave": "Nghỉ phép",

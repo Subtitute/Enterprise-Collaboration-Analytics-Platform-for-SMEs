@@ -94,7 +94,11 @@ export class LeaveRequestsService {
     return paginate(data, total, query.page, query.limit);
   }
 
-  /** Danh sach nghi phep TOAN TO CHUC (Manager/Org Admin, PERMISSIONS.LEAVE_REQUEST_VIEW) - loc duoc theo userId/status. */
+  /**
+   * Danh sach nghi phep TOAN TO CHUC (Manager/Org Admin, PERMISSIONS.LEAVE_REQUEST_VIEW) - loc
+   * duoc theo userId/status. 03/10/2026: truyen userId ma KHONG truyen status = lich su nghi phep
+   * DAY DU (moi trang thai) cua RIENG 1 nhan vien - xem chu thich tai LeaveRequestQueryDto.
+   */
   async findAll(organizationId: string, query: LeaveRequestQueryDto): Promise<PaginatedResponse<LeaveRequest>> {
     const where: { organizationId: string; userId?: string; status?: LeaveRequestStatus } = { organizationId };
     if (query.userId) where.userId = query.userId;

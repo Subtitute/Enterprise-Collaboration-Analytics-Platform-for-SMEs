@@ -29,9 +29,13 @@ const CustomersListPage = lazy(() => import('@/features/crm/CustomersListPage').
 const CustomerDetailPage = lazy(() => import('@/features/crm/CustomerDetailPage').then((m) => ({ default: m.CustomerDetailPage })));
 // 05/08/2026: HRM-lite (Technical_Spec.md muc 17) - cham cong (photo-proof) + nghi phep.
 const AttendancePage = lazy(() => import('@/features/hrm/AttendancePage').then((m) => ({ default: m.AttendancePage })));
+// 03/10/2026: trang chi tiet cham cong/nghi phep theo tung nhan vien (component mac dinh, khong
+// phai named export nhu phan lon cac trang con lai o day - xem features/hrm/AttendanceDetailPage.tsx
+// va LeaveRequestDetailPage.tsx).
+const AttendanceDetailPage = lazy(() => import('@/features/hrm/AttendanceDetailPage'));
 const LeaveRequestsPage = lazy(() => import('@/features/hrm/LeaveRequestsPage').then((m) => ({ default: m.LeaveRequestsPage })));
+const LeaveRequestDetailPage = lazy(() => import('@/features/hrm/LeaveRequestDetailPage'));
 const ProfilePage = lazy(() => import('@/features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })));
-const NotificationsPage = lazy(() => import('@/features/notifications/NotificationsPage').then((m) => ({ default: m.NotificationsPage })));
 // 28/09/2026: Messaging Service (nhan tin noi bo 1:1 va nhom/kenh) - cung khuon mau lazy() voi cac
 // trang con lai, khong permission gate rieng tren route (xem ghi chu tai nav-items.ts).
 const ConversationsPage = lazy(() => import('@/features/messaging/ConversationsPage').then((m) => ({ default: m.ConversationsPage })));
@@ -43,8 +47,6 @@ const RolesPermissionsPage = lazy(() => import('@/features/admin/RolesPermission
 // 28/07/2026: trang moi "Sự kiện lỗi hệ thống" (Dead Letter Queue, GET /failed-events) - theo
 // dung khuon mau lazy() cua cac trang /admin/* con lai o tren.
 const FailedEventsPage = lazy(() => import('@/features/admin/FailedEventsPage').then((m) => ({ default: m.FailedEventsPage })));
-// 15/09/2026: trang moi "Lich cong ty" (ngay le + su kien, theo yeu cau GVHD) - cung khuon mau lazy().
-const CalendarPage = lazy(() => import('@/features/admin/CalendarPage').then((m) => ({ default: m.CalendarPage })));
 // 16/09/2026: "Super Admin" (tinh nang moi) - trang rieng, KHONG long trong AppShell (xem
 // ProtectedRoute.tsx/PlatformAdminPage.tsx).
 const PlatformAdminPage = lazy(() => import('@/features/platform-admin/PlatformAdminPage').then((m) => ({ default: m.PlatformAdminPage })));
@@ -114,9 +116,12 @@ export default function App() {
           <Route path="/customers" element={<CustomersListPage />} />
           <Route path="/customers/:customerId" element={<CustomerDetailPage />} />
           <Route path="/attendance" element={<AttendancePage />} />
+          {/* 03/10/2026: trang chi tiet cham cong 1 nhan vien (xem AttendanceDetailPage.tsx). */}
+          <Route path="/attendance/:userId" element={<AttendanceDetailPage />} />
           <Route path="/leave-requests" element={<LeaveRequestsPage />} />
+          {/* 03/10/2026: trang chi tiet nghi phep 1 nhan vien (xem LeaveRequestDetailPage.tsx). */}
+          <Route path="/leave-requests/:userId" element={<LeaveRequestDetailPage />} />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/messages" element={<ConversationsPage />} />
           <Route
             path="/analytics"
@@ -139,8 +144,6 @@ export default function App() {
             <Route path="members" element={<MembersPage />} />
             <Route path="departments" element={<DepartmentsPage />} />
             <Route path="roles" element={<RolesPermissionsPage />} />
-            {/* 15/09/2026: route cho tab moi "Lịch công ty" (xem TABS trong AdminPage.tsx). */}
-            <Route path="calendar" element={<CalendarPage />} />
             {/* 28/07/2026: route cho tab moi "Sự kiện lỗi hệ thống" (xem TABS trong AdminPage.tsx). */}
             <Route path="failed-events" element={<FailedEventsPage />} />
           </Route>

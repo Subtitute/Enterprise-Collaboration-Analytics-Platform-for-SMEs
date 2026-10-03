@@ -55,7 +55,7 @@ export function setupGateway(app: INestApplication): (server: Server) => void {
 
   for (const group of REST_PROXY_ROUTES) {
     const target = configService.get<string>(group.targetConfigKey);
-    app.use(createServiceProxy(group.prefixes, target as string));
+    app.use(createServiceProxy(group.prefixes, target as string, group.timeoutMs));
   }
 
   const wsProxies = WS_PROXY_ROUTES.map((route) => {

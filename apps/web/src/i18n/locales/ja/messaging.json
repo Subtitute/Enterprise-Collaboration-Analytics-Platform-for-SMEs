@@ -54,5 +54,20 @@
     "participantsUpdated": "グループメンバーを更新しました",
     "participantsUpdateError": "グループメンバーを更新できませんでした",
     "deleteMessageError": "メッセージを取り消せませんでした"
+  },
+  "leaveSuggestion": {
+    "chipLabel": "休暇を予定する",
+    "confirmed": "休暇申請を送信しました",
+    "formTitle": "休暇申請のクイック作成",
+    "dateLabel": "休暇日",
+    "typeLabel": "休暇の種類",
+    "reasonLabel": "理由",
+    "cancel": "キャンセル",
+    "submit": "申請を送信",
+    "errors": {
+      "missingDate": "休暇日を選択してください",
+      "dateInPast": "休暇日を過去の日付にすることはできません",
+      "missingReason": "理由を入力してください"
+    }
   }
 }

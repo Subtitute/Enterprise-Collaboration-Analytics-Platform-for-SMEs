@@ -26,15 +26,33 @@ const logger = new Logger('RestProxy');
 // phat 'error' voi ECONNRESET khi vuot proxyTimeout) thay vi treo mai theo downstream.
 const PROXY_TIMEOUT_MS = 30_000;
 
-export function createServiceProxy(prefixes: string[], target: string): ReturnType<typeof createProxyMiddleware> {
+// 03/10/2026: `timeoutMs` tuy chon - xem RestProxyRouteGroup.timeoutMs (proxy-routes.config.ts)
+// cho ly do: 30s chung cho MOI route la qua gat gao voi tai file lon/bao cao ML nang.
+export function createServiceProxy(
+  prefixes: string[],
+  target: string,
+  timeoutMs: number = PROXY_TIMEOUT_MS,
+): ReturnType<typeof createProxyMiddleware> {
   return createProxyMiddleware({
     target,
     changeOrigin: true,
-    proxyTimeout: PROXY_TIMEOUT_MS,
-    timeout: PROXY_TIMEOUT_MS,
+    proxyTimeout: timeoutMs,
+    timeout: timeoutMs,
     pathFilter: (pathname) => matchesPrefix(pathname, prefixes),
     on: {
       proxyReq: injectAuthHeaders,
+      // 03/10/2026: phat hien qua bao loi ERR_EMPTY_RESPONSE sau khi de stack chay ranh roi 1
+      // thoi gian dai - Gateway/cac service phia sau deu dung http.Server mac dinh cua Node
+      // (keepAliveTimeout ~5s), trong khi trinh duyet giu ket noi keep-alive trong pool lau hon
+      // nhieu. Khi trinh duyet tai su dung 1 socket da bi phia server dong am tham, request moi
+      // nhan ve response rong. Thay vi can chinh keepAliveTimeout/headersTimeout cho khop (dung
+      // nhung de vo tinh lech lai tai dien), tat han HTTP keep-alive: ep header `Connection: close`
+      // tren MOI response proxy ve client - trinh duyet se khong bao gio tai su dung lai socket,
+      // loai bo han ca lop loi nay. Chi phi (mo lai TCP connection moi request) khong dang ke o
+      // quy mo demo/dev cua do an nay.
+      proxyRes: (proxyRes: IncomingMessage) => {
+        proxyRes.headers.connection = 'close';
+      },
       // 22/07/2026: bo sung handler 'error' - phat hien qua code review toan du an: truoc day
       // khong dang ky, nen khi downstream service khong ket noi duoc (crash, chua khoi dong
       // xong, timeout, ...) http-proxy-middleware roi ve handler mac dinh cua thu vien, tra ve

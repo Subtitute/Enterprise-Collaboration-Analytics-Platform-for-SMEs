@@ -82,8 +82,6 @@
     "descriptionPlaceholder": "タスクの詳細説明 (任意)..."
   },
   "sidebar": {
-    "expand": "サイドバーを展開",
-    "collapse": "サイドバーを折りたたむ",
     "collapseMenu": "メニューを折りたたむ",
     "orgAriaLabel": "組織: {{orgName}}",
     "subtitle": "企業・組織"
@@ -103,16 +101,18 @@
     "restoring": "セッションを復元しています…"
   },
   "nav": {
-    "dashboard": "ダッシュボード",
-    "projects": "プロジェクト・タスク",
-    "documents": "ドキュメント",
-    "customers": "顧客",
+    "home": "ホーム",
     "attendance": "勤怠",
     "leaveRequests": "休暇申請",
     "messages": "メッセージ",
-    "notifications": "通知",
     "analytics": "レポート・分析",
-    "admin": "管理"
+    "admin": "管理",
+    "homeNav": {
+      "overview": "概要",
+      "projects": "プロジェクト・タスク",
+      "documents": "ドキュメント",
+      "customers": "顧客"
+    }
   },
   "datePicker": {
     "openCalendarAria": "カレンダーを開く",

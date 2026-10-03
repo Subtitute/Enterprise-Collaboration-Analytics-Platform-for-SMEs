@@ -1,30 +1,16 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 interface UIState {
-  sidebarCollapsed: boolean;
-  /** True sau khi nguoi dung tu tay bam nut thu gon/mo rong it nhat 1 lan - luc do khong con auto-detect theo kich thuoc man hinh nua. */
-  hasUserSidebarPreference: boolean;
   mobileSidebarOpen: boolean;
-  setSidebarCollapsed: (collapsed: boolean, byUser?: boolean) => void;
-  toggleSidebarCollapsed: () => void;
   setMobileSidebarOpen: (open: boolean) => void;
 }
 
-export const useUIStore = create<UIState>()(
-  persist(
-    (set, get) => ({
-      sidebarCollapsed: false,
-      hasUserSidebarPreference: false,
-      mobileSidebarOpen: false,
-      setSidebarCollapsed: (collapsed, byUser = false) =>
-        set({ sidebarCollapsed: collapsed, hasUserSidebarPreference: byUser || get().hasUserSidebarPreference }),
-      toggleSidebarCollapsed: () => set({ sidebarCollapsed: !get().sidebarCollapsed, hasUserSidebarPreference: true }),
-      setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
-    }),
-    {
-      name: 'ecap-ui',
-      partialize: (state) => ({ sidebarCollapsed: state.sidebarCollapsed, hasUserSidebarPreference: state.hasUserSidebarPreference }),
-    },
-  ),
-);
+// 03/10/2026: bo sidebarCollapsed/hasUserSidebarPreference/toggleSidebarCollapsed/setSidebarCollapsed
+// va middleware persist (khong con truong nao can luu qua localStorage - khoa "ecap-ui" cu chi dung
+// de luu 2 truong nay). Rail chinh (Sidebar.tsx) gio LUON thu gon mac dinh va chi mo rong tam thoi
+// khi di chuot vao (state cuc bo "hovered" trong chinh component, khong con la lua chon nguoi dung
+// can nho giua cac phien lam viec/kich thuoc man hinh nua - xem Sidebar.tsx).
+export const useUIStore = create<UIState>()((set) => ({
+  mobileSidebarOpen: false,
+  setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
+}));

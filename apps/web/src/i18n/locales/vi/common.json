@@ -82,8 +82,6 @@
     "descriptionPlaceholder": "Mô tả chi tiết công việc nếu có..."
   },
   "sidebar": {
-    "expand": "Mở rộng thanh bên",
-    "collapse": "Thu gọn thanh bên",
     "collapseMenu": "Thu gọn menu",
     "orgAriaLabel": "Tổ chức: {{orgName}}",
     "subtitle": "Doanh nghiệp / Tổ chức"
@@ -103,16 +101,18 @@
     "restoring": "Đang khôi phục phiên đăng nhập…"
   },
   "nav": {
-    "dashboard": "Dashboard",
-    "projects": "Dự án & Công việc",
-    "documents": "Tài liệu",
-    "customers": "Khách hàng",
+    "home": "Trang chủ",
     "attendance": "Chấm công",
     "leaveRequests": "Nghỉ phép",
     "messages": "Nhắn tin",
-    "notifications": "Thông báo",
     "analytics": "Báo cáo & Phân tích",
-    "admin": "Quản trị"
+    "admin": "Quản trị",
+    "homeNav": {
+      "overview": "Tổng quan",
+      "projects": "Dự án & Công việc",
+      "documents": "Tài liệu",
+      "customers": "Khách hàng"
+    }
   },
   "datePicker": {
     "openCalendarAria": "Mở bảng chọn lịch",

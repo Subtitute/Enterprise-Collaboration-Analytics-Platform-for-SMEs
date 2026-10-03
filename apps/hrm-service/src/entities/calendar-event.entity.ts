@@ -33,4 +33,13 @@ export class CalendarEvent extends AppBaseEntity {
   // Nguoi tao/quan tri - khong khoa cung nhu userId cua LeaveRequest (khong FK xuyen service/DB).
   @Column({ name: 'created_by_user_id', type: 'uuid' })
   createdByUserId: string;
+
+  // 03/10/2026: "cap do tham quyen" cua nguoi tao, chot TAI THOI DIEM tao va KHONG DOI sau do (du
+  // nguoi tao sau nay doi vai tro/quyen) - dung de PATCH/DELETE quyet dinh 1 nguoi giu
+  // CALENDAR_MANAGE co duoc sua/xoa muc lich cua nguoi khac hay khong (chi khi tham quyen HIEN TAI
+  // cua ho cao hon tham quyen DA CHOT nay). Tinh qua computeCallerCalendarRank() (calendar-event-rank.util.ts)
+  // tu PERMISSION cua nguoi goi, KHONG tu ten vai tro - xem Doc/RevisionHistory.md 17/09/2026 (gate
+  // theo TEN vai tro la loi hay lap lai).
+  @Column({ name: 'created_by_rank', type: 'smallint' })
+  createdByRank: number;
 }

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import type { TFunction } from 'i18next';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -44,7 +45,10 @@ import {
  * (chua co du lieu de danh gia) KHONG hien gi ca, CHI hien khi co ket qua ro rang. Day la tin
  * hieu THEM cho Manager doi chieu voi anh, khong phai trang thai loi/canh bao chan cham cong.
  */
-function OnSiteBadge({ isOnSite }: { isOnSite?: boolean | null }) {
+// 03/10/2026: export - AttendanceDetailPage.tsx (trang chi tiet cham cong 1 nhan vien,
+// /attendance/:userId) tai su dung nguyen ham nay thay vi chep lai, mirror cach PhotoProofModal/
+// AttendanceStatusBadge/formatTotalHours/getTodayGmt7 duoi day cung duoc export cho cung muc dich.
+export function OnSiteBadge({ isOnSite }: { isOnSite?: boolean | null }) {
   const { t } = useTranslation();
   if (isOnSite === undefined || isOnSite === null) return null;
   return (
@@ -64,7 +68,7 @@ function OnSiteBadge({ isOnSite }: { isOnSite?: boolean | null }) {
  * (totalHoursValue vs hoursUnit). Giu totalHoursValue (di kem kieu TFunction da co san import
  * o dau file), xoa hoursUnit khoi hrm.json (vi/en/ja) vi khong con noi nao goi toi.
  */
-function formatTotalHours(t: TFunction, checkInAt?: string | null, checkOutAt?: string | null): string {
+export function formatTotalHours(t: TFunction, checkInAt?: string | null, checkOutAt?: string | null): string {
   if (!checkInAt || !checkOutAt) return '—';
   const start = new Date(checkInAt).getTime();
   const end = new Date(checkOutAt).getTime();
@@ -76,7 +80,7 @@ function formatTotalHours(t: TFunction, checkInAt?: string | null, checkOutAt?: 
 /**
  * Modal hiển thị ảnh chụp bằng chứng chấm công (Photo-Proof Modal)
  */
-function PhotoProofModal({
+export function PhotoProofModal({
   target,
   onClose,
 }: {
@@ -179,7 +183,7 @@ function PhotoProofModal({
  * - Đi muộn (bg-amber-100 text-amber-700)
  * - Quên check-out (bg-rose-100 text-rose-600)
  */
-function AttendanceStatusBadge({
+export function AttendanceStatusBadge({
   record,
   today,
   isAdjusted = false,
@@ -237,13 +241,14 @@ function AttendanceStatusBadge({
 
 /** Ngay hien tai theo lich GMT+7, dang 'YYYY-MM-DD' - dung 'en-CA' vi dinh dang chuan cua locale
  *  nay trung khop ISO date (YYYY-MM-DD), tranh phai tu ghep chuoi thu cong. */
-function getTodayGmt7(): string {
+export function getTodayGmt7(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
 }
 
 /** Trang Cham cong (HRM-lite) - Technical_Spec.md muc 17, Wireframe.md muc 13. */
 export function AttendancePage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [cameraMode, setCameraMode] = useState<'checkin' | 'checkout' | null>(null);
   const [orgSubTab, setOrgSubTab] = useState<'timesheet' | 'log' | 'adjustments' | 'overtime'>('timesheet');
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
@@ -262,7 +267,12 @@ export function AttendancePage() {
   const currentUser = useAuthStore((s) => s.user);
 
   // Bộ lọc Dropdown Tháng/Năm (mặc định tháng hiện tại: 'YYYY-MM')
-  const currentMonthStr = useMemo(() => new Date().toISOString().slice(0, 7), []);
+  // 03/10/2026: sua loi thuc te phat hien qua rieng soat - ban cu dung `toISOString()` (UTC), trong
+  // khi ca trang con lai (vd `today` ben duoi) dung GMT+7. Tu 00:00-06:59 gio VN ngay dau thang,
+  // UTC con o THANG TRUOC, khien bo loc mac dinh chon nham thang cu va an mat ban ghi cham cong vua
+  // tao trong thang moi cho den khi tu doi dropdown. Dung getTodayGmt7() (da co san, dung cho
+  // `today`) thay vi tu tinh lai bang UTC.
+  const currentMonthStr = useMemo(() => getTodayGmt7().slice(0, 7), []);
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthStr);
   const [orgSelectedMonth, setOrgSelectedMonth] = useState<string>(currentMonthStr);
 
@@ -286,7 +296,9 @@ export function AttendancePage() {
   }, []);
 
   const attendanceQuery = useMyAttendanceQuery({ limit: 50 });
-  const allAttendanceQuery = useAllAttendanceQuery();
+  // 03/10/2026: truyen `orgSelectedMonth` de server loc dung thang dang xem (xem chu thich tai
+  // useAllAttendanceQuery) thay vi luon ke 100 dong moi nhat roi tu cat o client.
+  const allAttendanceQuery = useAllAttendanceQuery(orgSelectedMonth);
   const myLeaveRequestsQuery = useMyLeaveRequestsQuery();
   const { map: userNameMap, users: orgUsers } = useUserNameMap();
   const departmentsQuery = useDepartmentsQuery();
@@ -312,6 +324,33 @@ export function AttendancePage() {
   // 403 (khong co PERMISSIONS.ATTENDANCE_VIEW) la ket qua BINH THUONG cho Employee thuong - coi
   // nhu "khong ap dung", mirror canApprove cua LeaveRequestsPage.tsx.
   const canViewAll = !allAttendanceQuery.isError && allAttendanceQuery.isSuccess;
+  // 03/10/2026: phat hien qua rieng soat - 2 phan he Giai trinh/Tang ca dung permission RIENG
+  // (ATTENDANCE_ADJUSTMENT_VIEW/OVERTIME_REQUEST_VIEW, xem DEFAULT_ROLE_PERMISSIONS) chu khong
+  // phai ATTENDANCE_VIEW, nhung ca khoi "Quan ly to chuc" (bao gom 2 tab nay) truoc day chi gate
+  // theo DUY NHAT `canViewAll`. 1 vai tro tuy chinh qua Quan tri > Vai tro & Phan quyen duoc cap
+  // rieng 1 trong 2 quyen nay (khong kem ATTENDANCE_VIEW) se bi an mat toan bo khoi, du backend
+  // van cho phep duyet/tu choi binh thuong. Suy ra tin hieu rieng cho tung tab, cung 1 quy uoc
+  // "doi chieu isSuccess/isError cua chinh query do" nhu canViewAll o tren.
+  const canViewAdjustments = !pendingAdjustmentsQuery.isError && pendingAdjustmentsQuery.isSuccess;
+  const canViewOvertime = !pendingOvertimeQuery.isError && pendingOvertimeQuery.isSuccess;
+  const canViewOrgCard = canViewAll || canViewAdjustments || canViewOvertime;
+
+  // 03/10/2026: `orgSubTab` mac dinh la 'timesheet' (xem useState o tren), nhung 1 vai tro chi
+  // duoc cap ATTENDANCE_ADJUSTMENT_VIEW/OVERTIME_REQUEST_VIEW (khong kem ATTENDANCE_VIEW) se
+  // khong thay tab 'timesheet'/'log' nao ca - tu chuyen sang tab DAU TIEN ho thuc su xem duoc
+  // ngay khi xac dinh duoc quyen (tranh dung "mac ket" o 1 tab rong/an).
+  useEffect(() => {
+    if (orgSubTab === 'timesheet' || orgSubTab === 'log') {
+      if (canViewAll) return;
+    } else if (orgSubTab === 'adjustments') {
+      if (canViewAdjustments) return;
+    } else if (canViewOvertime) {
+      return;
+    }
+    if (canViewAll) setOrgSubTab('timesheet');
+    else if (canViewAdjustments) setOrgSubTab('adjustments');
+    else if (canViewOvertime) setOrgSubTab('overtime');
+  }, [canViewAll, canViewAdjustments, canViewOvertime, orgSubTab]);
 
   // 22/09/2026: duyet giai trinh THANH CONG se ghi de checkInAt/checkOutAt THAT cua Attendance
   // ngay tren server (xem AttendanceAdjustmentsService.decide()), va useApproveAttendanceAdjustment()
@@ -356,11 +395,11 @@ export function AttendancePage() {
     return rawRecords.filter((r) => r.workDate.startsWith(selectedMonth));
   }, [attendanceQuery.data?.data, selectedMonth]);
 
-  const filteredAllRecords = useMemo(() => {
-    const rawRecords = allAttendanceQuery.data?.data ?? [];
-    if (orgSelectedMonth === 'all') return rawRecords;
-    return rawRecords.filter((r) => r.workDate.startsWith(orgSelectedMonth));
-  }, [allAttendanceQuery.data?.data, orgSelectedMonth]);
+  // 03/10/2026: khong con tu loc theo thang o day nua - `useAllAttendanceQuery(orgSelectedMonth)`
+  // da truyen dung khoang ngay xuong server loc tai nguon (xem chu thich tai hook do), tranh dung
+  // lai kieu loc client-side tren 1 trang `limit` co dinh von la nguyen nhan goc cua loi "thang cu
+  // hien sai thanh rong" da sua.
+  const filteredAllRecords = allAttendanceQuery.data?.data ?? [];
 
   const effectiveTodayRecord = todayRecord;
 
@@ -623,8 +662,10 @@ export function AttendancePage() {
         </div>
       </div>
 
-      {/* Khối bên dưới: Card "Quản lý tổ chức" toàn màn hình (chỉ hiển thị cho Manager / Admin) */}
-      {canViewAll && (
+      {/* Khối bên dưới: Card "Quản lý tổ chức" toàn màn hình (chỉ hiển thị cho Manager / Admin).
+          03/10/2026: gate theo `canViewOrgCard` (bat ky 1 trong 3 quyen con) thay vi chi `canViewAll`
+          - xem chu thich tai khai bao canViewAdjustments/canViewOvertime o tren. */}
+      {canViewOrgCard && (
         <Card className="border border-slate-200/80 bg-white shadow-sm overflow-hidden">
           <CardHeader className="pb-3 border-b border-slate-100">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -639,75 +680,85 @@ export function AttendancePage() {
                   </CardTitle>
                 </div>
 
-                {/* Sub-tabs điều hướng 4 phân hệ */}
+                {/* Sub-tabs điều hướng 4 phân hệ - 03/10/2026: mỗi tab tự ẩn/hiện theo đúng quyền
+                    riêng của nó (xem canViewAdjustments/canViewOvertime), không còn gộp chung vào
+                    canViewAll của khối cha. */}
                 <div className="flex flex-wrap items-center gap-1.5 rounded-xl bg-slate-100/90 p-1 border border-slate-200/60">
-                  <button
-                    type="button"
-                    onClick={() => setOrgSubTab('timesheet')}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                      orgSubTab === 'timesheet'
-                        ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    {t('hrm:extensions.orgTabs.subtabs.timesheet')}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setOrgSubTab('log')}
-                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                      orgSubTab === 'log'
-                        ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    {t('hrm:extensions.orgTabs.subtabs.log')}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setOrgSubTab('adjustments')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                      orgSubTab === 'adjustments'
-                        ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    <EditIcon className="h-3 w-3" />
-                    <span>{t('hrm:extensions.orgTabs.subtabs.adjustments')}</span>
-                    <span
-                      className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                        pendingAdjustmentsCount > 0
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-slate-200/70 text-slate-600'
+                  {canViewAll && (
+                    <button
+                      type="button"
+                      onClick={() => setOrgSubTab('timesheet')}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                        orgSubTab === 'timesheet'
+                          ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      {pendingAdjustmentsCount}
-                    </span>
-                  </button>
+                      {t('hrm:extensions.orgTabs.subtabs.timesheet')}
+                    </button>
+                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => setOrgSubTab('overtime')}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                      orgSubTab === 'overtime'
-                        ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    <ClockIcon className="h-3 w-3" />
-                    <span>{t('hrm:extensions.orgTabs.subtabs.overtime')}</span>
-                    <span
-                      className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                        pendingOtCount > 0
-                          ? 'bg-indigo-100 text-indigo-800'
-                          : 'bg-slate-200/70 text-slate-600'
+                  {canViewAll && (
+                    <button
+                      type="button"
+                      onClick={() => setOrgSubTab('log')}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                        orgSubTab === 'log'
+                          ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
                       }`}
                     >
-                      {pendingOtCount}
-                    </span>
-                  </button>
+                      {t('hrm:extensions.orgTabs.subtabs.log')}
+                    </button>
+                  )}
+
+                  {canViewAdjustments && (
+                    <button
+                      type="button"
+                      onClick={() => setOrgSubTab('adjustments')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                        orgSubTab === 'adjustments'
+                          ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <EditIcon className="h-3 w-3" />
+                      <span>{t('hrm:extensions.orgTabs.subtabs.adjustments')}</span>
+                      <span
+                        className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                          pendingAdjustmentsCount > 0
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-slate-200/70 text-slate-600'
+                        }`}
+                      >
+                        {pendingAdjustmentsCount}
+                      </span>
+                    </button>
+                  )}
+
+                  {canViewOvertime && (
+                    <button
+                      type="button"
+                      onClick={() => setOrgSubTab('overtime')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                        orgSubTab === 'overtime'
+                          ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      <ClockIcon className="h-3 w-3" />
+                      <span>{t('hrm:extensions.orgTabs.subtabs.overtime')}</span>
+                      <span
+                        className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                          pendingOtCount > 0
+                            ? 'bg-indigo-100 text-indigo-800'
+                            : 'bg-slate-200/70 text-slate-600'
+                        }`}
+                      >
+                        {pendingOtCount}
+                      </span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -781,7 +832,16 @@ export function AttendancePage() {
                         {filteredAllRecords.map((record) => {
                           const name = userNameMap[record.userId] ?? record.userId;
                           return (
-                            <tr key={record.id} className="hover:bg-slate-50/60 transition-colors">
+                            <tr
+                              key={record.id}
+                              onClick={() => navigate(`/attendance/${record.userId}`)}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') navigate(`/attendance/${record.userId}`);
+                              }}
+                              className="cursor-pointer hover:bg-slate-50/60 transition-colors"
+                            >
                               <td className="py-2.5 pr-4 text-slate-900 font-semibold whitespace-nowrap">
                                 <div className="flex items-center gap-2">
                                   <Avatar name={name} size="sm" className="h-6 w-6 text-[10px] shadow-2xs" />
@@ -795,15 +855,19 @@ export function AttendancePage() {
                                   <OnSiteBadge isOnSite={record.checkInIsOnSite} />
                                   <button
                                     type="button"
-                                    onClick={() =>
+                                    onClick={(e) => {
+                                      // 03/10/2026: chan noi bot su kien len <tr> (gio da co onClick dieu
+                                      // huong toi trang chi tiet) - bam icon anh bang chung chi mo
+                                      // PhotoProofModal, khong duoc keo theo dieu huong trang.
+                                      e.stopPropagation();
                                       setViewingPhoto({
                                         id: record.id,
                                         kind: 'checkin',
                                         time: formatDateTime(record.checkInAt),
                                         userName: name,
                                         isOnSite: record.checkInIsOnSite,
-                                      })
-                                    }
+                                      });
+                                    }}
                                     className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
                                     title={t('hrm:attendancePage.allAttendance.viewProofInOf', { name })}
                                     aria-label={t('hrm:attendancePage.allAttendance.viewProofInOf', { name })}
@@ -819,15 +883,16 @@ export function AttendancePage() {
                                     <OnSiteBadge isOnSite={record.checkOutIsOnSite} />
                                     <button
                                       type="button"
-                                      onClick={() =>
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         setViewingPhoto({
                                           id: record.id,
                                           kind: 'checkout',
                                           time: formatDateTime(record.checkOutAt),
                                           userName: name,
                                           isOnSite: record.checkOutIsOnSite,
-                                        })
-                                      }
+                                        });
+                                      }}
                                       className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
                                       title={t('hrm:attendancePage.allAttendance.viewProofOutOf', { name })}
                                       aria-label={t('hrm:attendancePage.allAttendance.viewProofOutOf', { name })}

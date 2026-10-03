@@ -156,6 +156,63 @@
       "decisionNote": "メモ: {{note}}"
     }
   },
+  "employeePicker": {
+    "label": "従業員別に履歴を見る",
+    "searchPlaceholder": "名前またはメールアドレスで検索…",
+    "emptyResult": "該当する従業員が見つかりません"
+  },
+  "leaveRequestDetailPage": {
+    "backLink": "休暇申請に戻る",
+    "title": "{{name}}の休暇履歴",
+    "listTitle": "休暇申請一覧",
+    "loading": "休暇履歴を読み込み中…",
+    "errorTitle": "休暇履歴を読み込めませんでした",
+    "errorDescription": "データの読み込み中にエラーが発生しました。もう一度お試しください。",
+    "emptyTitle": "休暇申請はまだありません",
+    "emptyDescription": "この従業員はまだ休暇申請を提出していません。"
+  },
+  "attendanceDetailPage": {
+    "backLink": "勤怠に戻る",
+    "title": "{{name}}の勤怠履歴",
+    "loading": "勤怠履歴を読み込み中…",
+    "errorTitle": "勤怠履歴を読み込めませんでした",
+    "errorDescription": "データの読み込み中にエラーが発生しました。もう一度お試しください。",
+    "emptyTitle": "勤怠履歴がありません",
+    "emptyDescription": "この従業員の勤怠データはまだありません。"
+  },
+  "companyCalendar": {
+    "description": "組織全体で共有するカレンダーです。誰でもイベントを作成できますが、祝日の設定はマネージャーと組織管理者のみ可能です。日付をクリックすると新規作成、既存の項目をクリックすると閲覧・編集できます。",
+    "newEntry": "新規項目",
+    "loading": "カレンダーを読み込み中…",
+    "errorTitle": "会社カレンダーを読み込めませんでした",
+    "moreEntries": "他{{count}}件",
+    "deleteConfirm": {
+      "title": "この項目を削除しますか？",
+      "description": "「{{title}}」が会社カレンダーから削除されます。この操作は取り消せません。"
+    }
+  },
+  "calendarEventModal": {
+    "createTitle": "カレンダー項目を追加",
+    "editTitle": "カレンダー項目を編集",
+    "viewTitle": "カレンダー項目の詳細",
+    "type": {
+      "HOLIDAY": "祝日",
+      "EVENT": "イベント"
+    },
+    "holidayHint": "全従業員がこの期間に打刻できなくなり、通知が送信されます。",
+    "titleLabel": "タイトル",
+    "titlePlaceholder": "例: 旧正月休暇",
+    "titleRequiredError": "タイトルを入力してください",
+    "startDateLabel": "開始日",
+    "endDateLabel": "終了日",
+    "startDateRequiredError": "開始日を選択してください",
+    "endDateBeforeStartError": "終了日を開始日より前にすることはできません",
+    "descriptionLabel": "説明",
+    "cancel": "キャンセル",
+    "create": "項目を作成",
+    "saveChanges": "変更を保存",
+    "delete": "削除"
+  },
   "newLeaveRequestModal": {
     "title": "休暇申請を作成",
     "typeLabel": "休暇の種類",
@@ -204,7 +261,13 @@
     "approveLeaveRequestSuccess": "休暇申請を承認しました",
     "approveLeaveRequestError": "申請の承認に失敗しました",
     "rejectLeaveRequestSuccess": "休暇申請を却下しました",
-    "rejectLeaveRequestError": "申請の却下に失敗しました"
+    "rejectLeaveRequestError": "申請の却下に失敗しました",
+    "calendarEventCreated": "カレンダー項目を追加しました",
+    "calendarEventCreateFailed": "カレンダー項目を追加できませんでした",
+    "calendarEventUpdated": "カレンダー項目を更新しました",
+    "calendarEventUpdateFailed": "カレンダー項目を更新できませんでした",
+    "calendarEventDeleted": "カレンダー項目を削除しました",
+    "calendarEventDeleteFailed": "カレンダー項目を削除できませんでした"
   },
   "extensions": {
     "adjustment": {

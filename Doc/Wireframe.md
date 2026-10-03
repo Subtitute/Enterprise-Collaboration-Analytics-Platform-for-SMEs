@@ -47,26 +47,36 @@
 - **(Bổ sung 20/08/2026)** Ô mật khẩu có nút hiện/ẩn riêng của ứng dụng (icon con mắt) — tự vẽ bằng React thay vì dựa vào nút "reveal password" có sẵn của trình duyệt (từng mất đồng bộ với state, xem `Technical_Spec.md` mục 20/08/2026). Nếu phát hiện dấu tiếng Việt trong mật khẩu đang gõ (thường do bộ gõ tự động ghép dấu ngoài ý muốn), hiện 1 dòng cảnh báo nhỏ ngay dưới ô — chỉ cảnh báo, không chặn ký tự.
 - **(Bổ sung 20-21/08/2026)** Nút chọn ngôn ngữ (🌐) cố định ở góc trên-phải màn hình này — xem §0.
 
-## 2. Khung bố cục tổng thể (App Shell)
+## 2. Khung bố cục tổng thể (App Shell) *(sửa lại 03/10/2026, xem Technical_Spec.md §21.1)*
 
 ```
-┌──────────┬──────────────────────────────────────────────────┐
-│          │  Topbar: [🔍 Tìm kiếm]  [🌐] [🔔 3] [Tên user ▾]  │
-│ Sidebar  ├──────────────────────────────────────────────────┤
-│          │                                                  │
-│ ▣ Dashboard                                                 │
-│ ▣ Dự án & Công việc      Vùng nội dung chính                │
-│ ▣ Tài liệu               (thay đổi theo route)               │
-│ ▣ Thông báo                                                  │
-│ ▣ Báo cáo & Phân tích                                        │
-│ ─────────                                                    │
-│ ▣ Quản trị (chỉ Org Admin)                                   │
-│          │                                                  │
-│ [Tên tổ chức ▾]                                              │
-└──────────┴──────────────────────────────────────────────────┘
+┌───┬──────────┬──────────────────────────────────────────────┐
+│   │          │  Topbar: [🔍 Tìm kiếm]  [🌐] [🔔 3] [User ▾]  │
+│ ▣ │ Tổng quan├──────────────────────────────────────────────┤
+│Trang│ Dự án   │                                              │
+│chủ│và CV      │                                              │
+│ ▣ │ Tài liệu  │          Vùng nội dung chính                 │
+│Chấm│ Khách    │          (thay đổi theo route)                │
+│công│hàng      │                                              │
+│ ▣ │          │                                              │
+│Nghỉ│ (sidebar │                                              │
+│phép│ phụ, chỉ │                                              │
+│ ▣ │ hiện khi │                                              │
+│Nhắn│ Trang chủ│                                              │
+│tin │ đang active)                                            │
+│ ▣ │          │                                              │
+│Báo │          │                                              │
+│cáo │          │                                              │
+│ ─  │          │                                              │
+│ ▣ │          │                                              │
+│Quản│          │                                              │
+│trị │          │                                              │
+└───┴──────────┴──────────────────────────────────────────────┘
 ```
 
-- Sidebar có thể thu gọn (collapse) chỉ còn icon trên tablet.
+- **Sidebar chính** luôn ở dạng dải icon thu gọn, **chỉ mở rộng ra thành label khi con trỏ chuột di vào** (overlay, không đẩy lệch nội dung trang) — thay cho nút thu/phóng thủ công trước đây. Thứ tự: Trang chủ → Chấm công → Nghỉ phép → Nhắn tin → Báo cáo & Phân tích → Quản trị (chỉ Org Admin/Manager tuỳ mục).
+- **Trang chủ** gộp Dự án & Công việc / Tài liệu / Khách hàng (trước đây là 3 mục ngang hàng riêng biệt): bấm vào mở thêm 1 **sidebar phụ cố định** (không phải flyout, luôn hiện khi đang ở 1 trong 4 route này) liệt kê Tổng quan (Dashboard cũ)/Dự án và công việc/Tài liệu/Khách hàng — route của từng trang giữ nguyên hoàn toàn, đây chỉ là thay đổi cách trình bày điều hướng.
+- **Không còn mục "Thông báo" riêng trên sidebar** — xem §6, toàn bộ chức năng nay nằm trong dropdown chuông (🔔) ở Topbar.
 - Chuông thông báo (🔔) hiển thị badge số lượng chưa đọc, cập nhật real-time qua WebSocket không cần reload.
 - **[Tên user ▾]** mở menu: **Hồ sơ cá nhân** (§11) và **Đăng xuất**.
 - **(Bổ sung 20-21/08/2026)** Icon **[🌐]** mở nút chọn ngôn ngữ (Tiếng Việt/English/日本語) — xem §0.
@@ -152,23 +162,26 @@
 - Mỗi file hiển thị nhãn phiên bản (`v3`) kèm link "Xem lịch sử phiên bản" (danh sách `FileVersion`, tối đa N bản gần nhất).
 - **(Bổ sung 22/07/2026)** Click trực tiếp vào tên tệp (hoặc mục "Xem tệp" trong menu `⋮`) mở tệp ngay trong tab mới của trình duyệt (`Content-Disposition: inline` — PDF/ảnh/text được trình duyệt tự render, không cần tải về máy trước). Mục "Tải xuống" riêng biệt luôn ép hộp thoại Lưu tệp (`Content-Disposition: attachment`).
 
-## 6. Module Thông báo
+## 6. Module Thông báo *(sửa lại 03/10/2026 — xoá trang riêng, xem Technical_Spec.md §21.2)*
 
 ```
-Dropdown từ Topbar (🔔):
+Dropdown từ Topbar (🔔) — nay là giao diện thông báo DUY NHẤT:
 ┌───────────────────────────────┐
 │ Thông báo               [Đánh dấu đã đọc tất cả] │
 ├───────────────────────────────┤
 │ ● Bạn được giao "Task X"   2 phút trước │
 │ ● "Báo cáo Q3" đã được chia sẻ với bạn  │
 │ ○ Dự án "Website SME" đạt 68% tiến độ   │
+│   (bấm vào không có link → mở rộng ngay │
+│   tại chỗ xem toàn văn)                  │
 ├───────────────────────────────┤
-│           [Xem tất cả thông báo →]      │
+│           [Tải thêm thông báo]           │
 └───────────────────────────────┘
 ```
 
-- Chấm `●` = chưa đọc, `○` = đã đọc.
-- Trang "Xem tất cả thông báo" là danh sách đầy đủ có phân trang + filter theo loại (Task/Document/Hệ thống).
+- Chấm `●` = chưa đọc, `○` = đã đọc. Danh sách hiện CẢ đã đọc lẫn chưa đọc (trước đây dropdown chỉ hiện 6 tin chưa đọc gần nhất), mới nhất trước.
+- **Không còn trang "Xem tất cả thông báo" riêng** — dropdown tự phân trang bằng nút "Tải thêm", thay thế hoàn toàn chức năng của trang cũ. Cố ý bỏ bộ lọc theo loại thông báo để giữ dropdown gọn.
+- Bấm vào 1 thông báo: đánh dấu đã đọc ngay (cập nhật badge), rồi nếu có link đính kèm thì điều hướng tới đó (không tải lại trang); nếu không có link thì mở rộng ngay tại chỗ để xem toàn văn.
 - Kênh cập nhật: kết nối WebSocket riêng tới Notification Service ngay sau khi đăng nhập; badge số lượng chưa đọc tăng tức thời khi có event mới, không cần refresh.
 
 ## 7. Trang Báo cáo & Phân tích (Analytics chi tiết)
@@ -247,23 +260,32 @@ Bản mô tả này thay thế khung sườn phác thảo trước đó (ghi tr�
 - **Không** hiển thị dạng lịch tháng đánh dấu đi trễ/nghỉ như bản phác thảo ban đầu — đơn giản hoá thành bảng danh sách theo ngày (đủ dùng cho phạm vi đồ án, tránh xây thêm logic tính "đi trễ" chưa có yêu cầu rõ ràng).
 - 1 ngày chỉ check-in/check-out được 1 lần — nút tương ứng biến mất/đổi trạng thái sau khi đã thực hiện, không cho bấm lại (máy chủ cũng từ chối nếu cố gọi API trực tiếp).
 - **(Bổ sung 13/08/2026, Technical_Spec.md §17):** nhãn "Tại văn phòng"/"Ngoài văn phòng" là cờ mềm dựa trên GPS — CHỈ hiện khi có dữ liệu để đánh giá (thiếu quyền vị trí/toạ độ văn phòng chưa cấu hình thì không hiện gì, không phải lỗi), KHÔNG chặn check-in/out. Khối "Chấm công toàn tổ chức" là bảng MỚI, cho Manager/Org Admin đối chiếu cờ này của cả tổ chức (ẩn hoàn toàn với Employee thường, cùng cơ chế 403-tự-ẩn với mục "Chờ duyệt" ở 9.2).
+- **(Bổ sung 03/10/2026, Technical_Spec.md §21.3):** mỗi dòng trong "Chấm công toàn tổ chức" nay bấm được, mở trang chi tiết `/attendance/:userId` hiển thị toàn bộ lịch sử chấm công của đúng nhân viên đó (chỉ Manager/Org Admin — Employee thường vẫn chỉ thấy đúng 2 khối đầu, không xem được lịch sử người khác qua bất kỳ cách nào).
 
-### 9.2 Trang Nghỉ phép
+### 9.2 Trang Nghỉ phép *(sửa lại 03/10/2026 — gộp Lịch công ty, xem Technical_Spec.md §21.3)*
 
 ```
-┌──────────────────────────────────────────────────────────────┐
-│ Nghỉ phép                                    [+ Yêu cầu mới]  │
-├──────────────────────────────────────────────────────────────┤
-│ Chờ duyệt (2)                    ← CHỈ hiện với Manager/Org Admin │
-│ 10/08 - 12/08  Việc gia đình         [ Từ chối ]  [ Duyệt ]    │
-├──────────────────────────────────────────────────────────────┤
-│ Yêu cầu của tôi                                               │
-│ 10/08 - 12/08  Việc gia đình              Chờ duyệt            │
-│ 01/07 - 03/07  Nghỉ phép năm              Đã duyệt             │
-└──────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────┬─────────────────────────────┐
+│  Lịch công ty (60%)                   │  [Xem lịch sử theo nhân viên ▾]│
+│ ┌────────────────────────────────┐   │  Số dư phép: còn 8/12 ngày    │
+│ │  Th2  Th3  Th4  Th5  Th6  Th7  │   │ ───────────────────────────── │
+│ │                [+] (bấm 1 ngày  │   │  Chờ duyệt (2)  ← chỉ Manager/│
+│ │   1    2    3    4    5    6   │   │                   Org Admin   │
+│ │                 ▓Lễ Quốc khánh  │   │  10/08-12/08 Việc gia đình    │
+│ │   ...                           │   │        [ Từ chối ] [ Duyệt ]  │
+│ └────────────────────────────────┘   │ ───────────────────────────── │
+│                                        │  Yêu cầu của tôi              │
+│                                        │  10/08-12/08  Chờ duyệt       │
+│                                        │  01/07-03/07  Đã duyệt        │
+├────────────────────────────────────────────────────────────────────┤
+│                                           [+ Yêu cầu nghỉ phép mới]  │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-- Mục "Chờ duyệt" chỉ hiển thị khi gọi API danh sách toàn tổ chức thành công — Employee thường nhận lỗi `403` (thiếu quyền) và mục này tự ẩn đi, KHÔNG hiện banner lỗi (frontend hiện chưa có cơ chế kiểm tra quyền theo permission-key phía client ngoài các trang Quản trị, xem `Doc/Script.md`).
+- **Lịch công ty** (trước đây là trang riêng `/admin/calendar`, chỉ Org Admin) nay chiếm 60% bên trái của chính trang Nghỉ phép — **mọi thành viên** xem được và tự tạo được sự kiện thường (`type: EVENT`, màu trung tính); tạo **ngày lễ chính thức** (`type: HOLIDAY`, màu nhấn, ảnh hưởng thật tới chấm công — xem §9.1) chỉ Org Admin/Manager làm được, tuỳ chọn này tự ẩn khỏi form tạo nếu bạn không có quyền. Sửa/xoá 1 sự kiện chỉ hiện nút khi bạn là người tạo, HOẶC bạn có quyền quản lý lịch VÀ cấp bậc của bạn cao hơn cấp bậc của người tạo lúc họ tạo sự kiện đó (Employee < Manager < Org Admin) — vd Employee không sửa/xoá được sự kiện của Manager, nhưng Manager sửa/xoá được sự kiện của Employee và mọi ngày lễ.
+- **40% bên phải** giữ nguyên 3 khối cũ (số dư phép / chờ duyệt — chỉ Manager/Org Admin / yêu cầu của tôi), nay xếp chồng dọc thay vì chiếm toàn bộ chiều ngang trang.
+- **Xem lịch sử theo nhân viên** (ô tìm-chọn mới, chỉ Manager/Org Admin): chọn 1 nhân viên → mở trang chi tiết lịch sử nghỉ phép đầy đủ của người đó (mọi trạng thái, không chỉ đang chờ duyệt). Tên nhân viên trong mục "Chờ duyệt" cũng bấm được để mở thẳng trang này.
+- Mục "Chờ duyệt" vẫn tự ẩn (không hiện banner lỗi) khi API trả `403` cho người không có quyền, giữ nguyên cơ chế cũ.
 - Duyệt/từ chối xong, yêu cầu biến mất khỏi "Chờ duyệt" và đổi trạng thái ở "Yêu cầu của tôi" (của người xin) gần như tức thời qua thông báo real-time.
 
 ### 9.3 Modal camera chấm công (`CheckInCamera.tsx`)
@@ -387,6 +409,22 @@ Mục điều hướng mới "Nhắn tin" (Sidebar, có badge số tin chưa đ�
   thay đổi thành viên nhóm đều không cần tải lại trang.
 - **`ecap-mobile`:** tab thứ 7 mới "Nhắn tin" — cùng chức năng gửi/nhận 1:1 và nhóm, KHÔNG có màn
   hình quản lý thành viên nhóm (để lại cho web, xem `Doc/ECAP_Mobile.md` §17).
+- **(Bổ sung 03/10/2026, Technical_Spec.md §21.4)** Dưới MỖI tin nhắn của CHÍNH người đang đăng
+  nhập (không bao giờ hiện cho tin của người khác, kể cả trong nhóm), nếu nội dung tin nhắn chứa
+  cụm từ liên quan ngày/giờ (vd "ngày mai", "15/10", "thứ Hai tuần sau", "2h", "14 giờ") sẽ tự
+  hiện 1 chip nhỏ **"Hẹn lịch nghỉ"** ngay bên dưới bong bóng chat đó:
+  ```
+  │ Sếp ơi mai em xin nghỉ nhé, có việc gia đình gấp │
+  │                                    [ Hẹn lịch nghỉ ] ← chip mới │
+  ```
+  Bấm vào mở form rút gọn ngay tại chỗ (ngày điền sẵn theo cụm từ nhận diện được, lý do điền sẵn
+  nguyên văn tin nhắn, vẫn sửa được) — gửi đi tạo đúng 1 đơn nghỉ phép thật (API `POST
+  /leave-requests` sẵn có), đi qua đúng quy trình duyệt bình thường và xuất hiện trong "Yêu cầu
+  của tôi" (§9.2) như mọi đơn khác, không cần rời khỏi màn hình chat. Sau khi gửi thành công, chip
+  đổi thành trạng thái đã xác nhận (trong phiên hiện tại) để tránh gửi trùng do bấm nhầm lần 2.
+  Nhận diện bằng quy tắc/regex thuần (không phải mô hình học máy), nên có thể bỏ sót cách diễn đạt
+  lạ hoặc nhận nhầm một vài từ trùng ngẫu nhiên (vd tên riêng "Mai") — chấp nhận được vì đây chỉ là
+  một gợi ý tiện lợi, không bắt buộc phải dùng.
 
 ---
 
@@ -419,3 +457,4 @@ Mục điều hướng mới "Nhắn tin" (Sidebar, có badge số tin chưa đ�
 - **24/09/2026 (nhập Excel hàng loạt + Analytics nâng cao)** — §7 (Báo cáo & Phân tích) cập nhật lại cho khớp thiết kế "Nhận xét AI" đã đổi từ 22/09/2026 (bộ thẻ có cấu trúc + biểu đồ so sánh, không còn 1 đoạn văn tự do), cộng 3 mục mới: bấm vào 1 thanh biểu đồ mở panel drill-down (phễu Tổng → Chưa xong → Quá hạn → Tập trung ở 1 người); khối "Phát hiện bất thường" mới (Isolation Forest thật, `apps/ml-service` — service Python đầu tiên của dự án); khối "Kế hoạch hành động" xuất hiện trong thẻ Nhận xét AI khi đã có dữ liệu bất thường. §8 (Quản trị > Thành viên) thêm nút "Nhập từ Excel" cạnh "Mời thành viên". Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §19.
 - **25/09/2026 (xoá vĩnh viễn tài khoản)** — §8 (Quản trị > Thành viên) cập nhật: hành động `⋮` của tài khoản đã vô hiệu hoá có thêm "Xoá vĩnh viễn" (kèm `ConfirmDialog` cảnh báo riêng, khác "Vô hiệu hoá" ở chỗ không thể hoàn tác) — khắc phục sau khi người dùng phản hồi tài khoản rác (do kiểm thử tự động tạo ra) hiển thị vĩnh viễn dù đã vô hiệu hoá. Không có màn hình/luồng UI mới nào khác — phần còn lại của đợt sửa lỗi này (endpoint Super Admin mới, tách môi trường kiểm thử tự động) không thuộc phạm vi tài liệu này. Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §19.6.
 - **28/09/2026 (Nhắn tin nội bộ)** — §13 (mới): trang Nhắn tin 2 cột (danh sách hội thoại + khung chat), hỗ trợ cả 1:1 và nhóm, cập nhật tức thời qua WebSocket riêng. Mục còn treo lại từ 17/09/2026, lần đầu được đặc tả và lập trình. Cùng đợt: `ecap-mobile` có thêm tab thứ 7 cùng chức năng (trừ quản lý thành viên nhóm). Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §20.
+- **03/10/2026 (tái cấu trúc điều hướng + gộp Lịch công ty + phát hiện nghỉ phép qua chat)** — §2 viết lại hoàn toàn (sidebar chính đổi thành icon-rail mở rộng khi trỏ chuột vào, "Trang chủ" gộp Dự án/Tài liệu/Khách hàng qua 1 sidebar phụ); §6 viết lại (xoá trang Thông báo riêng, dropdown chuông trở thành giao diện duy nhất); §9.1/§9.2 cập nhật (Lịch công ty rời Quản trị, gộp vào Nghỉ phép theo tỷ lệ 60:40 kèm mô hình phân quyền theo cấp bậc mới; thêm trang xem lịch sử chấm công/nghỉ phép theo từng nhân viên cho Manager/Org Admin); §13 bổ sung chip "Hẹn lịch nghỉ" tự nhận diện cụm từ ngày/giờ trong tin nhắn của chính mình. Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §21.

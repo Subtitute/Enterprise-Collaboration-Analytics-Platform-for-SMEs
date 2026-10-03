@@ -1,9 +1,18 @@
-// 15/09/2026: trang moi "Lich cong ty" (HRM-lite mo rong, theo yeu cau GVHD - xem
+// 15/09/2026: trang goc "Lich cong ty" (HRM-lite mo rong, theo yeu cau GVHD - xem
 // Technical_Spec.md "Lich cong ty") - Org Admin thiet lap ngay le + su kien/dat lich dung chung
 // toan to chuc. Luoi thang tai su dung LAI dung logic tinh toan o day (firstDayOfMonth/
 // startingDayIndex/daysInMonth) cua DatePicker.tsx (components/ui/) - khong import thang
 // DatePicker vi do la 1 POPOVER gan voi 1 o nhap lieu, khong phai luoi hien thi toan trang; day
 // la ban dung rieng cho boi canh "xem ca thang" (khac boi canh "chon 1 ngay" cua DatePicker).
+//
+// 03/10/2026: chuyen tu features/admin/CalendarPage.tsx (trang day du, chi Org Admin) sang day
+// (component nhung, dung trong LeaveRequestsPage.tsx) theo hop dong moi: GET /calendar-events mo
+// cho MOI thanh vien da xac thuc (khong con gate quyen), POST type=EVENT ai cung tao duoc, type=
+// HOLIDAY can PERMISSIONS.CALENDAR_MANAGE (gio ca Manager LAN Org Admin deu co, khong rieng Org
+// Admin nhu truoc). PATCH/DELETE 1 muc lich: duoc phep neu la nguoi TAO ra no, HOAC co
+// CALENDAR_MANAGE va cap bac (rank) cua CHINH MINH cao hon cap bac cua nguoi da tao (createdByRank)
+// - tinh rank theo permission (KHONG doan ten vai tro, du an nay da tung sua loi anti-pattern nay -
+// xem canReassignOwner tai CustomerDetailPage.tsx).
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
@@ -13,8 +22,10 @@ import { FullPageSpinner } from '@/components/ui/Spinner';
 import { QueryState } from '@/components/ui/QueryState';
 import { ChevronLeftIcon, ChevronRightIcon, PlusIcon } from '@/components/ui/Icons';
 import { cn, getTodayGmt7DateString } from '@/lib/utils';
-import { useCalendarEventsQuery, useDeleteCalendarEvent } from './hooks';
-import { CalendarEventModal } from './components/CalendarEventModal';
+import { useAuthStore, usePermissions } from '@/stores/auth.store';
+import { PERMISSIONS } from '@/constants/permissions';
+import { useCalendarEventsQuery, useDeleteCalendarEvent } from '../hooks';
+import { CalendarEventModal } from './CalendarEventModal';
 import type { CalendarEvent } from '@/types';
 
 const TYPE_DOT_CLASS: Record<CalendarEvent['type'], string> = {
@@ -28,7 +39,20 @@ const TYPE_PILL_CLASS: Record<CalendarEvent['type'], string> = {
 
 const MAX_PILLS_PER_CELL = 3;
 
-export function CalendarPage() {
+/**
+ * 03/10/2026: cap bac (tier) cua CHINH nguoi dang xem, tinh THEO PERMISSION ho dang giu (khop
+ * dung dinh nghia createdByRank ma backend gan cho muc lich luc tao - xem CalendarEvent type) -
+ * dung de so sanh voi createdByRank cua 1 muc lich khi quyet dinh co duoc sua/xoa muc do khong
+ * (du KHONG phai nguoi tao ra no).
+ */
+function computeOwnRank(permissions: string[]): number {
+  if (permissions.includes(PERMISSIONS.ORG_MANAGE)) return 3;
+  if (permissions.includes(PERMISSIONS.CALENDAR_MANAGE)) return 2;
+  return 1;
+}
+
+/** Component nhung, co the dat trong bat ky trang nao (hien dang dung trong LeaveRequestsPage.tsx) - tu fetch du lieu, khong nhan prop. */
+export function CompanyCalendar() {
   const { t } = useTranslation();
   const today = useMemo(() => new Date(), []);
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -38,6 +62,11 @@ export function CalendarPage() {
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [deletingEvent, setDeletingEvent] = useState<CalendarEvent | null>(null);
 
+  const currentUser = useAuthStore((s) => s.user);
+  const permissions = usePermissions();
+  const canManageCalendar = permissions.includes(PERMISSIONS.CALENDAR_MANAGE);
+  const ownRank = useMemo(() => computeOwnRank(permissions), [permissions]);
+
   const todayStr = useMemo(() => getTodayGmt7DateString(), []);
   const monthStartStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -46,6 +75,20 @@ export function CalendarPage() {
   const calendarEventsQuery = useCalendarEventsQuery({ startDate: monthStartStr, endDate: monthEndStr });
   const deleteCalendarEvent = useDeleteCalendarEvent();
   const events = calendarEventsQuery.data ?? [];
+
+  /**
+   * Nguoi xem duoc sua/xoa 1 muc lich neu la nguoi tao ra no, HOAC co CALENDAR_MANAGE va cap bac
+   * cao hon nguoi da tao. RIENG HOLIDAY: giu CALENDAR_MANAGE la DU, khong so sanh cap bac - mirror
+   * dung "backstop HOLIDAY" cua `assertCanModify()` phia backend (bat ky Org Admin/Manager nao
+   * cung quan ly duoc moi ngay le, khong chi Org Admin cao cap hon nguoi da tao no). Thieu nhanh
+   * nay (phat hien qua rieng soat 03/10/2026) khien 1 Manager khong thay nut Sua/Xoa cho ngay le
+   * do Org Admin tao du backend van chap nhan request - form chi mo len o dang chi-doc oan uong.
+   */
+  function canManageEvent(event: CalendarEvent): boolean {
+    if (event.type === 'HOLIDAY') return canManageCalendar;
+    if (currentUser && event.createdByUserId === currentUser.id) return true;
+    return canManageCalendar && ownRank > event.createdByRank;
+  }
 
   const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
   // 0 (Chu nhat) -> 6, 1 (T2) -> 0 - tuan bat dau Thu Hai, mirror DatePicker.tsx.
@@ -86,7 +129,7 @@ export function CalendarPage() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-500">{t('admin:calendarPage.description')}</p>
+        <p className="text-sm text-slate-500">{t('hrm:companyCalendar.description')}</p>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-2xs">
             <button
@@ -115,17 +158,17 @@ export function CalendarPage() {
               setIsCreateOpen(true);
             }}
           >
-            <PlusIcon className="h-4 w-4" /> {t('admin:calendarPage.newEntry')}
+            <PlusIcon className="h-4 w-4" /> {t('hrm:companyCalendar.newEntry')}
           </Button>
         </div>
       </div>
 
       <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
         <span className="flex items-center gap-1.5">
-          <span className={cn('h-2 w-2 rounded-full', TYPE_DOT_CLASS.HOLIDAY)} /> {t('admin:calendarEventModal.type.HOLIDAY')}
+          <span className={cn('h-2 w-2 rounded-full', TYPE_DOT_CLASS.HOLIDAY)} /> {t('hrm:calendarEventModal.type.HOLIDAY')}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className={cn('h-2 w-2 rounded-full', TYPE_DOT_CLASS.EVENT)} /> {t('admin:calendarEventModal.type.EVENT')}
+          <span className={cn('h-2 w-2 rounded-full', TYPE_DOT_CLASS.EVENT)} /> {t('hrm:calendarEventModal.type.EVENT')}
         </span>
       </div>
 
@@ -136,10 +179,10 @@ export function CalendarPage() {
           onRetry={() => calendarEventsQuery.refetch()}
           loadingFallback={
             <div className="flex justify-center py-12">
-              <FullPageSpinner label={t('admin:calendarPage.loading')} />
+              <FullPageSpinner label={t('hrm:companyCalendar.loading')} />
             </div>
           }
-          errorTitle={t('admin:calendarPage.errorTitle')}
+          errorTitle={t('hrm:companyCalendar.errorTitle')}
         >
           <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/60">
             {WEEK_DAYS.map((wd, idx) => (
@@ -204,7 +247,7 @@ export function CalendarPage() {
                     ))}
                     {hiddenCount > 0 && (
                       <span className="block px-1.5 text-[10px] font-semibold text-slate-400">
-                        {t('admin:calendarPage.moreEntries', { count: hiddenCount })}
+                        {t('hrm:companyCalendar.moreEntries', { count: hiddenCount })}
                       </span>
                     )}
                   </div>
@@ -222,19 +265,20 @@ export function CalendarPage() {
         </QueryState>
       </Card>
 
-      <CalendarEventModal
-        open={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        defaultDate={createDefaultDate}
-      />
+      <CalendarEventModal open={isCreateOpen} onClose={() => setIsCreateOpen(false)} defaultDate={createDefaultDate} />
       <CalendarEventModal
         open={Boolean(editingEvent)}
         onClose={() => setEditingEvent(null)}
         calendarEvent={editingEvent}
-        onDelete={(ev) => {
-          setEditingEvent(null);
-          setDeletingEvent(ev);
-        }}
+        readOnly={editingEvent ? !canManageEvent(editingEvent) : false}
+        onDelete={
+          editingEvent && canManageEvent(editingEvent)
+            ? (ev) => {
+                setEditingEvent(null);
+                setDeletingEvent(ev);
+              }
+            : undefined
+        }
       />
       <ConfirmDialog
         open={Boolean(deletingEvent)}
@@ -243,9 +287,9 @@ export function CalendarPage() {
           if (deletingEvent) deleteCalendarEvent.mutate(deletingEvent.id);
           setDeletingEvent(null);
         }}
-        title={t('admin:calendarPage.deleteConfirm.title')}
-        description={deletingEvent ? t('admin:calendarPage.deleteConfirm.description', { title: deletingEvent.title }) : undefined}
-        confirmLabel={t('admin:calendarEventModal.delete')}
+        title={t('hrm:companyCalendar.deleteConfirm.title')}
+        description={deletingEvent ? t('hrm:companyCalendar.deleteConfirm.description', { title: deletingEvent.title }) : undefined}
+        confirmLabel={t('hrm:calendarEventModal.delete')}
         danger
       />
     </div>

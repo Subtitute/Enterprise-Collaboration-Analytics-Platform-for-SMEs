@@ -239,6 +239,55 @@ describe('LeaveRequestsService', () => {
   });
 
   /**
+   * 03/10/2026: findAll() (GET /leave-requests, PERMISSIONS.LEAVE_REQUEST_VIEW) truoc gio KHONG co
+   * test nao, du da ho tro san query.userId (mirror dung AttendanceQueryDto.userId/
+   * AttendanceService.findAll() - xem LeaveRequestQueryDto). Bo sung test de "chot" hanh vi nay:
+   * Manager/Org Admin truyen userId MA KHONG truyen status se nhan DUOC CA 3 trang thai (PENDING/
+   * APPROVED/REJECTED) cua 1 nhan vien cu the - day CHINH LA "lich su nghi phep day du theo tung
+   * nhan vien" (khac voi GET /leave-requests/me chi tra ve cua CHINH nguoi goi).
+   */
+  describe('findAll (toan to chuc, loc theo userId/status - mirror AttendanceService.findAll())', () => {
+    it('loc theo userId, KHONG truyen status -> tra ve moi trang thai (lich su day du cua 1 nhan vien)', async () => {
+      const rows = [
+        pendingRequest({ id: 'lr-1', status: LeaveRequestStatus.APPROVED }),
+        pendingRequest({ id: 'lr-2', status: LeaveRequestStatus.REJECTED }),
+      ];
+      const leaveRequestRepoMock = { findOne: jest.fn(), findAndCount: jest.fn().mockResolvedValue([rows, 2]) };
+      const { service } = createService({ leaveRequestRepoMock } as any);
+
+      const result = await service.findAll(organizationId, { userId, page: 1, limit: 20 });
+
+      expect(leaveRequestRepoMock.findAndCount).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { organizationId, userId } }),
+      );
+      expect(result.data).toHaveLength(2);
+      expect(result.meta).toEqual({ page: 1, limit: 20, total: 2 });
+    });
+
+    it('khong truyen userId/status -> loc CHI theo organizationId (danh sach toan to chuc)', async () => {
+      const leaveRequestRepoMock = { findOne: jest.fn(), findAndCount: jest.fn().mockResolvedValue([[], 0]) };
+      const { service } = createService({ leaveRequestRepoMock } as any);
+
+      await service.findAll(organizationId, { page: 1, limit: 20 });
+
+      expect(leaveRequestRepoMock.findAndCount).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { organizationId } }),
+      );
+    });
+
+    it('truyen ca userId lan status -> loc ca 2 dieu kien cung luc', async () => {
+      const leaveRequestRepoMock = { findOne: jest.fn(), findAndCount: jest.fn().mockResolvedValue([[], 0]) };
+      const { service } = createService({ leaveRequestRepoMock } as any);
+
+      await service.findAll(organizationId, { userId, status: LeaveRequestStatus.PENDING, page: 1, limit: 20 });
+
+      expect(leaveRequestRepoMock.findAndCount).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { organizationId, userId, status: LeaveRequestStatus.PENDING } }),
+      );
+    });
+  });
+
+  /**
    * 22/09/2026: test cho tinh nang moi - so du phep (getMyBalance()), theo de xuat cua Tien "Tính
    * phép theo Luật LĐ VN". Chi khoa lai usedDays (dem ngay lam viec Thu2-Thu6 cua don APPROVED
    * giao voi nam hien tai) + chinh sach tra ve nguyen ven tu LeavePolicyService - entitledDays/

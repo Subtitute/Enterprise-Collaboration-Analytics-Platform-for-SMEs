@@ -432,6 +432,12 @@ export interface CalendarEvent {
   startDate: string;
   endDate: string;
   createdByUserId: string;
+  // 03/10/2026: moi - cap bac (tier) cua nguoi TAO muc lich nay tai THOI DIEM tao (1=Employee,
+  // 2=Manager, 3=Org Admin, tinh theo permission chu khong doan ten vai tro - xem chu thich tai
+  // CompanyCalendar.tsx) - dung de quyet dinh ai duoc sua/xoa muc lich KHONG PHAI do minh tao
+  // (Manager/Org Admin voi cap bac CAO HON nguoi tao moi duoc can thiep, mirror co che "cap tren
+  // sua duoc viec cua cap duoi" thay vi chi 1 nhom CALENDAR_MANAGE duy nhat nhu truoc).
+  createdByRank: number;
   createdAt: string;
 }
 

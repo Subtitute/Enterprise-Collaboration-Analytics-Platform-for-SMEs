@@ -626,6 +626,39 @@ tin nhắn/badge chưa đọc/tiêu đề hội thoại), `flutter build apk --d
 qua Gateway thật (2 tài khoản, không chỉ đọc code): tạo hội thoại 1:1 → dedup đúng khi tạo lại lần
 2 → gửi tin → người nhận thấy đúng số chưa đọc → tạo nhóm 3 người → gửi tin nhóm thành công.
 
+## 18. Phát hiện nghỉ phép qua chat — "Hẹn lịch nghỉ" (03/10/2026)
+
+Phần việc mobile trong đợt cập nhật lớn 03/10/2026 của nền tảng (xem `Technical_Spec.md` §21.4) —
+cùng quy tắc nhận diện với bản web, triển khai độc lập bằng Dart vì không chia sẻ được code giữa 2
+nền tảng.
+
+`lib/features/messaging/leave_detection.dart` (mới) — hàm thuần `detectLeaveIntent(String text,
+{DateTime? todayGmt7})` nhận diện ngày tuyệt đối (dd/mm[/yyyy]), "ngày X tháng Y", ngày tương đối
+(hôm nay/mai/mốt/kia), thứ trong tuần (kèm tuần này/sau), mốc tương đối ("N ngày/tuần nữa"), và
+giờ/khoảng thời gian (Xh, X giờ, X:YY, X tiếng, X phút — khớp thì mặc định ngày là hôm nay). So
+khớp trên bản sao đã bỏ dấu tiếng Việt (tự viết, không dùng gói ngoài) để `\b` word-boundary hoạt
+động đúng và tự nhiên chấp nhận được cả 2 cách gõ có dấu/không dấu. `lib/core/date_format.dart`
+tách thêm hàm `nowGmt7()` công khai (trước đó là hàm riêng `_toGmt7`) để tái dùng đúng 1 chỗ tính
+giờ GMT+7 cho cả bản thuần lẫn luồng cũ, không viết lại phép tính ngày mới.
+
+`lib/features/messaging/chat_page.dart`: dưới mỗi tin nhắn của CHÍNH người đang đăng nhập (kiểm
+tra `isMine`, không bao giờ hiện cho tin người khác kể cả trong nhóm) mà `detectLeaveIntent` khớp,
+hiện 1 `Chip` "Hẹn lịch nghỉ". Bấm vào mở `showModalBottomSheet` (ngày điền sẵn theo kết quả nhận
+diện, lý do điền sẵn nguyên văn tin nhắn) gọi thẳng `ApiClient.postJson('/leave-requests', ...)` —
+đúng API/luồng duyệt mà màn hình Nghỉ phép có sẵn đang dùng, không có hàm tạo đơn nghỉ riêng nào
+khác để tránh trùng lặp logic HTTP. Gửi thành công thì đổi `Chip` sang trạng thái đã xác nhận
+(theo dõi bằng `Set<String>` id tin nhắn, chỉ tồn tại trong phiên hiện tại) để tránh gửi trùng.
+
+**Giới hạn đã biết, chấp nhận được** (ghi nhận thêm vào §14): nhận diện bằng regex thuần không
+phải mô hình học máy, nên "mai" (ngày mai) có thể trùng với tên riêng "Mai" sau khi bỏ dấu — đã
+rào bằng `\b` word-boundary để ít nhất không khớp nhầm bên trong 1 từ khác (vd "email"), nhưng
+không loại bỏ hoàn toàn khả năng trùng tên người thật.
+
+**Xác minh:** `flutter test` (24/24, 14 test mới cho `leave_detection.dart` — đủ các nhóm mẫu +
+2 trường hợp cố tình không khớp + phép tính ngày tương đối/thứ-trong-tuần/mốc tương đối với
+`todayGmt7` cố định để kết quả tất định), `flutter analyze` (0 lỗi mới), `flutter build apk
+--debug` thành công.
+
 ## Lịch sử thay đổi tài liệu
 
 - **06/08/2026** — Khởi tạo tài liệu, đồng thời với việc scaffold `ecap-mobile` (Flutter/Dart,
@@ -719,3 +752,9 @@ qua Gateway thật (2 tài khoản, không chỉ đọc code): tạo hội tho�
   hình chỉ-đọc thay vì tự thêm route backend ngoài phạm vi. Chi tiết đầy đủ ở §17 (mới). Xác minh:
   `flutter analyze`/`test`/`build apk --debug` sạch; kiểm thử sống qua Gateway thật với 2 tài
   khoản (1:1 + nhóm 3 người).
+- **03/10/2026 (phát hiện nghỉ phép qua chat)** — Phần việc mobile trong đợt cập nhật lớn của nền
+  tảng (6 hạng mục, xem `Technical_Spec.md` §21): hàm thuần `detectLeaveIntent()`
+  (`lib/features/messaging/leave_detection.dart`) nhận diện cụm từ ngày/giờ tiếng Việt bằng regex
+  (cùng quy tắc với bản web), hiện chip "Hẹn lịch nghỉ" dưới tin nhắn của chính người gửi trong
+  `chat_page.dart`, tạo đơn nghỉ thật qua API sẵn có khi bấm vào. Chi tiết đầy đủ ở §18 (mới). Xác
+  minh: `flutter test` 24/24 (14 test mới), `flutter analyze`/`build apk --debug` sạch.

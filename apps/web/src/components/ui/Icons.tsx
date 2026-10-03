@@ -26,6 +26,16 @@ export const GridIcon = (p: IconProps) => (
   </svg>
 );
 
+// 03/10/2026: icon moi (kieu ngoi nha) - dung cho nav item "Trang chủ" tren rail chinh, gop chung
+// Dashboard/Du an & Cong viec/Tai lieu/Khach hang phia sau 1 icon duy nhat (xem nav-items.ts,
+// SecondarySidebar.tsx).
+export const HomeIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M3 11.5 12 4l9 7.5" />
+    <path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" />
+  </svg>
+);
+
 export const ListIcon = (p: IconProps) => (
   <svg {...base(p)}>
     <line x1="8" y1="6" x2="21" y2="6" />

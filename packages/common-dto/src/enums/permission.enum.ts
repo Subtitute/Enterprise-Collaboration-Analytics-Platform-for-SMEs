@@ -60,12 +60,16 @@ export const PERMISSIONS = {
   SYSTEM_MANAGE: 'system:manage',
 
   // 15/09/2026: Lich cong ty (HRM-lite mo rong, theo yeu cau GVHD) - thiet lap ngay le/su kien
-  // dung chung toan to chuc. Mirror dung SYSTEM_MANAGE ngay tren: 1 quyen DUY NHAT cho ca xem lan
-  // quan ly (khong tach CALENDAR_VIEW rieng) vi trang nay dat trong khu vuc Quan tri (chi Org
-  // Admin thay duoc) - xem General_idea.md muc 4 ("Org Admin" la vai tro quan tri DUY NHAT thuc su
-  // ton tai). Chi Org Admin duoc cap (qua DEFAULT_ROLE_PERMISSIONS.ORG_ADMIN ben duoi), KHONG dua
-  // vao danh sach Manager/Employee - ngay le/su kien cong ty la thiet lap cap to chuc, khong phai
-  // nghiep vu hang ngay cua tung phong ban.
+  // dung chung toan to chuc. 1 quyen DUY NHAT cho ca xem lan quan ly (khong tach CALENDAR_VIEW
+  // rieng).
+  //
+  // 03/10/2026: mo rong - xem lich (GET) nay da mo cho MOI thanh vien to chuc (khong con doi hoi
+  // quyen nay), va Manager cung duoc cap quyen nay (truoc day CHI Org Admin) de lam "co quan ly
+  // lich nang cao": tao/sua/xoa ngay nghi le CHINH THUC (CalendarEventType.HOLIDAY), cong them
+  // duoc sua/xoa su kien (EVENT) do nguoi co tham quyen THAP HON tao (xem
+  // CalendarEventsService - computeCallerCalendarRank()). Employee van tao/sua/xoa duoc EVENT CUA
+  // CHINH MINH nhung KHONG duoc cap quyen nay (khong tao/dung vao HOLIDAY, khong dung vao EVENT
+  // nguoi khac tao).
   CALENDAR_MANAGE: 'calendar:manage',
 
   // 22/09/2026: giai trinh/duyet cham cong va dang ky/duyet tang ca (HRM-lite mo rong) - mirror
@@ -146,6 +150,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<DefaultRoleName, Permission[]> = {
     PERMISSIONS.MESSAGE_VIEW,
     PERMISSIONS.MESSAGE_SEND,
     PERMISSIONS.MESSAGE_MANAGE_GROUP,
+    // 03/10/2026: Lich cong ty - Manager duoc cap "co quan ly lich nang cao" (xem chu thich tai
+    // khai bao CALENDAR_MANAGE o tren), truoc day quyen nay CHI Org Admin co.
+    PERMISSIONS.CALENDAR_MANAGE,
   ],
   [DefaultRoleName.EMPLOYEE]: [
     PERMISSIONS.PROJECT_VIEW,

@@ -28,8 +28,12 @@ export function useNotificationsQuery(params: FetchNotificationsParams = {}) {
   });
 }
 
-export function useUnreadNotificationsPreview() {
-  return useNotificationsQuery({ isRead: false, page: 1, limit: 6 });
+// 03/10/2026: NotificationBell gio hien TOAN BO thong bao (khong con loc isRead:false + limit:6),
+// nen so dem chua doc tren dau cham chuong can mot query RIENG - khong the lay tu meta.total cua
+// danh sach hien thi nua vi danh sach do la tong so thong bao (ca da doc), khong con dong nghia voi
+// "chua doc". limit:1 vi chi can meta.total, khong can du lieu cua chinh ban ghi nao.
+export function useUnreadNotificationsCount() {
+  return useNotificationsQuery({ isRead: false, page: 1, limit: 1 });
 }
 
 export function useMarkNotificationRead() {

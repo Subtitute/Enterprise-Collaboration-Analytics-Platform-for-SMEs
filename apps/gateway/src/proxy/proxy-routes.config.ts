@@ -6,7 +6,16 @@
 export interface RestProxyRouteGroup {
   prefixes: string[];
   targetConfigKey: string;
+  // 03/10/2026: tuy chon ghi de thoi gian cho proxy (ms) - mac dinh dung PROXY_TIMEOUT_MS chung
+  // (30s, rest-proxy.factory.ts) neu khong dat. Phat hien qua rieng soat: 30s chung cho MOI route
+  // la qua gat gao voi tai len/tai xuong file lon (document-service) va bao cao/suy luan ML nang
+  // (analytics/ml-service) - 1 request CHAM nhung VAN khoe manh (khong hang that) se bi huy giua
+  // chung, tra ve 502 oan uong cho nguoi dung dang cho ket qua binh thuong.
+  timeoutMs?: number;
 }
+
+/** Thoi gian cho rieng cho cac route co the hop ly mat >30s (tai file lon, bao cao/suy luan ML). */
+const EXTENDED_PROXY_TIMEOUT_MS = 120_000;
 
 export const REST_PROXY_ROUTES: RestProxyRouteGroup[] = [
   {
@@ -22,6 +31,7 @@ export const REST_PROXY_ROUTES: RestProxyRouteGroup[] = [
   {
     prefixes: ['/api/v1/folders', '/api/v1/files'],
     targetConfigKey: 'services.document',
+    timeoutMs: EXTENDED_PROXY_TIMEOUT_MS, // tai len/tai xuong file lon co the hop ly mat hon 30s
   },
   {
     // 28/07/2026: them '/api/v1/failed-events' (nang cap Dead Letter Queue) - endpoint quan tri
@@ -34,6 +44,7 @@ export const REST_PROXY_ROUTES: RestProxyRouteGroup[] = [
   {
     prefixes: ['/api/v1/analytics'],
     targetConfigKey: 'services.analytics',
+    timeoutMs: EXTENDED_PROXY_TIMEOUT_MS, // "Nhan xet AI"/bao cao tong hop co the mat hon 30s
   },
   {
     // 04/08/2026: CRM-lite Service (Technical_Spec.md muc 16).
@@ -65,6 +76,7 @@ export const REST_PROXY_ROUTES: RestProxyRouteGroup[] = [
     // service Node khac (Gateway khong phan biet ngon ngu backend, chi proxy HTTP thuan).
     prefixes: ['/api/v1/ml'],
     targetConfigKey: 'services.ml',
+    timeoutMs: EXTENDED_PROXY_TIMEOUT_MS, // IsolationForest tren toan to chuc co the mat hon 30s
   },
   {
     // 28/09/2026: Messaging Service (nhan tin noi bo 1:1 va nhom/kenh).

@@ -29,6 +29,14 @@ async function bootstrap() {
   // (X-Content-Type-Options, X-Frame-Options, ...) cho moi response Gateway tra ve.
   app.use(helmet());
 
+  // 03/10/2026: tat han HTTP keep-alive cho MOI response (khong chi route proxy, xem chu thich
+  // tuong tu o rest-proxy.factory.ts) - vong nay bao phu /health, /metrics va cac route Nest
+  // thuc su khac cua chinh Gateway, von khong di qua createServiceProxy().
+  app.use((_req, res, next) => {
+    res.setHeader('Connection', 'close');
+    next();
+  });
+
   app.setGlobalPrefix('api/v1');
 
   // CORS whitelist + credentials: true (Technical_Spec.md muc 6, muc 9) - can thiet de trinh

@@ -1,6 +1,6 @@
 # Technical Specification — Enterprise Collaboration & Analytics Platform for SMEs
 
-> Trạng thái: **ĐÃ TRIỂN KHAI** — mô tả kiến trúc/hệ thống đã lập trình và xác minh sống cho §1–§20;
+> Trạng thái: **ĐÃ TRIỂN KHAI** — mô tả kiến trúc/hệ thống đã lập trình và xác minh sống cho §1–§21;
 > phần cố ý chưa triển khai (CDC/Debezium, forecasting ML, Layer 4/6 của §19) được đánh dấu rõ tại
 > chỗ và theo dõi thêm ở `Upgrade.md`. Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
 
@@ -608,6 +608,108 @@ thật (2 tài khoản thật, không chỉ đọc code): tạo hội thoại 1:
 Gateway/service — do hành vi `Expect: 100-continue` mặc định của .NET HTTP client khi POST kèm
 JSON body, không liên quan tới trình duyệt/Dio (mobile) hay `curl`. Không cần sửa code.
 
+## 21. Tái cấu trúc điều hướng, gộp Lịch công ty, phát hiện nghỉ phép qua chat, khắc phục ERR_EMPTY_RESPONSE *(bổ sung 03/10/2026)*
+
+Một đợt cập nhật lớn theo yêu cầu trực tiếp, chia 6 hạng mục độc lập, triển khai song song bằng
+6 agent (web nav/routing, backend HRM, frontend HRM, thông báo, phát hiện nghỉ phép qua chat ở
+web và ở mobile) cộng 1 việc nhỏ (Gateway) tự thực hiện trực tiếp.
+
+### 21.1 Điều hướng — gộp Dự án/Tài liệu/Khách hàng vào "Trang chủ"
+
+Sidebar chính (`apps/web/src/components/layout/Sidebar.tsx`) nay LUÔN ở dạng icon thu gọn
+(`w-[68px]`), chỉ mở rộng thành overlay (`absolute`, không đẩy nội dung trang) khi con trỏ
+chuột di vào — thay thế hẳn cơ chế thu/phóng thủ công cũ (`useUIStore.sidebarCollapsed`, đã gỡ
+bỏ cùng logic tự thu gọn ở breakpoint tablet, nay dư thừa vì sidebar luôn thu gọn mặc định).
+Mục "Trang chủ" (route gốc `/dashboard`) khi đang active (bất kỳ route nào trong nhóm
+`/dashboard`/`/projects`/`/documents`/`/customers`) hiện thêm 1 sidebar phụ cố định
+(`SecondarySidebar.tsx`, không phải flyout) liệt kê 4 mục: Tổng quan/Dự án và công việc/Tài
+liệu/Khách hàng — các route giữ nguyên hoàn toàn, đây thuần tuý là thay đổi cách trình bày điều
+hướng. Thứ tự điều hướng chính mới: Trang chủ → Chấm công → Nghỉ phép → Nhắn tin → Báo cáo &
+Phân tích → Quản trị.
+
+### 21.2 Xoá trang Thông báo riêng, gộp hết vào dropdown chuông
+
+Dropdown chuông thông báo (`NotificationBell.tsx`) nay là giao diện thông báo DUY NHẤT: hiện
+toàn bộ thông báo (không chỉ 6 cái chưa đọc), phân trang bằng nút "Tải thêm", bấm vào 1 thông
+báo đánh dấu đã đọc ngay (cập nhật số đếm huy hiệu qua 1 query đếm riêng) và điều hướng bằng
+`react-router-dom`'s `navigate()` (trước đây dùng `window.location.href`, gây tải lại cả trang
+không cần thiết) nếu có link đính kèm, hoặc mở rộng ngay tại chỗ để xem toàn văn nếu không có
+link. Trang `/notifications` cũ đã xoá hẳn. Cố ý bỏ qua: bộ lọc theo loại thông báo và nhãn phạm
+vi hiển thị ("Toàn tổ chức"/"Của bạn"...) — giữ dropdown gọn, có thể bổ sung lại sau nếu cần.
+
+### 21.3 Lịch công ty gộp vào Nghỉ phép (tỷ lệ 60:40), đổi hẳn mô hình phân quyền
+
+Trang Nghỉ phép (`LeaveRequestsPage.tsx`) nay chia 2 cột: lịch công ty (`CompanyCalendar.tsx`,
+chuyển từ `features/admin/` sang `features/hrm/`) chiếm 60% bên trái, 3 khối cũ (số dư phép/chờ
+duyệt/yêu cầu của tôi) xếp chồng ở 40% bên phải. Trang `/admin/calendar` + tab "Lịch công ty" ở
+Quản trị đã gỡ bỏ hoàn toàn.
+
+Mô hình phân quyền cũ (chỉ Org Admin được CRUD, qua `CALENDAR_MANAGE`) đổi hẳn: **mọi thành viên
+xem được lịch và tự tạo được sự kiện (`type: EVENT`)**; tạo sự kiện **ngày lễ chính thức**
+(`type: HOLIDAY` — loại ảnh hưởng thật tới chấm công, xem `findHolidayForDate()` ở §17) vẫn chỉ
+dành cho Org Admin/Manager (`CALENDAR_MANAGE` nay thêm cho cả Manager, trước đây chỉ Org Admin).
+Sửa/xoá 1 sự kiện được phép khi: bạn là người tạo, HOẶC bạn giữ `CALENDAR_MANAGE` và **cấp bậc**
+của bạn cao hơn cấp bậc của người tạo tại thời điểm họ tạo (snapshot `createdByRank` lưu ngay
+trên bản ghi, 1=Employee/2=Manager/3=Org Admin — suy ra từ chính bộ quyền của người gọi lúc tạo,
+KHÔNG so khớp theo tên vai trò, đúng bài học đã rút ra 17/09/2026). Riêng loại HOLIDAY: giữ
+`CALENDAR_MANAGE` là đủ để sửa/xoá bất kỳ ngày lễ nào, không cần so cấp bậc (vì chỉ Org
+Admin/Manager mới tạo được loại này ngay từ đầu). Kết quả cụ thể: Employee tự sửa/xoá được sự
+kiện của chính mình nhưng không đụng được sự kiện của Manager/Org Admin hay bất kỳ ngày lễ nào;
+Manager sửa/xoá được sự kiện của Employee và mọi ngày lễ, nhưng không đụng được sự kiện của Org
+Admin.
+
+**Xem lịch sử theo từng nhân viên (Chấm công + Nghỉ phép):** 2 trang mới `/attendance/:userId`
+và `/leave-requests/:userId` (chỉ Manager/Org Admin, gate bằng `ATTENDANCE_VIEW`/
+`LEAVE_REQUEST_VIEW` sẵn có — không phải "Admin" tách biệt, hệ thống chỉ có 3 vai trò như đã làm
+rõ 15/09/2026). Backend hoá ra ĐÃ hỗ trợ sẵn tham số `userId` cho cả 2 endpoint danh sách
+(`GET /attendance?userId=`, `GET /leave-requests?userId=`) từ trước — chỉ chưa từng được frontend
+gọi tới, không cần thêm endpoint mới. Dòng trong bảng "Chấm công toàn tổ chức" nay bấm được để
+mở trang chi tiết; trang Nghỉ phép thêm 1 ô tìm-chọn nhân viên cho mục đích tương tự.
+
+### 21.4 Phát hiện nghỉ phép qua chat — gợi ý "Hẹn lịch nghỉ"
+
+Cả `apps/web` (`features/messaging/utils/leaveDetection.ts`) và `ecap-mobile`
+(`lib/features/messaging/leave_detection.dart`) cùng triển khai một bộ quy tắc nhận diện ngày/giờ
+tiếng Việt bằng biểu thức chính quy thuần (không dùng mô hình học máy — phạm vi đã thống nhất là
+"fuzzy" theo nghĩa bao phủ nhiều cách diễn đạt, không phải NLP thật): ngày tuyệt đối (dd/mm[/yyyy],
+"ngày X tháng Y"), ngày tương đối (hôm nay/mai/mốt/kia), thứ trong tuần (kèm "tuần này/sau"), mốc
+tương đối ("N ngày/tuần nữa"), và giờ/khoảng thời gian (Xh, X giờ, X:YY, X tiếng, X phút — khớp
+thì mặc định ngày là hôm nay). Khi khớp bất kỳ mẫu nào trong CHÍNH tin nhắn của người dùng đang
+đăng nhập (không bao giờ hiện cho tin của người khác, kể cả trong nhóm — tránh tạo nhầm đơn nghỉ
+dưới tên người khác), hiện 1 chip nhỏ "Hẹn lịch nghỉ" ngay dưới tin nhắn; bấm vào mở form rút gọn
+(ngày đã điền sẵn theo mẫu nhận diện được, lý do điền sẵn nguyên văn tin nhắn) gọi thẳng API tạo
+đơn nghỉ phép sẵn có (`POST /leave-requests`) — đơn vẫn đi qua đúng quy trình duyệt bình thường
+và xuất hiện trong lịch sử như mọi đơn khác. Sau khi gửi thành công, chip đổi trạng thái (chỉ
+trong phiên hiện tại) để tránh gửi trùng do bấm nhầm lần 2.
+
+### 21.5 Khắc phục `ERR_EMPTY_RESPONSE` sau khi chạy rảnh rỗi một thời gian
+
+Gốc rễ: Gateway và mọi service phía sau đều dùng `http.Server` mặc định của Node
+(`keepAliveTimeout` ~5 giây), trong khi trình duyệt giữ kết nối HTTP keep-alive trong pool lâu
+hơn nhiều — sau một khoảng rảnh rỗi, trình duyệt tái sử dụng một socket mà phía server đã âm
+thầm đóng, nhận về response rỗng. Thay vì tinh chỉnh `keepAliveTimeout`/`headersTimeout` cho
+khớp nhau (dễ lệch lại nếu một bên đổi sau này), **tắt hẳn HTTP keep-alive**: Gateway ép header
+`Connection: close` lên MỌI response — cả response từ route Nest thật (`/health`/`/metrics`,
+đặt middleware ngay trong `main.ts`) lẫn response proxy qua `http-proxy-middleware` (ghi đè
+`proxyRes.headers.connection` trong `rest-proxy.factory.ts`) — buộc trình duyệt luôn mở kết nối
+mới cho mỗi request, loại bỏ hẳn lớp lỗi này. Chi phí (mở lại TCP mỗi request) không đáng kể ở
+quy mô demo/dev của đồ án. Xác minh trực tiếp: `curl -i` qua Gateway cho cả route thật lẫn route
+proxy đều trả về `Connection: close`.
+
+### 21.6 Xác minh trực tiếp trên hệ thống thật
+
+`typecheck`/`lint`/`lint:i18n-strings`/`test` sạch toàn workspace sau khi gộp cả 6 nhánh song
+song (bao gồm 34 test mới ở `apps/web` cho `leaveDetection.ts`, 14 test mới ở `hrm-service` cho
+ma trận phân quyền lịch, 14 test mới ở `ecap-mobile` cho `leave_detection.dart`). Rebuild +
+redeploy `web`/`gateway`/`hrm-service`/`iam-service`. Kiểm thử sống qua Gateway thật: Employee
+xem được lịch + tự tạo EVENT nhưng bị từ chối `403` khi tạo HOLIDAY; Manager tạo HOLIDAY thành
+công, xoá được EVENT của Employee, Employee bị từ chối `403` khi xoá HOLIDAY của Manager; Manager
+tra cứu lịch sử nghỉ phép của 1 nhân viên cụ thể thành công, Employee bị từ chối khi tự ý tra
+cứu người khác. Đã cấp quyền `calendar:manage` cho vai trò Manager của tổ chức demo (giống tiền
+lệ `ml:view`/`message:*` trước đó — quyền mới không tự "vá ngược" vào vai trò đã seed sẵn). Dọn
+sạch toàn bộ dữ liệu thử nghiệm (sự kiện lịch, đơn nghỉ) tạo ra trong lúc kiểm thử trước khi kết
+thúc.
+
 ---
 
 ## Lịch sử thay đổi tài liệu
@@ -774,3 +876,4 @@ JSON body, không liên quan tới trình duyệt/Dio (mobile) hay `curl`. Khôn
 - **24/09/2026 (nhập Excel hàng loạt + Analytics nâng cao: Diagnostic/Anomaly Detection/Recommendation Engine)** — Bổ sung §19: nhập nhân viên hàng loạt qua Excel (`ImportEmployeesModal.tsx`, tái dùng nguyên vẹn `POST /users/invite`); Layer 2 Diagnostic drill-down (`GET /analytics/drill-down`, cột `fact_task_events.due_date` mới); Layer 3 Anomaly Detection — service **Python/FastAPI đầu tiên** của dự án (`apps/ml-service`, scikit-learn `IsolationForest`, Postgres riêng `postgres-ml`); Layer 5 Recommendation Engine mở rộng "Nhận xét AI" có sẵn (`POST /analytics/ai-insights` mới, `GET` cũ không đổi) thêm "Kế hoạch hành động" khi có dữ liệu bất thường. 2 lỗi thật phát hiện qua viết `pytest` tích hợp cho `ml-service` (thiếu ép kiểu `::uuid[]` khi bind mảng vào `ANY()`; `contamination='auto'` của scikit-learn flag 25-44% nhân viên trên dữ liệu nhiễu thuần túy — đổi sang tỷ lệ cố định 10%). Layer 4 (Forecasting)/Layer 6 (What-if)/Demo Data Scenario Generator cố ý chưa làm, ghi nhận Tier 4 trong `Doc/Upgrade.md`. Gate cuối sạch toàn workspace + `pytest` 18/18; Playwright e2e xác nhận sống cả 4 luồng qua Gateway. Chi tiết đầy đủ: `Doc/RevisionHistory.md` mục "24/09/2026".
 - **25/09/2026 (bổ sung §19.6 — khắc phục sau phản hồi trực tiếp trên hệ thống thật)** — Người dùng phản hồi 2 vấn đề khi xem tổ chức demo thật: dữ liệu rác E2E tích luỹ trong Quản trị > Thành viên/Chấm công, và không thấy tính năng Anomaly Detection/Recommendation Engine đâu cả. Điều tra ra 4 nguyên nhân độc lập: (1) 4 khoá dịch trong "Hoạt động gần đây" viết thể bị động trong khi feed luôn hiển thị tên theo `actorId` — đọc ngược nghĩa; (2) gốc rễ dữ liệu rác — bộ E2E test đăng nhập thẳng bằng tài khoản Org Admin demo, mọi dữ liệu test tạo ra ghi vào chính tổ chức đang trình bày; tách hẳn sang 1 tổ chức E2E riêng (`scripts/seed-e2e.js`); (3) permission `ml:view` không cách nào tự cấp được cho tổ chức chỉ có 1 Org Admin (guard chặn tự nâng quyền không có lối thoát) — thêm route Super Admin mới (`PATCH /platform-admin/organizations/:id/roles/:roleId/permissions`) giải quyết triệt để, không làm yếu guard; (4) `User` là entity duy nhất chưa có API xoá cứng — bổ sung `DELETE /users/:id` (chỉ cho tài khoản đã vô hiệu hoá). Đã dọn 5 khách hàng + 17 tài khoản rác thực tế trong tổ chức demo. Chi tiết đầy đủ: `Doc/RevisionHistory.md` mục "25/09/2026".
 - **28/09/2026 (§20 — Nhắn tin nội bộ)** — Tính năng mới hoàn toàn: nhắn tin 1:1 + nhóm/kênh giữa thành viên cùng tổ chức, mục từng được nêu 17/09/2026 nhưng chưa từng đặc tả/lập trình. Service mới `apps/messaging-service` (NestJS, Postgres riêng, mirror scaffold `crm-service`) — cố ý KHÔNG dùng Kafka/Outbox (không service nào khác cần tiêu thụ) và KHÔNG xây `dim_user` cục bộ (rút kinh nghiệm trực tiếp từ đợt dọn dữ liệu ma `USER_DELETED` §19.6). WebSocket riêng (`/ws/messaging`, mirror `notifications.gateway.ts`). 3 permission mới (`message:view`/`send`/`manage_group`). Frontend cả web lẫn `ecap-mobile` (tab thứ 7, lần đầu dùng real-time thay vì polling trên mobile). Xác minh sống qua Gateway thật: dedup 1:1, tạo nhóm 3 người, gửi tin, đếm/đánh dấu đã đọc, đúng luật uỷ quyền quản lý nhóm. 2 phát hiện thật khi xác minh: thiếu `createdBy` trong `GET /conversations` (đã sửa) và permission mới cần rebuild `iam-service` + cấp thủ công 1 lần cho tổ chức demo (đúng lớp giới hạn đã biết như `ml:view`). Chi tiết đầy đủ: `Doc/RevisionHistory.md` mục "28/09/2026 (tiếp — Nhắn tin nội bộ)".
+- **03/10/2026 (§21 — Tái cấu trúc điều hướng, Lịch công ty, phát hiện nghỉ phép qua chat, ERR_EMPTY_RESPONSE)** — 6 hạng mục theo yêu cầu trực tiếp, triển khai song song bằng 6 agent: (1) Sidebar chính đổi thành icon-rail cố định, mở rộng khi trỏ chuột vào; "Trang chủ" gộp Dự án/Tài liệu/Khách hàng qua 1 sidebar phụ, route giữ nguyên. (2) Trang Thông báo riêng bị xoá, dropdown chuông trở thành giao diện duy nhất (phân trang, đánh dấu đã đọc + điều hướng SPA, mở rộng tại chỗ nếu không có link). (3) Lịch công ty rời khỏi Quản trị, gộp vào Nghỉ phép (60:40) — đổi hẳn mô hình phân quyền: ai cũng xem/tạo được sự kiện thường, chỉ Org Admin/Manager tạo được ngày lễ chính thức, sửa/xoá dựa trên so sánh cấp bậc snapshot lúc tạo (không so tên vai trò); thêm 2 trang xem lịch sử theo từng nhân viên (`/attendance/:userId`, `/leave-requests/:userId`) dùng tham số `userId` đã có sẵn ở backend từ trước. (4) Phát hiện cụm từ ngày/giờ tiếng Việt trong tin nhắn (cả web lẫn `ecap-mobile`) bằng regex thuần, hiện chip "Hẹn lịch nghỉ" chỉ trên tin của chính người gửi, tạo đơn nghỉ thật qua API sẵn có. (5) Gateway tắt hẳn HTTP keep-alive (ép `Connection: close` mọi response) để chấm dứt lỗi `ERR_EMPTY_RESPONSE` sau khi hệ thống chạy rảnh rỗi. Gate cuối sạch toàn bộ 6 nhánh gộp lại (34 test mới ở web, 14 ở hrm-service, 14 ở ecap-mobile); kiểm thử sống xác nhận đúng ma trận phân quyền lịch + tra cứu lịch sử theo nhân viên. Chi tiết đầy đủ: `Doc/RevisionHistory.md` mục "03/10/2026".

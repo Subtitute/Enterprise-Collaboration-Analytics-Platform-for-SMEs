@@ -15,8 +15,8 @@ const TABS = [
   { to: '/admin/members', labelKey: 'admin:adminPage.tabs.members' },
   { to: '/admin/departments', labelKey: 'admin:adminPage.tabs.departments' },
   { to: '/admin/roles', labelKey: 'admin:adminPage.tabs.roles', requiredPermission: PERMISSIONS.ROLE_MANAGE },
-  // 15/09/2026: tab moi "Lich cong ty" (ngay le + su kien, theo yeu cau GVHD) - xem CalendarPage.tsx.
-  { to: '/admin/calendar', labelKey: 'admin:adminPage.tabs.calendar', requiredPermission: PERMISSIONS.CALENDAR_MANAGE },
+  // 03/10/2026: bo tab "Lich cong ty" - lich dang duoc chuyen vao trang Nghi phep (xem
+  // features/hrm/LeaveRequestsPage.tsx, task rieng ve i18n/migration lich).
   // 28/07/2026: tab moi cho man hinh chan doan Dead Letter Queue (GET /failed-events) - xem
   // FailedEventsPage.tsx.
   { to: '/admin/failed-events', labelKey: 'admin:adminPage.tabs.failedEvents', requiredPermission: PERMISSIONS.SYSTEM_MANAGE },

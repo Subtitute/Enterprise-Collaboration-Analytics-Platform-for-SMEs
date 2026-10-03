@@ -20,7 +20,9 @@ import {
   useMessagesQuery,
   useSendMessage,
 } from '../hooks';
+import { detectLeaveIntent } from '../utils/leaveDetection';
 import { ManageGroupMembersModal } from './ManageGroupMembersModal';
+import { LeaveRequestSuggestion } from './LeaveRequestSuggestion';
 import type { ChatMessage, Conversation } from '@/types';
 
 interface ConversationThreadProps {
@@ -214,6 +216,11 @@ function MessageBubble({
   onRequestDelete: () => void;
 }) {
   const { t } = useTranslation();
+  // 03/10/2026: chi do tim "y dinh xin nghi phep" cho tin nhan CUA CHINH MINH (isMine) - tuyet doi
+  // khong duoc goi y/cho phep tao ho yeu cau nghi phep tu tin nhan cua NGUOI KHAC trong group chat,
+  // vi se tao nham yeu cau duoi danh nghia sai nguoi (loi nghiem trong ve danh tinh). detectLeaveIntent
+  // la ham thuan (khong phai hook) nen goi co dieu kien o day la an toan.
+  const leaveDetection = isMine ? detectLeaveIntent(message.body) : null;
   return (
     <div className={cn('group flex', isMine ? 'justify-end' : 'justify-start')}>
       <div className={cn('max-w-[75%] space-y-1', isMine && 'flex flex-col items-end')}>
@@ -239,6 +246,7 @@ function MessageBubble({
             {message.body}
           </div>
         </div>
+        {leaveDetection && <LeaveRequestSuggestion message={message} resolvedDate={leaveDetection.resolvedDate} />}
         <p className={cn('px-1 text-[10px] text-slate-400', isMine && 'text-right')} title={formatTime(message.createdAt)}>
           {formatRelativeTime(message.createdAt)}
         </p>

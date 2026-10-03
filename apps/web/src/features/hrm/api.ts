@@ -2,6 +2,8 @@ import { apiClient } from '@/lib/api-client';
 import type {
   Attendance,
   AttendanceAdjustment,
+  CalendarEvent,
+  CalendarEventType,
   LeaveRequest,
   LeaveRequestStatus,
   OvertimeMultiplierType,
@@ -46,8 +48,20 @@ export async function fetchMyAttendance(params: { page?: number; limit?: number 
  * Danh sach cham cong TOAN TO CHUC - CHI Manager/Org Admin (PERMISSIONS.ATTENDANCE_VIEW) goi
  * duoc, tra 403 voi Employee thuong - component goi ham nay PHAI tu xu ly 403 nhu "khong ap
  * dung" (mirror fetchPendingLeaveRequests() o duoi, xem AttendancePage.tsx).
+ *
+ * 03/10/2026: bo sung `userId` (tuy chon) - loc cham cong cua DUY NHAT 1 nhan vien, dung boi
+ * useEmployeeAttendanceQuery() (AttendanceDetailPage.tsx) thay vi phai them 1 ham fetch rieng -
+ * backend (AttendanceQueryDto, apps/hrm-service) da ho tro san tham so nay.
+ *
+ * 03/10/2026 (tiep): bo sung `startDate`/`endDate` - phat hien qua rieng soat: ban cu luon goi
+ * `limit:100` roi loc thang client-side (xem useAllAttendanceQuery()), nen 1 to chuc vuot qua 100
+ * dong cham cong tong co the khien chon 1 thang CU hien sai thanh "khong co du lieu" (du lieu that
+ * su bi "day" ra khoi 100 dong dau, luon la cac dong MOI nhat). Backend da ho tro loc khoang ngay
+ * (mirror calendar-events) - truyen dung khoang thang dang xem de server loc tai nguon.
  */
-export async function fetchAllAttendance(params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<Attendance>> {
+export async function fetchAllAttendance(
+  params: { page?: number; limit?: number; userId?: string; startDate?: string; endDate?: string } = {},
+): Promise<PaginatedResponse<Attendance>> {
   const { data } = await apiClient.get<PaginatedResponse<Attendance>>('/attendance', { params });
   return data;
 }
@@ -81,6 +95,20 @@ export async function fetchMyLeaveRequests(params: { page?: number; limit?: numb
 export async function fetchPendingLeaveRequests(params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<LeaveRequest>> {
   const { data } = await apiClient.get<PaginatedResponse<LeaveRequest>>('/leave-requests', {
     params: { status: 'PENDING' as LeaveRequestStatus, ...params },
+  });
+  return data;
+}
+
+/**
+ * 03/10/2026: lich su nghi phep DAY DU (khong loc status) cua DUY NHAT 1 nhan vien - CHI
+ * Manager/Org Admin (PERMISSIONS.LEAVE_REQUEST_VIEW) goi duoc, dung boi
+ * useEmployeeLeaveRequestsQuery() (LeaveRequestDetailPage.tsx). Cung endpoint GET /leave-requests
+ * voi fetchPendingLeaveRequests() o tren (LeaveRequestQueryDto da ho tro san tham so `userId`,
+ * mirror dung co che `userId` cua fetchAllAttendance() o tren).
+ */
+export async function fetchLeaveRequestsForUser(userId: string, params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<LeaveRequest>> {
+  const { data } = await apiClient.get<PaginatedResponse<LeaveRequest>>('/leave-requests', {
+    params: { userId, ...params },
   });
   return data;
 }
@@ -227,4 +255,38 @@ export async function approveOvertimeRequest(id: string, decisionNote?: string):
 export async function rejectOvertimeRequest(id: string, decisionNote?: string): Promise<OvertimeRequest> {
   const { data } = await apiClient.patch<OvertimeRequest>(`/overtime-requests/${id}/reject`, { decisionNote });
   return data;
+}
+
+export interface CalendarEventPayload {
+  title: string;
+  description?: string;
+  type: CalendarEventType;
+  startDate: string;
+  endDate?: string;
+}
+
+// 03/10/2026: Lich cong ty - chuyen tu features/admin/{api,hooks}.ts sang day cung voi
+// CompanyCalendar.tsx/CalendarEventModal.tsx (features/hrm/components/) - tinh nang nay gio mo cho
+// MOI thanh vien to chuc xem, khong con rieng khu vuc Quan tri. GET khong phan trang - xem chu
+// thich tai CalendarEventQueryDto (hrm-service) - tra ve TOAN BO muc lich chong lan voi khoang
+// [startDate, endDate] dang xem. Quyen thuc su (xem/tao EVENT cho moi nguoi, tao HOLIDAY/sua/xoa
+// can CALENDAR_MANAGE hoac la nguoi tao) do backend thuc thi - xem CompanyCalendar.tsx ve cach FE
+// chi an/hien UI tuong ung.
+export async function fetchCalendarEvents(params: { startDate?: string; endDate?: string } = {}): Promise<CalendarEvent[]> {
+  const { data } = await apiClient.get<CalendarEvent[]>('/calendar-events', { params });
+  return data;
+}
+
+export async function createCalendarEvent(payload: CalendarEventPayload): Promise<CalendarEvent> {
+  const { data } = await apiClient.post<CalendarEvent>('/calendar-events', payload);
+  return data;
+}
+
+export async function updateCalendarEvent(id: string, payload: Partial<CalendarEventPayload>): Promise<CalendarEvent> {
+  const { data } = await apiClient.patch<CalendarEvent>(`/calendar-events/${id}`, payload);
+  return data;
+}
+
+export async function deleteCalendarEvent(id: string): Promise<void> {
+  await apiClient.delete(`/calendar-events/${id}`);
 }

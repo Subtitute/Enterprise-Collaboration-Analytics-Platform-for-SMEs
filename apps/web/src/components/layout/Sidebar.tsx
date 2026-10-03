@@ -1,9 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn, canAccessAdminArea } from '@/lib/utils';
 import { NAV_ITEMS } from './nav-items';
-import { ChevronLeftIcon, ChevronRightIcon, LayersIcon } from '@/components/ui/Icons';
+import { LayersIcon } from '@/components/ui/Icons';
 import { useUIStore } from '@/stores/ui.store';
 import { usePermissions } from '@/stores/auth.store';
 import { useUnreadMessagesCount } from '@/features/messaging/hooks';
@@ -31,10 +31,13 @@ function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
     <nav className="flex-1 space-y-1 overflow-x-hidden overflow-y-auto px-2.5 py-2">
       {items.map((item) => {
         // Kiểm tra trạng thái đang được chọn (Active)
+        // 03/10/2026: mục "Trang chủ" active khi path khớp BẤT KỲ route nào trong nhóm
+        // (matchPrefixes - Dashboard/Dự án/Tài liệu/Khách hàng), không chỉ path /dashboard.
         // Đối với mục Quản trị (/admin/members), nếu đang ở bất kỳ tab nào của /admin/*
         // (như /admin/departments, /admin/roles, /admin/failed-events) thì vẫn giữ active style
-        const isItemActive =
-          item.to === '/admin/members'
+        const isItemActive = item.matchPrefixes
+          ? item.matchPrefixes.some((prefix) => location.pathname === prefix || location.pathname.startsWith(`${prefix}/`))
+          : item.to === '/admin/members'
             ? location.pathname.startsWith('/admin')
             : location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(`${item.to}/`));
 
@@ -89,95 +92,72 @@ function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
   );
 }
 
-function SidebarHeader({
-  collapsed,
-  onToggle,
-  onNavigate,
-}: {
-  collapsed: boolean;
-  onToggle?: () => void;
-  onNavigate?: () => void;
-}) {
-  const { t } = useTranslation();
-  const toggleLabel = t(collapsed ? 'common:sidebar.expand' : 'common:sidebar.collapse');
-
+/** 03/10/2026: bo prop onToggle - rail chinh khong con nut thu gon/mo rong thu cong (toan bo panel
+ *  mo rong khi hover, xem Sidebar()), chi con 1 the Link duy nhat (logo + ten, nhan chu tu mo/thu
+ *  theo "collapsed" bang transition giong SidebarLinks ben tren thay vi 2 nhanh render rieng biet. */
+function SidebarHeader({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   return (
     <div
       className={cn(
-        'border-b border-slate-100 flex h-14 items-center overflow-hidden transition-all duration-150',
-        collapsed ? 'justify-center px-2' : 'justify-between px-3.5',
+        'border-b border-slate-100 flex h-14 items-center overflow-hidden transition-all duration-150 px-3.5',
+        collapsed && 'justify-center px-2',
       )}
     >
-      {!collapsed ? (
-        <>
-          <Link
-            to="/"
-            onClick={onNavigate}
-            aria-label="ECAP for SMEs"
-            title="ECAP for SMEs"
-            className="flex items-center rounded-lg p-1 transition-colors hover:bg-slate-50 cursor-pointer overflow-hidden min-w-0"
-          >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-xs transition-transform duration-150 group-hover:scale-105">
-              <LayersIcon className="w-4 h-4 text-white" />
-            </span>
-            <div className="overflow-hidden whitespace-nowrap ml-2.5 max-w-[130px]">
-              <span className="block truncate text-sm font-bold text-slate-900 tracking-tight">
-                ECAP for SMEs
-              </span>
-            </div>
-          </Link>
-
-          {onToggle && (
-            <button
-              type="button"
-              onClick={onToggle}
-              title={toggleLabel}
-              aria-label={toggleLabel}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
-            >
-              <ChevronLeftIcon className="w-4 h-4" />
-            </button>
+      <Link
+        to="/"
+        onClick={onNavigate}
+        aria-label="ECAP for SMEs"
+        title="ECAP for SMEs"
+        className="flex items-center rounded-lg p-1 transition-colors hover:bg-slate-50 cursor-pointer overflow-hidden min-w-0"
+      >
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-xs">
+          <LayersIcon className="w-4 h-4 text-white" />
+        </span>
+        <div
+          className={cn(
+            'overflow-hidden whitespace-nowrap transition-all duration-150 ease-in-out',
+            collapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[150px] opacity-100 ml-2.5',
           )}
-        </>
-      ) : (
-        onToggle && (
-          <button
-            type="button"
-            onClick={onToggle}
-            title={toggleLabel}
-            aria-label={toggleLabel}
-            className="group relative flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-150 cursor-pointer focus:outline-none"
-          >
-            {/* Logo nền tảng mặc định luôn hiển thị rõ ràng */}
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-xs transition-opacity duration-150 group-hover:opacity-0">
-              <LayersIcon className="w-4 h-4 text-white" />
-            </span>
-            {/* Khi di chuột vào, chuyển thành nút mũi tên mở rộng trực quan */}
-            <span className="absolute inset-0 flex items-center justify-center rounded-lg bg-slate-100 text-indigo-600 opacity-0 transition-opacity duration-150 group-hover:opacity-100 shadow-2xs">
-              <ChevronRightIcon className="w-5 h-5" />
-            </span>
-          </button>
-        )
-      )}
+        >
+          <span className="block truncate text-sm font-bold text-slate-900 tracking-tight">ECAP for SMEs</span>
+        </div>
+      </Link>
     </div>
   );
 }
 
-/** Sidebar co dinh cho man hinh md+. Tu dong thu gon o do rong tablet, co the bam nut de thu gon/mo rong thu cong. */
+/** 03/10/2026: rail icon co dinh cho man hinh md+ - LUON thu gon (w-[68px]) mac dinh, chi mo rong
+ *  (w-60, hien nhan chu) TAM THOI khi di chuot vao (state cuc bo "hovered", khong con doc/ghi qua
+ *  useUIStore - thay the toan bo co che thu gon/mo rong thu cong + tu dong thu gon o do rong tablet
+ *  truoc day, xem ui.store.ts). Khung bao ngoai (div) giu nguyen do rong 68px trong luong flex de
+ *  noi dung trang KHONG bi day/co giãn khi mo rong; <aside> ben trong dinh vi "absolute" chong len
+ *  tren (overlay, z-40 + shadow khi mo rong) thay vi thay doi do rong cua chinh khung bao. */
 export function Sidebar() {
-  const collapsed = useUIStore((s) => s.sidebarCollapsed);
-  const toggle = useUIStore((s) => s.toggleSidebarCollapsed);
+  const [hovered, setHovered] = useState(false);
+  const collapsed = !hovered;
+
+  // 03/10/2026: focus/blur ban phim cung mo/thu rail (ngoai hover chuot) - Tab vao trong rail nen
+  // mo nhan chu ra thay vi giu icon-only khien nguoi dung ban phim khong biet dang o lien ket nao.
+  const handleBlur = (e: React.FocusEvent<HTMLElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setHovered(false);
+  };
 
   return (
-    <aside
-      className={cn(
-        'sticky top-0 hidden h-screen shrink-0 flex-col border-r border-slate-200 bg-white md:flex transition-[width] duration-150 ease-in-out',
-        collapsed ? 'w-[68px]' : 'w-60',
-      )}
-    >
-      <SidebarHeader collapsed={collapsed} onToggle={toggle} />
-      <SidebarLinks collapsed={collapsed} />
-    </aside>
+    <div className="sticky top-0 hidden h-screen w-[68px] shrink-0 md:block">
+      <aside
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onFocus={() => setHovered(true)}
+        onBlur={handleBlur}
+        className={cn(
+          'absolute left-0 top-0 flex h-screen flex-col border-r border-slate-200 bg-white transition-[width] duration-150 ease-in-out',
+          hovered ? 'z-40 w-60 shadow-xl' : 'w-[68px]',
+        )}
+      >
+        <SidebarHeader collapsed={collapsed} />
+        <SidebarLinks collapsed={collapsed} />
+      </aside>
+    </div>
   );
 }
 

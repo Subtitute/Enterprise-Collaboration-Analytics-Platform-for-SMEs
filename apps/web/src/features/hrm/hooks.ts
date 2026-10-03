@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from '@/stores/toast.store';
 import { extractErrorMessage } from '@/lib/api-client';
@@ -9,12 +9,16 @@ import {
   checkIn,
   checkOut,
   createAttendanceAdjustment,
+  createCalendarEvent,
   createLeaveRequest,
   createOvertimeRequest,
+  deleteCalendarEvent,
   fetchAllAttendance,
   fetchApprovedAttendanceAdjustments,
   fetchApprovedOvertimeRequests,
+  fetchCalendarEvents,
   fetchLeavePolicy,
+  fetchLeaveRequestsForUser,
   fetchMyAttendance,
   fetchMyAttendanceAdjustments,
   fetchMyLeaveBalance,
@@ -26,9 +30,11 @@ import {
   rejectAttendanceAdjustment,
   rejectLeaveRequest,
   rejectOvertimeRequest,
+  updateCalendarEvent,
   updateLeavePolicy,
 } from './api';
 import type {
+  CalendarEventPayload,
   CreateAttendanceAdjustmentPayload,
   CreateLeaveRequestPayload,
   CreateOvertimeRequestPayload,
@@ -40,12 +46,51 @@ export function useMyAttendanceQuery(params: { page?: number; limit?: number } =
   return useQuery({ queryKey: ['attendance', 'me', params], queryFn: () => fetchMyAttendance(params) });
 }
 
-/** 403 (khong co PERMISSIONS.ATTENDANCE_VIEW) la ket qua BINH THUONG cho Employee - khong retry, mirror usePendingLeaveRequestsQuery(). */
-export function useAllAttendanceQuery() {
+/**
+ * 403 (khong co PERMISSIONS.ATTENDANCE_VIEW) la ket qua BINH THUONG cho Employee - khong retry,
+ * mirror usePendingLeaveRequestsQuery().
+ *
+ * 03/10/2026: bo sung tham so `month` ('YYYY-MM' hoac 'all') - phat hien qua rieng soat: ban cu
+ * LUON goi `limit:100` khong loc ngay, roi AttendancePage.tsx tu cat theo thang o client - mot khi
+ * to chuc vuot qua 100 dong cham cong tong, cac dong cua thang CU bi "day" ra khoi 100 dong moi
+ * nhat va hien sai thanh "khong co du lieu". Nay truyen thang dang xem xuong de server loc tai
+ * nguon (xem AttendanceQueryDto.startDate/endDate, apps/hrm-service).
+ *
+ * `placeholderData: keepPreviousData` - doi `month` lam queryKey doi theo, neu khong co tuy chon
+ * nay thi `isSuccess` se tam thoi ve `false` trong luc tai du lieu thang moi (vi la 1 query-key
+ * khac, chua co cache), khien `canViewAll` (AttendancePage.tsx, suy ra TU chinh isSuccess nay) an
+ * mat toan bo khoi "Quan ly to chuc" trong chop nhoang moi lan doi thang - khong chi rieng bang du
+ * lieu ben trong.
+ */
+export function useAllAttendanceQuery(month = 'all') {
+  const dateRangeParams = (() => {
+    if (month === 'all') return {};
+    const [year, m] = month.split('-').map(Number);
+    const lastDay = new Date(year, m, 0).getDate();
+    return { startDate: `${month}-01`, endDate: `${month}-${String(lastDay).padStart(2, '0')}` };
+  })();
+
   return useQuery({
-    queryKey: ['attendance', 'all'],
-    queryFn: () => fetchAllAttendance({ limit: 100 }),
+    queryKey: ['attendance', 'all', month],
+    queryFn: () => fetchAllAttendance({ limit: 100, ...dateRangeParams }),
     retry: false,
+    placeholderData: keepPreviousData,
+  });
+}
+
+/**
+ * 03/10/2026: lich su cham cong DAY DU cua 1 nhan vien cu the - dung boi AttendanceDetailPage.tsx
+ * (/attendance/:userId, CHI Manager/Org Admin). Tach rieng khoi useAllAttendanceQuery() (khac
+ * queryKey + co loc userId) thay vi doi params cua hook do, vi 2 noi dung nay phuc vu 2 man hinh
+ * khac nhau (danh sach toan to chuc vs lich su 1 nguoi) va khong muon 1 cache lam vo hieu cache kia.
+ * `enabled` cho phep AttendanceDetailPage.tsx tri hoan goi API toi khi xac dinh duoc nguoi xem co
+ * PERMISSIONS.ATTENDANCE_VIEW hay khong (tranh 1 request 403 chac chan that bai).
+ */
+export function useEmployeeAttendanceQuery(userId: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['attendance', 'employee', userId],
+    queryFn: () => fetchAllAttendance({ userId, limit: 200 }),
+    enabled: (options?.enabled ?? true) && Boolean(userId),
   });
 }
 
@@ -109,6 +154,20 @@ export function usePendingLeaveRequestsQuery() {
     queryKey: ['leave-requests', 'pending'],
     queryFn: () => fetchPendingLeaveRequests({ limit: 100 }),
     retry: false,
+  });
+}
+
+/**
+ * 03/10/2026: lich su nghi phep DAY DU (khong loc status) cua 1 nhan vien cu the - dung boi
+ * LeaveRequestDetailPage.tsx (/leave-requests/:userId, CHI Manager/Org Admin). Mirror
+ * useEmployeeAttendanceQuery() o hrm/hooks.ts (cung co che `enabled` tri hoan goi API toi khi xac
+ * dinh duoc nguoi xem co PERMISSIONS.LEAVE_REQUEST_VIEW hay khong).
+ */
+export function useEmployeeLeaveRequestsQuery(userId: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['leave-requests', 'employee', userId],
+    queryFn: () => fetchLeaveRequestsForUser(userId, { limit: 100 }),
+    enabled: (options?.enabled ?? true) && Boolean(userId),
   });
 }
 
@@ -276,5 +335,50 @@ export function useRejectOvertimeRequest() {
       toast.success(t('hrm:extensions.overtime.successReject'));
     },
     onError: (error) => toast.error(t('hrm:extensions.overtime.errorReject'), extractErrorMessage(error)),
+  });
+}
+
+// 03/10/2026: Lich cong ty - hook chuyen tu features/admin/hooks.ts (xem ghi chu tai
+// createCalendarEvent() trong hrm/api.ts ve ly do chuyen). Giu nguyen logic invalidate/toast cu.
+export function useCalendarEventsQuery(params: { startDate?: string; endDate?: string } = {}) {
+  return useQuery({ queryKey: ['calendar-events', params], queryFn: () => fetchCalendarEvents(params) });
+}
+
+export function useCreateCalendarEvent() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CalendarEventPayload) => createCalendarEvent(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      toast.success(t('hrm:toasts.calendarEventCreated'));
+    },
+    onError: (error) => toast.error(t('hrm:toasts.calendarEventCreateFailed'), extractErrorMessage(error)),
+  });
+}
+
+export function useUpdateCalendarEvent() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: Partial<CalendarEventPayload> }) => updateCalendarEvent(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      toast.success(t('hrm:toasts.calendarEventUpdated'));
+    },
+    onError: (error) => toast.error(t('hrm:toasts.calendarEventUpdateFailed'), extractErrorMessage(error)),
+  });
+}
+
+export function useDeleteCalendarEvent() {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteCalendarEvent(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      toast.success(t('hrm:toasts.calendarEventDeleted'));
+    },
+    onError: (error) => toast.error(t('hrm:toasts.calendarEventDeleteFailed'), extractErrorMessage(error)),
   });
 }

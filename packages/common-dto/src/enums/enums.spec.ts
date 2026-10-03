@@ -79,10 +79,11 @@ describe('DefaultRoleName / PERMISSIONS / DEFAULT_ROLE_PERMISSIONS', () => {
     }
   });
 
-  // 16/09/2026: "Super Admin" (tinh nang moi) - CALENDAR_MANAGE chi cap cho Org Admin, khong dua
-  // vao Manager/Employee (xem chu thich permission.enum.ts).
-  it('CALENDAR_MANAGE chi thuoc ve Org Admin, khong o Manager/Employee', () => {
-    expect(DEFAULT_ROLE_PERMISSIONS[DefaultRoleName.MANAGER]).not.toContain(PERMISSIONS.CALENDAR_MANAGE);
+  // 03/10/2026 (thay the test 16/09/2026): Lich cong ty mo rong quyen - CALENDAR_MANAGE gio la "co
+  // quan ly lich nang cao", Org Admin VA Manager deu co, rieng Employee thi khong (xem chu thich
+  // permission.enum.ts va CalendarEventsService).
+  it('CALENDAR_MANAGE thuoc ve Org Admin va Manager, khong o Employee', () => {
+    expect(DEFAULT_ROLE_PERMISSIONS[DefaultRoleName.MANAGER]).toContain(PERMISSIONS.CALENDAR_MANAGE);
     expect(DEFAULT_ROLE_PERMISSIONS[DefaultRoleName.EMPLOYEE]).not.toContain(PERMISSIONS.CALENDAR_MANAGE);
   });
 });
