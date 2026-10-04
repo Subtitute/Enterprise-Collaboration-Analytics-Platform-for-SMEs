@@ -9,7 +9,6 @@ import {
   FolderIcon,
   CalendarIcon,
   FileTextIcon,
-  PrinterIcon,
   DownloadIcon,
   UploadIcon,
   CheckCircleIcon,
@@ -273,49 +272,20 @@ export function DashboardPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 no-print shrink-0">
-          {/* Global Filter: Bộ lọc "Tất cả phòng ban" đưa lên Top Header trang Dashboard */}
+          {/* Nút Xuất PDF: Outline #1E3A8A, chữ #1E3A8A, nền trắng */}
           {canViewAnalytics && (
-            <CustomFilterSelect
-              value={departmentId}
-              onChange={(val) => setDepartmentId(val)}
-              ariaLabel={t('dashboard:filters.departmentAriaLabel')}
-              options={[
-                { value: '', label: t('dashboard:filters.allDepartments') },
-                ...(departmentsQuery.data ?? []).map((d) => ({
-                  value: d.id,
-                  label: d.name,
-                })),
-              ]}
-            />
-          )}
-
-          {/* Nút Xuất PDF và In: Outline #1E3A8A, chữ #1E3A8A, nền trắng */}
-          {canViewAnalytics && (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                isLoading={isExportingPdf}
-                onClick={handleExportPdf}
-                title={t('dashboard:page.exportPdf')}
-                className="border-[#1E3A8A] bg-white text-[#1E3A8A] hover:bg-[#EFF6FF] font-medium cursor-pointer active:scale-[0.98]"
-              >
-                <DownloadIcon className="h-4 w-4 mr-1.5 text-[#1E3A8A]" />
-                <span>{t('dashboard:page.exportPdf')}</span>
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => window.print()}
-                title={t('dashboard:page.print')}
-                className="border-[#E5E7EB] bg-white hover:bg-slate-50 text-[#374151] font-medium cursor-pointer active:scale-[0.98]"
-              >
-                <PrinterIcon className="h-4 w-4 text-[#6B7280] mr-1.5" />
-                <span>{t('dashboard:page.print')}</span>
-              </Button>
-            </>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              isLoading={isExportingPdf}
+              onClick={handleExportPdf}
+              title={t('dashboard:page.exportPdf')}
+              className="border-[#1E3A8A] bg-white text-[#1E3A8A] hover:bg-[#EFF6FF] font-medium cursor-pointer active:scale-[0.98]"
+            >
+              <DownloadIcon className="h-4 w-4 mr-1.5 text-[#1E3A8A]" />
+              <span>{t('dashboard:page.exportPdf')}</span>
+            </Button>
           )}
         </div>
       </div>
@@ -403,7 +373,7 @@ export function DashboardPage() {
             {/* Khối 1: "Dự án đang chạy" */}
             <Link
               to="/projects?status=active"
-              className="group flex flex-col justify-between py-4 sm:py-0 sm:px-5 first:sm:pl-6"
+              className="group flex flex-col justify-between py-4 sm:px-5 first:sm:pl-6"
             >
               <div>
                 {/* Icon: Folder trong ô vuông nền nhạt #EFF6FF 40x40px, bo góc 8px, icon #1E3A8A */}
@@ -411,9 +381,9 @@ export function DashboardPage() {
                   <FolderIcon className="h-5 w-5" />
                 </div>
 
-                {/* Số lớn: Roboto 700, size 24px, màu #374151 */}
+                {/* Số lớn: text-3xl font-bold */}
                 <div className="mt-3 mb-1">
-                  <span className="font-sans text-[24px] font-bold text-[#374151] leading-none">
+                  <span className={`font-sans text-3xl font-bold leading-none ${activeProjectsCount === 0 ? 'text-[#6B7280]' : 'text-[#1E3A8A]'}`}>
                     {activeProjectsCount}
                   </span>
                 </div>
@@ -428,7 +398,7 @@ export function DashboardPage() {
             {/* Khối 2: "Đơn nghỉ chờ duyệt" */}
             <Link
               to={canApproveLeave ? '/leave-requests?status=pending' : '/attendance'}
-              className="group flex flex-col justify-between py-4 sm:py-0 sm:px-5"
+              className="group flex flex-col justify-between py-4 sm:px-5"
             >
               <div>
                 {/* Icon: FileText trong ô vuông nền nhạt #FEF3C7 40x40px, bo góc 8px, icon #F59E0B */}
@@ -436,15 +406,20 @@ export function DashboardPage() {
                   <FileTextIcon className="h-5 w-5" />
                 </div>
 
-                {/* Số lớn: Roboto 700, size 24px, màu #374151 */}
+                {/* Số lớn: text-3xl font-bold */}
                 <div className="mt-3 mb-1">
-                  <span className="font-sans text-[24px] font-bold text-[#374151] leading-none">
-                    {canApproveLeave ? pendingLeavesCount : monthlyWorkDaysCount}
-                  </span>
+                  {(() => {
+                    const count = canApproveLeave ? pendingLeavesCount : monthlyWorkDaysCount;
+                    return (
+                      <span className={`font-sans text-3xl font-bold leading-none ${count === 0 ? 'text-[#6B7280]' : 'text-[#1E3A8A]'}`}>
+                        {count}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
 
-              {/* Badge inline đặt dưới số "1", cạnh text mô tả */}
+              {/* Badge inline đặt dưới số, cạnh text mô tả */}
               <div className="mt-2 flex items-start gap-1.5">
                 {canApproveLeave && pendingLeavesCount > 0 && (
                   <span className="inline-flex shrink-0 items-center rounded bg-[#F59E0B] px-1.5 py-0.5 text-[10px] font-medium text-white shadow-2xs">
@@ -460,7 +435,7 @@ export function DashboardPage() {
             {/* Khối 3: "Tài liệu mới (7 ngày)" */}
             <Link
               to="/documents"
-              className="group flex flex-col justify-between py-4 sm:py-0 sm:px-5 last:sm:pr-0"
+              className="group flex flex-col justify-between py-4 sm:px-5 last:sm:pr-0"
             >
               <div>
                 {/* Icon: Upload trong ô vuông nền nhạt #D1FAE5 40x40px, bo góc 8px, icon #10B981 */}
@@ -468,9 +443,9 @@ export function DashboardPage() {
                   <UploadIcon className="h-5 w-5" />
                 </div>
 
-                {/* Số lớn: Roboto 700, size 24px, màu #374151 */}
+                {/* Số lớn: text-3xl font-bold */}
                 <div className="mt-3 mb-1">
-                  <span className="font-sans text-[24px] font-bold text-[#374151] leading-none">
+                  <span className={`font-sans text-3xl font-bold leading-none ${newDocumentsCount === 0 ? 'text-[#6B7280]' : 'text-[#1E3A8A]'}`}>
                     {newDocumentsCount}
                   </span>
                 </div>

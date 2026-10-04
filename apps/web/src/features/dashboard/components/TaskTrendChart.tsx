@@ -292,8 +292,8 @@ export function TaskTrendChart({
 
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={chartData} margin={{ top: 20, right: 16, left: -10, bottom: 0 }}>
-              {/* Grid line ngang màu #F3F4F6 */}
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+              {/* Grid line ngang & dọc nét đứt màu #F3F4F6 */}
+              <CartesianGrid strokeDasharray="3 3" vertical={true} stroke="#F3F4F6" />
               <XAxis
                 dataKey="displayDate"
                 tick={{ fill: '#6B7280', fontSize: 12, fontFamily: 'Roboto, sans-serif' }}

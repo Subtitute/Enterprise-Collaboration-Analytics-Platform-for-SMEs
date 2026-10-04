@@ -202,7 +202,7 @@ export function UpcomingLeavesWidget() {
             {displayLeavesList.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between gap-3 p-2 rounded-md border border-slate-200/80 bg-slate-50/50 hover:bg-slate-100/60 hover:border-[#1E3A8A] hover:-translate-y-[1px] transition-all duration-200 cursor-pointer shadow-2xs"
+                className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-md border border-slate-200/80 bg-slate-50/50 hover:bg-slate-100/60 hover:border-[#1E3A8A] hover:-translate-y-[1px] transition-all duration-200 cursor-pointer shadow-2xs"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Avatar name={item.employeeName} size="sm" className="shrink-0" />
