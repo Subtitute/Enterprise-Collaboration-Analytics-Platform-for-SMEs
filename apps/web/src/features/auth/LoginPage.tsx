@@ -4,10 +4,12 @@ import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '@/stores/auth.store';
 import { useLogin } from './hooks';
-import { AuthLayout } from './components/AuthLayout';
-import { FormField, Input, PasswordInput } from '@/components/ui/Input';
+import { containsVietnameseDiacritics } from '@/lib/utils';
+import { FormField, Input, PasswordInput, Checkbox } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { CopyIcon, CheckIcon } from '@/components/ui/Icons';
+import { AuthShell } from './components/AuthShell';
+import { QuickLoginWidget } from './components/QuickLoginWidget';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -72,9 +74,11 @@ export function LoginPage() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const login = useLogin();
 
-  const [email, setEmail] = useState('');
+  const initialEmail = (location.state as { email?: string })?.email || '';
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
-  const [errorKeys, setErrorKeys] = useState<{ email?: 'emailRequired' | 'emailInvalid'; password?: 'passwordRequired' }>({});
+  const [rememberMe, setRememberMe] = useState(false);
+  const [errorKeys, setErrorKeys] = useState<{ email?: 'emailRequired' | 'emailInvalid'; password?: 'passwordRequired' | 'invalidCredentials' }>({});
   const [copiedField, setCopiedField] = useState<'email' | 'password' | null>(null);
   const [activeRoleIndex, setActiveRoleIndex] = useState<number>(0);
 
@@ -94,8 +98,17 @@ export function LoginPage() {
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    if (login.isPending) return;
     if (!validate()) return;
-    login.mutate({ email: email.trim(), password });
+    login.mutate(
+      { email: email.trim(), password },
+      {
+        onError: () => {
+          // Theo §B.7: Error — sai thông tin: "Email hoặc mật khẩu không đúng" hiển thị ở field message của password
+          setErrorKeys((prev) => ({ ...prev, password: 'invalidCredentials' }));
+        },
+      },
+    );
   }
 
   const handleCopy = async (text: string, field: 'email' | 'password') => {
@@ -124,167 +137,134 @@ export function LoginPage() {
   };
 
   const emailError = errorKeys.email ? t(`auth:loginPage.errors.${errorKeys.email}`) : undefined;
-  const passwordError = errorKeys.password ? t(`auth:loginPage.errors.${errorKeys.password}`) : undefined;
+  const passwordError = errorKeys.password
+    ? errorKeys.password === 'invalidCredentials'
+      ? t('auth:loginPage.errors.invalidCredentials', 'Email hoặc mật khẩu không đúng')
+      : t(`auth:loginPage.errors.${errorKeys.password}`)
+    : undefined;
+  const passwordWarning =
+    !passwordError && containsVietnameseDiacritics(password)
+      ? t('common:password.diacriticsWarning')
+      : undefined;
 
   return (
-    <>
-      <AuthLayout title={t('auth:loginPage.title')} subtitle={t('auth:loginPage.subtitle')}>
-        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-          <FormField label={t('auth:loginPage.emailLabel')} htmlFor="email" error={emailError} required>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              placeholder={t('auth:loginPage.emailPlaceholder')}
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (errorKeys.email) setErrorKeys((prev) => ({ ...prev, email: undefined }));
-              }}
-            />
-          </FormField>
-          <FormField label={t('auth:loginPage.passwordLabel')} htmlFor="password" error={passwordError} required>
-            <PasswordInput
-              id="password"
-              autoComplete="current-password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                if (errorKeys.password) setErrorKeys((prev) => ({ ...prev, password: undefined }));
-              }}
-            />
-          </FormField>
-          <div className="-mt-2 text-right">
-            <Link
-              to="/forgot-password"
-              className="inline-block text-xs font-medium text-primary-600 transition-all duration-200 hover:text-primary-700 hover:underline"
+    <AuthShell
+      extraWidget={
+        <QuickLoginWidget
+          accounts={DEMO_ACCOUNTS}
+          activeRoleIndex={activeRoleIndex}
+          onSelectRole={setActiveRoleIndex}
+          onFillDemo={handleFillDemo}
+          onBypassLogin={handleQuickLogin}
+          isLoading={login.isPending}
+        />
+      }
+    >
+      <h2 className="font-sans text-[28px] leading-9 font-semibold text-text-primary mb-1.5">
+        {t('auth:loginPage.title', 'Đăng nhập')}
+      </h2>
+      <p className="font-sans text-sm leading-[22px] text-text-secondary mb-8">
+        {t('auth:loginPage.subtitle', 'Nền tảng Cộng tác & Phân tích Doanh nghiệp cho SME')}
+      </p>
+
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col">
+            {/* Field Email */}
+            <div className="mb-4">
+              <FormField label={t('auth:loginPage.emailLabel', 'Email')} htmlFor="email" error={emailError} required reserveMessageSpace>
+                <div className="relative">
+                  <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="20" height="16" x="2" y="4" rx="2" />
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                    </svg>
+                  </div>
+                  <Input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder={t('auth:loginPage.emailPlaceholder', 'ban@congty.com')}
+                    value={email}
+                    className="pl-9 pr-3"
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (errorKeys.email) setErrorKeys((prev) => ({ ...prev, email: undefined }));
+                    }}
+                  />
+                </div>
+              </FormField>
+            </div>
+
+            {/* Field Mật khẩu */}
+            <div className="mb-1">
+              <FormField
+                label={t('auth:loginPage.passwordLabel', 'Mật khẩu')}
+                htmlFor="password"
+                error={passwordError}
+                warning={passwordWarning}
+                required
+                reserveMessageSpace
+              >
+                <PasswordInput
+                  id="password"
+                  autoComplete="current-password"
+                  placeholder={t('auth:loginPage.passwordPlaceholder', 'Nhập mật khẩu')}
+                  value={password}
+                  leftIcon={
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                  }
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errorKeys.password) setErrorKeys((prev) => ({ ...prev, password: undefined }));
+                  }}
+                />
+              </FormField>
+            </div>
+
+            {/* Hàng tiện ích (Ghi nhớ đăng nhập + Quên mật khẩu) */}
+            <div className="flex items-center justify-between mb-5 mt-1">
+              <label htmlFor="rememberMe" className="flex items-center gap-2 cursor-pointer select-none">
+                <Checkbox
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <span className="text-[13px] leading-5 text-text-secondary">
+                  {t('auth:loginPage.rememberMe', 'Ghi nhớ đăng nhập')}
+                </span>
+              </label>
+              <Link
+                to="/forgot-password"
+                className="text-[13px] leading-5 font-normal text-accent hover:text-accent-hover hover:underline transition-colors"
+              >
+                {t('auth:loginPage.forgotPasswordLink', 'Quên mật khẩu?')}
+              </Link>
+            </div>
+
+            {/* Nút Đăng nhập */}
+            <Button
+              type="submit"
+              size="lg"
+              variant="primary"
+              className="w-full h-11 text-sm font-medium bg-[#1C1B1A] text-[#F7F6F3] hover:bg-[#2E2C29] active:bg-[#141312]"
+              isLoading={login.isPending}
             >
-              {t('auth:loginPage.forgotPasswordLink')}
+              {login.isPending ? t('common:loading', 'Đang đăng nhập…') : t('auth:loginPage.submit', 'Đăng nhập')}
+            </Button>
+          </form>
+
+          {/* Khối đăng ký tổ chức mới */}
+          <div className="mt-6 text-center text-[13px] leading-5 text-text-secondary">
+            <span>{t('auth:loginPage.noOrganization', 'Chưa có tổ chức?')} </span>
+            <Link
+              to="/register"
+              className="font-medium text-accent hover:text-accent-hover hover:underline transition-colors ml-1"
+            >
+              {t('auth:loginPage.registerLink', 'Đăng ký tổ chức mới')}
             </Link>
           </div>
-          <Button type="submit" className="w-full" isLoading={login.isPending}>
-            {t('auth:loginPage.submit')}
-          </Button>
-        </form>
-        <p className="mt-6 text-center text-sm text-slate-500">
-          {t('auth:loginPage.noOrganization')}{' '}
-          <Link
-            to="/register"
-            className="inline-block font-medium text-primary-600 transition-all duration-200 hover:text-primary-700 hover:-translate-y-[0.5px] active:translate-y-0 hover:underline"
-          >
-            {t('auth:loginPage.registerLink')}
-          </Link>
-        </p>
-      </AuthLayout>
-
-      {/* Widget trực quan trải nghiệm Đăng nhập nhanh 3 vai trò (Org Admin / Manager / Employee) */}
-      <div className="fixed bottom-6 right-6 z-30 w-84 max-w-[calc(100vw-2rem)] animate-slide-up rounded-2xl border border-slate-200/90 bg-white/95 p-4 shadow-xl shadow-slate-200/80 backdrop-blur-md transition-all duration-200 hover:shadow-2xl">
-        <div className="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-slate-100">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="flex h-2 w-2 shrink-0 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-bold text-slate-900 truncate">{t('auth:loginPage.demoAccount.title')}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => handleFillDemo(selectedDemo)}
-            className="text-[11px] font-semibold text-primary-600 hover:text-primary-700 hover:underline cursor-pointer shrink-0"
-          >
-            {t('auth:loginPage.demoAccount.autofill')}
-          </button>
-        </div>
-
-        {/* Tab chuyển đổi 4 vai trò */}
-        <div className="grid grid-cols-4 gap-1 rounded-lg bg-slate-100 p-1 mb-2.5">
-          {DEMO_ACCOUNTS.map((acc, index) => {
-            const isActive = activeRoleIndex === index;
-            const shortLabel =
-              acc.id === 'admin' ? 'Admin' : acc.id === 'manager' ? 'Manager' : acc.id === 'employee' ? 'Employee' : 'Super';
-            return (
-              <button
-                key={acc.id}
-                type="button"
-                onClick={() => setActiveRoleIndex(index)}
-                className={`py-1 text-[11px] font-semibold rounded-md transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-white text-indigo-700 shadow-xs ring-1 ring-slate-200'
-                    : 'text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                {shortLabel}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Thông tin chi tiết của vai trò đang chọn */}
-        <div className="space-y-2 text-xs">
-          <div className="rounded-lg bg-slate-50/80 p-2 border border-slate-100 space-y-1">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-bold text-slate-800 text-[11px] truncate">{t(selectedDemo.roleNameKey)}</span>
-              <span className={`inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold border ${selectedDemo.badgeClass}`}>
-                {selectedDemo.id === 'superAdmin' ? 'SUPER ADMIN' : selectedDemo.id.toUpperCase()}
-              </span>
-            </div>
-            <p className="text-[10.5px] text-slate-500 leading-tight">
-              {t(selectedDemo.descKey)}
-            </p>
-          </div>
-
-          <div className="flex items-center justify-between gap-2 rounded-lg bg-slate-50/80 px-2.5 py-1.5 border border-slate-100">
-            <div className="min-w-0 flex-1">
-              <span className="block text-[10px] text-slate-400 font-medium">Email:</span>
-              <span className="block truncate font-mono text-slate-800 text-[11px]">{selectedDemo.email}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleCopy(selectedDemo.email, 'email')}
-              title={t('auth:loginPage.demoAccount.copyEmailTitle')}
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-400 transition-colors hover:bg-slate-200/70 hover:text-slate-700 cursor-pointer"
-            >
-              {copiedField === 'email' ? (
-                <CheckIcon className="h-3.5 w-3.5 text-emerald-600 animate-fade-in" />
-              ) : (
-                <CopyIcon className="h-3.5 w-3.5" />
-              )}
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between gap-2 rounded-lg bg-slate-50/80 px-2.5 py-1.5 border border-slate-100">
-            <div className="min-w-0 flex-1">
-              <span className="block text-[10px] text-slate-400 font-medium">{t('auth:loginPage.demoAccount.passwordLabel')}</span>
-              <span className="block truncate font-mono text-slate-800 text-[11px]">{selectedDemo.password}</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => handleCopy(selectedDemo.password, 'password')}
-              title={t('auth:loginPage.demoAccount.copyPasswordTitle')}
-              className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-slate-400 transition-colors hover:bg-slate-200/70 hover:text-slate-700 cursor-pointer"
-            >
-              {copiedField === 'password' ? (
-                <CheckIcon className="h-3.5 w-3.5 text-emerald-600 animate-fade-in" />
-              ) : (
-                <CopyIcon className="h-3.5 w-3.5" />
-              )}
-            </button>
-          </div>
-
-          {/* Nút Đăng nhập 1-Click trực tiếp */}
-          <button
-            type="button"
-            onClick={() => handleQuickLogin(selectedDemo)}
-            disabled={login.isPending}
-            className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white text-xs font-semibold shadow-xs transition-all cursor-pointer disabled:opacity-50"
-          >
-            {login.isPending ? '...' : (
-              <>
-                <span>{t('auth:loginPage.demoAccount.quickLogin')}</span>
-                <span>→</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-    </>
+    </AuthShell>
   );
 }

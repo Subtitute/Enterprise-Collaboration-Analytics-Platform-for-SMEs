@@ -135,7 +135,7 @@ export function Dropdown({ trigger, children, align = 'right', panelClassName }:
             // dialogRef trong Modal.tsx.
             tabIndex={-1}
             style={{ position: 'fixed', top: position.top, ...(align === 'right' ? { right: position.right } : { left: position.left }) }}
-            className={cn('z-[60] animate-slide-up overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl', panelClassName)}
+            className={cn('z-[60] animate-slide-up overflow-hidden rounded-radius-md border border-border-subtle bg-white shadow-sm p-1', panelClassName)}
           >
             {children({ close: () => setOpen(false) })}
           </div>,
@@ -153,7 +153,7 @@ export function DropdownItem({
     <button
       type="button"
       className={cn(
-        'flex w-full items-center gap-2 px-3.5 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50',
+        'flex w-full items-center gap-2 px-2.5 py-1.5 rounded-radius-sm text-left text-[13px] leading-5 text-text-primary hover:bg-bg-subtle active:bg-bg-muted disabled:opacity-50 transition-colors',
         className,
       )}
       {...props}

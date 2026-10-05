@@ -3,7 +3,7 @@ import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn, canAccessAdminArea } from '@/lib/utils';
 import { NAV_ITEMS } from './nav-items';
-import { LayersIcon } from '@/components/ui/Icons';
+import { LayersIcon, ChevronLeftIcon, ChevronRightIcon } from '@/components/ui/Icons';
 import { useUIStore } from '@/stores/ui.store';
 import { usePermissions } from '@/stores/auth.store';
 import { useUnreadMessagesCount } from '@/features/messaging/hooks';
@@ -96,10 +96,12 @@ function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
  *  mo rong khi hover, xem Sidebar()), chi con 1 the Link duy nhat (logo + ten, nhan chu tu mo/thu
  *  theo "collapsed" bang transition giong SidebarLinks ben tren thay vi 2 nhanh render rieng biet. */
 function SidebarHeader({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
+  const toggle = useUIStore((s) => s.toggleSidebarCollapsed);
+
   return (
     <div
       className={cn(
-        'border-b border-slate-100 flex h-14 items-center overflow-hidden transition-all duration-150 px-3.5',
+        'border-b border-slate-100 flex h-14 items-center justify-between overflow-hidden px-3.5 transition-all duration-200',
         collapsed && 'justify-center px-2',
       )}
     >
@@ -115,51 +117,61 @@ function SidebarHeader({ collapsed, onNavigate }: { collapsed: boolean; onNaviga
         </span>
         <div
           className={cn(
-            'overflow-hidden whitespace-nowrap transition-all duration-150 ease-in-out',
-            collapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[150px] opacity-100 ml-2.5',
+            'overflow-hidden whitespace-nowrap transition-all duration-200 ease-in-out',
+            collapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[140px] opacity-100 ml-2.5',
           )}
         >
           <span className="block truncate text-sm font-bold text-slate-900 tracking-tight">ECAP for SMEs</span>
         </div>
       </Link>
+
+      {!collapsed && (
+        <button
+          type="button"
+          onClick={toggle}
+          title="Thu gọn menu"
+          aria-label="Thu gọn menu"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+        >
+          <ChevronLeftIcon className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 }
 
-/** 03/10/2026: rail icon co dinh cho man hinh md+ - LUON thu gon (w-[68px]) mac dinh, chi mo rong
- *  (w-60, hien nhan chu) TAM THOI khi di chuot vao (state cuc bo "hovered", khong con doc/ghi qua
- *  useUIStore - thay the toan bo co che thu gon/mo rong thu cong + tu dong thu gon o do rong tablet
- *  truoc day, xem ui.store.ts). Khung bao ngoai (div) giu nguyen do rong 68px trong luong flex de
- *  noi dung trang KHONG bi day/co giãn khi mo rong; <aside> ben trong dinh vi "absolute" chong len
- *  tren (overlay, z-40 + shadow khi mo rong) thay vi thay doi do rong cua chinh khung bao. */
+/** Sidebar kieu ClickUp: Thu/Mo day noi dung that (khong de len, khong che noi dung), co nut thu gon/mo rong */
 export function Sidebar() {
-  const [hovered, setHovered] = useState(false);
-  const collapsed = !hovered;
-
-  // 03/10/2026: focus/blur ban phim cung mo/thu rail (ngoai hover chuot) - Tab vao trong rail nen
-  // mo nhan chu ra thay vi giu icon-only khien nguoi dung ban phim khong biet dang o lien ket nao.
-  const handleBlur = (e: React.FocusEvent<HTMLElement>) => {
-    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setHovered(false);
-  };
+  const collapsed = useUIStore((s) => s.sidebarCollapsed);
+  const toggle = useUIStore((s) => s.toggleSidebarCollapsed);
 
   return (
-    <div className="sticky top-0 hidden h-screen w-[68px] shrink-0 md:block">
-      <aside
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        onFocus={() => setHovered(true)}
-        onBlur={handleBlur}
-        className={cn(
-          'absolute left-0 top-0 flex h-screen flex-col border-r border-slate-200 bg-white transition-[width] duration-150 ease-in-out',
-          hovered ? 'z-40 w-60 shadow-xl' : 'w-[68px]',
-        )}
-      >
-        <SidebarHeader collapsed={collapsed} />
-        <SidebarLinks collapsed={collapsed} />
-      </aside>
-    </div>
+    <aside
+      className={cn(
+        'sticky top-0 z-20 hidden h-screen shrink-0 flex-col border-r border-slate-200 bg-white transition-[width] duration-200 ease-in-out md:flex',
+        collapsed ? 'w-[68px]' : 'w-60',
+      )}
+    >
+      <SidebarHeader collapsed={collapsed} />
+      <SidebarLinks collapsed={collapsed} />
+
+      {collapsed && (
+        <div className="border-t border-slate-100 p-2 text-center">
+          <button
+            type="button"
+            onClick={toggle}
+            title="Mở rộng menu"
+            aria-label="Mở rộng menu"
+            className="flex h-8 w-full items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+          >
+            <ChevronRightIcon className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+    </aside>
   );
 }
+
 
 /** Ngan keo (drawer) cho man hinh mobile, mo bang nut hamburger tren Topbar. */
 export function MobileSidebar() {

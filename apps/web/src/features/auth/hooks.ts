@@ -50,8 +50,6 @@ export function useLogin() {
 }
 
 export function useRegisterOrganization() {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
   const setSession = useAuthStore((s) => s.setSession);
 
   return useMutation({
@@ -66,11 +64,6 @@ export function useRegisterOrganization() {
         accessToken: data.accessToken,
         user: userWithOrg,
       });
-      toast.success(t('auth:hooks.register.successTitle'), t('auth:hooks.register.successDescription', { fullName: data.user.fullName }));
-      navigate('/dashboard', { replace: true });
-    },
-    onError: (error) => {
-      toast.error(t('auth:hooks.register.errorTitle'), extractErrorMessage(error));
     },
   });
 }

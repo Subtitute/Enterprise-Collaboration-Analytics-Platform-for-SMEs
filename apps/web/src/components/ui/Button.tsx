@@ -3,7 +3,7 @@ import type { ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 import { Spinner } from './Spinner';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'link';
 export type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -14,20 +14,23 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm shadow-slate-900/10 ring-1 ring-inset ring-white/20 active:scale-[0.98] focus-visible:ring-indigo-500',
+    'bg-[#1C1B1A] text-[#F7F6F3] hover:bg-[#2E2C29] active:bg-[#141312] border border-transparent shadow-none focus-visible:ring-accent focus-visible:border-accent',
   secondary:
-    'bg-slate-100 text-slate-900 hover:bg-slate-200 border border-slate-200/80 shadow-xs active:scale-[0.98] focus-visible:ring-indigo-500',
+    'bg-white text-text-primary hover:bg-bg-subtle active:bg-bg-muted border border-border-strong shadow-none focus-visible:ring-accent focus-visible:border-accent',
   outline:
-    'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-400 shadow-xs active:scale-[0.98] focus-visible:ring-indigo-500',
-  ghost: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:scale-[0.98] focus-visible:ring-indigo-500',
+    'bg-white text-text-primary hover:bg-bg-subtle border border-border-strong shadow-none focus-visible:ring-accent focus-visible:border-accent',
+  ghost:
+    'bg-transparent text-text-secondary hover:text-text-primary hover:bg-bg-subtle active:bg-bg-muted border border-transparent shadow-none focus-visible:ring-accent',
   danger:
-    'bg-rose-600 text-white hover:bg-rose-700 shadow-sm shadow-slate-900/10 ring-1 ring-inset ring-white/20 active:scale-[0.98] focus-visible:ring-rose-500',
+    'bg-error text-white hover:bg-[#962019] active:bg-[#7D1B15] border border-transparent shadow-none focus-visible:ring-error',
+  link:
+    'bg-transparent text-accent hover:text-accent-hover hover:underline p-0 h-auto border-none shadow-none active:text-accent-hover focus-visible:ring-accent',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'h-8 px-3 text-sm gap-1.5',
-  md: 'h-9 px-4 text-sm gap-2',
-  lg: 'h-11 px-5 text-base gap-2',
+  sm: 'h-7 px-2.5 text-[13px] leading-5 font-medium gap-1.5',
+  md: 'h-9 px-3.5 text-sm leading-[22px] font-medium gap-1.5',
+  lg: 'h-11 px-4.5 text-sm leading-[22px] font-medium gap-2',
   icon: 'h-9 w-9 p-0 justify-center',
 };
 
@@ -38,16 +41,21 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || isLoading}
         className={cn(
-          'inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
-          'disabled:pointer-events-none disabled:opacity-50 disabled:transform-none disabled:shadow-none',
+          'inline-flex items-center justify-center rounded-radius-md font-medium transition-colors duration-150',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-accent-soft',
+          'disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none',
           variantClasses[variant],
-          sizeClasses[size],
+          variant !== 'link' && sizeClasses[size],
           className,
         )}
         {...props}
       >
-        {isLoading && <Spinner size="sm" className={variant === 'primary' || variant === 'danger' ? 'text-white' : undefined} />}
+        {isLoading && (
+          <Spinner
+            size="sm"
+            className={cn('mr-1.5 h-3.5 w-3.5', variant === 'primary' || variant === 'danger' ? 'text-[#F7F6F3]' : 'text-text-secondary')}
+          />
+        )}
         {children}
       </button>
     );

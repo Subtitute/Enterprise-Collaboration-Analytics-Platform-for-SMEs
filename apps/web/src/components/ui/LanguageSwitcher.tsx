@@ -3,6 +3,7 @@ import { Dropdown, DropdownItem } from './Dropdown';
 import { GlobeIcon, CheckIcon, ChevronDownIcon } from './Icons';
 import { useI18nStore } from '@/stores/i18n.store';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i18n';
+import { cn } from '@/lib/utils';
 
 // 20/08/2026: t()/i18n.language khong dung de xac dinh "dang chon ngon ngu nao" o day - dung
 // truc tiep useI18nStore (nguon that duy nhat, xem stores/i18n.store.ts), tranh 2 nguon trang
@@ -26,34 +27,43 @@ export function LanguageSwitcher() {
   return (
     <Dropdown
       align="right"
-      panelClassName="w-40"
+      panelClassName="min-w-[140px] shadow-sm rounded-radius-md border border-border-subtle bg-white p-1"
       trigger={({ toggle }) => (
         <button
           type="button"
           onClick={toggle}
-          aria-label={t('common:language.switcherLabel')}
-          className="flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-200/60"
+          aria-label={t('common:language.switcherLabel', 'Chọn ngôn ngữ')}
+          className="flex h-8 items-center gap-1.5 rounded-radius-sm px-2 text-[13px] leading-5 font-medium text-text-secondary transition-colors hover:bg-bg-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-soft"
         >
-          <GlobeIcon className="h-4 w-4 shrink-0 text-slate-500" />
-          <span className="uppercase">{language}</span>
-          <ChevronDownIcon className="h-3.5 w-3.5 text-slate-400" />
+          <GlobeIcon className="h-4 w-4 shrink-0 text-text-secondary" />
+          <span className="uppercase text-text-primary">{language}</span>
+          <ChevronDownIcon className="h-3 w-3 text-text-tertiary" />
         </button>
       )}
     >
       {({ close }) => (
-        <div className="py-1.5">
-          {SUPPORTED_LANGUAGES.map((lng: SupportedLanguage) => (
-            <DropdownItem
-              key={lng}
-              onClick={() => {
-                setLanguage(lng);
-                close();
-              }}
-            >
-              <span className="flex-1">{t(`common:language.${lng}`)}</span>
-              {language === lng && <CheckIcon className="h-4 w-4 text-primary-600" />}
-            </DropdownItem>
-          ))}
+        <div className="py-0.5 space-y-0.5">
+          {SUPPORTED_LANGUAGES.map((lng: SupportedLanguage) => {
+            const isSelected = language === lng;
+            return (
+              <DropdownItem
+                key={lng}
+                onClick={() => {
+                  setLanguage(lng);
+                  close();
+                }}
+                className={cn(
+                  'h-8 px-2.5 py-1.5 rounded-radius-sm text-[13px] leading-5 flex items-center justify-between',
+                  isSelected
+                    ? 'bg-accent-soft text-accent font-medium hover:bg-accent-soft'
+                    : 'text-text-primary hover:bg-bg-subtle',
+                )}
+              >
+                <span>{t(`common:language.${lng}`)}</span>
+                {isSelected && <CheckIcon className="h-3.5 w-3.5 text-accent shrink-0" />}
+              </DropdownItem>
+            );
+          })}
         </div>
       )}
     </Dropdown>
