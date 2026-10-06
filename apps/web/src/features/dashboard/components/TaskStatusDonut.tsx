@@ -1,31 +1,37 @@
 import { useState } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { useTranslation } from 'react-i18next';
-import { TASK_STATUS_COLOR } from '@/lib/chart-colors';
 import { cn } from '@/lib/utils';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
 import { Spinner } from '@/components/ui/Spinner';
 import type { TaskStatusBreakdownItem } from '@/types';
-// 20/08/2026: `statusLabel` la ham NGOAI component (module-level) - khong the goi
-// useTranslation() (vi pham Rules of Hooks). Dung tham chieu `t` khong-qua-hook tu i18n/index.ts.
-// Van tu dong doi ngon ngu dung vi component cha (DashboardPage) da dung useTranslation() nen
-// re-render moi khi doi ngon ngu, keo theo TaskStatusDonut re-render lai theo.
-import { t } from '@/i18n';
 
-function statusLabel(status: string) {
+// Bảng màu chuẩn theo §7 Spec:
+// To Do: #8A8781, In Progress: #1E5A8A, Done: #2F6F44
+const STATUS_COLORS: Record<string, string> = {
+  TODO: '#8A8781',
+  DOING: '#1E5A8A',
+  IN_PROGRESS: '#1E5A8A',
+  DONE: '#2F6F44',
+};
+
+function getStatusLabel(status: string, translate: (key: string, def?: any) => string) {
   const normalized = status === 'IN_PROGRESS' ? 'DOING' : status;
-  return t(`projects:enums.taskStatus.${normalized}`, { defaultValue: status });
+  if (normalized === 'TODO') return translate('dashboard:status.toDo', 'Cần làm');
+  if (normalized === 'DOING') return translate('dashboard:status.inProgress', 'Đang làm');
+  if (normalized === 'DONE') return translate('dashboard:status.done', 'Hoàn thành');
+  return translate(`projects:enums.taskStatus.${normalized}`, { defaultValue: status });
 }
 
-function DonutTooltip({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number; payload: { fill: string; status: string } }> }) {
+function DonutTooltip({ active, payload, translate }: { active?: boolean; payload?: Array<{ name: string; value: number; payload: { fill: string; status: string } }>; translate: (key: string, def?: any) => string }) {
   if (!active || !payload?.length) return null;
   const p = payload[0];
   return (
-    <div className="rounded-xl border border-slate-200/90 bg-white/95 px-3 py-2 text-xs shadow-xl shadow-slate-200/60 backdrop-blur-md">
-      <p className="flex items-center gap-1.5 text-slate-700 font-medium">
-        <span className="h-2.5 w-2.5 rounded-full shadow-sm" style={{ background: p.payload.fill }} />
-        {statusLabel(p.payload.status)}: <span className="font-bold text-slate-900">{p.value}</span>
+    <div className="rounded-radius-sm bg-[#1C1B1A] text-[#F7F6F3] px-2.5 py-2 text-[12px] font-medium shadow-sm">
+      <p className="flex items-center gap-1.5">
+        <span className="h-1.5 w-1.5 rounded-full" style={{ background: p.payload.fill }} />
+        <span>{getStatusLabel(p.payload.status, translate)}:</span>
+        <span className="font-mono font-semibold text-white">{p.value}</span>
       </p>
     </div>
   );
@@ -39,13 +45,32 @@ interface TaskStatusDonutProps {
 }
 
 export function TaskStatusDonut({ data, isLoading, isError, onRetry }: TaskStatusDonutProps) {
-  const { t } = useTranslation();
+  const { t: translate } = useTranslation();
   const [hoveredStatus, setHoveredStatus] = useState<string | null>(null);
 
-  const total = data.reduce((sum, d) => sum + (d.count || 0), 0);
-  const chartData = data.map((d) => ({ ...d, fill: TASK_STATUS_COLOR[d.status] ?? '#94a3b8' }));
+  // 3 trạng thái nguyên bản: Cần làm (TODO), Đang làm (DOING), Hoàn thành (DONE)
+  const order = ['TODO', 'DOING', 'DONE'];
+  const dataMap = new Map<string, number>();
+  for (const d of data) {
+    const k = d.status === 'IN_PROGRESS' ? 'DOING' : d.status;
+    dataMap.set(k, (dataMap.get(k) || 0) + (d.count || 0));
+  }
 
-  const activeItem = hoveredStatus ? chartData.find((d) => d.status === hoveredStatus) : null;
+  const items = order.map((status) => ({
+    status,
+    count: dataMap.get(status) || 0,
+    fill: STATUS_COLORS[status] || '#8A8781',
+  }));
+
+  const total = items.reduce((sum, d) => sum + d.count, 0);
+
+  // Empty state theo §11: Donut ring rỗng màu bg-muted #E7E5DF, center `0 công việc`, legend tất cả 0
+  const isEmpty = total === 0;
+  // Lọc chỉ các trạng thái có count > 0 đưa vào biểu đồ để tránh lát cắt 0 giá trị làm mất khoảng hở paddingAngle
+  const activeSlices = items.filter((d) => d.count > 0);
+  const chartData = isEmpty
+    ? [{ status: 'EMPTY', count: 1, fill: '#E7E5DF' }]
+    : activeSlices;
 
   return (
     <QueryState
@@ -57,111 +82,97 @@ export function TaskStatusDonut({ data, isLoading, isError, onRetry }: TaskStatu
           <Spinner />
         </div>
       }
-      errorTitle={t('dashboard:taskStatusDonut.errorTitle')}
-      errorDescription={t('dashboard:taskStatusDonut.errorDescription')}
+      errorTitle={translate('dashboard:taskStatusDonut.errorTitle')}
+      errorDescription={translate('dashboard:taskStatusDonut.errorDescription')}
     >
-      {total === 0 ? (
-        <EmptyState title={t('dashboard:taskStatusDonut.emptyTitle')} description={t('dashboard:taskStatusDonut.emptyDescription')} />
-      ) : (
-        <div className="flex flex-col 2xl:flex-row items-center justify-between gap-4 w-full min-w-0 overflow-hidden">
-          <div className="relative h-44 w-44 sm:h-48 sm:w-48 shrink-0 mx-auto">
-            {/* Tương tác tâm (Center Text) nằm ở tầng nền z-0 với pointer-events-none tuyệt đối để chuột xuyên qua */}
-            <div className="pointer-events-none absolute inset-0 z-0 flex flex-col items-center justify-center text-center px-2 transition-all duration-200 select-none">
-              {activeItem ? (
-                <div className="animate-fade-in flex flex-col items-center">
-                  <span className="font-display text-2xl font-bold tracking-tight tabular-nums text-slate-900 leading-none">
-                    {activeItem.count}
-                  </span>
-                  <span className="text-[11px] font-semibold text-slate-600 truncate max-w-[90px] mt-0.5">
-                    {statusLabel(activeItem.status)}
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-medium">
-                    {t('dashboard:taskStatusDonut.ofTotal', {
-                      percent: total ? Math.round((activeItem.count / total) * 100) : 0,
-                    })}
-                  </span>
-                </div>
-              ) : (
-                <div className="animate-fade-in flex flex-col items-center">
-                  <span className="font-display text-2xl font-bold tracking-tight tabular-nums text-slate-900 leading-none">{total}</span>
-                  <span className="text-xs text-slate-500 font-medium mt-0.5">{t('dashboard:taskStatusDonut.unit')}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Lớp vẽ biểu đồ Donut nằm ở tầng z-10 */}
-            <div className="relative z-10 h-full w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    dataKey="count"
-                    nameKey="status"
-                    innerRadius={56}
-                    outerRadius={80}
-                    paddingAngle={3}
-                    cornerRadius={6}
-                    strokeWidth={0}
-                    onMouseEnter={(_, index) => {
-                      if (chartData[index]) setHoveredStatus(chartData[index].status);
-                    }}
-                    onMouseLeave={() => setHoveredStatus(null)}
-                  >
-                    {chartData.map((d) => (
-                      <Cell
-                        key={d.status}
-                        fill={d.fill}
-                        className="transition-all duration-200 cursor-pointer"
-                        opacity={hoveredStatus === null || hoveredStatus === d.status ? 1 : 0.45}
-                        style={{ outline: 'none' }}
-                      />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-6 w-full min-w-0" aria-label="Biểu đồ phân bổ trạng thái công việc">
+        {/* Ring mỏng: innerRadius 65, outerRadius 85 */}
+        <div className="relative h-[180px] w-[180px] shrink-0 mx-auto">
+          {/* Tâm tròn: số tổng font IBM Plex Mono 32/40 + label 12/400 */}
+          <div className="pointer-events-none absolute inset-0 z-0 flex flex-col items-center justify-center text-center px-1 select-none">
+            <span className="font-mono text-[32px] leading-[40px] font-medium tracking-tight tabular-nums text-text-primary">
+              {total}
+            </span>
+            <span className="text-[12px] leading-[16px] text-text-tertiary">
+              {translate('dashboard:taskStatusDonut.unit', 'công việc')}
+            </span>
           </div>
 
-          <ul className="w-full min-w-0 flex-1">
-            {chartData.map((d) => {
-              const isHovered = hoveredStatus === d.status;
-              return (
-                <li
-                  key={d.status}
-                  onMouseEnter={() => setHoveredStatus(d.status)}
+          <div className="relative z-10 h-full w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  dataKey="count"
+                  nameKey="status"
+                  innerRadius={65}
+                  outerRadius={85}
+                  paddingAngle={isEmpty || chartData.length <= 1 ? 0 : 3}
+                  strokeWidth={isEmpty ? 0 : 2}
+                  stroke="#FFFFFF"
+                  onMouseEnter={(_, index) => {
+                    if (!isEmpty && chartData[index]) setHoveredStatus(chartData[index].status);
+                  }}
                   onMouseLeave={() => setHoveredStatus(null)}
-                  className={cn(
-                    'flex items-center justify-between gap-2 text-xs sm:text-sm rounded-lg px-3 py-2 mb-2 border transition-colors duration-150 cursor-pointer min-w-0',
-                    isHovered
-                      ? 'bg-slate-100 border-slate-300 shadow-2xs'
-                      : 'bg-slate-50 border-slate-200/60 hover:bg-slate-100/60 hover:border-slate-300/50',
-                  )}
                 >
-                  <span className="flex items-center gap-2 text-slate-700 min-w-0 truncate">
-                    <span
-                      className="h-2.5 w-2.5 shrink-0 rounded-full shadow-2xs"
-                      style={{
-                        background: d.fill,
-                      }}
+                  {chartData.map((d) => (
+                    <Cell
+                      key={d.status}
+                      fill={d.fill}
+                      className={cn('transition-all duration-150', !isEmpty && 'cursor-pointer')}
+                      opacity={isEmpty || hoveredStatus === null || hoveredStatus === d.status ? 1 : 0.4}
+                      style={{ outline: 'none' }}
                     />
-                    <span className={cn('truncate font-medium text-slate-700', isHovered && 'text-slate-900 font-semibold')}>
-                      {statusLabel(d.status)}
-                    </span>
-                  </span>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="font-bold tabular-nums text-slate-900 text-xs sm:text-sm">
-                      {d.count}
-                    </span>
-                    <span className="rounded bg-white px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-slate-500 border border-slate-200/60 shadow-2xs">
-                      {total ? Math.round((d.count / total) * 100) : 0}%
-                    </span>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+                  ))}
+                </Pie>
+                {!isEmpty && <Tooltip content={<DonutTooltip translate={translate} />} />}
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      )}
+
+        {/* Legend FLAT LIST (§7): Không background, không border, không padding. Cách nhau 10px dọc */}
+        <div className="w-full min-w-0 flex-1 space-y-2.5">
+          {items.map((d) => {
+            const isHovered = hoveredStatus === d.status;
+            const percent = total > 0 ? Math.round((d.count / total) * 100) : 0;
+
+            return (
+              <div
+                key={d.status}
+                onMouseEnter={() => setHoveredStatus(d.status)}
+                onMouseLeave={() => setHoveredStatus(null)}
+                className={cn(
+                  'flex items-center justify-between text-[13px] leading-[20px] cursor-pointer transition-colors select-none',
+                  isHovered ? 'text-text-primary' : 'text-text-secondary'
+                )}
+              >
+                {/* Chấm 8px + Label text-primary */}
+                <div className="flex items-center gap-2 min-w-0 truncate">
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ background: d.fill }}
+                  />
+                  <span className={cn('truncate', isHovered ? 'font-medium text-text-primary' : 'text-text-primary')}>
+                    {getStatusLabel(d.status, translate)}
+                  </span>
+                </div>
+
+                {/* Số count font mono 13/500 text-primary căn phải + % font mono 12/400 text-tertiary width 44px */}
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="font-mono text-[13px] font-medium text-text-primary text-right min-w-[24px]">
+                    {d.count}
+                  </span>
+                  <span className="font-mono text-[12px] text-text-tertiary w-[44px] text-right">
+                    {percent}%
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </QueryState>
   );
 }
+

@@ -107,6 +107,10 @@
     "messages": "Nhắn tin",
     "analytics": "Báo cáo & Phân tích",
     "admin": "Quản trị",
+    "pin": {
+      "expand": "Mở rộng thanh điều hướng",
+      "collapse": "Thu gọn thanh điều hướng"
+    },
     "homeNav": {
       "overview": "Tổng quan",
       "projects": "Dự án & Công việc",

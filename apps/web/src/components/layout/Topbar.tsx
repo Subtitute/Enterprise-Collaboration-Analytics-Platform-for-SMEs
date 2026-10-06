@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { getBreadcrumbs } from '@/lib/breadcrumbs';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUIStore } from '@/stores/ui.store';
 import { useLogout } from '@/features/auth/hooks';
@@ -13,9 +14,10 @@ import { Spinner } from '@/components/ui/Spinner';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { QuickCreateTaskModal } from '@/features/projects/components/QuickCreateTaskModal';
-import { canManageProjects } from '@/lib/utils';
+import { canManageProjects, cn } from '@/lib/utils';
 import {
   MenuIcon,
+  PanelLeftIcon,
   SearchIcon,
   LogOutIcon,
   UserIcon,
@@ -26,7 +28,13 @@ import {
   PlusIcon,
   CalendarIcon,
   BriefcaseIcon,
+  GlobeIcon,
+  SettingsIcon,
+  XIcon,
 } from '@/components/ui/Icons';
+import { useI18nStore } from '@/stores/i18n.store';
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i18n';
+
 
 const CATEGORY_LABEL_KEY: Record<SearchResult['category'], string> = {
   project: 'project',
@@ -46,26 +54,45 @@ function GlobalSearchBox() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [input, setInput] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const { query, results, isLoading } = useGlobalSearch(input, hasInteracted);
   const open = isFocused && input.trim().length > 0;
 
+  // Phát hiện hệ điều hành để hiển thị phím tắt ⌘K (macOS) hoặc Ctrl K (Windows/Linux) (§4.3)
+  const isMac = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return /Mac|iPod|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+  }, []);
+  const kbdShortcut = isMac ? '⌘K' : 'Ctrl K';
+
+  // Lắng nghe phím tắt toàn cục ⌘K / Ctrl K để focus vào ô tìm kiếm
   useEffect(() => {
-    if (!open) return;
-    const onClickOutside = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setIsFocused(false);
+    const handleGlobalKbd = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
     };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsFocused(false);
+    window.addEventListener('keydown', handleGlobalKbd);
+    return () => window.removeEventListener('keydown', handleGlobalKbd);
+  }, []);
+
+  useEffect(() => {
+    if (!open) {
+      setSelectedIndex(-1);
+      return;
+    }
+    const onClickOutside = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setIsFocused(false);
+      }
     };
     document.addEventListener('mousedown', onClickOutside);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', onClickOutside);
-      document.removeEventListener('keydown', onKeyDown);
-    };
+    return () => document.removeEventListener('mousedown', onClickOutside);
   }, [open]);
 
   const goTo = (result: SearchResult) => {
@@ -74,48 +101,108 @@ function GlobalSearchBox() {
     setIsFocused(false);
   };
 
+  // Điều hướng phím mũi tên ↑ ↓, Enter chọn, Esc đóng (§4.4)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!open || results.length === 0) {
+      if (e.key === 'Escape') {
+        setIsFocused(false);
+        inputRef.current?.blur();
+      }
+      return;
+    }
+
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : 0));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : results.length - 1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (selectedIndex >= 0 && selectedIndex < results.length) {
+        goTo(results[selectedIndex]);
+      }
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setIsFocused(false);
+      inputRef.current?.blur();
+    }
+  };
+
   return (
-    <div ref={rootRef} className="relative flex-1 min-w-0">
-      <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+    <div ref={rootRef} className="relative w-full max-w-[440px]">
+      <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
       <input
+        ref={inputRef}
         type="search"
         value={input}
-        onChange={(e) => setInput(e.target.value)}
+        onChange={(e) => {
+          setInput(e.target.value);
+          setSelectedIndex(-1);
+        }}
         onFocus={() => {
           setIsFocused(true);
           setHasInteracted(true);
         }}
-        placeholder={t('common:search.placeholder')}
-        aria-label={t('common:search.placeholder')}
+        onKeyDown={handleKeyDown}
+        placeholder={t('common:search.placeholder', 'Tìm kiếm dự án, tài liệu, công việc...')}
+        aria-label={t('common:search.placeholder', 'Tìm kiếm dự án, tài liệu, công việc...')}
         role="combobox"
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-controls="global-search-listbox"
-        className="h-9 w-full rounded-xl border border-slate-200/80 bg-slate-100/70 pl-9 pr-3 text-sm text-slate-800 placeholder:text-slate-400 transition-all hover:bg-slate-100 focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 shadow-xs"
+        aria-activedescendant={selectedIndex >= 0 && results[selectedIndex] ? `search-opt-${results[selectedIndex].category}-${results[selectedIndex].id}` : undefined}
+        className="h-8 w-full rounded-radius-sm border border-transparent bg-bg-subtle pl-8 pr-16 text-sm text-text-primary placeholder:text-text-tertiary transition-colors hover:border-border-subtle focus:border-accent focus:bg-bg-surface focus:outline-none focus:ring-[3px] focus:ring-accent-soft"
       />
+
+      {/* KBD Hint (§4.3): Chỉ hiển thị khi input rỗng và chưa focus */}
+      {!isFocused && input.length === 0 && (
+        <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-[3px] border border-border-subtle bg-bg-muted px-1.5 py-0.5 font-mono text-[11px] font-semibold text-text-tertiary select-none">
+          {kbdShortcut}
+        </span>
+      )}
+
+      {/* Nút Clear văn bản chuẩn Design System v0.4 khi có nội dung nhập */}
+      {input.length > 0 && (
+        <button
+          type="button"
+          onClick={() => {
+            setInput('');
+            setSelectedIndex(-1);
+            inputRef.current?.focus();
+          }}
+          title={t('common:clear', 'Xóa')}
+          aria-label={t('common:clear', 'Xóa')}
+          className="absolute right-2 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full text-text-tertiary hover:bg-bg-muted hover:text-text-primary transition-colors cursor-pointer"
+        >
+          <XIcon className="h-3 w-3 stroke-[2.2]" />
+        </button>
+      )}
+
+
+      {/* Dropdown kết quả tìm kiếm (§4.4) */}
       {open && (
         <div
           id="global-search-listbox"
           role="listbox"
           aria-live="polite"
-          className="absolute left-0 right-0 z-40 mt-2 max-h-96 animate-slide-up overflow-y-auto rounded-xl border border-slate-200/90 bg-white/95 py-2 shadow-2xl shadow-slate-300/60 ring-1 ring-slate-900/5 backdrop-blur-md transition-all duration-200"
+          className="absolute left-0 right-0 z-40 mt-1 max-h-96 overflow-y-auto rounded-radius-md border border-border-subtle bg-bg-surface p-1 shadow-md"
         >
           {isLoading && (
-            <div className="flex items-center justify-center py-8 text-primary-600 animate-fade-in">
+            <div className="flex items-center justify-center py-6 text-accent">
               <Spinner size="sm" />
-              {/* 26/08/2026: sua loi hardcode tieng Viet - text nay truoc do go cung trong JSX,
-                  khong qua t() nhu moi chuoi khac trong file (vd search.placeholder, search.noResults
-                  ben duoi), nen giao dien luon hien tieng Viet du nguoi dung dang chon en/ja. Chuyen
-                  sang key moi `common:search.loading` (cung namespace/nhom voi cac key search.* da co). */}
-              <span className="ml-2 text-xs font-medium text-slate-400">{t('common:search.loading')}</span>
+              <span className="ml-2 text-xs font-medium text-text-secondary">{t('common:search.loading', 'Đang tìm kiếm...')}</span>
             </div>
           )}
+
           {!isLoading && results.length === 0 && (
-            <div className="px-4 py-8 text-center animate-fade-in">
-              <p className="text-sm font-medium text-slate-700">{t('common:search.noResults', { query })}</p>
-              <p className="mt-1 text-xs text-slate-400">{t('common:search.noResultsHint')}</p>
+            <div className="px-4 py-6 text-center">
+              <p className="text-[13px] leading-5 text-text-secondary">
+                {t('common:search.noResults', { query: input, defaultValue: `Không tìm thấy kết quả cho "${input}"` })}
+              </p>
             </div>
           )}
+
           {!isLoading &&
             results.length > 0 &&
             (['project', 'task', 'member', 'folder'] as const).map((category) => {
@@ -124,28 +211,40 @@ function GlobalSearchBox() {
               const Icon = CATEGORY_ICON[category];
               return (
                 <div key={category} className="py-1">
-                  <div className="flex items-center gap-1.5 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                    <Icon className="h-3.5 w-3.5" />
-                    <span>{t(`common:search.categories.${CATEGORY_LABEL_KEY[category]}`)}</span>
-                    <span className="ml-auto text-[10px] text-slate-300">({items.length})</span>
+                  <div className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-tertiary">
+                    <span>{t(`common:search.category.${category}`, CATEGORY_LABEL_KEY[category])}</span>
                   </div>
-                  {items.map((item) => (
-                    <button
-                      key={`${item.category}-${item.id}`}
-                      type="button"
-                      onClick={() => goTo(item)}
-                      className="group flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-all duration-150 hover:bg-primary-50/70 hover:pl-4 cursor-pointer"
-                    >
-                      <span className="truncate font-medium text-slate-700 group-hover:text-primary-700">
-                        {item.label}
-                      </span>
-                      {item.sublabel && (
-                        <span className="ml-2 shrink-0 text-xs text-slate-400 group-hover:text-primary-500/80">
-                          {item.sublabel}
+                  {items.map((item) => {
+                    const itemGlobalIndex = results.indexOf(item);
+                    const isSelected = itemGlobalIndex === selectedIndex;
+                    const optId = `search-opt-${item.category}-${item.id}`;
+                    return (
+                      <button
+                        key={`${item.category}-${item.id}`}
+                        id={optId}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => goTo(item)}
+                        onMouseEnter={() => setSelectedIndex(itemGlobalIndex)}
+                        className={cn(
+                          'flex h-10 w-full items-center gap-2.5 rounded-radius-sm px-2.5 py-2 text-left transition-colors cursor-pointer',
+                          isSelected ? 'bg-bg-subtle text-text-primary' : 'hover:bg-bg-subtle text-text-secondary',
+                        )}
+                      >
+
+                        <Icon className="h-4 w-4 shrink-0 text-text-secondary" />
+                        <span className="truncate text-[13px] font-medium text-text-primary flex-1">
+                          {item.label}
                         </span>
-                      )}
-                    </button>
-                  ))}
+                        {item.sublabel && (
+                          <span className="shrink-0 text-xs text-text-tertiary">
+                            {item.sublabel}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               );
             })}
@@ -156,7 +255,7 @@ function GlobalSearchBox() {
 }
 
 export function Topbar() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen);
   const logout = useLogout();
@@ -203,193 +302,273 @@ export function Topbar() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showQuickTaskModal, showLogoutConfirm]);
 
-  return (
-    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2.5 md:gap-4 border-b border-slate-200 bg-white px-3 md:px-6">
-      {/* Nút menu mở Mobile Sidebar */}
-      <button
-        type="button"
-        onClick={() => setMobileSidebarOpen(true)}
-        aria-label={t('common:topbar.openMenu')}
-        className="flex h-9 w-9 items-center justify-center rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 md:hidden shrink-0 cursor-pointer"
-      >
-        <MenuIcon className="h-5 w-5" />
-      </button>
+  // Tự động sinh danh sách breadcrumb từ route React Router (§3.2)
+  const breadcrumbs = useMemo(() => getBreadcrumbs(location.pathname), [location.pathname, i18n.language]);
+  const currentPageTitle = breadcrumbs[breadcrumbs.length - 1]?.label || t('common:nav.homeNav.overview', 'Tổng quan');
 
-      {/* Tên công ty / doanh nghiệp ở bên trái Topbar (không logo icon) */}
-      <div className="flex flex-col justify-center shrink-0 min-w-0 max-w-[170px] md:max-w-[240px]">
-        <span className="truncate text-sm font-semibold text-slate-800 leading-tight" title={user?.organizationName || 'Demo SME Platform'}>
-          {user?.organizationName || 'Demo SME Platform'}
+  return (
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-border-subtle bg-bg-surface px-4 md:px-5">
+      {/* =========================================================================
+          VÙNG TRÁI: Toggle Sidebar + Breadcrumb (§3)
+          ========================================================================= */}
+      <div className="flex items-center gap-3 shrink-0 min-w-0 max-w-[45%]">
+        {/* Toggle Sidebar (32x32) */}
+        <button
+          type="button"
+          onClick={() => {
+            if (window.innerWidth < 768) {
+              setMobileSidebarOpen(true);
+            } else {
+              useUIStore.getState().toggleSidebarCollapsed();
+            }
+          }}
+          title={t('common:topbar.toggleTooltip', 'Ẩn/Hiện thanh điều hướng')}
+          aria-label={t('common:topbar.toggleTooltip', 'Ẩn/Hiện thanh điều hướng')}
+          className="flex h-8 w-8 items-center justify-center rounded-radius-sm text-text-secondary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer shrink-0"
+        >
+          <span className="md:hidden">
+            <MenuIcon className="h-[18px] w-[18px]" />
+          </span>
+          <span className="hidden md:inline-flex">
+            <PanelLeftIcon className="h-[18px] w-[18px]" />
+          </span>
+        </button>
+
+        {/* Mobile: Chỉ hiển thị page title hiện tại (1 dòng, truncate) */}
+        <span className="md:hidden truncate text-sm font-semibold text-text-primary">
+          {currentPageTitle}
         </span>
-        <span className="truncate text-[11px] text-slate-400 leading-tight">
-          {t('common:sidebar.subtitle')}
-        </span>
+
+        {/* Desktop: Breadcrumb đầy đủ, auto-generate từ pathname */}
+        <nav aria-label="Breadcrumb" className="hidden md:flex items-center gap-1.5 text-[13px] leading-5 text-text-tertiary min-w-0 truncate">
+          {breadcrumbs.map((crumb, idx) => {
+            const isLast = idx === breadcrumbs.length - 1;
+            return (
+              <span key={`${crumb.label}-${idx}`} className="inline-flex items-center gap-1.5 min-w-0">
+                {idx > 0 && <span className="text-text-tertiary select-none">/</span>}
+                {isLast ? (
+                  <span className="truncate font-medium text-text-primary" aria-current="page">
+                    {crumb.label}
+                  </span>
+                ) : (
+                  <Link
+                    to={crumb.href || '#'}
+                    className="truncate hover:text-text-primary transition-colors"
+                  >
+                    {crumb.label}
+                  </Link>
+                )}
+              </span>
+            );
+          })}
+        </nav>
       </div>
 
-      {/* Thanh tìm kiếm toàn hệ thống tự động fill toàn bộ khoảng trống còn lại */}
-      <div className="flex-1 min-w-0">
+      {/* =========================================================================
+          VÙNG GIỮA: Global Search Box max-w-[440px] (§4)
+          ========================================================================= */}
+      <div className="hidden sm:flex flex-1 max-w-[440px] mx-4 justify-center min-w-0">
         <GlobalSearchBox />
       </div>
 
-      {/* Nút Tạo nhanh (Quick Create Action Dropdown) */}
-      <Dropdown
-        align="right"
-        panelClassName="w-60 p-1.5"
-        trigger={({ toggle, open }) => (
-          <button
-            type="button"
-            onClick={toggle}
-            title={t('common:quickCreate.tooltip')}
-            aria-label={t('common:quickCreate.tooltip')}
-            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 md:px-3 md:py-2 text-xs font-semibold text-white transition-all duration-150 shadow-sm shrink-0 cursor-pointer active:scale-[0.98] ${
-              open ? 'bg-indigo-700 ring-2 ring-indigo-500/30' : 'bg-indigo-600 hover:bg-indigo-700 ring-1 ring-inset ring-white/20'
-            }`}
-          >
-            <PlusIcon className="h-4 w-4 stroke-[2.2]" />
-            <span className="hidden sm:inline">{t('common:quickCreate.button')}</span>
-            <ChevronDownIcon className={`hidden sm:inline h-3 w-3 text-indigo-200 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-          </button>
-        )}
-      >
-        {({ close }) => (
-          <div className="py-1">
-            {/* 1. Tạo công việc (Mở Modal nhanh ngay tức thì) */}
-            <DropdownItem
-              onClick={() => {
-                close();
-                setShowQuickTaskModal(true);
-              }}
-              className="flex items-start gap-2.5 rounded-lg px-3 py-2 text-left hover:bg-slate-50 transition-colors"
-            >
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-50 text-indigo-600 shrink-0 mt-0.5">
-                <CheckCircleIcon className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-slate-900 leading-tight">
-                  {t('common:quickCreate.createTask')}
-                </p>
-                <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                  {t('common:quickCreate.createTaskDesc')}
-                </p>
-              </div>
-            </DropdownItem>
-
-            {/* 2. Tạo dự án mới (Dành cho Quản lý & Admin) */}
-            {canManageProjectsOrCRM && (
-              <DropdownItem
-                onClick={() => {
-                  close();
-                  navigate('/projects?action=create');
-                }}
-                className="flex items-start gap-2.5 rounded-lg px-3 py-2 text-left hover:bg-slate-50 transition-colors"
-              >
-                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-sky-50 text-sky-600 shrink-0 mt-0.5">
-                  <FolderKanbanIcon className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-slate-900 leading-tight">
-                    {t('common:quickCreate.createProject')}
-                  </p>
-                  <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                    {t('common:quickCreate.createProjectDesc')}
-                  </p>
-                </div>
-              </DropdownItem>
-            )}
-
-            {/* 3. Thêm khách hàng (Dành cho Quản lý & Admin) */}
-            {canManageProjectsOrCRM && (
-              <DropdownItem
-                onClick={() => {
-                  close();
-                  navigate('/customers?action=create');
-                }}
-                className="flex items-start gap-2.5 rounded-lg px-3 py-2 text-left hover:bg-slate-50 transition-colors"
-              >
-                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-50 text-emerald-600 shrink-0 mt-0.5">
-                  <BriefcaseIcon className="h-4 w-4" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold text-slate-900 leading-tight">
-                    {t('common:quickCreate.createCustomer')}
-                  </p>
-                  <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                    {t('common:quickCreate.createCustomerDesc')}
-                  </p>
-                </div>
-              </DropdownItem>
-            )}
-
-            {/* 4. Gửi đơn nghỉ phép (Dành cho tất cả mọi người) */}
-            <DropdownItem
-              onClick={() => {
-                close();
-                navigate('/leave-requests?action=create');
-              }}
-              className="flex items-start gap-2.5 rounded-lg px-3 py-2 text-left hover:bg-slate-50 transition-colors border-t border-slate-100 mt-1 pt-2"
-            >
-              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-50 text-amber-600 shrink-0 mt-0.5">
-                <CalendarIcon className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-slate-900 leading-tight">
-                  {t('common:quickCreate.requestLeave')}
-                </p>
-                <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                  {t('common:quickCreate.requestLeaveDesc')}
-                </p>
-              </div>
-            </DropdownItem>
-          </div>
-        )}
-      </Dropdown>
-
-      {/* Cụm tiện ích hệ thống luôn cố định ở sát mép phải (Chọn ngôn ngữ, Thông báo, Menu tài khoản) */}
-      <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-        <LanguageSwitcher />
-        <NotificationBell />
-
+      {/* =========================================================================
+          VÙNG PHẢI: Quick Create + Notification Bell + User Profile (§5)
+          ========================================================================= */}
+      <div className="flex items-center gap-2 shrink-0">
+        {/* Nút Tạo mới: Nền INK #1C1B1A, height 32, radius 6px (§5.1, §6) */}
         <Dropdown
           align="right"
-          panelClassName="w-56"
-          trigger={({ toggle }) => (
+          panelClassName="w-64 p-1 rounded-radius-md border border-border-subtle bg-bg-surface shadow-md"
+          trigger={({ toggle, open }) => (
             <button
               type="button"
               onClick={toggle}
-              aria-label={t('common:topbar.accountMenu')}
-              className="flex items-center gap-2 rounded-lg p-1.5 pr-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+              title={t('common:quickCreate.tooltip', 'Tạo mới (Phím tắt: C)')}
+              aria-label={t('common:quickCreate.tooltip', 'Tạo mới (Phím tắt: C)')}
+              className="inline-flex h-8 items-center gap-1.5 rounded-radius-md bg-[#1C1B1A] px-3 text-[13px] font-medium text-white hover:bg-[#2E2C29] active:bg-[#141312] transition-colors cursor-pointer select-none"
             >
-              <Avatar name={user?.fullName} size="sm" />
-              <span className="hidden max-w-[8rem] truncate text-sm font-medium text-slate-800 md:inline">{user?.fullName}</span>
-              <ChevronDownIcon className="hidden h-3.5 w-3.5 text-slate-400 md:inline" />
+              <PlusIcon className="h-3.5 w-3.5 stroke-[2.2] text-white" />
+              <span className="hidden md:inline text-white">{t('common:quickCreate.button', 'Tạo mới')}</span>
+              <ChevronDownIcon
+                className={cn('hidden md:inline h-3 w-3 text-[#8A8781] transition-transform duration-200', open && 'rotate-180')}
+              />
             </button>
           )}
         >
           {({ close }) => (
-            <div className="py-1.5">
-              <div className="border-b border-slate-100 px-3.5 py-2.5">
-                <p className="truncate text-sm font-semibold text-slate-900">{user?.fullName}</p>
-                <p className="truncate text-xs text-slate-500">{user?.email}</p>
-                {user?.roles && user.roles.length > 0 && (
-                  <p className="mt-1 truncate text-[11px] text-slate-400">{user.roles.map((r) => r.name).join(', ')}</p>
-                )}
+            <div className="py-1">
+              {/* Nhóm 1: Công việc (§6.1) */}
+              <div className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-tertiary">
+                {t('common:quickCreate.groupTasks', 'Công việc')}
               </div>
               <DropdownItem
                 onClick={() => {
-                  navigate('/profile');
                   close();
+                  setShowQuickTaskModal(true);
                 }}
+                className="flex items-center justify-between gap-2.5 rounded-radius-sm px-2.5 py-2 hover:bg-bg-subtle transition-colors"
               >
-                <UserIcon className="h-4 w-4" /> {t('common:topbar.profile')}
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <CheckCircleIcon className="h-4 w-4 shrink-0 text-text-secondary" />
+                  <span className="text-[13px] font-medium text-text-primary truncate">
+                    {t('common:quickCreate.createTask', 'Tạo công việc')}
+                  </span>
+                </div>
+                <span className="pointer-events-none rounded-[3px] border border-border-subtle bg-bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-text-tertiary">
+                  C
+                </span>
               </DropdownItem>
-              <DropdownItem
-                onClick={() => {
-                  close();
-                  setShowLogoutConfirm(true);
-                }}
-                className="text-rose-600 hover:bg-rose-50"
-              >
-                <LogOutIcon className="h-4 w-4" /> {t('common:topbar.logout')}
-              </DropdownItem>
+
+              {/* Nhóm 2: Khác (§6.1, §6.3 phân quyền role) */}
+              <div className="mt-2 border-t border-border-subtle pt-1.5">
+                <div className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-tertiary">
+                  {t('common:quickCreate.groupOthers', 'Khác')}
+                </div>
+
+                {/* Tạo dự án mới — Quản lý & Admin (§6.3) */}
+                {canManageProjectsOrCRM && (
+                  <DropdownItem
+                    onClick={() => {
+                      close();
+                      navigate('/projects?action=create');
+                    }}
+                    className="flex items-center gap-2.5 rounded-radius-sm px-2.5 py-2 hover:bg-bg-subtle transition-colors"
+                  >
+                    <FolderKanbanIcon className="h-4 w-4 shrink-0 text-text-secondary" />
+                    <span className="text-[13px] font-medium text-text-primary truncate">
+                      {t('common:quickCreate.createProject', 'Tạo dự án mới')}
+                    </span>
+                  </DropdownItem>
+                )}
+
+                {/* Thêm khách hàng — Quản lý & Admin (§6.3) */}
+                {canManageProjectsOrCRM && (
+                  <DropdownItem
+                    onClick={() => {
+                      close();
+                      navigate('/customers?action=create');
+                    }}
+                    className="flex items-center gap-2.5 rounded-radius-sm px-2.5 py-2 hover:bg-bg-subtle transition-colors"
+                  >
+                    <BriefcaseIcon className="h-4 w-4 shrink-0 text-text-secondary" />
+                    <span className="text-[13px] font-medium text-text-primary truncate">
+                      {t('common:quickCreate.createCustomer', 'Thêm khách hàng')}
+                    </span>
+                  </DropdownItem>
+                )}
+
+                {/* Gửi đơn nghỉ phép — Mọi role (§6.3) */}
+                <DropdownItem
+                  onClick={() => {
+                    close();
+                    navigate('/leave-requests?action=create');
+                  }}
+                  className="flex items-center gap-2.5 rounded-radius-sm px-2.5 py-2 hover:bg-bg-subtle transition-colors"
+                >
+                  <CalendarIcon className="h-4 w-4 shrink-0 text-text-secondary" />
+                  <span className="text-[13px] font-medium text-text-primary truncate">
+                    {t('common:quickCreate.requestLeave', 'Gửi đơn nghỉ phép')}
+                  </span>
+                </DropdownItem>
+              </div>
+            </div>
+          )}
+        </Dropdown>
+
+        {/* Chuông thông báo (32x32, badge đỏ #B3261E) (§5.2) */}
+        <NotificationBell />
+
+        {/* Language Switcher 🌐 VI ▾ (32px, ghost button) */}
+        <LanguageSwitcher />
+
+        {/* User Profile trigger & dropdown (§5.3, §7) */}
+        <Dropdown
+          align="right"
+          panelClassName="w-64 p-1 rounded-radius-md border border-border-subtle bg-bg-surface shadow-md"
+          trigger={({ toggle, open }) => (
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label={t('common:topbar.accountMenu', 'Menu tài khoản')}
+              className={cn(
+                'flex h-8 items-center gap-2 rounded-radius-sm p-1 pr-2 text-text-secondary hover:bg-bg-subtle transition-colors cursor-pointer',
+                open && 'bg-bg-subtle text-text-primary',
+              )}
+            >
+              <Avatar name={user?.fullName} size="sm" className="h-6 w-6 text-[10px]" />
+              <span className="hidden max-w-[140px] truncate text-[13px] font-medium text-text-primary md:inline">
+                {user?.fullName}
+              </span>
+              <ChevronDownIcon
+                className={cn('hidden h-3 w-3 text-text-tertiary transition-transform duration-200 md:inline', open && 'rotate-180')}
+              />
+            </button>
+          )}
+        >
+          {({ close }) => (
+            <div className="py-1">
+              {/* Header User Menu (§7.1) */}
+              <div className="flex items-center gap-3 px-3 py-2.5 border-b border-border-subtle">
+                <Avatar name={user?.fullName} size="md" className="h-10 w-10 text-xs shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-medium text-text-primary">
+                    {user?.fullName}
+                  </p>
+                  <p className="truncate text-xs text-text-tertiary">
+                    {user?.email}
+                  </p>
+                  {user?.roles && user.roles.length > 0 && (
+                    <span className="mt-1 inline-block rounded-[3px] bg-bg-subtle px-1.5 py-0.5 text-[10px] font-medium text-text-secondary">
+                      {user.roles[0].name}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Section Navigation (§7.2) */}
+              <div className="py-1">
+                <DropdownItem
+                  onClick={() => {
+                    close();
+                    navigate('/profile');
+                  }}
+                  className="flex items-center gap-2.5 rounded-radius-sm px-2.5 py-2 hover:bg-bg-subtle transition-colors"
+                >
+                  <UserIcon className="h-4 w-4 shrink-0 text-text-secondary" />
+                  <span className="text-[13px] font-medium text-text-primary">
+                    {t('common:topbar.profile', 'Hồ sơ cá nhân')}
+                  </span>
+                </DropdownItem>
+
+                <DropdownItem
+                  onClick={() => {
+                    close();
+                    navigate('/settings');
+                  }}
+                  className="flex items-center gap-2.5 rounded-radius-sm px-2.5 py-2 hover:bg-bg-subtle transition-colors"
+                >
+                  <SettingsIcon className="h-4 w-4 shrink-0 text-text-secondary" />
+                  <span className="text-[13px] font-medium text-text-primary">
+                    {t('common:topbar.settings', 'Cài đặt')}
+                  </span>
+                </DropdownItem>
+              </div>
+
+              {/* Section Logout (§7.4) */}
+              <div className="border-t border-border-subtle pt-1">
+                <DropdownItem
+                  onClick={() => {
+                    close();
+                    setShowLogoutConfirm(true);
+                  }}
+                  className="flex items-center gap-2.5 rounded-radius-sm px-2.5 py-2 text-[#B3261E] hover:bg-rose-50/60 transition-colors"
+                >
+                  <LogOutIcon className="h-4 w-4 shrink-0 text-[#B3261E]" />
+                  <span className="text-[13px] font-medium text-[#B3261E]">
+                    {t('common:topbar.logout', 'Đăng xuất')}
+                  </span>
+                </DropdownItem>
+              </div>
             </div>
           )}
         </Dropdown>
@@ -402,7 +581,7 @@ export function Topbar() {
         defaultProjectId={currentProjectId}
       />
 
-      {/* Modal xác nhận đăng xuất chống bấm nhầm */}
+      {/* Modal xác nhận đăng xuất chống bấm nhầm (§7.5: focus mặc định Hủy) */}
       <ConfirmDialog
         open={showLogoutConfirm}
         onClose={() => setShowLogoutConfirm(false)}
@@ -410,13 +589,14 @@ export function Topbar() {
           setShowLogoutConfirm(false);
           logout.mutate();
         }}
-        title={t('common:topbar.logoutConfirmTitle')}
-        description={t('common:topbar.logoutConfirmDescription')}
-        confirmLabel={t('common:topbar.logout')}
-        cancelLabel={t('common:actions.cancel')}
+        title={t('common:topbar.logoutConfirmTitle', 'Xác nhận đăng xuất')}
+        description={t('common:topbar.logoutConfirmDescription', 'Bạn có chắc chắn muốn đăng xuất khỏi phiên làm việc hiện tại không?')}
+        confirmLabel={t('common:topbar.logout', 'Đăng xuất')}
+        cancelLabel={t('common:actions.cancel', 'Hủy')}
         danger
         isLoading={logout.isPending}
       />
     </header>
   );
 }
+

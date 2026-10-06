@@ -91,25 +91,24 @@ export function CustomFilterSelect({
   }, [open]);
 
   return (
-    <div ref={rootRef} className={cn('relative inline-block text-left', className)}>
+    <div ref={rootRef} className={cn('relative w-full text-left', className)}>
       <button
         type="button"
         onClick={toggle}
         aria-label={ariaLabel}
         aria-expanded={open}
         className={cn(
-          'flex h-8 items-center justify-between gap-2 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500/20',
-          variant === 'subtle'
-            ? 'border border-transparent bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-            : 'border border-slate-200/90 bg-white shadow-sm hover:border-slate-300 hover:bg-slate-50',
-          open && (variant === 'subtle' ? 'bg-slate-100 text-slate-900 ring-2 ring-slate-200' : 'border-primary-500 ring-2 ring-primary-500/20 bg-slate-50/50'),
+          'flex h-9 w-full items-center justify-between gap-2 rounded-radius-sm px-3 py-1.5 text-[13px] leading-[20px] font-medium transition-colors duration-150 cursor-pointer select-none',
+          'border border-border-strong bg-white text-text-primary hover:border-border-strong hover:bg-bg-subtle',
+          'focus:outline-none focus:border-accent focus-visible:ring-1 focus-visible:ring-accent',
+          open && 'border-accent ring-1 ring-accent bg-bg-subtle',
         )}
       >
-        <span className="truncate max-w-[140px] text-slate-800">{selectedOption?.label}</span>
+        <span className="truncate text-text-primary">{selectedOption?.label}</span>
         <ChevronDownIcon
           className={cn(
-            'h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-200',
-            open && 'rotate-180 text-primary-600',
+            'h-3.5 w-3.5 shrink-0 text-text-tertiary transition-transform duration-150',
+            open && 'rotate-180 text-text-primary',
           )}
         />
       </button>
@@ -122,12 +121,12 @@ export function CustomFilterSelect({
             style={{
               position: 'fixed',
               top: position.top,
-              minWidth: position.width,
+              width: position.width,
               ...(align === 'right' ? { right: position.right } : { left: position.left }),
             }}
-            className="z-40 animate-slide-up overflow-hidden rounded-xl border border-slate-200 bg-white p-1 text-xs shadow-lg shadow-slate-200/60 transition-all duration-200 ease-out"
+            className="z-50 overflow-hidden rounded-radius-md border border-border-subtle bg-white p-1 text-[13px] shadow-sm animate-slide-up"
           >
-            <div className="max-h-60 overflow-y-auto py-0.5 space-y-0.5">
+            <div className="max-h-60 overflow-y-auto py-0.5 space-y-0.5 popover-scrollbar">
               {options.map((opt) => {
                 const isSelected = opt.value === value;
                 return (
@@ -139,14 +138,14 @@ export function CustomFilterSelect({
                       setOpen(false);
                     }}
                     className={cn(
-                      'group flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition-all duration-150',
+                      'group flex w-full items-center justify-between gap-2 rounded-radius-sm px-2.5 py-1.5 text-left text-[13px] leading-[20px] transition-colors duration-150 cursor-pointer',
                       isSelected
-                        ? 'bg-primary-50 font-semibold text-primary-700'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+                        ? 'bg-accent-soft font-semibold text-accent'
+                        : 'text-text-primary hover:bg-bg-subtle',
                     )}
                   >
                     <span className="truncate">{opt.label}</span>
-                    {isSelected && <CheckIcon className="h-3.5 w-3.5 shrink-0 text-primary-600 animate-fade-in" />}
+                    {isSelected && <CheckIcon className="h-3.5 w-3.5 shrink-0 text-accent" />}
                   </button>
                 );
               })}

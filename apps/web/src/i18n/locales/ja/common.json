@@ -107,6 +107,10 @@
     "messages": "メッセージ",
     "analytics": "レポート・分析",
     "admin": "管理",
+    "pin": {
+      "expand": "サイドバーを展開",
+      "collapse": "サイドバーを折りたたむ"
+    },
     "homeNav": {
       "overview": "概要",
       "projects": "プロジェクト・タスク",

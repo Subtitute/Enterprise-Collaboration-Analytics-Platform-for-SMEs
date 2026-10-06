@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { cn, canAccessAdminArea } from '@/lib/utils';
-import { NAV_ITEMS } from './nav-items';
-import { LayersIcon, ChevronLeftIcon, ChevronRightIcon } from '@/components/ui/Icons';
+import { NAV_ITEMS, HOME_ROUTE_PREFIXES, HOME_SUB_NAV_ITEMS } from './nav-items';
+import { CascadeLogoIcon, ChevronDownIcon } from '@/components/ui/Icons';
 import { useUIStore } from '@/stores/ui.store';
 import { usePermissions } from '@/stores/auth.store';
 import { useUnreadMessagesCount } from '@/features/messaging/hooks';
@@ -13,7 +13,22 @@ interface SidebarContentProps {
   onNavigate?: () => void;
 }
 
-function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
+function NavItemTooltip({ label, visible }: { label: string; visible: boolean }) {
+  if (!visible) return null;
+  return (
+    <div
+      role="tooltip"
+      className="pointer-events-none fixed z-50 rounded-radius-sm bg-bg-inverse px-2.5 py-1.5 text-xs leading-4 font-normal text-text-inverse shadow-md animate-fade-in"
+      style={{
+        transform: 'translateY(-50%)',
+      }}
+    >
+      {label}
+    </div>
+  );
+}
+
+function SidebarLinks({ collapsed, onNavigate, isMobile = false }: SidebarContentProps & { isMobile?: boolean }) {
   const { t } = useTranslation();
   const location = useLocation();
   const permissions = usePermissions();
@@ -21,178 +36,310 @@ function SidebarLinks({ collapsed, onNavigate }: SidebarContentProps) {
   const items = NAV_ITEMS.filter(
     (item) => (!item.adminOnly || canSeeAdmin) && (!item.requiredPermission || permissions.includes(item.requiredPermission)),
   );
-  // 28/09/2026: badge so tin nhan chua doc tren muc "Nhan tin" - hien tren MOI trang (Sidebar luon
-  // mount), mirror NotificationBell o Topbar. Goi useConversationsQuery() gian tiep qua day nen
-  // GET /conversations duoc fetch ngay ca khi chua vao trang Nhan tin (chap nhan duoc, cung danh
-  // doi voi useUnreadNotificationsPreview() da co san).
   const unreadMessagesCount = useUnreadMessagesCount();
 
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Mặc định mở accordion Trang chủ khi người dùng đang ở trong route của nhóm này
+  const isCurrentlyInHome = HOME_ROUTE_PREFIXES.some(
+    (prefix) => location.pathname === prefix || location.pathname.startsWith(`${prefix}/`),
+  );
+  const [homeAccordionOpen, setHomeAccordionOpen] = useState(isCurrentlyInHome);
+
+  // Đồng bộ mở khi chuyển route vào nhóm Trang chủ
+  useEffect(() => {
+    if (isCurrentlyInHome) {
+      setHomeAccordionOpen(true);
+    }
+  }, [isCurrentlyInHome]);
+
+  const handleMouseEnter = (key: string, e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!collapsed) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const top = rect.top + rect.height / 2;
+    const left = rect.right + 8; // Neo ben phai icon 8px
+
+    timerRef.current = setTimeout(() => {
+      setTooltipPos({ top, left });
+      setHoveredKey(key);
+    }, 180); // Delay 150-200ms theo spec §4.2
+  };
+
+  const handleMouseLeave = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    setHoveredKey(null);
+    setTooltipPos(null);
+  };
+
   return (
-    <nav className="flex-1 space-y-1 overflow-x-hidden overflow-y-auto px-2.5 py-2">
+    <nav aria-label="Điều hướng chính" className="flex-1 space-y-0.5 overflow-x-hidden overflow-y-auto px-2 py-2">
       {items.map((item) => {
-        // Kiểm tra trạng thái đang được chọn (Active)
-        // 03/10/2026: mục "Trang chủ" active khi path khớp BẤT KỲ route nào trong nhóm
-        // (matchPrefixes - Dashboard/Dự án/Tài liệu/Khách hàng), không chỉ path /dashboard.
-        // Đối với mục Quản trị (/admin/members), nếu đang ở bất kỳ tab nào của /admin/*
-        // (như /admin/departments, /admin/roles, /admin/failed-events) thì vẫn giữ active style
-        const isItemActive = item.matchPrefixes
-          ? item.matchPrefixes.some((prefix) => location.pathname === prefix || location.pathname.startsWith(`${prefix}/`))
+        const isHome = Boolean(item.matchPrefixes);
+        const isItemActive = isHome
+          ? isCurrentlyInHome
           : item.to === '/admin/members'
             ? location.pathname.startsWith('/admin')
             : location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(`${item.to}/`));
 
+        const tooltipId = `nav-tooltip-${item.to.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        const isTooltipVisible = collapsed && hoveredKey === item.to;
+        const label = t(item.labelKey);
+
+        const ariaLabel =
+          item.to === '/messages' && unreadMessagesCount > 0
+            ? `${label}, ${unreadMessagesCount} tin chưa đọc`
+            : label;
+
         return (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            onClick={onNavigate}
-            title={collapsed ? t(item.labelKey) : undefined}
-            aria-label={t(item.labelKey)}
-            className={() =>
-              cn(
-                'group relative flex h-10 items-center rounded-lg px-2.5 text-sm font-medium transition-colors duration-150',
-                isItemActive
-                  ? 'bg-primary-50/80 text-primary-700 font-semibold shadow-sm shadow-primary-500/5'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
-              )
-            }
-          >
-            {() => (
-              <>
-                {isItemActive && (
-                  <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r bg-primary-600 animate-fade-in" />
+          <div key={item.to} className="relative">
+            <div className="flex items-center">
+              <NavLink
+                to={item.to}
+                onClick={(e) => {
+                  if (isMobile && isHome) {
+                    // Trên mobile nếu bấm vào Trang chủ, toggle accordion
+                    setHomeAccordionOpen((prev) => !prev);
+                  }
+                  onNavigate?.();
+                }}
+                onMouseEnter={(e) => handleMouseEnter(item.to, e)}
+                onMouseLeave={handleMouseLeave}
+                aria-label={ariaLabel}
+                aria-current={(!isHome && isItemActive) ? 'page' : undefined}
+                aria-describedby={collapsed ? tooltipId : undefined}
+                className={() =>
+                  cn(
+                    'group relative flex h-10 flex-1 items-center rounded-radius-sm px-2.5 text-[13px] font-normal transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-accent-soft',
+                    isItemActive
+                      ? 'bg-accent-soft text-accent font-medium'
+                      : 'text-text-secondary hover:bg-bg-subtle hover:text-text-primary',
+                  )
+                }
+              >
+                {() => (
+                  <>
+                    <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
+                      <item.icon
+                        className={cn(
+                          'h-5 w-5 transition-colors duration-150',
+                          isItemActive ? 'text-accent' : 'text-text-tertiary group-hover:text-text-secondary',
+                        )}
+                      />
+                      {/* Badge tin nhan (§2.5): Collapsed pill 16x16 o top-6 right-6; Expanded o canh phai label */}
+                      {item.to === '/messages' && unreadMessagesCount > 0 && collapsed && (
+                        <span className="absolute top-1.5 right-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#B3261E] px-1 text-[10px] font-semibold text-white border-2 border-bg-surface">
+                          {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      className={cn(
+                        'overflow-hidden transition-all duration-150 ease-in-out whitespace-nowrap ml-2.5 flex-1 flex items-center justify-between',
+                        collapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[160px] opacity-100',
+                      )}
+                    >
+                      <span className="truncate">{label}</span>
+                      {item.to === '/messages' && unreadMessagesCount > 0 && !collapsed && (
+                        <span className="ml-2 flex h-4 min-w-[18px] items-center justify-center rounded-full bg-[#B3261E] px-1 text-[10px] font-semibold text-white">
+                          {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
+                        </span>
+                      )}
+                    </div>
+                  </>
                 )}
-                <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
-                  <item.icon
-                    className={cn(
-                      'h-5 w-5 transition-colors duration-150',
-                      isItemActive ? 'text-primary-600' : 'text-slate-400 group-hover:text-slate-600',
-                    )}
-                  />
-                  {item.to === '/messages' && unreadMessagesCount > 0 && (
-                    <span className="absolute -top-1 -right-1.5 flex h-3.5 min-w-[0.875rem] items-center justify-center rounded-full bg-primary-600 px-0.5 text-[9px] font-semibold text-white ring-2 ring-white">
-                      {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
-                    </span>
-                  )}
-                </div>
-                <div
-                  className={cn(
-                    'overflow-hidden transition-all duration-150 ease-in-out whitespace-nowrap ml-3',
-                    collapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[160px] opacity-100',
-                  )}
+              </NavLink>
+
+              {/* Mũi tên toggle Accordion trên Mobile cho mục Trang chủ */}
+              {isMobile && isHome && (
+                <button
+                  type="button"
+                  onClick={() => setHomeAccordionOpen((prev) => !prev)}
+                  aria-label="Mở rộng danh sách trang chủ"
+                  className="flex h-10 w-9 items-center justify-center rounded-radius-sm text-text-tertiary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer"
                 >
-                  <span className="block truncate">{t(item.labelKey)}</span>
-                </div>
-              </>
+                  <ChevronDownIcon
+                    className={cn('h-3.5 w-3.5 transition-transform duration-200', homeAccordionOpen && 'rotate-180')}
+                  />
+                </button>
+              )}
+            </div>
+
+            {/* Accordion Sub-items lồng trực tiếp ngay bên dưới Trang chủ (Phương án A) */}
+            {isMobile && isHome && homeAccordionOpen && (
+              <div className="ml-5 mt-0.5 space-y-0.5 border-l border-border-subtle pl-2.5 py-1">
+                {HOME_SUB_NAV_ITEMS.map((subItem) => {
+                  const isSubActive =
+                    location.pathname === subItem.to || location.pathname.startsWith(`${subItem.to}/`);
+
+                  return (
+                    <NavLink
+                      key={subItem.to}
+                      to={subItem.to}
+                      onClick={onNavigate}
+                      aria-current={isSubActive ? 'page' : undefined}
+                      className={() =>
+                        cn(
+                          'flex h-9 items-center rounded-radius-sm px-2.5 text-[13px] font-normal transition-colors duration-150',
+                          isSubActive
+                            ? 'bg-accent-soft text-accent font-medium'
+                            : 'text-text-secondary hover:bg-bg-subtle hover:text-text-primary',
+                        )
+                      }
+                    >
+                      <subItem.icon
+                        className={cn(
+                          'h-4 w-4 shrink-0 transition-colors duration-150',
+                          isSubActive ? 'text-accent' : 'text-text-secondary',
+                        )}
+                      />
+                      <span className="ml-2.5 truncate">{t(subItem.labelKey)}</span>
+                    </NavLink>
+                  );
+                })}
+              </div>
             )}
-          </NavLink>
+
+            {/* Tooltip neo bên phải icon 8px khi collapsed (desktop) */}
+            {isTooltipVisible && tooltipPos && (
+              <div
+                id={tooltipId}
+                role="tooltip"
+                className="pointer-events-none fixed z-50 rounded-radius-sm bg-bg-inverse px-2.5 py-1.5 text-xs leading-4 font-normal text-text-inverse shadow-md animate-fade-in"
+                style={{
+                  top: tooltipPos.top,
+                  left: tooltipPos.left,
+                  transform: 'translateY(-50%)',
+                }}
+              >
+                {label}
+              </div>
+            )}
+          </div>
         );
       })}
     </nav>
   );
 }
 
-/** 03/10/2026: bo prop onToggle - rail chinh khong con nut thu gon/mo rong thu cong (toan bo panel
- *  mo rong khi hover, xem Sidebar()), chi con 1 the Link duy nhat (logo + ten, nhan chu tu mo/thu
- *  theo "collapsed" bang transition giong SidebarLinks ben tren thay vi 2 nhanh render rieng biet. */
-function SidebarHeader({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
-  const toggle = useUIStore((s) => s.toggleSidebarCollapsed);
-
+function SidebarHeader({ collapsed, onNavigate, onClose }: { collapsed: boolean; onNavigate?: () => void; onClose?: () => void }) {
   return (
     <div
       className={cn(
-        'border-b border-slate-100 flex h-14 items-center justify-between overflow-hidden px-3.5 transition-all duration-200',
-        collapsed && 'justify-center px-2',
+        'border-b border-border-subtle flex h-14 shrink-0 items-center justify-between overflow-hidden transition-all duration-200',
+        collapsed ? 'justify-center px-2' : 'px-4',
       )}
     >
       <Link
         to="/"
         onClick={onNavigate}
-        aria-label="ECAP for SMEs"
-        title="ECAP for SMEs"
-        className="flex items-center rounded-lg p-1 transition-colors hover:bg-slate-50 cursor-pointer overflow-hidden min-w-0"
+        aria-label="EFS"
+        title="EFS"
+        className="flex items-center rounded-radius-sm p-1 transition-colors hover:bg-bg-subtle cursor-pointer overflow-hidden min-w-0"
       >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-xs">
-          <LayersIcon className="w-4 h-4 text-white" />
+        <span className="flex h-6 w-6 shrink-0 items-center justify-center text-text-primary">
+          <CascadeLogoIcon className="w-6 h-6 text-[#1C1B1A]" />
         </span>
         <div
           className={cn(
             'overflow-hidden whitespace-nowrap transition-all duration-200 ease-in-out',
-            collapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[140px] opacity-100 ml-2.5',
+            collapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[140px] opacity-100 ml-2',
           )}
         >
-          <span className="block truncate text-sm font-bold text-slate-900 tracking-tight">ECAP for SMEs</span>
+          <span className="block truncate text-base font-semibold text-text-primary tracking-tight">EFS</span>
         </div>
       </Link>
 
-      {!collapsed && (
+      {onClose && (
         <button
           type="button"
-          onClick={toggle}
-          title="Thu gọn menu"
-          aria-label="Thu gọn menu"
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+          onClick={onClose}
+          aria-label="Đóng menu"
+          className="flex h-8 w-8 items-center justify-center rounded-radius-sm text-text-tertiary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer"
         >
-          <ChevronLeftIcon className="h-4 w-4" />
+          <span className="text-lg leading-none font-medium">&times;</span>
         </button>
       )}
     </div>
   );
 }
 
-/** Sidebar kieu ClickUp: Thu/Mo day noi dung that (khong de len, khong che noi dung), co nut thu gon/mo rong */
 export function Sidebar() {
-  const collapsed = useUIStore((s) => s.sidebarCollapsed);
-  const toggle = useUIStore((s) => s.toggleSidebarCollapsed);
+  const { t } = useTranslation();
+  const location = useLocation();
+
+  // Kiem tra neu Secondary Sidebar dang mo o route phan cap (nhom Trang chu)
+  const isSecondarySidebarOpen = HOME_ROUTE_PREFIXES.some(
+    (prefix) => location.pathname === prefix || location.pathname.startsWith(`${prefix}/`),
+  );
+
+  const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
+  const toggleSidebarCollapsed = useUIStore((s) => s.toggleSidebarCollapsed);
+
+  // Quy tac §4.1 & §4.3: Khi Secondary Sidebar mo -> Rail LUON Collapsed (w-16)
+  const isRailCollapsed = isSecondarySidebarOpen ? true : sidebarCollapsed;
 
   return (
-    // 05/10/2026: z-index chuyen tu <aside> ben trong ra CHINH khung bao ngoai nay khi hover (phat
-    // hien qua bao loi thuc te: flyout bi SecondarySidebar.tsx (z-10) va Topbar.tsx (z-30, sticky)
-    // de len tren, chu text ten trang bi cat cut). Nguyen nhan: div ngoai nay va SecondarySidebar/
-    // Topbar deu la "con" truc tiep cua CUNG 1 stacking context goc (div flex trong AppShell.tsx -
-    // khong tu tao context rieng vi khong co position/z-index). z-40 dat o <aside> con CHI so sanh
-    // duoc voi cac anh em KHAC trong pham vi stacking context cuc bo cua rieng no (do <aside> la
-    // con cua div nay, da tao context rieng qua "absolute"), KHONG "thoat" ra ngoai de so sanh duoc
-    // voi SecondarySidebar/Topbar o cap goc - nen flyout luon nam duoi 2 thanh phan do bat ke gia
-    // tri z-40 noi tai. Dat z-index ngay tren div ngoai (chinh la "node" tham gia stacking context
-    // goc) moi giai quyet dung goc re.
-    <div className={cn('sticky top-0 hidden h-screen w-[68px] shrink-0 md:block', hovered && 'z-40')}>
+    <div className={cn('sticky top-0 hidden h-screen shrink-0 md:block transition-[width] duration-200', isRailCollapsed ? 'w-16' : 'w-60')}>
       <aside
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        onFocus={() => setHovered(true)}
-        onBlur={handleBlur}
         className={cn(
-          'absolute left-0 top-0 flex h-screen flex-col border-r border-slate-200 bg-white transition-[width] duration-150 ease-in-out',
-          hovered ? 'w-60 shadow-xl' : 'w-[68px]',
+          'flex h-screen flex-col border-r border-border-subtle bg-bg-surface transition-[width] duration-200 ease-in-out',
+          isRailCollapsed ? 'w-16' : 'w-60',
         )}
       >
-        <SidebarHeader collapsed={collapsed} />
-        <SidebarLinks collapsed={collapsed} />
+        <SidebarHeader collapsed={isRailCollapsed} />
+        <SidebarLinks collapsed={isRailCollapsed} />
       </aside>
     </div>
   );
 }
 
 
-/** Ngan keo (drawer) cho man hinh mobile, mo bang nut hamburger tren Topbar. */
+/** 5. MobileSidebar: Drawer 288px (w-72), backdrop rgba(28,27,26,0.5), focus trap, close button, Esc, click-outside */
 export function MobileSidebar() {
+  const { t } = useTranslation();
+  const location = useLocation();
   const open = useUIStore((s) => s.mobileSidebarOpen);
   const setOpen = useUIStore((s) => s.setMobileSidebarOpen);
-  const drawerRef = useRef<HTMLDivElement>(null); // 28/07/2026: xem ghi chu useEffect ben duoi.
+  const drawerRef = useRef<HTMLDivElement>(null);
 
-  // 28/07/2026: bo sung dong bang phim Escape + chuyen focus vao drawer khi mo (phat hien qua ra
-  // soat kha nang tiep can) - truoc do drawer nay CHI dong duoc bang cach bam vao lop nen (chuot),
-  // nguoi dung ban phim khong co cach nao dong lai; ngoai ra khi mo, focus ban phim van nam o nut
-  // hamburger tren Topbar (da bi drawer che khuat ve mat thi giac) thay vi chuyen vao trong drawer
-  // dang hien thi. Sua bang: lang nghe keydown Escape (chi khi dang mo) de dong drawer, va focus
-  // vao chinh container cua drawer ngay sau khi mo.
+  const isHomeGroup = HOME_ROUTE_PREFIXES.some(
+    (prefix) => location.pathname === prefix || location.pathname.startsWith(`${prefix}/`),
+  );
+
   useEffect(() => {
     if (!open) return;
     drawerRef.current?.focus();
+
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') {
+        setOpen(false);
+        return;
+      }
+
+      // Focus trap trong phạm vi drawer
+      if (e.key === 'Tab' && drawerRef.current) {
+        const focusables = drawerRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        );
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
+
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [open, setOpen]);
@@ -201,14 +348,24 @@ export function MobileSidebar() {
 
   return (
     <div className="fixed inset-0 z-50 flex md:hidden">
-      <div className="absolute inset-0 animate-fade-in bg-slate-900/40" onClick={() => setOpen(false)} aria-hidden />
+      {/* Backdrop rgba(28,27,26,0.5), khong blur theo spec §5.1 */}
+      <div
+        className="absolute inset-0 bg-[#1C1B1A]/50 animate-fade-in"
+        onClick={() => setOpen(false)}
+        aria-hidden="true"
+      />
       <div
         ref={drawerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Thanh điều hướng"
         tabIndex={-1}
-        className="relative z-10 flex h-full w-72 max-w-[80vw] animate-slide-up flex-col bg-white shadow-xl focus:outline-none"
+        className="relative z-10 flex h-full w-72 max-w-[80vw] animate-slide-up flex-col rounded-r-radius-lg bg-bg-surface shadow-lg focus:outline-none"
       >
-        <SidebarHeader collapsed={false} onNavigate={() => setOpen(false)} />
-        <SidebarLinks collapsed={false} onNavigate={() => setOpen(false)} />
+        <SidebarHeader collapsed={false} onNavigate={() => setOpen(false)} onClose={() => setOpen(false)} />
+        <div className="flex-1 overflow-y-auto">
+          <SidebarLinks collapsed={false} onNavigate={() => setOpen(false)} isMobile={true} />
+        </div>
       </div>
     </div>
   );

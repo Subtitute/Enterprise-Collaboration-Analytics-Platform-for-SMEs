@@ -1,196 +1,175 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Avatar } from '@/components/ui/Avatar';
-import { EmptyState } from '@/components/ui/EmptyState';
 import { Spinner } from '@/components/ui/Spinner';
-import { formatRelativeTime } from '@/lib/utils';
+import { InboxIcon, ChevronRightIcon } from '@/components/ui/Icons';
 import { useUserNameMap } from '@/hooks/useOrgUsers';
-import { ChevronDownIcon } from '@/components/ui/Icons';
 import { useRecentActivityFeed } from '../hooks';
 import type { RecentActivityItem } from '@/types';
 
-interface ActionDisplay {
-  fullText: string;
-  dotColor: string;
-  badgeColor: string;
-}
+/**
+ * Định dạng thời gian tương đối chuẩn spec GMT+7 (dùng chung Module 04):
+ * < 1 phút: "Vừa xong"
+ * 1–59 phút: "{n} phút trước"
+ * 1–23 giờ: "{n} giờ trước"
+ * 1–6 ngày: "{n} ngày trước"
+ * 7–29 ngày: "{n} tuần trước"
+ * >= 30 ngày: "DD/MM/YYYY" (GMT+7)
+ */
+function formatGmt7RelativeTime(value: string | null | undefined, t: TFunction, lang: string): string {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  const diffMs = Date.now() - d.getTime();
+  const diffSec = Math.round(diffMs / 1000);
 
-function getActionDisplay(action: string, t: TFunction): ActionDisplay {
-  const normalized = action.replace(/[._]/g, '_').toLowerCase();
-
-  // Phân loại ngữ cảnh hành động:
-  // - Xóa (Delete): Đỏ (Red/Rose)
-  // - Tạo mới (Create/Upload/Register): Xanh lá (Emerald/Green)
-  // - Cập nhật / Đổi trạng thái / Giao việc (Update/Status/Assign): Xanh dương (Blue/Sky) hoặc Cam (Amber)
-  const isDelete = normalized.includes('delete') || normalized.includes('deactivate') || normalized.includes('remove') || normalized.includes('rejected');
-  const isCreate = normalized.includes('created') || normalized.includes('registered') || normalized.includes('upload') || normalized.includes('approved') || normalized.includes('check_in');
-  const isUpdate = normalized.includes('update') || normalized.includes('changed') || normalized.includes('status') || normalized.includes('stage') || normalized.includes('assign') || normalized.includes('share') || normalized.includes('complete') || normalized.includes('check_out');
-
-  let dotColor = 'bg-slate-400 ring-slate-100';
-  let badgeColor = 'bg-slate-100 text-slate-700';
-
-  if (isDelete) {
-    dotColor = 'bg-rose-500 ring-rose-100';
-    badgeColor = 'bg-rose-50 text-rose-700 border-rose-200/60';
-  } else if (isCreate) {
-    dotColor = 'bg-emerald-500 ring-emerald-100';
-    badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200/60';
-  } else if (isUpdate) {
-    dotColor = 'bg-blue-500 ring-blue-100';
-    badgeColor = 'bg-blue-50 text-blue-700 border-blue-200/60';
+  if (diffSec < 60) return t('dashboard:relativeTime.justNow', 'Vừa xong');
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return t('dashboard:relativeTime.minutesAgo', { count: diffMin, defaultValue: `${diffMin} phút trước` });
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return t('dashboard:relativeTime.hoursAgo', { count: diffHour, defaultValue: `${diffHour} giờ trước` });
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 7) return t('dashboard:relativeTime.daysAgo', { count: diffDay, defaultValue: `${diffDay} ngày trước` });
+  if (diffDay < 30) {
+    const diffWeek = Math.floor(diffDay / 7);
+    return t('dashboard:relativeTime.weeksAgo', { count: diffWeek, defaultValue: `${diffWeek} tuần trước` });
   }
 
+  const locale = lang === 'en' ? 'en-US' : lang === 'ja' ? 'ja-JP' : 'vi-VN';
+  return new Intl.DateTimeFormat(locale, {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'Asia/Ho_Chi_Minh',
+  }).format(d);
+}
+
+function parseActivityDetails(item: RecentActivityItem, t: TFunction) {
+  const normalized = item.action.replace(/[._]/g, '_').toLowerCase();
   const key = `dashboard:recentActivityFeed.actions.${normalized}`;
   const translated = t(key);
-  const hasTranslation = translated && translated !== key && !translated.endsWith(`.${normalized}`);
+  const actionText = translated && translated !== key && !translated.endsWith(`.${normalized}`)
+    ? translated
+    : t('dashboard:recentActivityFeed.performedAction', 'đã cập nhật trạng thái công việc');
 
-  if (hasTranslation) {
-    return {
-      fullText: translated,
-      dotColor,
-      badgeColor,
-    };
+  // Trích xuất entity name hoặc target route
+  let entityName = t('dashboard:entities.task', 'Công việc');
+  let entityHref = '/projects';
+
+  if (normalized.includes('project')) {
+    entityName = t('dashboard:entities.project', 'Dự án');
+    entityHref = '/projects';
+  } else if (normalized.includes('document')) {
+    entityName = t('dashboard:entities.document', 'Tài liệu');
+    entityHref = '/documents';
+  } else if (normalized.includes('leave')) {
+    entityName = t('dashboard:entities.leave', 'Đơn nghỉ phép');
+    entityHref = '/leave-requests';
+  } else if (normalized.includes('customer') || normalized.includes('deal')) {
+    entityName = t('dashboard:entities.customer', 'Khách hàng');
+    entityHref = '/customers';
+  } else if (normalized.includes('user') || normalized.includes('org') || normalized.includes('department')) {
+    entityName = t('dashboard:entities.member', 'Thành viên');
+    entityHref = '/admin/members';
   }
 
-  return {
-    fullText: `${t('dashboard:recentActivityFeed.performedAction')} "${action.replace(/[._]/g, ' ')}"`,
-    dotColor,
-    badgeColor,
-  };
-}
-
-function getTimeGroup(dateStr: string): 'today' | 'yesterday' | 'earlier' {
-  const d = new Date(dateStr);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  if (d >= today) return 'today';
-  if (d >= yesterday) return 'yesterday';
-  return 'earlier';
+  return { actionText, entityName, entityHref };
 }
 
 export function RecentActivityFeed() {
-  const { t } = useTranslation();
-  const { items, isLoading, isError, isLive, scope } = useRecentActivityFeed();
+  const { t, i18n } = useTranslation();
+  const { items, isLoading, isError } = useRecentActivityFeed();
   const { map: userNames } = useUserNameMap();
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Giới hạn 5 mục khi chưa mở rộng
   const displayItems = isExpanded ? items : items.slice(0, 5);
 
-  // Phân nhóm hoạt động theo thời gian: Hôm nay, Hôm qua, Trước đó
-  const groupedItems = useMemo(() => {
-    const groups: { key: 'today' | 'yesterday' | 'earlier'; title: string; list: RecentActivityItem[] }[] = [
-      { key: 'today', title: t('dashboard:recentActivityFeed.groups.today'), list: [] },
-      { key: 'yesterday', title: t('dashboard:recentActivityFeed.groups.yesterday'), list: [] },
-      { key: 'earlier', title: t('dashboard:recentActivityFeed.groups.earlier'), list: [] },
-    ];
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-10">
+        <Spinner />
+      </div>
+    );
+  }
 
-    displayItems.forEach((item) => {
-      const gKey = getTimeGroup(item.createdAt);
-      const targetGroup = groups.find((g) => g.key === gKey) ?? groups[2];
-      targetGroup.list.push(item);
-    });
-
-    return groups.filter((g) => g.list.length > 0);
-  }, [displayItems, t]);
+  if (isError || items.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-10 text-center">
+        <InboxIcon className="h-10 w-10 text-text-tertiary mb-2" aria-hidden="true" />
+        <p className="text-[13px] leading-[20px] text-text-secondary">
+          {t('dashboard:recentActivityFeed.emptyTitle', 'Chưa có hoạt động nào gần đây')}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>
-      {/* Header trạng thái Live */}
-      <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-2.5">
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-2.5 w-2.5">
-            {isLive && (
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            )}
-            <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${isLive ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-          </span>
-          <span className="text-xs font-medium text-slate-500">
-            {isLive ? t('dashboard:recentActivityFeed.live') : t('dashboard:recentActivityFeed.offline')}
-          </span>
-          {/* 23/09/2026: the hien RO RANG pham vi dang xem (yeu cau nguoi dung) - Org Admin/Manager/
-              Employee thay muc do khac nhau, tranh hieu nham "danh sach ngan" la thieu du lieu. */}
-          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
-            {t(`dashboard:recentActivityFeed.scope.${scope}`)}
-          </span>
-        </div>
-        <span className="text-[11px] text-slate-400 font-normal">
-          {t('dashboard:recentActivityFeed.eventCount', { count: items.length })}
-        </span>
+      <div className="divide-y divide-border-subtle">
+        {displayItems.map((item) => {
+          const actorName = (item.actorId ? userNames[item.actorId] : undefined) ?? t('dashboard:recentActivityFeed.unknownActor', 'Một thành viên');
+          const { actionText, entityName, entityHref } = parseActivityDetails(item, t);
+
+          return (
+            <div key={item.id} className="flex items-start gap-3 py-3">
+              {/* Avatar 32x32 initials */}
+              <Avatar
+                name={actorName}
+                size="sm"
+                className="h-8 w-8 shrink-0 text-xs rounded-full bg-accent-soft text-accent font-medium"
+              />
+
+              {/* Thông tin 4 dòng theo §8 */}
+              <div className="min-w-0 flex-1">
+                {/* Line 1: {Name} font 13/500 text-primary */}
+                <p className="text-[13px] leading-[20px] font-medium text-text-primary">
+                  {actorName}
+                </p>
+
+                {/* Line 2: hành động font 13/400 text-secondary */}
+                <p className="text-[13px] leading-[20px] font-normal text-text-secondary">
+                  {actionText}
+                </p>
+
+                {/* Line 3: Tên entity - font 13/500 text-accent trong ngoặc kép "..." */}
+                <p className="text-[13px] leading-[20px]">
+                  <Link
+                    to={entityHref}
+                    className="font-medium text-accent hover:underline inline-block truncate max-w-full"
+                  >
+                    "{entityName}"
+                  </Link>
+                </p>
+
+                {/* Line 4: Relative time font 12/400 text-tertiary (GMT+7) */}
+                <p className="mt-0.5 text-[12px] leading-[16px] font-normal text-text-tertiary">
+                  {formatGmt7RelativeTime(item.createdAt, t, i18n.language)}
+                </p>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center py-8">
-          <Spinner />
-        </div>
-      ) : isError ? (
-        <EmptyState title={t('dashboard:recentActivityFeed.errorTitle')} />
-      ) : items.length === 0 ? (
-        <EmptyState title={t('dashboard:recentActivityFeed.emptyTitle')} description={t('dashboard:recentActivityFeed.emptyDescription')} />
-      ) : (
-        <div className="space-y-5">
-          {groupedItems.map((group) => (
-            <div key={group.key} className="space-y-3">
-              {/* Tiêu đề nhóm ngày */}
-              <div className="flex items-center gap-2">
-                <span className="rounded-md bg-slate-100/80 px-2 py-0.5 text-[11px] font-bold text-slate-600">
-                  {group.title}
-                </span>
-                <div className="h-px flex-1 bg-slate-100" />
-              </div>
-
-              {/* Danh sách Timeline dọc */}
-              <div className="relative pl-6 space-y-4 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-[1.5px] before:bg-slate-200/70">
-                {group.list.map((item) => {
-                  const actorName = (item.actorId ? userNames[item.actorId] : undefined) ?? t('dashboard:recentActivityFeed.unknownActor');
-                  const { fullText, dotColor, badgeColor } = getActionDisplay(item.action, t);
-
-                  return (
-                    <div key={item.id} className="group relative flex items-start gap-3 transition-all duration-150">
-                      {/* Chấm tròn Timeline định vị theo ngữ cảnh */}
-                      <span
-                        className={`absolute -left-[19px] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-white shadow-sm transition-transform duration-200 group-hover:scale-125 ${dotColor}`}
-                      />
-
-                      <Avatar name={actorName} size="sm" className="h-7 w-7 shrink-0 text-xs shadow-sm ring-1 ring-slate-100" />
-
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs sm:text-sm text-slate-700 leading-relaxed flex flex-wrap items-center gap-1.5">
-                          <span className="font-bold text-slate-900">{actorName}</span>
-                          <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium border ${badgeColor}`}>
-                            {fullText}
-                          </span>
-                        </p>
-                        <p className="mt-0.5 text-[11px] text-slate-400 font-medium">{formatRelativeTime(item.createdAt)}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-
-          {/* Nút mở rộng / Xem tất cả hoạt động */}
-          {items.length > 5 && (
-            <div className="pt-2 text-center border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50/70 transition-all duration-200"
-              >
-                <span>{isExpanded ? t('dashboard:recentActivityFeed.collapse') : t('dashboard:recentActivityFeed.viewAll')}</span>
-                <ChevronDownIcon
-                  className={`h-3.5 w-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-                />
-              </button>
-            </div>
-          )}
+      {/* Footer CTA: Xem tất cả hoạt động */}
+      {items.length > 5 && (
+        <div className="mt-3 text-center border-t border-border-subtle pt-3">
+          <button
+            type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-[13px] font-medium text-accent hover:underline inline-flex items-center gap-1 cursor-pointer"
+          >
+            <span>
+              {isExpanded
+                ? t('dashboard:recentActivityFeed.collapse', 'Thu gọn bớt')
+                : t('dashboard:recentActivityFeed.viewAll', 'Xem tất cả hoạt động →')}
+            </span>
+          </button>
         </div>
       )}
     </div>
   );
 }
+

@@ -103,6 +103,23 @@ export function DashboardPage() {
   const myInProgressCount = validTasks.filter((t) => t.status === 'DOING').length;
   const myOverdueCount = validTasks.filter((t) => t.status !== 'DONE' && t.dueDate && t.dueDate.slice(0, 10) < todayGmt7).length;
 
+  // Tính biến động thực tế trong 7 ngày qua (dựa trên thời gian tạo/cập nhật thực tế của task & project)
+  const sevenDaysAgoCutoff = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toISOString();
+  }, []);
+
+  // Số dự án mới tạo trong 7 ngày qua (Dữ liệu thực từ allProjectsQuery)
+  const newProjectsLast7Days = useMemo(() => {
+    return existingProjects.filter((p) => p.createdAt && p.createdAt >= sevenDaysAgoCutoff).length;
+  }, [existingProjects, sevenDaysAgoCutoff]);
+
+  // Số công việc hoàn thành trong 7 ngày qua (Dữ liệu thực từ validTasks)
+  const completedTasksLast7Days = useMemo(() => {
+    return validTasks.filter((t) => t.status === 'DONE' && ((t.updatedAt && t.updatedAt >= sevenDaysAgoCutoff) || (t.createdAt && t.createdAt >= sevenDaysAgoCutoff))).length;
+  }, [validTasks, sevenDaysAgoCutoff]);
+
   // Tính toán dữ liệu phân bố trạng thái (Donut Chart)
   const dynamicTaskBreakdown = useMemo(() => {
     if (!allTasksQuery.data) return breakdownQuery.data ?? [];
@@ -183,37 +200,71 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6" ref={printableRef}>
+    <div className="space-y-6">
+      {/* 1. Page Header (KHÔNG nằm trong printableRef) */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('dashboard:page.title')}</h1>
-          <p className="mt-1 text-sm text-slate-500">{t('dashboard:page.subtitle')}</p>
+          <h1 className="text-[28px] leading-[36px] font-semibold text-text-primary">
+            {t('common:nav.homeNav.overview', 'Tổng quan')}
+          </h1>
+          <p className="mt-1 text-[14px] leading-[22px] text-text-secondary">
+            {t('dashboard:page.subtitle', 'Tổng quan vận hành · Cập nhật dữ liệu kinh doanh mới nhất hôm nay.')}
+          </p>
         </div>
         <div className="flex items-center gap-2 no-print shrink-0">
           <Button
             type="button"
-            variant="primary"
-            size="sm"
-            isLoading={isExportingPdf}
-            onClick={handleExportPdf}
-            title={t('dashboard:page.exportPdf')}
-            className="font-medium cursor-pointer active:scale-[0.98]"
+            variant="ghost"
+            onClick={() => window.print()}
+            title={t('dashboard:page.print', 'In')}
+            className="h-9 px-3.5 text-[13px] font-medium text-text-secondary hover:text-text-primary hover:bg-bg-subtle border-none"
           >
-            <DownloadIcon className="h-4 w-4 mr-1.5" />
-            <span>{t('dashboard:page.exportPdf')}</span>
+            <PrinterIcon className="h-3.5 w-3.5 mr-1.5" />
+            <span>{t('dashboard:page.print', 'In')}</span>
           </Button>
           <Button
             type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => window.print()}
-            title={t('dashboard:page.print')}
-            className="border-slate-200/80 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs font-medium cursor-pointer active:scale-[0.98]"
+            variant="secondary"
+            isLoading={isExportingPdf}
+            onClick={handleExportPdf}
+            title={t('dashboard:page.exportPdf', 'Xuất PDF')}
+            className="h-9 px-3.5 text-[13px] font-medium border-border-strong bg-white hover:bg-bg-subtle"
           >
-            <PrinterIcon className="h-4 w-4 text-slate-500 mr-1.5" />
-            <span>{t('dashboard:page.print')}</span>
+            <DownloadIcon className="h-3.5 w-3.5 mr-1.5" />
+            <span>{t('dashboard:page.exportPdf', 'Xuất PDF')}</span>
           </Button>
         </div>
+      </div>
+
+      {/* 2. Filter Bar (Hàng riêng dưới Header, căn TRÁI, KHÔNG nằm trong printableRef) */}
+      <div className="flex flex-wrap items-center gap-2 my-5 no-print">
+        <div className="w-[140px]">
+          <CustomFilterSelect
+            value={range}
+            onChange={(val) => setRange(val as DateRangeOption)}
+            ariaLabel={t('dashboard:filters.dateRangeAriaLabel', 'Lọc theo khoảng thời gian')}
+            options={DATE_RANGE_OPTIONS.map((key) => ({
+              value: key,
+              label: t(`common:enums.dateRange.${key}`),
+            }))}
+          />
+        </div>
+        {canViewAnalytics && (
+          <div className="w-[180px]">
+            <CustomFilterSelect
+              value={departmentId}
+              onChange={(val) => setDepartmentId(val)}
+              ariaLabel={t('dashboard:filters.departmentAriaLabel', 'Lọc theo phòng ban')}
+              options={[
+                { value: '', label: t('dashboard:filters.allDepartments', 'Tất cả phòng ban') },
+                ...(departmentsQuery.data ?? []).map((d) => ({
+                  value: d.id,
+                  label: d.name,
+                })),
+              ]}
+            />
+          </div>
+        )}
       </div>
 
       {showOnboarding && (
@@ -239,224 +290,225 @@ export function DashboardPage() {
         </Card>
       )}
 
-      {/* BỐ CỤC ĐỒNG BỘ LƯỚI 12 CỘT (GRID 12) CHO CẢ 2 HÀNG:
-          - Hàng 1: Thẻ Tổng quan (8/12 cols) + 2 Thẻ KPI phụ (4/12 cols).
-          - Hàng 2: Biểu đồ đường AreaChart (8/12 cols) + Biểu đồ tròn Donut (4/12 cols). */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        {/* Thẻ Hero Lớn: Điểm nhấn Tổng quan Hiệu suất & Tiến độ Toàn Doanh nghiệp */}
-        <Card className="flex flex-col justify-between p-6 border-slate-200/60 bg-white shadow-sm lg:col-span-8 group hover:shadow-md hover:border-indigo-300 transition-all duration-200">
-          <div>
-            <h3 className="font-display text-lg font-bold text-slate-900">
-              {t(canViewAnalytics ? 'dashboard:hero.title' : 'dashboard:hero.titlePersonal')}
-            </h3>
-            <p className="mt-1 text-xs text-slate-500">
-              {t(canViewAnalytics ? 'dashboard:hero.subtitle' : 'dashboard:hero.subtitlePersonal')}
-            </p>
-
-            {/* Trọng tâm thị giác: Hàng 1 chứa con số % cực đại + Text thống kê, Hàng 2 là Thanh máu boss w-full */}
-            <div className="mt-5 space-y-3">
-              {/* Hàng 1: Con số % cực đại bên trái, thông tin số việc đã xong bên phải */}
-              <div className="flex flex-wrap items-end justify-between gap-3">
-                <div className="flex items-baseline gap-3">
-                  <span className="font-display text-5xl sm:text-6xl font-extrabold tracking-tight text-primary-600 leading-none">
-                    {`${completionRate}%`}
-                  </span>
-                  <span className="text-xs font-semibold text-slate-500">{t('dashboard:hero.completionRateLabel')}</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs font-medium text-slate-500">{t('dashboard:hero.progressLabel')}: </span>
-                  <span className="text-xs font-bold text-slate-900">{`${totalTasksCompleted} / ${totalTasksCreated} ${t('dashboard:hero.progressUnit')}`}</span>
-                </div>
-              </div>
-
-              {/* Hàng 2: "Thanh máu boss" Progress Bar trải dài toàn bộ chiều rộng w-full, dày dặn bo tròn */}
-              <div className="h-3.5 w-full overflow-hidden rounded-full bg-slate-100 p-0.5 border border-slate-200/60 shadow-inner">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-indigo-600 via-primary-500 to-violet-600 transition-all duration-700 ease-out shadow-sm"
-                  style={{ width: `${Math.max(2, Math.min(100, completionRate))}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100/90 pt-4 text-xs sm:text-sm">
-            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-              <span className="inline-flex items-center gap-2 rounded-xl bg-emerald-50/80 border border-emerald-200/60 px-3 py-1.5 text-xs font-semibold text-emerald-800 shadow-2xs">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-emerald-200" />
-                {t('dashboard:hero.completedStatus')}:
-                <strong className="text-sm sm:text-base font-bold text-emerald-900 ml-0.5">{totalTasksCompleted}</strong>
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-xl bg-indigo-50/80 border border-indigo-200/60 px-3 py-1.5 text-xs font-semibold text-indigo-800 shadow-2xs">
-                <span className="h-2.5 w-2.5 rounded-full bg-indigo-500 ring-2 ring-indigo-200" />
-                {t('dashboard:hero.totalTasksStatus')}:
-                <strong className="text-sm sm:text-base font-bold text-indigo-900 ml-0.5">{totalTasksCreated}</strong>
-              </span>
-            </div>
-            <Link
-              to="/projects"
-              className="font-semibold text-sm text-primary-600 hover:text-primary-700 transition-colors inline-flex items-center gap-1 no-print"
-            >
-              {t('dashboard:hero.viewAllLink')}
-            </Link>
-          </div>
-        </Card>
-
-        {/* 2 Thẻ KPI phụ bên cạnh (4/12 cols) - Thiết lập h-full để khớp tuyệt đối chiều cao với Thẻ Hero.
-            17/09/2026: Employee thay 2 KPI cap to chuc (Tai lieu moi/Thanh vien hoat dong, doi hoi
-            ANALYTICS_VIEW) bang 2 KPI ca nhan tinh tren chinh cong viec cua ho (xem myInProgressCount/
-            myOverdueCount o tren). */}
-        <div className="flex flex-col justify-between gap-4 lg:col-span-4 h-full">
+      {/* VÙNG CHỤP PDF: Chỉ bao gồm KPI Cards + Charts + Widgets */}
+      <div ref={printableRef} className="space-y-6">
+        {/* ROW 1: 4 THẺ KPI ĐỒNG KÍCH THƯỚC (GRID-COLS-4) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {canViewAnalytics ? (
             <>
+              {/* KPI 1: DỰ ÁN ĐANG TRIỂN KHAI */}
               <KpiCard
-                label={t('dashboard:kpi.newDocuments.label')}
-                value={summary?.newDocumentsThisWeek ?? '—'}
-                hint={t('dashboard:kpi.newDocuments.hint')}
-                icon={<FileTextIcon className="h-5 w-5" />}
-                accentClassName="bg-violet-100 text-violet-600"
-                isLoading={summaryQuery.isLoading}
-                isError={summaryQuery.isError}
-                onRetry={() => summaryQuery.refetch()}
-                className="flex-1"
+                overline={t('dashboard:kpi.projects.label', 'DỰ ÁN ĐANG TRIỂN KHAI')}
+                value={existingProjects.length}
+                delta={
+                  newProjectsLast7Days > 0
+                    ? {
+                        type: 'increase',
+                        text: t('dashboard:kpi.projects.delta', { count: newProjectsLast7Days, defaultValue: `+${newProjectsLast7Days} so với tuần trước` }),
+                      }
+                    : {
+                        type: 'neutral',
+                        text: t('dashboard:kpi.projects.noNew', 'Không có dự án mới tuần này'),
+                      }
+                }
+                isLoading={allProjectsQuery.isLoading}
+                isError={allProjectsQuery.isError}
+                onRetry={() => allProjectsQuery.refetch()}
               />
+              {/* KPI 2: TỶ LỆ HOÀN THÀNH */}
               <KpiCard
-                label={t('dashboard:kpi.activeUsers.label')}
-                value={summary?.activeUsersLast7Days ?? '—'}
-                hint={t('dashboard:kpi.activeUsers.hint')}
-                icon={<UserIcon className="h-5 w-5" />}
-                accentClassName="bg-amber-100 text-amber-600"
-                isLoading={summaryQuery.isLoading}
-                isError={summaryQuery.isError}
-                onRetry={() => summaryQuery.refetch()}
-                className="flex-1"
+                overline={t('dashboard:kpi.completionRate.label', 'TỶ LỆ HOÀN THÀNH')}
+                value={completionRate}
+                unit="%"
+                delta={
+                  completedTasksLast7Days > 0
+                    ? {
+                        type: 'increase',
+                        text: t('dashboard:kpi.completionRate.delta', { count: completedTasksLast7Days, defaultValue: `+${completedTasksLast7Days} việc hoàn thành tuần này` }),
+                      }
+                    : {
+                        type: 'neutral',
+                        text: t('dashboard:kpi.completionRate.noCompleted', 'Chưa có việc hoàn thành tuần này'),
+                      }
+                }
+                isLoading={allTasksQuery.isLoading}
+                isError={allTasksQuery.isError}
+                onRetry={() => allTasksQuery.refetch()}
+              />
+              {/* KPI 3: CÔNG VIỆC QUÁ HẠN */}
+              <KpiCard
+                overline={t('dashboard:kpi.overdueTasks.label', 'CÔNG VIỆC QUÁ HẠN')}
+                value={myOverdueCount}
+                delta={
+                  myOverdueCount > 0
+                    ? {
+                        type: 'decrease',
+                        text: t('dashboard:kpi.overdueTasks.deltaAction', { count: myOverdueCount, defaultValue: `+${myOverdueCount} cần xử lý` }),
+                      }
+                    : {
+                        type: 'empty-good',
+                        text: t('dashboard:kpi.overdueTasks.noOverdue', 'Không có việc quá hạn'),
+                      }
+                }
+                isLoading={allTasksQuery.isLoading}
+                isError={allTasksQuery.isError}
+                onRetry={() => allTasksQuery.refetch()}
+              />
+              {/* KPI 4: THÀNH VIÊN HOẠT ĐỘNG */}
+              <KpiCard
+                overline={t('dashboard:kpi.activeUsers.label', 'THÀNH VIÊN HOẠT ĐỘNG')}
+                value={`${summary?.activeUsersLast7Days ?? (allUsersQuery.data?.length || 0)}/${allUsersQuery.data?.length || summary?.activeUsersLast7Days || 0}`}
+                delta={{
+                  type: 'neutral',
+                  text: t('dashboard:kpi.activeUsers.delta', 'trong 7 ngày qua'),
+                }}
+                isLoading={summaryQuery.isLoading || allUsersQuery.isLoading}
+                isError={summaryQuery.isError && allUsersQuery.isError}
+                onRetry={() => {
+                  summaryQuery.refetch();
+                  allUsersQuery.refetch();
+                }}
               />
             </>
           ) : (
             <>
+              {/* Employee KPI 1: DỰ ÁN THAM GIA */}
               <KpiCard
-                label={t('dashboard:kpi.myInProgressTasks.label')}
-                value={myInProgressCount}
-                hint={t('dashboard:kpi.myInProgressTasks.hint')}
-                icon={<FolderKanbanIcon className="h-5 w-5" />}
-                accentClassName="bg-indigo-100 text-indigo-600"
-                isLoading={allTasksQuery.isLoading}
-                isError={allTasksQuery.isError}
-                onRetry={() => allTasksQuery.refetch()}
-                className="flex-1"
+                overline={t('dashboard:kpi.projects.personalLabel', 'DỰ ÁN THAM GIA')}
+                value={existingProjects.length}
+                delta={
+                  newProjectsLast7Days > 0
+                    ? {
+                        type: 'increase',
+                        text: t('dashboard:kpi.projects.delta', { count: newProjectsLast7Days, defaultValue: `+${newProjectsLast7Days} so với tuần trước` }),
+                      }
+                    : {
+                        type: 'neutral',
+                        text: t('dashboard:kpi.projects.noNew', 'Không có dự án mới tuần này'),
+                      }
+                }
+                isLoading={allProjectsQuery.isLoading}
+                isError={allProjectsQuery.isError}
+                onRetry={() => allProjectsQuery.refetch()}
               />
+              {/* Employee KPI 2: TỶ LỆ HOÀN THÀNH */}
               <KpiCard
-                label={t('dashboard:kpi.myOverdueTasks.label')}
-                value={myOverdueCount}
-                hint={t('dashboard:kpi.myOverdueTasks.hint')}
-                icon={<AlertCircleIcon className="h-5 w-5" />}
-                accentClassName="bg-rose-100 text-rose-600"
+                overline={t('dashboard:kpi.completionRate.label', 'TỶ LỆ HOÀN THÀNH')}
+                value={completionRate}
+                unit="%"
+                delta={
+                  completedTasksLast7Days > 0
+                    ? {
+                        type: 'increase',
+                        text: t('dashboard:kpi.completionRate.delta', { count: completedTasksLast7Days, defaultValue: `+${completedTasksLast7Days} việc hoàn thành tuần này` }),
+                      }
+                    : {
+                        type: 'neutral',
+                        text: t('dashboard:kpi.completionRate.noCompleted', 'Chưa có việc hoàn thành tuần này'),
+                      }
+                }
                 isLoading={allTasksQuery.isLoading}
                 isError={allTasksQuery.isError}
                 onRetry={() => allTasksQuery.refetch()}
-                className="flex-1"
+              />
+              {/* Employee KPI 3: CÔNG VIỆC QUÁ HẠN */}
+              <KpiCard
+                overline={t('dashboard:kpi.overdueTasks.label', 'CÔNG VIỆC QUÁ HẠN')}
+                value={myOverdueCount}
+                delta={
+                  myOverdueCount > 0
+                    ? {
+                        type: 'decrease',
+                        text: t('dashboard:kpi.overdueTasks.needsAction', 'cần xử lý'),
+                      }
+                    : {
+                        type: 'empty-good',
+                        text: t('dashboard:kpi.overdueTasks.noOverdue', 'Không có việc quá hạn'),
+                      }
+                }
+                isLoading={allTasksQuery.isLoading}
+                isError={allTasksQuery.isError}
+                onRetry={() => allTasksQuery.refetch()}
+              />
+              {/* Employee KPI 4: CÔNG VIỆC ĐANG LÀM */}
+              <KpiCard
+                overline={t('dashboard:kpi.myTasks.label', 'CÔNG VIỆC ĐANG LÀM')}
+                value={myInProgressCount}
+                delta={{
+                  type: 'neutral',
+                  text: myInProgressCount > 5 ? t('dashboard:kpi.myTasks.priority', 'Cần ưu tiên') : t('dashboard:kpi.myTasks.onTrack', 'Đang trong tiến độ'),
+                }}
+                isLoading={allTasksQuery.isLoading}
+                isError={allTasksQuery.isError}
+                onRetry={() => allTasksQuery.refetch()}
               />
             </>
           )}
         </div>
+
+
+      {/* ROW 2: 2 CHARTS ĐẠT CHUẨN (GRID 5 CỘT: 3 COLS LINE CHART + 2 COLS DONUT CHART) */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        {/* Line Chart (col-span-3) */}
+        <div className="lg:col-span-3 rounded-lg border border-border-subtle bg-bg-surface p-5">
+          <h2 className="text-[15px] leading-[22px] font-semibold text-text-primary mb-4 text-left">
+            {t('dashboard:charts.taskTrendTitle', 'Xu hướng hoàn thành công việc')}
+          </h2>
+          <TaskTrendChart
+            data={dynamicTaskTrend}
+            isLoading={trendQuery.isLoading || allTasksQuery.isLoading}
+            isError={trendQuery.isError && allTasksQuery.isError}
+            onRetry={() => {
+              trendQuery.refetch();
+              allTasksQuery.refetch();
+            }}
+          />
+        </div>
+
+        {/* Donut Chart (col-span-2) */}
+        <div className="lg:col-span-2 rounded-lg border border-border-subtle bg-bg-surface p-5">
+          <h2 className="text-[15px] leading-[22px] font-semibold text-text-primary mb-4 text-left">
+            {t('dashboard:charts.taskStatusTitle', 'Phân bổ trạng thái công việc')}
+          </h2>
+          <TaskStatusDonut
+            data={dynamicTaskBreakdown}
+            isLoading={breakdownQuery.isLoading || allTasksQuery.isLoading}
+            isError={breakdownQuery.isError && allTasksQuery.isError}
+            onRetry={() => {
+              breakdownQuery.refetch();
+              allTasksQuery.refetch();
+            }}
+          />
+        </div>
       </div>
 
-      {/* HÀNG DƯỚI: ĐỒNG BỘ CHUẨN GRID 12 (8 COLS VÀ 4 COLS) */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <Card className="lg:col-span-8">
-          <CardHeader>
-            <CardTitle>{t('dashboard:charts.taskTrendTitle')}</CardTitle>
-            {/* 25/07/2026: them aria-label - Select nay khong co <Label> hien thi kem theo (chi
-                dat canh CardTitle) nen truoc do khong co ten hop le cho trinh doc man hinh. */}
-            <div className="flex items-center gap-2">
-              <CustomFilterSelect
-                value={range}
-                onChange={(val) => setRange(val as DateRangeOption)}
-                ariaLabel={t('dashboard:filters.dateRangeAriaLabel')}
-                options={DATE_RANGE_OPTIONS.map((key) => ({
-                  value: key,
-                  label: t(`common:enums.dateRange.${key}`),
-                }))}
-              />
-              {/* 28/07/2026: bo loc "Phong ban" moi cho khoi KPI cua Dashboard. Dat canh Select
-                  khoang thoi gian de dung chung mot vi tri quen thuoc tren trang.
-                  15/09/2026 (sua lai cho dung): dong ghi chu cu o day noi bo loc nay "KHONG anh
-                  huong bieu do Xu huong" vi GET /analytics/task-trend chua ho tro departmentId -
-                  dieu do van dung cho CHINH endpoint do, nhung tu khi co khoi tinh lai phia client
-                  (dynamicTaskTrend, xem chu thich tai allProjectsQuery/allTasksQuery/allUsersQuery
-                  o tren) thi bieu do Xu huong hien THUC SU co loc theo phong ban - chi la tinh o
-                  client tren du lieu task tho, khong phai do server tinh ho.
-                  17/09/2026: an voi Employee - bo loc "xem theo phong ban nao" vo nghia tren 1
-                  dashboard ca nhan (du lieu cua ho da chi gioi han dung ho, khong co phong ban khac
-                  de loc qua lai). */}
-              {canViewAnalytics && (
-                <CustomFilterSelect
-                  value={departmentId}
-                  onChange={(val) => setDepartmentId(val)}
-                  ariaLabel={t('dashboard:filters.departmentAriaLabel')}
-                  options={[
-                    { value: '', label: t('dashboard:filters.allDepartments') },
-                    ...(departmentsQuery.data ?? []).map((d) => ({
-                      value: d.id,
-                      label: d.name,
-                    })),
-                  ]}
-                />
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <TaskTrendChart
-              data={dynamicTaskTrend}
-              isLoading={trendQuery.isLoading || allTasksQuery.isLoading}
-              isError={trendQuery.isError && allTasksQuery.isError}
-              onRetry={() => {
-                trendQuery.refetch();
-                allTasksQuery.refetch();
-              }}
-            />
-          </CardContent>
-        </Card>
 
-        <Card className="lg:col-span-4">
-          <CardHeader>
-            <CardTitle>{t('dashboard:charts.taskStatusTitle')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TaskStatusDonut
-              data={dynamicTaskBreakdown}
-              isLoading={breakdownQuery.isLoading || allTasksQuery.isLoading}
-              isError={breakdownQuery.isError && allTasksQuery.isError}
-              onRetry={() => {
-                breakdownQuery.refetch();
-                allTasksQuery.refetch();
-              }}
-            />
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+      {/* ROW 3: 2 WIDGETS PHÍA DƯỚI (GRID 5 CỘT: 3 COLS ACTIVITY + 2 COLS UPCOMING LEAVES) */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {canViewAnalytics ? (
           <>
-            <Card className="lg:col-span-8">
-              <CardHeader>
-                <CardTitle>{t('dashboard:recentActivitySection.title')}</CardTitle>
-              </CardHeader>
-              <CardContent>
+            <div className="lg:col-span-3 rounded-lg border border-border-subtle bg-bg-surface p-5 flex flex-col justify-between">
+              <div>
+                <h2 className="text-[15px] leading-[22px] font-semibold text-text-primary pb-3 border-b border-border-subtle mb-1">
+                  {t('dashboard:recentActivitySection.title', 'Hoạt động gần đây')}
+                </h2>
                 <RecentActivityFeed />
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            <div className="lg:col-span-4">
+            <div className="lg:col-span-2">
               <UpcomingLeavesWidget />
             </div>
           </>
         ) : (
-          <div className="lg:col-span-12">
+          <div className="lg:col-span-5">
             <UpcomingLeavesWidget />
           </div>
         )}
       </div>
+      </div>
     </div>
+
   );
 }
+

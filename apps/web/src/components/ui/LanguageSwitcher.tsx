@@ -27,17 +27,20 @@ export function LanguageSwitcher() {
   return (
     <Dropdown
       align="right"
-      panelClassName="min-w-[140px] shadow-sm rounded-radius-md border border-border-subtle bg-white p-1"
-      trigger={({ toggle }) => (
+      panelClassName="min-w-[140px] shadow-md rounded-radius-md border border-border-subtle bg-bg-surface p-1"
+      trigger={({ toggle, open }) => (
         <button
           type="button"
           onClick={toggle}
           aria-label={t('common:language.switcherLabel', 'Chọn ngôn ngữ')}
-          className="flex h-8 items-center gap-1.5 rounded-radius-sm px-2 text-[13px] leading-5 font-medium text-text-secondary transition-colors hover:bg-bg-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-soft"
+          className={cn(
+            'flex h-8 items-center gap-1.5 rounded-radius-md px-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-subtle cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-soft',
+            open && 'bg-bg-subtle text-text-primary',
+          )}
         >
           <GlobeIcon className="h-4 w-4 shrink-0 text-text-secondary" />
-          <span className="uppercase text-text-primary">{language}</span>
-          <ChevronDownIcon className="h-3 w-3 text-text-tertiary" />
+          <span className="uppercase text-xs font-medium text-text-primary">{language}</span>
+          <ChevronDownIcon className={cn('h-3 w-3 text-text-tertiary transition-transform duration-200', open && 'rotate-180')} />
         </button>
       )}
     >

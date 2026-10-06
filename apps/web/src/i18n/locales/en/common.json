@@ -107,6 +107,10 @@
     "messages": "Messages",
     "analytics": "Reports & Analytics",
     "admin": "Administration",
+    "pin": {
+      "expand": "Expand sidebar",
+      "collapse": "Collapse sidebar"
+    },
     "homeNav": {
       "overview": "Overview",
       "projects": "Projects & Tasks",

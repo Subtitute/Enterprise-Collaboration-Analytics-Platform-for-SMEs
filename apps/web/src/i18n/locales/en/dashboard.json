@@ -26,21 +26,39 @@
     "createFirstProject": "Create first project"
   },
   "kpi": {
+    "projects": {
+      "label": "Ongoing Projects",
+      "personalLabel": "Joined Projects",
+      "delta": "+{{count}} vs last week",
+      "noNew": "No new projects this week"
+    },
+    "completionRate": {
+      "label": "Completion Rate",
+      "delta": "+{{count}} tasks completed this week",
+      "noCompleted": "No tasks completed this week"
+    },
+    "overdueTasks": {
+      "label": "Overdue Tasks",
+      "needsAction": "needs action",
+      "deltaAction": "+{{count}} need action",
+      "noOverdue": "No overdue tasks"
+    },
+    "activeUsers": {
+      "label": "Active Members",
+      "delta": "in the last 7 days"
+    },
+    "myTasks": {
+      "label": "In-Progress Tasks",
+      "priority": "Needs priority",
+      "onTrack": "On track"
+    },
     "totalTasks": {
       "label": "Total tasks",
       "hint": "{{count}} completed"
     },
-    "completionRate": {
-      "label": "Completion rate",
-      "hint": "Of all tasks"
-    },
     "newDocuments": {
       "label": "New documents (7 days)",
       "hint": "Files uploaded this week"
-    },
-    "activeUsers": {
-      "label": "Active members",
-      "hint": "In the last 7 days"
     },
     "myInProgressTasks": {
       "label": "In-progress tasks",
@@ -81,7 +99,8 @@
     "emptyTitle": "No task trend data yet",
     "emptyDescription": "Data will appear once tasks are created or completed.",
     "completedLine": "Completed",
-    "createdLine": "Created"
+    "createdLine": "Created",
+    "emptyOverlay": "No data available for this time range"
   },
   "recentActivityFeed": {
     "live": "Live updates",
@@ -135,6 +154,27 @@
       "leave_request_rejected": "rejected a leave request"
     }
   },
+  "status": {
+    "toDo": "To Do",
+    "inProgress": "In Progress",
+    "inReview": "In Review",
+    "done": "Done"
+  },
+  "entities": {
+    "task": "Task",
+    "project": "Project",
+    "document": "Document",
+    "leave": "Leave Request",
+    "customer": "Customer",
+    "member": "Member"
+  },
+  "relativeTime": {
+    "justNow": "Just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "daysAgo": "{{count}}d ago",
+    "weeksAgo": "{{count}}w ago"
+  },
   "upcomingLeaves": {
     "title": "Upcoming Leaves",
     "viewAll": "View all",
@@ -144,8 +184,9 @@
     "emptyTitle": "No upcoming leaves",
     "emptyDescription": "All team members are currently working normally.",
     "today": "Today",
+    "tomorrow": "Tomorrow",
     "employee": "Employee",
-    "daysCount": "{{count}}d",
+    "daysCount": "{{count}} days",
     "types": {
       "ANNUAL": "Annual",
       "SICK": "Sick",
