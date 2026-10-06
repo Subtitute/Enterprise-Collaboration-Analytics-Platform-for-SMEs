@@ -146,29 +146,31 @@ export function Sidebar() {
   const toggle = useUIStore((s) => s.toggleSidebarCollapsed);
 
   return (
-    <aside
-      className={cn(
-        'sticky top-0 z-20 hidden h-screen shrink-0 flex-col border-r border-slate-200 bg-white transition-[width] duration-200 ease-in-out md:flex',
-        collapsed ? 'w-[68px]' : 'w-60',
-      )}
-    >
-      <SidebarHeader collapsed={collapsed} />
-      <SidebarLinks collapsed={collapsed} />
-
-      {collapsed && (
-        <div className="border-t border-slate-100 p-2 text-center">
-          <button
-            type="button"
-            onClick={toggle}
-            title="Mở rộng menu"
-            aria-label="Mở rộng menu"
-            className="flex h-8 w-full items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
-          >
-            <ChevronRightIcon className="h-4 w-4" />
-          </button>
-        </div>
-      )}
-    </aside>
+    // 05/10/2026: z-index chuyen tu <aside> ben trong ra CHINH khung bao ngoai nay khi hover (phat
+    // hien qua bao loi thuc te: flyout bi SecondarySidebar.tsx (z-10) va Topbar.tsx (z-30, sticky)
+    // de len tren, chu text ten trang bi cat cut). Nguyen nhan: div ngoai nay va SecondarySidebar/
+    // Topbar deu la "con" truc tiep cua CUNG 1 stacking context goc (div flex trong AppShell.tsx -
+    // khong tu tao context rieng vi khong co position/z-index). z-40 dat o <aside> con CHI so sanh
+    // duoc voi cac anh em KHAC trong pham vi stacking context cuc bo cua rieng no (do <aside> la
+    // con cua div nay, da tao context rieng qua "absolute"), KHONG "thoat" ra ngoai de so sanh duoc
+    // voi SecondarySidebar/Topbar o cap goc - nen flyout luon nam duoi 2 thanh phan do bat ke gia
+    // tri z-40 noi tai. Dat z-index ngay tren div ngoai (chinh la "node" tham gia stacking context
+    // goc) moi giai quyet dung goc re.
+    <div className={cn('sticky top-0 hidden h-screen w-[68px] shrink-0 md:block', hovered && 'z-40')}>
+      <aside
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onFocus={() => setHovered(true)}
+        onBlur={handleBlur}
+        className={cn(
+          'absolute left-0 top-0 flex h-screen flex-col border-r border-slate-200 bg-white transition-[width] duration-150 ease-in-out',
+          hovered ? 'w-60 shadow-xl' : 'w-[68px]',
+        )}
+      >
+        <SidebarHeader collapsed={collapsed} />
+        <SidebarLinks collapsed={collapsed} />
+      </aside>
+    </div>
   );
 }
 
