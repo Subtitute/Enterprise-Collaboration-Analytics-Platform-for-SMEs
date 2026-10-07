@@ -13,21 +13,6 @@ interface SidebarContentProps {
   onNavigate?: () => void;
 }
 
-function NavItemTooltip({ label, visible }: { label: string; visible: boolean }) {
-  if (!visible) return null;
-  return (
-    <div
-      role="tooltip"
-      className="pointer-events-none fixed z-50 rounded-radius-sm bg-bg-inverse px-2.5 py-1.5 text-xs leading-4 font-normal text-text-inverse shadow-md animate-fade-in"
-      style={{
-        transform: 'translateY(-50%)',
-      }}
-    >
-      {label}
-    </div>
-  );
-}
-
 function SidebarLinks({ collapsed, onNavigate, isMobile = false }: SidebarContentProps & { isMobile?: boolean }) {
   const { t } = useTranslation();
   const location = useLocation();
@@ -112,46 +97,40 @@ function SidebarLinks({ collapsed, onNavigate, isMobile = false }: SidebarConten
                 aria-label={ariaLabel}
                 aria-current={(!isHome && isItemActive) ? 'page' : undefined}
                 aria-describedby={collapsed ? tooltipId : undefined}
-                className={() =>
-                  cn(
-                    'group relative flex h-10 flex-1 items-center rounded-radius-sm px-2.5 text-[13px] font-normal transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-accent-soft',
-                    isItemActive
-                      ? 'bg-accent-soft text-accent font-medium'
-                      : 'text-text-secondary hover:bg-bg-subtle hover:text-text-primary',
-                  )
-                }
-              >
-                {() => (
-                  <>
-                    <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
-                      <item.icon
-                        className={cn(
-                          'h-5 w-5 transition-colors duration-150',
-                          isItemActive ? 'text-accent' : 'text-text-tertiary group-hover:text-text-secondary',
-                        )}
-                      />
-                      {/* Badge tin nhan (§2.5): Collapsed pill 16x16 o top-6 right-6; Expanded o canh phai label */}
-                      {item.to === '/messages' && unreadMessagesCount > 0 && collapsed && (
-                        <span className="absolute top-1.5 right-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#B3261E] px-1 text-[10px] font-semibold text-white border-2 border-bg-surface">
-                          {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
-                        </span>
-                      )}
-                    </div>
-                    <div
-                      className={cn(
-                        'overflow-hidden transition-all duration-150 ease-in-out whitespace-nowrap ml-2.5 flex-1 flex items-center justify-between',
-                        collapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[160px] opacity-100',
-                      )}
-                    >
-                      <span className="truncate">{label}</span>
-                      {item.to === '/messages' && unreadMessagesCount > 0 && !collapsed && (
-                        <span className="ml-2 flex h-4 min-w-[18px] items-center justify-center rounded-full bg-[#B3261E] px-1 text-[10px] font-semibold text-white">
-                          {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
-                        </span>
-                      )}
-                    </div>
-                  </>
+                className={cn(
+                  'group relative flex h-10 flex-1 items-center rounded-radius-sm px-2.5 text-[13px] font-normal transition-colors duration-150 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-accent-soft',
+                  isItemActive
+                    ? 'bg-accent-soft text-accent font-medium'
+                    : 'text-text-secondary hover:bg-bg-subtle hover:text-text-primary',
                 )}
+              >
+                <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
+                  <item.icon
+                    className={cn(
+                      'h-5 w-5 transition-colors duration-150',
+                      isItemActive ? 'text-accent' : 'text-text-tertiary group-hover:text-text-secondary',
+                    )}
+                  />
+                  {/* Badge tin nhắn (§2.5): Collapsed pill 16x16 ở top-1.5 right-1.5 */}
+                  {item.to === '/messages' && unreadMessagesCount > 0 && collapsed && (
+                    <span className="absolute top-1.5 right-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#B3261E] px-1 text-[10px] font-semibold text-white border-2 border-bg-surface">
+                      {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                    </span>
+                  )}
+                </div>
+                <div
+                  className={cn(
+                    'overflow-hidden transition-all duration-150 ease-in-out whitespace-nowrap ml-2.5 flex-1 flex items-center justify-between',
+                    collapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[160px] opacity-100',
+                  )}
+                >
+                  <span className="truncate">{label}</span>
+                  {item.to === '/messages' && unreadMessagesCount > 0 && !collapsed && (
+                    <span className="ml-2 flex h-4 min-w-[18px] items-center justify-center rounded-full bg-[#B3261E] px-1 text-[10px] font-semibold text-white">
+                      {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
+                    </span>
+                  )}
+                </div>
               </NavLink>
 
               {/* Mũi tên toggle Accordion trên Mobile cho mục Trang chủ */}
@@ -269,7 +248,6 @@ function SidebarHeader({ collapsed, onNavigate, onClose }: { collapsed: boolean;
 }
 
 export function Sidebar() {
-  const { t } = useTranslation();
   const location = useLocation();
 
   // Kiem tra neu Secondary Sidebar dang mo o route phan cap (nhom Trang chu)
@@ -278,7 +256,6 @@ export function Sidebar() {
   );
 
   const sidebarCollapsed = useUIStore((s) => s.sidebarCollapsed);
-  const toggleSidebarCollapsed = useUIStore((s) => s.toggleSidebarCollapsed);
 
   // Quy tac §4.1 & §4.3: Khi Secondary Sidebar mo -> Rail LUON Collapsed (w-16)
   const isRailCollapsed = isSecondarySidebarOpen ? true : sidebarCollapsed;
@@ -301,15 +278,9 @@ export function Sidebar() {
 
 /** 5. MobileSidebar: Drawer 288px (w-72), backdrop rgba(28,27,26,0.5), focus trap, close button, Esc, click-outside */
 export function MobileSidebar() {
-  const { t } = useTranslation();
-  const location = useLocation();
   const open = useUIStore((s) => s.mobileSidebarOpen);
   const setOpen = useUIStore((s) => s.setMobileSidebarOpen);
   const drawerRef = useRef<HTMLDivElement>(null);
-
-  const isHomeGroup = HOME_ROUTE_PREFIXES.some(
-    (prefix) => location.pathname === prefix || location.pathname.startsWith(`${prefix}/`),
-  );
 
   useEffect(() => {
     if (!open) return;

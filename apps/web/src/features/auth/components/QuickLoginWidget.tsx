@@ -14,8 +14,8 @@ export interface DemoAccount {
 
 interface QuickLoginWidgetProps {
   accounts: DemoAccount[];
-  activeRoleIndex: number;
-  onSelectRole: (index: number) => void;
+  activeRoleIndex?: number;
+  onSelectRole?: (index: number) => void;
   onFillDemo: (acc: DemoAccount) => void;
   onBypassLogin: (acc: DemoAccount) => void;
   isLoading?: boolean;
@@ -30,13 +30,15 @@ const ROLES_ORDER: { id: DemoAccount['id']; label: string }[] = [
 
 export function QuickLoginWidget({
   accounts,
-  activeRoleIndex,
+  activeRoleIndex: controlledRoleIndex,
   onSelectRole,
   onFillDemo,
   onBypassLogin,
   isLoading,
 }: QuickLoginWidgetProps) {
   const { t } = useTranslation();
+  const [internalRoleIndex, setInternalRoleIndex] = useState(0);
+  const activeRoleIndex = controlledRoleIndex ?? internalRoleIndex;
   const [isOpen, setIsOpen] = useState(false);
   const [copiedField, setCopiedField] = useState<'email' | 'password' | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -85,7 +87,8 @@ export function QuickLoginWidget({
   };
 
   const handleRoleClick = (idx: number) => {
-    onSelectRole(idx);
+    setInternalRoleIndex(idx);
+    onSelectRole?.(idx);
     const targetAcc = accounts[idx];
     if (targetAcc) {
       // Cơ chế 1: Chọn role -> tự điền form, không tự submit, không tự đóng panel

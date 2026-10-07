@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
-import { FormField, Input, Select, Textarea, Label } from '@/components/ui/Input';
+import { Input, Textarea } from '@/components/ui/Input';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
@@ -17,19 +17,19 @@ import type { TaskStatus } from '@/types';
 
 const STATUS_CONFIG: Record<TaskStatus, { dotColor: string; activeBg: string; textColor: string }> = {
   TODO: {
-    dotColor: 'bg-slate-400',
-    activeBg: 'bg-slate-50',
-    textColor: 'text-slate-700',
+    dotColor: 'bg-[#8A8781]',
+    activeBg: 'bg-bg-subtle',
+    textColor: 'text-text-primary',
   },
   DOING: {
-    dotColor: 'bg-primary-500',
-    activeBg: 'bg-primary-50/70',
-    textColor: 'text-primary-700',
+    dotColor: 'bg-[#1E5A8A]',
+    activeBg: 'bg-accent-soft/50',
+    textColor: 'text-accent',
   },
   DONE: {
-    dotColor: 'bg-emerald-500',
-    activeBg: 'bg-emerald-50/70',
-    textColor: 'text-emerald-700',
+    dotColor: 'bg-[#2F6F44]',
+    activeBg: 'bg-[#E6F1E9]',
+    textColor: 'text-[#2F6F44]',
   },
 };
 import {
@@ -117,19 +117,24 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
               }
             }}
             autoFocus
-            className="w-full rounded-lg border border-primary-500 bg-white px-2.5 py-1 text-base font-bold text-slate-900 shadow-2xs focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+            className="w-full rounded-radius-sm border border-accent bg-white px-2.5 py-1 text-[16px] leading-[24px] font-semibold text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-soft"
           />
         </form>
       ) : (
         <div
           onClick={() => setIsEditingTitle(true)}
-          className="group flex items-center gap-2 cursor-pointer rounded-lg py-0.5 px-1.5 -ml-1.5 hover:bg-slate-100/80 transition-colors flex-1 min-w-0"
+          className="group flex items-center gap-2 cursor-pointer rounded-radius-sm py-0.5 px-1.5 -ml-1.5 hover:bg-bg-subtle transition-colors flex-1 min-w-0"
           title={t('projects:taskDetail.renameHint')}
         >
-          <h2 className="font-display text-base font-bold text-slate-900 truncate">
+          <h2 className="text-[16px] leading-[24px] font-semibold text-text-primary truncate">
             {task?.title ?? t('projects:taskDetail.fallbackTitle')}
           </h2>
-          <span className="text-[11px] font-medium text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          {task?.id && (
+            <span className="font-mono text-[12px] font-medium text-text-tertiary tabular-nums shrink-0">
+              #{task.id.slice(-4).toUpperCase()}
+            </span>
+          )}
+          <span className="text-[11px] font-medium text-text-tertiary opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
             ✎
           </span>
         </div>
@@ -140,9 +145,6 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
   return (
     <>
       <Modal open={Boolean(taskId)} onClose={onClose} title={renderModalTitle} size="xl">
-        {/* 22/08/2026: tach 3 trang thai dang gop lam mot ("dang tai", "loi tai", "khong con ton
-            tai") - truoc day chi check "!task" nen ca 3 truong hop deu hien spinner vo han, kha
-            nang cao la mot nguoi dung khac da xoa cong viec trong luc modal dang mo. */}
         <QueryState
           isLoading={tasksQuery.isLoading}
           isError={tasksQuery.isError}
@@ -161,41 +163,52 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
               description={t('projects:taskDetail.notFoundDescription')}
             />
           ) : (
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-7 items-start">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-6 items-start">
               {/* CỘT TRÁI (2/3): Khu vực nội dung chính (Mô tả, Bình luận, Lịch sử) */}
-              <div className="space-y-6 lg:col-span-2 min-w-0">
+              <div className="space-y-5 lg:col-span-2 min-w-0">
                 {/* 1. Mô tả công việc */}
                 <div>
-                  <Label className="text-sm font-semibold text-slate-800 mb-2">
-                    {t('projects:taskDetail.descriptionLabel')}
-                  </Label>
+                  <label className="block text-[13px] leading-[20px] font-medium text-text-secondary mb-1.5">
+                    {t('projects:taskDetail.descriptionLabel', 'Mô tả')}
+                  </label>
                   {isEditingDesc ? (
                     <div className="space-y-2">
-                      <Textarea value={descDraft} onChange={(e) => setDescDraft(e.target.value)} rows={4} autoFocus />
+                      <textarea
+                        value={descDraft}
+                        onChange={(e) => setDescDraft(e.target.value)}
+                        rows={4}
+                        autoFocus
+                        className="w-full rounded-radius-sm border border-border-strong bg-white p-2.5 text-[13px] text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent min-h-[80px] resize-y"
+                      />
                       <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          isLoading={updateTask.isPending}
+                        <button
+                          type="button"
+                          disabled={updateTask.isPending}
                           onClick={() => updateTask.mutate({ description: descDraft }, { onSuccess: () => setIsEditingDesc(false) })}
+                          className="h-8 px-3 rounded-radius-md bg-[#1C1B1A] text-white text-[13px] font-medium hover:bg-[#2E2C29] transition-colors cursor-pointer"
                         >
-                          {t('projects:taskDetail.save')}
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => setIsEditingDesc(false)}>
-                          {t('projects:taskDetail.cancel')}
-                        </Button>
+                          {t('projects:taskDetail.save', 'Lưu')}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingDesc(false)}
+                          className="h-8 px-3 rounded-radius-md border border-border-strong bg-white text-[13px] font-medium text-text-primary hover:bg-bg-subtle transition-colors cursor-pointer"
+                        >
+                          {t('projects:taskDetail.cancel', 'Hủy')}
+                        </button>
                       </div>
                     </div>
                   ) : (
                     <button
                       type="button"
                       onClick={() => setIsEditingDesc(true)}
-                      className="group block w-full rounded-xl bg-slate-50/70 p-3.5 text-left text-sm text-slate-700 transition-all duration-150 hover:bg-slate-100/80 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:bg-white focus:border focus:border-slate-200"
+                      className="group block w-full rounded-radius-md bg-bg-canvas border border-border-subtle p-3 text-left text-[13px] text-text-primary transition-colors hover:border-border-strong focus:outline-none cursor-pointer"
                     >
                       {task.description ? (
                         <p className="whitespace-pre-wrap leading-relaxed">{task.description}</p>
                       ) : (
-                        <span className="text-slate-400 italic group-hover:text-slate-500 transition-colors">
-                          {t('projects:taskDetail.descriptionEmpty')}
+                        <span className="text-text-tertiary italic">
+                          {t('projects:taskDetail.descriptionEmpty', 'Chưa có mô tả. Bấm để thêm...')}
                         </span>
                       )}
                     </button>
@@ -204,26 +217,26 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
 
                 {/* 2. Bình luận & Trao đổi */}
                 <div>
-                  <Label className="text-sm font-semibold text-slate-800 mb-2">
-                    {t('projects:taskDetail.commentsLabel')}
-                  </Label>
-                  <div className="max-h-56 space-y-3 overflow-y-auto rounded-xl border border-slate-200/70 bg-slate-50/40 p-3.5">
+                  <label className="block text-[13px] leading-[20px] font-medium text-text-secondary mb-1.5">
+                    {t('projects:taskDetail.commentsLabel', 'Bình luận')}
+                  </label>
+                  <div className="max-h-56 space-y-2.5 overflow-y-auto rounded-radius-md border border-border-subtle bg-bg-canvas p-3">
                     {commentsQuery.isLoading ? (
                       <div className="flex justify-center py-3">
                         <Spinner size="sm" />
                       </div>
                     ) : (commentsQuery.data ?? []).length === 0 ? (
-                      <p className="text-xs text-slate-400 text-center py-2">{t('projects:taskDetail.noComments')}</p>
+                      <p className="text-[12px] text-text-tertiary text-center py-2">{t('projects:taskDetail.noComments', 'Chưa có bình luận nào.')}</p>
                     ) : (
                       (commentsQuery.data ?? []).map((c) => (
-                        <div key={c.id} className="flex items-start gap-2.5 rounded-lg bg-white p-2.5 shadow-2xs border border-slate-100">
-                          <Avatar name={displayName(c.authorId, c.authorName)} size="sm" />
+                        <div key={c.id} className="flex items-start gap-2.5 rounded-radius-sm bg-white p-2.5 border border-border-subtle">
+                          <Avatar name={displayName(c.authorId, c.authorName)} size="sm" className="h-6 w-6 text-[10px] rounded-full bg-accent-soft text-accent" />
                           <div className="min-w-0 flex-1">
-                            <p className="text-xs font-semibold text-slate-800">
+                            <p className="text-[12px] font-medium text-text-primary">
                               {displayName(c.authorId, c.authorName)}{' '}
-                              <span className="ml-1 font-normal text-slate-400 text-[11px]">{formatRelativeTime(c.createdAt)}</span>
+                              <span className="ml-1 font-normal text-text-tertiary text-[11px] font-mono">{formatRelativeTime(c.createdAt)}</span>
                             </p>
-                            <p className="text-sm text-slate-600 mt-0.5 leading-relaxed">{c.content}</p>
+                            <p className="text-[13px] text-text-secondary mt-0.5 leading-relaxed">{c.content}</p>
                           </div>
                         </div>
                       ))
@@ -237,41 +250,45 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
                       addComment.mutate(commentDraft.trim(), { onSuccess: () => setCommentDraft('') });
                     }}
                   >
-                    <Input
+                    <input
                       value={commentDraft}
                       onChange={(e) => setCommentDraft(e.target.value)}
-                      placeholder={t('projects:taskDetail.commentPlaceholder')}
-                      className="flex-1 rounded-xl text-sm"
+                      placeholder={t('projects:taskDetail.commentPlaceholder', 'Viết bình luận...')}
+                      className="flex-1 h-9 rounded-radius-sm border border-border-strong bg-white px-3 text-[13px] text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                     />
-                    <Button type="submit" size="sm" isLoading={addComment.isPending} className="rounded-xl shrink-0">
-                      {t('projects:taskDetail.send')}
-                    </Button>
+                    <button
+                      type="submit"
+                      disabled={addComment.isPending}
+                      className="h-9 px-3.5 rounded-radius-md bg-[#1C1B1A] text-white text-[13px] font-medium hover:bg-[#2E2C29] transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
+                    >
+                      {t('projects:taskDetail.send', 'Gửi')}
+                    </button>
                   </form>
                 </div>
 
                 {/* 3. Lịch sử trạng thái */}
                 <div>
-                  <Label className="text-sm font-semibold text-slate-800 mb-2">
-                    {t('projects:taskDetail.statusHistoryLabel')}
-                  </Label>
-                  <div className="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-slate-200/70 bg-slate-50/40 p-3">
+                  <label className="block text-[13px] leading-[20px] font-medium text-text-secondary mb-1.5">
+                    {t('projects:taskDetail.statusHistoryLabel', 'Lịch sử thay đổi trạng thái')}
+                  </label>
+                  <div className="max-h-40 space-y-1.5 overflow-y-auto rounded-radius-md border border-border-subtle bg-bg-canvas p-3">
                     {statusHistoryQuery.isLoading ? (
                       <div className="flex justify-center py-3">
                         <Spinner size="sm" />
                       </div>
                     ) : statusHistoryQuery.isError ? (
-                      <p className="text-xs text-slate-400">{t('projects:taskDetail.statusHistoryError')}</p>
+                      <p className="text-[12px] text-text-tertiary">{t('projects:taskDetail.statusHistoryError')}</p>
                     ) : (statusHistoryQuery.data ?? []).length === 0 ? (
-                      <p className="text-xs text-slate-400 text-center py-1">{t('projects:taskDetail.noStatusHistory')}</p>
+                      <p className="text-[12px] text-text-tertiary text-center py-1">{t('projects:taskDetail.noStatusHistory', 'Chưa có lịch sử thay đổi trạng thái.')}</p>
                     ) : (
                       (statusHistoryQuery.data ?? []).map((entry, index) => (
-                        <div key={`${entry.changedAt}-${index}`} className="flex items-center gap-2 text-xs text-slate-600 py-0.5">
-                          <span className="font-medium text-slate-700">
+                        <div key={`${entry.changedAt}-${index}`} className="flex items-center gap-2 text-[12px] text-text-secondary py-0.5">
+                          <span className="font-medium text-text-primary">
                             {entry.fromStatus ? t(`projects:enums.taskStatus.${entry.fromStatus}`, { defaultValue: entry.fromStatus }) : '—'}
                             {' → '}
                             {t(`projects:enums.taskStatus.${entry.toStatus}`, { defaultValue: entry.toStatus })}
                           </span>
-                          <span className="text-slate-400 text-[11px]">
+                          <span className="text-text-tertiary text-[11px] font-mono">
                             • {displayName(entry.actorId ?? '')} • {formatDateTime(entry.changedAt)}
                           </span>
                         </div>
@@ -282,15 +299,15 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
               </div>
 
               {/* CỘT PHẢI (1/3): Sidebar thuộc tính (Trạng thái, Hạn chót, Phụ trách, Xoá) */}
-              <div className="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 space-y-4 lg:col-span-1 shadow-2xs">
+              <div className="rounded-radius-md border border-border-subtle bg-white p-4 space-y-4 lg:col-span-1 shadow-none">
                 {/* 1. Trạng thái */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-800 mb-1.5" id="task-status-label">
-                    {t('projects:taskDetail.statusLabel')}
+                  <label className="block text-[13px] leading-[20px] font-medium text-text-secondary mb-1.5" id="task-status-label">
+                    {t('projects:taskDetail.statusLabel', 'Trạng thái')}
                   </label>
                   <Dropdown
                     align="left"
-                    panelClassName="w-48 p-1.5 rounded-2xl border border-slate-200/80 bg-white shadow-xl shadow-slate-900/10 space-y-1"
+                    panelClassName="w-44 p-1 rounded-radius-md border border-border-subtle bg-white shadow-md space-y-0.5"
                     trigger={({ open, toggle }) => {
                       const cfg = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.TODO;
                       return (
@@ -299,16 +316,16 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
                           onClick={toggle}
                           aria-labelledby="task-status-label"
                           className={cn(
-                            'flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-xs font-semibold text-slate-800 shadow-2xs transition-all duration-150 hover:bg-slate-50 hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
-                            open && 'border-primary-500 ring-2 ring-primary-500/20 bg-slate-50/80',
+                            'flex w-full items-center justify-between gap-2 rounded-radius-sm border border-border-strong bg-white px-3 py-1.5 text-[13px] font-medium text-text-primary transition-all hover:border-accent focus:outline-none focus:ring-1 focus:ring-accent h-9',
+                            open && 'border-accent ring-1 ring-accent',
                           )}
                         >
                           <div className="flex items-center gap-2 min-w-0">
-                            <span className={cn('h-2 w-2 rounded-full ring-2 ring-white shrink-0', cfg.dotColor)} />
+                            <span className={cn('h-2 w-2 rounded-full shrink-0', cfg.dotColor)} />
                             <span className="truncate">{t(`projects:enums.taskStatus.${task.status}`)}</span>
                           </div>
                           <ChevronDownIcon
-                            className={cn('h-4 w-4 text-slate-400 shrink-0 transition-transform duration-200', open && 'rotate-180 text-slate-600')}
+                            className={cn('h-4 w-4 text-text-tertiary shrink-0 transition-transform duration-150', open && 'rotate-180 text-text-primary')}
                           />
                         </button>
                       );
@@ -326,23 +343,21 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
                               onClick={() => {
                                 if (task.status !== s) {
                                   updateStatus.mutate({ taskId: task.id, status: s });
-                                  // 22/09/2026: thông báo "Task Done" giờ được Project-Task Service
-                                  // tự động phát qua Kafka trong updateStatus() ở trên.
                                 }
                                 close();
                               }}
                               className={cn(
-                                'flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-colors duration-150 text-left',
+                                'flex w-full items-center justify-between gap-2 rounded-radius-xs px-2.5 py-1.5 text-[12px] font-medium transition-colors text-left cursor-pointer',
                                 isSelected
-                                  ? cn('font-bold', cfg.activeBg, cfg.textColor)
-                                  : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900',
+                                  ? cn(cfg.activeBg, cfg.textColor)
+                                  : 'text-text-primary hover:bg-bg-subtle',
                               )}
                             >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <span className={cn('h-2 w-2 rounded-full ring-2 ring-white shrink-0', cfg.dotColor)} />
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className={cn('h-2 w-2 rounded-full shrink-0', cfg.dotColor)} />
                                 <span className="truncate">{t(`projects:enums.taskStatus.${s}`)}</span>
                               </div>
-                              {isSelected && <CheckIcon className="h-4 w-4 shrink-0 text-primary-600" />}
+                              {isSelected && <CheckIcon className="h-3.5 w-3.5 shrink-0 text-accent" />}
                             </button>
                           );
                         })}
@@ -353,33 +368,35 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
 
                 {/* 2. Hạn hoàn thành */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-800 mb-1.5" htmlFor="task-due-date">
-                    {t('projects:taskDetail.dueDateLabel')}
+                  <label className="block text-[13px] leading-[20px] font-medium text-text-secondary mb-1.5" htmlFor="task-due-date">
+                    {t('projects:taskDetail.dueDateLabel', 'Hạn hoàn thành')}
                   </label>
                   <DatePicker
                     id="task-due-date"
                     value={task.dueDate ? task.dueDate.slice(0, 10) : ''}
                     onChange={(val) => updateTask.mutate({ dueDate: val || undefined })}
+                    position="bottom"
+                    align="right"
                   />
                 </div>
 
                 {/* 3. Người phụ trách */}
-                <div className="pt-1 border-t border-slate-200/60">
-                  <label className="block text-sm font-semibold text-slate-800 mb-2">
-                    {t('projects:taskDetail.assigneesLabel')}
+                <div className="pt-2 border-t border-border-subtle">
+                  <label className="block text-[13px] leading-[20px] font-medium text-text-secondary mb-2">
+                    {t('projects:taskDetail.assigneesLabel', 'Người phụ trách')}
                   </label>
                   <div className="flex flex-wrap items-center gap-2">
                     {(task.assignees ?? []).map((a) => (
                       <div
                         key={a.userId}
-                        className="group flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white py-1 pl-1 pr-2 text-xs font-medium text-slate-700 shadow-2xs transition-all hover:border-slate-300"
+                        className="group flex items-center gap-1.5 rounded-full border border-border-subtle bg-bg-canvas py-0.5 pl-1 pr-2 text-[12px] font-medium text-text-primary transition-all hover:border-border-strong"
                       >
-                        <Avatar name={displayName(a.userId, a.fullName)} size="sm" />
+                        <Avatar name={displayName(a.userId, a.fullName)} size="sm" className="h-5 w-5 text-[9px] rounded-full bg-accent-soft text-accent" />
                         <span className="max-w-[100px] truncate">{displayName(a.userId, a.fullName)}</span>
                         <button
                           type="button"
                           onClick={() => removeAssignee.mutate(a.userId)}
-                          className="text-slate-300 hover:text-rose-600 transition-colors p-0.5"
+                          className="text-text-tertiary hover:text-text-error transition-colors p-0.5 cursor-pointer"
                           aria-label={t('projects:taskDetail.removeAssigneeAriaLabel')}
                         >
                           <XIcon className="h-3.5 w-3.5" />
@@ -393,19 +410,19 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
                     />
                   </div>
                   {(task.assignees ?? []).length === 0 && (
-                    <p className="mt-1.5 text-xs text-slate-400 italic">{t('projects:taskDetail.noAssignees')}</p>
+                    <p className="mt-1 text-[11px] text-text-tertiary italic">{t('projects:taskDetail.noAssignees', 'Chưa có người phụ trách')}</p>
                   )}
                 </div>
 
-                {/* 4. Thao tác Xoá công việc (Hạ cấp thành Text Link tinh gọn) */}
-                <div className="pt-2 border-t border-slate-200/60 flex justify-center">
+                {/* 4. Thao tác Xoá công việc */}
+                <div className="pt-2 border-t border-border-subtle flex justify-center">
                   <button
                     type="button"
                     onClick={() => setConfirmDelete(true)}
-                    className="group inline-flex items-center gap-1.5 py-1.5 px-2 text-xs font-semibold text-rose-500 transition-colors duration-150 hover:text-rose-700 focus:outline-none focus-visible:underline"
+                    className="inline-flex items-center gap-1.5 py-1.5 px-2 text-[12px] font-medium text-text-error hover:underline transition-colors cursor-pointer"
                   >
-                    <TrashIcon className="h-3.5 w-3.5 text-rose-400 group-hover:text-rose-600 transition-colors" />
-                    <span>{t('projects:taskDetail.deleteTask')}</span>
+                    <TrashIcon className="h-3.5 w-3.5" />
+                    <span>{t('projects:taskDetail.deleteTask', 'Xóa công việc')}</span>
                   </button>
                 </div>
               </div>

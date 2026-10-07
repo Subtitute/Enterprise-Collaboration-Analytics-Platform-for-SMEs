@@ -256,11 +256,16 @@ export function ProjectsListPage() {
   const hasFilters = Boolean(search || status || priorityFilter);
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
+    <div className="space-y-6">
+      {/* 1. Page Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('projects:list.title')}</h1>
-          <p className="mt-1 text-sm text-slate-500">{t('projects:list.subtitle')}</p>
+          <h1 className="text-[28px] leading-[36px] font-semibold text-text-primary">
+            {t('projects:list.title')}
+          </h1>
+          <p className="mt-1 text-[14px] leading-[22px] text-text-secondary">
+            {t('projects:list.subtitle')}
+          </p>
         </div>
         <div className="flex items-center gap-2.5 shrink-0">
           {hasFilters && (
@@ -272,44 +277,57 @@ export function ProjectsListPage() {
                 setStatus('');
                 setPriorityFilter('');
               }}
-              className="text-xs text-slate-600 hover:text-slate-900"
+              className="h-9 px-3 text-xs text-text-secondary hover:text-text-primary border-border-subtle hover:bg-bg-subtle"
             >
               {t('projects:list.viewAll')}
             </Button>
           )}
           {canManage && (
-            <Button onClick={() => setIsNewOpen(true)} size="sm">
-              <PlusIcon className="h-4 w-4" /> {t('projects:list.newProject')}
-            </Button>
+            <button
+              type="button"
+              onClick={() => setIsNewOpen(true)}
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-radius-md bg-[#1C1B1A] px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-[#2E2C29] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            >
+              <PlusIcon className="h-3.5 w-3.5" />
+              <span>{t('projects:list.newProject')}</span>
+            </button>
           )}
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1 sm:max-w-sm">
-          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      {/* 2. Toolbar - 1 hàng ngang (≥ lg 1 hàng, < lg search hàng trên, 2 select hàng dưới) */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2 mb-6">
+        {/* 3.1 Search box flex-1, height 36 */}
+        <div className="relative flex-1 min-w-0">
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
           <input
             type="search"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder={t('projects:list.searchPlaceholder')}
             aria-label={t('projects:list.searchPlaceholder')}
-            className="h-9 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-100"
+            className="h-9 w-full rounded-radius-sm border border-border-strong bg-white pl-9 pr-3 text-[13px] text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           />
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <CustomFilterSelect
-            value={status}
-            onChange={(val) => setStatus(val)}
-            ariaLabel={t('projects:list.statusFilter.all')}
-            options={STATUS_OPTIONS}
-          />
-          <CustomFilterSelect
-            value={priorityFilter}
-            onChange={(val) => setPriorityFilter(val)}
-            ariaLabel={t('projects:list.priorityFilter.all')}
-            options={PRIORITY_FILTER_OPTIONS}
-          />
+
+        {/* 3.2 Status Select & 3.3 Priority Select - width 180 on lg, 2 cols on mobile */}
+        <div className="grid grid-cols-2 lg:flex lg:items-center gap-2 shrink-0">
+          <div className="w-full lg:w-[180px]">
+            <CustomFilterSelect
+              value={status}
+              onChange={(val) => setStatus(val)}
+              ariaLabel={t('projects:list.statusFilter.all')}
+              options={STATUS_OPTIONS}
+            />
+          </div>
+          <div className="w-full lg:w-[180px]">
+            <CustomFilterSelect
+              value={priorityFilter}
+              onChange={(val) => setPriorityFilter(val)}
+              ariaLabel={t('projects:list.priorityFilter.all')}
+              options={PRIORITY_FILTER_OPTIONS}
+            />
+          </div>
         </div>
       </div>
 
@@ -349,8 +367,8 @@ export function ProjectsListPage() {
                     onDrop={(e) => handleDrop(e, project.id)}
                     onDragEnd={handleDragEnd}
                     className={`animate-fade-in transition-all duration-300 ease-out transform ${
-                      isDragging ? 'opacity-40 scale-95 ring-2 ring-primary-500 rounded-xl' : 'opacity-100 scale-100'
-                    } ${isOver ? 'scale-[1.02] ring-2 ring-primary-400/80 rounded-xl' : ''}`}
+                      isDragging ? 'opacity-40 scale-95 ring-2 ring-accent rounded-radius-lg' : 'opacity-100 scale-100'
+                    } ${isOver ? 'scale-[1.02] ring-2 ring-accent/80 rounded-radius-lg' : ''}`}
                   >
                     <ProjectCard
                       project={project}

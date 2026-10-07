@@ -6,7 +6,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { ChevronRightIcon, FileTextIcon, PlusIcon, UploadIcon, SearchIcon, GridIcon, ListIcon } from '@/components/ui/Icons';
-import { useFilesQuery, useFoldersQuery } from './hooks';
+import { useFilesQuery, useFoldersQuery, useDownloadFile } from './hooks';
 import { FolderGrid } from './components/FolderGrid';
 import { FileTable } from './components/FileTable';
 import { NewFolderModal } from './components/NewFolderModal';
@@ -15,7 +15,6 @@ import { ShareModal } from './components/ShareModal';
 import { FolderShareModal } from './components/FolderShareModal';
 import { VersionHistoryModal } from './components/VersionHistoryModal';
 import { FilePreviewModal } from './components/FilePreviewModal';
-import { useDownloadFile } from './hooks';
 import { matchesVietnameseSearch } from '@/lib/utils';
 import { toast } from '@/stores/toast.store';
 import type { FileItem, Folder } from '@/types';
@@ -150,116 +149,134 @@ export function DocumentsPage() {
     <div className="relative min-h-[calc(100vh-140px)] space-y-5">
       {/* Lớp phủ Dropzone Overlay mờ ảo toàn màn hình kèm viền đứt nét nổi bật khi kéo tệp vào */}
       {isWindowDragging && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center border-4 border-dashed border-primary-500 bg-slate-900/60 backdrop-blur-md text-center text-white transition-all animate-fade-in pointer-events-none p-6">
-          <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-white shadow-2xl text-primary-600 mb-4 animate-bounce">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center border-4 border-dashed border-accent bg-[#1C1B1A]/60 text-center text-white transition-all animate-fade-in pointer-events-none p-6">
+          <div className="flex h-20 w-20 items-center justify-center rounded-radius-lg bg-accent-soft text-accent mb-4 animate-bounce">
             <UploadIcon className="h-10 w-10" />
           </div>
-          <h3 className="font-display text-2xl font-bold text-white tracking-tight">{t('documents:documentsPage.dropzone.title')}</h3>
-          <p className="mt-2 text-sm text-slate-200 max-w-md">
+          <h3 className="font-sans text-2xl font-bold text-white tracking-tight">{t('documents:documentsPage.dropzone.title')}</h3>
+          <p className="mt-2 text-[14px] text-white/80 max-w-md">
             {t('documents:documentsPage.dropzone.description')}{' '}
-            <span className="font-bold text-primary-300">
+            <span className="font-semibold text-accent-soft">
               {breadcrumb.length > 0 ? breadcrumb[breadcrumb.length - 1].name : t('documents:documentsPage.breadcrumbRoot')}
             </span>
           </p>
         </div>
       )}
-      {/* Hàng 1: Tiêu đề phân cấp Click-to-navigate + Nút hành động */}
+      {/* Hàng 1: Tiêu đề phân cấp Click-to-navigate + Nút hành động (§2.1) */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 flex-1">
-          {/* Breadcrumb phân cấp dạng Tiêu đề chính có thể click */}
-          <nav className="flex flex-wrap items-center gap-1.5 font-display text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+          {/* Breadcrumb phân cấp */}
+          <nav className="flex flex-wrap items-center gap-1.5 font-sans text-[24px] sm:text-[28px] leading-[36px] font-semibold tracking-tight text-text-primary">
             <button
+              type="button"
               onClick={() => setCurrentFolderId(null)}
               className={
                 currentFolderId === null
-                  ? 'text-slate-900 font-extrabold cursor-default'
-                  : 'text-slate-500 hover:text-primary-600 transition-colors cursor-pointer'
+                  ? 'text-text-primary font-semibold cursor-default'
+                  : 'text-text-secondary hover:text-accent transition-colors cursor-pointer'
               }
             >
-              {t('documents:documentsPage.breadcrumbRoot')}
+              {t('documents:documentsPage.breadcrumbRoot', 'Tất cả tài liệu')}
             </button>
-            {breadcrumb.map((folder) => (
-              <span key={folder.id} className="inline-flex items-center gap-1.5">
-                <ChevronRightIcon className="h-4.5 w-4.5 text-slate-400 shrink-0" />
-                <button
-                  onClick={() => setCurrentFolderId(folder.id)}
-                  className={
-                    folder.id === currentFolderId
-                      ? 'text-lg sm:text-xl font-bold text-slate-900 cursor-default truncate max-w-[280px]'
-                      : 'text-lg sm:text-xl font-medium text-slate-500 hover:text-primary-600 transition-colors cursor-pointer truncate max-w-[200px]'
-                  }
-                  title={folder.name}
-                >
-                  {folder.name}
-                </button>
-              </span>
-            ))}
+            {breadcrumb.map((folder, index) => {
+              const isLast = index === breadcrumb.length - 1;
+              return (
+                <span key={folder.id} className="inline-flex items-center gap-1.5">
+                  <ChevronRightIcon className="h-4 w-4 text-text-tertiary shrink-0" />
+                  {isLast ? (
+                    <span className="text-[20px] sm:text-[24px] font-medium text-text-primary truncate max-w-[280px]" title={folder.name}>
+                      {folder.name}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setCurrentFolderId(folder.id)}
+                      className="text-[20px] sm:text-[24px] font-medium text-text-secondary hover:text-accent transition-colors cursor-pointer truncate max-w-[200px]"
+                      title={folder.name}
+                    >
+                      {folder.name}
+                    </button>
+                  )}
+                </span>
+              );
+            })}
           </nav>
           {currentFolderId === null && (
-            <p className="mt-1 text-xs sm:text-sm text-slate-500">{t('documents:documentsPage.subtitle')}</p>
+            <p className="mt-1 text-[13px] sm:text-[14px] leading-[22px] text-text-secondary">{t('documents:documentsPage.subtitle', 'Quản lý thư mục và tệp tài liệu dùng chung của tổ chức.')}</p>
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-2.5">
-          <Button variant="outline" onClick={() => setIsNewFolderOpen(true)}>
-            <PlusIcon className="h-4 w-4" /> {t('documents:documentsPage.newFolder')}
-          </Button>
-          <Button onClick={() => setIsUploadOpen(true)}>
-            <UploadIcon className="h-4 w-4" /> {t('documents:documentsPage.upload')}
-          </Button>
+        {/* Nút phải: + Thư mục mới = Secondary; + Tải lên = Primary ink */}
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsNewFolderOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-md border border-border-strong bg-white text-[13px] font-medium text-text-primary hover:bg-bg-subtle transition-colors cursor-pointer"
+          >
+            <PlusIcon className="h-3.5 w-3.5" />
+            <span>{t('documents:documentsPage.newFolder', 'Thư mục mới')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsUploadOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-md bg-[#1C1B1A] hover:bg-[#2E2C29] text-white text-[13px] font-medium transition-colors cursor-pointer"
+          >
+            <UploadIcon className="h-3.5 w-3.5" />
+            <span>{t('documents:documentsPage.upload', 'Tải lên')}</span>
+          </button>
         </div>
       </div>
 
-      {/* Hàng 2: Dải Control Bar (Thanh tìm kiếm bên trái + Nút chuyển chế độ xem Lưới/Danh sách bên phải) */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-2.5 shadow-xs">
-        {/* Ô tìm kiếm tài liệu & thư mục */}
-        <div className="relative flex-1 min-w-[240px] sm:max-w-md">
-          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+      {/* Hàng 2: Toolbar 1 hàng ngang (§2.2: [Search flex-1] [Grid/List Segmented Control]) */}
+      <div className="flex items-center gap-2">
+        {/* Ô tìm kiếm tài liệu & thư mục flex-1 */}
+        <div className="relative flex-1">
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary stroke-1.5" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder={t('documents:documentsPage.searchPlaceholder')}
-            className="h-9 w-full rounded-xl border border-slate-200/80 bg-slate-50/70 pl-9 pr-3.5 text-xs text-slate-700 placeholder:text-slate-400 transition-all focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-100"
+            placeholder={t('documents:documentsPage.searchPlaceholder', 'Tìm kiếm tệp hoặc thư mục...')}
+            className="h-9 w-full rounded-radius-sm border border-border-strong bg-white pl-9 pr-8 text-[13px] text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           />
           {searchTerm && (
             <button
               type="button"
               onClick={() => setSearchTerm('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-0.5 text-slate-400 hover:text-slate-600"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-text-tertiary hover:text-text-primary text-[12px]"
             >
               ✕
             </button>
           )}
         </div>
 
-        {/* Cụm nút chuyển chế độ xem (Lưới / Danh sách) */}
-        <div className="flex items-center gap-1 rounded-xl bg-slate-100/90 p-1 border border-slate-200/60">
+        {/* Cụm nút chuyển chế độ xem (Segmented Control căn phải) */}
+        <div className="flex h-9 items-center rounded-radius-md bg-bg-subtle p-0.5 gap-0.5 shrink-0">
           <button
             type="button"
             onClick={() => setViewMode('grid')}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex h-8 items-center gap-1.5 rounded-radius-sm px-3 text-[12px] transition-colors cursor-pointer select-none ${
               viewMode === 'grid'
-                ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-white border border-border-subtle text-[#1C1B1A] font-semibold shadow-xs'
+                : 'text-text-secondary hover:text-text-primary hover:bg-bg-canvas font-medium'
             }`}
             title={t('documents:documentsPage.viewMode.gridTitle')}
           >
-            <GridIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">{t('documents:documentsPage.viewMode.grid')}</span>
+            <GridIcon className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{t('documents:documentsPage.viewMode.grid', 'Lưới')}</span>
           </button>
           <button
             type="button"
             onClick={() => setViewMode('list')}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex h-8 items-center gap-1.5 rounded-radius-sm px-3 text-[12px] transition-colors cursor-pointer select-none ${
               viewMode === 'list'
-                ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                : 'text-slate-500 hover:text-slate-800'
+                ? 'bg-white border border-border-subtle text-[#1C1B1A] font-semibold shadow-xs'
+                : 'text-text-secondary hover:text-text-primary hover:bg-bg-canvas font-medium'
             }`}
             title={t('documents:documentsPage.viewMode.listTitle')}
           >
-            <ListIcon className="h-4 w-4" />
-            <span className="hidden sm:inline">{t('documents:documentsPage.viewMode.list')}</span>
+            <ListIcon className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{t('documents:documentsPage.viewMode.list', 'Danh sách')}</span>
           </button>
         </div>
       </div>

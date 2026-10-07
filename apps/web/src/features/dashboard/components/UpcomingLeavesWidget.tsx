@@ -10,7 +10,7 @@ import { useUpcomingLeavesQuery } from '../hooks';
 import type { LeaveRequest } from '@/types';
 
 /** Tách loại nghỉ phép từ chuỗi reason đã lưu */
-function parseLeaveType(rawReason: string | undefined | null, t: (key: string) => string): string {
+function parseLeaveType(rawReason: string | undefined | null, t: (key: string, defaultValue?: string) => string): string {
   if (!rawReason) {
     return t('dashboard:upcomingLeaves.types.ANNUAL', 'Nghỉ phép năm');
   }

@@ -89,7 +89,7 @@ export function Label({ className, ...props }: LabelHTMLAttributes<HTMLLabelElem
 }
 
 interface FormFieldProps {
-  label?: string;
+  label?: ReactNode;
   htmlFor?: string;
   error?: string;
   warning?: string;

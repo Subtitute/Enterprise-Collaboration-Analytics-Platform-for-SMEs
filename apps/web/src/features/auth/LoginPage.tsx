@@ -7,7 +7,6 @@ import { useLogin } from './hooks';
 import { containsVietnameseDiacritics } from '@/lib/utils';
 import { FormField, Input, PasswordInput, Checkbox } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { CopyIcon, CheckIcon } from '@/components/ui/Icons';
 import { AuthShell } from './components/AuthShell';
 import { QuickLoginWidget } from './components/QuickLoginWidget';
 
@@ -79,8 +78,6 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [errorKeys, setErrorKeys] = useState<{ email?: 'emailRequired' | 'emailInvalid'; password?: 'passwordRequired' | 'invalidCredentials' }>({});
-  const [copiedField, setCopiedField] = useState<'email' | 'password' | null>(null);
-  const [activeRoleIndex, setActiveRoleIndex] = useState<number>(0);
 
   const from = (location.state as { from?: { pathname: string; search?: string } })?.from;
   const redirectTarget = from ? `${from.pathname}${from.search || ''}` : '/dashboard';
@@ -111,18 +108,6 @@ export function LoginPage() {
     );
   }
 
-  const handleCopy = async (text: string, field: 'email' | 'password') => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedField(field);
-      setTimeout(() => setCopiedField(null), 2000);
-    } catch {
-      // Bỏ qua lỗi sao chép
-    }
-  };
-
-  const selectedDemo = DEMO_ACCOUNTS[activeRoleIndex] || DEMO_ACCOUNTS[0];
-
   const handleFillDemo = (acc: DemoAccountItem) => {
     setEmail(acc.email);
     setPassword(acc.password);
@@ -152,8 +137,6 @@ export function LoginPage() {
       extraWidget={
         <QuickLoginWidget
           accounts={DEMO_ACCOUNTS}
-          activeRoleIndex={activeRoleIndex}
-          onSelectRole={setActiveRoleIndex}
           onFillDemo={handleFillDemo}
           onBypassLogin={handleQuickLogin}
           isLoading={login.isPending}

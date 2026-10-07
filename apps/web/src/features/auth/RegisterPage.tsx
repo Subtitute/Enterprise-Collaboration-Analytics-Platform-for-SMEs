@@ -8,7 +8,7 @@ import { useRegisterOrganization } from './hooks';
 import { AuthShell } from './components/AuthShell';
 import { Stepper } from '@/components/ui/Stepper';
 import type { StepItem } from '@/components/ui/Stepper';
-import { FormField, Input, PasswordInput, Label } from '@/components/ui/Input';
+import { FormField, Input, PasswordInput } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import {
   BuildingIcon,
@@ -109,16 +109,16 @@ export function RegisterPage() {
     const trimmedOrgName = data.organizationName.trim();
 
     if (!trimmedOrgName) {
-      nextErrors.organizationName = t('auth:registerPage.errors.orgNameRequired', 'Vui lòng nhập tên tổ chức');
+      nextErrors.organizationName = 'orgNameRequired';
     } else if (trimmedOrgName.length < 2 || trimmedOrgName.length > 100) {
-      nextErrors.organizationName = t('auth:registerPage.errors.orgNameLength', 'Tên tổ chức phải từ 2 đến 100 ký tự');
+      nextErrors.organizationName = 'orgNameLength';
     }
 
     const trimmedTaxCode = data.taxCode.trim();
     if (trimmedTaxCode) {
       const isTaxCodeValid = /^\d{10}$/.test(trimmedTaxCode) || /^\d{13}$/.test(trimmedTaxCode);
       if (!isTaxCodeValid) {
-        nextErrors.taxCode = t('auth:registerPage.errors.taxCodeInvalid', 'Mã số thuế phải là 10 hoặc 13 chữ số');
+        nextErrors.taxCode = 'taxCodeInvalid';
       }
     }
 
@@ -139,30 +139,27 @@ export function RegisterPage() {
     const trimmedEmail = data.adminEmail.trim();
 
     if (!trimmedFullName) {
-      nextErrors.adminFullName = t('auth:registerPage.errors.adminFullNameRequired', 'Vui lòng nhập họ và tên');
+      nextErrors.adminFullName = 'adminFullNameRequired';
     } else if (trimmedFullName.length < 2 || trimmedFullName.length > 100) {
-      nextErrors.adminFullName = t('auth:registerPage.errors.adminFullNameLength', 'Họ và tên phải từ 2 đến 100 ký tự');
+      nextErrors.adminFullName = 'adminFullNameLength';
     }
 
     if (!trimmedEmail) {
-      nextErrors.adminEmail = t('auth:registerPage.errors.adminEmailRequired', 'Vui lòng nhập email quản trị viên');
+      nextErrors.adminEmail = 'adminEmailRequired';
     } else if (!EMAIL_RE.test(trimmedEmail)) {
-      nextErrors.adminEmail = t('auth:registerPage.errors.adminEmailInvalid', 'Email không hợp lệ');
+      nextErrors.adminEmail = 'adminEmailInvalid';
     }
 
     if (!data.adminPassword) {
-      nextErrors.adminPassword = t('auth:registerPage.errors.adminPasswordRequired', 'Vui lòng nhập mật khẩu');
+      nextErrors.adminPassword = 'adminPasswordRequired';
     } else if (!PASSWORD_PATTERN.test(data.adminPassword)) {
-      nextErrors.adminPassword = t(
-        'auth:registerPage.errors.adminPasswordFormat',
-        'Mật khẩu phải có ít nhất 8 ký tự, gồm chữ và số',
-      );
+      nextErrors.adminPassword = 'adminPasswordFormat';
     }
 
     if (!data.confirmPassword) {
-      nextErrors.confirmPassword = t('auth:registerPage.errors.confirmPasswordRequired', 'Vui lòng xác nhận mật khẩu');
+      nextErrors.confirmPassword = 'confirmPasswordRequired';
     } else if (data.confirmPassword !== data.adminPassword) {
-      nextErrors.confirmPassword = t('auth:registerPage.errors.confirmPasswordMismatch', 'Mật khẩu xác nhận không khớp');
+      nextErrors.confirmPassword = 'confirmPasswordMismatch';
     }
 
     setErrorKeys(nextErrors);
@@ -227,7 +224,7 @@ export function RegisterPage() {
             ) {
               setErrorKeys((prev) => ({
                 ...prev,
-                adminEmail: t('auth:registerPage.errors.emailAlreadyUsed', 'Email này đã được sử dụng'),
+                adminEmail: 'emailAlreadyUsed',
               }));
               adminEmailRef.current?.focus();
               return;
@@ -295,7 +292,7 @@ export function RegisterPage() {
             <FormField
               label={t('auth:registerPage.step1.orgNameLabel', 'Tên tổ chức')}
               htmlFor="organizationName"
-              error={errorKeys.organizationName}
+              error={errorKeys.organizationName ? t(`auth:registerPage.errors.${errorKeys.organizationName}`) : undefined}
               required
               reserveMessageSpace
             >
@@ -317,13 +314,19 @@ export function RegisterPage() {
 
           {/* Field Mã số thuế (Không bắt buộc) */}
           <div className="mb-6">
-            <div className="w-full">
-              <Label htmlFor="taxCode" className="flex items-center">
-                <span>{t('auth:registerPage.step1.taxCodeLabel', 'Mã số thuế')}</span>
-                <span className="ml-1 text-xs font-normal text-text-tertiary">
-                  {t('auth:registerPage.step1.taxCodeOptional', '(Không bắt buộc)')}
+            <FormField
+              label={
+                <span className="flex items-center">
+                  <span>{t('auth:registerPage.step1.taxCodeLabel', 'Mã số thuế')}</span>
+                  <span className="ml-1 text-xs font-normal text-text-tertiary">
+                    {t('auth:registerPage.step1.taxCodeOptional', '(Không bắt buộc)')}
+                  </span>
                 </span>
-              </Label>
+              }
+              htmlFor="taxCode"
+              error={errorKeys.taxCode ? t(`auth:registerPage.errors.${errorKeys.taxCode}`) : undefined}
+              reserveMessageSpace
+            >
               <div className="relative">
                 <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary">
                   <HashIcon className="w-4 h-4 stroke-[1.5]" />
@@ -337,18 +340,11 @@ export function RegisterPage() {
                   onChange={(e) => update('taxCode', e.target.value)}
                 />
               </div>
-              <div className="field-message min-h-[18px] mt-1 flex items-start" id="taxCode-message">
-                {errorKeys.taxCode && (
-                  <p role="alert" className="text-xs leading-4 text-error">
-                    {errorKeys.taxCode}
-                  </p>
-                )}
-              </div>
-            </div>
+            </FormField>
           </div>
 
           {/* Nút Tiếp tục */}
-          <Button type="submit" className="w-full h-11 bg-[#1C1B1A] hover:bg-[#2E2C29] text-white">
+          <Button type="submit" variant="primary" size="lg" className="w-full h-11 bg-[#1C1B1A] hover:bg-[#2E2C29] text-white">
             {t('auth:registerPage.step1.continue', 'Tiếp tục')}
           </Button>
 
@@ -375,7 +371,7 @@ export function RegisterPage() {
             <FormField
               label={t('auth:registerPage.step2.adminFullNameLabel', 'Họ và tên quản trị viên')}
               htmlFor="adminFullName"
-              error={errorKeys.adminFullName}
+              error={errorKeys.adminFullName ? t(`auth:registerPage.errors.${errorKeys.adminFullName}`) : undefined}
               required
               reserveMessageSpace
             >
@@ -401,7 +397,7 @@ export function RegisterPage() {
             <FormField
               label={t('auth:registerPage.step2.adminEmailLabel', 'Email quản trị viên')}
               htmlFor="adminEmail"
-              error={errorKeys.adminEmail}
+              error={errorKeys.adminEmail ? t(`auth:registerPage.errors.${errorKeys.adminEmail}`) : undefined}
               required
               reserveMessageSpace
             >
@@ -427,7 +423,7 @@ export function RegisterPage() {
             <FormField
               label={t('auth:registerPage.step2.adminPasswordLabel', 'Mật khẩu')}
               htmlFor="adminPassword"
-              error={errorKeys.adminPassword}
+              error={errorKeys.adminPassword ? t(`auth:registerPage.errors.${errorKeys.adminPassword}`) : undefined}
               required
               reserveMessageSpace
             >
@@ -447,7 +443,7 @@ export function RegisterPage() {
             <FormField
               label={t('auth:registerPage.step2.confirmPasswordLabel', 'Xác nhận mật khẩu')}
               htmlFor="confirmPassword"
-              error={errorKeys.confirmPassword}
+              error={errorKeys.confirmPassword ? t(`auth:registerPage.errors.${errorKeys.confirmPassword}`) : undefined}
               required
               reserveMessageSpace
             >
@@ -479,7 +475,9 @@ export function RegisterPage() {
 
             <Button
               type="submit"
-              disabled={registerOrgMutation.isPending}
+              variant="primary"
+              size="lg"
+              isLoading={registerOrgMutation.isPending}
               className="w-[60%] h-11 bg-[#1C1B1A] hover:bg-[#2E2C29] text-white"
             >
               {registerOrgMutation.isPending

@@ -50,63 +50,79 @@ export function TaskCard({ task, index, onClick, isHighlighted = false }: TaskCa
           onKeyDown={(e) => {
             if (e.key === 'Enter') onClick();
           }}
-          className="select-none mb-2.5 last:mb-0 focus:outline-none scroll-mt-24"
+          className="select-none mb-2 last:mb-0 focus:outline-none scroll-mt-24"
         >
           <div
             className={cn(
-              'relative cursor-pointer rounded-xl border p-3 shadow-sm shadow-slate-900/5 transition-all duration-200',
-              isHighlighted && 'ring-2 ring-indigo-500 border-indigo-400 bg-indigo-50/30 shadow-indigo-100 shadow-md animate-pulse',
-              // Giao diện mặc định & Hiệu ứng chìm cho task đã Hoàn thành
+              'relative cursor-pointer rounded-radius-md border border-border-subtle bg-white p-3 shadow-none transition-all duration-150',
+              isHighlighted && 'ring-2 ring-accent border-accent bg-accent-soft/30 animate-pulse',
               isDone
-                ? 'border-slate-200/60 bg-slate-50/80 text-slate-500 opacity-80 hover:opacity-100 hover:bg-slate-50 hover:border-indigo-300'
-                : 'border-slate-200/80 bg-white hover:border-indigo-300 hover:shadow-md active:scale-[0.98]',
-              snapshot.isDragging && '!shadow-xl !border-primary-400 ring-2 ring-primary-500/20 !opacity-100',
+                ? 'opacity-100 hover:border-border-strong'
+                : 'hover:border-border-strong active:scale-[0.99]',
+              snapshot.isDragging && '!shadow-md !border-border-strong !opacity-60',
             )}
           >
-            {/* Tín hiệu ưu tiên tối giản: Chấm màu siêu nhỏ ở góc thẻ (Terraria style) */}
+            {/* Tín hiệu ưu tiên tối giản */}
             {priorityColor && !isDone && (
               <span
-                className={cn('absolute top-3 right-3 h-1.5 w-1.5 rounded-full ring-2 shrink-0', priorityColor)}
+                className={cn('absolute top-3 right-3 h-1.5 w-1.5 rounded-full shrink-0', priorityColor)}
                 title={rawPriority || (overdue ? t('projects:taskCard.overdue') : undefined)}
               />
             )}
 
             <p
               className={cn(
-                'text-sm font-semibold leading-snug line-clamp-2 pr-3',
-                isDone ? 'text-slate-400 line-through' : 'text-slate-900',
+                'text-[13px] leading-snug line-clamp-2 pr-2.5',
+                isDone ? 'text-text-secondary font-normal line-through' : 'text-text-primary font-medium',
               )}
             >
               {task.title}
             </p>
-            <div className="mt-2 flex items-center justify-between gap-2 pt-0.5">
+
+            <div className="mt-2.5 flex items-center justify-between gap-2 pt-0.5">
               <div className="flex items-center gap-2 min-w-0">
-                <span
-                  className={cn(
-                    'font-mono text-[11px] font-semibold shrink-0',
-                    isDone ? 'text-slate-300' : 'text-slate-400',
-                  )}
-                >
+                <span className="font-mono text-[11px] font-medium text-text-tertiary tabular-nums shrink-0">
                   #{task.id ? task.id.slice(-4).toUpperCase() : index + 1}
                 </span>
                 {task.dueDate && (
                   <span
                     className={cn(
-                      'flex items-center gap-1 text-xs shrink-0',
+                      'flex items-center gap-1 font-mono text-[11px] font-medium tabular-nums shrink-0',
                       isDone
-                        ? 'text-slate-300 line-through'
+                        ? 'text-text-tertiary line-through'
                         : overdue
-                        ? 'font-medium text-rose-600'
-                        : 'text-slate-400',
+                        ? 'text-[#B3261E]'
+                        : 'text-text-tertiary',
                     )}
                   >
-                    <CalendarIcon className="h-3.5 w-3.5" /> {formatDate(task.dueDate)}
+                    <CalendarIcon className="h-3 w-3 stroke-1.5" /> {formatDate(task.dueDate)}
                   </span>
                 )}
               </div>
               {assigneeNames.length > 0 && (
-                <div className={cn(isDone && 'opacity-60 grayscale')}>
-                  <AvatarStack names={assigneeNames} max={3} />
+                <div className="flex items-center -space-x-1.5 overflow-hidden shrink-0">
+                  {assigneeNames.slice(0, 3).map((name, i) => {
+                    const initials = name
+                      .split(' ')
+                      .map((p: string) => p[0])
+                      .slice(0, 2)
+                      .join('')
+                      .toUpperCase();
+                    return (
+                      <div
+                        key={i}
+                        className="flex h-5 w-5 items-center justify-center rounded-full bg-accent-soft text-accent text-[9px] font-semibold ring-1 ring-white"
+                        title={name}
+                      >
+                        {initials}
+                      </div>
+                    );
+                  })}
+                  {assigneeNames.length > 3 && (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-bg-subtle text-[9px] font-mono font-medium text-text-secondary ring-1 ring-white">
+                      +{assigneeNames.length - 3}
+                    </span>
+                  )}
                 </div>
               )}
             </div>

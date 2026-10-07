@@ -18,41 +18,31 @@ export function ForgotPasswordPage() {
   const forgotPassword = useForgotPassword();
 
   const [email, setEmail] = useState('');
-  const [errorKey, setErrorKey] = useState<'emailRequired' | 'emailInvalid' | 'emailNotFound' | 'networkError' | undefined>();
+  const [errorKey, setErrorKey] = useState<'emailRequired' | 'emailInvalid' | 'networkError' | undefined>();
   const [state, setState] = useState<'A' | 'B'>('A');
   const [countdown, setCountdown] = useState<number>(INITIAL_COOLDOWN);
 
   const emailInputRef = useRef<HTMLInputElement>(null);
   const stateBHeadingRef = useRef<HTMLHeadingElement>(null);
 
-  // Lưu và dọn dẹp interval triệt để chống memory leak
+  // Focus tự động vào heading State B và chạy timer cooldown 1 lần duy nhất
   useEffect(() => {
-    let timerId: ReturnType<typeof setInterval> | null = null;
+    if (state !== 'B') return;
 
-    if (state === 'B') {
-      // Focus tự động vào heading State B (§4.3, §7)
-      stateBHeadingRef.current?.focus();
+    stateBHeadingRef.current?.focus();
 
-      if (countdown > 0) {
-        timerId = setInterval(() => {
-          setCountdown((prev) => {
-            if (prev <= 1) {
-              if (timerId) clearInterval(timerId);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-      }
-    }
+    const timerId = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerId);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
-    return () => {
-      if (timerId) {
-        clearInterval(timerId);
-        timerId = null;
-      }
-    };
-  }, [state, countdown]);
+    return () => clearInterval(timerId);
+  }, [state]);
 
   if (accessToken) return <Navigate to="/dashboard" replace />;
 
@@ -170,14 +160,13 @@ export function ForgotPasswordPage() {
               </FormField>
             </div>
 
-            {/* 5. Nút submit — primary ink, full-width, height 44, radius 6px */}
+            {/* 5. Nút submit */}
             <Button
               type="submit"
-              className="w-full h-11 text-sm font-medium bg-[#1C1B1A] text-[#F7F6F3] hover:bg-[#2E2C29] active:bg-[#141312] rounded-radius-md"
+              variant="primary"
+              size="lg"
+              className="w-full h-11 text-sm font-medium bg-[#1C1B1A] text-[#F7F6F3] hover:bg-[#2E2C29] active:bg-[#141312]"
               isLoading={forgotPassword.isPending}
-              disabled={forgotPassword.isPending}
-              aria-busy={forgotPassword.isPending}
-              aria-disabled={forgotPassword.isPending}
             >
               {forgotPassword.isPending
                 ? t('auth:forgotPasswordPage.submitting', 'Đang gửi…')

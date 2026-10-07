@@ -95,14 +95,16 @@ export function UploadModal({
               }
             }}
             className={cn(
-              'flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors',
-              'focus:outline-none focus:ring-2 focus:ring-primary-200',
-              isDragOver ? 'border-primary-400 bg-primary-50' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50',
+              'flex cursor-pointer flex-col items-center gap-2 rounded-radius-lg border border-dashed px-6 py-10 text-center transition-colors',
+              'focus:outline-none focus:ring-2 focus:ring-accent-soft',
+              isDragOver ? 'border-accent bg-accent-soft/60' : 'border-border-strong hover:border-accent hover:bg-bg-subtle',
             )}
           >
-            <UploadIcon className="h-8 w-8 text-slate-400" />
-            <p className="text-sm font-medium text-slate-700">{t('documents:uploadModal.dropHint')}</p>
-            <p className="text-xs text-slate-400">
+            <div className="flex h-10 w-10 items-center justify-center rounded-radius-md bg-accent-soft text-accent">
+              <UploadIcon className="h-5 w-5 stroke-1.5" />
+            </div>
+            <p className="text-[13px] font-medium text-text-primary">{t('documents:uploadModal.dropHint')}</p>
+            <p className="text-[12px] font-mono text-text-tertiary tabular-nums">
               {t('documents:uploadModal.supportedTypes', { maxSize: formatBytes(MAX_UPLOAD_SIZE_BYTES) })}
             </p>
             <input
@@ -116,12 +118,14 @@ export function UploadModal({
             />
           </div>
         ) : (
-          <div className={cn('rounded-xl border p-4', fileError ? 'border-rose-300 bg-rose-50/40' : 'border-slate-200')}>
+          <div className={cn('rounded-radius-md border p-4', fileError ? 'border-[#B3261E]/30 bg-[#F8E5E3]/40' : 'border-border-subtle bg-white')}>
             <div className="flex items-center gap-3">
-              <FileIcon className={cn('h-8 w-8 shrink-0', fileError ? 'text-rose-400' : 'text-primary-500')} />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-radius-md bg-bg-subtle text-text-secondary">
+                <FileIcon className={cn('h-5 w-5 stroke-1.5', fileError ? 'text-[#B3261E]' : 'text-text-secondary')} />
+              </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-slate-800">{file.name}</p>
-                <p className="text-xs text-slate-400">{formatBytes(file.size)}</p>
+                <p className="truncate text-[13px] font-medium text-text-primary">{file.name}</p>
+                <p className="text-[12px] font-mono text-text-tertiary tabular-nums">{formatBytes(file.size)}</p>
               </div>
               {!upload.isPending && (
                 <button
@@ -129,7 +133,7 @@ export function UploadModal({
                     setFile(null);
                     setFileError(null);
                   }}
-                  className="text-slate-400 hover:text-rose-600"
+                  className="flex h-6 w-6 items-center justify-center rounded-radius-sm text-text-tertiary hover:bg-[#F8E5E3] hover:text-[#B3261E] transition-colors"
                   aria-label={t('documents:uploadModal.removeFileAria')}
                 >
                   <XIcon className="h-4 w-4" />
@@ -137,7 +141,7 @@ export function UploadModal({
               )}
             </div>
             {fileError && (
-              <p className="mt-2 flex items-center gap-1.5 text-xs text-rose-600">
+              <p className="mt-2 flex items-center gap-1.5 text-[12px] text-[#B3261E]">
                 <AlertCircleIcon className="h-3.5 w-3.5 shrink-0" /> {fileError}
               </p>
             )}
@@ -149,11 +153,11 @@ export function UploadModal({
           </div>
         )}
 
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={handleClose} disabled={upload.isPending}>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="outline" onClick={handleClose} disabled={upload.isPending} className="h-9 rounded-radius-sm border-border-strong text-[13px]">
             {t('documents:uploadModal.cancel')}
           </Button>
-          <Button type="button" onClick={handleSubmit} disabled={!file || Boolean(fileError)} isLoading={upload.isPending}>
+          <Button type="button" onClick={handleSubmit} disabled={!file || Boolean(fileError)} isLoading={upload.isPending} className="h-9 rounded-radius-sm bg-text-primary hover:bg-black text-[13px] font-medium">
             {t('documents:uploadModal.submit')}
           </Button>
         </div>

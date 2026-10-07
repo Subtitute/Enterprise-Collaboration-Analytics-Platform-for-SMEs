@@ -9,61 +9,66 @@ import { formatBytes, formatDateTime } from '@/lib/utils';
 import type { FileItem } from '@/types';
 import { useDeleteFile, useDownloadFile } from '../hooks';
 
-// Phân loại màu sắc icon độc lập cho từng định dạng file (.csv/Excel xanh lá, PDF đỏ, Word xanh dương)
+// Phân loại màu sắc icon theo spec:
+// PDF: file-text — error #B3261E
+// Word/Doc: file-text — info #1E5A8A
+// Excel/CSV: file-spreadsheet — success #2F6F44
+// Image: image — accent #0E5E5E
+// Khác: file — text-secondary
 function getFileTypeTheme(filename: string) {
   const ext = filename.split('.').pop()?.toLowerCase() || '';
   if (['xls', 'xlsx', 'csv'].includes(ext)) {
     return {
-      bg: 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100',
-      badge: 'border-emerald-200 bg-emerald-50/70 text-emerald-700',
-      iconText: 'text-emerald-600',
+      bg: 'bg-[#E6F1E9] text-[#2F6F44]',
+      badge: 'border-[#2F6F44]/30 bg-[#E6F1E9] text-[#2F6F44]',
+      iconText: 'text-[#2F6F44]',
       label: ext.toUpperCase(),
     };
   }
   if (['pdf'].includes(ext)) {
     return {
-      bg: 'bg-rose-50 text-rose-600 group-hover:bg-rose-100',
-      badge: 'border-rose-200 bg-rose-50/70 text-rose-700',
-      iconText: 'text-rose-600',
+      bg: 'bg-[#F8E5E3] text-[#B3261E]',
+      badge: 'border-[#B3261E]/30 bg-[#F8E5E3] text-[#B3261E]',
+      iconText: 'text-[#B3261E]',
       label: 'PDF',
     };
   }
   if (['doc', 'docx'].includes(ext)) {
     return {
-      bg: 'bg-sky-50 text-sky-600 group-hover:bg-sky-100',
-      badge: 'border-sky-200 bg-sky-50/70 text-sky-700',
-      iconText: 'text-sky-600',
+      bg: 'bg-[#EBF3F8] text-[#1E5A8A]',
+      badge: 'border-[#1E5A8A]/30 bg-[#EBF3F8] text-[#1E5A8A]',
+      iconText: 'text-[#1E5A8A]',
       label: 'DOC',
     };
   }
   if (['ppt', 'pptx'].includes(ext)) {
     return {
-      bg: 'bg-amber-50 text-amber-600 group-hover:bg-amber-100',
-      badge: 'border-amber-200 bg-amber-50/70 text-amber-700',
-      iconText: 'text-amber-600',
+      bg: 'bg-[#FBEEE0] text-[#B45309]',
+      badge: 'border-[#B45309]/30 bg-[#FBEEE0] text-[#B45309]',
+      iconText: 'text-[#B45309]',
       label: 'PPT',
     };
   }
   if (['png', 'jpg', 'jpeg', 'svg', 'webp', 'gif'].includes(ext)) {
     return {
-      bg: 'bg-purple-50 text-purple-600 group-hover:bg-purple-100',
-      badge: 'border-purple-200 bg-purple-50/70 text-purple-700',
-      iconText: 'text-purple-600',
+      bg: 'bg-accent-soft text-accent',
+      badge: 'border-accent/30 bg-accent-soft text-accent',
+      iconText: 'text-accent',
       label: 'IMG',
     };
   }
   if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) {
     return {
-      bg: 'bg-orange-50 text-orange-600 group-hover:bg-orange-100',
-      badge: 'border-orange-200 bg-orange-50/70 text-orange-700',
-      iconText: 'text-orange-600',
+      bg: 'bg-bg-subtle text-text-secondary',
+      badge: 'border-border-subtle bg-bg-subtle text-text-secondary',
+      iconText: 'text-text-secondary',
       label: 'ZIP',
     };
   }
   return {
-    bg: 'bg-slate-100 text-slate-600 group-hover:bg-slate-200/80',
-    badge: 'border-slate-200 bg-slate-50 text-slate-700',
-    iconText: 'text-slate-600',
+    bg: 'bg-bg-subtle text-text-secondary',
+    badge: 'border-border-subtle bg-bg-subtle text-text-secondary',
+    iconText: 'text-text-secondary',
     label: ext ? ext.toUpperCase() : 'FILE',
   };
 }
@@ -85,11 +90,6 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
   const download = useDownloadFile();
   const deleteFile = useDeleteFile(folderId);
 
-  // 15/09/2026: FileTable la cung 1 instance component khi dieu huong giua cac thu muc (chi doi
-  // prop `folderId`/`files`, khong unmount) - truoc ban sua nay selectedFileIds khong bao gio duoc
-  // xoa khi doi thu muc, nen chon file o thu muc A roi chuyen sang thu muc B van con giu "da chon"
-  // nhung id khong con thuoc `files` hien tai - thanh hanh dong hang loat (tai ve/xoa) co the am
-  // tham thao tac tren id file khong con hien tren man hinh. Reset ve rong moi khi doi thu muc.
   useEffect(() => {
     setSelectedFileIds([]);
   }, [folderId]);
@@ -131,44 +131,43 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
   return (
     <>
       {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
           {files.map((file) => {
             const theme = getFileTypeTheme(file.name);
             const isSelected = selectedFileIds.includes(file.id);
             return (
               <div
                 key={file.id}
-                className={`group relative flex flex-col justify-between rounded-xl border bg-white p-3.5 shadow-2xs transition-all duration-200 ${
+                className={`group relative flex flex-col justify-between p-5 rounded-radius-lg border bg-white transition-colors cursor-pointer select-none ${
                   isSelected
-                    ? 'border-primary-500 bg-primary-50/20 ring-2 ring-primary-100 shadow-xs'
-                    : 'border-slate-200/80 hover:border-indigo-300 hover:shadow-md'
+                    ? 'border-accent bg-accent-soft/30 ring-1 ring-accent'
+                    : 'border-border-subtle hover:border-border-strong'
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                    {/* Checkbox chọn tệp tin */}
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
                     <input
                       type="checkbox"
                       checked={isSelected}
                       onClick={(e) => toggleSelectFile(file.id, e)}
                       onChange={() => {}}
-                      className="h-4 w-4 rounded-md border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                      className="h-4 w-4 rounded-radius-sm border-border-strong text-accent focus:ring-accent-soft cursor-pointer"
                       aria-label={t('documents:fileTable.selectFileAria', { name: file.name })}
                     />
                     <button
                       type="button"
                       onClick={() => (onPreview ? onPreview(file) : download.openFile(file.id, 'inline'))}
                       title={t('documents:fileTable.openFileTitle')}
-                      className="flex min-w-0 flex-1 items-center gap-2.5 text-left cursor-pointer"
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left cursor-pointer"
                     >
-                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-bold transition-colors ${theme.bg}`}>
-                        <FileIcon className="h-5.5 w-5.5" />
+                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-radius-md font-bold transition-colors ${theme.bg}`}>
+                        <FileIcon className="h-5 w-5 stroke-1.5" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold text-slate-800 group-hover:text-primary-600 transition-colors">
+                        <span className="block truncate text-[13px] leading-5 font-medium text-text-primary group-hover:text-accent transition-colors">
                           {file.name}
                         </span>
-                        <span className="text-[11px] text-slate-400">
+                        <span className="font-mono text-[12px] leading-4 text-text-tertiary tabular-nums">
                           {formatBytes(file.size)} • v{file.version ?? 1}
                         </span>
                       </div>
@@ -176,12 +175,11 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
                   </div>
 
                   <div className="flex items-center gap-1">
-                    {/* Tối giản nút hành động: Icon tải xuống gọn gàng chỉ hiện khi hover thẻ */}
                     <button
                       type="button"
                       onClick={() => download.openFile(file.id, 'attachment')}
                       title={t('documents:fileTable.download')}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 opacity-0 group-hover:opacity-100 hover:bg-slate-100 hover:text-primary-600 active:scale-95 transition-all cursor-pointer"
+                      className="flex h-6 w-6 items-center justify-center rounded-radius-sm text-text-tertiary opacity-0 group-hover:opacity-100 hover:bg-bg-subtle hover:text-text-primary transition-all cursor-pointer"
                     >
                       <DownloadIcon className="h-4 w-4" />
                     </button>
@@ -191,7 +189,7 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
                       trigger={({ toggle }) => (
                         <button
                           onClick={toggle}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+                          className="flex h-6 w-6 items-center justify-center rounded-radius-sm text-text-tertiary hover:bg-bg-subtle hover:text-text-primary cursor-pointer transition-colors"
                           aria-label={t('documents:fileTable.optionsAria')}
                         >
                           <MoreVerticalIcon className="h-4 w-4" />
@@ -199,39 +197,42 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
                       )}
                     >
                       {({ close }) => (
-                        <div className="w-48 py-1.5 shadow-md">
+                        <div className="min-w-[200px] p-1 rounded-radius-md border border-border-subtle bg-white shadow-md">
                           <DropdownItem
+                            className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
                             onClick={() => {
                               download.openFile(file.id, 'attachment');
                               close();
                             }}
                           >
-                            <DownloadIcon className="h-4 w-4" /> {t('documents:fileTable.download')}
+                            <DownloadIcon className="h-4 w-4 text-text-secondary" /> {t('documents:fileTable.download')}
                           </DropdownItem>
                           <DropdownItem
+                            className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
                             onClick={() => {
                               onShare(file);
                               close();
                             }}
                           >
-                            <ShareIcon className="h-4 w-4 text-primary-600" /> {t('documents:fileTable.share')}
+                            <ShareIcon className="h-4 w-4 text-text-secondary" /> {t('documents:fileTable.share')}
                           </DropdownItem>
                           <DropdownItem
+                            className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
                             onClick={() => {
                               onVersionHistory(file);
                               close();
                             }}
                           >
-                            <ClockIcon className="h-4 w-4" /> {t('documents:fileTable.versionHistory')}
+                            <ClockIcon className="h-4 w-4 text-text-secondary" /> {t('documents:fileTable.versionHistory')}
                           </DropdownItem>
                           <DropdownItem
-                            className="text-rose-600 hover:bg-rose-50"
+                            className="h-9 px-2.5 rounded-radius-sm text-[13px] text-[#B3261E] hover:bg-[#F8E5E3]"
                             onClick={() => {
                               setDeleting(file);
                               close();
                             }}
                           >
-                            <TrashIcon className="h-4 w-4" /> {t('documents:fileTable.delete')}
+                            <TrashIcon className="h-4 w-4 text-[#B3261E]" /> {t('documents:fileTable.delete')}
                           </DropdownItem>
                         </div>
                       )}
@@ -239,7 +240,7 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
                   </div>
                 </div>
 
-                <div className="mt-3 flex items-center justify-between border-t border-slate-100/90 pt-2.5 text-[11px] text-slate-400">
+                <div className="mt-3 flex items-center justify-between border-t border-border-subtle pt-2 text-[11px] font-mono text-text-tertiary tabular-nums">
                   <span>{t('documents:fileTable.updatedLabel', { date: formatDateTime(file.updatedAt) })}</span>
                 </div>
               </div>
@@ -258,7 +259,7 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
                     if (input) input.indeterminate = isSomeSelected;
                   }}
                   onChange={toggleSelectAll}
-                  className="h-4 w-4 rounded-md border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                  className="h-4 w-4 rounded-radius-sm border-border-strong text-accent focus:ring-accent-soft cursor-pointer"
                   aria-label={t('documents:fileTable.selectAllAria')}
                 />
               </TableHeadCell>
@@ -274,14 +275,14 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
               const theme = getFileTypeTheme(file.name);
               const isSelected = selectedFileIds.includes(file.id);
               return (
-                <TableRow key={file.id} className={`group ${isSelected ? 'bg-primary-50/20' : ''}`}>
+                <TableRow key={file.id} className={`group ${isSelected ? 'bg-accent-soft/30' : ''}`}>
                   <TableCell className="w-10">
                     <input
                       type="checkbox"
                       checked={isSelected}
                       onClick={(e) => toggleSelectFile(file.id, e)}
                       onChange={() => {}}
-                      className="h-4 w-4 rounded-md border-slate-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                      className="h-4 w-4 rounded-radius-sm border-border-strong text-accent focus:ring-accent-soft cursor-pointer"
                       aria-label={t('documents:fileTable.selectFileAria', { name: file.name })}
                     />
                   </TableCell>
@@ -290,21 +291,21 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
                       type="button"
                       onClick={() => (onPreview ? onPreview(file) : download.openFile(file.id, 'inline'))}
                       title={t('documents:fileTable.openFileTitle')}
-                      className="flex min-w-0 items-center gap-2.5 text-left group-hover:text-primary-600 transition-colors cursor-pointer"
+                      className="flex min-w-0 items-center gap-3 text-left transition-colors cursor-pointer"
                     >
-                      <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${theme.bg}`}>
-                        <FileIcon className="h-4 w-4" />
+                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-radius-md ${theme.bg}`}>
+                        <FileIcon className="h-5 w-5 stroke-1.5" />
                       </span>
-                      <span className="truncate font-medium text-slate-800 group-hover:text-primary-600">{file.name}</span>
+                      <span className="truncate text-[13px] font-medium text-text-primary hover:text-accent transition-colors">{file.name}</span>
                     </button>
                   </TableCell>
-                  <TableCell label={t('documents:fileTable.columns.size')} className="whitespace-nowrap text-xs text-slate-500">
+                  <TableCell label={t('documents:fileTable.columns.size')} className="whitespace-nowrap font-mono text-[12px] text-text-tertiary tabular-nums">
                     {formatBytes(file.size)}
                   </TableCell>
                   <TableCell label={t('documents:fileTable.columns.version')}>
-                    <Badge variant="outline">v{file.version ?? 1}</Badge>
+                    <Badge variant="outline" className="font-mono text-[11px] tabular-nums">v{file.version ?? 1}</Badge>
                   </TableCell>
-                  <TableCell label={t('documents:fileTable.columns.updated')} className="whitespace-nowrap text-xs text-slate-500">
+                  <TableCell label={t('documents:fileTable.columns.updated')} className="whitespace-nowrap font-mono text-[12px] text-text-tertiary tabular-nums">
                     {formatDateTime(file.updatedAt)}
                   </TableCell>
                   <TableCell label={t('documents:fileTable.columns.actions')} className="text-right">
@@ -313,16 +314,16 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
                         type="button"
                         onClick={() => download.openFile(file.id, 'attachment')}
                         title={t('documents:fileTable.download')}
-                        className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 opacity-0 group-hover:opacity-100 hover:bg-slate-100 hover:text-primary-600 active:scale-95 transition-all cursor-pointer"
+                        className="flex h-6 w-6 items-center justify-center rounded-radius-sm text-text-tertiary opacity-0 group-hover:opacity-100 hover:bg-bg-subtle hover:text-text-primary transition-all cursor-pointer"
                       >
-                        <DownloadIcon className="h-3.5 w-3.5" />
+                        <DownloadIcon className="h-4 w-4" />
                       </button>
                       <Dropdown
                         align="right"
                         trigger={({ toggle }) => (
                           <button
                             onClick={toggle}
-                            className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                            className="flex h-6 w-6 items-center justify-center rounded-radius-sm text-text-tertiary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer"
                             aria-label={t('documents:fileTable.optionsAria')}
                           >
                             <MoreVerticalIcon className="h-4 w-4" />
@@ -330,39 +331,42 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
                         )}
                       >
                         {({ close }) => (
-                          <div className="w-48 py-1.5 shadow-md">
+                          <div className="min-w-[200px] p-1 rounded-radius-md border border-border-subtle bg-white shadow-md">
                             <DropdownItem
+                              className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
                               onClick={() => {
                                 download.openFile(file.id, 'attachment');
                                 close();
                               }}
                             >
-                              <DownloadIcon className="h-4 w-4" /> {t('documents:fileTable.download')}
+                              <DownloadIcon className="h-4 w-4 text-text-secondary" /> {t('documents:fileTable.download')}
                             </DropdownItem>
                             <DropdownItem
+                              className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
                               onClick={() => {
                                 onShare(file);
                                 close();
                               }}
                             >
-                              <ShareIcon className="h-4 w-4 text-primary-600" /> {t('documents:fileTable.share')}
+                              <ShareIcon className="h-4 w-4 text-text-secondary" /> {t('documents:fileTable.share')}
                             </DropdownItem>
                             <DropdownItem
+                              className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
                               onClick={() => {
                                 onVersionHistory(file);
                                 close();
                               }}
                             >
-                              <ClockIcon className="h-4 w-4" /> {t('documents:fileTable.versionHistory')}
+                              <ClockIcon className="h-4 w-4 text-text-secondary" /> {t('documents:fileTable.versionHistory')}
                             </DropdownItem>
                             <DropdownItem
-                              className="text-rose-600 hover:bg-rose-50"
+                              className="h-9 px-2.5 rounded-radius-sm text-[13px] text-[#B3261E] hover:bg-[#F8E5E3]"
                               onClick={() => {
                                 setDeleting(file);
                                 close();
                               }}
                             >
-                              <TrashIcon className="h-4 w-4" /> {t('documents:fileTable.delete')}
+                              <TrashIcon className="h-4 w-4 text-[#B3261E]" /> {t('documents:fileTable.delete')}
                             </DropdownItem>
                           </div>
                         )}
@@ -376,39 +380,39 @@ export function FileTable({ files, folderId, onShare, onVersionHistory, onPrevie
         </Table>
       )}
 
-      {/* Floating Action Bar (Thanh công cụ nổi ở giữa lề dưới màn hình khi có tệp được tích chọn) */}
+      {/* Floating Action Bar */}
       {selectedFileIds.length > 0 && (
         <div className="fixed inset-x-0 bottom-6 z-40 flex justify-center pointer-events-none px-4">
-          <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-slate-200/90 bg-white/95 px-5 py-2.5 text-slate-800 shadow-2xl shadow-slate-300/60 backdrop-blur-md transition-all animate-slide-up">
-            <div className="flex items-center gap-2 pr-3 border-r border-slate-200">
-              <span className="flex min-w-[20px] h-5 px-1.5 shrink-0 items-center justify-center rounded-full bg-primary-600 text-[11px] font-bold text-white shadow-2xs leading-none">
+          <div className="pointer-events-auto flex items-center gap-3 rounded-radius-lg border border-border-strong bg-white px-4 py-2 text-text-primary shadow-lg transition-all animate-slide-up">
+            <div className="flex items-center gap-2 pr-3 border-r border-border-subtle">
+              <span className="flex min-w-[20px] h-5 px-1.5 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-mono font-medium text-white leading-none">
                 {selectedFileIds.length}
               </span>
-              <span className="text-xs font-bold text-slate-700">{t('documents:fileTable.selectedLabel')}</span>
+              <span className="text-[12px] font-medium text-text-primary">{t('documents:fileTable.selectedLabel')}</span>
             </div>
 
             <button
               type="button"
               onClick={handleBatchDownload}
-              className="flex items-center gap-1.5 rounded-xl bg-slate-100/90 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-primary-50 hover:text-primary-600 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 h-8 px-3 rounded-radius-sm bg-bg-subtle border border-border-subtle text-[12px] font-medium text-text-primary hover:border-border-strong transition-colors cursor-pointer"
             >
-              <DownloadIcon className="h-4 w-4 text-primary-600" />
+              <DownloadIcon className="h-3.5 w-3.5 text-text-secondary" />
               <span>{t('documents:fileTable.batchDownload')}</span>
             </button>
 
             <button
               type="button"
               onClick={() => setBatchDeleting(selectedFileIds)}
-              className="flex items-center gap-1.5 rounded-xl bg-rose-50 px-3.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-100 hover:text-rose-700 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 h-8 px-3 rounded-radius-sm bg-[#F8E5E3] border border-[#B3261E]/20 text-[12px] font-medium text-[#B3261E] hover:bg-[#F8E5E3]/80 transition-colors cursor-pointer"
             >
-              <TrashIcon className="h-4 w-4" />
+              <TrashIcon className="h-3.5 w-3.5" />
               <span>{t('documents:fileTable.batchDelete')}</span>
             </button>
 
             <button
               type="button"
               onClick={() => setSelectedFileIds([])}
-              className="ml-1 text-xs font-medium text-slate-400 hover:text-slate-600 hover:underline transition-colors cursor-pointer"
+              className="ml-1 text-[12px] text-text-tertiary hover:text-text-primary hover:underline transition-colors cursor-pointer"
             >
               {t('documents:fileTable.deselectAll')}
             </button>

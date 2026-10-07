@@ -14,7 +14,7 @@ import { Spinner } from '@/components/ui/Spinner';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { QuickCreateTaskModal } from '@/features/projects/components/QuickCreateTaskModal';
-import { canManageProjects, cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import {
   MenuIcon,
   PanelLeftIcon,
@@ -28,12 +28,9 @@ import {
   PlusIcon,
   CalendarIcon,
   BriefcaseIcon,
-  GlobeIcon,
   SettingsIcon,
   XIcon,
 } from '@/components/ui/Icons';
-import { useI18nStore } from '@/stores/i18n.store';
-import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '@/i18n';
 
 
 const CATEGORY_LABEL_KEY: Record<SearchResult['category'], string> = {
@@ -258,6 +255,7 @@ export function Topbar() {
   const { t, i18n } = useTranslation();
   const user = useAuthStore((s) => s.user);
   const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen);
+  const toggleSidebarCollapsed = useUIStore((s) => s.toggleSidebarCollapsed);
   const logout = useLogout();
   const navigate = useNavigate();
   const location = useLocation();
@@ -276,13 +274,8 @@ export function Topbar() {
     if (!user?.roles || user.roles.length === 0) return false;
     return user.roles.some((r) => {
       const name = r.name.toLowerCase();
-      // 16/09/2026: bo nhanh khop 'quản lý' - Role.name luon la tieng Anh ('Org Admin'/'Manager'/
-      // 'Employee', xem DefaultRoleName trong packages/common-dto) vi seedDefaultRoles() la duy
-      // nhat tao Role va khong co endpoint doi ten vai tro nao ca, nen nhanh nay khong bao gio
-      // khop (dead code) va vi pham linter hardcode tieng Viet.
       return name.includes('admin') || name.includes('manager');
     });
-    return canManageProjects(user?.roles);
   }, [user?.roles]);
 
   // Phím tắt toàn cục: Bấm 'c' hoặc 'C' để mở nhanh modal tạo Task khi không focus vào ô nhập liệu
@@ -319,7 +312,7 @@ export function Topbar() {
             if (window.innerWidth < 768) {
               setMobileSidebarOpen(true);
             } else {
-              useUIStore.getState().toggleSidebarCollapsed();
+              toggleSidebarCollapsed();
             }
           }}
           title={t('common:topbar.toggleTooltip', 'Ẩn/Hiện thanh điều hướng')}

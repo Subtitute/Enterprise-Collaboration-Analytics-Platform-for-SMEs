@@ -1,11 +1,10 @@
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Select } from '@/components/ui/Input';
+import { Card } from '@/components/ui/Card';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { Button } from '@/components/ui/Button';
-import { FolderKanbanIcon, AlertCircleIcon, UserIcon, FileTextIcon, PrinterIcon, DownloadIcon } from '@/components/ui/Icons';
+import { PrinterIcon, DownloadIcon } from '@/components/ui/Icons';
 import { DATE_RANGE_OPTIONS } from '@/types';
 import type { DateRangeOption } from '@/types';
 import { useAuthStore, usePermissions } from '@/stores/auth.store';

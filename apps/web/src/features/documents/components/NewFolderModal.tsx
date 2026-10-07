@@ -49,15 +49,11 @@ export function NewFolderModal({ parentId, open, onClose }: { parentId: string |
             placeholder={t('documents:newFolderModal.namePlaceholder')}
           />
         </FormField>
-        <div className="flex justify-end gap-2">
-          {/* 26/08/2026: them disabled={createFolder.isPending} - nut Huy nay truoc do goi thang
-              handleClose khong dieu kien, la 1 duong dong khong bi chan boi preventCloseWhilePending
-              (prop do chi chan X/Escape/backdrop trong Modal.tsx, khong bao trum nut tu viet trong
-              modal con) - mirror dung disabled đã co san o DepartmentModal.tsx/UploadModal.tsx. */}
-          <Button type="button" variant="outline" onClick={handleClose} disabled={createFolder.isPending}>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="outline" onClick={handleClose} disabled={createFolder.isPending} className="h-9 rounded-radius-sm border-border-strong text-[13px]">
             {t('documents:newFolderModal.cancel')}
           </Button>
-          <Button type="submit" isLoading={createFolder.isPending}>
+          <Button type="submit" isLoading={createFolder.isPending} className="h-9 rounded-radius-sm bg-text-primary hover:bg-black text-[13px] font-medium">
             {t('documents:newFolderModal.submit')}
           </Button>
         </div>

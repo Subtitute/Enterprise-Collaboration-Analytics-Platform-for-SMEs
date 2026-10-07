@@ -212,34 +212,40 @@ export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd, highlig
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUpOrLeave}
           onMouseLeave={handleMouseUpOrLeave}
-          className="flex w-full gap-4 overflow-x-auto pb-3 pt-1 cursor-grab active:cursor-grabbing select-none lg:grid lg:grid-cols-3 lg:gap-5 lg:overflow-visible lg:pb-0 scroll-smooth"
+          className="flex w-full gap-4 overflow-x-auto pb-3 pt-1 cursor-grab active:cursor-grabbing select-none lg:grid lg:grid-cols-3 lg:gap-4 lg:overflow-visible lg:pb-0 scroll-smooth"
         >
           {TASK_STATUSES.map((status) => {
             const columnTasks = columns[status] ?? [];
 
+            const statusDotColor =
+              status === 'DONE'
+                ? 'bg-[#2F6F44]'
+                : status === 'DOING'
+                ? 'bg-[#1E5A8A]'
+                : 'bg-[#8A8781]';
+
             return (
-              <div key={status} className="flex w-[82vw] min-w-[280px] max-w-[340px] shrink-0 flex-col rounded-2xl bg-slate-100/90 lg:w-auto lg:max-w-none lg:shrink">
-                <div
-                  className={cn(
-                    'flex items-center gap-2 px-4 py-3.5 border-b-2',
-                    status === 'TODO' && 'border-b-slate-200/80',
-                    status === 'DOING' && 'border-b-primary-500/50',
-                    status === 'DONE' && 'border-b-emerald-500/50',
-                  )}
-                >
-                  <span className={cn('h-2.5 w-2.5 rounded-full ring-2 ring-white', COLUMN_ACCENT[status])} />
-                  <p className="text-sm font-bold text-slate-800">{t(`projects:enums.taskStatus.${status}`)}</p>
-                  <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-xs font-bold text-slate-700 border border-slate-200/80 shadow-2xs">
+              <div key={status} className="flex w-[82vw] min-w-[280px] max-w-[340px] shrink-0 flex-col rounded-radius-md bg-canvas border border-border-subtle p-3 lg:w-auto lg:max-w-none lg:shrink">
+                {/* Header cột — KHÔNG CÓ VIỀN TRÊN ĐỈNH */}
+                <div className="flex items-center gap-2 px-1 pb-3">
+                  <span className={cn('h-2 w-2 rounded-full shrink-0', statusDotColor)} />
+                  <p className="text-[13px] font-semibold text-text-primary leading-none">
+                    {t(`projects:enums.taskStatus.${status}`)}
+                  </p>
+                  <span className="ml-auto rounded-[4px] bg-white px-2 py-0.5 font-mono text-[11px] font-medium text-text-secondary border border-border-subtle shadow-none tabular-nums leading-none">
                     {columnTasks.length}
                   </span>
                 </div>
+
                 <Droppable droppableId={status}>
                   {(provided, snapshot) => (
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={cn('flex-1 p-3 transition-colors', snapshot.isDraggingOver && 'bg-primary-50/50')}
-                      style={{ minHeight: 120 }}
+                      className={cn(
+                        'flex-1 pt-1 pb-1 transition-colors min-h-[140px]',
+                        snapshot.isDraggingOver && 'bg-accent-soft/40 rounded-radius-sm'
+                      )}
                     >
                       {columnTasks.map((task, index) => (
                         <TaskCard
@@ -255,16 +261,16 @@ export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd, highlig
                   )}
                 </Droppable>
 
-                {/* Nút thêm nhanh công việc ở đáy cột (Trello UX) - Chỉ hiển thị cho TODO và DOING */}
+                {/* Nút thêm nhanh công việc ở đáy cột (§3.4) — Ghost button, không nền, không viền dashed */}
                 {status !== 'DONE' && (
-                  <div className="p-2.5 pt-0">
+                  <div className="pt-2">
                     <button
                       type="button"
                       onClick={() => onQuickAdd?.(status)}
-                      className="flex w-full items-center justify-start gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-slate-500 transition-all duration-150 hover:bg-white hover:text-slate-900 hover:shadow-2xs active:scale-[0.98]"
+                      className="flex w-full items-center justify-start gap-1.5 h-8 px-2 rounded-radius-sm text-[13px] font-medium text-text-secondary hover:text-text-primary hover:bg-white/80 transition-colors cursor-pointer"
                     >
-                      <PlusIcon className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                      <span>{t('projects:detail.newTask')}</span>
+                      <PlusIcon className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
+                      <span>{t('projects:detail.newTask', 'Thêm công việc')}</span>
                     </button>
                   </div>
                 )}

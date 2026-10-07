@@ -136,7 +136,7 @@ export function Modal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 animate-fade-in bg-slate-900/40 backdrop-blur-sm" onClick={requestClose} aria-hidden />
+      <div className="absolute inset-0 animate-fade-in bg-[#1C1B1A]/50" onClick={requestClose} aria-hidden />
       <div
         ref={dialogRef}
         role="dialog"
@@ -144,32 +144,32 @@ export function Modal({
         aria-label={typeof title === 'string' ? title : undefined}
         tabIndex={-1}
         className={cn(
-          'relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl animate-slide-up',
+          'relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden rounded-radius-lg border border-border-subtle bg-white shadow-lg animate-slide-up',
           sizeClasses[size],
         )}
       >
         {title && (
-          <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100/90 px-6 pt-6 pb-4.5 bg-slate-50/50">
+          <div className="flex shrink-0 items-start justify-between gap-4 border-b border-border-subtle px-6 pt-5 pb-5 bg-white">
             <div className="pt-0.5 flex-1 min-w-0">
               {typeof title === 'string' ? (
-                <h2 className="font-display text-base font-bold text-slate-900 truncate">{title}</h2>
+                <h2 className="text-[16px] leading-[24px] font-semibold text-text-primary truncate">{title}</h2>
               ) : (
                 title
               )}
-              {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
+              {description && <p className="mt-1 text-[13px] leading-[20px] text-text-secondary">{description}</p>}
             </div>
             <button
               type="button"
               onClick={requestClose}
               aria-label={t('common:actions.close')}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+              className="rounded-radius-sm p-1.5 text-text-tertiary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer"
             >
               <CloseIcon />
             </button>
           </div>
         )}
-        <div className="overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] max-h-[calc(90vh-140px)] px-6 py-5">{children}</div>
-        {footer && <div className="flex shrink-0 items-center justify-end gap-2.5 border-t border-slate-100 px-6 py-3.5 bg-slate-50/30">{footer}</div>}
+        <div className="overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] max-h-[calc(90vh-140px)] p-6 popover-scrollbar">{children}</div>
+        {footer && <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border-subtle px-6 py-4 bg-white">{footer}</div>}
       </div>
     </div>,
     document.body,
@@ -216,7 +216,7 @@ export function ConfirmDialog({
         <button
           type="button"
           onClick={onClose}
-          className="inline-flex h-9 items-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          className="inline-flex h-9 items-center rounded-radius-sm border border-border-strong bg-white px-4 text-[13px] font-medium text-text-primary hover:bg-bg-subtle transition-colors cursor-pointer"
         >
           {cancelLabel ?? t('common:actions.cancel')}
         </button>
@@ -225,8 +225,8 @@ export function ConfirmDialog({
           disabled={isLoading}
           onClick={onConfirm}
           className={cn(
-            'inline-flex h-9 items-center rounded-lg px-4 text-sm font-medium text-white disabled:opacity-50',
-            danger ? 'bg-rose-600 hover:bg-rose-700' : 'bg-primary-600 hover:bg-primary-700',
+            'inline-flex h-9 items-center rounded-radius-sm px-4 text-[13px] font-medium text-white disabled:opacity-50 transition-colors cursor-pointer',
+            danger ? 'bg-[#B3261E] hover:bg-[#8F1D18]' : 'bg-text-primary hover:bg-black',
           )}
         >
           {confirmLabel ?? t('common:actions.confirm')}

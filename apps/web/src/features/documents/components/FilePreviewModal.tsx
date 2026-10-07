@@ -134,11 +134,11 @@ export function FilePreviewModal({ file, open, onClose, onDownload }: FilePrevie
       title={
         <div className="flex items-center justify-between gap-3 w-full pr-6">
           <div className="min-w-0 flex-1">
-            <h3 className="text-base font-bold text-slate-900 truncate" title={file.name}>
+            <h3 className="text-[16px] font-semibold text-text-primary truncate" title={file.name}>
               {file.name}
             </h3>
             {file.size && (
-              <p className="text-xs text-slate-400 font-normal mt-0.5">{formatBytes(file.size)}</p>
+              <p className="text-[12px] font-mono text-text-tertiary tabular-nums mt-0.5">{formatBytes(file.size)}</p>
             )}
           </div>
           <Button
@@ -146,41 +146,41 @@ export function FilePreviewModal({ file, open, onClose, onDownload }: FilePrevie
             variant="outline"
             size="sm"
             onClick={() => onDownload(file.id)}
-            className="shrink-0 flex items-center gap-1.5"
+            className="shrink-0 flex items-center gap-1.5 h-8 rounded-radius-sm border-border-strong text-[12px] font-medium"
           >
-            <DownloadIcon className="h-4 w-4 text-slate-500" />
+            <DownloadIcon className="h-3.5 w-3.5 text-text-secondary" />
             <span className="hidden sm:inline">{t('documents:preview.download')}</span>
           </Button>
         </div>
       }
     >
-      <div className="relative flex flex-col items-center justify-center min-h-[360px] h-[60vh] sm:h-[75vh] w-full bg-slate-900/5 rounded-xl overflow-hidden border border-slate-200/80">
+      <div className="relative flex flex-col items-center justify-center min-h-[360px] h-[60vh] sm:h-[75vh] w-full bg-bg-subtle rounded-radius-md overflow-hidden border border-border-subtle">
         {/* Loading state */}
         {(isLoadingUrl || isLoadingText) && (
           <div className="flex flex-col items-center justify-center gap-3">
             <Spinner size="md" />
-            <p className="text-xs font-medium text-slate-500">{t('documents:preview.loading')}</p>
+            <p className="text-[12px] font-medium text-text-tertiary">{t('documents:preview.loading')}</p>
           </div>
         )}
 
         {/* Lỗi tải file hoặc render */}
         {!isLoadingUrl && !isLoadingText && (urlError || hasRenderError) && (
           <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 border border-rose-200/60 shadow-2xs">
+            <div className="flex h-12 w-12 items-center justify-center rounded-radius-md bg-[#F8E5E3] text-[#B3261E] border border-[#B3261E]/20">
               <AlertCircleIcon className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-sm font-bold text-slate-800">{t('documents:preview.loadErrorTitle')}</p>
-              <p className="text-xs text-slate-400 max-w-sm mt-1">{t('documents:preview.loadErrorDesc')}</p>
+              <p className="text-[14px] font-semibold text-text-primary">{t('documents:preview.loadErrorTitle')}</p>
+              <p className="text-[12px] text-text-tertiary max-w-sm mt-1">{t('documents:preview.loadErrorDesc')}</p>
             </div>
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => onDownload(file.id)}
-              className="mt-2"
+              className="mt-2 h-8 rounded-radius-sm border-border-strong text-[12px]"
             >
-              <DownloadIcon className="h-4 w-4 mr-1.5" />
+              <DownloadIcon className="h-3.5 w-3.5 mr-1.5 text-text-secondary" />
               {t('documents:preview.downloadToView')}
             </Button>
           </div>
@@ -193,28 +193,29 @@ export function FilePreviewModal({ file, open, onClose, onDownload }: FilePrevie
           !hasRenderError &&
           (isOverSize || previewType === 'unsupported') && (
             <div className="flex flex-col items-center justify-center gap-3.5 p-6 text-center max-w-md">
-              <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-indigo-50 text-indigo-600 border border-indigo-200/60 shadow-xs">
-                <FileIcon className="h-8 w-8" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-radius-lg bg-bg-subtle text-text-secondary border border-border-subtle">
+                <FileIcon className="h-8 w-8 stroke-1.5" />
               </div>
               <div>
-                <p className="text-base font-bold text-slate-900 truncate max-w-xs sm:max-w-md">{file.name}</p>
-                <p className="text-xs text-slate-500 font-medium mt-1">
+                <p className="text-[15px] font-semibold text-text-primary truncate max-w-xs sm:max-w-md">{file.name}</p>
+                <p className="text-[12px] text-text-secondary font-normal mt-1">
                   {isOverSize
                     ? t('documents:preview.fileTooLargeDesc', { maxSize: '20MB' })
                     : t('documents:preview.unsupportedDesc')}
                 </p>
                 {file.size && (
-                  <span className="inline-block mt-2 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600 border border-slate-200">
+                  <span className="inline-block mt-2 rounded-radius-sm bg-bg-subtle px-2.5 py-1 text-[12px] font-mono font-medium text-text-tertiary border border-border-subtle tabular-nums">
                     {formatBytes(file.size)}
                   </span>
                 )}
               </div>
               <Button
                 type="button"
+                variant="outline"
                 onClick={() => onDownload(file.id)}
-                className="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm"
+                className="mt-2 h-9 rounded-radius-sm border-border-strong text-[13px] font-medium"
               >
-                <DownloadIcon className="h-4 w-4 mr-1.5" />
+                <DownloadIcon className="h-4 w-4 mr-1.5 text-text-secondary" />
                 {t('documents:preview.downloadToView')}
               </Button>
             </div>

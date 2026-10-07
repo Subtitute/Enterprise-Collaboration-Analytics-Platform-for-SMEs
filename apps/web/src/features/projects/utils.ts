@@ -27,14 +27,14 @@ export function projectStatusMeta(status: string): { label: string; variant: Bad
 export function projectPriorityMeta(priority: string): { label: string; color: string } {
   switch (priority) {
     case 'LOW':
-      return { label: t('projects:priority.LOW'), color: 'text-slate-600 bg-slate-50 border-slate-200' };
+      return { label: t('projects:priority.LOW'), color: 'text-text-tertiary bg-[#FAF9F6] border-border-subtle' };
     case 'HIGH':
-      return { label: t('projects:priority.HIGH'), color: 'text-amber-700 bg-amber-50 border-amber-200' };
+      return { label: t('projects:priority.HIGH'), color: 'text-[#B45309] bg-[#FBEEE0] border-[#F2C99A]' };
     case 'URGENT':
-      return { label: t('projects:priority.URGENT'), color: 'text-rose-700 bg-rose-50 border-rose-200' };
+      return { label: t('projects:priority.URGENT'), color: 'text-[#B3261E] bg-[#F8E5E3] border-[#F3B7B4]' };
     case 'MEDIUM':
     default:
-      return { label: t('projects:priority.MEDIUM'), color: 'text-blue-700 bg-blue-50 border-blue-200' };
+      return { label: t('projects:priority.MEDIUM'), color: 'text-[#5C5A55] bg-[#EFEDE8] border-border-subtle' };
   }
 }
 
