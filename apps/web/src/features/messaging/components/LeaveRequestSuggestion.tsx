@@ -73,20 +73,20 @@ export function LeaveRequestSuggestion({ message, resolvedDate }: { message: Cha
 
   if (isConfirmed) {
     return (
-      <Badge variant="success" className="mt-1 gap-1">
+      <span className="mt-1 inline-flex items-center gap-1.5 h-6 px-2.5 rounded-[4px] text-[11px] font-semibold bg-[#E6F1E9] text-[#2F6F44]">
         <CheckIcon className="h-3 w-3" />
         {t('messaging:leaveSuggestion.confirmed')}
-      </Badge>
+      </span>
     );
   }
 
   if (!isOpen) {
     return (
       <button type="button" onClick={() => setIsOpen(true)} className="mt-1 w-fit cursor-pointer">
-        <Badge variant="info" className="gap-1 transition-colors hover:bg-primary-200">
-          <CalendarIcon className="h-3 w-3" />
+        <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-[4px] text-[11px] font-semibold bg-accent-soft text-accent transition-colors hover:bg-[#D5E5E4]">
+          <CalendarIcon className="h-3.5 w-3.5" />
           {t('messaging:leaveSuggestion.chipLabel')}
-        </Badge>
+        </span>
       </button>
     );
   }
@@ -94,9 +94,12 @@ export function LeaveRequestSuggestion({ message, resolvedDate }: { message: Cha
   return (
     <form
       onSubmit={handleSubmit}
-      className="mt-1.5 w-full max-w-xs space-y-2.5 rounded-xl border border-slate-200 bg-white p-3 text-left shadow-md"
+      className="mt-1.5 w-full max-w-xs space-y-2.5 rounded-[8px] border border-border-subtle bg-accent-soft p-3 text-left shadow-none"
     >
-      <p className="text-xs font-semibold text-slate-700">{t('messaging:leaveSuggestion.formTitle')}</p>
+      <div className="flex items-center gap-1.5 text-accent">
+        <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
+        <p className="text-[13px] font-semibold text-text-primary">{t('messaging:leaveSuggestion.formTitle')}</p>
+      </div>
 
       <FormField label={t('messaging:leaveSuggestion.dateLabel')} htmlFor={`leave-date-${message.id}`} required>
         <DatePicker
@@ -134,7 +137,7 @@ export function LeaveRequestSuggestion({ message, resolvedDate }: { message: Cha
             if (error) setError('');
           }}
           rows={2}
-          className="min-h-0 text-xs"
+          className="min-h-0 text-[12px] bg-white"
         />
       </FormField>
 
@@ -144,15 +147,19 @@ export function LeaveRequestSuggestion({ message, resolvedDate }: { message: Cha
           onClick={() => setIsOpen(false)}
           disabled={createLeaveRequest.isPending}
           className={cn(
-            'h-8 rounded-md border border-slate-300 bg-white px-3 text-xs font-medium text-slate-700',
-            'hover:bg-slate-50 disabled:pointer-events-none disabled:opacity-50',
+            'h-8 rounded-radius-sm border border-border-strong bg-white px-3 text-[12px] font-medium text-text-primary',
+            'hover:bg-bg-subtle disabled:pointer-events-none disabled:opacity-50 cursor-pointer',
           )}
         >
           {t('messaging:leaveSuggestion.cancel')}
         </button>
-        <Button type="submit" size="sm" isLoading={createLeaveRequest.isPending}>
-          {t('messaging:leaveSuggestion.submit')}
-        </Button>
+        <button
+          type="submit"
+          disabled={createLeaveRequest.isPending}
+          className="inline-flex items-center justify-center h-8 px-3 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[12px] font-medium transition-colors cursor-pointer disabled:pointer-events-none disabled:opacity-50"
+        >
+          {createLeaveRequest.isPending ? t('common:status.loading') : t('messaging:leaveSuggestion.submit')}
+        </button>
       </div>
     </form>
   );

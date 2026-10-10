@@ -42,51 +42,56 @@ export function AnomalySection({
   if (!permissions.includes(PERMISSIONS.ML_VIEW)) return null;
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="shadow-none border border-border-subtle hover:border-border-strong rounded-radius-md transition-colors">
+      <CardHeader className="px-5 py-4 border-b border-border-subtle">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <CardTitle>{t('analytics:anomaly.title')}</CardTitle>
-            <p className="mt-0.5 text-xs text-slate-500">{t('analytics:anomaly.subtitle')}</p>
+            <CardTitle className="text-[15px] font-semibold text-text-primary">{t('analytics:anomaly.title')}</CardTitle>
+            <p className="mt-0.5 text-xs text-text-secondary">{t('analytics:anomaly.subtitle')}</p>
           </div>
-          <Button size="sm" isLoading={mutation.isPending} onClick={() => mutation.mutate(range)}>
+          <Button
+            size="sm"
+            isLoading={mutation.isPending}
+            onClick={() => mutation.mutate(range)}
+            className="bg-text-primary text-white hover:bg-slate-800 shadow-none cursor-pointer"
+          >
             {t('analytics:anomaly.runButton')}
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-5">
         {!mutation.data && !mutation.isPending && !mutation.isError && (
-          <p className="text-xs text-slate-500 leading-relaxed">{t('analytics:anomaly.placeholder')}</p>
+          <p className="text-xs text-text-secondary leading-relaxed">{t('analytics:anomaly.placeholder')}</p>
         )}
 
         {mutation.data && (
           <div className="space-y-3">
             {mutation.data.anomalies.length === 0 ? (
-              <p className="text-sm text-emerald-700">
+              <p className="text-sm font-medium text-success">
                 {t('analytics:anomaly.noAnomalies', { count: mutation.data.sampleSize })}
               </p>
             ) : (
               mutation.data.anomalies.map((item) => (
                 <div
                   key={item.userId}
-                  className="flex items-center gap-3 rounded-xl border border-rose-200/70 bg-rose-50/50 p-3"
+                  className="flex items-center gap-3 rounded-radius-md border border-error/20 bg-error-soft/30 p-3"
                 >
                   <Avatar name={userNames[item.userId] ?? item.userId} size="sm" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-slate-800">
+                    <p className="truncate text-sm font-medium text-text-primary">
                       {userNames[item.userId] ?? item.userId}
                     </p>
-                    <p className="text-xs text-rose-700">
+                    <p className="text-xs text-error font-mono tabular-nums">
                       {t(`analytics:anomaly.metricLabels.${item.topDeviation.metric}`)}{' '}
                       {formatDeviationValue(item.topDeviation)} {item.topDeviation.direction === 'down' ? '↓' : '↑'}{' '}
                       {t('analytics:anomaly.teamAverageLabel', { value: formatTeamAverage(item.topDeviation) })}
                     </p>
                   </div>
-                  <AlertCircleIcon className="h-4 w-4 shrink-0 text-rose-500" />
+                  <AlertCircleIcon className="h-4 w-4 shrink-0 text-error" />
                 </div>
               ))
             )}
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-text-tertiary">
               {t('analytics:anomaly.sampleSizeNote', { count: mutation.data.sampleSize })}
             </p>
           </div>

@@ -30,19 +30,22 @@ export function AdminPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('admin:adminPage.title')}</h1>
-        <p className="mt-1 text-sm text-slate-500">{t('admin:adminPage.subtitle')}</p>
+        <h1 className="text-[28px] leading-[36px] font-semibold text-text-primary tracking-tight">{t('admin:adminPage.title')}</h1>
+        <p className="mt-1 text-[14px] leading-[22px] text-text-secondary">{t('admin:adminPage.subtitle')}</p>
       </div>
 
-      <div className="flex items-center gap-1 border-b border-slate-200">
+      {/* Segmented Control phẳng (nền bg-subtle, active nền trắng + Ink w600 + border subtle) */}
+      <div className="inline-flex flex-wrap items-center gap-1 rounded-radius-md bg-bg-subtle p-1 border border-border-subtle">
         {visibleTabs.map((tab) => (
           <NavLink
             key={tab.to}
             to={tab.to}
             className={({ isActive }) =>
               cn(
-                '-mb-px border-b-2 px-3.5 py-2.5 text-sm font-medium transition-colors',
-                isActive ? 'border-primary-600 text-primary-700' : 'border-transparent text-slate-500 hover:text-slate-700',
+                'px-3.5 py-1.5 text-[13px] leading-5 rounded-[4px] transition-all cursor-pointer font-medium',
+                isActive
+                  ? 'bg-white text-text-primary font-semibold border border-border-subtle'
+                  : 'text-text-secondary hover:text-text-primary border border-transparent',
               )
             }
           >

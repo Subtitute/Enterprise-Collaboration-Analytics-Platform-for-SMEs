@@ -60,20 +60,38 @@ export function NewDealModal({ customerId, open, onClose }: { customerId: string
     <Modal
       open={open}
       onClose={handleClose}
-      // 26/08/2026: modal nay cung o lai trong DOM (cha bat/tat qua prop `open`), mutate() ben tren
-      // goi onSuccess: handleClose (dong+reset form) - giong dung loi da sua hom qua o 4 modal khac
-      // (vd DepartmentModal.tsx): neu dong+mo lai modal trong luc mutation cu con dang bay,
-      // onSuccess cu se dong nham phien ban modal moi. Chan bang prop dung chung cua Modal.tsx.
       preventCloseWhilePending={createDeal.isPending}
       title={t('crm:newDealModal.title')}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="border-border-strong text-text-secondary hover:bg-canvas hover:text-text-primary rounded-radius-sm h-9"
+            onClick={handleClose}
+            disabled={createDeal.isPending}
+          >
+            {t('crm:newDealModal.cancel')}
+          </Button>
+          <Button
+            type="submit"
+            form="new-deal-form"
+            className="bg-primary hover:bg-primary-hover text-primary-contrast rounded-radius-sm h-9"
+            isLoading={createDeal.isPending}
+          >
+            {t('crm:newDealModal.submit')}
+          </Button>
+        </div>
+      }
     >
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      <form id="new-deal-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
         <FormField label={t('crm:newDealModal.fieldTitle')} htmlFor="deal-title" error={error} required>
           <Input
             id="deal-title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={t('crm:newDealModal.titlePlaceholder')}
+            className="rounded-radius-sm border-border-strong focus:border-border-strong focus:ring-1 focus:ring-border-strong"
           />
         </FormField>
         <FormField label={t('crm:newDealModal.fieldValue')} htmlFor="deal-value">
@@ -85,9 +103,9 @@ export function NewDealModal({ customerId, open, onClose }: { customerId: string
               value={value}
               onChange={(e) => handleValueChange(e.target.value)}
               placeholder="0"
-              className="pr-10"
+              className="text-right pr-12 font-mono text-[14px] leading-5 font-medium tabular-nums text-text-primary rounded-radius-sm border-border-strong focus:border-border-strong focus:ring-1 focus:ring-border-strong"
             />
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[12px] font-medium text-text-tertiary">
               VND
             </span>
           </div>
@@ -101,18 +119,6 @@ export function NewDealModal({ customerId, open, onClose }: { customerId: string
             placeholder="DD/MM/YYYY"
           />
         </FormField>
-        <div className="flex justify-end gap-2 pt-1">
-          {/* 26/08/2026: them disabled={createDeal.isPending} - nut Huy nay truoc do goi thang
-              handleClose khong dieu kien, la 1 duong dong khong bi chan boi preventCloseWhilePending
-              (prop do chi chan X/Escape/backdrop trong Modal.tsx, khong bao trum nut tu viet trong
-              modal con) - mirror dung disabled đã co san o DepartmentModal.tsx/UploadModal.tsx. */}
-          <Button type="button" variant="outline" onClick={handleClose} disabled={createDeal.isPending}>
-            {t('crm:newDealModal.cancel')}
-          </Button>
-          <Button type="submit" isLoading={createDeal.isPending}>
-            {t('crm:newDealModal.submit')}
-          </Button>
-        </div>
       </form>
     </Modal>
   );

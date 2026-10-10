@@ -13,6 +13,9 @@ const sizeClasses = {
 };
 
 export function Avatar({ name, size = 'md', className }: AvatarProps) {
+  const hasCustomBg = className && /(^|\s)bg-/.test(className);
+  const hasCustomText = className && /(^|\s)text-/.test(className);
+
   return (
     <span
       title={name}
@@ -22,9 +25,10 @@ export function Avatar({ name, size = 'md', className }: AvatarProps) {
       // du tren the Kanban (TaskCard qua AvatarStack), ten nguoi phu trach khong xuat hien o dau khac.
       aria-label={name}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white',
+        'inline-flex shrink-0 items-center justify-center rounded-full font-semibold',
+        !hasCustomText && 'text-white',
         sizeClasses[size],
-        stringToColorClass(name || '?'),
+        !hasCustomBg && stringToColorClass(name || '?'),
         className,
       )}
     >

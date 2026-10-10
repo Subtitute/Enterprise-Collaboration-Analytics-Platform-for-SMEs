@@ -17,9 +17,10 @@ const ROUTE_LABEL_KEYS: Record<string, string> = {
   admin: 'common:nav.admin',
   members: 'admin:members.title',
   departments: 'admin:departments.title',
+  roles: 'admin:roles.title',
   'roles-permissions': 'admin:roles.title',
   'failed-events': 'admin:failedEvents.title',
-  profile: 'profile:title',
+  profile: 'profile:page.title',
   settings: 'common:topbar.settings',
 };
 
@@ -35,8 +36,9 @@ const DEFAULT_ROUTE_FALLBACKS: Record<string, string> = {
   admin: 'Quản trị',
   members: 'Thành viên',
   departments: 'Phòng ban',
+  roles: 'Vai trò & Quyền',
   'roles-permissions': 'Vai trò & Phân quyền',
-  'failed-events': 'Sự kiện lỗi',
+  'failed-events': 'Sự kiện lỗi hệ thống',
   profile: 'Hồ sơ cá nhân',
   settings: 'Cài đặt',
 };

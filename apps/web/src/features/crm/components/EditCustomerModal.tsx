@@ -3,7 +3,8 @@ import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { FormField, Input, Select, Textarea } from '@/components/ui/Input';
+import { FormField, Input, Textarea } from '@/components/ui/Input';
+import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { useUpdateCustomer } from '../hooks';
 import type { Customer } from '@/types';
 
@@ -94,43 +95,82 @@ export function EditCustomerModal({
       onClose={onClose}
       preventCloseWhilePending={updateCustomer.isPending}
       title={t('crm:editCustomerModal.title')}
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="border-border-strong text-text-secondary hover:bg-canvas hover:text-text-primary rounded-radius-sm h-9"
+            onClick={onClose}
+            disabled={updateCustomer.isPending}
+          >
+            {t('crm:newCustomerModal.cancel')}
+          </Button>
+          <Button
+            type="submit"
+            form="edit-customer-form"
+            className="bg-primary hover:bg-primary-hover text-primary-contrast rounded-radius-sm h-9"
+            isLoading={updateCustomer.isPending}
+          >
+            {t('crm:editCustomerModal.save', 'Lưu thay đổi')}
+          </Button>
+        </div>
+      }
     >
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      <form id="edit-customer-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
         <FormField label={t('crm:newCustomerModal.fieldName')} htmlFor="edit-customer-name" error={error} required>
           <Input
             id="edit-customer-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={t('crm:newCustomerModal.namePlaceholder')}
+            className="rounded-radius-sm border-border-strong focus:border-border-strong focus:ring-1 focus:ring-border-strong"
           />
         </FormField>
         <FormField label={t('crm:newCustomerModal.fieldCompany')} htmlFor="edit-customer-company">
-          <Input id="edit-customer-company" value={company} onChange={(e) => setCompany(e.target.value)} />
+          <Input
+            id="edit-customer-company"
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
+            className="rounded-radius-sm border-border-strong focus:border-border-strong focus:ring-1 focus:ring-border-strong"
+          />
         </FormField>
         <FormField label={t('crm:newCustomerModal.fieldEmail')} htmlFor="edit-customer-email">
-          <Input id="edit-customer-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Input
+            id="edit-customer-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="rounded-radius-sm border-border-strong focus:border-border-strong focus:ring-1 focus:ring-border-strong"
+          />
         </FormField>
         <FormField label={t('crm:newCustomerModal.fieldPhone')} htmlFor="edit-customer-phone">
-          <Input id="edit-customer-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <Input
+            id="edit-customer-phone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="rounded-radius-sm border-border-strong focus:border-border-strong focus:ring-1 focus:ring-border-strong"
+          />
         </FormField>
 
         {/* Phần Ghi chú: Mục chọn loại khách hàng & Khác (tự điền) */}
-        <div className="space-y-3 pt-1 border-t border-slate-100">
+        <div className="space-y-3 pt-2 border-t border-border-subtle">
           <FormField label={t('crm:newCustomerModal.fieldNotes')} htmlFor="edit-customer-type">
-            <Select
-              id="edit-customer-type"
+            <CustomFilterSelect
               value={customerType}
-              onChange={(e) => setCustomerType(e.target.value)}
-            >
-              <option value="">{t('crm:newCustomerModal.customerTypePlaceholder')}</option>
-              <option value="lead">{t('crm:newCustomerModal.customerTypes.lead')}</option>
-              <option value="vip">{t('crm:newCustomerModal.customerTypes.vip')}</option>
-              <option value="loyal">{t('crm:newCustomerModal.customerTypes.loyal')}</option>
-              <option value="sme">{t('crm:newCustomerModal.customerTypes.sme')}</option>
-              <option value="enterprise">{t('crm:newCustomerModal.customerTypes.enterprise')}</option>
-              <option value="individual">{t('crm:newCustomerModal.customerTypes.individual')}</option>
-              <option value="other">{t('crm:newCustomerModal.customerTypeOther')}</option>
-            </Select>
+              onChange={setCustomerType}
+              position="top"
+              options={[
+                { value: '', label: t('crm:newCustomerModal.customerTypePlaceholder', '-- Chọn phân loại khách hàng --') },
+                { value: 'lead', label: t('crm:newCustomerModal.customerTypes.lead', 'Khách hàng tiềm năng') },
+                { value: 'vip', label: t('crm:newCustomerModal.customerTypes.vip', 'Khách hàng VIP') },
+                { value: 'loyal', label: t('crm:newCustomerModal.customerTypes.loyal', 'Khách hàng thân thiết') },
+                { value: 'sme', label: t('crm:newCustomerModal.customerTypes.sme', 'Doanh nghiệp SME') },
+                { value: 'enterprise', label: t('crm:newCustomerModal.customerTypes.enterprise', 'Tập đoàn / Doanh nghiệp lớn') },
+                { value: 'individual', label: t('crm:newCustomerModal.customerTypes.individual', 'Khách hàng cá nhân') },
+                { value: 'other', label: t('crm:newCustomerModal.customerTypeOther', 'Khác (Tự điền ghi chú)') },
+              ]}
+            />
           </FormField>
 
           {customerType === 'other' && (
@@ -144,14 +184,6 @@ export function EditCustomerModal({
               />
             </FormField>
           )}
-        </div>
-        <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="outline" onClick={onClose} disabled={updateCustomer.isPending}>
-            {t('crm:newCustomerModal.cancel')}
-          </Button>
-          <Button type="submit" isLoading={updateCustomer.isPending}>
-            {t('crm:editCustomerModal.save')}
-          </Button>
         </div>
       </form>
     </Modal>

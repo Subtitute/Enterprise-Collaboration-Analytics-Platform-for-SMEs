@@ -182,18 +182,44 @@ export function CheckInCamera({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={t('hrm:checkInCamera.modalTitle')} size="sm">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={t('hrm:checkInCamera.modalTitle')}
+      size="sm"
+      footer={
+        <div className="flex justify-end gap-2 w-full">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            {t('hrm:checkInCamera.cancelButton')}
+          </Button>
+          {previewUrl ? (
+            <>
+              <Button type="button" variant="secondary" onClick={handleRetake}>
+                <RefreshIcon className="h-4 w-4" /> {t('hrm:checkInCamera.retakeButton')}
+              </Button>
+              <Button type="button" variant="primary" onClick={handleConfirm} isLoading={isSubmitting}>
+                {t('hrm:checkInCamera.confirmButton')}
+              </Button>
+            </>
+          ) : (
+            <Button type="button" variant="primary" onClick={handleCapture} disabled={status !== 'ready'}>
+              <CameraIcon className="h-4 w-4" /> {t('hrm:checkInCamera.captureButton')}
+            </Button>
+          )}
+        </div>
+      }
+    >
       <div className="space-y-4">
         <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-slate-900">
           {status === 'requesting' && (
-            <div className="flex h-full items-center justify-center text-slate-300">
-              <Spinner />
+            <div className="flex h-full items-center justify-center text-accent">
+              <Spinner className="h-8 w-8 text-accent" />
             </div>
           )}
           {status === 'denied' && (
             <div className="flex h-full flex-col items-center justify-center gap-2 p-4 text-center text-sm text-slate-300">
               <p>{t('hrm:checkInCamera.cameraDenied')}</p>
-              <Button size="sm" variant="outline" onClick={startCamera}>
+              <Button size="sm" variant="secondary" onClick={startCamera}>
                 <RefreshIcon className="h-4 w-4" /> {t('hrm:checkInCamera.retryButton')}
               </Button>
             </div>
@@ -215,26 +241,6 @@ export function CheckInCamera({
           )}
         </div>
         <canvas ref={canvasRef} className="hidden" />
-
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onClose}>
-            {t('hrm:checkInCamera.cancelButton')}
-          </Button>
-          {previewUrl ? (
-            <>
-              <Button type="button" variant="outline" onClick={handleRetake}>
-                <RefreshIcon className="h-4 w-4" /> {t('hrm:checkInCamera.retakeButton')}
-              </Button>
-              <Button type="button" onClick={handleConfirm} isLoading={isSubmitting}>
-                {t('hrm:checkInCamera.confirmButton')}
-              </Button>
-            </>
-          ) : (
-            <Button type="button" onClick={handleCapture} disabled={status !== 'ready'}>
-              <CameraIcon className="h-4 w-4" /> {t('hrm:checkInCamera.captureButton')}
-            </Button>
-          )}
-        </div>
       </div>
     </Modal>
   );

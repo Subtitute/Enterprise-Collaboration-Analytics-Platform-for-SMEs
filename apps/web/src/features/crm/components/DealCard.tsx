@@ -31,34 +31,36 @@ export function DealCard({ deal, index, onClick }: { deal: Deal; index: number; 
   return (
     <Draggable draggableId={deal.id} index={index}>
       {(provided, snapshot) => (
-        <Card
+        <div
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
           onClick={onClick}
+          tabIndex={0}
+          role="button"
           onKeyDown={(e) => {
-            if (e.key === 'Enter') onClick();
+            if (e.key === 'Enter' || e.key === ' ') onClick();
           }}
           className={cn(
-            'cursor-pointer select-none rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-all duration-200 hover:border-indigo-300 hover:shadow-md',
-            snapshot.isDragging && 'rotate-1 shadow-xl ring-2 ring-indigo-500/20',
+            'cursor-pointer select-none rounded-radius-sm border border-border-subtle bg-white p-3 transition-colors hover:border-border-strong focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
+            snapshot.isDragging && 'opacity-60 cursor-grabbing',
           )}
         >
-          <p className="text-sm font-medium leading-snug text-slate-800">{deal.title}</p>
-          <p className="mt-1 text-sm font-semibold text-primary-700">{formatDealValue(deal.value)}</p>
+          <p className="line-clamp-2 text-[13px] leading-5 font-medium text-text-primary">{deal.title}</p>
+          <p className="mt-1 font-mono text-[14px] font-medium text-accent tabular-nums">{formatDealValue(deal.value)}</p>
           {deal.expectedCloseDate && (
             <span
               className={cn(
-                'mt-2 flex items-center gap-1 text-xs',
+                'mt-2 flex items-center gap-1 font-mono text-[12px] tabular-nums',
                 isUrgentOrOverdue
-                  ? 'font-medium text-rose-600'
-                  : 'text-slate-400',
+                  ? 'font-medium text-[#B3261E]'
+                  : 'text-text-tertiary',
               )}
             >
-              <CalendarIcon className="h-3.5 w-3.5" /> {formatDate(deal.expectedCloseDate)}
+              <CalendarIcon className="h-3.5 w-3.5 stroke-1.5" /> {formatDate(deal.expectedCloseDate)}
             </span>
           )}
-        </Card>
+        </div>
       )}
     </Draggable>
   );

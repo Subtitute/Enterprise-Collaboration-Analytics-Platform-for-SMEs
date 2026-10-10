@@ -53,15 +53,20 @@ export function DepartmentsPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-slate-500">{t('admin:departmentsPage.description')}</p>
+        <p className="text-[13px] leading-5 text-text-secondary">{t('admin:departmentsPage.description')}</p>
         {canManageDepartments && (
-          <Button onClick={() => setIsCreateOpen(true)}>
-            <PlusIcon className="h-4 w-4" /> {t('admin:departmentsPage.newDepartment')}
-          </Button>
+          <button
+            type="button"
+            onClick={() => setIsCreateOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer shrink-0"
+          >
+            <PlusIcon className="h-3.5 w-3.5" />
+            <span>{t('admin:departmentsPage.newDepartment')}</span>
+          </button>
         )}
       </div>
 
-      <Card>
+      <div className="rounded-radius-md border border-border-subtle bg-white overflow-hidden">
         <QueryState
           isLoading={departmentsQuery.isLoading}
           isError={departmentsQuery.isError}
@@ -74,16 +79,16 @@ export function DepartmentsPage() {
         >
         {departments.length === 0 ? (
           <div className="p-6">
-            <EmptyState icon={<BuildingIcon className="h-8 w-8" />} title={t('admin:departmentsPage.emptyTitle')} />
+            <EmptyState icon={<BuildingIcon className="h-8 w-8 text-text-tertiary" />} title={t('admin:departmentsPage.emptyTitle')} />
           </div>
         ) : (
-          <Table>
-            <TableHead>
-              <tr>
-                <TableHeadCell>{t('admin:departmentsPage.columns.name')}</TableHeadCell>
-                <TableHeadCell>{t('admin:departmentsPage.columns.memberCount')}</TableHeadCell>
-                <TableHeadCell>{t('admin:departmentsPage.columns.manager')}</TableHeadCell>
-                <TableHeadCell className="text-right">{t('admin:departmentsPage.columns.actions')}</TableHeadCell>
+          <Table className="border-0">
+            <TableHead className="bg-bg-subtle border-b border-border-subtle">
+              <tr className="h-10">
+                <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:departmentsPage.columns.name')}</TableHeadCell>
+                <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:departmentsPage.columns.memberCount')}</TableHeadCell>
+                <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:departmentsPage.columns.manager')}</TableHeadCell>
+                <TableHeadCell className="text-right text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:departmentsPage.columns.actions')}</TableHeadCell>
               </tr>
             </TableHead>
             <TableBody>
@@ -96,41 +101,41 @@ export function DepartmentsPage() {
                 const managerName = d.managerId ? userNameMap[d.managerId] : undefined;
 
                 return (
-                  <TableRow key={d.id}>
+                  <TableRow key={d.id} className="h-14 border-b border-border-subtle hover:bg-bg-subtle transition-colors">
                     {/* Cột Tên phòng ban kèm Mô tả xám nhạt bên dưới */}
-                    <TableCell label={t('admin:departmentsPage.columns.name')}>
+                    <TableCell label={t('admin:departmentsPage.columns.name')} className="px-4 py-2.5">
                       <div className="min-w-0">
-                        <p className="truncate font-medium text-slate-800">{d.name}</p>
+                        <p className="truncate font-medium text-[13px] text-text-primary">{d.name}</p>
                         {d.description ? (
-                          <p className="truncate text-xs text-slate-500">{d.description}</p>
+                          <p className="truncate text-[12px] text-text-tertiary">{d.description}</p>
                         ) : null}
                       </div>
                     </TableCell>
 
-                    {/* Cột Số thành viên trực quan: X nhân sự */}
-                    <TableCell label={t('admin:departmentsPage.columns.memberCount')}>
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-                        <UsersIcon className="h-3.5 w-3.5 text-slate-500" />
+                    {/* Cột Số thành viên trực quan: pill nền bg-subtle, icon users 14px + text MONO 13/500 text-primary tabular-nums */}
+                    <TableCell label={t('admin:departmentsPage.columns.memberCount')} className="px-4 py-2.5">
+                      <span className="inline-flex items-center gap-1.5 rounded-radius-sm bg-bg-subtle border border-border-subtle px-2.5 py-1 text-[13px] font-medium font-mono tabular-nums text-text-primary">
+                        <UsersIcon className="h-3.5 w-3.5 text-text-secondary" />
                         {t('admin:departmentsPage.membersCountLabel', { count })}
                       </span>
                     </TableCell>
 
                     {/* Cột Trưởng bộ phận / Người phụ trách */}
-                    <TableCell label={t('admin:departmentsPage.columns.manager')}>
+                    <TableCell label={t('admin:departmentsPage.columns.manager')} className="px-4 py-2.5">
                       {d.managerId && managerName ? (
                         <div className="flex items-center gap-2">
-                          <Avatar name={managerName} size="sm" />
-                          <p className="truncate text-sm font-medium text-slate-800">{managerName}</p>
+                          <Avatar name={managerName} size="sm" className="h-8 w-8 text-[11px] bg-accent-soft text-accent" />
+                          <p className="truncate text-[13px] font-medium text-text-primary">{managerName}</p>
                         </div>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs text-slate-400">
-                          <UserIcon className="h-3.5 w-3.5" />
+                        <span className="inline-flex items-center gap-1.5 text-[13px] italic text-text-tertiary">
+                          <UserIcon className="h-3.5 w-3.5 text-text-tertiary" />
                           {t('admin:departmentsPage.noManager')}
                         </span>
                       )}
                     </TableCell>
 
-                    <TableCell label={t('admin:departmentsPage.columns.actions')} className="text-right">
+                    <TableCell label={t('admin:departmentsPage.columns.actions')} className="px-4 py-2.5 text-right">
                       {/* 17/09/2026: an (khong chi disable) toan bo menu Sua/Xoa khi khong co
                           DEPARTMENT_MANAGE - Manager vao duoc trang nay (qua USER_INVITE) nhung
                           chi Org Admin moi duoc thay doi co cau phong ban. */}
@@ -139,8 +144,9 @@ export function DepartmentsPage() {
                           align="right"
                           trigger={({ toggle }) => (
                             <button
+                              type="button"
                               onClick={toggle}
-                              className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                              className="rounded-radius-sm p-1.5 text-text-tertiary hover:bg-bg-subtle hover:text-text-primary cursor-pointer transition-colors"
                               aria-label={t('admin:departmentsPage.optionsAria')}
                             >
                               <MoreVerticalIcon className="h-4 w-4" />
@@ -158,7 +164,7 @@ export function DepartmentsPage() {
                                 <EditIcon className="h-4 w-4" /> {t('admin:departmentsPage.actionsMenu.edit')}
                               </DropdownItem>
                               <DropdownItem
-                                className="text-rose-600 hover:bg-rose-50"
+                                className="text-danger hover:bg-danger-soft"
                                 onClick={() => {
                                   setDeletingDept(d);
                                   close();
@@ -170,7 +176,7 @@ export function DepartmentsPage() {
                           )}
                         </Dropdown>
                       ) : (
-                        <span className="text-xs text-slate-300">—</span>
+                        <span className="text-[12px] text-text-tertiary">—</span>
                       )}
                     </TableCell>
                   </TableRow>
@@ -180,7 +186,7 @@ export function DepartmentsPage() {
           </Table>
         )}
         </QueryState>
-      </Card>
+      </div>
 
       <DepartmentModal open={isCreateOpen} onClose={() => setIsCreateOpen(false)} />
       <DepartmentModal open={Boolean(editingDept)} onClose={() => setEditingDept(null)} department={editingDept} />

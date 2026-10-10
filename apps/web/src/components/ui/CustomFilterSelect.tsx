@@ -15,6 +15,7 @@ interface CustomFilterSelectProps {
   ariaLabel?: string;
   className?: string;
   align?: 'left' | 'right';
+  position?: 'top' | 'bottom';
   variant?: 'default' | 'subtle';
 }
 
@@ -25,10 +26,11 @@ export function CustomFilterSelect({
   ariaLabel,
   className,
   align = 'left',
+  position,
   variant = 'default',
 }: CustomFilterSelectProps) {
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState<{ top: number; left: number; right: number; width: number } | null>(null);
+  const [panelPos, setPanelPos] = useState<{ top?: number; bottom?: number; left: number; right: number; width: number } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -39,8 +41,13 @@ export function CustomFilterSelect({
       const next = !v;
       if (next && rootRef.current) {
         const rect = rootRef.current.getBoundingClientRect();
-        setPosition({
-          top: rect.bottom + 6,
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        const shouldOpenTop = position === 'top' || (!position && spaceBelow < 240 && spaceAbove > spaceBelow);
+
+        setPanelPos({
+          top: shouldOpenTop ? undefined : rect.bottom + 6,
+          bottom: shouldOpenTop ? window.innerHeight - rect.top + 6 : undefined,
           left: rect.left,
           right: window.innerWidth - rect.right,
           width: Math.max(rect.width, 160),
@@ -114,15 +121,16 @@ export function CustomFilterSelect({
       </button>
 
       {open &&
-        position &&
+        panelPos &&
         createPortal(
           <div
             ref={panelRef}
             style={{
               position: 'fixed',
-              top: position.top,
-              width: position.width,
-              ...(align === 'right' ? { right: position.right } : { left: position.left }),
+              top: panelPos.top,
+              bottom: panelPos.bottom,
+              width: panelPos.width,
+              ...(align === 'right' ? { right: panelPos.right } : { left: panelPos.left }),
             }}
             className="z-50 overflow-hidden rounded-radius-md border border-border-subtle bg-white p-1 text-[13px] shadow-sm animate-slide-up"
           >

@@ -262,6 +262,16 @@
   "roles": {
     "orgAdmin": "組織管理者",
     "manager": "マネージャー",
-    "employee": "従業員"
+    "employee": "従業員",
+    "title": "ロールと権限"
+  },
+  "members": {
+    "title": "メンバー"
+  },
+  "departments": {
+    "title": "部署"
+  },
+  "failedEvents": {
+    "title": "システムエラーイベント"
   }
 }

@@ -98,7 +98,8 @@
         "status": {
           "sufficient": "Sufficient",
           "insufficient": "Under Hours",
-          "newMember": "New Joiner"
+          "newMember": "New Joiner",
+          "notJoined": "Not Joined Yet"
         },
         "daysUnit": "days",
         "hoursUnit": "hrs",
@@ -322,6 +323,7 @@
       "reasonLabel": "Reason for Overtime",
       "reasonPlaceholder": "e.g. Complete urgent deployment for enterprise customer…",
       "estimatedHours": "Estimated OT duration: {{hours}} hours",
+      "estimatedDuration": "Estimated OT duration: {{duration}}",
       "submitButton": "Submit OT Request",
       "cancelButton": "Cancel",
       "errors": {

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
-import { Button } from '@/components/ui/Button';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
@@ -57,87 +56,94 @@ export function CustomerDetailPage() {
 
   return (
     <div className="space-y-5">
-      <Link to="/customers" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700">
-        <ChevronLeftIcon className="h-4 w-4" /> {t('crm:customerDetailPage.backToList')}
+      <Link to="/customers" className="inline-flex items-center gap-1.5 text-[13px] text-text-secondary hover:text-text-primary transition-colors">
+        <ChevronLeftIcon className="h-3.5 w-3.5 stroke-1.5" /> {t('crm:customerDetailPage.backToList', 'Quay lại danh sách khách hàng')}
       </Link>
 
-      <div className="flex flex-col justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center">
+      <div className="flex flex-col justify-between gap-4 rounded-radius-lg border border-border-subtle bg-white p-5 sm:flex-row sm:items-center">
         <div className="min-w-0">
-          <h1 className="text-lg font-semibold text-slate-900">{customer.name}</h1>
-          <div className="mt-1 flex flex-wrap items-center gap-4">
+          <h1 className="text-[22px] leading-[30px] font-semibold text-text-primary">{customer.name}</h1>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
             {customer.company && (
-              <span className="flex items-center gap-1 text-xs text-slate-500">
-                <BuildingIcon className="h-3.5 w-3.5" /> {customer.company}
+              <span className="flex items-center gap-1.5 text-[13px] text-text-secondary">
+                <BuildingIcon className="h-3.5 w-3.5 text-text-tertiary stroke-1.5" /> {customer.company}
               </span>
             )}
             {customer.email && (
-              <span className="flex items-center gap-1 text-xs text-slate-500">
-                <MailIcon className="h-3.5 w-3.5" /> {customer.email}
+              <span className="flex items-center gap-1.5 text-[13px] text-text-secondary font-mono text-[12px]">
+                <MailIcon className="h-3.5 w-3.5 text-text-tertiary stroke-1.5" /> {customer.email}
               </span>
             )}
-            <span className="flex items-center gap-1.5 text-xs text-slate-500">
-              <UserIcon className="h-3.5 w-3.5" />
-              {t('crm:customerDetailPage.ownerLabel')}: <span className="font-medium text-slate-700">{ownerName}</span>
+            <span className="flex items-center gap-1.5 text-[13px] text-text-secondary">
+              <UserIcon className="h-3.5 w-3.5 text-text-tertiary stroke-1.5" />
+              <span>{t('crm:customerDetailPage.ownerLabel', 'Phụ trách')}: <strong className="font-medium text-text-primary">{ownerName}</strong></span>
               {canReassignOwner && (
-                <Dropdown
-                  align="left"
-                  panelClassName="w-64 p-1.5 rounded-2xl border border-slate-200/80 bg-white shadow-xl shadow-slate-900/10 space-y-1"
-                  trigger={({ toggle }) => (
-                    <button
-                      type="button"
-                      onClick={toggle}
-                      title={t('crm:customerDetailPage.changeOwnerAriaLabel')}
-                      className="cursor-pointer font-medium text-primary-600 hover:underline"
-                    >
-                      {t('crm:customerDetailPage.changeOwner')}
-                    </button>
-                  )}
-                >
-                  {({ close }) => (
-                    <div className="max-h-60 overflow-y-auto space-y-0.5">
-                      <div className="border-b border-slate-100 px-2.5 py-1.5">
-                        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                          {t('crm:customerDetailPage.reassignOwnerHeading')}
-                        </p>
+                <>
+                  <span>·</span>
+                  <Dropdown
+                    align="left"
+                    panelClassName="min-w-[240px] p-1 rounded-radius-md border border-border-subtle bg-white shadow-md space-y-0.5"
+                    trigger={({ toggle }) => (
+                      <button
+                        type="button"
+                        onClick={toggle}
+                        title={t('crm:customerDetailPage.changeOwnerAriaLabel')}
+                        className="cursor-pointer font-medium text-accent hover:underline text-[13px]"
+                      >
+                        {t('crm:customerDetailPage.changeOwner', 'Đổi')}
+                      </button>
+                    )}
+                  >
+                    {({ close }) => (
+                      <div className="max-h-60 overflow-y-auto space-y-0.5">
+                        <div className="border-b border-border-subtle px-2.5 py-1.5">
+                          <p className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+                            {t('crm:customerDetailPage.reassignOwnerHeading')}
+                          </p>
+                        </div>
+                        {orgUsers.map((u) => (
+                          <button
+                            key={u.id}
+                            type="button"
+                            onClick={() => {
+                              if (u.id !== customer.ownerUserId) updateCustomerOwner.mutate({ ownerUserId: u.id });
+                              close();
+                            }}
+                            className="group flex w-full items-center gap-2.5 rounded-radius-sm px-2.5 py-1.5 text-left text-[12px] transition-colors hover:bg-bg-subtle cursor-pointer"
+                          >
+                            <Avatar name={u.fullName} size="sm" className="h-6 w-6 text-[10px]" />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate font-medium text-text-primary">
+                                {u.fullName}
+                              </p>
+                              <p className="truncate font-mono text-[10px] text-text-tertiary tabular-nums">{u.email}</p>
+                            </div>
+                            {u.id === customer.ownerUserId && <CheckIcon className="h-3.5 w-3.5 shrink-0 text-[#2F6F44]" />}
+                          </button>
+                        ))}
                       </div>
-                      {orgUsers.map((u) => (
-                        <button
-                          key={u.id}
-                          type="button"
-                          onClick={() => {
-                            if (u.id !== customer.ownerUserId) updateCustomerOwner.mutate({ ownerUserId: u.id });
-                            close();
-                          }}
-                          className="group flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-xs transition-colors duration-150 hover:bg-slate-50"
-                        >
-                          <Avatar name={u.fullName} size="sm" />
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate font-semibold text-slate-800 transition-colors group-hover:text-primary-600">
-                              {u.fullName}
-                            </p>
-                            <p className="truncate text-[11px] text-slate-400">{u.email}</p>
-                          </div>
-                          {u.id === customer.ownerUserId && <CheckIcon className="h-3.5 w-3.5 shrink-0 text-emerald-600" />}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </Dropdown>
+                    )}
+                  </Dropdown>
+                </>
               )}
             </span>
-            <span className="text-xs text-slate-500">
-              {t('crm:customerDetailPage.openDealsSummary', {
-                count: customer.openDealCount ?? 0,
-                value: formatDealValue(customer.openDealValue ?? 0),
-              })}
-            </span>
           </div>
-          {customer.notes && <p className="mt-2 max-w-2xl text-sm text-slate-500">{customer.notes}</p>}
+
+          <div className="mt-2 text-[13px] text-text-secondary">
+            <span className="font-mono tabular-nums">{customer.openDealCount ?? 0}</span> {t('crm:customerDetailPage.openDealsSuffix', 'deal đang hoạt động')} — <span className="font-mono text-accent font-medium tabular-nums">{formatDealValue(customer.openDealValue ?? 0)}</span>
+          </div>
+
+          {customer.notes && <p className="mt-2 max-w-2xl text-[13px] text-text-tertiary">{customer.notes}</p>}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <Button onClick={() => setIsNewDealOpen(true)}>
-            <PlusIcon className="h-4 w-4" /> {t('crm:customerDetailPage.newDeal')}
-          </Button>
+          <button
+            type="button"
+            onClick={() => setIsNewDealOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer"
+          >
+            <PlusIcon className="h-3.5 w-3.5" />
+            <span>{t('crm:customerDetailPage.newDeal', 'Deal mới')}</span>
+          </button>
         </div>
       </div>
 
@@ -150,11 +156,18 @@ export function CustomerDetailPage() {
         errorDescription={t('crm:customerDetailPage.dealsErrorDescription')}
       >
         {deals.length === 0 ? (
-          <EmptyState
-            title={t('crm:customerDetailPage.emptyDealsTitle')}
-            description={t('crm:customerDetailPage.emptyDealsDescription')}
-            action={<Button onClick={() => setIsNewDealOpen(true)}>{t('crm:customerDetailPage.createFirstDeal')}</Button>}
-          />
+          <div className="flex flex-col items-center justify-center rounded-radius-lg border border-dashed border-border-subtle bg-white p-10 text-center">
+            <h3 className="text-[16px] font-medium text-text-primary">{t('crm:customerDetailPage.emptyDealsTitle', 'Chưa có deal nào')}</h3>
+            <p className="mt-1 text-[13px] text-text-tertiary">{t('crm:customerDetailPage.emptyDealsDescription', 'Tạo cơ hội bán hàng đầu tiên cho khách hàng này.')}</p>
+            <button
+              type="button"
+              onClick={() => setIsNewDealOpen(true)}
+              className="mt-4 inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer"
+            >
+              <PlusIcon className="h-3.5 w-3.5" />
+              <span>{t('crm:customerDetailPage.createFirstDeal', 'Tạo deal mới')}</span>
+            </button>
+          </div>
         ) : (
           <DealKanbanBoard customerId={customerId} deals={deals} onDealClick={setSelectedDeal} />
         )}

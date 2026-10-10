@@ -22,10 +22,12 @@ logs/
 # Test/coverage
 coverage/
 
-# IDE
+# IDE & Tools
 .vscode/*
 !.vscode/extensions.json
 .idea/
+.codegraph/
+.geminiignore
 
 # OS
 .DS_Store

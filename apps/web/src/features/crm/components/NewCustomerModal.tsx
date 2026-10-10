@@ -3,7 +3,8 @@ import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { FormField, Input, Select, Textarea } from '@/components/ui/Input';
+import { FormField, Input, Textarea } from '@/components/ui/Input';
+import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { useCreateCustomer } from '../hooks';
 
 export function NewCustomerModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -64,69 +65,69 @@ export function NewCustomerModal({ open, onClose }: { open: boolean; onClose: ()
       open={open}
       onClose={handleClose}
       preventCloseWhilePending={createCustomer.isPending}
-      title={t('crm:newCustomerModal.title')}
+      title={t('crm:newCustomerModal.title', 'Thêm khách hàng mới')}
+      size="md"
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="outline" onClick={handleClose} disabled={createCustomer.isPending} className="h-9 rounded-radius-sm border-border-strong text-[13px]">
+            {t('crm:newCustomerModal.cancel', 'Hủy')}
+          </Button>
+          <Button type="submit" form="new-customer-form" isLoading={createCustomer.isPending} className="h-9 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium">
+            {t('crm:newCustomerModal.submit', 'Thêm khách hàng')}
+          </Button>
+        </div>
+      }
     >
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <FormField label={t('crm:newCustomerModal.fieldName')} htmlFor="customer-name" error={error} required>
+      <form id="new-customer-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <FormField label={t('crm:newCustomerModal.fieldName', 'Tên khách hàng')} htmlFor="customer-name" error={error} required>
           <Input
             id="customer-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={t('crm:newCustomerModal.namePlaceholder')}
+            placeholder={t('crm:newCustomerModal.namePlaceholder', 'Ví dụ: Công ty TNHH ABC')}
           />
         </FormField>
-        <FormField label={t('crm:newCustomerModal.fieldCompany')} htmlFor="customer-company">
+        <FormField label={t('crm:newCustomerModal.fieldCompany', 'Công ty')} htmlFor="customer-company">
           <Input id="customer-company" value={company} onChange={(e) => setCompany(e.target.value)} />
         </FormField>
-        <FormField label={t('crm:newCustomerModal.fieldEmail')} htmlFor="customer-email">
+        <FormField label={t('crm:newCustomerModal.fieldEmail', 'Email')} htmlFor="customer-email">
           <Input id="customer-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         </FormField>
-        <FormField label={t('crm:newCustomerModal.fieldPhone')} htmlFor="customer-phone">
+        <FormField label={t('crm:newCustomerModal.fieldPhone', 'Số điện thoại')} htmlFor="customer-phone">
           <Input id="customer-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
         </FormField>
 
         {/* Phần Ghi chú: Mục chọn loại khách hàng & Khác (tự điền) */}
-        <div className="space-y-3 pt-1 border-t border-slate-100">
-          <FormField label={t('crm:newCustomerModal.fieldNotes')} htmlFor="customer-type">
-            <Select
-              id="customer-type"
+        <div className="space-y-3 pt-2 border-t border-border-subtle">
+          <FormField label={t('crm:newCustomerModal.fieldNotes', 'Ghi chú & Loại khách hàng')} htmlFor="customer-type">
+            <CustomFilterSelect
               value={customerType}
-              onChange={(e) => setCustomerType(e.target.value)}
-            >
-              <option value="">{t('crm:newCustomerModal.customerTypePlaceholder')}</option>
-              <option value="lead">{t('crm:newCustomerModal.customerTypes.lead')}</option>
-              <option value="vip">{t('crm:newCustomerModal.customerTypes.vip')}</option>
-              <option value="loyal">{t('crm:newCustomerModal.customerTypes.loyal')}</option>
-              <option value="sme">{t('crm:newCustomerModal.customerTypes.sme')}</option>
-              <option value="enterprise">{t('crm:newCustomerModal.customerTypes.enterprise')}</option>
-              <option value="individual">{t('crm:newCustomerModal.customerTypes.individual')}</option>
-              <option value="other">{t('crm:newCustomerModal.customerTypeOther')}</option>
-            </Select>
+              onChange={setCustomerType}
+              position="top"
+              options={[
+                { value: '', label: t('crm:newCustomerModal.customerTypePlaceholder', '-- Chọn phân loại khách hàng --') },
+                { value: 'lead', label: t('crm:newCustomerModal.customerTypes.lead', 'Khách hàng tiềm năng') },
+                { value: 'vip', label: t('crm:newCustomerModal.customerTypes.vip', 'Khách hàng VIP') },
+                { value: 'loyal', label: t('crm:newCustomerModal.customerTypes.loyal', 'Khách hàng thân thiết') },
+                { value: 'sme', label: t('crm:newCustomerModal.customerTypes.sme', 'Doanh nghiệp SME') },
+                { value: 'enterprise', label: t('crm:newCustomerModal.customerTypes.enterprise', 'Tập đoàn / Doanh nghiệp lớn') },
+                { value: 'individual', label: t('crm:newCustomerModal.customerTypes.individual', 'Khách hàng cá nhân') },
+                { value: 'other', label: t('crm:newCustomerModal.customerTypeOther', 'Khác (Tự điền ghi chú)') },
+              ]}
+            />
           </FormField>
 
           {customerType === 'other' && (
-            <FormField label={t('crm:newCustomerModal.customNotesLabel')} htmlFor="customer-custom-notes">
+            <FormField label={t('crm:newCustomerModal.customNotesLabel', 'Chi tiết ghi chú (tự điền)')} htmlFor="customer-custom-notes">
               <Textarea
                 id="customer-custom-notes"
                 value={customNotes}
                 onChange={(e) => setCustomNotes(e.target.value)}
-                placeholder={t('crm:newCustomerModal.notesPlaceholder')}
+                placeholder={t('crm:newCustomerModal.notesPlaceholder', 'Nhập ghi chú hoặc thông tin cụ thể về khách hàng…')}
                 className="animate-fade-in"
               />
             </FormField>
           )}
-        </div>
-        <div className="flex justify-end gap-2 pt-1">
-          {/* 26/08/2026: them disabled={createCustomer.isPending} - nut Huy nay truoc do goi thang
-              handleClose khong dieu kien, la 1 duong dong khong bi chan boi preventCloseWhilePending
-              (prop do chi chan X/Escape/backdrop trong Modal.tsx, khong bao trum nut tu viet trong
-              modal con) - mirror dung disabled đã co san o DepartmentModal.tsx/UploadModal.tsx. */}
-          <Button type="button" variant="outline" onClick={handleClose} disabled={createCustomer.isPending}>
-            {t('crm:newCustomerModal.cancel')}
-          </Button>
-          <Button type="submit" isLoading={createCustomer.isPending}>
-            {t('crm:newCustomerModal.submit')}
-          </Button>
         </div>
       </form>
     </Modal>

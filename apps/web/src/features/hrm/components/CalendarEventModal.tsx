@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
-import { Button } from '@/components/ui/Button';
 import { FormField, Input, Textarea } from '@/components/ui/Input';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { cn } from '@/lib/utils';
@@ -112,87 +111,123 @@ export function CalendarEventModal({
       : t('hrm:calendarEventModal.createTitle');
 
   return (
-    <Modal open={open} onClose={onClose} preventCloseWhilePending={isPending} title={modalTitle} size="sm">
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <fieldset disabled={readOnly} className="space-y-4">
-          {/* Cong tac dang segmented control chon loai muc lich - mirror FolderShareModal.tsx. */}
-          <div className="flex gap-1 rounded-xl bg-slate-100/80 p-1 text-xs">
-            {typeOptions.map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => setType(opt)}
-                className={cn(
-                  'flex-1 rounded-lg py-1.5 font-semibold transition-all cursor-pointer disabled:cursor-not-allowed',
-                  type === opt ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800',
-                )}
-              >
-                {t(`hrm:calendarEventModal.type.${opt}`)}
-              </button>
-            ))}
-          </div>
-
-          {/* 17/09/2026: HOLIDAY gio co anh huong THAT (chan cham cong toan to chuc + gui thong bao),
-              khong con thuan tuy trang tri nhu truoc - canh bao ro cho nguoi co quyen biet truoc khi luu. */}
-          {type === 'HOLIDAY' && (
-            <p className="rounded-lg bg-amber-50 border border-amber-200/60 px-3 py-2 text-xs text-amber-800">
-              {t('hrm:calendarEventModal.holidayHint')}
-            </p>
-          )}
-
-          <FormField label={t('hrm:calendarEventModal.titleLabel')} htmlFor="calendar-event-title" error={error} required>
-            <Input
-              id="calendar-event-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t('hrm:calendarEventModal.titlePlaceholder')}
-            />
-          </FormField>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5" htmlFor="calendar-event-start-date">
-                {t('hrm:calendarEventModal.startDateLabel')} <span className="text-rose-500">*</span>
-              </label>
-              <DatePicker id="calendar-event-start-date" value={startDate} onChange={setStartDate} />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5" htmlFor="calendar-event-end-date">
-                {t('hrm:calendarEventModal.endDateLabel')}
-              </label>
-              <DatePicker id="calendar-event-end-date" value={endDate} onChange={setEndDate} minDate={startDate || undefined} align="right" />
-            </div>
-          </div>
-
-          <FormField label={t('hrm:calendarEventModal.descriptionLabel')} htmlFor="calendar-event-description">
-            <Textarea id="calendar-event-description" value={description} onChange={(e) => setDescription(e.target.value)} />
-          </FormField>
-        </fieldset>
-
-        <div className="flex items-center justify-between gap-2 pt-1">
+    <Modal
+      open={open}
+      onClose={onClose}
+      preventCloseWhilePending={isPending}
+      title={<span className="text-[16px] leading-[24px] font-semibold text-text-primary">{modalTitle}</span>}
+      size="sm"
+      footer={
+        <div className="flex items-center justify-between gap-2 w-full">
           {!readOnly && isEditing && calendarEvent && onDelete ? (
             <button
               type="button"
               onClick={() => onDelete(calendarEvent)}
               disabled={isPending}
-              className="text-sm font-medium text-rose-600 hover:text-rose-700 disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
+              className="text-[13px] font-medium text-[#B3261E] hover:underline disabled:pointer-events-none disabled:opacity-50 cursor-pointer"
             >
               {t('hrm:calendarEventModal.delete')}
             </button>
           ) : (
             <span />
           )}
-          <div className="flex gap-2">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isPending}
+              className="inline-flex items-center justify-center h-9 px-4 rounded-radius-sm border border-border-strong bg-white hover:bg-bg-subtle text-[13px] font-medium text-text-primary transition-colors cursor-pointer disabled:pointer-events-none disabled:opacity-50"
+            >
               {readOnly ? t('common:actions.close') : t('hrm:calendarEventModal.cancel')}
-            </Button>
+            </button>
             {!readOnly && (
-              <Button type="submit" isLoading={isPending}>
-                {isEditing ? t('hrm:calendarEventModal.saveChanges') : t('hrm:calendarEventModal.create')}
-              </Button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={isPending}
+                className="inline-flex items-center justify-center h-9 px-4 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer disabled:pointer-events-none disabled:opacity-50"
+              >
+                {isPending
+                  ? t('common:status.loading')
+                  : isEditing
+                    ? t('hrm:calendarEventModal.saveChanges')
+                    : t('hrm:calendarEventModal.create')}
+              </button>
             )}
           </div>
         </div>
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4 max-h-[min(640px,calc(100vh-80px))] overflow-y-auto" noValidate>
+        <fieldset disabled={readOnly} className="space-y-4">
+          {/* 1. Segmented Control 2 tab (nền bg-subtle, active nền trắng + Ink w600 + border subtle): Sự kiện | Ngày lễ. Icon 14px */}
+          <div className="flex gap-1 rounded-radius-sm bg-bg-subtle p-1 text-[13px]">
+            {typeOptions.map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => setType(opt)}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-1.5 rounded-radius-xs py-1.5 font-medium transition-all cursor-pointer disabled:cursor-not-allowed',
+                  type === opt
+                    ? 'border border-border-subtle bg-white text-text-primary font-semibold'
+                    : 'text-text-secondary hover:text-text-primary',
+                )}
+              >
+                <span
+                  className={cn(
+                    'h-2 w-2 rounded-full shrink-0',
+                    opt === 'HOLIDAY' ? 'bg-[#B3261E]' : 'bg-[#0E5E5E]',
+                  )}
+                />
+                <span>{t(`hrm:calendarEventModal.type.${opt}`)}</span>
+              </button>
+            ))}
+          </div>
+
+          {type === 'HOLIDAY' && (
+            <p className="rounded-radius-xs bg-[#FBEEE0] border border-[#B45309]/20 px-3 py-2 text-[12px] text-[#B45309]">
+              {t('hrm:calendarEventModal.holidayHint')}
+            </p>
+          )}
+
+          {/* 2. Tiêu đề *: input, placeholder Ví dụ: Nghỉ Tết Nguyên Đán */}
+          <FormField label={t('hrm:calendarEventModal.titleLabel')} htmlFor="calendar-event-title" error={error} required>
+            <input
+              id="calendar-event-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t('hrm:calendarEventModal.titlePlaceholder')}
+              className="h-9 w-full rounded-radius-sm border border-border-strong bg-white px-3 text-[13px] text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none"
+            />
+          </FormField>
+
+          {/* 3. Row 2 cột: Ngày bắt đầu * / Ngày kết thúc — DatePicker Module 07, mono */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[12px] font-medium text-text-secondary mb-1" htmlFor="calendar-event-start-date">
+                {t('hrm:calendarEventModal.startDateLabel')} <span className="text-[#B3261E]">*</span>
+              </label>
+              <DatePicker id="calendar-event-start-date" value={startDate} onChange={setStartDate} position="bottom" />
+            </div>
+            <div>
+              <label className="block text-[12px] font-medium text-text-secondary mb-1" htmlFor="calendar-event-end-date">
+                {t('hrm:calendarEventModal.endDateLabel')}
+              </label>
+              <DatePicker id="calendar-event-end-date" value={endDate} onChange={setEndDate} minDate={startDate || undefined} align="right" position="bottom" />
+            </div>
+          </div>
+
+          {/* 4. Mô tả: textarea min-h 80 */}
+          <FormField label={t('hrm:calendarEventModal.descriptionLabel')} htmlFor="calendar-event-description">
+            <Textarea
+              id="calendar-event-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="min-h-[80px]"
+            />
+          </FormField>
+        </fieldset>
       </form>
     </Modal>
   );

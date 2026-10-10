@@ -205,165 +205,164 @@ export function RolesPermissionsPage() {
       errorTitle={t('admin:rolesPermissionsPage.errorTitle')}
     >
       {roles.length === 0 || permissions.length === 0 ? (
-        <Card className="p-6">
-          <EmptyState icon={<ShieldIcon className="h-8 w-8" />} title={t('admin:rolesPermissionsPage.emptyTitle')} />
-        </Card>
+        <div className="rounded-radius-md border border-border-subtle bg-white p-6">
+          <EmptyState icon={<ShieldIcon className="h-8 w-8 text-text-tertiary" />} title={t('admin:rolesPermissionsPage.emptyTitle')} />
+        </div>
       ) : (
-        <Card className="overflow-hidden border border-slate-200/80 shadow-2xs">
-          <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-3">
-            <p className="text-xs text-slate-500">{t('admin:rolesPermissionsPage.hint')}</p>
+        <div className="space-y-4">
+          {/* Banner mô tả: nền bg-subtle, radius 8, padding 12, font 13/400 text-secondary */}
+          <div className="rounded-radius-md border border-border-subtle bg-bg-subtle p-3 text-[13px] leading-5 text-text-secondary">
+            {t('admin:rolesPermissionsPage.hint')}
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] table-fixed border-collapse text-sm">
-              <colgroup>
-                {/* Cột tên quyền chiếm phần lớn không gian, các cột vai trò chia đều tỉ lệ cố định */}
-                <col className="w-auto" />
-                {roles.map((r) => (
-                  <col key={r.id} className="w-36 sm:w-44" />
-                ))}
-              </colgroup>
+          <div className="rounded-radius-md border border-border-subtle bg-white overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[700px] table-fixed border-collapse text-sm">
+                <colgroup>
+                  {/* Cột tên quyền chiếm phần lớn không gian, các cột vai trò chia đều tỉ lệ cố định */}
+                  <col className="w-auto" />
+                  {roles.map((r) => (
+                    <col key={r.id} className="w-36 sm:w-44" />
+                  ))}
+                </colgroup>
 
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/80">
-                  <th className="sticky left-0 z-20 bg-slate-50 px-5 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-600">
-                    {t('admin:rolesPermissionsPage.permissionColumn')}
-                  </th>
-                  {roles.map((r) => {
-                    const isLocked = isOrgAdminRole(r.name);
-                    const localizedRoleName = formatRoleName(r.name, t);
-
-                    return (
-                      <th key={r.id} className="px-4 py-4 text-center text-xs font-semibold uppercase tracking-wider text-slate-700">
-                        <div className="flex w-full items-center justify-center text-center">
-                          <span className="inline-flex items-center justify-center gap-1.5 font-bold text-slate-800">
-                            {localizedRoleName}
-                            {isLocked && (
-                              <span title={t('admin:rolesPermissionsPage.lockedTooltip')}>
-                                <LockIcon className="h-3.5 w-3.5 text-slate-500" />
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-
-              <tbody>
-                {groupedModules.map((mod, modIdx) => (
-                  <Fragment key={mod.key}>
-                    {/* Hàng tiêu đề nhóm phân hệ module: nền xám nhạt trung tính, border-y, typography đậm nét, pill đếm số quyền */}
-                    <tr className={`border-y border-slate-200/80 bg-slate-50/80 ${modIdx > 0 ? 'border-t-2 border-t-slate-200' : ''}`}>
-                      <td className="sticky left-0 z-10 bg-slate-50/95 px-5 py-2.5">
-                        <div className="flex items-center gap-2.5">
-                          <span className="text-xs font-semibold text-slate-800 tracking-wide">
-                            {mod.name}
-                          </span>
-                          <span className="inline-flex items-center rounded-full bg-slate-200/60 px-2 py-0.5 text-xs font-normal text-slate-600">
-                            {mod.permissions.length}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Các ô chọn hàng loạt cho từng vai trò trong module này: căn giữa tuyệt đối */}
-                      {roles.map((r) => {
-                        const isLocked = isOrgAdminRole(r.name);
-                        const modKeys = mod.permissions.map((p) => p.key);
-                        const allModSelected = modKeys.length > 0 && modKeys.every((k) => r.permissionKeys.includes(k));
-
-                        return (
-                          <td key={r.id} className="px-4 py-2.5 text-center">
-                            <div className="flex w-full items-center justify-center">
-                              {isLocked ? (
-                                <div className="flex h-5 w-5 items-center justify-center">
-                                  <span className="inline-flex h-4 w-4 items-center justify-center rounded border border-slate-200 bg-slate-100 text-[10px] text-slate-400 font-bold cursor-not-allowed select-none" title={t('admin:rolesPermissionsPage.lockedTooltip')}>
-                                    ✓
-                                  </span>
-                                </div>
-                              ) : (
-                                <label
-                                  className="group flex flex-col items-center justify-center gap-0.5 cursor-pointer"
-                                  title={t('admin:rolesPermissionsPage.selectAllModule')}
-                                >
-                                  <div className="flex h-5 w-5 items-center justify-center">
-                                    <Checkbox
-                                      checked={allModSelected}
-                                      disabled={updatePermissions.isPending}
-                                      onChange={() => toggleModulePermissions(r, mod.permissions)}
-                                      aria-label={t('admin:rolesPermissionsPage.moduleSelectAllAria', {
-                                        roleName: r.name,
-                                        groupName: mod.name,
-                                      })}
-                                      className="cursor-pointer"
-                                    />
-                                  </div>
-                                  <span className="text-[10px] font-medium normal-case text-indigo-600 group-hover:text-indigo-700 leading-none">
-                                    {t('admin:rolesPermissionsPage.selectAll')}
-                                  </span>
-                                </label>
-                              )}
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-
-                    {/* Các dòng quyền cụ thể trong module: typography thoáng, viền border-b nhẹ */}
-                    {mod.permissions.map((p) => {
-                      const meta = PERMISSION_META[p.key];
-                      const safeKey = p.key.replace(':', '_');
-                      const translationKey = `admin:rolesPermissionsPage.permissions.${safeKey}`;
-                      const displayTitle = t(translationKey, { defaultValue: meta?.label ?? p.description ?? p.key });
+                <thead>
+                  <tr className="border-b border-border-subtle bg-bg-subtle">
+                    <th className="sticky left-0 z-20 bg-bg-subtle px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+                      {t('admin:rolesPermissionsPage.permissionColumn')}
+                    </th>
+                    {roles.map((r) => {
+                      const isLocked = isOrgAdminRole(r.name);
+                      const localizedRoleName = formatRoleName(r.name, t);
 
                       return (
-                        <tr key={p.key} className="border-b border-slate-100 hover:bg-slate-50/70 transition-colors">
-                          <td className="sticky left-0 z-10 bg-white px-5 py-3.5">
-                            <span className="text-sm font-medium text-slate-800">
-                              {displayTitle}
+                        <th key={r.id} className="px-4 py-3 text-center text-[12px] font-semibold text-text-primary">
+                          <div className="flex w-full items-center justify-center text-center">
+                            <span className="inline-flex items-center justify-center gap-1.5 font-semibold text-text-primary">
+                              {localizedRoleName}
+                              {isLocked && (
+                                <span title={t('admin:rolesPermissionsPage.lockedTooltip')}>
+                                  <LockIcon className="h-3 w-3 text-text-tertiary" />
+                                </span>
+                              )}
                             </span>
-                          </td>
-
-                          {roles.map((r) => {
-                            const isLocked = isOrgAdminRole(r.name);
-                            const isChecked = isLocked ? true : r.permissionKeys.includes(p.key);
-
-                            return (
-                              <td key={r.id} className="px-4 py-3.5 text-center">
-                                <div className="flex w-full items-center justify-center">
-                                  {isLocked ? (
-                                    <span
-                                      className="inline-flex h-4 w-4 items-center justify-center rounded border border-slate-200 bg-slate-100 text-[10px] text-slate-400 font-bold cursor-not-allowed select-none"
-                                      title={t('admin:rolesPermissionsPage.lockedTooltip')}
-                                    >
-                                      ✓
-                                    </span>
-                                  ) : (
-                                    <Checkbox
-                                      checked={isChecked}
-                                      onChange={() => togglePermission(r, p.key)}
-                                      disabled={updatePermissions.isPending}
-                                      className="cursor-pointer"
-                                      aria-label={t('admin:rolesPermissionsPage.checkboxAriaLabel', {
-                                        roleName: r.name,
-                                        permissionLabel: displayTitle,
-                                      })}
-                                    />
-                                  )}
-                                </div>
-                              </td>
-                            );
-                          })}
-                        </tr>
+                          </div>
+                        </th>
                       );
                     })}
-                  </Fragment>
-                ))}
-              </tbody>
-            </table>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {groupedModules.map((mod, modIdx) => (
+                    <Fragment key={mod.key}>
+                      {/* Hàng tiêu đề nhóm phân hệ module: nền bg-subtle, border-y, typography đậm nét, pill đếm số quyền */}
+                      <tr className={`border-y border-border-subtle bg-bg-subtle/80 ${modIdx > 0 ? 'border-t-2 border-t-border-subtle' : ''}`}>
+                        <td className="sticky left-0 z-10 bg-bg-subtle px-5 py-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[12px] font-semibold text-text-primary tracking-wide">
+                              {mod.name}
+                            </span>
+                            <span className="inline-flex items-center rounded-full bg-border-subtle px-2 py-0.5 text-[11px] font-medium text-text-secondary font-mono tabular-nums">
+                              {mod.permissions.length}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Các ô chọn hàng loạt cho từng vai trò trong module này */}
+                        {roles.map((r) => {
+                          const isLocked = isOrgAdminRole(r.name);
+                          const modKeys = mod.permissions.map((p) => p.key);
+                          const allModSelected = modKeys.length > 0 && modKeys.every((k) => r.permissionKeys.includes(k));
+
+                          return (
+                            <td key={r.id} className="px-4 py-2 text-center">
+                              <div className="flex w-full items-center justify-center">
+                                {isLocked ? (
+                                  <div className="flex h-7 items-center justify-center">
+                                    <span
+                                      className="inline-flex h-4 w-4 items-center justify-center rounded-[2px] border border-dashed border-border-strong bg-bg-muted text-text-tertiary cursor-not-allowed select-none"
+                                      title={t('admin:rolesPermissionsPage.lockedTooltip')}
+                                    >
+                                      <LockIcon className="h-3 w-3 text-text-secondary" />
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleModulePermissions(r, mod.permissions)}
+                                    disabled={updatePermissions.isPending}
+                                    title={t('admin:rolesPermissionsPage.selectAllModule')}
+                                    aria-label={t('admin:rolesPermissionsPage.moduleSelectAllAria', {
+                                      roleName: r.name,
+                                      groupName: mod.name,
+                                    })}
+                                    className="inline-flex items-center justify-center h-7 px-2.5 rounded-radius-sm border border-border-strong bg-white hover:bg-bg-subtle text-[11px] font-medium text-text-secondary hover:text-text-primary transition-colors cursor-pointer disabled:opacity-50 select-none"
+                                  >
+                                    {allModSelected ? '✓ ' : ''}{t('admin:rolesPermissionsPage.selectAll')}
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+
+                      {/* Các dòng quyền cụ thể trong module: typography thoáng, viền border-b nhẹ */}
+                      {mod.permissions.map((p) => {
+                        const meta = PERMISSION_META[p.key];
+                        const safeKey = p.key.replace(':', '_');
+                        const translationKey = `admin:rolesPermissionsPage.permissions.${safeKey}`;
+                        const displayTitle = t(translationKey, { defaultValue: meta?.label ?? p.description ?? p.key });
+
+                        return (
+                          <tr key={p.key} className="border-b border-border-subtle hover:bg-bg-subtle transition-colors">
+                            <td className="sticky left-0 z-10 bg-white px-5 py-3">
+                              <span className="text-[13px] font-medium text-text-primary">
+                                {displayTitle}
+                              </span>
+                            </td>
+
+                            {roles.map((r) => {
+                              const isLocked = isOrgAdminRole(r.name);
+                              const isChecked = isLocked ? true : r.permissionKeys.includes(p.key);
+
+                              return (
+                                <td key={r.id} className="px-4 py-3 text-center">
+                                  <div className="flex w-full items-center justify-center">
+                                    {isLocked ? (
+                                      <span
+                                        className="inline-flex h-4 w-4 items-center justify-center rounded-[2px] border border-dashed border-border-strong bg-bg-muted cursor-not-allowed select-none"
+                                        title={t('admin:rolesPermissionsPage.lockedTooltip')}
+                                      >
+                                        <LockIcon className="h-3 w-3 text-text-secondary" />
+                                      </span>
+                                    ) : (
+                                      <Checkbox
+                                        checked={isChecked}
+                                        onChange={() => togglePermission(r, p.key)}
+                                        disabled={updatePermissions.isPending}
+                                        className="h-4 w-4 rounded-[2px] cursor-pointer"
+                                        aria-label={t('admin:rolesPermissionsPage.checkboxAriaLabel', {
+                                          roleName: r.name,
+                                          permissionLabel: displayTitle,
+                                        })}
+                                      />
+                                    )}
+                                  </div>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </Card>
+        </div>
       )}
     </QueryState>
   );

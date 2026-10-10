@@ -47,19 +47,19 @@ export function RoleCheckboxList({
             key={role.id}
             onClick={() => toggle(role.id)}
             className={cn(
-              'group relative flex items-center justify-between gap-3 rounded-xl border p-3 cursor-pointer transition-all duration-200 select-none shadow-2xs',
+              'group relative flex items-center justify-between gap-3 rounded-radius-md border p-3 cursor-pointer transition-all duration-200 select-none',
               isSelected
-                ? 'border-indigo-500/80 bg-indigo-50/40 ring-1 ring-indigo-500/20 shadow-xs'
-                : 'border-slate-200/90 bg-white hover:border-slate-300 hover:bg-slate-50/60',
+                ? 'border-accent bg-accent-soft/30 ring-1 ring-accent'
+                : 'border-border-subtle bg-white hover:border-border-strong hover:bg-bg-subtle',
             )}
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <span
                 className={cn(
-                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors',
+                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-radius-sm border transition-colors',
                   isSelected
-                    ? 'border-indigo-200 bg-indigo-100/70 text-indigo-700'
-                    : 'border-slate-200/80 bg-slate-50 text-slate-500 group-hover:text-slate-700',
+                    ? 'border-accent/20 bg-accent-soft text-accent'
+                    : 'border-border-subtle bg-bg-subtle text-text-secondary group-hover:text-text-primary',
                 )}
               >
                 <ShieldIcon className="h-4 w-4" />
@@ -67,13 +67,13 @@ export function RoleCheckboxList({
               <div className="min-w-0">
                 <span
                   className={cn(
-                    'block text-xs font-bold leading-tight transition-colors truncate',
-                    isSelected ? 'text-indigo-950' : 'text-slate-800',
+                    'block text-[13px] font-semibold leading-tight transition-colors truncate',
+                    isSelected ? 'text-text-primary' : 'text-text-secondary',
                   )}
                 >
                   {roleLabel}
                 </span>
-                <span className="block text-[11px] text-slate-400 truncate mt-0.5">
+                <span className="block text-[11px] text-text-tertiary truncate mt-0.5">
                   {role.name !== roleLabel ? role.name : t('admin:rolesPermissionsPage.groups.iam')}
                 </span>
               </div>
@@ -82,13 +82,13 @@ export function RoleCheckboxList({
             {/* Custom Checkbox indicator */}
             <div
               className={cn(
-                'flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all duration-150',
+                'flex h-4 w-4 shrink-0 items-center justify-center rounded-[2px] border transition-all duration-150',
                 isSelected
-                  ? 'border-indigo-600 bg-indigo-600 text-white shadow-xs'
-                  : 'border-slate-300 bg-white group-hover:border-slate-400',
+                  ? 'border-text-primary bg-text-primary text-white'
+                  : 'border-border-strong bg-white group-hover:border-text-secondary',
               )}
             >
-              {isSelected && <CheckIcon className="h-3.5 w-3.5 stroke-[2.5]" />}
+              {isSelected && <CheckIcon className="h-3 w-3 stroke-[2.5]" />}
             </div>
           </div>
         );

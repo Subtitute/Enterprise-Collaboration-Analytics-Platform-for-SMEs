@@ -24,52 +24,37 @@ import type { User } from '@/types';
 const LIMIT = 15;
 
 /**
- * Chuẩn hóa nhãn và màu sắc ngữ cảnh cho Role Badge (hỗ trợ đa ngôn ngữ):
- * - Admin (Quản trị viên / Org Admin): bg-indigo-50 text-indigo-700 border-indigo-200/60
- * - Manager (Quản lý): bg-purple-50 text-purple-700 border-purple-200/60
- * - Employee (Nhân viên): bg-slate-100 text-slate-700 border-slate-200/60
+ * Chuẩn hóa nhãn và màu sắc ngữ cảnh cho Role Badge:
+ * - Admin: bg-accent-soft text-accent border-accent/20
+ * - Manager: bg-info-soft text-info border-info/20
+ * - Employee: bg-subtle text-secondary border-border-subtle
  */
 function getRoleBadgeConfig(roleName: string, t?: (key: string) => string) {
   const lower = roleName.trim().toLowerCase();
-  // 16/09/2026: bo cac nhanh khop tieng Viet ('quản trị'/'quản lý'/'nhân viên') o 3 dieu kien
-  // if() ben duoi - Role.name luon la tieng Anh ('Org Admin'/'Manager'/'Employee', xem
-  // DefaultRoleName trong packages/common-dto), khong co endpoint doi ten vai tro nao ca nen cac
-  // nhanh nay khong bao gio khop (dead code) va vi pham linter hardcode tieng Viet. Chuoi tieng
-  // Viet trong bien `label` ben duoi la truong hop khac (fallback co chu y khi khong truyen t),
-  // xem comment rieng ngay canh no.
   if (lower.includes('admin')) {
-    // Fallback co chu y, chi dung khi ham nay duoc goi ma khong truyen t vao (tham so t la
-    // optional) - minh giu nguyen dung chuoi that trong vi/admin.json (key admin:roles.orgAdmin)
-    // de 2 nguon luon khop nhau, day khong phai UI copy hardcode. i18n-lint-ignore (16/09/2026)
     const label = t ? t('admin:roles.orgAdmin') : 'Quản trị viên tổ chức';
     return {
       label,
-      className: 'bg-indigo-50 text-indigo-700 border border-indigo-200/70 font-medium',
+      className: 'bg-accent-soft text-accent border border-accent/20 font-medium',
     };
   }
   if (lower.includes('manager')) {
-    // Fallback co chu y, chi dung khi ham nay duoc goi ma khong truyen t vao - minh giu nguyen
-    // dung chuoi that trong vi/admin.json (key admin:roles.manager) de 2 nguon luon khop nhau,
-    // day khong phai UI copy hardcode. i18n-lint-ignore (16/09/2026)
     const label = t ? t('admin:roles.manager') : 'Quản lý';
     return {
       label,
-      className: 'bg-purple-50 text-purple-700 border border-purple-200/70 font-medium',
+      className: 'bg-info-soft text-info border border-info/20 font-medium',
     };
   }
   if (lower.includes('employee')) {
-    // Fallback co chu y, chi dung khi ham nay duoc goi ma khong truyen t vao - minh giu nguyen
-    // dung chuoi that trong vi/admin.json (key admin:roles.employee) de 2 nguon luon khop nhau,
-    // day khong phai UI copy hardcode. i18n-lint-ignore (16/09/2026)
     const label = t ? t('admin:roles.employee') : 'Nhân viên';
     return {
       label,
-      className: 'bg-slate-100 text-slate-700 border border-slate-200 font-medium',
+      className: 'bg-bg-subtle text-text-secondary border border-border-subtle font-medium',
     };
   }
   return {
     label: roleName,
-    className: 'bg-slate-100 text-slate-700 border border-slate-200 font-medium',
+    className: 'bg-bg-subtle text-text-secondary border border-border-subtle font-medium',
   };
 }
 
@@ -133,57 +118,71 @@ export function MembersPage() {
     <div className="space-y-4">
       {/* Header dòng mô tả và nút mời thành viên */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-500">{t('admin:membersPage.description')}</p>
+        <p className="text-[13px] leading-5 text-text-secondary">{t('admin:membersPage.description')}</p>
         <div className="flex items-center gap-2">
           {/* 24/09/2026: "Nhap Excel" - nhap hang loat nhan vien tu file .xlsx, xem ImportEmployeesModal.tsx */}
-          <Button variant="outline" onClick={() => setIsImportOpen(true)}>
-            <UploadIcon className="h-4 w-4" /> {t('admin:membersPage.importExcel')}
-          </Button>
-          <Button onClick={() => setIsInviteOpen(true)}>
-            <PlusIcon className="h-4 w-4" /> {t('admin:membersPage.inviteMember')}
-          </Button>
+          <button
+            type="button"
+            onClick={() => setIsImportOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-sm border border-border-strong bg-white hover:bg-bg-subtle text-text-primary text-[13px] font-medium transition-colors cursor-pointer shrink-0"
+          >
+            <UploadIcon className="h-4 w-4 text-text-secondary" />
+            <span>{t('admin:membersPage.importExcel')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsInviteOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer shrink-0"
+          >
+            <PlusIcon className="h-3.5 w-3.5" />
+            <span>{t('admin:membersPage.inviteMember')}</span>
+          </button>
         </div>
       </div>
 
       {/* Thanh công cụ quản trị (Toolbar): Tìm kiếm + Lọc Phòng ban + Lọc Trạng thái */}
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200/80 bg-white p-3 shadow-2xs">
+      <div className="flex flex-wrap items-center gap-2.5 rounded-radius-md border border-border-subtle bg-white p-2.5">
         {/* Ô tìm kiếm theo tên hoặc email */}
         <div className="relative min-w-[240px] flex-1">
-          <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('admin:membersPage.searchPlaceholder')}
-            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-9 pr-3 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+            className="h-9 w-full rounded-radius-sm border border-border-strong bg-white pl-9 pr-3 text-[13px] text-text-primary placeholder:text-text-tertiary transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           />
         </div>
 
         {/* Dropdown lọc theo Phòng ban */}
-        <CustomFilterSelect
-          value={selectedDept}
-          onChange={(val) => setSelectedDept(val)}
-          ariaLabel={t('admin:membersPage.filterDepartmentAria')}
-          options={[
-            { value: '', label: t('admin:membersPage.allDepartments') },
-            ...(departmentsQuery.data ?? []).map((d) => ({
-              value: d.id,
-              label: d.name,
-            })),
-          ]}
-        />
+        <div className="w-[180px]">
+          <CustomFilterSelect
+            value={selectedDept}
+            onChange={(val) => setSelectedDept(val)}
+            ariaLabel={t('admin:membersPage.filterDepartmentAria')}
+            options={[
+              { value: '', label: t('admin:membersPage.allDepartments') },
+              ...(departmentsQuery.data ?? []).map((d) => ({
+                value: d.id,
+                label: d.name,
+              })),
+            ]}
+          />
+        </div>
 
         {/* Dropdown lọc theo Trạng thái hoạt động */}
-        <CustomFilterSelect
-          value={selectedStatus}
-          onChange={(val) => setSelectedStatus(val)}
-          ariaLabel={t('admin:membersPage.filterStatusAria')}
-          options={[
-            { value: 'ALL', label: t('admin:membersPage.allStatuses') },
-            { value: 'ACTIVE', label: t('admin:membersPage.status.active') },
-            { value: 'INACTIVE', label: t('admin:membersPage.status.inactive') },
-          ]}
-        />
+        <div className="w-[170px]">
+          <CustomFilterSelect
+            value={selectedStatus}
+            onChange={(val) => setSelectedStatus(val)}
+            ariaLabel={t('admin:membersPage.filterStatusAria')}
+            options={[
+              { value: 'ALL', label: t('admin:membersPage.allStatuses') },
+              { value: 'ACTIVE', label: t('admin:membersPage.status.active') },
+              { value: 'INACTIVE', label: t('admin:membersPage.status.inactive') },
+            ]}
+          />
+        </div>
 
         {isFiltering && (
           <button
@@ -193,14 +192,14 @@ export function MembersPage() {
               setSelectedDept('');
               setSelectedStatus('ALL');
             }}
-            className="text-xs font-medium text-indigo-600 hover:text-indigo-700 px-2 py-1.5 rounded-lg hover:bg-indigo-50 transition-colors"
+            className="text-[12px] font-medium text-text-secondary hover:text-text-primary px-2 py-1.5 rounded-radius-sm hover:bg-bg-subtle transition-colors cursor-pointer"
           >
             {t('admin:membersPage.clearFilters')}
           </button>
         )}
       </div>
 
-      <Card>
+      <div className="rounded-radius-md border border-border-subtle bg-white overflow-hidden">
         <QueryState
           isLoading={usersQuery.isLoading}
           isError={usersQuery.isError}
@@ -210,67 +209,67 @@ export function MembersPage() {
         >
         {users.length === 0 ? (
           <div className="p-6">
-            <EmptyState icon={<UserIcon className="h-8 w-8" />} title={t('admin:membersPage.emptyTitle')} />
+            <EmptyState icon={<UserIcon className="h-8 w-8 text-text-tertiary" />} title={t('admin:membersPage.emptyTitle')} />
           </div>
         ) : filteredUsers.length === 0 ? (
           <div className="p-6">
             <EmptyState
-              icon={<SearchIcon className="h-8 w-8" />}
+              icon={<SearchIcon className="h-8 w-8 text-text-tertiary" />}
               title={t('admin:membersPage.noMatchTitle')}
               description={t('admin:membersPage.noMatchDescription')}
               action={
-                <Button
-                  variant="outline"
-                  size="sm"
+                <button
+                  type="button"
                   onClick={() => {
                     setSearch('');
                     setSelectedDept('');
                     setSelectedStatus('ALL');
                   }}
+                  className="inline-flex items-center justify-center h-8 px-3 rounded-radius-sm border border-border-strong bg-white hover:bg-bg-subtle text-[12px] font-medium text-text-primary cursor-pointer transition-colors"
                 >
                   {t('admin:membersPage.clearFilters')}
-                </Button>
+                </button>
               }
             />
           </div>
         ) : (
           <>
-            <Table>
-              <TableHead>
-                <tr>
-                  <TableHeadCell>{t('admin:membersPage.columns.member')}</TableHeadCell>
-                  <TableHeadCell>{t('admin:membersPage.columns.department')}</TableHeadCell>
-                  <TableHeadCell>{t('admin:membersPage.columns.role')}</TableHeadCell>
-                  <TableHeadCell>{t('admin:membersPage.columns.status')}</TableHeadCell>
-                  <TableHeadCell className="text-right">{t('admin:membersPage.columns.actions')}</TableHeadCell>
+            <Table className="border-0">
+              <TableHead className="bg-bg-subtle border-b border-border-subtle">
+                <tr className="h-10">
+                  <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.member')}</TableHeadCell>
+                  <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.department')}</TableHeadCell>
+                  <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.role')}</TableHeadCell>
+                  <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.status')}</TableHeadCell>
+                  <TableHeadCell className="text-right text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.actions')}</TableHeadCell>
                 </tr>
               </TableHead>
               <TableBody>
                 {filteredUsers.map((u) => (
-                  <TableRow key={u.id}>
-                    <TableCell label={t('admin:membersPage.columns.member')}>
+                  <TableRow key={u.id} className="h-14 border-b border-border-subtle hover:bg-bg-subtle transition-colors">
+                    <TableCell label={t('admin:membersPage.columns.member')} className="px-4 py-2.5">
                       <div className="flex items-center gap-2.5">
-                        <Avatar name={u.fullName} size="sm" />
+                        <Avatar name={u.fullName} size="sm" className="h-8 w-8 text-[11px] bg-accent-soft text-accent" />
                         <div className="min-w-0">
-                          <p className="truncate font-medium text-slate-800">{u.fullName}</p>
-                          <p className="truncate text-xs text-slate-400">{u.email}</p>
+                          <p className="truncate font-medium text-[13px] text-text-primary">{u.fullName}</p>
+                          <p className="truncate text-[12px] text-text-tertiary">{u.email}</p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell label={t('admin:membersPage.columns.department')} className="text-sm text-slate-600">
+                    <TableCell label={t('admin:membersPage.columns.department')} className="px-4 py-2.5 text-[13px] text-text-secondary">
                       {u.departmentId ? (departmentNameById[u.departmentId] ?? '—') : '—'}
                     </TableCell>
-                    <TableCell label={t('admin:membersPage.columns.role')}>
+                    <TableCell label={t('admin:membersPage.columns.role')} className="px-4 py-2.5">
                       <div className="flex flex-wrap gap-1">
                         {(u.roles ?? []).length === 0 ? (
-                          <span className="text-xs text-slate-400">—</span>
+                          <span className="text-[12px] text-text-tertiary">—</span>
                         ) : (
                           (u.roles ?? []).map((r) => {
                             const badgeCfg = getRoleBadgeConfig(r.name, t);
                             return (
                               <span
                                 key={r.id}
-                                className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs ${badgeCfg.className}`}
+                                className={`inline-flex items-center rounded-radius-sm px-2 py-0.5 text-[12px] ${badgeCfg.className}`}
                               >
                                 {badgeCfg.label}
                               </span>
@@ -279,12 +278,18 @@ export function MembersPage() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell label={t('admin:membersPage.columns.status')}>
-                      <Badge variant={u.isActive === false ? 'danger' : 'success'}>
-                        {u.isActive === false ? t('admin:membersPage.status.inactive') : t('admin:membersPage.status.active')}
-                      </Badge>
+                    <TableCell label={t('admin:membersPage.columns.status')} className="px-4 py-2.5">
+                      {u.isActive === false ? (
+                        <span className="inline-flex items-center rounded-radius-sm px-2 py-0.5 text-[12px] font-medium bg-bg-muted text-text-secondary border border-border-subtle">
+                          {t('admin:membersPage.status.inactive')}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-radius-sm px-2 py-0.5 text-[12px] font-medium bg-success-soft text-success border border-success/20">
+                          {t('admin:membersPage.status.active')}
+                        </span>
+                      )}
                     </TableCell>
-                    <TableCell label={t('admin:membersPage.columns.actions')} className="text-right">
+                    <TableCell label={t('admin:membersPage.columns.actions')} className="px-4 py-2.5 text-right">
                       {/* 17/09/2026: an (khong chi disable) toan bo menu hanh dong khi khong co
                           USER_MANAGE - moi hanh dong trong menu nay (sua vai tro/phong ban, vo hieu
                           hoa, kich hoat lai) deu can quyen do, khac voi nut "Moi thanh vien" o dau
@@ -294,8 +299,9 @@ export function MembersPage() {
                           align="right"
                           trigger={({ toggle }) => (
                             <button
+                              type="button"
                               onClick={toggle}
-                              className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                              className="rounded-radius-sm p-1.5 text-text-tertiary hover:bg-bg-subtle hover:text-text-primary cursor-pointer transition-colors"
                               aria-label={t('admin:membersPage.optionsAria')}
                             >
                               <MoreVerticalIcon className="h-4 w-4" />
@@ -366,7 +372,7 @@ export function MembersPage() {
           </>
         )}
         </QueryState>
-      </Card>
+      </div>
 
       <InviteMemberModal open={isInviteOpen} onClose={() => setIsInviteOpen(false)} />
       <ImportEmployeesModal open={isImportOpen} onClose={() => setIsImportOpen(false)} />

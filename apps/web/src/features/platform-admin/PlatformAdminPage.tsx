@@ -1,13 +1,9 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useAuthStore } from '@/stores/auth.store';
+import { createPortal } from 'react-dom';
 import { useLogout } from '@/features/auth/hooks';
 import { usePlatformOrganizationsQuery, usePlatformStatsQuery, useDeactivatePlatformOrganization, useReactivatePlatformOrganization } from './hooks';
-import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { Button } from '@/components/ui/Button';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
-import { ConfirmDialog } from '@/components/ui/Modal';
 import { Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow } from '@/components/ui/Table';
 import { Pagination } from '@/components/ui/Pagination';
 import { QueryState } from '@/components/ui/QueryState';
@@ -15,7 +11,7 @@ import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { KpiCard } from '@/features/dashboard/components/KpiCard';
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
-import { BuildingIcon, CheckCircleIcon, LockIcon, LogOutIcon, MoreVerticalIcon, RefreshIcon, UsersIcon } from '@/components/ui/Icons';
+import { AlertTriangleIcon, BuildingIcon, CascadeLogoIcon, LockIcon, LogOutIcon, MoreVerticalIcon, RefreshIcon } from '@/components/ui/Icons';
 import { formatDate } from '@/lib/utils';
 import type { PlatformOrganization } from '@/types';
 
@@ -29,7 +25,6 @@ const LIMIT = 15;
  */
 export function PlatformAdminPage() {
   const { t } = useTranslation();
-  const fullName = useAuthStore((s) => s.user?.fullName);
   const logout = useLogout();
   const [page, setPage] = useState(1);
   const [deactivatingOrg, setDeactivatingOrg] = useState<PlatformOrganization | null>(null);
@@ -43,60 +38,71 @@ export function PlatformAdminPage() {
   const meta = organizationsQuery.data?.meta ?? { page: 1, limit: LIMIT, total: 0 };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-primary-600 to-indigo-600 text-sm font-bold text-white">
-              EFS
+    <div className="min-h-screen bg-bg-canvas">
+      <header className="border-b border-border-subtle bg-white">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center text-text-primary">
+                <CascadeLogoIcon className="h-6 w-6 text-[#1C1B1A]" />
+              </span>
+              <span className="text-base font-semibold text-text-primary tracking-tight">EFS</span>
             </div>
+            <div className="h-5 w-px bg-border-subtle" aria-hidden="true" />
             <div>
-              <h1 className="font-display text-lg font-bold text-slate-900">{t('platformAdmin:page.title')}</h1>
-              <p className="text-xs text-slate-500">{fullName}</p>
+              <h1 className="text-[16px] leading-[24px] font-semibold text-text-primary">{t('platformAdmin:page.title')}</h1>
+              <p className="text-[12px] leading-[16px] font-normal text-text-tertiary">Super Admin</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
-            <Button variant="outline" size="sm" onClick={() => logout.mutate()} isLoading={logout.isPending}>
-              <LogOutIcon className="h-4 w-4" /> {t('platformAdmin:page.logout')}
-            </Button>
+            <button
+              type="button"
+              onClick={() => logout.mutate()}
+              disabled={logout.isPending}
+              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-radius-sm border border-border-strong bg-white px-3 text-[13px] font-medium text-text-primary transition-colors hover:bg-bg-subtle cursor-pointer disabled:opacity-50"
+            >
+              <LogOutIcon className="h-3.5 w-3.5 shrink-0" />
+              <span>{t('platformAdmin:page.logout')}</span>
+            </button>
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl space-y-4 px-4 py-6 sm:px-6">
-        <p className="text-sm text-slate-500">{t('platformAdmin:page.description')}</p>
+        <p className="text-[13px] leading-[20px] text-text-secondary">{t('platformAdmin:page.description')}</p>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <KpiCard
-            label={t('platformAdmin:stats.totalOrganizations')}
+            overline={t('platformAdmin:stats.totalOrganizations')}
             value={statsQuery.data?.totalOrganizations ?? '—'}
-            icon={<BuildingIcon className="h-5 w-5" />}
             isLoading={statsQuery.isLoading}
             isError={statsQuery.isError}
-            onRetry={() => statsQuery.refetch()}
+            onRetry={() => {
+              statsQuery.refetch();
+            }}
           />
           <KpiCard
-            label={t('platformAdmin:stats.activeOrganizations')}
+            overline={t('platformAdmin:stats.activeOrganizations')}
             value={statsQuery.data?.activeOrganizations ?? '—'}
-            icon={<CheckCircleIcon className="h-5 w-5" />}
-            accentClassName="bg-emerald-100 text-emerald-600"
             isLoading={statsQuery.isLoading}
             isError={statsQuery.isError}
-            onRetry={() => statsQuery.refetch()}
+            onRetry={() => {
+              statsQuery.refetch();
+            }}
           />
           <KpiCard
-            label={t('platformAdmin:stats.totalUsers')}
+            overline={t('platformAdmin:stats.totalUsers')}
             value={statsQuery.data?.totalUsers ?? '—'}
-            icon={<UsersIcon className="h-5 w-5" />}
-            accentClassName="bg-indigo-100 text-indigo-600"
             isLoading={statsQuery.isLoading}
             isError={statsQuery.isError}
-            onRetry={() => statsQuery.refetch()}
+            onRetry={() => {
+              statsQuery.refetch();
+            }}
           />
         </div>
 
-        <Card>
+        <div className="rounded-radius-md border border-border-subtle bg-white overflow-hidden">
           <QueryState
             isLoading={organizationsQuery.isLoading}
             isError={organizationsQuery.isError}
@@ -106,48 +112,55 @@ export function PlatformAdminPage() {
           >
             {organizations.length === 0 ? (
               <div className="p-6">
-                <EmptyState icon={<BuildingIcon className="h-8 w-8" />} title={t('platformAdmin:page.emptyTitle')} />
+                <EmptyState icon={<BuildingIcon className="h-8 w-8 text-text-tertiary" />} title={t('platformAdmin:page.emptyTitle')} />
               </div>
             ) : (
               <>
-                <Table>
-                  <TableHead>
-                    <tr>
-                      <TableHeadCell>{t('platformAdmin:page.columns.organization')}</TableHeadCell>
-                      <TableHeadCell>{t('platformAdmin:page.columns.taxCode')}</TableHeadCell>
-                      <TableHeadCell>{t('platformAdmin:page.columns.userCount')}</TableHeadCell>
-                      <TableHeadCell>{t('platformAdmin:page.columns.createdAt')}</TableHeadCell>
-                      <TableHeadCell>{t('platformAdmin:page.columns.status')}</TableHeadCell>
-                      <TableHeadCell className="text-right">{t('platformAdmin:page.columns.actions')}</TableHeadCell>
+                <Table className="border-0">
+                  <TableHead className="bg-bg-subtle border-b border-border-subtle">
+                    <tr className="h-10">
+                      <TableHeadCell className="h-10 text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('platformAdmin:page.columns.organization')}</TableHeadCell>
+                      <TableHeadCell className="h-10 text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('platformAdmin:page.columns.taxCode')}</TableHeadCell>
+                      <TableHeadCell className="h-10 text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('platformAdmin:page.columns.userCount')}</TableHeadCell>
+                      <TableHeadCell className="h-10 text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('platformAdmin:page.columns.createdAt')}</TableHeadCell>
+                      <TableHeadCell className="h-10 text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('platformAdmin:page.columns.status')}</TableHeadCell>
+                      <TableHeadCell className="h-10 text-right text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('platformAdmin:page.columns.actions')}</TableHeadCell>
                     </tr>
                   </TableHead>
                   <TableBody>
                     {organizations.map((org) => (
-                      <TableRow key={org.id}>
-                        <TableCell label={t('platformAdmin:page.columns.organization')} className="font-medium text-slate-800">
+                      <TableRow key={org.id} className="h-14 border-b border-border-subtle hover:bg-bg-subtle transition-colors">
+                        <TableCell label={t('platformAdmin:page.columns.organization')} className="px-4 py-2.5 font-medium text-[13px] text-text-primary">
                           {org.name}
                         </TableCell>
-                        <TableCell label={t('platformAdmin:page.columns.taxCode')} className="text-sm text-slate-600">
+                        <TableCell label={t('platformAdmin:page.columns.taxCode')} className="px-4 py-2.5 text-[13px] font-mono tabular-nums text-text-secondary">
                           {org.taxCode ?? '—'}
                         </TableCell>
-                        <TableCell label={t('platformAdmin:page.columns.userCount')} className="text-sm text-slate-600">
+                        <TableCell label={t('platformAdmin:page.columns.userCount')} className="px-4 py-2.5 text-[13px] font-mono tabular-nums font-medium text-text-secondary">
                           {org.userCount}
                         </TableCell>
-                        <TableCell label={t('platformAdmin:page.columns.createdAt')} className="text-sm text-slate-600">
+                        <TableCell label={t('platformAdmin:page.columns.createdAt')} className="px-4 py-2.5 text-[13px] font-mono tabular-nums font-medium text-text-secondary">
                           {formatDate(org.createdAt)}
                         </TableCell>
-                        <TableCell label={t('platformAdmin:page.columns.status')}>
-                          <Badge variant={org.isActive ? 'success' : 'danger'}>
-                            {org.isActive ? t('platformAdmin:page.status.active') : t('platformAdmin:page.status.inactive')}
-                          </Badge>
+                        <TableCell label={t('platformAdmin:page.columns.status')} className="px-4 py-2.5">
+                          {org.isActive ? (
+                            <span className="inline-flex items-center rounded-radius-sm px-2 py-0.5 text-[12px] font-medium bg-success-soft text-success border border-border-subtle">
+                              {t('platformAdmin:page.status.active')}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-radius-sm px-2 py-0.5 text-[12px] font-medium bg-error-soft text-error border border-border-subtle">
+                              {t('platformAdmin:page.status.inactive')}
+                            </span>
+                          )}
                         </TableCell>
-                        <TableCell label={t('platformAdmin:page.columns.actions')} className="text-right">
+                        <TableCell label={t('platformAdmin:page.columns.actions')} className="px-4 py-2.5 text-right">
                           <Dropdown
                             align="right"
                             trigger={({ toggle }) => (
                               <button
+                                type="button"
                                 onClick={toggle}
-                                className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-radius-sm text-text-tertiary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer"
                                 aria-label={t('platformAdmin:page.optionsAria')}
                               >
                                 <MoreVerticalIcon className="h-4 w-4" />
@@ -155,16 +168,16 @@ export function PlatformAdminPage() {
                             )}
                           >
                             {({ close }) => (
-                              <div className="w-52 py-1.5">
+                              <div className="w-48 p-1">
                                 {org.isActive ? (
                                   <DropdownItem
-                                    className="text-rose-600 hover:bg-rose-50"
+                                    className="text-error hover:bg-error-soft"
                                     onClick={() => {
                                       setDeactivatingOrg(org);
                                       close();
                                     }}
                                   >
-                                    <LockIcon className="h-4 w-4" /> {t('platformAdmin:page.actionsMenu.deactivate')}
+                                    <LockIcon className="h-4 w-4 shrink-0" /> {t('platformAdmin:page.actionsMenu.deactivate')}
                                   </DropdownItem>
                                 ) : (
                                   <DropdownItem
@@ -173,7 +186,7 @@ export function PlatformAdminPage() {
                                       close();
                                     }}
                                   >
-                                    <RefreshIcon className="h-4 w-4" /> {t('platformAdmin:page.actionsMenu.reactivate')}
+                                    <RefreshIcon className="h-4 w-4 shrink-0 text-text-secondary" /> {t('platformAdmin:page.actionsMenu.reactivate')}
                                   </DropdownItem>
                                 )}
                               </div>
@@ -188,23 +201,93 @@ export function PlatformAdminPage() {
               </>
             )}
           </QueryState>
-        </Card>
+        </div>
       </main>
 
-      <ConfirmDialog
-        open={Boolean(deactivatingOrg)}
+      <DeactivateConfirmModal
+        org={deactivatingOrg}
+        isLoading={deactivateOrg.isPending}
         onClose={() => setDeactivatingOrg(null)}
         onConfirm={() => {
-          if (deactivatingOrg) deactivateOrg.mutate(deactivatingOrg.id);
-          setDeactivatingOrg(null);
+          if (deactivatingOrg) {
+            deactivateOrg.mutate(deactivatingOrg.id, {
+              onSettled: () => setDeactivatingOrg(null),
+            });
+          }
         }}
-        title={t('platformAdmin:page.deactivateConfirm.title')}
-        description={
-          deactivatingOrg ? t('platformAdmin:page.deactivateConfirm.description', { name: deactivatingOrg.name }) : undefined
-        }
-        confirmLabel={t('platformAdmin:page.deactivateConfirm.confirmLabel')}
-        danger
       />
     </div>
   );
 }
+
+function DeactivateConfirmModal({
+  org,
+  isLoading,
+  onClose,
+  onConfirm,
+}: {
+  org: PlatformOrganization | null;
+  isLoading?: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const { t } = useTranslation();
+  const cancelBtnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (org) {
+      // Focus mac dinh vao nut Huy de ngan chan bam nham khoa to chuc
+      const timer = setTimeout(() => {
+        cancelBtnRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [org]);
+
+  if (!org) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-[#1C1B1A]/50 animate-fade-in" onClick={onClose} aria-hidden />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="deactivate-dialog-title"
+        className="relative z-10 w-full max-w-[360px] rounded-radius-lg border border-border-subtle bg-white p-6 shadow-lg animate-slide-up"
+      >
+        <div className="flex flex-col items-center text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-warning-soft text-warning">
+            <AlertTriangleIcon className="h-8 w-8 text-[#B45309]" />
+          </div>
+          <h2 id="deactivate-dialog-title" className="mt-3 text-[16px] leading-[24px] font-semibold text-text-primary">
+            {t('platformAdmin:page.deactivateConfirm.title')}
+          </h2>
+          <p className="mt-2 text-[13px] leading-[20px] text-text-secondary">
+            {t('platformAdmin:page.deactivateConfirm.description', { name: org.name })}
+          </p>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            ref={cancelBtnRef}
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-9 items-center justify-center rounded-radius-sm border border-border-strong bg-white px-4 text-[13px] font-medium text-text-primary hover:bg-bg-subtle transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-soft"
+          >
+            {t('common:actions.cancel')}
+          </button>
+          <button
+            type="button"
+            disabled={isLoading}
+            onClick={onConfirm}
+            className="inline-flex h-9 items-center justify-center rounded-radius-sm bg-[#B3261E] hover:bg-[#8F1D18] px-4 text-[13px] font-medium text-white disabled:opacity-50 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-error"
+          >
+            {t('platformAdmin:page.deactivateConfirm.confirmLabel')}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+

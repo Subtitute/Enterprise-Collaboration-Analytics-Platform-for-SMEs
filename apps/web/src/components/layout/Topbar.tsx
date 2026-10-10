@@ -488,7 +488,7 @@ export function Topbar() {
                 open && 'bg-bg-subtle text-text-primary',
               )}
             >
-              <Avatar name={user?.fullName} size="sm" className="h-6 w-6 text-[10px]" />
+              <Avatar name={user?.fullName} size="sm" className="h-6 w-6 text-[10px] bg-[#0E5E5E] text-white" />
               <span className="hidden max-w-[140px] truncate text-[13px] font-medium text-text-primary md:inline">
                 {user?.fullName}
               </span>
@@ -502,7 +502,7 @@ export function Topbar() {
             <div className="py-1">
               {/* Header User Menu (§7.1) */}
               <div className="flex items-center gap-3 px-3 py-2.5 border-b border-border-subtle">
-                <Avatar name={user?.fullName} size="md" className="h-10 w-10 text-xs shrink-0" />
+                <Avatar name={user?.fullName} size="md" className="h-10 w-10 text-xs shrink-0 bg-[#0E5E5E] text-white font-semibold" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-medium text-text-primary">
                     {user?.fullName}

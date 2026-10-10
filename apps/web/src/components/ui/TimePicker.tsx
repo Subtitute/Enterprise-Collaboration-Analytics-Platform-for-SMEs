@@ -3,6 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { ClockIcon, CheckIcon } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 
+export interface TimePreset {
+  label: string;
+  value: string;
+}
+
 interface TimePickerProps {
   id?: string;
   value?: string; // 'HH:mm'
@@ -12,6 +17,7 @@ interface TimePickerProps {
   align?: 'left' | 'right';
   position?: 'top' | 'bottom';
   required?: boolean;
+  presets?: TimePreset[];
 }
 
 export function TimePicker({
@@ -23,6 +29,7 @@ export function TimePicker({
   align = 'left',
   position = 'bottom',
   required,
+  presets,
 }: TimePickerProps) {
   const { t } = useTranslation();
   const errorId = useId();
@@ -116,8 +123,8 @@ export function TimePicker({
   const HOURS = Array.from({ length: 24 }, (_, i) => i);
   const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5); // 0, 5, 10, ... 55
 
-  // Quick preset shortcuts
-  const PRESETS = [
+  // Default quick preset shortcuts
+  const DEFAULT_PRESETS: TimePreset[] = [
     { label: '08:00', value: '08:00' },
     { label: '08:30', value: '08:30' },
     { label: '12:00', value: '12:00' },
@@ -126,13 +133,15 @@ export function TimePicker({
     { label: '18:00', value: '18:00' },
   ];
 
+  const activePresets = presets && presets.length > 0 ? presets : DEFAULT_PRESETS;
+
   const popoverPositionClass = position === 'top' ? 'bottom-full mb-1.5' : 'top-full mt-1.5';
   const popoverAlignClass = align === 'right' ? 'right-0' : 'left-0';
 
   return (
     <div ref={containerRef} className={cn('relative', className)}>
-      {/* Input container: text bên trái, icon đồng hồ bên phải */}
-      <div className="relative flex h-9 w-full items-center rounded-lg border border-slate-300 bg-white transition-all focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-100">
+      {/* Input container: text bên trái, icon đồng hồ bên phải (§2.3) */}
+      <div className="relative flex h-9 w-full items-center rounded-radius-sm border border-border-strong bg-white transition-all focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20">
         <input
           id={id}
           type="text"
@@ -140,7 +149,7 @@ export function TimePicker({
           onChange={(e) => handleManualInput(e.target.value)}
           placeholder={placeholder}
           required={required}
-          className="h-full w-full rounded-l-lg bg-transparent pl-3 pr-2 text-xs font-mono font-medium text-slate-800 outline-none placeholder:text-slate-400"
+          className="h-full w-full rounded-l-radius-sm bg-transparent pl-3 pr-2 font-mono text-[13px] leading-[20px] font-medium text-text-primary outline-none placeholder:font-mono placeholder:text-[13px] placeholder:font-normal placeholder:text-text-tertiary tabular-nums"
         />
         <button
           type="button"
@@ -149,27 +158,27 @@ export function TimePicker({
           aria-haspopup="dialog"
           title={t('common:timePicker.openTitle')}
           className={cn(
-            'flex h-full items-center justify-center border-l border-slate-200 px-2.5 text-slate-400 hover:bg-slate-50 hover:text-indigo-600 transition-colors cursor-pointer rounded-r-lg',
-            isOpen ? 'bg-indigo-50 text-indigo-600' : ''
+            'flex h-full items-center justify-center border-l border-border-subtle px-2.5 text-text-tertiary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer rounded-r-radius-sm',
+            isOpen ? 'bg-bg-subtle text-text-primary' : ''
           )}
         >
-          <ClockIcon className="h-4 w-4" />
+          <ClockIcon className="h-4 w-4 stroke-[1.5]" />
         </button>
       </div>
 
-      {/* Popover Card chọn Giờ & Phút phong cách Indigo/Violet chuẩn của dự án */}
+      {/* Popover Card chọn Giờ & Phút phong cách phẳng / Teal / Ink chuẩn Design System */}
       {isOpen && (
         <div
           className={cn(
-            'absolute z-50 w-64 rounded-2xl border border-slate-200/90 bg-white p-3 shadow-xl shadow-slate-900/10 animate-slide-up select-none flex flex-col gap-2.5',
+            'absolute z-50 w-60 rounded-radius-md border border-border-subtle bg-white p-2.5 shadow-md animate-slide-up select-none flex flex-col gap-2',
             popoverAlignClass,
             popoverPositionClass
           )}
         >
           {/* Header hiển thị giờ đang chọn */}
-          <div className="flex items-center justify-between border-b border-slate-100 pb-2 px-1">
-            <span className="text-xs font-semibold text-slate-500">{t('common:timePicker.title')}</span>
-            <span className="font-mono text-sm font-black text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+          <div className="flex items-center justify-between border-b border-border-subtle pb-1.5 px-0.5">
+            <span className="text-[11px] font-semibold text-text-secondary">{t('common:timePicker.title')}</span>
+            <span className="font-mono text-xs font-semibold text-accent bg-accent-soft px-2 py-0.5 rounded-radius-xs tabular-nums">
               {String(selectedHour).padStart(2, '0')}:{String(selectedMinute).padStart(2, '0')}
             </span>
           </div>
@@ -178,12 +187,12 @@ export function TimePicker({
           <div className="grid grid-cols-2 gap-2">
             {/* Cột Giờ (00 - 23) */}
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 text-center">
+              <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1 text-center">
                 {t('common:timePicker.hours')}
               </span>
               <div
                 ref={hoursListRef}
-                className="h-36 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50/60 p-1 space-y-0.5 text-center text-xs"
+                className="h-32 overflow-y-auto rounded-radius-sm border border-border-subtle bg-bg-subtle/50 p-1 space-y-0.5 text-center text-xs popover-scrollbar"
               >
                 {HOURS.map((h) => {
                   const isSel = h === selectedHour;
@@ -193,10 +202,10 @@ export function TimePicker({
                       type="button"
                       onClick={() => handleSelectHour(h)}
                       className={cn(
-                        'w-full py-1 rounded-lg font-mono font-semibold transition-all cursor-pointer text-xs flex items-center justify-center gap-1',
+                        'w-full py-1 rounded-radius-xs font-mono font-medium transition-colors cursor-pointer text-xs flex items-center justify-center tabular-nums',
                         isSel
-                          ? 'bg-indigo-600 text-white font-bold shadow-xs shadow-indigo-600/30'
-                          : 'text-slate-600 hover:bg-white hover:text-slate-900'
+                          ? 'bg-[#0E5E5E] text-white font-semibold shadow-none'
+                          : 'text-text-secondary hover:bg-white hover:text-text-primary'
                       )}
                     >
                       <span>{String(h).padStart(2, '0')}</span>
@@ -208,12 +217,12 @@ export function TimePicker({
 
             {/* Cột Phút (00, 05, 10 ... 55) */}
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 text-center">
+              <span className="text-[10px] font-semibold text-text-tertiary uppercase tracking-wider mb-1 text-center">
                 {t('common:timePicker.minutes')}
               </span>
               <div
                 ref={minutesListRef}
-                className="h-36 overflow-y-auto rounded-xl border border-slate-100 bg-slate-50/60 p-1 space-y-0.5 text-center text-xs"
+                className="h-32 overflow-y-auto rounded-radius-sm border border-border-subtle bg-bg-subtle/50 p-1 space-y-0.5 text-center text-xs popover-scrollbar"
               >
                 {MINUTES.map((m) => {
                   const isSel = Math.abs(m - selectedMinute) < 3; // Gần với mốc 5 phút
@@ -223,10 +232,10 @@ export function TimePicker({
                       type="button"
                       onClick={() => handleSelectMinute(m)}
                       className={cn(
-                        'w-full py-1 rounded-lg font-mono font-semibold transition-all cursor-pointer text-xs flex items-center justify-center gap-1',
+                        'w-full py-1 rounded-radius-xs font-mono font-medium transition-colors cursor-pointer text-xs flex items-center justify-center tabular-nums',
                         isSel
-                          ? 'bg-indigo-600 text-white font-bold shadow-xs shadow-indigo-600/30'
-                          : 'text-slate-600 hover:bg-white hover:text-slate-900'
+                          ? 'bg-[#0E5E5E] text-white font-semibold shadow-none'
+                          : 'text-text-secondary hover:bg-white hover:text-text-primary'
                       )}
                     >
                       <span>{String(m).padStart(2, '0')}</span>
@@ -238,12 +247,12 @@ export function TimePicker({
           </div>
 
           {/* Mốc chọn nhanh (Presets) */}
-          <div className="border-t border-slate-100 pt-2">
-            <span className="text-[10px] font-medium text-slate-400 block mb-1">
+          <div className="border-t border-border-subtle pt-1.5">
+            <span className="text-[10px] font-medium text-text-tertiary block mb-1">
               {t('common:timePicker.presets')}
             </span>
             <div className="grid grid-cols-3 gap-1">
-              {PRESETS.map((p) => (
+              {activePresets.map((p) => (
                 <button
                   key={p.value}
                   type="button"
@@ -252,10 +261,10 @@ export function TimePicker({
                     onChange(p.value);
                   }}
                   className={cn(
-                    'py-1 px-1.5 text-[11px] font-mono rounded-lg border text-center transition-colors cursor-pointer',
+                    'py-1 px-1.5 text-[11px] font-mono rounded-radius-xs border text-center transition-colors cursor-pointer tabular-nums',
                     value === p.value
-                      ? 'bg-indigo-50 text-indigo-700 font-bold border-indigo-200'
-                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
+                      ? 'bg-accent-soft text-accent font-semibold border-accent/30'
+                      : 'bg-white text-text-secondary border-border-subtle hover:bg-bg-subtle hover:text-text-primary'
                   )}
                 >
                   {p.label}
@@ -269,9 +278,9 @@ export function TimePicker({
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="flex items-center gap-1 px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-radius-sm bg-text-primary hover:bg-[#2E2C29] text-white text-xs font-medium cursor-pointer transition-colors"
             >
-              <CheckIcon className="h-3 w-3" />
+              <CheckIcon className="h-3 w-3 stroke-[2]" />
               <span>{t('common:actions.done', 'Xong')}</span>
             </button>
           </div>

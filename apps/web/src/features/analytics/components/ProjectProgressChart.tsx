@@ -16,10 +16,11 @@ function ProgressTooltip({ active, payload }: { active?: boolean; payload?: Arra
   if (!active || !payload?.length) return null;
   const row = payload[0].payload;
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs shadow-lg">
-      <p className="font-medium text-slate-700">{row.name}</p>
-      <p className="text-slate-600">
-        {t('analytics:projectProgressChart.tooltipProgressLabel')} <span className="font-semibold text-slate-900">{row.progress}%</span>
+    <div className="rounded-radius-md border border-border-subtle bg-surface px-3 py-2 text-xs shadow-none">
+      <p className="font-medium text-text-primary">{row.name}</p>
+      <p className="text-text-secondary">
+        {t('analytics:projectProgressChart.tooltipProgressLabel')}{' '}
+        <span className="font-mono font-medium text-text-primary tabular-nums">{row.progress}%</span>
       </p>
     </div>
   );
@@ -59,7 +60,7 @@ export function ProjectProgressChart({ data, isLoading, isError, onRetry }: Proj
               type="number"
               domain={[0, 100]}
               tickFormatter={(v) => `${v}%`}
-              tick={{ fill: CHART_INK.muted, fontSize: 12 }}
+              tick={{ fill: CHART_INK.muted, fontSize: 11, fontFamily: 'IBM Plex Mono, monospace' }}
               axisLine={{ stroke: CHART_INK.baseline }}
               tickLine={false}
             />
@@ -72,7 +73,7 @@ export function ProjectProgressChart({ data, isLoading, isError, onRetry }: Proj
               tickLine={false}
             />
             <Tooltip content={<ProgressTooltip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
-            <Bar dataKey="progress" fill={CATEGORICAL[0]} radius={[0, 4, 4, 0]} maxBarSize={22} />
+            <Bar dataKey="progress" fill="#0E5E5E" radius={[0, 4, 4, 0]} maxBarSize={22} />
           </BarChart>
         </ResponsiveContainer>
       )}

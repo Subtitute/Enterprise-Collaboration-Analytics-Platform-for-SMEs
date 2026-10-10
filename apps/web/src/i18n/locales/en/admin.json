@@ -262,6 +262,16 @@
   "roles": {
     "orgAdmin": "Organization Admin",
     "manager": "Manager",
-    "employee": "Employee"
+    "employee": "Employee",
+    "title": "Roles & Permissions"
+  },
+  "members": {
+    "title": "Members"
+  },
+  "departments": {
+    "title": "Departments"
+  },
+  "failedEvents": {
+    "title": "System Failed Events"
   }
 }

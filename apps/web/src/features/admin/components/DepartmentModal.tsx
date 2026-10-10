@@ -10,7 +10,8 @@ import { usePermissions } from '@/stores/auth.store';
 import { useOrgUsersQuery } from '@/hooks/useOrgUsers';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { FormField, Input, Select, Textarea } from '@/components/ui/Input';
+import { FormField, Input, Textarea } from '@/components/ui/Input';
+import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { useCreateDepartment, useUpdateDepartment } from '../hooks';
 import type { Department } from '@/types';
 
@@ -105,33 +106,47 @@ export function DepartmentModal({
             validate lai gia tri nay thuoc ve to chuc). Phong ban moi tao chua co thanh vien nao
             nen truong nay tam thoi rong/vo hieu hoa cho toi khi da co it nhat 1 thanh vien. */}
         {canManageDepartments && (
-          <FormField
-            label={t('admin:departmentModal.managerLabel')}
-            htmlFor="department-manager"
-            hint={!isEditing || departmentUsers.length === 0 ? t('admin:departmentModal.managerHintNoMembers') : undefined}
-          >
-            <Select
-              id="department-manager"
+          <div className="space-y-1.5">
+            <label htmlFor="department-manager" className="block text-xs font-semibold text-text-secondary">
+              {t('admin:departmentModal.managerLabel')}
+            </label>
+            <CustomFilterSelect
               value={managerId}
-              onChange={(e) => setManagerId(e.target.value)}
-              disabled={!isEditing || departmentUsers.length === 0}
-            >
-              <option value="">{t('admin:departmentModal.noManagerOption')}</option>
-              {departmentUsers.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.fullName}
-                </option>
-              ))}
-            </Select>
-          </FormField>
+              onChange={setManagerId}
+              ariaLabel={t('admin:departmentModal.managerLabel')}
+              options={[
+                { value: '', label: t('admin:departmentModal.noManagerOption') },
+                ...departmentUsers.map((u) => ({
+                  value: u.id,
+                  label: u.fullName,
+                })),
+              ]}
+            />
+            {(!isEditing || departmentUsers.length === 0) && (
+              <p className="text-xs text-text-tertiary">{t('admin:departmentModal.managerHintNoMembers')}</p>
+            )}
+          </div>
         )}
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
+        <div className="flex justify-end gap-2 pt-2 border-t border-border-subtle mt-4">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isPending}
+            className="inline-flex items-center justify-center h-9 px-4 rounded-radius-sm border border-border-strong bg-white hover:bg-bg-subtle text-[13px] font-medium text-text-primary transition-colors cursor-pointer disabled:opacity-50"
+          >
             {t('admin:departmentModal.cancel')}
-          </Button>
-          <Button type="submit" isLoading={isPending}>
-            {isEditing ? t('admin:departmentModal.saveChanges') : t('admin:departmentModal.create')}
-          </Button>
+          </button>
+          <button
+            type="submit"
+            disabled={isPending}
+            className="inline-flex items-center justify-center h-9 px-4 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {isPending
+              ? t('common:loading', 'Đang xử lý...')
+              : isEditing
+              ? t('admin:departmentModal.saveChanges')
+              : t('admin:departmentModal.create')}
+          </button>
         </div>
       </form>
     </Modal>

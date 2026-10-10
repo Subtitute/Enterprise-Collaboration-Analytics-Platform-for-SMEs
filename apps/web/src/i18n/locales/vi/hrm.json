@@ -98,7 +98,8 @@
         "status": {
           "sufficient": "Đủ công",
           "insufficient": "Thiếu công",
-          "newMember": "Mới gia nhập"
+          "newMember": "Mới gia nhập",
+          "notJoined": "Chưa gia nhập"
         },
         "daysUnit": "ngày",
         "hoursUnit": "giờ",
@@ -322,6 +323,7 @@
       "reasonLabel": "Lý do làm thêm",
       "reasonPlaceholder": "Ví dụ: Hoàn thành triển khai dự án cho khách hàng…",
       "estimatedHours": "Thời lượng OT dự kiến: {{hours}} giờ",
+      "estimatedDuration": "Thời lượng OT dự kiến: {{duration}}",
       "submitButton": "Gửi đăng ký OT",
       "cancelButton": "Hủy",
       "errors": {

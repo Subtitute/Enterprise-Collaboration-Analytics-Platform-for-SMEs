@@ -98,7 +98,8 @@
         "status": {
           "sufficient": "基準達成",
           "insufficient": "時間不足",
-          "newMember": "新規入社"
+          "newMember": "新規入社",
+          "notJoined": "未入社"
         },
         "daysUnit": "日",
         "hoursUnit": "時間",
@@ -322,6 +323,7 @@
       "reasonLabel": "残業の理由・業務内容",
       "reasonPlaceholder": "例: 顧客向け本番リリースの緊急デプロイ作業のため…",
       "estimatedHours": "残業見込時間: {{hours}} 時間",
+      "estimatedDuration": "残業見込時間: {{duration}}",
       "submitButton": "残業申請を送信",
       "cancelButton": "キャンセル",
       "errors": {
