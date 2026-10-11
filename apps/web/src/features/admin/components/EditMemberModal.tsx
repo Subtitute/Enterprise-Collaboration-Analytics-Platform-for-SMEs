@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
-import { Button } from '@/components/ui/Button';
-import { FormField, Select, Label } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Input';
+import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { useDepartmentsQuery, useRolesQuery, useUpdateUser } from '../hooks';
 import { RoleCheckboxList } from './RoleCheckboxList';
 import type { User } from '@/types';
@@ -35,37 +35,45 @@ export function EditMemberModal({ user, onClose }: { user: User | null; onClose:
       title={t('admin:editMemberModal.title', { fullName: user?.fullName ?? '' })}
     >
       <div className="space-y-4">
-        {/* 28/07/2026: them htmlFor/id "edit-member-department" (phat hien qua ra soat kha nang tiep
-            can) - Label truoc do khong tro toi Select nao ca, giong loi da sua o TaskDetailModal/
-            ShareModal/NewTaskModal nhung bi sot trong modal nay; khop dung quy uoc id "<modal>-<truong>". */}
-        <FormField label={t('admin:editMemberModal.departmentLabel')} htmlFor="edit-member-department">
-          <Select id="edit-member-department" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
-            <option value="">{t('admin:editMemberModal.noDepartmentOption')}</option>
-            {(departmentsQuery.data ?? []).map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </Select>
-        </FormField>
+        <div className="space-y-1.5">
+          <Label htmlFor="edit-member-department">{t('admin:editMemberModal.departmentLabel')}</Label>
+          <CustomFilterSelect
+            value={departmentId}
+            onChange={setDepartmentId}
+            ariaLabel={t('admin:editMemberModal.departmentLabel')}
+            options={[
+              { value: '', label: t('admin:editMemberModal.noDepartmentOption') },
+              ...(departmentsQuery.data ?? []).map((d) => ({
+                value: d.id,
+                label: d.name,
+              })),
+            ]}
+          />
+        </div>
         <div>
           <Label>{t('admin:editMemberModal.roleLabel')}</Label>
           <RoleCheckboxList roles={rolesQuery.data ?? []} selectedIds={roleIds} onChange={setRoleIds} />
         </div>
-        <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>
-            {t('admin:editMemberModal.cancel')}
-          </Button>
-          <Button
+        <div className="flex justify-end gap-2 pt-2 border-t border-border-subtle mt-4">
+          <button
             type="button"
-            isLoading={isPending}
+            onClick={onClose}
+            disabled={isPending}
+            className="inline-flex items-center justify-center h-9 px-4 rounded-radius-sm border border-border-strong bg-white hover:bg-bg-subtle text-[13px] font-medium text-text-primary transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {t('admin:editMemberModal.cancel')}
+          </button>
+          <button
+            type="button"
+            disabled={isPending}
             onClick={() => {
               if (!user) return;
               updateUser.mutate({ id: user.id, payload: { departmentId: departmentId || null, roleIds } }, { onSuccess: onClose });
             }}
+            className="inline-flex items-center justify-center h-9 px-4 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer disabled:opacity-50"
           >
-            {t('admin:editMemberModal.saveChanges')}
-          </Button>
+            {isPending ? t('common:processing') : t('admin:editMemberModal.saveChanges')}
+          </button>
         </div>
       </div>
     </Modal>

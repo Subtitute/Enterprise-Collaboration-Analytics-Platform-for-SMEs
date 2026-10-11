@@ -140,17 +140,17 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
         size="lg"
         title={
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-200/60 shadow-2xs">
-              <UsersIcon className="h-4.5 w-4.5" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-radius-md bg-accent-soft text-accent border border-border-subtle">
+              <UsersIcon className="h-4.5 w-4.5 stroke-1.5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-slate-900">{t('projects:membersModal.title')}</h2>
-                <Badge variant="default" className="text-xs font-semibold px-2 py-0.5 bg-indigo-50 text-indigo-700 border-indigo-200/60">
+                <h2 className="text-[16px] leading-[24px] font-semibold text-text-primary">{t('projects:membersModal.title')}</h2>
+                <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-bg-subtle text-text-secondary border border-border-subtle tabular-nums">
                   {t('projects:membersModal.memberCount', { count: members.length })}
-                </Badge>
+                </span>
               </div>
-              <p className="text-xs text-slate-500 truncate max-w-sm mt-0.5 font-normal">{project.name}</p>
+              <p className="text-[12px] text-text-tertiary truncate max-w-sm mt-0.5 font-normal">{project.name}</p>
             </div>
           </div>
         }
@@ -158,51 +158,51 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
         <div className="space-y-4 py-1">
           {/* Cụm Thêm Thành Viên Mới (Chỉ hiển thị cho Admin / Manager) */}
           {canManage && (
-            <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-3.5 space-y-2.5">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+            <div className="rounded-radius-md border border-border-subtle bg-bg-subtle/60 p-3.5 space-y-2.5">
+              <label className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider leading-none">
                 {t('projects:membersModal.addMemberTitle')}
               </label>
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <Dropdown
                   align="left"
-                  panelClassName="w-72 sm:w-80 p-2 rounded-2xl border border-slate-200/80 bg-white shadow-xl space-y-1.5"
+                  panelClassName="w-72 sm:w-80 p-2 rounded-radius-md border border-border-subtle bg-white shadow-lg space-y-1.5"
                   trigger={({ open: isOpen, toggle }) => (
                     <button
                       type="button"
                       onClick={toggle}
-                      className="flex-1 flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-2xs transition-all hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 text-left min-h-[38px]"
+                      className="flex-1 flex items-center justify-between gap-2 rounded-radius-sm border border-border-strong bg-white px-3 py-1.5 text-[13px] font-normal text-text-primary shadow-none transition-all hover:border-accent focus:outline-none focus:ring-1 focus:ring-accent text-left h-9"
                     >
                       {selectedCandidate ? (
                         <div className="flex items-center gap-2 min-w-0">
-                          <Avatar name={selectedCandidate.fullName} size="sm" className="h-6 w-6 text-[10px]" />
-                          <span className="truncate font-semibold text-slate-900">{selectedCandidate.fullName}</span>
-                          <span className="text-[11px] text-slate-400 truncate">({selectedCandidate.email})</span>
+                          <Avatar name={selectedCandidate.fullName} size="sm" className="h-5 w-5 text-[10px] rounded-full bg-accent-soft text-accent font-medium" />
+                          <span className="truncate font-medium text-text-primary">{selectedCandidate.fullName}</span>
+                          <span className="text-[11px] text-text-tertiary truncate">({selectedCandidate.email})</span>
                         </div>
                       ) : (
-                        <span className="text-slate-400">{t('projects:membersModal.selectMemberPlaceholder')}</span>
+                        <span className="text-text-tertiary">{t('projects:membersModal.selectMemberPlaceholder')}</span>
                       )}
-                      <ChevronDownIcon className={`h-4 w-4 text-slate-400 shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                      <ChevronDownIcon className={`h-4 w-4 text-text-tertiary shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                     </button>
                   )}
                 >
                   {({ close }) => (
                     <div className="space-y-2">
                       <div className="relative">
-                        <SearchIcon className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                        <SearchIcon className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-text-tertiary" />
                         <input
                           type="text"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           placeholder={t('projects:membersModal.searchPlaceholder')}
-                          className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:border-indigo-500"
+                          className="w-full pl-8 pr-3 py-1.5 text-[12px] rounded-radius-sm border border-border-strong bg-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                           autoFocus
                         />
                       </div>
 
                       <div className="max-h-52 overflow-y-auto space-y-0.5">
                         {availableCandidates.length === 0 ? (
-                          <p className="py-4 text-center text-xs text-slate-400 italic">
+                          <p className="py-4 text-center text-[12px] text-text-tertiary italic">
                             {t('projects:membersModal.noAvailableCandidates')}
                           </p>
                         ) : (
@@ -218,20 +218,20 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
                                   setSelectedUserIdToAdd(u.id);
                                   close();
                                 }}
-                                className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl text-left text-xs transition-colors ${
-                                  isSelected ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'hover:bg-slate-50 text-slate-700'
+                                className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-radius-sm text-left text-[12px] transition-colors cursor-pointer ${
+                                  isSelected ? 'bg-accent-soft text-accent font-medium' : 'hover:bg-bg-subtle text-text-primary'
                                 }`}
                               >
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <Avatar name={u.fullName} size="sm" className="h-6 w-6 text-[10px]" />
+                                  <Avatar name={u.fullName} size="sm" className="h-5 w-5 text-[10px] rounded-full bg-accent-soft text-accent font-medium" />
                                   <div className="min-w-0">
                                     <p className="truncate font-medium">{u.fullName}</p>
-                                    <p className="text-[10px] text-slate-400 truncate">
+                                    <p className="text-[10px] text-text-tertiary truncate">
                                       {u.email} {deptName ? `• ${deptName}` : ''}
                                     </p>
                                   </div>
                                 </div>
-                                {isSelected && <CheckIcon className="h-3.5 w-3.5 text-indigo-600 shrink-0" />}
+                                {isSelected && <CheckIcon className="h-3.5 w-3.5 text-accent shrink-0" />}
                               </button>
                             );
                           })
@@ -241,16 +241,15 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
                   )}
                 </Dropdown>
 
-                <Button
+                <button
                   type="button"
-                  size="sm"
                   disabled={!selectedUserIdToAdd || addMemberMutation.isPending}
                   onClick={handleAddMember}
-                  className="shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm active:scale-[0.98] font-semibold"
+                  className="shrink-0 h-9 px-3.5 inline-flex items-center justify-center gap-1.5 rounded-radius-md bg-[#1C1B1A] hover:bg-[#2E2C29] text-white text-[13px] font-medium transition-colors disabled:opacity-50 cursor-pointer"
                 >
-                  <PlusIcon className="h-4 w-4 mr-1.5" />
+                  <PlusIcon className="h-3.5 w-3.5" />
                   <span>{t('projects:membersModal.addButton')}</span>
-                </Button>
+                </button>
               </div>
             </div>
           )}
@@ -258,10 +257,10 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
           {/* Danh Sách Thành Viên Hiện Tại */}
           <div className="space-y-2">
             <div className="flex items-center justify-between px-1">
-              <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+              <span className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider leading-none">
                 {t('projects:membersModal.currentMembersTitle')}
               </span>
-              <span className="text-xs text-slate-400 font-medium">
+              <span className="text-[11px] font-mono text-text-tertiary font-medium tabular-nums">
                 {t('projects:membersModal.totalCount', { count: members.length })}
               </span>
             </div>
@@ -271,10 +270,10 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
                 <Spinner size="sm" />
               </div>
             ) : members.length === 0 ? (
-              <div className="py-8 text-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
-                <UsersIcon className="h-8 w-8 text-slate-300 mx-auto mb-2" />
-                <p className="text-xs font-semibold text-slate-600">{t('projects:membersModal.emptyTitle')}</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">{t('projects:membersModal.emptyDescription')}</p>
+              <div className="py-8 text-center border border-dashed border-border-subtle rounded-radius-md bg-white">
+                <UsersIcon className="h-8 w-8 text-text-tertiary mx-auto mb-2 stroke-1" />
+                <p className="text-[13px] font-medium text-text-primary">{t('projects:membersModal.emptyTitle')}</p>
+                <p className="text-[12px] text-text-tertiary mt-0.5">{t('projects:membersModal.emptyDescription')}</p>
               </div>
             ) : (
               <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
@@ -286,22 +285,22 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
                   return (
                     <div
                       key={m.id}
-                      className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-slate-200/70 bg-white hover:border-slate-300 transition-all shadow-2xs group"
+                      className="flex items-center justify-between gap-3 p-2.5 rounded-radius-md border border-border-subtle bg-white hover:border-border-strong transition-all shadow-none group"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Avatar name={m.fullName} size="md" className="h-9 w-9 text-xs shrink-0 ring-1 ring-slate-100" />
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <Avatar name={m.fullName} size="md" className="h-8 w-8 text-[11px] shrink-0 rounded-full bg-accent-soft text-accent font-medium ring-1 ring-white" />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-slate-900 truncate" title={m.fullName}>
+                            <span className="text-[13px] font-medium text-text-primary truncate" title={m.fullName}>
                               {m.fullName}
                             </span>
                             {isLead && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/60 shadow-2xs">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-[2px] text-[10px] font-medium bg-[#E4EFEE] text-[#0E5E5E]">
                                 {t('projects:membersModal.roles.lead')}
                               </span>
                             )}
                           </div>
-                          <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                          <p className="text-[11px] text-text-tertiary truncate mt-0.5">
                             {m.email} {deptName ? `• ${deptName}` : ''}
                           </p>
                         </div>
@@ -309,7 +308,7 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
 
                       <div className="flex items-center gap-2.5 shrink-0">
                         {taskCount > 0 && (
-                          <span className="text-[11px] font-medium text-slate-500 bg-slate-100/80 px-2 py-0.5 rounded-md border border-slate-200/60">
+                          <span className="text-[11px] font-mono font-medium text-text-secondary bg-bg-subtle px-2 py-0.5 rounded-[4px] border border-border-subtle tabular-nums">
                             {t('projects:membersModal.taskCount', { count: taskCount })}
                           </span>
                         )}
@@ -326,10 +325,10 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
                             }}
                             title={isLead ? t('projects:membersModal.leadCannotBeRemoved') : t('projects:membersModal.removeMemberTooltip')}
                             disabled={isLead}
-                            className={`p-1.5 rounded-lg text-xs transition-colors ${
+                            className={`p-1.5 rounded-radius-sm text-[12px] transition-colors ${
                               isLead
-                                ? 'text-slate-300 cursor-not-allowed opacity-40'
-                                : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer active:scale-95'
+                                ? 'text-text-tertiary cursor-not-allowed opacity-30'
+                                : 'text-text-tertiary hover:text-text-error hover:bg-[#F8E5E3] cursor-pointer'
                             }`}
                           >
                             <TrashIcon className="h-4 w-4" />

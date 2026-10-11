@@ -31,12 +31,13 @@ function ChartTooltip({ active, payload }: { active?: boolean; payload?: Array<{
   if (!active || !payload?.length) return null;
   const row = payload[0].payload;
   return (
-    <div className="max-w-[240px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs shadow-lg">
-      <p className="font-medium text-slate-700">{row.name}</p>
-      <p className="text-slate-600">
-        {t('analytics:aiInsight.chart.completionRateLabel')} <span className="font-semibold text-slate-900">{row.completionRate}%</span>
+    <div className="max-w-[240px] rounded-radius-md border border-border-subtle bg-surface px-3 py-2 text-xs shadow-none">
+      <p className="font-medium text-text-primary">{row.name}</p>
+      <p className="text-text-secondary">
+        {t('analytics:aiInsight.chart.completionRateLabel')}{' '}
+        <span className="font-mono font-medium text-text-primary tabular-nums">{row.completionRate}%</span>
       </p>
-      {row.headline && <p className="mt-1 text-slate-500 leading-snug">{row.headline}</p>}
+      {row.headline && <p className="mt-1 text-text-secondary leading-snug">{row.headline}</p>}
     </div>
   );
 }

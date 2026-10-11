@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 28" fill="none">
+  <!-- Cascade Mark -->
+  <g transform="translate(0, 0)">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F7F6F3" stroke-width="2" stroke-linecap="round">
+      <path d="M3 7h8" />
+      <path d="M7 12h9" />
+      <path d="M11 17h10" />
+    </svg>
+  </g>
+  <!-- Wordmark EFS -->
+  <text x="38" y="21" font-family="'IBM Plex Sans', -apple-system, sans-serif" font-size="20" font-weight="600" letter-spacing="-0.01em" fill="#F7F6F3">EFS</text>
+</svg>

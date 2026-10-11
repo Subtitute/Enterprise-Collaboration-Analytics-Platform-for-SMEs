@@ -223,8 +223,35 @@ export function DatePicker({
   // Generate Year options
   const YEARS = Array.from({ length: 16 }, (_, i) => today.getFullYear() - 5 + i);
 
+  const [resolvedPosition, setResolvedPosition] = useState<'top' | 'bottom'>(position);
+
+  useEffect(() => {
+    if (!isOpen || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const modalParent = containerRef.current.closest('[role="dialog"]');
+    const modalTop = modalParent ? modalParent.getBoundingClientRect().top : 0;
+    
+    // Nếu khoảng trống bên trên < 230px hoặc mở về phía trên sẽ đụng đỉnh modal/viewport -> mở xuống dưới
+    const spaceAbove = rect.top - modalTop;
+    const spaceBelow = window.innerHeight - rect.bottom;
+
+    if (position === 'top') {
+      if (spaceAbove < 230 && spaceBelow >= 200) {
+        setResolvedPosition('bottom');
+      } else {
+        setResolvedPosition('top');
+      }
+    } else {
+      if (spaceBelow < 230 && spaceAbove >= 200) {
+        setResolvedPosition('top');
+      } else {
+        setResolvedPosition('bottom');
+      }
+    }
+  }, [isOpen, position]);
+
   const popoverPositionClass =
-    position === 'top'
+    resolvedPosition === 'top'
       ? 'bottom-full mb-1.5'
       : 'top-full mt-1.5';
   
@@ -232,13 +259,13 @@ export function DatePicker({
 
   return (
     <div ref={containerRef} className={cn('relative', className)}>
-      {/* Ô Input: Text thuần bên trái + icon lịch bên phải */}
+      {/* Ô Input: Text thuần bên trái + icon lịch bên phải (§2.3) */}
       <div
         className={cn(
-          'relative flex h-9 w-full items-center rounded-lg border bg-white transition-all',
+          'relative flex h-9 w-full items-center rounded-radius-sm border bg-white transition-all',
           inputError
-            ? 'border-rose-300 focus-within:border-rose-400 focus-within:ring-2 focus-within:ring-rose-100'
-            : 'border-slate-200 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-100',
+            ? 'border-error focus-within:border-error focus-within:ring-2 focus-within:ring-error/20'
+            : 'border-border-strong focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/20',
         )}
       >
         <input
@@ -249,7 +276,7 @@ export function DatePicker({
           placeholder={effectivePlaceholder}
           aria-invalid={inputError || undefined}
           aria-describedby={inputError ? errorId : undefined}
-          className="h-full w-full rounded-l-lg bg-transparent pl-3 pr-2 text-xs font-medium text-slate-800 outline-none placeholder:text-slate-400"
+          className="h-full w-full rounded-l-radius-sm bg-transparent pl-3 pr-2 font-mono text-[13px] leading-[20px] font-medium text-text-primary outline-none placeholder:font-mono placeholder:text-[13px] placeholder:font-normal placeholder:text-text-tertiary"
         />
         <button
           type="button"
@@ -258,202 +285,143 @@ export function DatePicker({
           aria-expanded={isOpen}
           aria-haspopup="grid"
           className={cn(
-            'flex h-full items-center justify-center border-l border-slate-200 px-2.5 text-slate-400 hover:bg-slate-50 hover:text-primary-600 transition-colors cursor-pointer rounded-r-lg',
-            isOpen ? 'bg-primary-50 text-primary-600' : ''
+            'flex h-full items-center justify-center border-l border-border-subtle px-2.5 text-text-tertiary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer rounded-r-radius-sm',
+            isOpen ? 'bg-bg-subtle text-text-primary' : ''
           )}
         >
-          <CalendarIcon className="h-4 w-4" />
+          <CalendarIcon className="h-4 w-4 stroke-[1.5]" />
         </button>
       </div>
       {inputError && (
-        <p id={errorId} role="alert" className="mt-1 text-[11px] font-medium text-rose-600 animate-fade-in">
+        <p id={errorId} role="alert" className="mt-1 text-[11px] font-medium text-text-error animate-fade-in">
           {t('common:datePicker.invalidDate')}
         </p>
       )}
 
-      {/* Popover Calendar Card mở lên PHÍA TRÊN, thiết kế siêu gọn gàng không chạm Header */}
+      {/* Popover Calendar Card (Thu nhỏ còn 70% kích thước: width 210px, p-2, cell h-6 w-6, font 11px) */}
       {isOpen && (
         <div
           className={cn(
-            'absolute z-50 w-60 rounded-xl border border-slate-200 bg-white p-2 shadow-2xl shadow-slate-400/30 animate-slide-up select-none flex flex-col justify-between',
+            'absolute z-50 w-[210px] rounded-radius-md border border-border-subtle bg-white p-2 shadow-md animate-slide-up select-none flex flex-col justify-between',
             popoverAlignClass,
             popoverPositionClass
           )}
         >
           <div>
             {/* Header: Tháng & Năm + Mũi tên Next/Prev */}
-            <div className="flex items-center justify-between mb-2 px-0.5">
-              <button
-                type="button"
-                onClick={() => setIsMonthYearPickerOpen(!isMonthYearPickerOpen)}
-                className="flex items-center gap-1 rounded-md px-1 py-0.5 text-xs font-bold text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <span>{MONTH_NAMES[currentMonth]} {currentYear}</span>
-                <span className="text-[8px] text-slate-400">▼</span>
-              </button>
+            <div className="flex items-center justify-between mb-1.5 px-0.5">
+              <span className="text-[11px] leading-tight font-semibold text-text-primary">
+                {MONTH_NAMES[currentMonth]} {currentYear}
+              </span>
 
               <div className="flex items-center gap-0.5">
                 <button
                   type="button"
                   onClick={handlePrevMonth}
                   title={t('common:datePicker.prevMonthAria')}
-                  className="rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
+                  className="h-5 w-5 flex items-center justify-center rounded-radius-sm text-text-secondary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer"
                 >
-                  <ChevronLeftIcon className="h-3.5 w-3.5" />
+                  <ChevronLeftIcon className="h-3 w-3 stroke-[1.5]" />
                 </button>
                 <button
                   type="button"
                   onClick={handleNextMonth}
                   title={t('common:datePicker.nextMonthAria')}
-                  className="rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
+                  className="h-5 w-5 flex items-center justify-center rounded-radius-sm text-text-secondary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer"
                 >
-                  <ChevronRightIcon className="h-3.5 w-3.5" />
+                  <ChevronRightIcon className="h-3 w-3 stroke-[1.5]" />
                 </button>
               </div>
             </div>
 
-            {/* Màn hình chọn nhanh Tháng & Năm */}
-            {isMonthYearPickerOpen ? (
-              <div className="space-y-2 py-1">
-                <div>
-                  <span className="block text-[10px] font-semibold text-slate-400 mb-1">{t('common:datePicker.selectMonth')}</span>
-                  <div className="grid grid-cols-4 gap-1">
-                    {MONTH_NAMES_SHORT.map((m, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => {
-                          setCurrentMonth(idx);
-                          setIsMonthYearPickerOpen(false);
-                        }}
-                        className={cn(
-                          'rounded-md py-1 text-[10px] font-semibold transition-colors cursor-pointer',
-                          currentMonth === idx ? 'bg-primary-600 text-white' : 'hover:bg-slate-100 text-slate-700'
-                        )}
-                      >
-                        {m}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+            {/* Thứ trong tuần */}
+            <div className="grid grid-cols-7 gap-0.5 text-center mb-1">
+              {WEEK_DAYS.map((wd, idx) => (
+                <span key={idx} className="text-[10px] font-medium text-text-tertiary tracking-[0.02em]">
+                  {wd}
+                </span>
+              ))}
+            </div>
 
-                <div>
-                  <span className="block text-[10px] font-semibold text-slate-400 mb-1">{t('common:datePicker.selectYear')}</span>
-                  <div className="grid grid-cols-4 gap-1 max-h-20 overflow-y-auto pr-1">
-                    {YEARS.map((y) => (
-                      <button
-                        key={y}
-                        type="button"
-                        onClick={() => {
-                          setCurrentYear(y);
-                          setIsMonthYearPickerOpen(false);
-                        }}
-                        className={cn(
-                          'rounded-md py-0.5 text-[10px] font-semibold transition-colors cursor-pointer',
-                          currentYear === y ? 'bg-primary-600 text-white' : 'hover:bg-slate-100 text-slate-700'
-                        )}
-                      >
-                        {y}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <>
-                {/* Thứ trong tuần */}
-                <div className="grid grid-cols-7 gap-0.5 text-center mb-0.5">
-                  {WEEK_DAYS.map((wd, idx) => (
-                    <span key={idx} className="text-[9px] font-bold text-slate-400">
-                      {wd}
-                    </span>
-                  ))}
-                </div>
+            {/* Lưới các ngày (6 hàng x 7 cột, mỗi cell h-6 w-6 font IBM Plex Mono 11/500) */}
+            <div className="grid grid-cols-7 gap-0.5 text-center">
+              {/* Ngày tháng trước */}
+              {Array.from({ length: startingDayIndex }).map((_, i) => {
+                const day = daysInPrevMonth - startingDayIndex + i + 1;
+                return (
+                  <span key={`prev-${i}`} className="flex h-6 w-6 items-center justify-center font-mono text-[11px] font-normal text-text-tertiary select-none">
+                    {day}
+                  </span>
+                );
+              })}
 
-                {/* Lưới các ngày */}
-                <div className="grid grid-cols-7 gap-0.5 text-center">
-                  {/* Ngày tháng trước */}
-                  {Array.from({ length: startingDayIndex }).map((_, i) => {
-                    const day = daysInPrevMonth - startingDayIndex + i + 1;
-                    return (
-                      <span key={`prev-${i}`} className="flex h-5.5 items-center justify-center text-[10px] text-slate-300 select-none">
-                        {day}
-                      </span>
-                    );
-                  })}
+              {/* Ngày tháng hiện tại */}
+              {Array.from({ length: daysInMonth }).map((_, i) => {
+                const day = i + 1;
+                const formattedMonth = String(currentMonth + 1).padStart(2, '0');
+                const formattedDay = String(day).padStart(2, '0');
+                const dateStr = `${currentYear}-${formattedMonth}-${formattedDay}`;
+                const isDisabled = Boolean(minDate) && dateStr < minDate!;
 
-                  {/* Ngày tháng hiện tại */}
-                  {Array.from({ length: daysInMonth }).map((_, i) => {
-                    const day = i + 1;
-                    const formattedMonth = String(currentMonth + 1).padStart(2, '0');
-                    const formattedDay = String(day).padStart(2, '0');
-                    // 15/09/2026: so sanh dang chuoi 'YYYY-MM-DD' zero-pad - dung thu tu tu dien
-                    // khop dung thu tu thoi gian, khong can dung Date object (tranh moi rui ro lech
-                    // gio/timezone khi so sanh 2 Date truc tiep).
-                    const dateStr = `${currentYear}-${formattedMonth}-${formattedDay}`;
-                    const isDisabled = Boolean(minDate) && dateStr < minDate!;
+                const isSelected =
+                  parsedDate &&
+                  !isNaN(parsedDate.getTime()) &&
+                  parsedDate.getFullYear() === currentYear &&
+                  parsedDate.getMonth() === currentMonth &&
+                  parsedDate.getDate() === day;
 
-                    const isSelected =
-                      parsedDate &&
-                      !isNaN(parsedDate.getTime()) &&
-                      parsedDate.getFullYear() === currentYear &&
-                      parsedDate.getMonth() === currentMonth &&
-                      parsedDate.getDate() === day;
+                const isToday =
+                  today.getFullYear() === currentYear &&
+                  today.getMonth() === currentMonth &&
+                  today.getDate() === day;
 
-                    const isToday =
-                      today.getFullYear() === currentYear &&
-                      today.getMonth() === currentMonth &&
-                      today.getDate() === day;
+                return (
+                  <button
+                    key={`cur-${day}`}
+                    type="button"
+                    disabled={isDisabled}
+                    onClick={() => !isDisabled && handleSelectDay(day)}
+                    className={cn(
+                      'flex h-6 w-6 items-center justify-center font-mono text-[11px] font-medium transition-colors tabular-nums',
+                      isDisabled
+                        ? 'text-text-tertiary opacity-50 cursor-not-allowed'
+                        : isSelected
+                          ? 'bg-[#0E5E5E] text-white font-semibold rounded-radius-sm cursor-pointer'
+                          : isToday
+                            ? 'text-accent font-semibold hover:bg-bg-subtle rounded-radius-sm cursor-pointer'
+                            : 'text-text-primary hover:bg-bg-subtle rounded-radius-sm cursor-pointer',
+                    )}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
 
-                    return (
-                      <button
-                        key={`cur-${day}`}
-                        type="button"
-                        disabled={isDisabled}
-                        onClick={() => !isDisabled && handleSelectDay(day)}
-                        className={cn(
-                          'flex h-5.5 w-full items-center justify-center rounded text-[10px] font-semibold transition-all duration-150',
-                          isDisabled
-                            ? 'text-slate-300 cursor-not-allowed bg-slate-50/40 line-through decoration-slate-300'
-                            : isSelected
-                              ? 'bg-slate-800 text-white font-bold shadow-xs cursor-pointer'
-                              : isToday
-                                ? 'bg-primary-50 text-primary-700 font-bold border border-primary-300 hover:bg-primary-100 cursor-pointer'
-                                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 cursor-pointer',
-                        )}
-                      >
-                        {day}
-                      </button>
-                    );
-                  })}
-
-                  {/* Ngày tháng sau */}
-                  {Array.from({ length: Math.max(0, 42 - (startingDayIndex + daysInMonth)) }).map((_, i) => {
-                    const day = i + 1;
-                    return (
-                      <span key={`next-${i}`} className="flex h-5.5 items-center justify-center text-[10px] text-slate-300 select-none">
-                        {day}
-                      </span>
-                    );
-                  })}
-                </div>
-              </>
-            )}
+              {/* Ngày tháng sau */}
+              {Array.from({ length: Math.max(0, 42 - (startingDayIndex + daysInMonth)) }).map((_, i) => {
+                const day = i + 1;
+                return (
+                  <span key={`next-${i}`} className="flex h-6 w-6 items-center justify-center font-mono text-[11px] font-normal text-text-tertiary select-none">
+                    {day}
+                  </span>
+                );
+              })}
+            </div>
           </div>
 
           {/* Quick Action Footer: Clear & Today */}
-          <div className="flex items-center justify-between border-t border-slate-100 pt-1.5 mt-1 px-1 shrink-0">
+          <div className="flex items-center justify-between border-t border-border-subtle pt-1.5 mt-1.5 px-0.5 shrink-0">
             <button
               type="button"
               onClick={handleClear}
-              className="text-[10px] font-semibold text-primary-600 hover:text-primary-700 transition-colors cursor-pointer"
+              className="px-1.5 py-0.5 rounded-radius-xs text-[11px] font-medium text-accent hover:bg-accent-soft transition-colors cursor-pointer"
             >
               {t('common:datePicker.clear')}
             </button>
             <button
               type="button"
               onClick={handleToday}
-              className="text-[10px] font-semibold text-primary-600 hover:text-primary-700 transition-colors cursor-pointer"
+              className="px-1.5 py-0.5 rounded-radius-xs text-[11px] font-medium text-accent hover:bg-accent-soft transition-colors cursor-pointer"
             >
               {t('common:datePicker.today')}
             </button>

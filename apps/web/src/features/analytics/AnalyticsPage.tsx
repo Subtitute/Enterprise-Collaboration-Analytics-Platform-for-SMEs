@@ -2,15 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Select } from '@/components/ui/Input';
 import { QueryState } from '@/components/ui/QueryState';
 import { Spinner } from '@/components/ui/Spinner';
 import {
   BarChartIcon,
-  FolderKanbanIcon,
-  ClockIcon,
-  FileTextIcon,
-  DollarSignIcon,
   TrendingUpIcon,
   HelpCircleIcon,
 } from '@/components/ui/Icons';
@@ -246,12 +241,11 @@ export function AnalyticsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('analytics:page.title')}</h1>
-          <p className="mt-1 text-sm text-slate-500">{t('analytics:page.subtitle')}</p>
+          <h1 className="text-[28px] leading-[36px] font-semibold text-text-primary tracking-tight">{t('analytics:page.title')}</h1>
+          <p className="mt-1 text-[14px] leading-[22px] text-text-secondary">{t('analytics:page.subtitle')}</p>
         </div>
-        {/* 25/07/2026: them aria-label - cung ly do nhu Select tuong tu o DashboardPage.tsx (khong
-            co <Label> hien thi kem theo de trinh doc man hinh doc ten). */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Filter góc phải: DateRange w-[180px], Department w-[200px], flex-row items-center gap-2.5 */}
+        <div className="flex flex-row items-center justify-end gap-2.5 shrink-0">
           <CustomFilterSelect
             value={range}
             onChange={(val) => setRange(val as DateRangeOption)}
@@ -260,10 +254,8 @@ export function AnalyticsPage() {
               value: key,
               label: t(`common:enums.dateRange.${key}`),
             }))}
+            className="w-[180px] shrink-0"
           />
-          {/* 28/07/2026: bo loc "Phong ban" moi - chi anh huong "So sanh tien do du an" +
-              "Bang chi so theo du an" (deu dua tren GET /analytics/project-progress da ho tro
-              departmentId); "Xu huong hoat dong tai lieu" ben duoi khong loc theo phong ban. */}
           <CustomFilterSelect
             value={departmentId}
             onChange={(val) => setDepartmentId(val)}
@@ -275,140 +267,131 @@ export function AnalyticsPage() {
                 label: d.name,
               })),
             ]}
+            className="w-[200px] shrink-0"
           />
         </div>
       </div>
 
-      {/* HÀNG 4 THẺ CHỈ SỐ KPI NHANH (STAT CARDS) */}
+      {/* HÀNG 4 THẺ CHỈ SỐ KPI NHANH (STAT CARDS - DATA FIRST, ZERO-SHADOW, ZERO-ICON) */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {/* KPI 1: Tổng dự án đang chạy */}
-        <Card className="p-5 border-slate-200/70 shadow-xs hover:shadow-md hover:border-indigo-200 transition-all duration-200">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <Card className="p-5 bg-surface border border-border-subtle hover:border-border-strong rounded-radius-md transition-colors shadow-none">
+          <div>
+            <span className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">
               {t('analytics:kpiCards.activeProjects')}
             </span>
-            <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
-              <FolderKanbanIcon className="h-5 w-5" />
-            </div>
           </div>
           <div className="mt-2">
-            <span className="font-display text-2xl font-bold tracking-tight text-slate-900">
+            <span className="font-mono text-[40px] leading-[48px] font-medium text-text-primary tabular-nums">
               {kpiStats.totalProjects}
             </span>
           </div>
-          <div className="mt-2 flex items-center gap-1 text-xs font-medium text-emerald-600">
-            <TrendingUpIcon className="h-3.5 w-3.5 shrink-0" />
+          <div className="mt-2 flex items-center gap-1 font-mono text-xs font-medium text-success tabular-nums">
+            <TrendingUpIcon className="h-3 w-3 shrink-0" />
             <span>{kpiStats.trend.proj}</span>
           </div>
         </Card>
 
         {/* KPI 2: Tỷ lệ tiến độ trung bình */}
-        <Card className="p-5 border-slate-200/70 shadow-xs hover:shadow-md hover:border-indigo-200 transition-all duration-200">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <Card className="p-5 bg-surface border border-border-subtle hover:border-border-strong rounded-radius-md transition-colors shadow-none">
+          <div>
+            <span className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">
               {t('analytics:kpiCards.avgProgress')}
             </span>
-            <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
-              <ClockIcon className="h-5 w-5" />
-            </div>
           </div>
           <div className="mt-2">
-            <span className="font-display text-2xl font-bold tracking-tight text-slate-900">
+            <span className="font-mono text-[40px] leading-[48px] font-medium text-text-primary tabular-nums">
               {kpiStats.avgProgress}%
             </span>
           </div>
-          <div className="mt-2 flex items-center gap-1 text-xs font-medium text-emerald-600">
-            <TrendingUpIcon className="h-3.5 w-3.5 shrink-0" />
+          <div className="mt-2 flex items-center gap-1 font-mono text-xs font-medium text-success tabular-nums">
+            <TrendingUpIcon className="h-3 w-3 shrink-0" />
             <span>{kpiStats.trend.prog}</span>
           </div>
         </Card>
 
         {/* KPI 3: Khối lượng tài liệu mới */}
-        <Card className="p-5 border-slate-200/70 shadow-xs hover:shadow-md hover:border-indigo-200 transition-all duration-200">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <Card className="p-5 bg-surface border border-border-subtle hover:border-border-strong rounded-radius-md transition-colors shadow-none">
+          <div>
+            <span className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">
               {t('analytics:kpiCards.newDocuments')}
             </span>
-            <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
-              <FileTextIcon className="h-5 w-5" />
-            </div>
           </div>
           <div className="mt-2">
-            <span className="font-display text-2xl font-bold tracking-tight text-slate-900">
+            <span className="font-mono text-[40px] leading-[48px] font-medium text-text-primary tabular-nums">
               {kpiStats.totalDocVolume}
             </span>
           </div>
-          <div className="mt-2 flex items-center gap-1 text-xs font-medium text-emerald-600">
-            <TrendingUpIcon className="h-3.5 w-3.5 shrink-0" />
+          <div className="mt-2 flex items-center gap-1 font-mono text-xs font-medium text-success tabular-nums">
+            <TrendingUpIcon className="h-3 w-3 shrink-0" />
             <span>{kpiStats.trend.doc}</span>
           </div>
         </Card>
 
-        {/* KPI 4: Doanh số / Deal hoàn tất */}
-        <Card className="p-5 border-slate-200/70 shadow-xs hover:shadow-md hover:border-indigo-200 transition-all duration-200">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        {/* KPI 4: Doanh số / Deal hoàn tất - Teal #0E5E5E */}
+        <Card className="p-5 bg-surface border border-border-subtle hover:border-border-strong rounded-radius-md transition-colors shadow-none">
+          <div>
+            <span className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">
               {t('analytics:kpiCards.completedDeals')}
             </span>
-            <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
-              <DollarSignIcon className="h-5 w-5" />
-            </div>
           </div>
           <div className="mt-2">
-            <span className="font-display text-2xl font-bold tracking-tight text-indigo-600 truncate" title={formatDealValue(kpiStats.totalWonValue)}>
+            <span
+              className="font-mono text-2xl sm:text-3xl xl:text-[28px] 2xl:text-[34px] leading-tight font-medium text-accent whitespace-nowrap block tabular-nums"
+              title={formatDealValue(kpiStats.totalWonValue)}
+            >
               {kpiStats.totalWonValue > 0 ? formatDealValue(kpiStats.totalWonValue) : `${kpiStats.wonDealsCount} deal`}
             </span>
           </div>
-          <div className="mt-2 flex items-center gap-1 text-xs font-medium text-emerald-600">
-            <TrendingUpIcon className="h-3.5 w-3.5 shrink-0" />
+          <div className="mt-2 flex items-center gap-1 font-mono text-xs font-medium text-success tabular-nums">
+            <TrendingUpIcon className="h-3 w-3 shrink-0" />
             <span>{kpiStats.trend.deal}</span>
           </div>
         </Card>
       </div>
 
-      {/* THIẾT KẾ LẠI KHỐI TRỢ LÝ PHÂN TÍCH NỘI BỘ (DE-HYPE AI UI) */}
-      <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-5 shadow-xs transition-all">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* KHỐI TRỢ LÝ PHÂN TÍCH NỘI BỘ (SPEC V1.1 - DATA-FIRST, ZERO-SHADOW, ZERO-ACCENT-MISMATCH) */}
+      <div className="bg-surface rounded-radius-md border border-border-subtle hover:border-border-strong p-5 shadow-none transition-colors">
+        <div className="flex flex-col gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-xs">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-radius-md bg-accent-soft text-accent">
               <BarChartIcon className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-semibold text-slate-900">{t('analytics:aiInsight.title')}</h3>
-                <span className="inline-flex items-center rounded-md bg-indigo-100/80 px-2 py-0.5 text-[11px] font-medium text-indigo-800">
+                <h3 className="text-[15px] leading-[22px] font-semibold text-text-primary">{t('analytics:aiInsight.title')}</h3>
+                <span className="inline-flex items-center h-[22px] rounded-[2px] bg-info-soft px-2 text-[11px] font-semibold text-info">
                   {t('analytics:aiInsight.badge')}
                 </span>
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="mt-0.5 text-[13px] leading-[20px] text-text-secondary">
                 {t('analytics:aiInsight.summaryAllOrg', { period: t(`analytics:aiInsight.periods.${aiPeriod}`).toLowerCase() })}
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            {/* Dropdown chọn chu kỳ nhận xét: Tuần / Tháng / Quý / Năm */}
-            <CustomFilterSelect
-              value={aiPeriod}
-              onChange={(val) => setAiPeriod(val as 'week' | 'month' | 'quarter' | 'year')}
-              ariaLabel={t('analytics:aiInsight.periodAriaLabel')}
-              options={[
-                { value: 'week', label: t('analytics:aiInsight.periods.week') },
-                { value: 'month', label: t('analytics:aiInsight.periods.month') },
-                { value: 'quarter', label: t('analytics:aiInsight.periods.quarter') },
-                { value: 'year', label: t('analytics:aiInsight.periods.year') },
-              ]}
-              className="min-w-[170px]"
-            />
+          {/* ROW DƯỚI CÙNG HÀNG: Select kỳ (width 220) bên trái + nút Primary ink bên phải */}
+          <div className="flex items-center justify-between w-full gap-3 pt-1">
+            <div className="w-[220px] max-w-[220px] shrink-0">
+              <CustomFilterSelect
+                value={aiPeriod}
+                onChange={(val) => setAiPeriod(val as 'week' | 'month' | 'quarter' | 'year')}
+                ariaLabel={t('analytics:aiInsight.periodAriaLabel')}
+                options={[
+                  { value: 'week', label: t('analytics:aiInsight.periods.week') },
+                  { value: 'month', label: t('analytics:aiInsight.periods.month') },
+                  { value: 'quarter', label: t('analytics:aiInsight.periods.quarter') },
+                  { value: 'year', label: t('analytics:aiInsight.periods.year') },
+                ]}
+                className="w-full"
+              />
+            </div>
 
             <Button
               size="sm"
               isLoading={aiInsightsMutation.isPending}
-              // 24/09/2026: Layer 5 - dinh kem ket qua Phat hien bat thuong GAN NHAT (neu nguoi
-              // dung da bam "Chay phat hien bat thuong" truoc do, bat ke range) de AI de xuat them
-              // "Ke hoach hanh dong" cho tung insight co lien quan - xem fetchAiInsights().
               onClick={() => aiInsightsMutation.mutate({ range: aiRange, anomalies: anomaliesMutation.data?.anomalies })}
-              className="bg-indigo-600 text-white hover:bg-indigo-700 shadow-xs cursor-pointer"
+              className="bg-text-primary text-white hover:bg-slate-800 shadow-none cursor-pointer shrink-0 h-9 px-4"
             >
               <BarChartIcon className="h-4 w-4" />
               {t('analytics:aiInsight.generateButton')}
@@ -416,10 +399,10 @@ export function AnalyticsPage() {
           </div>
         </div>
 
-        <div className="mt-4 pt-3.5 border-t border-indigo-100/60">
+        <div className="mt-4 pt-3.5 border-t border-border-subtle">
           {aiInsightsMutation.data ? (
             <div className="space-y-4">
-              <div className="rounded-xl bg-white/80 p-4 border border-indigo-50 shadow-2xs">
+              <div className="rounded-radius-md bg-canvas p-4 border border-border-subtle">
                 <AiInsightsChart
                   candidates={aiInsightsMutation.data.candidates}
                   insights={aiInsightsMutation.data.insights}
@@ -439,7 +422,7 @@ export function AnalyticsPage() {
               </div>
             </div>
           ) : (
-            <p className="text-xs text-slate-500 leading-relaxed">
+            <p className="text-xs text-text-secondary leading-relaxed">
               {t('analytics:aiInsight.placeholder')}
             </p>
           )}
@@ -449,11 +432,11 @@ export function AnalyticsPage() {
       <AnomalySection range={range} mutation={anomaliesMutation} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('analytics:charts.projectProgressTitle')}</CardTitle>
+        <Card className="shadow-none border border-border-subtle hover:border-border-strong rounded-radius-md transition-colors">
+          <CardHeader className="px-5 py-4 border-b border-border-subtle">
+            <CardTitle className="text-[15px] font-semibold text-text-primary">{t('analytics:charts.projectProgressTitle')}</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-5">
             <ProjectProgressChart
               data={progressRows}
               isLoading={progressQuery.isLoading}
@@ -463,11 +446,11 @@ export function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('analytics:charts.documentActivityTitle')}</CardTitle>
+        <Card className="shadow-none border border-border-subtle hover:border-border-strong rounded-radius-md transition-colors">
+          <CardHeader className="px-5 py-4 border-b border-border-subtle">
+            <CardTitle className="text-[15px] font-semibold text-text-primary">{t('analytics:charts.documentActivityTitle')}</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-5">
             <DocumentActivityChart
               data={activityQuery.data ?? []}
               isLoading={activityQuery.isLoading}
@@ -478,23 +461,23 @@ export function AnalyticsPage() {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
+      <Card className="shadow-none border border-border-subtle hover:border-border-strong rounded-radius-md transition-colors">
+        <CardHeader className="px-5 py-4 border-b border-border-subtle">
           <div className="flex items-center gap-1.5">
-            <CardTitle>{t('analytics:projectProgressTableSection.title')}</CardTitle>
+            <CardTitle className="text-[15px] font-semibold text-text-primary">{t('analytics:projectProgressTableSection.title')}</CardTitle>
             <div
-              className="group relative flex items-center justify-center text-slate-400 hover:text-slate-600 cursor-help"
+              className="group relative flex items-center justify-center text-text-tertiary hover:text-text-secondary cursor-help"
               tabIndex={0}
               aria-label={t('analytics:projectProgressTable.footnote')}
             >
               <HelpCircleIcon className="h-4 w-4" />
-              <div className="pointer-events-none absolute left-full top-1/2 ml-2 -translate-y-1/2 z-20 hidden w-64 rounded-lg bg-slate-900 px-3 py-1.5 text-xs text-slate-100 shadow-md group-hover:block group-focus-visible:block">
+              <div className="pointer-events-none absolute left-full top-1/2 ml-2 -translate-y-1/2 z-20 hidden w-64 rounded-radius-md bg-text-primary px-3 py-1.5 text-xs text-white shadow-none group-hover:block group-focus-visible:block">
                 {t('analytics:projectProgressTable.footnote')}
               </div>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <QueryState
             isLoading={progressQuery.isLoading}
             isError={progressQuery.isError}

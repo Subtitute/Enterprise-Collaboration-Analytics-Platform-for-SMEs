@@ -2,8 +2,8 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
-import { Button } from '@/components/ui/Button';
-import { FormField, Input, PasswordInput, Select, Label } from '@/components/ui/Input';
+import { FormField, Input, PasswordInput, Label } from '@/components/ui/Input';
+import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { useDepartmentsQuery, useInviteUser, useRolesQuery } from '../hooks';
 import { RoleCheckboxList } from './RoleCheckboxList';
 
@@ -98,27 +98,41 @@ export function InviteMemberModal({ open, onClose }: { open: boolean; onClose: (
             placeholder={t('admin:inviteMemberModal.passwordPlaceholder')}
           />
         </FormField>
-        <FormField label={t('admin:inviteMemberModal.departmentLabel')} htmlFor="invite-department">
-          <Select id="invite-department" value={departmentId} onChange={(e) => setDepartmentId(e.target.value)}>
-            <option value="">{t('admin:inviteMemberModal.noDepartmentOption')}</option>
-            {(departmentsQuery.data ?? []).map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </Select>
-        </FormField>
+        <div className="space-y-1.5">
+          <Label htmlFor="invite-department">{t('admin:inviteMemberModal.departmentLabel')}</Label>
+          <CustomFilterSelect
+            value={departmentId}
+            onChange={setDepartmentId}
+            ariaLabel={t('admin:inviteMemberModal.departmentLabel')}
+            options={[
+              { value: '', label: t('admin:inviteMemberModal.noDepartmentOption') },
+              ...(departmentsQuery.data ?? []).map((d) => ({
+                value: d.id,
+                label: d.name,
+              })),
+            ]}
+          />
+        </div>
         <div>
           <Label>{t('admin:inviteMemberModal.roleLabel')}</Label>
           <RoleCheckboxList roles={rolesQuery.data ?? []} selectedIds={roleIds} onChange={setRoleIds} />
         </div>
-        <div className="flex justify-end gap-2 pt-1">
-          <Button type="button" variant="outline" onClick={handleClose} disabled={inviteUser.isPending}>
+        <div className="flex justify-end gap-2 pt-2 border-t border-border-subtle mt-4">
+          <button
+            type="button"
+            onClick={handleClose}
+            disabled={inviteUser.isPending}
+            className="inline-flex items-center justify-center h-9 px-4 rounded-radius-sm border border-border-strong bg-white hover:bg-bg-subtle text-[13px] font-medium text-text-primary transition-colors cursor-pointer disabled:opacity-50"
+          >
             {t('admin:inviteMemberModal.cancel')}
-          </Button>
-          <Button type="submit" isLoading={inviteUser.isPending}>
-            {t('admin:inviteMemberModal.submit')}
-          </Button>
+          </button>
+          <button
+            type="submit"
+            disabled={inviteUser.isPending}
+            className="inline-flex items-center justify-center h-9 px-4 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {inviteUser.isPending ? t('common:processing') : t('admin:inviteMemberModal.submit')}
+          </button>
         </div>
       </form>
     </Modal>

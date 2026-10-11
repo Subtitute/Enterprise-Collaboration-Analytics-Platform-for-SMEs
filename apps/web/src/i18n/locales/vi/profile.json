@@ -35,7 +35,8 @@
     "buttons": {
       "uploadAvatar": "Tải ảnh lên",
       "saveProfile": "Lưu thay đổi",
-      "updatePassword": "Cập nhật mật khẩu"
+      "updatePassword": "Cập nhật mật khẩu",
+      "copyEmployeeCode": "Sao chép mã nhân viên"
     },
     "roles": {
       "orgAdmin": "Quản trị viên tổ chức",

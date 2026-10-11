@@ -9,7 +9,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 // 22/07/2026: them QueryState de xu ly nhanh isError cho tasksQuery ben duoi (xem chu thich tai
 // vi tri dung).
 import { QueryState } from '@/components/ui/QueryState';
-import { ChevronLeftIcon, PlusIcon, CheckCircleIcon, CalendarIcon, RefreshIcon, UsersIcon } from '@/components/ui/Icons';
+import { ChevronLeftIcon, PlusIcon, CheckCircleIcon, CalendarIcon, RefreshIcon } from '@/components/ui/Icons';
 import { formatDate, cn, canManageProjects } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
 import { useOrgUsersQuery } from '@/hooks/useOrgUsers';
@@ -105,44 +105,71 @@ export function ProjectDetailPage() {
         ? 'bg-primary-500 ring-primary-200'
         : 'bg-slate-400 ring-slate-200';
 
-  const priorityMeta = {
-    LOW: { label: t('projects:newProjectModal.priorities.LOW'), color: 'text-slate-600 bg-slate-50 border-slate-200' },
-    MEDIUM: { label: t('projects:newProjectModal.priorities.MEDIUM'), color: 'text-indigo-700 bg-indigo-50 border-indigo-200' },
-    HIGH: { label: t('projects:newProjectModal.priorities.HIGH'), color: 'text-amber-700 bg-amber-50 border-amber-200' },
-    URGENT: { label: t('projects:newProjectModal.priorities.URGENT'), color: 'text-rose-700 bg-rose-50 border-rose-200' },
-  }[currentPriority];
+  const priorityConfig = {
+    LOW: { label: t('projects:newProjectModal.priorities.LOW'), className: 'bg-[#FAF9F6] text-[#8A8781]' },
+    MEDIUM: { label: t('projects:newProjectModal.priorities.MEDIUM'), className: 'bg-[#EFEDE8] text-[#5C5A55]' },
+    HIGH: { label: t('projects:newProjectModal.priorities.HIGH', 'Cao'), className: 'bg-[#FBEEE0] text-[#B45309]' },
+    URGENT: { label: t('projects:newProjectModal.priorities.URGENT'), className: 'bg-[#F8E5E3] text-[#B3261E]' },
+  }[currentPriority] ?? { label: t('projects:newProjectModal.priorities.MEDIUM'), className: 'bg-[#EFEDE8] text-[#5C5A55]' };
+
+  const isHundredPercent = Math.round(progress || 0) >= 100 || currentStatus === 'COMPLETED';
+  const progressFillColor = isHundredPercent ? 'bg-[#2F6F44]' : 'bg-[#0E5E5E]';
 
   return (
     <div className="space-y-5">
-      <Link to="/projects" className="inline-flex items-center gap-1 text-sm font-medium text-slate-500 hover:text-slate-700">
-        <ChevronLeftIcon className="h-4 w-4" /> {t('projects:detail.backToList')}
+      <Link
+        to="/projects"
+        className="inline-flex items-center gap-1.5 text-[13px] font-normal text-text-secondary hover:text-text-primary transition-colors"
+      >
+        <ChevronLeftIcon className="h-3.5 w-3.5 text-text-tertiary" /> {t('projects:detail.backToList')}
       </Link>
 
-      <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-4">
+      <div className="rounded-radius-lg border border-border-subtle bg-white p-5 space-y-5">
         {/* Hàng 1: Tiêu đề, Badge độ ưu tiên, Badge trạng thái (bên trái) + 2 Nút hành động (bên phải) */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-display text-xl sm:text-2xl font-bold tracking-tight text-slate-900 break-words">{project.name}</h1>
-              {project.priority && (
-                <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-semibold border ${priorityMeta.color}`}>
-                  {priorityMeta.label}
-                </span>
-              )}
-              <Badge variant={status.variant} className="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold shadow-xs">
-                <span className={`h-1.5 w-1.5 rounded-full ring-2 ${statusDotColor}`} />
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="font-sans text-[22px] leading-[30px] font-semibold tracking-tight text-text-primary break-words">
+                {project.name}
+              </h1>
+              <span className={cn('shrink-0 rounded-[2px] px-2 py-0.5 text-[11px] font-semibold leading-normal', priorityConfig.className)}>
+                {priorityConfig.label}
+              </span>
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium leading-normal',
+                  currentStatus === 'COMPLETED'
+                    ? 'bg-[#E6F1E9] text-[#2F6F44]'
+                    : currentStatus === 'ARCHIVED'
+                    ? 'bg-[#EFEDE8] text-[#8A8781]'
+                    : 'bg-[#E4EFEE] text-[#0E5E5E]'
+                )}
+              >
+                <span
+                  className={cn(
+                    'h-1.5 w-1.5 rounded-full',
+                    currentStatus === 'COMPLETED'
+                      ? 'bg-[#2F6F44]'
+                      : currentStatus === 'ARCHIVED'
+                      ? 'bg-[#8A8781]'
+                      : 'bg-[#0E5E5E]'
+                  )}
+                />
                 <span>{status.label}</span>
-              </Badge>
+              </span>
             </div>
-            {project.description && <p className="mt-1.5 max-w-2xl text-sm text-slate-500 break-words">{project.description}</p>}
+            {project.description && (
+              <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-text-secondary break-words">
+                {project.description}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2 sm:shrink-0 w-full sm:w-auto">
             {canManage && (
               currentStatus !== 'COMPLETED' ? (
-                <Button
-                  variant="outline"
-                  className="flex-1 sm:flex-initial"
+                <button
+                  type="button"
                   onClick={() => {
                     const isFullyDone = tasks.length > 0
                       ? tasks.every((t) => t.status === 'DONE')
@@ -155,126 +182,129 @@ export function ProjectDetailPage() {
 
                     completeProject.mutate();
                   }}
-                  isLoading={completeProject.isPending}
+                  disabled={completeProject.isPending}
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-radius-md border border-border-strong bg-white text-[13px] font-medium text-text-primary hover:bg-bg-subtle transition-colors disabled:opacity-50 cursor-pointer"
                 >
-                  <CheckCircleIcon className="h-4 w-4 text-emerald-600" /> {t('projects:detail.completeProject')}
-                </Button>
+                  <CheckCircleIcon className="h-4 w-4 text-[#2F6F44]" /> {t('projects:detail.completeProject')}
+                </button>
               ) : (
-                <Button variant="outline" className="flex-1 sm:flex-initial" onClick={() => reopenProject.mutate()} isLoading={reopenProject.isPending}>
-                  <RefreshIcon className="h-4 w-4 text-primary-600" /> {t('projects:detail.reopenProject')}
-                </Button>
+                <button
+                  type="button"
+                  onClick={() => reopenProject.mutate()}
+                  disabled={reopenProject.isPending}
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-radius-md border border-border-strong bg-white text-[13px] font-medium text-text-primary hover:bg-bg-subtle transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  <RefreshIcon className="h-4 w-4 text-text-secondary" /> {t('projects:detail.reopenProject')}
+                </button>
               )
             )}
-            <Button className="flex-1 sm:flex-initial" onClick={() => setIsNewTaskOpen(true)}>
+            <button
+              type="button"
+              onClick={() => setIsNewTaskOpen(true)}
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-radius-md bg-[#1C1B1A] text-white text-[13px] font-medium hover:bg-[#2E2C29] transition-colors cursor-pointer"
+            >
               <PlusIcon className="h-4 w-4" /> {t('projects:detail.newTask')}
-            </Button>
+            </button>
           </div>
         </div>
 
-        {/* Hàng 2: Dải nền xám nhạt khóa đáy thẻ chứa 3 Widget (Hạn hoàn thành, Tiến độ dự án & Thành viên) */}
-        <div className="flex flex-wrap items-center gap-3 pt-1">
-          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 rounded-2xl bg-slate-50/90 border border-slate-200/60 p-2 shadow-2xs w-full sm:w-auto">
-            {project.dueDate && (
-              <div className="flex items-center gap-2.5 rounded-xl border border-slate-200/70 bg-white px-3.5 py-2 w-full sm:w-52 h-[52px] shadow-2xs">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-50 border border-slate-200/60 text-slate-500 shadow-2xs">
-                  <CalendarIcon className="h-4 w-4 text-slate-500" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <span className="block text-[11px] font-semibold text-slate-500 leading-tight">
-                    {t('projects:newProjectModal.dueDateLabel')}
-                  </span>
-                  <span className="block text-xs font-bold text-slate-800 truncate mt-0.5">
-                    {formatDate(project.dueDate)}
-                  </span>
-                </div>
-              </div>
-            )}
-            
-            {/* Widget tiến độ hoàn thành công việc */}
-            <div className="flex items-center gap-3 rounded-xl border border-slate-200/70 bg-white px-3.5 py-2 w-full sm:w-52 h-[52px] shadow-2xs">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[11px] font-semibold text-slate-500 leading-tight">{t('projects:detail.projectProgress')}</span>
-                  <span className={cn(
-                    "text-xs font-bold font-display",
-                    progress >= 100 ? "text-emerald-600" : "text-primary-600"
-                  )}>
-                    {progress}%
-                  </span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 shadow-inner border border-slate-200/40">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-all duration-500 ease-out",
-                      progress >= 100 
-                        ? "bg-emerald-500" 
-                        : "bg-primary-500"
-                    )}
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              </div>
+        {/* Hàng 2: 3 Summary Cards (§3.1) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* Card 1: Hạn hoàn thành */}
+          <div className="flex items-center gap-3 rounded-radius-md border border-border-subtle bg-white p-3 h-16 shadow-none">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-radius-sm bg-bg-subtle text-text-tertiary">
+              <CalendarIcon className="h-4 w-4 stroke-1.5" />
             </div>
-
-            {/* Widget Thành viên dự án */}
-            {(() => {
-              // 22/09/2026: "thanh vien du an" = hop cua 3 nguon (mirror dung logic server-side tai
-              // ProjectsService.getVisibleProjectIds()/addMember()): nguoi phu trach (leadUserId),
-              // nguoi dang duoc giao >=1 Task (TaskAssignee), va thanh vien duoc them THANG qua
-              // ProjectMember (that, server-side - thay localStorage truoc day).
-              const memberIdSet = new Set<string>();
-              if (project.leadUserId) memberIdSet.add(project.leadUserId);
-              for (const task of tasks) {
-                for (const assignee of task.assignees ?? []) {
-                  if (assignee.userId) memberIdSet.add(assignee.userId);
-                }
-              }
-              for (const member of projectMembersQuery.data ?? []) memberIdSet.add(member.userId);
-
-              const allUsers = orgUsersQuery.data ?? [];
-              const userMap = new Map(allUsers.map((u) => [u.id, u]));
-              const projectMembers = Array.from(memberIdSet).map((id) => userMap.get(id)).filter(Boolean);
-              const previewMembers = projectMembers.slice(0, 3);
-              const remainingCount = Math.max(0, projectMembers.length - 3);
-
-              return (
-                <button
-                  type="button"
-                  onClick={() => setIsMembersModalOpen(true)}
-                  className="group flex items-center justify-between gap-3 rounded-xl border border-slate-200/70 bg-white px-3.5 py-2 w-full sm:w-64 h-[52px] shadow-2xs hover:border-indigo-300 hover:bg-slate-50/70 transition-all text-left cursor-pointer active:scale-[0.98]"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 leading-tight group-hover:text-indigo-600 transition-colors">
-                      <UsersIcon className="h-3.5 w-3.5 text-slate-400 group-hover:text-indigo-600" />
-                      <span>{t('projects:detail.projectMembers')}</span>
-                    </div>
-                    <span className="block text-xs font-bold text-slate-800 truncate mt-0.5">
-                      {t('projects:detail.membersCountLabel', { count: projectMembers.length })}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center -space-x-1.5 overflow-hidden shrink-0">
-                    {previewMembers.map((m) => (
-                      <Avatar
-                        key={m!.id}
-                        name={m!.fullName}
-                        size="sm"
-                        className="h-6 w-6 text-[10px] ring-2 ring-white shadow-2xs"
-                      />
-                    ))}
-                    {remainingCount > 0 && (
-                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-[10px] font-bold text-slate-600 ring-2 ring-white shadow-2xs">
-                        +{remainingCount}
-                      </span>
-                    )}
-                    {projectMembers.length === 0 && (
-                      <span className="text-[11px] text-slate-400 italic">{t('projects:detail.noMembers')}</span>
-                    )}
-                  </div>
-                </button>
-              );
-            })()}
+            <div className="min-w-0 flex-1">
+              <span className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider leading-none">
+                {t('projects:newProjectModal.dueDateLabel')}
+              </span>
+              <span className="block font-mono text-[13px] font-medium text-text-primary tabular-nums truncate mt-1">
+                {project.dueDate ? formatDate(project.dueDate) : t('common:none')}
+              </span>
+            </div>
           </div>
+
+          {/* Card 2: Tiến độ */}
+          <div className="flex flex-col justify-center rounded-radius-md border border-border-subtle bg-white px-3.5 py-2.5 h-16 shadow-none">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider leading-none">
+                {t('projects:detail.projectProgress')}
+              </span>
+              <span className="font-mono text-[13px] font-medium text-text-primary tabular-nums leading-none">
+                {progress}%
+              </span>
+            </div>
+            <div className="h-1 w-full overflow-hidden rounded-full bg-bg-subtle">
+              <div
+                className={cn('h-full transition-all duration-300 rounded-full', progressFillColor)}
+                style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Card 3: Thành viên */}
+          {(() => {
+            const memberIdSet = new Set<string>();
+            if (project.leadUserId) memberIdSet.add(project.leadUserId);
+            for (const task of tasks) {
+              for (const assignee of task.assignees ?? []) {
+                if (assignee.userId) memberIdSet.add(assignee.userId);
+              }
+            }
+            for (const member of projectMembersQuery.data ?? []) memberIdSet.add(member.userId);
+
+            const allUsers = orgUsersQuery.data ?? [];
+            const userMap = new Map(allUsers.map((u) => [u.id, u]));
+            const projectMembers = Array.from(memberIdSet).map((id) => userMap.get(id)).filter(Boolean);
+            const previewMembers = projectMembers.slice(0, 3);
+            const remainingCount = Math.max(0, projectMembers.length - 3);
+
+            return (
+              <button
+                type="button"
+                onClick={() => setIsMembersModalOpen(true)}
+                className="group flex items-center justify-between gap-3 rounded-radius-md border border-border-subtle bg-white p-3 h-16 shadow-none hover:border-border-strong hover:bg-bg-subtle/50 transition-colors text-left cursor-pointer"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider leading-none">
+                    {t('projects:detail.projectMembers')}
+                  </div>
+                  <span className="block text-[12px] font-normal text-text-secondary truncate mt-1">
+                    {t('projects:detail.membersCountLabel', { count: projectMembers.length })}
+                  </span>
+                </div>
+
+                <div className="flex items-center -space-x-2 overflow-hidden shrink-0">
+                  {previewMembers.map((m) => {
+                    const initials = (m!.fullName || m!.email || '?')
+                      .split(' ')
+                      .map((p: string) => p[0])
+                      .slice(0, 2)
+                      .join('')
+                      .toUpperCase();
+                    return (
+                      <div
+                        key={m!.id}
+                        className="flex h-6 w-6 items-center justify-center rounded-full bg-accent-soft text-accent text-[10px] font-semibold ring-2 ring-white"
+                        title={m!.fullName}
+                      >
+                        {initials}
+                      </div>
+                    );
+                  })}
+                  {remainingCount > 0 && (
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-bg-subtle text-[11px] font-medium font-mono text-text-secondary ring-2 ring-white">
+                      +{remainingCount}
+                    </span>
+                  )}
+                  {projectMembers.length === 0 && (
+                    <span className="text-[11px] text-text-tertiary italic">{t('projects:detail.noMembers')}</span>
+                  )}
+                </div>
+              </button>
+            );
+          })()}
         </div>
       </div>
 

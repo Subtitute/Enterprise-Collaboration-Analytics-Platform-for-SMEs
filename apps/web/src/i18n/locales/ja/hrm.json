@@ -98,7 +98,8 @@
         "status": {
           "sufficient": "基準達成",
           "insufficient": "時間不足",
-          "newMember": "新規入社"
+          "newMember": "新規入社",
+          "notJoined": "未入社"
         },
         "daysUnit": "日",
         "hoursUnit": "時間",
@@ -153,7 +154,8 @@
       "emptyTitle": "休暇申請はまだありません",
       "emptyDescription": "休暇が必要な際は、最初の申請を作成してください。",
       "createFirstButton": "新規申請を作成",
-      "decisionNote": "メモ: {{note}}"
+      "decisionNote": "メモ: {{note}}",
+      "loadMore": "もっと見る"
     }
   },
   "employeePicker": {
@@ -181,6 +183,7 @@
     "emptyDescription": "この従業員の勤怠データはまだありません。"
   },
   "companyCalendar": {
+    "title": "会社カレンダー",
     "description": "組織全体で共有するカレンダーです。誰でもイベントを作成できますが、祝日の設定はマネージャーと組織管理者のみ可能です。日付をクリックすると新規作成、既存の項目をクリックすると閲覧・編集できます。",
     "newEntry": "新規項目",
     "loading": "カレンダーを読み込み中…",
@@ -323,6 +326,11 @@
       "reasonLabel": "残業の理由・業務内容",
       "reasonPlaceholder": "例: 顧客向け本番リリースの緊急デプロイ作業のため…",
       "estimatedHours": "残業見込時間: {{hours}} 時間",
+      "estimatedDuration": "残業見込時間: {{duration}}",
+      "durationZero": "0時間",
+      "durationHoursMinutes": "{{hours}}時間{{mins}}分",
+      "durationHoursOnly": "{{hours}}時間",
+      "durationMinutesOnly": "{{mins}}分",
       "submitButton": "残業申請を送信",
       "cancelButton": "キャンセル",
       "errors": {

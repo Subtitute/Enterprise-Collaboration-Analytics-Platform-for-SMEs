@@ -2,8 +2,11 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { FormField, Input, Select, Textarea } from '@/components/ui/Input';
+import { FormField, Textarea } from '@/components/ui/Input';
+import { DatePicker } from '@/components/ui/DatePicker';
 import { TimePicker } from '@/components/ui/TimePicker';
+import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
+import { InfoIcon } from '@/components/ui/Icons';
 import type { LeaveRequest, OvertimeMultiplierType } from '@/types';
 import { useCreateOvertimeRequest } from '../hooks';
 
@@ -30,17 +33,36 @@ export function OvertimeRegistrationModal({ userId, open, onClose, leaveRequests
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Tính số giờ OT dự kiến
-  const estimatedHours = useMemo(() => {
+  // Tính số giờ và phút OT dự kiến
+  const { totalHours, durationText } = useMemo(() => {
     const [sH, sM] = otStart.split(':').map(Number);
     const [eH, eM] = otEnd.split(':').map(Number);
-    if (isNaN(sH) || isNaN(sM) || isNaN(eH) || isNaN(eM)) return 0;
-    const diff = (eH * 60 + eM) - (sH * 60 + sM);
-    return diff > 0 ? Math.round((diff / 60) * 10) / 10 : 0;
-  }, [otStart, otEnd]);
+    if (isNaN(sH) || isNaN(sM) || isNaN(eH) || isNaN(eM)) {
+      return { totalHours: 0, durationText: t('hrm:extensions.overtime.durationZero') };
+    }
+    const diffMins = (eH * 60 + eM) - (sH * 60 + sM);
+    if (diffMins <= 0) {
+      return { totalHours: 0, durationText: t('hrm:extensions.overtime.durationZero') };
+    }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    const hours = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    const decimalHours = Math.round((diffMins / 60) * 10) / 10;
+
+    let text = '';
+    if (hours > 0 && mins > 0) {
+      text = t('hrm:extensions.overtime.durationHoursMinutes', { hours, mins });
+    } else if (hours > 0) {
+      text = t('hrm:extensions.overtime.durationHoursOnly', { hours });
+    } else {
+      text = t('hrm:extensions.overtime.durationMinutesOnly', { mins });
+    }
+
+    return { totalHours: decimalHours, durationText: text };
+  }, [otStart, otEnd, t]);
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setError(null);
 
     // 1. Kiểm tra lý do
@@ -50,7 +72,7 @@ export function OvertimeRegistrationModal({ userId, open, onClose, leaveRequests
     }
 
     // 2. Giờ kết thúc phải sau giờ bắt đầu
-    if (estimatedHours <= 0) {
+    if (totalHours <= 0) {
       setError(t('hrm:extensions.overtime.errors.invalidRange'));
       return;
     }
@@ -88,16 +110,27 @@ export function OvertimeRegistrationModal({ userId, open, onClose, leaveRequests
       return;
     }
 
-    // 5. Tran toi da 40h OT/thang - server la nguon that su (OvertimeRequestsService.create(),
-    // cong don TOAN BO yeu cau chua bi tu choi trong thang cua nguoi nay), khong con kiem tra lai
-    // o day (tranh doc lai toan bo danh sach OT chi de lam 1 phep cong client khong dang tin cay
-    // bang server) - loi OVERTIME_MONTHLY_CAP_EXCEEDED (tieng Viet) se hien qua onError ben duoi
-    // neu vuot tran.
+    // 5. Tran toi da 40h OT/thang
     createOvertime.mutate(
       { workDate, otStart, otEnd, multiplierType, reason: reason.trim() },
       { onSuccess: onClose },
     );
   };
+
+  const multiplierOptions = [
+    { value: 'WEEKDAY', label: t('hrm:extensions.overtime.multipliers.weekday') },
+    { value: 'WEEKEND', label: t('hrm:extensions.overtime.multipliers.weekend') },
+    { value: 'HOLIDAY', label: t('hrm:extensions.overtime.multipliers.holiday') },
+  ];
+
+  const otPresets = [
+    { label: '17:30', value: '17:30' },
+    { label: '18:00', value: '18:00' },
+    { label: '19:00', value: '19:00' },
+    { label: '20:00', value: '20:00' },
+    { label: '21:00', value: '21:00' },
+    { label: '22:00', value: '22:00' },
+  ];
 
   return (
     <Modal
@@ -105,16 +138,31 @@ export function OvertimeRegistrationModal({ userId, open, onClose, leaveRequests
       onClose={onClose}
       title={t('hrm:extensions.overtime.modalTitle')}
       size="sm"
+      footer={
+        <div className="flex justify-end gap-2 w-full">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            {t('hrm:extensions.overtime.cancelButton')}
+          </Button>
+          <Button
+            type="button"
+            variant="primary"
+            onClick={() => handleSubmit()}
+            disabled={createOvertime.isPending}
+            isLoading={createOvertime.isPending}
+          >
+            {t('hrm:extensions.overtime.submitButton')}
+          </Button>
+        </div>
+      }
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <FormField label={t('hrm:extensions.overtime.dateLabel')} htmlFor="ot-date" required>
-          <Input
+          <DatePicker
             id="ot-date"
-            type="date"
             value={workDate}
-            onChange={(e) => setWorkDate(e.target.value)}
-            className="text-xs"
-            required
+            onChange={setWorkDate}
+            position="bottom"
+            className="w-full"
           />
         </FormField>
 
@@ -124,6 +172,7 @@ export function OvertimeRegistrationModal({ userId, open, onClose, leaveRequests
               id="ot-start"
               value={otStart}
               onChange={setOtStart}
+              presets={otPresets}
               position="bottom"
               required
             />
@@ -134,6 +183,7 @@ export function OvertimeRegistrationModal({ userId, open, onClose, leaveRequests
               id="ot-end"
               value={otEnd}
               onChange={setOtEnd}
+              presets={otPresets}
               position="bottom"
               align="right"
               required
@@ -142,20 +192,20 @@ export function OvertimeRegistrationModal({ userId, open, onClose, leaveRequests
         </div>
 
         <FormField label={t('hrm:extensions.overtime.multiplierLabel')} htmlFor="ot-multiplier" required>
-          <Select
-            id="ot-multiplier"
+          <CustomFilterSelect
             value={multiplierType}
-            onChange={(e) => setMultiplierType(e.target.value as 'WEEKDAY' | 'WEEKEND' | 'HOLIDAY')}
-            className="text-xs"
-          >
-            <option value="WEEKDAY">{t('hrm:extensions.overtime.multipliers.weekday')}</option>
-            <option value="WEEKEND">{t('hrm:extensions.overtime.multipliers.weekend')}</option>
-            <option value="HOLIDAY">{t('hrm:extensions.overtime.multipliers.holiday')}</option>
-          </Select>
+            options={multiplierOptions}
+            onChange={(val) => setMultiplierType(val as OvertimeMultiplierType)}
+            position="bottom"
+            className="w-full"
+          />
         </FormField>
 
-        <div className="p-2 rounded-lg bg-indigo-50/70 border border-indigo-100 text-xs font-semibold text-indigo-800">
-          {t('hrm:extensions.overtime.estimatedHours', { hours: estimatedHours })}
+        <div className="flex items-center gap-2 p-2.5 rounded-radius-sm bg-accent-soft text-accent text-xs font-medium">
+          <InfoIcon className="h-4 w-4 shrink-0" />
+          <span>
+            {t('hrm:extensions.overtime.estimatedDuration', { duration: durationText })}
+          </span>
         </div>
 
         <FormField
@@ -169,20 +219,11 @@ export function OvertimeRegistrationModal({ userId, open, onClose, leaveRequests
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder={t('hrm:extensions.overtime.reasonPlaceholder')}
-            className="text-xs"
-            rows={2}
+            className="text-xs min-h-[80px]"
+            rows={3}
             required
           />
         </FormField>
-
-        <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-          <Button type="button" variant="outline" size="sm" onClick={onClose}>
-            {t('hrm:extensions.overtime.cancelButton')}
-          </Button>
-          <Button type="submit" size="sm" disabled={createOvertime.isPending}>
-            {t('hrm:extensions.overtime.submitButton')}
-          </Button>
-        </div>
       </form>
     </Modal>
   );

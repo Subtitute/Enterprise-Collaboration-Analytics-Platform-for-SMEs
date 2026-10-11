@@ -2,45 +2,31 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Avatar } from '@/components/ui/Avatar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { Spinner } from '@/components/ui/Spinner';
-import { CalendarIcon, ChevronRightIcon } from '@/components/ui/Icons';
+import { CalendarIcon } from '@/components/ui/Icons';
 import { formatShortDate, calculateWorkingDays } from '@/lib/utils';
 import { useUserNameMap } from '@/hooks/useOrgUsers';
 import { useUpcomingLeavesQuery } from '../hooks';
 import type { LeaveRequest } from '@/types';
 
-/** Tách loại nghỉ phép và lý do thực tế từ chuỗi reason đã lưu */
-function parseLeaveType(rawReason: string | undefined | null, t: (key: string) => string): { label: string; badgeStyle: string } {
+/** Tách loại nghỉ phép từ chuỗi reason đã lưu */
+function parseLeaveType(rawReason: string | undefined | null, t: (key: string, defaultValue?: string) => string): string {
   if (!rawReason) {
-    return {
-      label: t('dashboard:upcomingLeaves.types.ANNUAL'),
-      badgeStyle: 'bg-emerald-50 text-emerald-700 border-emerald-200/60',
-    };
+    return t('dashboard:upcomingLeaves.types.ANNUAL');
   }
 
   const match = rawReason.match(/^\[(.*?)\]\s*(.*)$/);
   const rawType = match ? match[1] : '';
 
-  if (rawType === 'SICK' || rawType.includes('ốm') || rawType.includes('Sick') || rawType.includes('病気')) { // i18n-lint-ignore: khop rawType da luu tu truoc
-    return {
-      label: t('dashboard:upcomingLeaves.types.SICK'),
-      badgeStyle: 'bg-amber-50 text-amber-700 border-amber-200/60',
-    };
+  if (rawType === 'SICK' || rawType.includes('ốm') || rawType.includes('Sick') || rawType.includes('病気')) { // i18n-lint-ignore matches raw backend leaveType data values, not displayed UI copy
+    return t('dashboard:upcomingLeaves.types.SICK');
   }
 
-  if (rawType === 'UNPAID' || rawType.includes('việc riêng') || rawType.includes('Personal') || rawType.includes('私用')) { // i18n-lint-ignore: khop rawType da luu tu truoc
-    return {
-      label: t('dashboard:upcomingLeaves.types.UNPAID'),
-      badgeStyle: 'bg-slate-100 text-slate-700 border-slate-200/60',
-    };
+  if (rawType === 'UNPAID' || rawType.includes('việc riêng') || rawType.includes('Personal') || rawType.includes('私用')) { // i18n-lint-ignore matches raw backend leaveType data values, not displayed UI copy
+    return t('dashboard:upcomingLeaves.types.UNPAID');
   }
 
-  return {
-    label: t('dashboard:upcomingLeaves.types.ANNUAL'),
-    badgeStyle: 'bg-emerald-50 text-emerald-700 border-emerald-200/60',
-  };
+  return t('dashboard:upcomingLeaves.types.ANNUAL');
 }
 
 export function UpcomingLeavesWidget() {
@@ -51,6 +37,13 @@ export function UpcomingLeavesWidget() {
   // Ngày hiện tại GMT+7 định dạng YYYY-MM-DD
   const todayStr = useMemo(() => {
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+  }, []);
+
+  // Ngày mai GMT+7 định dạng YYYY-MM-DD
+  const tomorrowStr = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(d);
   }, []);
 
   // Lọc chỉ các đơn có ngày kết thúc >= hôm nay, sắp xếp theo ngày bắt đầu tăng dần, lấy tối đa 5 bản ghi
@@ -72,94 +65,89 @@ export function UpcomingLeavesWidget() {
   }, [data, todayStr]);
 
   return (
-    <Card className="flex flex-col h-full">
-      <CardHeader className="flex flex-row items-center justify-between pb-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-            <CalendarIcon className="h-4 w-4" />
-          </div>
-          <CardTitle>{t('dashboard:upcomingLeaves.title')}</CardTitle>
-        </div>
+    <div className="rounded-lg border border-border-subtle bg-bg-surface p-5 h-full flex flex-col justify-between">
+      {/* Header: title 15/600 + link Xem tất cả → căn phải font 13/500 accent */}
+      <div className="flex items-center justify-between pb-3 border-b border-border-subtle mb-1">
+        <h2 className="text-[15px] leading-[22px] font-semibold text-text-primary">
+          {t('dashboard:upcomingLeaves.title')}
+        </h2>
         <Link
           to="/leave-requests"
-          className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5 hover:underline no-print"
+          className="text-[13px] font-medium text-accent hover:underline no-print"
         >
-          <span>{t('dashboard:upcomingLeaves.viewAll')}</span>
-          <ChevronRightIcon className="h-3.5 w-3.5" />
+          {t('dashboard:upcomingLeaves.viewAll')}
         </Link>
-      </CardHeader>
+      </div>
 
-      <CardContent className="flex-1">
+      <div className="flex-1">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-10 text-slate-400 gap-2">
-            <Spinner className="h-5 w-5 text-indigo-600" />
-            <p className="text-xs text-slate-500">{t('dashboard:upcomingLeaves.loading')}</p>
+          <div className="flex flex-col items-center justify-center py-10 gap-2">
+            <Spinner className="h-5 w-5 text-accent" />
+            <p className="text-xs text-text-tertiary">{t('dashboard:upcomingLeaves.loading')}</p>
           </div>
         ) : isError ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <p className="text-xs text-rose-500 font-medium">{t('dashboard:upcomingLeaves.errorTitle')}</p>
+            <p className="text-xs text-text-error font-medium">{t('dashboard:upcomingLeaves.errorTitle')}</p>
             <button
               type="button"
               onClick={() => refetch()}
-              className="mt-2 text-xs font-semibold text-indigo-600 hover:underline"
+              className="mt-2 text-xs font-semibold text-accent hover:underline cursor-pointer"
             >
               {t('dashboard:upcomingLeaves.retry')}
             </button>
           </div>
         ) : upcomingList.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center border border-dashed border-slate-100 rounded-xl bg-slate-50/50">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-400 mb-2">
-              <CalendarIcon className="h-4 w-4" />
-            </div>
-            <p className="text-xs font-semibold text-slate-700">{t('dashboard:upcomingLeaves.emptyTitle')}</p>
-            <p className="text-[11px] text-slate-400 mt-0.5 max-w-[200px]">
-              {t('dashboard:upcomingLeaves.emptyDescription')}
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <CalendarIcon className="h-10 w-10 text-text-tertiary mb-2" aria-hidden="true" />
+            <p className="text-[13px] leading-[20px] text-text-secondary">
+              {t('dashboard:upcomingLeaves.emptyTitle')}
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="divide-y divide-border-subtle">
             {upcomingList.map((item) => {
               const startStr = item.startDate ? item.startDate.slice(0, 10) : '';
               const endStr = item.endDate ? item.endDate.slice(0, 10) : '';
               const isToday = startStr <= todayStr && endStr >= todayStr;
-              const isSameDay = startStr === endStr;
+              const isTomorrow = startStr === tomorrowStr;
               const daysCount = calculateWorkingDays(item.startDate, item.endDate);
               const employeeName = userNameMap[item.userId] || t('dashboard:upcomingLeaves.employee');
-              const { label: typeLabel, badgeStyle } = parseLeaveType(item.reason, t);
+              const typeLabel = parseLeaveType(item.reason, t as any);
 
               return (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between gap-3 p-2.5 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition-colors"
+                  className="flex items-center justify-between gap-3 py-3"
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <Avatar name={employeeName} size="sm" className="shrink-0" />
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar
+                      name={employeeName}
+                      size="sm"
+                      className="h-8 w-8 shrink-0 text-xs rounded-full bg-accent-soft text-accent font-medium"
+                    />
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-slate-900 truncate" title={employeeName}>
+                      <p className="text-[13px] leading-[20px] font-medium text-text-primary truncate" title={employeeName}>
                         {employeeName}
                       </p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className={`inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium border ${badgeStyle}`}>
-                          {typeLabel}
-                        </span>
-                        <span className="text-[11px] text-slate-400">
-                          • {t('dashboard:upcomingLeaves.daysCount', { count: daysCount })}
-                        </span>
-                      </div>
+                      <p className="text-[12px] leading-[16px] text-text-tertiary mt-0.5">
+                        {typeLabel} · {t('dashboard:upcomingLeaves.daysCount', { count: daysCount })}
+                      </p>
                     </div>
                   </div>
 
+                  {/* Badge ngày nghỉ: vuông 2px radius (radius-xs), KHÔNG pill (§9) */}
                   <div className="shrink-0 text-right">
                     {isToday ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
-                        <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
+                      <span className="inline-flex items-center justify-center h-5 px-2 rounded-[2px] text-[11px] font-semibold bg-[#FBEEE0] text-[#B45309]">
                         {t('dashboard:upcomingLeaves.today')}
                       </span>
+                    ) : isTomorrow ? (
+                      <span className="inline-flex items-center justify-center h-5 px-2 rounded-[2px] text-[11px] font-medium bg-bg-subtle text-text-secondary">
+                        {t('dashboard:upcomingLeaves.tomorrow')}
+                      </span>
                     ) : (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-white text-slate-700 border border-slate-200 shadow-2xs">
-                        {isSameDay
-                          ? formatShortDate(item.startDate)
-                          : `${formatShortDate(item.startDate)} - ${formatShortDate(item.endDate)}`}
+                      <span className="inline-flex items-center justify-center h-5 px-2 rounded-[2px] text-[11px] font-medium bg-bg-subtle text-text-tertiary">
+                        {formatShortDate(item.startDate)}
                       </span>
                     )}
                   </div>
@@ -168,8 +156,9 @@ export function UpcomingLeavesWidget() {
             })}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
+
 

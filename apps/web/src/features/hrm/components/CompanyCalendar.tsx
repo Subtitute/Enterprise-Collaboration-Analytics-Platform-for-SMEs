@@ -15,8 +15,6 @@
 // xem canReassignOwner tai CustomerDetailPage.tsx).
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { QueryState } from '@/components/ui/QueryState';
@@ -29,15 +27,11 @@ import { CalendarEventModal } from './CalendarEventModal';
 import type { CalendarEvent } from '@/types';
 
 const TYPE_DOT_CLASS: Record<CalendarEvent['type'], string> = {
-  HOLIDAY: 'bg-rose-500',
-  EVENT: 'bg-indigo-500',
-};
-const TYPE_PILL_CLASS: Record<CalendarEvent['type'], string> = {
-  HOLIDAY: 'bg-rose-50 text-rose-700 border-rose-200/60 hover:bg-rose-100',
-  EVENT: 'bg-indigo-50 text-indigo-700 border-indigo-200/60 hover:bg-indigo-100',
+  HOLIDAY: 'bg-[#B3261E]',
+  EVENT: 'bg-[#0E5E5E]',
 };
 
-const MAX_PILLS_PER_CELL = 3;
+const MAX_PILLS_PER_CELL = 2;
 
 /**
  * 03/10/2026: cap bac (tier) cua CHINH nguoi dang xem, tinh THEO PERMISSION ho dang giu (khop
@@ -127,85 +121,99 @@ export function CompanyCalendar() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-500">{t('hrm:companyCalendar.description')}</p>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-1 shadow-2xs">
-            <button
-              type="button"
-              onClick={goToPrevMonth}
-              aria-label={t('common:datePicker.prevMonthAria')}
-              className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
-            >
-              <ChevronLeftIcon className="h-4 w-4" />
-            </button>
-            <span className="min-w-32 text-center text-sm font-bold text-slate-900">
-              {MONTH_NAMES[currentMonth]} {currentYear}
-            </span>
-            <button
-              type="button"
-              onClick={goToNextMonth}
-              aria-label={t('common:datePicker.nextMonthAria')}
-              className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
-            >
-              <ChevronRightIcon className="h-4 w-4" />
-            </button>
-          </div>
-          <Button
-            onClick={() => {
-              // 05/10/2026 (fix loi thuc te): truoc ban sua nay, khi dang xem 1 THANG DA QUA (lui
-              // ve qua cac mui ten), nut nay dien san monthStartStr (ngay 1 cua thang do) - 1 ngay
-              // QUA KHU - lam nguoi dung mo form tao moi voi ngay khong hop le san co. Danh gia 3
-              // truong hop: thang dang xem CHUA ngay hom nay -> todayStr; thang trong TUONG LAI
-              // (monthStartStr > todayStr) -> monthStartStr; thang DA QUA -> todayStr (khong duoc
-              // dung monthStartStr qua khu).
-              setCreateDefaultDate(monthStartStr > todayStr ? monthStartStr : todayStr);
-              setIsCreateOpen(true);
-            }}
+    <div className="space-y-3">
+      {/* Header lịch: nut < > ghost + Thang MM YYYY + nut + Muc moi Secondary h28 */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1 rounded-radius-sm border border-border-subtle bg-white p-0.5">
+          <button
+            type="button"
+            onClick={goToPrevMonth}
+            aria-label={t('common:datePicker.prevMonthAria')}
+            className="flex h-7 w-7 items-center justify-center rounded-radius-sm text-text-secondary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer"
           >
-            <PlusIcon className="h-4 w-4" /> {t('hrm:companyCalendar.newEntry')}
-          </Button>
+            <ChevronLeftIcon className="h-3.5 w-3.5" />
+          </button>
+          <span className="min-w-24 text-center font-mono text-[13px] font-semibold text-text-primary tabular-nums">
+            {MONTH_NAMES[currentMonth]} {currentYear}
+          </span>
+          <button
+            type="button"
+            onClick={goToNextMonth}
+            aria-label={t('common:datePicker.nextMonthAria')}
+            className="flex h-7 w-7 items-center justify-center rounded-radius-sm text-text-secondary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer"
+          >
+            <ChevronRightIcon className="h-3.5 w-3.5" />
+          </button>
         </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            // 05/10/2026 (fix loi thuc te): truoc ban sua nay, khi dang xem 1 THANG DA QUA (lui
+            // ve qua cac mui ten), nut nay dien san monthStartStr (ngay 1 cua thang do) - 1 ngay
+            // QUA KHU - lam nguoi dung mo form tao moi voi ngay khong hop le san co. Danh gia 3
+            // truong hop: thang dang xem CHUA ngay hom nay -> todayStr; thang trong TUONG LAI
+            // (monthStartStr > todayStr) -> monthStartStr; thang DA QUA -> todayStr (khong duoc
+            // dung monthStartStr qua khu).
+            setCreateDefaultDate(monthStartStr > todayStr ? monthStartStr : todayStr);
+            setIsCreateOpen(true);
+          }}
+          className="inline-flex items-center justify-center gap-1 h-7 px-2.5 rounded-radius-xs border border-border-strong bg-white hover:bg-bg-subtle text-[12px] font-medium text-text-primary transition-colors cursor-pointer shrink-0"
+        >
+          <PlusIcon className="h-3 w-3" />
+          <span>{t('hrm:companyCalendar.newEntry')}</span>
+        </button>
       </div>
 
-      <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
+      {/* Legend dot 6px: Ngày lễ #B3261E, Sự kiện #0E5E5E */}
+      <div className="flex items-center gap-3 text-[12px] font-normal text-text-secondary">
         <span className="flex items-center gap-1.5">
-          <span className={cn('h-2 w-2 rounded-full', TYPE_DOT_CLASS.HOLIDAY)} /> {t('hrm:calendarEventModal.type.HOLIDAY')}
+          <span className="h-1.5 w-1.5 rounded-full bg-[#B3261E] shrink-0" />
+          <span>{t('hrm:calendarEventModal.type.HOLIDAY')}</span>
         </span>
         <span className="flex items-center gap-1.5">
-          <span className={cn('h-2 w-2 rounded-full', TYPE_DOT_CLASS.EVENT)} /> {t('hrm:calendarEventModal.type.EVENT')}
+          <span className="h-1.5 w-1.5 rounded-full bg-[#0E5E5E] shrink-0" />
+          <span>{t('hrm:calendarEventModal.type.EVENT')}</span>
         </span>
       </div>
 
-      <Card className="overflow-hidden">
+      {/* Lưới tháng: Side-widget phẳng, cell tự co BỎ fix h96 */}
+      <div className="overflow-hidden rounded-radius-md border border-border-subtle bg-white">
         <QueryState
           isLoading={calendarEventsQuery.isLoading}
           isError={calendarEventsQuery.isError}
           onRetry={() => calendarEventsQuery.refetch()}
           loadingFallback={
-            <div className="flex justify-center py-12">
+            <div className="flex justify-center py-8">
               <FullPageSpinner label={t('hrm:companyCalendar.loading')} />
             </div>
           }
           errorTitle={t('hrm:companyCalendar.errorTitle')}
         >
-          <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/60">
+          {/* Header 7 cột T2..CN */}
+          <div className="grid grid-cols-7 border-b border-border-subtle bg-bg-subtle">
             {WEEK_DAYS.map((wd, idx) => (
-              <div key={idx} className="px-2 py-2 text-center text-[11px] font-bold text-slate-500">
+              <div key={idx} className="py-1.5 text-center text-[10px] font-medium uppercase tracking-wider text-text-tertiary">
                 {wd}
               </div>
             ))}
           </div>
+
+          {/* Lưới ngày: Cell phóng to, co giãn tự nhiên, hiện rõ ngày và thẻ sự kiện/ngày lễ */}
           <div className="grid grid-cols-7">
-            {/* Ngay thang truoc - o mo, khong tuong tac */}
+            {/* Ngày tháng trước */}
             {Array.from({ length: startingDayIndex }).map((_, i) => (
-              <div key={`prev-${i}`} className="min-h-24 border-b border-r border-slate-100 bg-slate-50/40 p-1.5 text-[11px] text-slate-300">
-                {daysInPrevMonth - startingDayIndex + i + 1}
+              <div
+                key={`prev-${i}`}
+                className="min-h-[72px] sm:min-h-[84px] border-b border-r border-border-subtle bg-bg-subtle/50 p-1.5 text-text-tertiary"
+              >
+                <span className="font-mono text-[11px] font-medium tabular-nums">
+                  {daysInPrevMonth - startingDayIndex + i + 1}
+                </span>
               </div>
             ))}
 
-            {/* Ngay thang hien tai */}
+            {/* Ngày tháng hiện tại */}
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
               const dayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -217,7 +225,7 @@ export function CompanyCalendar() {
               // stopPropagation, doc lap voi onClick cua o ngay o day).
               const isPast = dayStr < todayStr;
               const dayEvents = eventsForDay(dayStr);
-              const visibleEvents = dayEvents.slice(0, MAX_PILLS_PER_CELL);
+              const visibleEvents = dayEvents.slice(0, 2);
               const hiddenCount = dayEvents.length - visibleEvents.length;
 
               return (
@@ -234,19 +242,23 @@ export function CompanyCalendar() {
                         }
                   }
                   className={cn(
-                    'min-h-24 border-b border-r border-slate-100 p-1.5 transition-colors',
-                    isPast ? 'bg-slate-50/40' : 'cursor-pointer hover:bg-slate-50/80',
+                    'group relative flex min-h-[72px] sm:min-h-[84px] flex-col justify-between border-b border-r border-border-subtle p-1.5 transition-colors',
+                    isPast ? 'bg-bg-subtle/50' : 'cursor-pointer hover:bg-bg-subtle',
                   )}
                 >
-                  <span
-                    className={cn(
-                      'inline-flex h-5.5 w-5.5 items-center justify-center rounded-full text-[11px] font-bold',
-                      isToday ? 'bg-primary-600 text-white' : 'text-slate-700',
-                    )}
-                  >
-                    {day}
-                  </span>
-                  <div className="mt-1 space-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={cn(
+                        'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-mono text-[11px] font-medium tabular-nums',
+                        isToday ? 'bg-text-primary text-white font-bold' : 'text-text-primary',
+                      )}
+                    >
+                      {day}
+                    </span>
+                  </div>
+
+                  {/* Thẻ sự kiện / ngày lễ dạng pill rõ ràng */}
+                  <div className="mt-1 space-y-1 w-full">
                     {visibleEvents.map((ev) => (
                       <button
                         key={ev.id}
@@ -257,16 +269,18 @@ export function CompanyCalendar() {
                         }}
                         title={ev.title}
                         className={cn(
-                          'block w-full truncate rounded border px-1.5 py-0.5 text-left text-[10px] font-semibold transition-colors cursor-pointer',
-                          TYPE_PILL_CLASS[ev.type],
+                          'block w-full truncate rounded px-1.5 py-0.5 text-left text-[10px] font-medium transition-opacity hover:opacity-80 cursor-pointer',
+                          ev.type === 'HOLIDAY'
+                            ? 'bg-[#F8E5E3] text-[#B3261E] border border-[#B3261E]/20'
+                            : 'bg-[#E4EFEE] text-[#0E5E5E] border border-[#0E5E5E]/20',
                         )}
                       >
                         {ev.title}
                       </button>
                     ))}
                     {hiddenCount > 0 && (
-                      <span className="block px-1.5 text-[10px] font-semibold text-slate-400">
-                        {t('hrm:companyCalendar.moreEntries', { count: hiddenCount })}
+                      <span className="block px-1 font-mono text-[9px] font-medium text-text-tertiary tabular-nums">
+                        +{hiddenCount}
                       </span>
                     )}
                   </div>
@@ -274,15 +288,20 @@ export function CompanyCalendar() {
               );
             })}
 
-            {/* Ngay thang sau - o mo, khong tuong tac, lap day du 42 o (6 hang x 7 cot) */}
+            {/* Ngày tháng sau */}
             {Array.from({ length: Math.max(0, 42 - (startingDayIndex + daysInMonth)) }).map((_, i) => (
-              <div key={`next-${i}`} className="min-h-24 border-b border-r border-slate-100 bg-slate-50/40 p-1.5 text-[11px] text-slate-300">
-                {i + 1}
+              <div
+                key={`next-${i}`}
+                className="min-h-[72px] sm:min-h-[84px] border-b border-r border-border-subtle bg-bg-subtle/50 p-1.5 text-text-tertiary"
+              >
+                <span className="font-mono text-[11px] font-medium tabular-nums">
+                  {i + 1}
+                </span>
               </div>
             ))}
           </div>
         </QueryState>
-      </Card>
+      </div>
 
       <CalendarEventModal open={isCreateOpen} onClose={() => setIsCreateOpen(false)} defaultDate={createDefaultDate} />
       <CalendarEventModal

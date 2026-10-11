@@ -10,7 +10,8 @@
     "confirm": "Confirm",
     "close": "Close",
     "save": "Save",
-    "done": "Done"
+    "done": "Done",
+    "processing": "Processing..."
   },
   "appTitle": "Enterprise Collaboration & Analytics Platform",
   "notFound": {
@@ -19,10 +20,14 @@
     "backToDashboard": "Back to Dashboard"
   },
   "loading": "Loading…",
+  "processing": "Processing...",
   "loadingPage": "Loading page…",
   "genericError": "An error occurred. Please try again.",
   "skipToContent": "Skip to main content",
   "progress": "Progress",
+  "clear": "Clear",
+  "detail": "Detail",
+  "none": "Not set",
   "password": {
     "show": "Show password",
     "hide": "Hide password",
@@ -60,11 +65,15 @@
     "logout": "Log out",
     "logoutConfirmTitle": "Confirm Logout",
     "logoutConfirmDescription": "Are you sure you want to log out of your current session?",
-    "quickCreate": "Create"
+    "quickCreate": "Create",
+    "toggleTooltip": "Show/hide sidebar",
+    "settings": "Settings"
   },
   "quickCreate": {
     "button": "Create",
     "tooltip": "Create (Shortcut: C)",
+    "groupTasks": "Tasks",
+    "groupOthers": "Other",
     "createTask": "Create Task",
     "createTaskDesc": "Quickly assign work to project",
     "createTaskTitle": "Create New Task",
@@ -107,6 +116,16 @@
     "messages": "Messages",
     "analytics": "Reports & Analytics",
     "admin": "Administration",
+    "mainAria": "Main navigation",
+    "homeGroupAria": "Home group navigation",
+    "homeAccordionExpandAria": "Expand home list",
+    "closeMenuAria": "Close menu",
+    "mobileDrawerAria": "Navigation menu",
+    "unreadMessagesSuffix": "{{count}} unread",
+    "pin": {
+      "expand": "Expand sidebar",
+      "collapse": "Collapse sidebar"
+    },
     "homeNav": {
       "overview": "Overview",
       "projects": "Projects & Tasks",
@@ -143,5 +162,18 @@
     "hours": "Hours",
     "minutes": "Minutes",
     "presets": "Quick Presets:"
+  },
+  "stepper": {
+    "ariaLabel": "Registration progress",
+    "mobileLabel": "Step {{current}} of {{total}} · {{label}}",
+    "stepAriaLabel": "Step {{id}}: {{label}} ({{status}})",
+    "status": {
+      "done": "Completed",
+      "current": "Current",
+      "upcoming": "Upcoming"
+    }
+  },
+  "popover": {
+    "defaultAriaLabel": "Notification"
   }
 }

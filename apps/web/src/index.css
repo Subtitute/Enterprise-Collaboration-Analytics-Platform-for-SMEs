@@ -1,6 +1,66 @@
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --color-bg-canvas: #F7F6F3;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-subtle: #FAF9F6;
+  --color-bg-muted: #EFEDE8;
+  --color-bg-inverse: #1C1B1A;
+  --color-border-subtle: #E7E5DF;
+  --color-border-strong: #D3D0C8;
+  --color-border-focus: #0E5E5E;
+  --color-text-primary: #1C1B1A;
+  --color-text-secondary: #5C5A55;
+  --color-text-tertiary: #8A8781;
+  --color-text-inverse: #F7F6F3;
+  --color-primary: #1C1B1A;
+  --color-primary-hover: #2E2C29;
+  --color-accent: #0E5E5E;
+  --color-accent-soft: #E4EFEE;
+  --color-accent-hover: #0A4848;
+  --color-success: #2F6F44;
+  --color-success-soft: #E6F1E9;
+  --color-warning: #B45309;
+  --color-warning-soft: #FBEEE0;
+  --color-error: #B3261E;
+  --color-error-soft: #F8E5E3;
+  --color-info: #1E5A8A;
+  --color-info-soft: #E4EEF5;
+
+  --font-sans: 'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-full: 9999px;
+
+  --shadow-none: none;
+  --shadow-xs: 0 1px 2px rgba(28,27,26,0.04);
+  --shadow-sm: 0 2px 4px rgba(28,27,26,0.06);
+  --shadow-md: 0 8px 24px rgba(28,27,26,0.10), 0 2px 6px rgba(28,27,26,0.05);
+  --shadow-lg: 0 16px 48px rgba(28,27,26,0.14);
+}
 
 @layer base {
   html {
@@ -9,12 +69,12 @@
   }
 
   body {
-    font-family: 'Roboto', sans-serif;
+    font-family: var(--font-sans);
     @apply h-full bg-slate-50 text-slate-900 antialiased;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Roboto', sans-serif;
+    font-family: var(--font-sans);
   }
 
   #root {
@@ -45,6 +105,16 @@
   input[type='password']::-ms-clear {
     display: none;
   }
+
+  /* An nut "x" mac dinh xau va khong dong bo cua trinh duyet tren input[type=search] */
+  input[type='search']::-webkit-search-cancel-button,
+  input[type='search']::-webkit-search-decoration,
+  input[type='search']::-webkit-search-results-button,
+  input[type='search']::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+    display: none;
+  }
 }
 
 @layer utilities {
@@ -57,7 +127,44 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  .fade-in-180 {
+    animation: fadeIn180 180ms ease-out forwards;
+  }
+  @keyframes fadeIn180 {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* 7. Scrollbar cho PopoverPanel theo DS v0.4 */
+  .popover-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+  .popover-scrollbar:hover {
+    scrollbar-color: var(--color-border-strong) transparent;
+  }
+  .popover-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .popover-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .popover-scrollbar::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 9999px;
+  }
+  .popover-scrollbar:hover::-webkit-scrollbar-thumb {
+    background: var(--color-border-strong);
+  }
+  .popover-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #B8B4AB;
+  }
 }
+
 
 /* ==========================================================================
    PRINT CSS (Xuất Dashboard / Báo cáo PDF via window.print)

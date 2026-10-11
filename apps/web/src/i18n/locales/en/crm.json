@@ -36,6 +36,7 @@
     "emptyDealsTitle": "No deals yet",
     "emptyDealsDescription": "Create the first sales opportunity for this customer.",
     "createFirstDeal": "Create new deal",
+    "openDealsSuffix": "open deals",
     "ownerLabel": "Owner",
     "changeOwner": "Change",
     "changeOwnerAriaLabel": "Change owner",
@@ -82,6 +83,7 @@
     "deleteCustomer": "Delete customer",
     "openDeals": "{{count}} open deals",
     "lastInteraction": "Interaction: {{time}}",
+    "lastInteractionLabel": "Interaction:",
     "deleteConfirmTitle": "Delete this customer?",
     "deleteConfirmDescription": "All deals belonging to \"{{name}}\" will also be deleted. This action cannot be undone."
   },

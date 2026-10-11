@@ -38,7 +38,7 @@ export function AiInsightCard({ insight, scopeLabel, index }: AiInsightCardProps
 
   return (
     <div
-      className={cn('animate-slide-up rounded-xl border p-4 shadow-2xs', style.border, style.bg)}
+      className={cn('animate-slide-up rounded-radius-md border p-4 shadow-none', style.border, style.bg)}
       style={{ animationDelay: `${index * 90}ms`, animationFillMode: 'backwards' }}
     >
       <div className="flex items-start justify-between gap-2">
@@ -66,17 +66,17 @@ export function AiInsightCard({ insight, scopeLabel, index }: AiInsightCardProps
       )}
 
       {insight.recommendation && (
-        <div className="mt-2.5 flex items-start gap-1.5 rounded-lg bg-white/70 p-2 text-xs text-indigo-800">
-          <InfoIcon className="h-3.5 w-3.5 shrink-0 mt-0.5 text-indigo-500" />
+        <div className="mt-2.5 flex items-start gap-1.5 rounded-radius-md bg-accent-soft p-2 text-xs text-text-primary">
+          <InfoIcon className="h-3.5 w-3.5 shrink-0 mt-0.5 text-accent" />
           <span>{insight.recommendation}</span>
         </div>
       )}
 
       {insight.actionPlan && (
-        <div className="mt-2.5 rounded-lg border border-indigo-200 bg-white/70 p-2.5 text-xs">
+        <div className="mt-2.5 rounded-radius-md border border-border-subtle bg-surface p-2.5 text-xs shadow-none">
           <div className="flex items-center gap-1.5">
-            <CheckCircleIcon className="h-3.5 w-3.5 shrink-0 text-indigo-600" />
-            <span className="font-semibold text-indigo-900">{t('analytics:aiInsight.actionPlan.title')}</span>
+            <CheckCircleIcon className="h-3.5 w-3.5 shrink-0 text-accent" />
+            <span className="font-semibold text-text-primary">{t('analytics:aiInsight.actionPlan.title')}</span>
             <span className={cn('ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase', PRIORITY_STYLE[insight.actionPlan.priority])}>
               {t(`analytics:aiInsight.actionPlan.priority.${insight.actionPlan.priority}`)}
             </span>

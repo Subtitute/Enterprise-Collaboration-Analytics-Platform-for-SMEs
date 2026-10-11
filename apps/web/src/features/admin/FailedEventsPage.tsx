@@ -47,15 +47,12 @@ export function FailedEventsPage() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-slate-500">
-        {t('admin:failedEventsPage.description')}
-        {/* 28/07/2026: bo sung ghi chu ve cac ban ghi "Khong xac dinh to chuc" (xem
-            failed-events.service.ts findForOrganization) - can giai thich vi sao Org Admin thay
-            duoc du lieu KHONG thuoc rieng to chuc minh, neu khong se gay hieu nham ro ri du lieu. */}
-        {' '}{t('admin:failedEventsPage.descriptionOrgNote')}
-      </p>
+      {/* Banner mô tả đầu trang (như tab Roles) */}
+      <div className="rounded-radius-md border border-border-subtle bg-bg-subtle p-3 text-[13px] leading-5 text-text-secondary">
+        {t('admin:failedEventsPage.description')}{' '}{t('admin:failedEventsPage.descriptionOrgNote')}
+      </div>
 
-      <Card>
+      <div className="rounded-radius-md border border-border-subtle bg-white overflow-hidden">
         <QueryState
           isLoading={failedEventsQuery.isLoading}
           isError={failedEventsQuery.isError}
@@ -64,24 +61,29 @@ export function FailedEventsPage() {
           errorTitle={t('admin:failedEventsPage.errorTitle')}
         >
           {events.length === 0 ? (
+            /* Empty: khung dashed border-subtle, radius 8, padding 40, căn giữa. Icon alert-circle 40px text-tertiary. Title 15/500 + body 13/400 text-secondary. */
             <div className="p-6">
-              <EmptyState
-                icon={<AlertCircleIcon className="h-8 w-8" />}
-                title={t('admin:failedEventsPage.emptyTitle')}
-                description={t('admin:failedEventsPage.emptyDescription')}
-              />
+              <div className="flex flex-col items-center justify-center rounded-radius-md border border-dashed border-border-subtle p-10 text-center">
+                <AlertCircleIcon className="h-10 w-10 text-text-tertiary stroke-1" />
+                <h3 className="mt-3 text-[15px] leading-6 font-medium text-text-primary">
+                  {t('admin:failedEventsPage.emptyTitle')}
+                </h3>
+                <p className="mt-1 text-[13px] leading-5 text-text-secondary">
+                  {t('admin:failedEventsPage.emptyDescription')}
+                </p>
+              </div>
             </div>
           ) : (
             <>
-              <Table>
-                <TableHead>
-                  <tr>
-                    <TableHeadCell>{t('admin:failedEventsPage.columns.time')}</TableHeadCell>
-                    <TableHeadCell>{t('admin:failedEventsPage.columns.errorType')}</TableHeadCell>
-                    <TableHeadCell>{t('admin:failedEventsPage.columns.scope')}</TableHeadCell>
-                    <TableHeadCell>{t('admin:failedEventsPage.columns.source')}</TableHeadCell>
-                    <TableHeadCell>{t('admin:failedEventsPage.columns.eventType')}</TableHeadCell>
-                    <TableHeadCell>{t('admin:failedEventsPage.columns.errorMessage')}</TableHeadCell>
+              <Table className="border-0">
+                <TableHead className="bg-bg-subtle border-b border-border-subtle">
+                  <tr className="h-10">
+                    <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:failedEventsPage.columns.time')}</TableHeadCell>
+                    <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:failedEventsPage.columns.errorType')}</TableHeadCell>
+                    <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:failedEventsPage.columns.scope')}</TableHeadCell>
+                    <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:failedEventsPage.columns.source')}</TableHeadCell>
+                    <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:failedEventsPage.columns.eventType')}</TableHeadCell>
+                    <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:failedEventsPage.columns.errorMessage')}</TableHeadCell>
                   </tr>
                 </TableHead>
                 <TableBody>
@@ -90,29 +92,33 @@ export function FailedEventsPage() {
                     const errorLabel = errorMeta ? t(errorMeta.labelKey) : e.errorType;
                     const errorVariant = errorMeta?.variant ?? ('default' as BadgeVariant);
                     return (
-                      <TableRow key={getRowKey(e, index)}>
-                        <TableCell label={t('admin:failedEventsPage.columns.time')} className="text-sm text-slate-600 whitespace-nowrap">
+                      <TableRow key={getRowKey(e, index)} className="h-14 border-b border-border-subtle hover:bg-bg-subtle transition-colors">
+                        <TableCell label={t('admin:failedEventsPage.columns.time')} className="px-4 py-2.5 text-[13px] font-mono tabular-nums text-text-secondary whitespace-nowrap">
                           {formatDateTime(e.failedAt)}
                         </TableCell>
-                        <TableCell label={t('admin:failedEventsPage.columns.errorType')}>
-                          <Badge variant={errorVariant}>{errorLabel}</Badge>
+                        <TableCell label={t('admin:failedEventsPage.columns.errorType')} className="px-4 py-2.5">
+                          <Badge variant={errorVariant} className="rounded-radius-sm text-[12px] px-2 py-0.5">{errorLabel}</Badge>
                         </TableCell>
-                        <TableCell label={t('admin:failedEventsPage.columns.scope')}>
+                        <TableCell label={t('admin:failedEventsPage.columns.scope')} className="px-4 py-2.5">
                           {e.organizationId === null ? (
-                            <Badge variant="default">{t('admin:failedEventsPage.scopeUnknownOrg')}</Badge>
+                            <span className="inline-flex items-center rounded-radius-sm px-2 py-0.5 text-[12px] font-medium bg-bg-muted text-text-secondary border border-border-subtle">
+                              {t('admin:failedEventsPage.scopeUnknownOrg')}
+                            </span>
                           ) : (
-                            <Badge variant="success">{t('admin:failedEventsPage.scopeOwnOrg')}</Badge>
+                            <span className="inline-flex items-center rounded-radius-sm px-2 py-0.5 text-[12px] font-medium bg-success-soft text-success border border-success/20">
+                              {t('admin:failedEventsPage.scopeOwnOrg')}
+                            </span>
                           )}
                         </TableCell>
-                        <TableCell label={t('admin:failedEventsPage.columns.source')} className="text-sm text-slate-600">
+                        <TableCell label={t('admin:failedEventsPage.columns.source')} className="px-4 py-2.5 text-[13px] text-text-secondary">
                           {e.sourceService} · {e.sourceTopic}
                         </TableCell>
-                        <TableCell label={t('admin:failedEventsPage.columns.eventType')} className="text-sm text-slate-600">
+                        <TableCell label={t('admin:failedEventsPage.columns.eventType')} className="px-4 py-2.5 text-[13px] text-text-secondary">
                           {e.eventType ?? '—'}
                         </TableCell>
                         <TableCell
                           label={t('admin:failedEventsPage.columns.errorMessage')}
-                          className="max-w-xs truncate text-sm text-slate-600"
+                          className="px-4 py-2.5 max-w-xs truncate text-[13px] text-text-secondary"
                           title={e.errorMessage}
                         >
                           {e.errorMessage}
@@ -126,7 +132,7 @@ export function FailedEventsPage() {
             </>
           )}
         </QueryState>
-      </Card>
+      </div>
     </div>
   );
 }

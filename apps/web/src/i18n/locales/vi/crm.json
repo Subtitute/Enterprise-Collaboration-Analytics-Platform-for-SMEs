@@ -36,6 +36,7 @@
     "emptyDealsTitle": "Chưa có deal nào",
     "emptyDealsDescription": "Tạo cơ hội bán hàng đầu tiên cho khách hàng này.",
     "createFirstDeal": "Tạo deal mới",
+    "openDealsSuffix": "deal đang hoạt động",
     "ownerLabel": "Phụ trách",
     "changeOwner": "Đổi",
     "changeOwnerAriaLabel": "Đổi người phụ trách",
@@ -82,6 +83,7 @@
     "deleteCustomer": "Xoá khách hàng",
     "openDeals": "{{count}} deal đang hoạt động",
     "lastInteraction": "Tương tác: {{time}}",
+    "lastInteractionLabel": "Tương tác:",
     "deleteConfirmTitle": "Xoá khách hàng này?",
     "deleteConfirmDescription": "Toàn bộ deal thuộc \"{{name}}\" cũng sẽ bị xoá. Hành động này không thể hoàn tác."
   },

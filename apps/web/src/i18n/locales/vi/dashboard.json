@@ -26,21 +26,39 @@
     "createFirstProject": "Tạo dự án đầu tiên"
   },
   "kpi": {
+    "projects": {
+      "label": "Dự án đang triển khai",
+      "personalLabel": "Dự án tham gia",
+      "delta": "+{{count}} so với tuần trước",
+      "noNew": "Không có dự án mới tuần này"
+    },
+    "completionRate": {
+      "label": "Tỷ lệ hoàn thành",
+      "delta": "+{{count}} việc hoàn thành tuần này",
+      "noCompleted": "Chưa có việc hoàn thành tuần này"
+    },
+    "overdueTasks": {
+      "label": "Công việc quá hạn",
+      "needsAction": "cần xử lý",
+      "deltaAction": "+{{count}} cần xử lý",
+      "noOverdue": "Không có việc quá hạn"
+    },
+    "activeUsers": {
+      "label": "Thành viên hoạt động",
+      "delta": "trong 7 ngày qua"
+    },
+    "myTasks": {
+      "label": "Công việc đang làm",
+      "priority": "Cần ưu tiên",
+      "onTrack": "Đang trong tiến độ"
+    },
     "totalTasks": {
       "label": "Tổng công việc",
       "hint": "{{count}} đã hoàn thành"
     },
-    "completionRate": {
-      "label": "Tỷ lệ hoàn thành",
-      "hint": "Trên tổng số công việc"
-    },
     "newDocuments": {
       "label": "Tài liệu mới (7 ngày)",
       "hint": "Tệp tải lên trong tuần"
-    },
-    "activeUsers": {
-      "label": "Thành viên hoạt động",
-      "hint": "Trong 7 ngày qua"
     },
     "myInProgressTasks": {
       "label": "Việc đang làm",
@@ -73,7 +91,8 @@
     "emptyTitle": "Chưa có công việc nào",
     "emptyDescription": "Biểu đồ trạng thái sẽ hiển thị khi có công việc trong hệ thống.",
     "unit": "công việc",
-    "ofTotal": "{{percent}}% tổng số"
+    "ofTotal": "{{percent}}% tổng số",
+    "chartAriaLabel": "Biểu đồ phân bổ trạng thái công việc"
   },
   "taskTrendChart": {
     "errorTitle": "Không thể tải xu hướng công việc",
@@ -81,7 +100,9 @@
     "emptyTitle": "Chưa có dữ liệu xu hướng công việc",
     "emptyDescription": "Dữ liệu sẽ xuất hiện khi có công việc được tạo hoặc hoàn thành.",
     "completedLine": "Hoàn thành",
-    "createdLine": "Được tạo mới"
+    "createdLine": "Được tạo mới",
+    "emptyOverlay": "Chưa có dữ liệu trong khoảng thời gian này",
+    "chartAriaLabel": "Biểu đồ xu hướng hoàn thành công việc"
   },
   "recentActivityFeed": {
     "live": "Đang cập nhật trực tiếp",
@@ -135,6 +156,27 @@
       "leave_request_rejected": "đã từ chối một đơn nghỉ phép"
     }
   },
+  "status": {
+    "toDo": "Cần làm",
+    "inProgress": "Đang làm",
+    "inReview": "Đang duyệt",
+    "done": "Hoàn thành"
+  },
+  "entities": {
+    "task": "Công việc",
+    "project": "Dự án",
+    "document": "Tài liệu",
+    "leave": "Đơn nghỉ phép",
+    "customer": "Khách hàng",
+    "member": "Thành viên"
+  },
+  "relativeTime": {
+    "justNow": "Vừa xong",
+    "minutesAgo": "{{count}} phút trước",
+    "hoursAgo": "{{count}} giờ trước",
+    "daysAgo": "{{count}} ngày trước",
+    "weeksAgo": "{{count}} tuần trước"
+  },
   "upcomingLeaves": {
     "title": "Nghỉ phép sắp tới",
     "viewAll": "Xem tất cả",
@@ -144,6 +186,7 @@
     "emptyTitle": "Không có lịch nghỉ sắp tới",
     "emptyDescription": "Tất cả nhân sự hiện đang làm việc bình thường.",
     "today": "Hôm nay",
+    "tomorrow": "Ngày mai",
     "employee": "Nhân viên",
     "daysCount": "{{count}} ngày",
     "types": {

@@ -36,6 +36,7 @@
     "emptyDealsTitle": "商談がまだありません",
     "emptyDealsDescription": "この顧客の最初の商談を作成しましょう。",
     "createFirstDeal": "新規商談を作成",
+    "openDealsSuffix": "件の進行中の商談",
     "ownerLabel": "担当者",
     "changeOwner": "変更",
     "changeOwnerAriaLabel": "担当者を変更",
@@ -82,6 +83,7 @@
     "deleteCustomer": "顧客を削除",
     "openDeals": "進行中の商談 {{count}}件",
     "lastInteraction": "やり取り: {{time}}",
+    "lastInteractionLabel": "やり取り:",
     "deleteConfirmTitle": "この顧客を削除しますか?",
     "deleteConfirmDescription": "「{{name}}」に属するすべての商談も削除されます。この操作は取り消せません。"
   },

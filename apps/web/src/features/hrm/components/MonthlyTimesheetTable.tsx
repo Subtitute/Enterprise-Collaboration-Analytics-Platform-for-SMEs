@@ -33,7 +33,7 @@ interface UserSummary {
   lateCount: number;
   missingCheckOutCount: number;
   otHours: number;
-  status: 'sufficient' | 'insufficient' | 'newMember';
+  status: 'sufficient' | 'insufficient' | 'newMember' | 'notJoined';
   isNewMember: boolean;
 }
 
@@ -121,9 +121,12 @@ export function MonthlyTimesheetTable({
     const lastDayOfMonth = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
     const standardWorkingDays = countWorkingDays(firstDayOfMonth, lastDayOfMonth) || 22;
 
-    // Gom nhóm bản ghi theo userId
+    // Gom nhóm bản ghi theo userId (lọc theo khoảng ngày của tháng được chọn nếu khác 'all')
     const recordsByUser = new Map<string, Attendance[]>();
     for (const r of records) {
+      if (selectedMonth && selectedMonth !== 'all') {
+        if (r.workDate < firstDayOfMonth || r.workDate > lastDayOfMonth) continue;
+      }
       const list = recordsByUser.get(r.userId) || [];
       list.push(r);
       recordsByUser.set(r.userId, list);
@@ -142,12 +145,17 @@ export function MonthlyTimesheetTable({
       const userRecords = recordsByUser.get(user.id) || [];
       const deptName = user.departmentId ? deptMap.get(user.departmentId) || t('hrm:attendancePage.allAttendance.timesheet.noDepartment') : t('hrm:attendancePage.allAttendance.timesheet.noDepartment');
 
-      // Kiểm tra xem nhân viên có mới gia nhập trong tháng này không
+      // Kiểm tra xem nhân viên có mới gia nhập trong tháng này hoặc chưa gia nhập không
       let isNewMember = false;
+      let isNotJoinedYet = false;
       let expectedDays = standardWorkingDays;
       if (user.createdAt) {
         const joinDateGmt7 = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(user.createdAt));
-        if (joinDateGmt7 >= firstDayOfMonth && joinDateGmt7 <= lastDayOfMonth) {
+        if (joinDateGmt7 > lastDayOfMonth) {
+          // Chưa gia nhập tại thời điểm của tháng đang xem
+          isNotJoinedYet = true;
+          expectedDays = 0;
+        } else if (joinDateGmt7 >= firstDayOfMonth && joinDateGmt7 <= lastDayOfMonth) {
           isNewMember = true;
           // Tính định mức từ ngày join đến hết tháng
           expectedDays = countWorkingDays(joinDateGmt7, lastDayOfMonth) || 1;
@@ -195,8 +203,10 @@ export function MonthlyTimesheetTable({
       }
 
       // Đánh giá trạng thái
-      let status: 'sufficient' | 'insufficient' | 'newMember' = 'sufficient';
-      if (isNewMember) {
+      let status: 'sufficient' | 'insufficient' | 'newMember' | 'notJoined' = 'sufficient';
+      if (isNotJoinedYet) {
+        status = 'notJoined';
+      } else if (isNewMember) {
         status = 'newMember';
       } else if (actualDays < expectedDays || totalActualHours < totalExpectedHours * 0.9) {
         status = 'insufficient';
@@ -346,13 +356,13 @@ export function MonthlyTimesheetTable({
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
         <div className="flex flex-1 items-center gap-2">
           <div className="relative flex-1 max-w-xs">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-tertiary" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('hrm:attendancePage.allAttendance.timesheet.searchPlaceholder')}
-              className="w-full rounded-xl border border-slate-200/80 bg-slate-50/60 pl-8.5 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-all"
+              className="w-full rounded-radius-sm border border-border-strong bg-white pl-9 pr-3 text-[13px] leading-5 text-text-primary placeholder:text-text-tertiary focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent transition-all h-9"
             />
           </div>
 
@@ -361,7 +371,7 @@ export function MonthlyTimesheetTable({
             options={deptFilterOptions}
             onChange={setSelectedDeptId}
             ariaLabel={t('hrm:attendancePage.allAttendance.timesheet.allDepartments')}
-            className="min-w-[140px]"
+            className="flex-1 sm:w-[180px]"
           />
         </div>
 
@@ -371,100 +381,106 @@ export function MonthlyTimesheetTable({
             variant="outline"
             size="sm"
             onClick={handleExportCsv}
-            className="flex items-center gap-1.5 rounded-xl border-slate-200/80 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+            className="flex items-center gap-1.5 rounded-radius-sm border-border-strong bg-white text-text-primary hover:bg-canvas text-xs font-semibold h-9"
           >
-            <DownloadIcon className="h-3.5 w-3.5 text-slate-500" />
+            <DownloadIcon className="h-3.5 w-3.5 text-text-tertiary" />
             <span>{t('hrm:attendancePage.allAttendance.exportCsv')}</span>
           </Button>
 
           <Button
             type="button"
+            variant="outline"
             size="sm"
             onClick={handleExportPayroll}
-            className="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs"
+            className="flex items-center gap-1.5 rounded-radius-sm border-border-strong bg-white text-text-primary hover:bg-canvas text-xs font-semibold h-9"
           >
-            <FileTextIcon className="h-3.5 w-3.5" />
+            <DownloadIcon className="h-3.5 w-3.5 text-text-tertiary" />
             <span>{t('hrm:extensions.payroll.exportButton')}</span>
           </Button>
         </div>
       </div>
 
       {/* Hiển thị bảng số liệu trên màn hình Desktop */}
-      <div className="hidden sm:block overflow-x-auto max-h-[460px] overflow-y-auto rounded-xl border border-slate-200/70">
-        <table className="w-full text-xs">
-          <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-xs z-10 border-b border-slate-200">
-            <tr className="text-left font-semibold uppercase tracking-wider text-slate-500">
-              <th className="py-2.5 px-3">{t('hrm:attendancePage.allAttendance.timesheet.columns.employee')}</th>
-              <th className="py-2.5 px-3">{t('hrm:attendancePage.allAttendance.timesheet.columns.department')}</th>
-              <th className="py-2.5 px-3 text-center">{t('hrm:attendancePage.allAttendance.timesheet.columns.actualDays')}</th>
-              <th className="py-2.5 px-3 text-center">{t('hrm:attendancePage.allAttendance.timesheet.columns.workHours')}</th>
-              <th className="py-2.5 px-3 text-center">{t('hrm:attendancePage.allAttendance.timesheet.columns.lateCount')}</th>
-              <th className="py-2.5 px-3 text-center">{t('hrm:attendancePage.allAttendance.timesheet.columns.missingCheckOut')}</th>
-              <th className="py-2.5 px-3 text-center">{t('hrm:attendancePage.allAttendance.timesheet.columns.otHours')}</th>
-              <th className="py-2.5 px-3 text-center">{t('hrm:attendancePage.allAttendance.timesheet.columns.status')}</th>
+      <div className="hidden sm:block overflow-x-auto max-h-[460px] overflow-y-auto rounded-radius-sm border border-border-subtle">
+        <table className="w-full text-[13px]">
+          <thead className="sticky top-0 bg-bg-subtle z-10 border-b border-border-subtle">
+            <tr className="text-left text-[12px] font-medium text-text-tertiary">
+              <th className="py-2.5 px-3 bg-bg-subtle">{t('hrm:attendancePage.allAttendance.timesheet.columns.employee')}</th>
+              <th className="py-2.5 px-3 bg-bg-subtle">{t('hrm:attendancePage.allAttendance.timesheet.columns.department')}</th>
+              <th className="py-2.5 px-3 bg-bg-subtle text-right">{t('hrm:attendancePage.allAttendance.timesheet.columns.actualDays')}</th>
+              <th className="py-2.5 px-3 bg-bg-subtle text-right">{t('hrm:attendancePage.allAttendance.timesheet.columns.workHours')}</th>
+              <th className="py-2.5 px-3 bg-bg-subtle text-center">{t('hrm:attendancePage.allAttendance.timesheet.columns.lateCount')}</th>
+              <th className="py-2.5 px-3 bg-bg-subtle text-center">{t('hrm:attendancePage.allAttendance.timesheet.columns.missingCheckOut')}</th>
+              <th className="py-2.5 px-3 bg-bg-subtle text-right">{t('hrm:attendancePage.allAttendance.timesheet.columns.otHours')}</th>
+              <th className="py-2.5 px-3 bg-bg-subtle text-center">{t('hrm:attendancePage.allAttendance.timesheet.columns.status')}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 bg-white">
+          <tbody className="divide-y divide-border-subtle bg-white">
             {filteredSummaries.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-8 text-center text-slate-400">
+                <td colSpan={8} className="py-8 text-center text-text-tertiary">
                   {t('hrm:attendancePage.allAttendance.timesheet.empty')}
                 </td>
               </tr>
             ) : (
               filteredSummaries.map((s) => (
-                <tr key={s.userId} className="hover:bg-slate-50/70 transition-colors">
+                <tr key={s.userId} className="hover:bg-bg-subtle transition-colors h-14">
                   <td className="py-2 px-3 whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      <Avatar name={s.name} size="sm" className="h-6 w-6 text-[10px]" />
-                      <span className="font-semibold text-slate-900 truncate max-w-[150px]">{s.name}</span>
+                      <Avatar name={s.name} size="sm" className="h-6 w-6 text-[10px] bg-[#E4EFEE] text-[#0E5E5E] font-semibold" />
+                      <span className="font-medium text-text-primary truncate max-w-[150px]">{s.name}</span>
                     </div>
                   </td>
-                  <td className="py-2 px-3 text-slate-600 whitespace-nowrap">{s.departmentName}</td>
-                  <td className="py-2 px-3 text-center font-mono whitespace-nowrap">
-                    <span className="font-bold text-slate-800">{s.actualDays}</span>
-                    <span className="text-slate-400 font-normal"> / {s.expectedDays}</span>
+                  <td className="py-2 px-3 text-text-secondary whitespace-nowrap">{s.departmentName}</td>
+                  <td className="py-2 px-3 text-right font-mono text-[13px] font-medium whitespace-nowrap tabular-nums">
+                    <span className="text-text-primary">{s.actualDays}</span>
+                    <span className="text-text-tertiary font-normal"> / {s.expectedDays}</span>
                   </td>
-                  <td className="py-2 px-3 text-center font-mono whitespace-nowrap">
-                    <span className="font-bold text-slate-800">{s.totalActualHours}h</span>
-                    <span className="text-slate-400 font-normal"> / {s.totalExpectedHours}h</span>
+                  <td className="py-2 px-3 text-right font-mono text-[13px] font-medium whitespace-nowrap tabular-nums">
+                    <span className="text-text-primary">{s.totalActualHours}h</span>
+                    <span className="text-text-tertiary font-normal"> / {s.totalExpectedHours}h</span>
                   </td>
                   <td className="py-2 px-3 text-center whitespace-nowrap">
                     {s.lateCount > 0 ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-semibold text-[11px] border border-amber-200/50">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-[2px] bg-warning-soft text-warning font-mono font-medium text-[12px]">
                         {s.lateCount}
                       </span>
                     ) : (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-text-tertiary">—</span>
                     )}
                   </td>
                   <td className="py-2 px-3 text-center whitespace-nowrap">
                     {s.missingCheckOutCount > 0 ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-600 font-semibold text-[11px] border border-rose-200/50">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-[2px] bg-warning-soft text-warning font-mono font-medium text-[12px]">
                         {s.missingCheckOutCount}
                       </span>
                     ) : (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-text-tertiary">—</span>
                     )}
                   </td>
-                  <td className="py-2 px-3 text-center font-mono font-medium text-slate-700 whitespace-nowrap">
+                  <td className="py-2 px-3 text-right font-mono text-[13px] font-medium text-text-primary whitespace-nowrap tabular-nums">
                     {s.otHours > 0 ? `${s.otHours}h` : '—'}
                   </td>
                   <td className="py-2 px-3 text-center whitespace-nowrap">
+                    {s.status === 'notJoined' && (
+                      <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-bg-muted text-text-tertiary">
+                        {t('hrm:attendancePage.allAttendance.timesheet.status.notJoined')}
+                      </span>
+                    )}
                     {s.status === 'newMember' && (
-                      <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px]">
+                      <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-info-soft text-info">
                         {t('hrm:attendancePage.allAttendance.timesheet.status.newMember')}
-                      </Badge>
+                      </span>
                     )}
                     {s.status === 'sufficient' && (
-                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">
+                      <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-success-soft text-success">
                         {t('hrm:attendancePage.allAttendance.timesheet.status.sufficient')}
-                      </Badge>
+                      </span>
                     )}
                     {s.status === 'insufficient' && (
-                      <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px]">
+                      <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-warning-soft text-warning">
                         {t('hrm:attendancePage.allAttendance.timesheet.status.insufficient')}
-                      </Badge>
+                      </span>
                     )}
                   </td>
                 </tr>
@@ -477,54 +493,59 @@ export function MonthlyTimesheetTable({
       {/* Hiển thị dạng Card danh sách trên giao diện Di động (Mobile) */}
       <div className="block sm:hidden space-y-2.5 max-h-[460px] overflow-y-auto pr-0.5">
         {filteredSummaries.length === 0 ? (
-          <div className="py-8 text-center text-xs text-slate-400">
+          <div className="py-8 text-center text-xs text-text-tertiary">
             {t('hrm:attendancePage.allAttendance.timesheet.empty')}
           </div>
         ) : (
           filteredSummaries.map((s) => (
             <div
               key={s.userId}
-              className="p-3 rounded-xl border border-slate-200/80 bg-white shadow-2xs space-y-2"
+              className="p-3 rounded-radius-sm border border-border-subtle bg-white shadow-none space-y-2"
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <Avatar name={s.name} size="sm" className="h-7 w-7 text-[10px]" />
+                  <Avatar name={s.name} size="sm" className="h-7 w-7 text-[10px] bg-[#E4EFEE] text-[#0E5E5E] font-semibold" />
                   <div className="min-w-0">
-                    <p className="font-bold text-xs text-slate-900 truncate">{s.name}</p>
-                    <p className="text-[10px] text-slate-500 truncate">{s.departmentName}</p>
+                    <p className="font-semibold text-[13px] text-text-primary truncate">{s.name}</p>
+                    <p className="text-[11px] text-text-tertiary truncate">{s.departmentName}</p>
                   </div>
                 </div>
+                {s.status === 'notJoined' && (
+                  <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-bg-muted text-text-tertiary">
+                    {t('hrm:attendancePage.allAttendance.timesheet.status.notJoined')}
+                  </span>
+                )}
                 {s.status === 'newMember' && (
-                  <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px]">
+                  <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-info-soft text-info">
                     {t('hrm:attendancePage.allAttendance.timesheet.status.newMember')}
-                  </Badge>
+                  </span>
                 )}
                 {s.status === 'sufficient' && (
-                  <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">
+                  <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-success-soft text-success">
                     {t('hrm:attendancePage.allAttendance.timesheet.status.sufficient')}
-                  </Badge>
+                  </span>
                 )}
                 {s.status === 'insufficient' && (
-                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px]">
+                  <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-warning-soft text-warning">
                     {t('hrm:attendancePage.allAttendance.timesheet.status.insufficient')}
-                  </Badge>
+                  </span>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100 text-[11px]">
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border-subtle text-[11px]">
                 <div>
-                  <span className="text-slate-400 block text-[10px]">
+                  <span className="text-text-tertiary block text-[10px]">
                     {t('hrm:attendancePage.allAttendance.timesheet.columns.actualDays')}:
                   </span>
-                  <span className="font-mono font-bold text-slate-800">
+                  <span className="font-mono font-medium text-text-primary tabular-nums">
                     {s.actualDays} / {s.expectedDays} {t('hrm:attendancePage.allAttendance.timesheet.daysUnit')}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">
+                  <span className="text-text-tertiary block text-[10px]">
                     {t('hrm:attendancePage.allAttendance.timesheet.columns.workHours')}:
                   </span>
-                  <span className="font-mono font-bold text-slate-800">
+                  <span className="font-mono font-medium text-text-primary tabular-nums">
                     {s.totalActualHours}h / {s.totalExpectedHours}h
                   </span>
                 </div>

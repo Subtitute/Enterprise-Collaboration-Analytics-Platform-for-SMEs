@@ -43,7 +43,7 @@ function FolderCardItem({
 
   if (viewMode === 'list') {
     return (
-      <Card
+      <div
         onClick={() => onOpen(folder)}
         tabIndex={0}
         role="button"
@@ -53,32 +53,34 @@ function FolderCardItem({
             onOpen(folder);
           }
         }}
-        className="group flex items-center gap-3 transition-all duration-200 hover:shadow-md hover:border-indigo-300 px-3.5 py-3 sm:px-4 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+        className="group flex h-16 items-center justify-between px-4 rounded-radius-md border border-border-subtle bg-white transition-colors hover:border-border-strong cursor-pointer select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
       >
         <div className="flex min-w-0 flex-1 items-center gap-3.5 text-left">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100/80 transition-colors">
-            <FolderIcon className="h-5.5 w-5.5" />
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-radius-md bg-accent-soft text-accent transition-colors">
+            <FolderIcon className="h-5 w-5 stroke-1.5" />
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="truncate text-sm font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors">
+              <span className="truncate text-[13px] font-medium text-text-primary group-hover:text-accent transition-colors">
                 {folder.name}
               </span>
               {folder.visibility === 'restricted' && (
                 <span
                   title={t('documents:folderGrid.restrictedTooltip')}
                   aria-label={t('documents:folderGrid.restrictedTooltip')}
-                  className="inline-flex shrink-0 text-slate-400"
+                  className="inline-flex shrink-0 text-text-tertiary"
                 >
-                  <LockIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                  <LockIcon className="h-3.5 w-3.5 stroke-1.5" aria-hidden="true" />
                 </span>
               )}
             </div>
-            <p className="mt-0.5 truncate text-[11px] font-normal text-slate-500">
+            <p className="mt-0.5 truncate text-[12px] font-normal text-text-tertiary">
               {folderFilesQuery.isLoading ? (
-                <span className="text-slate-400">{t('documents:folderGrid.loadingFileCount')}</span>
+                <span className="text-text-tertiary">{t('documents:folderGrid.loadingFileCount')}</span>
               ) : (
-                t('documents:folderGrid.metaSummary', { count: fileCount, time: updatedTimeText })
+                <>
+                  <span className="font-mono tabular-nums">{fileCount}</span> {t('documents:folderGrid.filesSuffix')} • <span className="font-mono tabular-nums">{updatedTimeText}</span>
+                </>
               )}
             </p>
           </div>
@@ -92,29 +94,31 @@ function FolderCardItem({
                 e.stopPropagation();
                 toggle();
               }}
-              className="flex h-8 w-8 shrink-0 items-center justify-center -mr-1 rounded-lg text-slate-400 hover:bg-slate-100/90 hover:text-slate-700 active:scale-95 transition-all cursor-pointer"
+              className="flex h-6 w-6 shrink-0 items-center justify-center -mr-1 rounded-radius-sm text-text-tertiary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer"
               aria-label={t('documents:folderGrid.optionsAria')}
             >
-              <MoreVerticalIcon className="h-4.5 w-4.5" />
+              <MoreVerticalIcon className="h-4 w-4" />
             </button>
           )}
         >
           {({ close }) => (
             <div
-              className="w-52 py-1.5 shadow-md"
+              className="min-w-[200px] p-1 rounded-radius-md border border-border-subtle bg-white shadow-md"
               onClick={(e) => e.stopPropagation()}
             >
               <DropdownItem
+                className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
                 onClick={(e) => {
                   e.stopPropagation();
                   onRenameClick(folder);
                   close();
                 }}
               >
-                <EditIcon className="h-4 w-4 text-slate-500" /> {t('documents:folderGrid.rename')}
+                <EditIcon className="h-4 w-4 text-text-secondary" /> {t('documents:folderGrid.rename')}
               </DropdownItem>
               {canManage(folder) && (
                 <DropdownItem
+                  className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
                   onClick={(e) => {
                     e.stopPropagation();
                     updateVisibility.mutate({
@@ -124,7 +128,7 @@ function FolderCardItem({
                     close();
                   }}
                 >
-                  <LockIcon className="h-4 w-4 text-slate-500" />
+                  <LockIcon className="h-4 w-4 text-text-secondary" />
                   {folder.visibility === 'restricted'
                     ? t('documents:folderGrid.openToOrganization')
                     : t('documents:folderGrid.restrictAccess')}
@@ -132,35 +136,36 @@ function FolderCardItem({
               )}
               {canManage(folder) && (
                 <DropdownItem
+                  className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
                   onClick={(e) => {
                     e.stopPropagation();
                     onShare(folder);
                     close();
                   }}
                 >
-                  <ShareIcon className="h-4 w-4 text-primary-600" /> {t('documents:folderGrid.manageSharing')}
+                  <ShareIcon className="h-4 w-4 text-text-secondary" /> {t('documents:folderGrid.manageSharing')}
                 </DropdownItem>
               )}
               <DropdownItem
-                className="text-rose-600 hover:bg-rose-50"
+                className="h-9 px-2.5 rounded-radius-sm text-[13px] text-[#B3261E] hover:bg-[#F8E5E3]"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDeleteClick(folder);
                   close();
                 }}
               >
-                <TrashIcon className="h-4 w-4 text-rose-600" /> {t('documents:folderGrid.delete')}
+                <TrashIcon className="h-4 w-4 text-[#B3261E]" /> {t('documents:folderGrid.delete')}
               </DropdownItem>
             </div>
           )}
         </Dropdown>
-      </Card>
+      </div>
     );
   }
 
-  // Cấu trúc dọc thoáng đãng (Grid View): Icon ở trên, Tên và Metadata ở dưới cùng, padding p-5 sm:p-6, gap-4
+  // Grid View: Nền bg-surface, border 1 border-subtle, radius 8, p-5. Không shadow. Hover border-strong.
   return (
-    <Card
+    <div
       onClick={() => onOpen(folder)}
       tabIndex={0}
       role="button"
@@ -170,14 +175,12 @@ function FolderCardItem({
           onOpen(folder);
         }
       }}
-      className="group flex flex-col justify-between p-5 sm:p-6 gap-4 transition-all duration-200 hover:shadow-md hover:border-indigo-300 min-h-[140px] cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+      className="group flex flex-col justify-between p-5 rounded-radius-lg border border-border-subtle bg-white transition-colors hover:border-border-strong cursor-pointer select-none focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent"
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="cursor-pointer">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100/80 transition-colors shadow-2xs">
-            <FolderIcon className="h-6.5 w-6.5" />
-          </span>
-        </div>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-radius-md bg-accent-soft text-accent transition-colors">
+          <FolderIcon className="h-5 w-5 stroke-1.5" />
+        </span>
         <Dropdown
           align="right"
           trigger={({ toggle }) => (
@@ -187,32 +190,31 @@ function FolderCardItem({
                 e.stopPropagation();
                 toggle();
               }}
-              className="flex h-8 w-8 shrink-0 items-center justify-center -mr-1.5 -mt-1 rounded-lg text-slate-400 hover:bg-slate-100/90 hover:text-slate-700 active:scale-95 transition-all cursor-pointer"
+              className="flex h-6 w-6 shrink-0 items-center justify-center -mr-1 -mt-1 rounded-radius-sm text-text-tertiary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer"
               aria-label={t('documents:folderGrid.optionsAria')}
             >
-              <MoreVerticalIcon className="h-4.5 w-4.5" />
+              <MoreVerticalIcon className="h-4 w-4" />
             </button>
           )}
         >
           {({ close }) => (
             <div
-              className="w-52 py-1.5 shadow-md"
+              className="min-w-[200px] p-1 rounded-radius-md border border-border-subtle bg-white shadow-md"
               onClick={(e) => e.stopPropagation()}
             >
               <DropdownItem
+                className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
                 onClick={(e) => {
                   e.stopPropagation();
                   onRenameClick(folder);
                   close();
                 }}
               >
-                <EditIcon className="h-4 w-4 text-slate-500" /> {t('documents:folderGrid.rename')}
+                <EditIcon className="h-4 w-4 text-text-secondary" /> {t('documents:folderGrid.rename')}
               </DropdownItem>
               {canManage(folder) && (
-                // 28/07/2026: muc "Han che truy cap"/"Mo cho ca to chuc" - chi hien voi nguoi
-                // tao thu muc/Org Admin (canManage()), goi useUpdateFolderVisibility() (PATCH
-                // /folders/:id { visibility }).
                 <DropdownItem
+                  className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
                   onClick={(e) => {
                     e.stopPropagation();
                     updateVisibility.mutate({
@@ -222,70 +224,65 @@ function FolderCardItem({
                     close();
                   }}
                 >
-                  <LockIcon className="h-4 w-4 text-slate-500" />
+                  <LockIcon className="h-4 w-4 text-text-secondary" />
                   {folder.visibility === 'restricted'
                     ? t('documents:folderGrid.openToOrganization')
                     : t('documents:folderGrid.restrictAccess')}
                 </DropdownItem>
               )}
               {canManage(folder) && (
-                // 28/07/2026: muc "Quan ly chia se" - chi hien voi thu muc restricted (tinh nang kiem
-                // soat truy cap thu muc theo cap do), mo FolderShareModal qua onShare prop.
                 <DropdownItem
+                  className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
                   onClick={(e) => {
                     e.stopPropagation();
                     onShare(folder);
                     close();
                   }}
                 >
-                  <ShareIcon className="h-4 w-4 text-primary-600" /> {t('documents:folderGrid.manageSharing')}
+                  <ShareIcon className="h-4 w-4 text-text-secondary" /> {t('documents:folderGrid.manageSharing')}
                 </DropdownItem>
               )}
               <DropdownItem
-                className="text-rose-600 hover:bg-rose-50"
+                className="h-9 px-2.5 rounded-radius-sm text-[13px] text-[#B3261E] hover:bg-[#F8E5E3]"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDeleteClick(folder);
                   close();
                 }}
               >
-                <TrashIcon className="h-4 w-4 text-rose-600" /> {t('documents:folderGrid.delete')}
+                <TrashIcon className="h-4 w-4 text-[#B3261E]" /> {t('documents:folderGrid.delete')}
               </DropdownItem>
             </div>
           )}
         </Dropdown>
       </div>
 
-      <div className="block w-full text-left min-w-0">
+      <div className="mt-3 block w-full text-left min-w-0">
         <div className="flex items-center gap-1.5 min-w-0">
-          <span className="truncate text-sm sm:text-base font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors block flex-1" title={folder.name}>
+          <span className="line-clamp-2 text-[14px] leading-5 font-semibold text-text-primary group-hover:text-accent transition-colors block flex-1" title={folder.name}>
             {folder.name}
           </span>
           {folder.visibility === 'restricted' && (
-            // 28/07/2026: chi bao truc quan cho thu muc "restricted" (tinh nang kiem soat truy
-            // cap thu muc theo cap do) - dat title (hover) + aria-label tren <span> BOC NGOAI
-            // (IconProps/SVGProps khong co thuoc tinh HTML "title"), dung pattern da ap dung
-            // cung ngay hom nay cho Avatar.tsx (title+aria-label tren phan tu container); icon
-            // ben trong danh aria-hidden de tranh trinh doc man hinh cong bo trung lap.
             <span
               title={t('documents:folderGrid.restrictedTooltip')}
               aria-label={t('documents:folderGrid.restrictedTooltip')}
-              className="inline-flex shrink-0 text-slate-400"
+              className="inline-flex shrink-0 text-text-tertiary"
             >
-              <LockIcon className="h-3.5 w-3.5" aria-hidden="true" />
+              <LockIcon className="h-3.5 w-3.5 stroke-1.5" aria-hidden="true" />
             </span>
           )}
         </div>
-        {/* Siêu dữ liệu Metadata: Số lượng tệp tin & Thời gian cập nhật */}
-        <p className="mt-1 truncate text-xs font-normal text-slate-500">
+        <p className="mt-1 truncate text-[13px] leading-5 font-normal text-text-tertiary">
           {folderFilesQuery.isLoading ? (
-            <span className="text-slate-400">{t('documents:folderGrid.loadingFileCount')}</span>
+            <span className="text-text-tertiary">{t('documents:folderGrid.loadingFileCount')}</span>
           ) : (
-            t('documents:folderGrid.metaSummary', { count: fileCount, time: updatedTimeText })
+            <>
+              <span className="font-mono tabular-nums">{fileCount}</span> {t('documents:folderGrid.filesSuffix')} • <span className="font-mono tabular-nums">{updatedTimeText}</span>
+            </>
           )}
         </p>
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -364,7 +361,7 @@ export function FolderGrid({
             // khong co <label> nao gan voi no, truoc do trinh doc man hinh chi doc "edit text",
             // khong biet muc dich cua o nhap nay la gi.
             aria-label={t('documents:folderGrid.renameDialog.inputAria')}
-            className="mb-3 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100"
+            className="mb-3 block h-9 w-full rounded-radius-sm border border-border-strong bg-white px-3 text-[13px] text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-soft"
           />
         </ConfirmDialog>
       )}

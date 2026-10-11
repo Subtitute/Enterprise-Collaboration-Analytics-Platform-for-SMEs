@@ -98,7 +98,8 @@
         "status": {
           "sufficient": "Sufficient",
           "insufficient": "Under Hours",
-          "newMember": "New Joiner"
+          "newMember": "New Joiner",
+          "notJoined": "Not Joined Yet"
         },
         "daysUnit": "days",
         "hoursUnit": "hrs",
@@ -153,7 +154,8 @@
       "emptyTitle": "No leave requests yet",
       "emptyDescription": "Create your first request when you need time off.",
       "createFirstButton": "Create new request",
-      "decisionNote": "Note: {{note}}"
+      "decisionNote": "Note: {{note}}",
+      "loadMore": "Load more"
     }
   },
   "employeePicker": {
@@ -181,6 +183,7 @@
     "emptyDescription": "This employee doesn't have any attendance data yet."
   },
   "companyCalendar": {
+    "title": "Company Calendar",
     "description": "The organization's shared calendar. Anyone can create an event; only Managers and Org Admins can set up holidays. Click a day to create a new entry, or click an existing entry to view/edit it.",
     "newEntry": "New entry",
     "loading": "Loading calendar…",
@@ -323,6 +326,11 @@
       "reasonLabel": "Reason for Overtime",
       "reasonPlaceholder": "e.g. Complete urgent deployment for enterprise customer…",
       "estimatedHours": "Estimated OT duration: {{hours}} hours",
+      "estimatedDuration": "Estimated OT duration: {{duration}}",
+      "durationZero": "0 hours",
+      "durationHoursMinutes": "{{hours}} hours {{mins}} minutes",
+      "durationHoursOnly": "{{hours}} hours",
+      "durationMinutesOnly": "{{mins}} minutes",
       "submitButton": "Submit OT Request",
       "cancelButton": "Cancel",
       "errors": {

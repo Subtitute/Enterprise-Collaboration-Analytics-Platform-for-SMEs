@@ -98,7 +98,8 @@
         "status": {
           "sufficient": "Đủ công",
           "insufficient": "Thiếu công",
-          "newMember": "Mới gia nhập"
+          "newMember": "Mới gia nhập",
+          "notJoined": "Chưa gia nhập"
         },
         "daysUnit": "ngày",
         "hoursUnit": "giờ",
@@ -153,7 +154,8 @@
       "emptyTitle": "Chưa có yêu cầu nghỉ phép nào",
       "emptyDescription": "Tạo yêu cầu đầu tiên khi bạn cần nghỉ phép.",
       "createFirstButton": "Tạo yêu cầu mới",
-      "decisionNote": "Ghi chú: {{note}}"
+      "decisionNote": "Ghi chú: {{note}}",
+      "loadMore": "Xem thêm"
     }
   },
   "employeePicker": {
@@ -181,6 +183,7 @@
     "emptyDescription": "Nhân viên này chưa có dữ liệu chấm công nào."
   },
   "companyCalendar": {
+    "title": "Lịch công ty",
     "description": "Lịch dùng chung của tổ chức. Ai cũng có thể tạo sự kiện; chỉ Quản lý và Quản trị viên mới thiết lập được ngày lễ. Bấm vào 1 ngày để tạo mục mới, bấm vào 1 mục có sẵn để xem/sửa.",
     "newEntry": "Mục mới",
     "loading": "Đang tải lịch…",
@@ -323,6 +326,11 @@
       "reasonLabel": "Lý do làm thêm",
       "reasonPlaceholder": "Ví dụ: Hoàn thành triển khai dự án cho khách hàng…",
       "estimatedHours": "Thời lượng OT dự kiến: {{hours}} giờ",
+      "estimatedDuration": "Thời lượng OT dự kiến: {{duration}}",
+      "durationZero": "0 giờ",
+      "durationHoursMinutes": "{{hours}} giờ {{mins}} phút",
+      "durationHoursOnly": "{{hours}} giờ",
+      "durationMinutesOnly": "{{mins}} phút",
       "submitButton": "Gửi đăng ký OT",
       "cancelButton": "Hủy",
       "errors": {

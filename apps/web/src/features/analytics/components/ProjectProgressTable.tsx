@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow } from '@/components/ui/Table';
-import { ProgressBar } from '@/components/ui/ProgressBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Pagination } from '@/components/ui/Pagination';
 import { ChevronDownIcon } from '@/components/ui/Icons';
@@ -73,13 +72,13 @@ export function ProjectProgressTable({ rows }: { rows: ProjectProgressTableRow[]
     <div>
       <Table>
         <TableHead>
-          <tr>
+          <tr className="h-10 bg-bg-subtle">
             {COLUMNS.map((col) => (
-              <TableHeadCell key={col.key} className={col.align === 'right' ? 'text-right' : 'text-left'}>
+              <TableHeadCell key={col.key} className={cn('text-[12px] font-medium text-text-tertiary uppercase tracking-wider', col.align === 'right' ? 'text-right' : 'text-left')}>
                 <button
                   onClick={() => toggleSort(col.key)}
                   className={cn(
-                    'inline-flex items-center gap-1 hover:text-slate-700',
+                    'inline-flex items-center gap-1 hover:text-text-primary',
                     col.align === 'right' && 'justify-end w-full'
                   )}
                 >
@@ -87,7 +86,7 @@ export function ProjectProgressTable({ rows }: { rows: ProjectProgressTableRow[]
                   <ChevronDownIcon
                     className={cn(
                       'h-3 w-3 transition-transform shrink-0',
-                      sortKey === col.key ? 'text-slate-600' : 'text-slate-300',
+                      sortKey === col.key ? 'text-text-primary' : 'text-text-tertiary',
                       sortKey === col.key && sortDir === 'asc' && 'rotate-180',
                     )}
                   />
@@ -98,27 +97,46 @@ export function ProjectProgressTable({ rows }: { rows: ProjectProgressTableRow[]
         </TableHead>
         <TableBody>
           {paginated.map((row) => (
-            <TableRow key={row.projectId}>
+            <TableRow key={row.projectId} className="h-14 hover:bg-bg-subtle transition-colors border-b border-border-subtle">
               <TableCell label={t('analytics:projectProgressTable.columns.name')}>
                 <span
                   onClick={() => navigate(`/projects/${row.projectId}`)}
-                  className="font-medium text-slate-800 hover:text-indigo-600 cursor-pointer transition-colors"
+                  className="font-medium text-text-primary hover:text-accent cursor-pointer transition-colors"
                   title={row.name}
                 >
                   {row.name}
                 </span>
               </TableCell>
-              <TableCell label={t('analytics:projectProgressTable.columns.progress')} className="md:w-40">
-                <ProgressBar value={row.progress} showLabel />
+              <TableCell label={t('analytics:projectProgressTable.columns.progress')} className="md:w-44">
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 w-full flex-1 overflow-hidden rounded-full bg-bg-subtle">
+                    <div
+                      className={cn(
+                        'h-full rounded-full transition-all',
+                        row.progress >= 100 ? 'bg-success' : 'bg-accent'
+                      )}
+                      style={{ width: `${Math.max(0, Math.min(100, Math.round(row.progress || 0)))}%` }}
+                    />
+                  </div>
+                  <span className="w-10 shrink-0 text-right font-mono text-[13px] font-medium text-text-primary tabular-nums">
+                    {Math.max(0, Math.min(100, Math.round(row.progress || 0)))}%
+                  </span>
+                </div>
               </TableCell>
-              <TableCell label={t('analytics:projectProgressTable.columns.completedTasks')} className="text-right font-medium tabular-nums">
-                {row.completedTasks}
+              <TableCell label={t('analytics:projectProgressTable.columns.completedTasks')} className="text-right">
+                <span className="font-mono text-[13px] font-medium text-text-primary tabular-nums">
+                  {row.completedTasks}
+                </span>
               </TableCell>
-              <TableCell label={t('analytics:projectProgressTable.columns.totalTasks')} className="text-right font-medium tabular-nums">
-                {row.totalTasks}
+              <TableCell label={t('analytics:projectProgressTable.columns.totalTasks')} className="text-right">
+                <span className="font-mono text-[13px] font-medium text-text-primary tabular-nums">
+                  {row.totalTasks}
+                </span>
               </TableCell>
-              <TableCell label={t('analytics:projectProgressTable.columns.deadline')} className="text-slate-500 text-xs">
-                {row.deadline || '—'}
+              <TableCell label={t('analytics:projectProgressTable.columns.deadline')}>
+                <span className="font-mono text-[13px] font-medium text-text-primary tabular-nums">
+                  {row.deadline || '—'}
+                </span>
               </TableCell>
             </TableRow>
           ))}

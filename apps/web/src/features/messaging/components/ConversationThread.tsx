@@ -27,12 +27,13 @@ import type { ChatMessage, Conversation } from '@/types';
 
 interface ConversationThreadProps {
   conversation: Conversation;
+  onBack?: () => void;
 }
 
 /** Doan chat cua 1 cuoc tro chuyen dang mo: header (ten + quan ly thanh vien neu la GROUP), lich su
  *  tin nhan (cu -> moi, cuon len de tai them), o nhap o duoi. Join/leave room WS cua DUNG cuoc tro
  *  chuyen nay khi mo/dong (xem messaging.gateway.ts:handleJoinConversation). */
-export function ConversationThread({ conversation }: ConversationThreadProps) {
+export function ConversationThread({ conversation, onBack }: ConversationThreadProps) {
   const { t } = useTranslation();
   const currentUserId = useAuthStore((s) => s.user?.id);
   const permissions = usePermissions();
@@ -48,6 +49,7 @@ export function ConversationThread({ conversation }: ConversationThreadProps) {
   const [input, setInput] = useState('');
   const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const [isManageMembersOpen, setIsManageMembersOpen] = useState(false);
+  const [isAtTop, setIsAtTop] = useState(false);
 
   const messages = messagesQuery.data ?? [];
   const containerRef = useRef<HTMLDivElement>(null);
@@ -55,6 +57,13 @@ export function ConversationThread({ conversation }: ConversationThreadProps) {
 
   const canManageGroup =
     conversation.type === 'GROUP' && (permissions.includes(PERMISSIONS.MESSAGE_MANAGE_GROUP) || isKnownCreator);
+
+  // Theo doi scroll position de chi hien nut "Tai tin cu" khi da cuon len sat dinh (scrollTop === 0)
+  function handleScroll() {
+    const el = containerRef.current;
+    if (!el) return;
+    setIsAtTop(el.scrollTop <= 10);
+  }
 
   // Join/leave room WS CUA CUOC TRO CHUYEN NAY khi component mo/dong - socket toan cuc da duoc ket
   // noi san o AppShell (useMessagingSocket), xem ghi chu tai lib/socket.ts:getMessagingSocket().
@@ -119,37 +128,72 @@ export function ConversationThread({ conversation }: ConversationThreadProps) {
     conversation.type === 'GROUP'
       ? conversation.name ?? t('messaging:page.groupLabel')
       : (otherUserId && userNames[otherUserId]) || t('messaging:page.unknownUser');
-  const headerSubtitle =
-    conversation.type === 'GROUP' ? t('messaging:page.membersCount', { count: conversation.participantUserIds.length }) : undefined;
+  const membersCount = conversation.participantUserIds.length;
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-5 py-3.5">
+    <div className="flex h-full min-h-0 flex-col bg-white">
+      {/* Header */}
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border-subtle px-5 py-3">
         <div className="flex min-w-0 items-center gap-3">
-          <Avatar name={headerName} size="md" />
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label={t('messaging:page.backToList')}
+              className="md:hidden flex h-8 w-8 items-center justify-center rounded-radius-sm border border-border-strong text-text-primary hover:bg-bg-subtle cursor-pointer"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="m15 18-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          )}
+          <Avatar
+            name={headerName}
+            size="md"
+            className="h-9 w-9 text-xs font-semibold bg-accent-soft text-accent shrink-0"
+          />
           <div className="min-w-0">
-            <p className="truncate text-sm font-bold text-slate-900">{headerName}</p>
-            {headerSubtitle && <p className="truncate text-xs text-slate-400">{headerSubtitle}</p>}
+            <p className="truncate text-[15px] font-semibold text-text-primary leading-tight">{headerName}</p>
+            {conversation.type === 'GROUP' && (
+              <p className="truncate font-mono text-[12px] font-normal tabular-nums text-text-tertiary mt-0.5">
+                {t('messaging:page.membersCount', { count: membersCount })}
+              </p>
+            )}
           </div>
         </div>
         {canManageGroup && (
-          <Button variant="outline" size="sm" onClick={() => setIsManageMembersOpen(true)}>
-            <UsersIcon className="h-4 w-4" />
+          <button
+            type="button"
+            onClick={() => setIsManageMembersOpen(true)}
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-radius-sm border border-border-strong bg-white hover:bg-bg-subtle text-[12px] font-medium text-text-primary transition-colors cursor-pointer"
+          >
+            <UsersIcon className="h-4 w-4 text-text-secondary" />
             {t('messaging:page.manageMembers')}
-          </Button>
+          </button>
         )}
       </div>
 
-      <div ref={containerRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
+      {/* Body messages */}
+      <div
+        ref={containerRef}
+        onScroll={handleScroll}
+        className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4"
+      >
         {messagesQuery.isLoading ? (
           <FullPageSpinner label={t('messaging:page.loading')} />
         ) : (
           <>
-            {loadOlder.hasMore && messages.length > 0 && (
+            {/* Chi hien nut tai tin cu khi scroll len sat dinh VA con tin cu */}
+            {loadOlder.hasMore && messages.length > 0 && isAtTop && (
               <div className="flex justify-center pb-2">
-                <Button variant="outline" size="sm" onClick={handleLoadOlder} isLoading={loadOlder.isPending}>
-                  {t('messaging:page.loadOlder')}
-                </Button>
+                <button
+                  type="button"
+                  onClick={handleLoadOlder}
+                  disabled={loadOlder.isPending}
+                  className="h-8 px-3 rounded-radius-sm border border-border-strong bg-white hover:bg-bg-subtle text-[12px] font-medium text-text-primary transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {loadOlder.isPending ? t('common:status.loading') : t('messaging:page.loadOlder')}
+                </button>
               </div>
             )}
             {messages.map((message) => (
@@ -166,7 +210,8 @@ export function ConversationThread({ conversation }: ConversationThreadProps) {
         )}
       </div>
 
-      <div className="shrink-0 border-t border-slate-100 p-3.5">
+      {/* Footer input */}
+      <div className="shrink-0 border-t border-border-subtle p-3.5 bg-white">
         <div className="flex items-end gap-2.5">
           <Textarea
             value={input}
@@ -174,11 +219,17 @@ export function ConversationThread({ conversation }: ConversationThreadProps) {
             onKeyDown={handleKeyDown}
             placeholder={t('messaging:page.messagePlaceholder')}
             rows={1}
-            className="min-h-[40px] flex-1 resize-none"
+            className="min-h-[60px] flex-1 resize-none rounded-[8px] border border-border-strong px-3 py-2 text-[13px] text-text-primary focus:border-accent focus:ring-1 focus:ring-accent"
           />
-          <Button onClick={handleSend} disabled={!input.trim()} isLoading={sendMessageMutation.isPending} size="icon" aria-label={t('messaging:page.send')}>
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={!input.trim() || sendMessageMutation.isPending}
+            aria-label={t('messaging:page.send')}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] bg-text-primary hover:bg-black text-white transition-colors cursor-pointer disabled:pointer-events-none disabled:opacity-50"
+          >
             <SendIcon className="h-4 w-4" />
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -216,15 +267,16 @@ function MessageBubble({
   onRequestDelete: () => void;
 }) {
   const { t } = useTranslation();
-  // 03/10/2026: chi do tim "y dinh xin nghi phep" cho tin nhan CUA CHINH MINH (isMine) - tuyet doi
-  // khong duoc goi y/cho phep tao ho yeu cau nghi phep tu tin nhan cua NGUOI KHAC trong group chat,
-  // vi se tao nham yeu cau duoi danh nghia sai nguoi (loi nghiem trong ve danh tinh). detectLeaveIntent
-  // la ham thuan (khong phai hook) nen goi co dieu kien o day la an toan.
+  // 03/10/2026: chi do tim "y dinh xin nghi phep" cho tin nhan CUA CHINH MINH (isMine)
   const leaveDetection = isMine ? detectLeaveIntent(message.body) : null;
   return (
     <div className={cn('group flex', isMine ? 'justify-end' : 'justify-start')}>
-      <div className={cn('max-w-[75%] space-y-1', isMine && 'flex flex-col items-end')}>
-        {showSenderName && !isMine && <p className="px-1 text-[11px] font-semibold text-slate-500">{senderName ?? t('messaging:page.unknownUser')}</p>}
+      <div className={cn('max-w-[70%] space-y-1', isMine && 'flex flex-col items-end')}>
+        {showSenderName && !isMine && (
+          <p className="px-1 text-[11px] font-semibold text-text-tertiary">
+            {senderName ?? t('messaging:page.unknownUser')}
+          </p>
+        )}
         <div className="flex items-center gap-1.5">
           {isMine && (
             <button
@@ -232,22 +284,27 @@ function MessageBubble({
               onClick={onRequestDelete}
               title={t('messaging:page.deleteMessageTooltip')}
               aria-label={t('messaging:page.deleteMessageTooltip')}
-              className="shrink-0 rounded p-1 text-slate-300 opacity-0 transition-opacity hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100"
+              className="shrink-0 rounded p-1 text-text-tertiary opacity-0 transition-opacity hover:bg-error-soft hover:text-error group-hover:opacity-100 cursor-pointer"
             >
               <TrashIcon className="h-3.5 w-3.5" />
             </button>
           )}
           <div
             className={cn(
-              'whitespace-pre-wrap break-words rounded-2xl px-3.5 py-2 text-sm shadow-2xs',
-              isMine ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-800',
+              'whitespace-pre-wrap break-words px-3 py-2.5 text-[13px] leading-[20px] shadow-none',
+              isMine
+                ? 'bg-text-primary text-white rounded-[12px] rounded-br-[4px]'
+                : 'bg-bg-subtle text-text-primary rounded-[12px] rounded-bl-[4px]',
             )}
           >
             {message.body}
           </div>
         </div>
         {leaveDetection && <LeaveRequestSuggestion message={message} resolvedDate={leaveDetection.resolvedDate} />}
-        <p className={cn('px-1 text-[10px] text-slate-400', isMine && 'text-right')} title={formatTime(message.createdAt)}>
+        <p
+          className={cn('px-1 font-mono text-[11px] font-normal tabular-nums text-text-tertiary', isMine && 'text-right')}
+          title={formatTime(message.createdAt)}
+        >
           {formatRelativeTime(message.createdAt)}
         </p>
       </div>

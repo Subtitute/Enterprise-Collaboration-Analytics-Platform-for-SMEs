@@ -9,13 +9,20 @@ import type { Deal, DealStage } from '@/types';
 import { DealCard } from './DealCard';
 import { useUpdateDealStage } from '../hooks';
 
-const COLUMN_ACCENT: Record<DealStage, string> = {
-  NEW: 'bg-slate-300',
-  CONTACTED: 'bg-primary-400',
-  PROPOSAL: 'bg-primary-500',
-  NEGOTIATION: 'bg-amber-500',
-  WON: 'bg-emerald-500',
-  LOST: 'bg-rose-400',
+// Dot màu theo spec §3.2:
+// NEW text-tertiary #8A8781
+// CONTACTED info #1E5A8A
+// PROPOSAL accent #0E5E5E
+// NEGOTIATION warning #B45309
+// WON success #2F6F44
+// LOST error #B3261E
+const STAGE_DOT_COLOR: Record<DealStage, string> = {
+  NEW: 'bg-[#8A8781]',
+  CONTACTED: 'bg-[#1E5A8A]',
+  PROPOSAL: 'bg-[#0E5E5E]',
+  NEGOTIATION: 'bg-[#B45309]',
+  WON: 'bg-[#2F6F44]',
+  LOST: 'bg-[#B3261E]',
 };
 
 /**
@@ -79,14 +86,110 @@ export function DealKanbanBoard({ customerId, deals, onDealClick }: { customerId
     isMouseDownRef.current = false;
   }
 
+  const orderStorageKey = `crm_deal_order_${customerId}`;
+
+  // Khởi tạo và đồng bộ danh sách deals theo từng cột dựa trên dealOrder lưu trữ
+  const [columns, setColumns] = useState<Record<DealStage, Deal[]>>(() => {
+    const savedOrder: string[] = (() => {
+      try {
+        return JSON.parse(localStorage.getItem(orderStorageKey) || '[]');
+      } catch {
+        return [];
+      }
+    })();
+
+    const result: Record<DealStage, Deal[]> = {
+      NEW: [],
+      CONTACTED: [],
+      PROPOSAL: [],
+      NEGOTIATION: [],
+      WON: [],
+      LOST: [],
+    };
+    DEAL_STAGES.forEach((stage) => {
+      const colDeals = deals.filter((d) => d.stage === stage);
+      result[stage] = [...colDeals].sort((a, b) => {
+        const idxA = savedOrder.indexOf(a.id);
+        const idxB = savedOrder.indexOf(b.id);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return 0;
+      });
+    });
+    return result;
+  });
+
+  // Đồng bộ lại khi danh sách deals từ server/parent thay đổi
+  useEffect(() => {
+    const savedOrder: string[] = (() => {
+      try {
+        return JSON.parse(localStorage.getItem(orderStorageKey) || '[]');
+      } catch {
+        return [];
+      }
+    })();
+
+    const result: Record<DealStage, Deal[]> = {
+      NEW: [],
+      CONTACTED: [],
+      PROPOSAL: [],
+      NEGOTIATION: [],
+      WON: [],
+      LOST: [],
+    };
+    DEAL_STAGES.forEach((stage) => {
+      const colDeals = deals.filter((d) => d.stage === stage);
+      result[stage] = [...colDeals].sort((a, b) => {
+        const idxA = savedOrder.indexOf(a.id);
+        const idxB = savedOrder.indexOf(b.id);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return 0;
+      });
+    });
+    setColumns(result);
+    checkScroll();
+  }, [deals, orderStorageKey]);
+
   function handleDragEnd(result: DropResult) {
     const { destination, source, draggableId } = result;
     if (!destination) return;
     if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
-    const newStage = destination.droppableId as DealStage;
-    if (newStage !== source.droppableId) {
-      updateStage.mutate({ dealId: draggableId, stage: newStage });
+    const sourceStage = source.droppableId as DealStage;
+    const destStage = destination.droppableId as DealStage;
+
+    const sourceList = Array.from(columns[sourceStage]);
+    const destList = sourceStage === destStage ? sourceList : Array.from(columns[destStage]);
+
+    const [movedDeal] = sourceList.splice(source.index, 1);
+    if (!movedDeal) return;
+
+    const updatedDeal = { ...movedDeal, stage: destStage };
+    destList.splice(destination.index, 0, updatedDeal);
+
+    const newColumns = {
+      ...columns,
+      [sourceStage]: sourceList,
+      [destStage]: destList,
+    };
+
+    // Cập nhật State Cục bộ NGAY LẬP TỨC để thẻ rơi trúng đích 100% không bị nhảy vị trí
+    setColumns(newColumns);
+
+    // Lưu thứ tự hiển thị ưu tiên người dùng vào LocalStorage
+    try {
+      const allOrderedIds = DEAL_STAGES.flatMap((stage) => newColumns[stage].map((d) => d.id));
+      localStorage.setItem(orderStorageKey, JSON.stringify(allOrderedIds));
+    } catch {
+      // Bỏ qua lỗi hạn ngạch storage nếu có
+    }
+
+    // Nếu đổi sang cột khác: gọi backend cập nhật stage
+    if (destStage !== sourceStage) {
+      updateStage.mutate({ dealId: draggableId, stage: destStage });
     }
   }
 
@@ -98,22 +201,22 @@ export function DealKanbanBoard({ customerId, deals, onDealClick }: { customerId
           <button
             type="button"
             onClick={() => scrollByAmount(-280)}
-            className="absolute left-1 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-lg border border-slate-200 hover:bg-white hover:text-indigo-600 hover:scale-110 active:scale-95 transition-all cursor-pointer"
+            className="absolute left-1 top-1/2 -translate-y-1/2 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white text-text-primary shadow-md border border-border-strong hover:bg-bg-subtle transition-colors cursor-pointer"
             aria-label={t('crm:kanban.scrollLeftAriaLabel')}
           >
-            <ChevronLeftIcon className="h-5 w-5" />
+            <ChevronLeftIcon className="h-4 w-4" />
           </button>
         )}
 
-        {/* Nút mũi tên cuộn sang phải (Báo hiệu còn nội dung bên phải) */}
+        {/* Nút mũi tên cuộn sang phải */}
         {canScrollRight && (
           <button
             type="button"
             onClick={() => scrollByAmount(280)}
-            className="absolute right-1 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-lg border border-slate-200 hover:bg-white hover:text-indigo-600 hover:scale-110 active:scale-95 transition-all cursor-pointer animate-pulse hover:animate-none"
+            className="absolute right-1 top-1/2 -translate-y-1/2 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white text-text-primary shadow-md border border-border-strong hover:bg-bg-subtle transition-colors cursor-pointer"
             aria-label={t('crm:kanban.scrollRightAriaLabel')}
           >
-            <ChevronRightIcon className="h-5 w-5" />
+            <ChevronRightIcon className="h-4 w-4" />
           </button>
         )}
 
@@ -124,18 +227,19 @@ export function DealKanbanBoard({ customerId, deals, onDealClick }: { customerId
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUpOrLeave}
           onMouseLeave={handleMouseUpOrLeave}
-          className="flex 2xl:grid 2xl:grid-cols-6 gap-3.5 overflow-x-auto pb-3 pt-1 select-none cursor-grab active:cursor-grabbing scroll-smooth"
+          className="flex 2xl:grid 2xl:grid-cols-6 gap-3 overflow-x-auto pb-3 pt-1 select-none cursor-grab active:cursor-grabbing scroll-smooth"
         >
           {DEAL_STAGES.map((stage) => {
-            const columnDeals = deals.filter((d) => d.stage === stage);
+            const columnDeals = columns[stage] ?? [];
             return (
-              <div key={stage} className="flex w-64 min-w-[240px] 2xl:w-full shrink-0 flex-col rounded-2xl border border-slate-200/80 bg-slate-50 shadow-2xs">
-                <div className="flex items-center gap-2 border-b border-slate-200/80 px-3.5 py-3 bg-slate-100/60 rounded-t-2xl">
-                  <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', COLUMN_ACCENT[stage])} />
-                  <p className="text-xs font-bold text-slate-700 truncate" title={t(`crm:enums.dealStage.${stage}`)}>
+              <div key={stage} className="flex w-64 min-w-[240px] 2xl:w-full shrink-0 flex-col rounded-radius-lg bg-[#F7F6F3] p-3">
+                {/* Header: dot 8px + tên stage 13/600 text-primary + badge đếm mono 12/500 căn phải */}
+                <div className="flex items-center gap-2 pb-2.5">
+                  <span className={cn('h-2 w-2 shrink-0 rounded-full', STAGE_DOT_COLOR[stage])} />
+                  <p className="text-[13px] font-semibold text-text-primary truncate" title={t(`crm:enums.dealStage.${stage}`)}>
                     {t(`crm:enums.dealStage.${stage}`)}
                   </p>
-                  <span className="ml-auto rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200/80 shadow-2xs shrink-0">
+                  <span className="ml-auto font-mono text-[12px] font-medium text-text-tertiary tabular-nums shrink-0">
                     {columnDeals.length}
                   </span>
                 </div>
@@ -144,10 +248,10 @@ export function DealKanbanBoard({ customerId, deals, onDealClick }: { customerId
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={cn('flex-1 space-y-2.5 p-3 transition-colors min-h-[140px]', snapshot.isDraggingOver && 'bg-primary-50/50')}
+                      className={cn('flex-1 space-y-2.5 transition-colors min-h-[140px]', snapshot.isDraggingOver && 'bg-accent-soft/40 rounded-radius-sm')}
                     >
                       {columnDeals.length === 0 && !snapshot.isDraggingOver ? (
-                        <div className="flex h-24 items-center justify-center rounded-xl border-2 border-dashed border-slate-200 text-xs text-slate-400">
+                        <div className="flex h-24 items-center justify-center rounded-radius-sm border border-dashed border-border-subtle text-[12px] text-text-tertiary">
                           {t('crm:kanban.emptyColumn')}
                         </div>
                       ) : (

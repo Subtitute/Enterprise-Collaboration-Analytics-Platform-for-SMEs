@@ -10,7 +10,7 @@ import { Modal } from '@/components/ui/Modal';
 import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner, Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { CameraIcon, ClockIcon, MapPinIcon, UsersIcon, UserIcon, PlusIcon, EditIcon, CheckIcon, AlertCircleIcon } from '@/components/ui/Icons';
+import { CameraIcon, ClockIcon, MapPinIcon, UsersIcon, UserIcon, PlusIcon, EditIcon, CheckIcon } from '@/components/ui/Icons';
 import { formatTime, formatDateTime, formatDate } from '@/lib/utils';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { useUserNameMap } from '@/hooks/useOrgUsers';
@@ -131,46 +131,44 @@ export function PhotoProofModal({
       open={Boolean(target)}
       onClose={onClose}
       title={
-        <div className="flex items-center gap-2 text-base font-bold text-slate-900">
-          <CameraIcon className="h-5 w-5 text-primary-600" />
-          {/* 16/09/2026: gop merge - giu namespace attendancePage.photoModal (nhat quan voi cac
-              key con lai cua trang Cham cong), bo namespace rieng "photoProofModal" o cap goc
-              cua hrm.json vi sau merge khong con noi nao khac tham chieu toi (da xoa khoi JSON). */}
+        <div className="flex items-center gap-2 text-[16px] leading-[24px] font-semibold text-text-primary">
+          <CameraIcon className="h-4 w-4 text-accent" />
           <span>{t('hrm:attendancePage.photoModal.title', { action: actionText })}</span>
         </div>
       }
       size="sm"
+      footer={
+        <div className="flex justify-end gap-2 w-full">
+          <Button type="button" variant="secondary" onClick={onClose}>
+            {t('hrm:attendancePage.photoModal.close')}
+          </Button>
+        </div>
+      }
     >
       <div className="space-y-3">
-        <div className="flex items-center justify-between text-xs text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+        <div className="flex items-center justify-between text-xs bg-bg-subtle p-2.5 rounded-radius-sm border border-border-subtle">
           <div>
-            <span className="font-semibold text-slate-700">{target.userName || t('hrm:attendancePage.photoModal.personal')}</span>
-            <div className="font-mono text-slate-900 font-bold mt-0.5">{target.time}</div>
+            <span className="font-semibold text-text-primary">{target.userName || t('hrm:attendancePage.photoModal.personal')}</span>
+            <div className="font-mono text-text-primary font-medium mt-0.5 tabular-nums">{target.time}</div>
           </div>
           <OnSiteBadge isOnSite={target.isOnSite} />
         </div>
 
-        <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-slate-900 border border-slate-200 flex items-center justify-center shadow-inner">
+        <div className="relative aspect-square w-full overflow-hidden rounded-radius-md bg-slate-900 border border-border-subtle flex items-center justify-center">
           {isLoading && (
-            <div className="flex flex-col items-center gap-2 text-slate-300">
-              <Spinner />
-              <span className="text-xs text-slate-400">{t('hrm:attendancePage.photoModal.loading')}</span>
+            <div className="flex flex-col items-center gap-2 text-accent">
+              <Spinner className="h-8 w-8 text-accent" />
+              <span className="text-xs text-text-tertiary">{t('hrm:attendancePage.photoModal.loading')}</span>
             </div>
           )}
           {error && (
-            <div className="p-4 text-center text-xs text-rose-400">
+            <div className="p-4 text-center text-xs text-error">
               {t('hrm:attendancePage.photoModal.error')}
             </div>
           )}
           {photoUrl && !isLoading && (
             <img src={photoUrl} alt={t('hrm:attendancePage.photoModal.imageAlt')} className="h-full w-full object-cover" />
           )}
-        </div>
-
-        <div className="flex justify-end pt-2">
-          <Button type="button" variant="outline" size="sm" onClick={onClose}>
-            {t('hrm:attendancePage.photoModal.close')}
-          </Button>
         </div>
       </div>
     </Modal>
@@ -196,8 +194,8 @@ export function AttendanceStatusBadge({
 
   if (isAdjusted) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 border border-indigo-200 whitespace-nowrap">
-        <CheckIcon className="h-3 w-3 text-indigo-600" />
+      <span className="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-accent-soft text-accent whitespace-nowrap">
+        <span className="h-1 w-1 rounded-full bg-accent" />
         {t('hrm:extensions.adjustment.badge.adjusted')}
       </span>
     );
@@ -218,7 +216,8 @@ export function AttendanceStatusBadge({
 
   if (isMissingCheckOut) {
     return (
-      <span className="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-600 whitespace-nowrap">
+      <span className="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-error-soft text-error whitespace-nowrap">
+        <span className="h-1 w-1 rounded-full bg-error" />
         {t('hrm:attendancePage.statusBadge.missingCheckOut')}
       </span>
     );
@@ -226,14 +225,16 @@ export function AttendanceStatusBadge({
 
   if (isLate) {
     return (
-      <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-700 whitespace-nowrap">
+      <span className="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-warning-soft text-warning whitespace-nowrap">
+        <span className="h-1 w-1 rounded-full bg-warning" />
         {t('hrm:attendancePage.statusBadge.late')}
       </span>
     );
   }
 
   return (
-    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 whitespace-nowrap">
+    <span className="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-success-soft text-success whitespace-nowrap">
+      <span className="h-1 w-1 rounded-full bg-success" />
       {t('hrm:attendancePage.statusBadge.onTime')}
     </span>
   );
@@ -395,11 +396,11 @@ export function AttendancePage() {
     return rawRecords.filter((r) => r.workDate.startsWith(selectedMonth));
   }, [attendanceQuery.data?.data, selectedMonth]);
 
-  // 03/10/2026: khong con tu loc theo thang o day nua - `useAllAttendanceQuery(orgSelectedMonth)`
-  // da truyen dung khoang ngay xuong server loc tai nguon (xem chu thich tai hook do), tranh dung
-  // lai kieu loc client-side tren 1 trang `limit` co dinh von la nguyen nhan goc cua loi "thang cu
-  // hien sai thanh rong" da sua.
-  const filteredAllRecords = allAttendanceQuery.data?.data ?? [];
+  const filteredAllRecords = useMemo(() => {
+    const raw = allAttendanceQuery.data?.data ?? [];
+    if (orgSelectedMonth === 'all') return raw;
+    return raw.filter((r) => r.workDate.startsWith(orgSelectedMonth));
+  }, [allAttendanceQuery.data?.data, orgSelectedMonth]);
 
   const effectiveTodayRecord = todayRecord;
 
@@ -422,89 +423,110 @@ export function AttendancePage() {
       </div>
 
       {/* Bố cục Lưới bất đối xứng (Grid & Tabs): Gập 1 cột mượt mà trên Mobile (grid-cols-1), 2 cột trên Desktop (lg:grid-cols-12) */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-12 items-stretch">
-        {/* Khối bên trái: Widget Check-in với đồng hồ số lớn */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 items-stretch">
+        {/* Khối bên trái: Card A - Hôm nay với đồng hồ số lớn */}
         <div className="w-full lg:col-span-5 flex flex-col">
-          <Card className="border border-slate-200/80 bg-white shadow-sm overflow-hidden flex flex-col h-full">
-            <CardHeader className="pb-3 border-b border-slate-100">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base font-bold text-slate-900">
+          <Card className="border border-border-subtle bg-surface shadow-none overflow-hidden flex flex-col h-full rounded-radius-md">
+            <CardHeader className="pb-3 border-b border-border-subtle">
+              <div className="flex items-center justify-between gap-3 sm:gap-4">
+                <CardTitle className="text-[15px] font-semibold text-text-primary min-w-0">
                   {t('hrm:attendancePage.today.cardTitle', { date: formatDate(today) })}
                 </CardTitle>
                 {effectiveTodayRecord?.checkOutAt ? (
-                  <Badge variant="success">{t('hrm:attendancePage.today.doneToday')}</Badge>
+                  <span className="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-success-soft text-success whitespace-nowrap shrink-0">
+                    <span className="h-1 w-1 rounded-full bg-success" />
+                    {t('hrm:attendancePage.today.doneToday')}
+                  </span>
                 ) : effectiveTodayRecord ? (
-                  <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700 whitespace-nowrap">
+                  <span className="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-bg-muted text-text-secondary whitespace-nowrap shrink-0">
+                    <span className="h-1 w-1 rounded-full bg-text-secondary" />
                     {t('hrm:attendancePage.today.checkedInBadge')}
                   </span>
                 ) : (
-                  <Badge variant="outline">{t('hrm:attendancePage.today.notCheckedInBadge')}</Badge>
+                  <span className="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-bg-muted text-text-secondary whitespace-nowrap shrink-0">
+                    <span className="h-1 w-1 rounded-full bg-text-secondary" />
+                    {t('hrm:attendancePage.today.notCheckedInBadge')}
+                  </span>
                 )}
               </div>
             </CardHeader>
-            <CardContent className="pt-6 pb-6 flex flex-col items-center text-center flex-1 justify-between">
-              <div>
-                {/* Đồng hồ số điện tử lớn */}
-                <div className="mb-2 inline-flex items-center justify-center rounded-2xl bg-slate-50 border border-slate-100 px-6 py-3.5 shadow-2xs">
-                  <span className="font-mono text-4xl sm:text-5xl font-black tracking-tight text-slate-900 tabular-nums">
+            <CardContent className="p-5 flex flex-col items-center text-center flex-1 justify-between">
+              <div className="w-full">
+                {/* Đồng hồ số điện tử lớn: IBM Plex Mono 40/48 w500 tabular-nums, CĂN GIỮA */}
+                <div className="py-2 text-center">
+                  <div
+                    className="font-mono text-[40px] leading-[48px] font-medium text-text-primary tabular-nums tracking-normal text-center select-none"
+                    style={{ fontFeatureSettings: '"tnum"' }}
+                  >
                     {timeString}
-                  </span>
+                  </div>
+                  <p className="text-[12px] leading-[18px] text-text-tertiary font-normal mt-1 text-center">
+                    {t('hrm:attendancePage.today.systemTimeLabel')}
+                  </p>
                 </div>
-                {/* 16/09/2026: gop merge - nhanh Tien doi ten "systemTimeLabel"/"completedMessage"
-                    thanh "standardTime"/"completedShift" va tach them 2 object thua "statuses"/
-                    "filter" trong "today" (da xu ly o cac cho khac). Giu ten key cu, khong them
-                    object con moi. */}
-                <p className="text-xs text-slate-400 font-medium">{t('hrm:attendancePage.today.systemTimeLabel')}</p>
 
-                {/* Trạng thái chấm công trong ngày */}
-                <div className="mt-5 w-full rounded-xl bg-slate-50/80 p-3.5 border border-slate-100/90 text-left text-xs space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-500 flex items-center gap-1.5 font-medium">
-                      <ClockIcon className="h-3.5 w-3.5 text-slate-400" />
+                {/* Trạng thái chấm công trong ngày: 2 row thông tin nền bg-subtle radius 6 padding 12 */}
+                <div className="mt-4 w-full rounded-radius-sm bg-bg-subtle p-3 text-left space-y-2 border border-border-subtle">
+                  <div className="flex items-center justify-between text-[13px]">
+                    <span className="text-text-secondary flex items-center gap-1.5 font-normal">
+                      <ClockIcon className="h-3.5 w-3.5 text-text-tertiary" />
                       {t('hrm:attendancePage.today.checkInLabel')}
                     </span>
                     {effectiveTodayRecord ? (
-                      <span className="font-semibold text-slate-800 flex items-center gap-1.5">
-                        <span className="font-bold text-slate-900 font-mono text-sm">{formatTime(effectiveTodayRecord.checkInAt)}</span>
+                      <span className="font-medium text-text-primary flex items-center gap-1.5">
+                        <span className="font-mono text-[13px] font-medium text-text-primary tabular-nums">
+                          {formatTime(effectiveTodayRecord.checkInAt)}
+                        </span>
                         <OnSiteBadge isOnSite={effectiveTodayRecord.checkInIsOnSite} />
                       </span>
                     ) : (
-                      <span className="text-slate-400 italic">{t('hrm:attendancePage.today.notRecorded')}</span>
+                      <span className="text-text-tertiary italic font-normal">{t('hrm:attendancePage.today.notRecorded')}</span>
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between border-t border-slate-200/60 pt-2">
-                    <span className="text-slate-500 flex items-center gap-1.5 font-medium">
-                      <ClockIcon className="h-3.5 w-3.5 text-slate-400" />
+                  <div className="flex items-center justify-between border-t border-border-subtle pt-2 text-[13px]">
+                    <span className="text-text-secondary flex items-center gap-1.5 font-normal">
+                      <ClockIcon className="h-3.5 w-3.5 text-text-tertiary" />
                       {t('hrm:attendancePage.today.checkOutLabel')}
                     </span>
                     {effectiveTodayRecord?.checkOutAt ? (
-                      <span className="font-semibold text-slate-800 flex items-center gap-1.5">
-                        <span className="font-bold text-slate-900 font-mono text-sm">{formatTime(effectiveTodayRecord.checkOutAt)}</span>
+                      <span className="font-medium text-text-primary flex items-center gap-1.5">
+                        <span className="font-mono text-[13px] font-medium text-text-primary tabular-nums">
+                          {formatTime(effectiveTodayRecord.checkOutAt)}
+                        </span>
                         <OnSiteBadge isOnSite={effectiveTodayRecord.checkOutIsOnSite} />
                       </span>
                     ) : (
-                      <span className="text-slate-400 italic">{t('hrm:attendancePage.today.notRecorded')}</span>
+                      <span className="text-text-tertiary italic font-normal">{t('hrm:attendancePage.today.notRecorded')}</span>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Nút hành động Check-in / Check-out lớn */}
+              {/* Nút hành động Check-in / Check-out */}
               <div className="mt-5 w-full">
                 {!effectiveTodayRecord && (
-                  <Button size="lg" className="w-full justify-center shadow-md py-3 cursor-pointer" onClick={() => setCameraMode('checkin')}>
-                    <CameraIcon className="h-5 w-5" /> {t('hrm:attendancePage.today.checkInButton')}
+                  <Button
+                    size="lg"
+                    className="w-full justify-center bg-primary hover:bg-primary-hover text-primary-contrast rounded-radius-sm h-10 text-[14px] font-medium cursor-pointer"
+                    onClick={() => setCameraMode('checkin')}
+                  >
+                    <CameraIcon className="h-4 w-4" /> {t('hrm:attendancePage.today.checkInButton')}
                   </Button>
                 )}
                 {effectiveTodayRecord && !effectiveTodayRecord.checkOutAt && (
-                  <Button size="lg" className="w-full justify-center shadow-md py-3 bg-amber-600 hover:bg-amber-700 cursor-pointer" onClick={() => setCameraMode('checkout')}>
-                    <CameraIcon className="h-5 w-5" /> {t('hrm:attendancePage.today.checkOutButton')}
+                  <Button
+                    size="lg"
+                    className="w-full justify-center bg-primary hover:bg-primary-hover text-primary-contrast rounded-radius-sm h-10 text-[14px] font-medium cursor-pointer"
+                    onClick={() => setCameraMode('checkout')}
+                  >
+                    <CameraIcon className="h-4 w-4" /> {t('hrm:attendancePage.today.checkOutButton')}
                   </Button>
                 )}
                 {effectiveTodayRecord?.checkOutAt && (
-                  <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3 text-xs font-semibold text-emerald-700 text-center">
-                    ✓ {t('hrm:attendancePage.today.completedMessage')}
+                  <div className="flex items-center justify-center gap-2 rounded-radius-sm bg-success-soft px-3 py-2.5 text-[13px] font-medium text-success text-center">
+                    <CheckIcon className="h-3.5 w-3.5" />
+                    <span>{t('hrm:attendancePage.today.completedMessage')}</span>
                   </div>
                 )}
               </div>
@@ -512,31 +534,30 @@ export function AttendancePage() {
           </Card>
         </div>
 
-        {/* Khối bên phải: Card "Lịch sử chấm công" cá nhân độc lập */}
+        {/* Khối bên phải: Card B - Lịch sử chấm công */}
         <div className="w-full lg:col-span-7 flex flex-col">
-          <Card className="border border-slate-200/80 bg-white shadow-sm flex flex-col h-full overflow-hidden">
-            <CardHeader className="pb-3 border-b border-slate-100">
+          <Card className="border border-border-subtle bg-surface shadow-none flex flex-col h-full overflow-hidden rounded-radius-md">
+            <CardHeader className="pb-3 border-b border-border-subtle">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 {/* Tiêu đề Lịch sử cá nhân */}
                 <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100">
-                    <UserIcon className="h-4 w-4" />
-                  </div>
-                  <CardTitle className="text-base font-bold text-slate-900">
+                  <UserIcon className="h-4 w-4 text-text-tertiary" />
+                  <CardTitle className="text-[15px] font-semibold text-text-primary">
                     {t('hrm:attendancePage.history.cardTitle')}
                   </CardTitle>
                 </div>
 
-                {/* Toolbar bên phải: Nút Đăng ký OT + Lọc tháng cá nhân */}
+                {/* Toolbar bên phải: Nút Đăng ký OT Secondary + Lọc tháng */}
                 <div className="flex items-center gap-2">
                   <Button
                     type="button"
+                    variant="outline"
                     size="sm"
                     onClick={() => setShowOtModal(true)}
-                    className="flex items-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs cursor-pointer"
+                    className="border-border-strong text-text-secondary hover:bg-canvas hover:text-text-primary rounded-radius-sm h-9 px-3 text-xs font-semibold cursor-pointer whitespace-nowrap shrink-0"
                   >
-                    <PlusIcon className="h-3.5 w-3.5" />
-                    <span>{t('hrm:extensions.overtime.registerButton')}</span>
+                    <PlusIcon className="h-3.5 w-3.5 shrink-0" />
+                    <span className="whitespace-nowrap">{t('hrm:extensions.overtime.registerButton')}</span>
                   </Button>
 
                   <CustomFilterSelect
@@ -544,12 +565,12 @@ export function AttendancePage() {
                     options={monthOptions}
                     onChange={setSelectedMonth}
                     ariaLabel={t('hrm:attendancePage.monthFilter.ariaLabel')}
-                    className="min-w-[140px]"
+                    className="w-[160px]"
                   />
                 </div>
               </div>
             </CardHeader>
-            <CardContent className="pt-4 flex-1 flex flex-col min-h-0">
+            <CardContent className="p-4 flex-1 flex flex-col min-h-0">
               <QueryState
                 isLoading={attendanceQuery.isLoading}
                 isError={attendanceQuery.isError}
@@ -565,26 +586,26 @@ export function AttendancePage() {
                   />
                 ) : (
                   <div className="overflow-x-auto flex-1 overflow-y-auto max-h-[300px]">
-                    <table className="w-full text-sm">
-                      <thead className="sticky top-0 bg-white z-10">
-                        <tr className="border-b border-slate-200 text-left text-xs font-medium uppercase text-slate-500">
-                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.date')}</th>
-                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.checkIn')}</th>
-                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.checkOut')}</th>
-                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.totalHours')}</th>
-                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.history.columns.status')}</th>
-                          <th className="py-2.5 pr-4 bg-white text-right">{t('hrm:attendancePage.history.columns.actions')}</th>
+                    <table className="w-full text-[13px]">
+                      <thead className="sticky top-0 bg-bg-subtle z-10 border-b border-border-subtle">
+                        <tr className="text-left text-[12px] font-medium text-text-tertiary">
+                          <th className="py-2.5 px-3 bg-bg-subtle">{t('hrm:attendancePage.history.columns.date')}</th>
+                          <th className="py-2.5 px-3 bg-bg-subtle">{t('hrm:attendancePage.history.columns.checkIn')}</th>
+                          <th className="py-2.5 px-3 bg-bg-subtle">{t('hrm:attendancePage.history.columns.checkOut')}</th>
+                          <th className="py-2.5 px-3 bg-bg-subtle text-right">{t('hrm:attendancePage.history.columns.totalHours')}</th>
+                          <th className="py-2.5 px-3 bg-bg-subtle">{t('hrm:attendancePage.history.columns.status')}</th>
+                          <th className="py-2.5 px-3 bg-bg-subtle text-right">{t('hrm:attendancePage.history.columns.actions')}</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-border-subtle">
                         {filteredMyRecords.map((record) => {
                           const isAdjusted = approvedAdjustmentAttendanceIds.has(record.id);
                           return (
-                            <tr key={record.id} className="hover:bg-slate-50/60 transition-colors">
-                              <td className="py-2.5 pr-4 text-slate-700 font-medium whitespace-nowrap">{formatDate(record.workDate)}</td>
-                              <td className="py-2.5 pr-4 text-slate-600 whitespace-nowrap">
+                            <tr key={record.id} className="hover:bg-bg-subtle transition-colors">
+                              <td className="py-2.5 px-3 text-text-primary font-mono text-[13px] whitespace-nowrap">{formatDate(record.workDate)}</td>
+                              <td className="py-2.5 px-3 text-text-secondary whitespace-nowrap">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-mono font-semibold text-slate-800">{formatTime(record.checkInAt)}</span>
+                                  <span className="font-mono text-[13px] font-medium text-text-primary tabular-nums">{formatTime(record.checkInAt)}</span>
                                   <OnSiteBadge isOnSite={record.checkInIsOnSite} />
                                   <button
                                     type="button"
@@ -596,7 +617,7 @@ export function AttendancePage() {
                                         isOnSite: record.checkInIsOnSite,
                                       })
                                     }
-                                    className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
+                                    className="inline-flex items-center justify-center h-6 w-6 rounded-radius-sm bg-bg-subtle text-text-tertiary hover:bg-canvas hover:text-text-primary transition-colors cursor-pointer"
                                     title={t('hrm:attendancePage.history.viewProofIn')}
                                     aria-label={t('hrm:attendancePage.history.viewProofIn')}
                                   >
@@ -604,10 +625,10 @@ export function AttendancePage() {
                                   </button>
                                 </div>
                               </td>
-                              <td className="py-2.5 pr-4 text-slate-600 whitespace-nowrap">
+                              <td className="py-2.5 px-3 text-text-secondary whitespace-nowrap">
                                 {record.checkOutAt ? (
                                   <div className="flex items-center gap-2">
-                                    <span className="font-mono font-semibold text-slate-800">{formatTime(record.checkOutAt)}</span>
+                                    <span className="font-mono text-[13px] font-medium text-text-primary tabular-nums">{formatTime(record.checkOutAt)}</span>
                                     <OnSiteBadge isOnSite={record.checkOutIsOnSite} />
                                     <button
                                       type="button"
@@ -619,7 +640,7 @@ export function AttendancePage() {
                                           isOnSite: record.checkOutIsOnSite,
                                         })
                                       }
-                                      className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
+                                      className="inline-flex items-center justify-center h-6 w-6 rounded-radius-sm bg-bg-subtle text-text-tertiary hover:bg-canvas hover:text-text-primary transition-colors cursor-pointer"
                                       title={t('hrm:attendancePage.history.viewProofOut')}
                                       aria-label={t('hrm:attendancePage.history.viewProofOut')}
                                     >
@@ -627,22 +648,22 @@ export function AttendancePage() {
                                     </button>
                                   </div>
                                 ) : (
-                                  <span className="text-slate-400 italic">{t('hrm:attendancePage.today.notRecorded')}</span>
+                                  <span className="text-text-tertiary italic font-normal">{t('hrm:attendancePage.today.notRecorded')}</span>
                                 )}
                               </td>
-                              <td className="py-2.5 pr-4 text-slate-700 font-medium whitespace-nowrap tabular-nums">
-                                <span className={record.checkOutAt ? 'font-semibold text-slate-900' : 'text-slate-400 font-normal'}>
+                              <td className="py-2.5 px-3 text-right font-mono text-[13px] font-medium whitespace-nowrap tabular-nums">
+                                <span className={record.checkOutAt ? 'text-text-primary' : 'text-text-tertiary font-normal'}>
                                   {formatTotalHours(t, record.checkInAt, record.checkOutAt)}
                                 </span>
                               </td>
-                              <td className="py-2.5 pr-4 whitespace-nowrap">
+                              <td className="py-2.5 px-3 whitespace-nowrap">
                                 <AttendanceStatusBadge record={record} today={today} isAdjusted={isAdjusted} />
                               </td>
-                              <td className="py-2.5 pr-4 whitespace-nowrap text-right">
+                              <td className="py-2.5 px-3 whitespace-nowrap text-right">
                                 <button
                                   type="button"
                                   onClick={() => setAdjustmentRecord(record)}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 transition-colors cursor-pointer border border-transparent hover:border-indigo-100"
+                                  className="inline-flex items-center gap-1 text-[13px] font-medium text-accent hover:underline cursor-pointer"
                                   title={t('hrm:extensions.adjustment.requestButton')}
                                 >
                                   <EditIcon className="h-3 w-3" />
@@ -662,36 +683,30 @@ export function AttendancePage() {
         </div>
       </div>
 
-      {/* Khối bên dưới: Card "Quản lý tổ chức" toàn màn hình (chỉ hiển thị cho Manager / Admin).
-          03/10/2026: gate theo `canViewOrgCard` (bat ky 1 trong 3 quyen con) thay vi chi `canViewAll`
-          - xem chu thich tai khai bao canViewAdjustments/canViewOvertime o tren. */}
+      {/* Khối bên dưới: Card "Quản lý tổ chức" toàn màn hình (chỉ hiển thị cho Manager / Admin) */}
       {canViewOrgCard && (
-        <Card className="border border-slate-200/80 bg-white shadow-sm overflow-hidden">
-          <CardHeader className="pb-3 border-b border-slate-100">
+        <Card className="border border-border-subtle bg-surface shadow-none overflow-hidden rounded-radius-md">
+          <CardHeader className="pb-3 border-b border-border-subtle">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              {/* Tiêu đề & Sub-tabs */}
+              {/* Tiêu đề & Segmented Control */}
               <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100">
-                    <UsersIcon className="h-4 w-4" />
-                  </div>
-                  <CardTitle className="text-base font-bold text-slate-900">
+                  <UsersIcon className="h-4 w-4 text-text-tertiary" />
+                  <CardTitle className="text-[15px] font-semibold text-text-primary">
                     {t('hrm:extensions.orgTabs.mainTitle')}
                   </CardTitle>
                 </div>
 
-                {/* Sub-tabs điều hướng 4 phân hệ - 03/10/2026: mỗi tab tự ẩn/hiện theo đúng quyền
-                    riêng của nó (xem canViewAdjustments/canViewOvertime), không còn gộp chung vào
-                    canViewAll của khối cha. */}
-                <div className="flex flex-wrap items-center gap-1.5 rounded-xl bg-slate-100/90 p-1 border border-slate-200/60">
+                {/* Sub-tabs điều hướng: Segmented Control phẳng (nền bg-subtle, active nền trắng + Ink w600 + border subtle) */}
+                <div className="flex flex-wrap items-center gap-1 rounded-radius-sm bg-bg-subtle p-1 border border-border-subtle">
                   {canViewAll && (
                     <button
                       type="button"
                       onClick={() => setOrgSubTab('timesheet')}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                      className={`px-3 py-1 text-[13px] leading-5 rounded-[4px] transition-all cursor-pointer ${
                         orgSubTab === 'timesheet'
-                          ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                          : 'text-slate-600 hover:text-slate-900'
+                          ? 'bg-white text-text-primary font-semibold shadow-xs border border-border-subtle'
+                          : 'text-text-secondary hover:text-text-primary'
                       }`}
                     >
                       {t('hrm:extensions.orgTabs.subtabs.timesheet')}
@@ -702,10 +717,10 @@ export function AttendancePage() {
                     <button
                       type="button"
                       onClick={() => setOrgSubTab('log')}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                      className={`px-3 py-1 text-[13px] leading-5 rounded-[4px] transition-all cursor-pointer ${
                         orgSubTab === 'log'
-                          ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                          : 'text-slate-600 hover:text-slate-900'
+                          ? 'bg-white text-text-primary font-semibold shadow-xs border border-border-subtle'
+                          : 'text-text-secondary hover:text-text-primary'
                       }`}
                     >
                       {t('hrm:extensions.orgTabs.subtabs.log')}
@@ -716,19 +731,19 @@ export function AttendancePage() {
                     <button
                       type="button"
                       onClick={() => setOrgSubTab('adjustments')}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                      className={`flex items-center gap-1.5 px-3 py-1 text-[13px] leading-5 rounded-[4px] transition-all cursor-pointer ${
                         orgSubTab === 'adjustments'
-                          ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                          : 'text-slate-600 hover:text-slate-900'
+                          ? 'bg-white text-text-primary font-semibold shadow-xs border border-border-subtle'
+                          : 'text-text-secondary hover:text-text-primary'
                       }`}
                     >
                       <EditIcon className="h-3 w-3" />
                       <span>{t('hrm:extensions.orgTabs.subtabs.adjustments')}</span>
                       <span
-                        className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                        className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-mono font-medium ${
                           pendingAdjustmentsCount > 0
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-slate-200/70 text-slate-600'
+                            ? 'bg-warning-soft text-warning'
+                            : 'bg-bg-muted text-text-tertiary'
                         }`}
                       >
                         {pendingAdjustmentsCount}
@@ -740,19 +755,19 @@ export function AttendancePage() {
                     <button
                       type="button"
                       onClick={() => setOrgSubTab('overtime')}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+                      className={`flex items-center gap-1.5 px-3 py-1 text-[13px] leading-5 rounded-[4px] transition-all cursor-pointer ${
                         orgSubTab === 'overtime'
-                          ? 'bg-white text-slate-900 shadow-2xs font-bold'
-                          : 'text-slate-600 hover:text-slate-900'
+                          ? 'bg-white text-text-primary font-semibold shadow-xs border border-border-subtle'
+                          : 'text-text-secondary hover:text-text-primary'
                       }`}
                     >
                       <ClockIcon className="h-3 w-3" />
                       <span>{t('hrm:extensions.orgTabs.subtabs.overtime')}</span>
                       <span
-                        className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                        className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-mono font-medium ${
                           pendingOtCount > 0
-                            ? 'bg-indigo-100 text-indigo-800'
-                            : 'bg-slate-200/70 text-slate-600'
+                            ? 'bg-warning-soft text-warning'
+                            : 'bg-bg-muted text-text-tertiary'
                         }`}
                       >
                         {pendingOtCount}
@@ -817,18 +832,18 @@ export function AttendancePage() {
                   />
                 ) : (
                   <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-                    <table className="w-full text-sm">
-                      <thead className="sticky top-0 bg-white z-10">
-                        <tr className="border-b border-slate-200 text-left text-xs font-medium uppercase text-slate-500">
-                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.employee')}</th>
-                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.date')}</th>
-                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.checkIn')}</th>
-                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.checkOut')}</th>
-                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.totalHours')}</th>
-                          <th className="py-2.5 pr-4 bg-white">{t('hrm:attendancePage.allAttendance.columns.status')}</th>
+                    <table className="w-full text-[13px]">
+                      <thead className="sticky top-0 bg-bg-subtle z-10 border-b border-border-subtle">
+                        <tr className="text-left text-[12px] font-medium text-text-tertiary">
+                          <th className="py-2.5 px-3 bg-bg-subtle">{t('hrm:attendancePage.allAttendance.columns.employee')}</th>
+                          <th className="py-2.5 px-3 bg-bg-subtle">{t('hrm:attendancePage.allAttendance.columns.date')}</th>
+                          <th className="py-2.5 px-3 bg-bg-subtle">{t('hrm:attendancePage.allAttendance.columns.checkIn')}</th>
+                          <th className="py-2.5 px-3 bg-bg-subtle">{t('hrm:attendancePage.allAttendance.columns.checkOut')}</th>
+                          <th className="py-2.5 px-3 bg-bg-subtle text-right">{t('hrm:attendancePage.allAttendance.columns.totalHours')}</th>
+                          <th className="py-2.5 px-3 bg-bg-subtle">{t('hrm:attendancePage.allAttendance.columns.status')}</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-border-subtle">
                         {filteredAllRecords.map((record) => {
                           const name = userNameMap[record.userId] ?? record.userId;
                           return (
@@ -840,25 +855,22 @@ export function AttendancePage() {
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') navigate(`/attendance/${record.userId}`);
                               }}
-                              className="cursor-pointer hover:bg-slate-50/60 transition-colors"
+                              className="cursor-pointer hover:bg-bg-subtle transition-colors"
                             >
-                              <td className="py-2.5 pr-4 text-slate-900 font-semibold whitespace-nowrap">
+                              <td className="py-2.5 px-3 text-text-primary font-medium whitespace-nowrap">
                                 <div className="flex items-center gap-2">
-                                  <Avatar name={name} size="sm" className="h-6 w-6 text-[10px] shadow-2xs" />
+                                  <Avatar name={name} size="sm" className="h-6 w-6 text-[10px] bg-[#E4EFEE] text-[#0E5E5E] font-semibold" />
                                   <span className="truncate max-w-[160px]">{name}</span>
                                 </div>
                               </td>
-                              <td className="py-2.5 pr-4 text-slate-700 whitespace-nowrap">{formatDate(record.workDate)}</td>
-                              <td className="py-2.5 pr-4 text-slate-600 whitespace-nowrap">
+                              <td className="py-2.5 px-3 text-text-primary font-mono text-[13px] whitespace-nowrap">{formatDate(record.workDate)}</td>
+                              <td className="py-2.5 px-3 text-text-secondary whitespace-nowrap">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-mono font-semibold text-slate-800">{formatTime(record.checkInAt)}</span>
+                                  <span className="font-mono text-[13px] font-medium text-text-primary tabular-nums">{formatTime(record.checkInAt)}</span>
                                   <OnSiteBadge isOnSite={record.checkInIsOnSite} />
                                   <button
                                     type="button"
                                     onClick={(e) => {
-                                      // 03/10/2026: chan noi bot su kien len <tr> (gio da co onClick dieu
-                                      // huong toi trang chi tiet) - bam icon anh bang chung chi mo
-                                      // PhotoProofModal, khong duoc keo theo dieu huong trang.
                                       e.stopPropagation();
                                       setViewingPhoto({
                                         id: record.id,
@@ -868,7 +880,7 @@ export function AttendancePage() {
                                         isOnSite: record.checkInIsOnSite,
                                       });
                                     }}
-                                    className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
+                                    className="inline-flex items-center justify-center h-6 w-6 rounded-radius-sm bg-bg-subtle text-text-tertiary hover:bg-canvas hover:text-text-primary transition-colors cursor-pointer"
                                     title={t('hrm:attendancePage.allAttendance.viewProofInOf', { name })}
                                     aria-label={t('hrm:attendancePage.allAttendance.viewProofInOf', { name })}
                                   >
@@ -876,10 +888,10 @@ export function AttendancePage() {
                                   </button>
                                 </div>
                               </td>
-                              <td className="py-2.5 pr-4 text-slate-600 whitespace-nowrap">
+                              <td className="py-2.5 px-3 text-text-secondary whitespace-nowrap">
                                 {record.checkOutAt ? (
                                   <div className="flex items-center gap-2">
-                                    <span className="font-mono font-semibold text-slate-800">{formatTime(record.checkOutAt)}</span>
+                                    <span className="font-mono text-[13px] font-medium text-text-primary tabular-nums">{formatTime(record.checkOutAt)}</span>
                                     <OnSiteBadge isOnSite={record.checkOutIsOnSite} />
                                     <button
                                       type="button"
@@ -893,7 +905,7 @@ export function AttendancePage() {
                                           isOnSite: record.checkOutIsOnSite,
                                         });
                                       }}
-                                      className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
+                                      className="inline-flex items-center justify-center h-6 w-6 rounded-radius-sm bg-bg-subtle text-text-tertiary hover:bg-canvas hover:text-text-primary transition-colors cursor-pointer"
                                       title={t('hrm:attendancePage.allAttendance.viewProofOutOf', { name })}
                                       aria-label={t('hrm:attendancePage.allAttendance.viewProofOutOf', { name })}
                                     >
@@ -901,15 +913,15 @@ export function AttendancePage() {
                                     </button>
                                   </div>
                                 ) : (
-                                  <span className="text-slate-400 italic">{t('hrm:attendancePage.today.notRecorded')}</span>
+                                  <span className="text-text-tertiary italic font-normal">{t('hrm:attendancePage.today.notRecorded')}</span>
                                 )}
                               </td>
-                              <td className="py-2.5 pr-4 text-slate-700 font-medium whitespace-nowrap tabular-nums">
-                                <span className={record.checkOutAt ? 'font-semibold text-slate-900' : 'text-slate-400 font-normal'}>
+                              <td className="py-2.5 px-3 text-right font-mono text-[13px] font-medium whitespace-nowrap tabular-nums">
+                                <span className={record.checkOutAt ? 'text-text-primary' : 'text-text-tertiary font-normal'}>
                                   {formatTotalHours(t, record.checkInAt, record.checkOutAt)}
                                 </span>
                               </td>
-                              <td className="py-2.5 pr-4 whitespace-nowrap">
+                              <td className="py-2.5 px-3 whitespace-nowrap">
                                 <AttendanceStatusBadge
                                   record={record}
                                   today={today}

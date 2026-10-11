@@ -14,6 +14,7 @@
     "selectConversationDescription": "Chọn một cuộc trò chuyện ở danh sách bên trái hoặc bắt đầu cuộc trò chuyện mới.",
     "groupLabel": "Nhóm",
     "unknownUser": "Người dùng",
+    "backToList": "Quay lại danh sách",
     "membersCount": "{{count}} thành viên",
     "manageMembers": "Quản lý thành viên",
     "loadOlder": "Tải tin nhắn cũ hơn",

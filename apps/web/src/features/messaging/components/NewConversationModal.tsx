@@ -109,64 +109,104 @@ export function NewConversationModal({ open, onClose, onCreated }: NewConversati
       preventCloseWhilePending={createConversation.isPending}
       footer={
         <>
-          <Button variant="outline" onClick={onClose} disabled={createConversation.isPending}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={createConversation.isPending}
+            className="h-8 px-3 rounded-radius-sm border border-border-strong bg-white hover:bg-bg-subtle text-[12px] font-medium text-text-primary transition-colors cursor-pointer disabled:pointer-events-none disabled:opacity-50"
+          >
             {t('common:actions.cancel')}
-          </Button>
-          <Button onClick={handleSubmit} isLoading={createConversation.isPending}>
-            {tab === 'DIRECT' ? t('messaging:newConversationModal.submit') : t('messaging:newConversationModal.submitGroup')}
-          </Button>
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={createConversation.isPending}
+            className="inline-flex items-center justify-center h-8 px-3 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[12px] font-medium transition-colors cursor-pointer disabled:pointer-events-none disabled:opacity-50"
+          >
+            {createConversation.isPending
+              ? t('common:status.loading')
+              : tab === 'DIRECT'
+              ? t('messaging:newConversationModal.submit')
+              : t('messaging:newConversationModal.submitGroup')}
+          </button>
         </>
       }
     >
-      <div className="space-y-4">
-        <Tabs
-          value={tab}
-          onChange={(v) => {
-            setTab(v as ConversationTab);
-            setFormError(null);
-          }}
-          tabs={[
-            { value: 'DIRECT', label: t('messaging:newConversationModal.tabDirect') },
-            { value: 'GROUP', label: t('messaging:newConversationModal.tabGroup') },
-          ]}
-        />
+      <div className="space-y-4 max-h-[min(520px,calc(100vh-200px))] flex flex-col">
+        {/* Segmented Control 2 tab */}
+        <div className="flex shrink-0 p-1 rounded-radius-sm bg-bg-subtle border border-border-subtle">
+          <button
+            type="button"
+            onClick={() => {
+              setTab('DIRECT');
+              setFormError(null);
+            }}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-[4px] text-xs transition-colors cursor-pointer',
+              tab === 'DIRECT'
+                ? 'bg-white text-text-primary font-semibold border border-border-subtle shadow-none'
+                : 'text-text-secondary hover:text-text-primary font-normal',
+            )}
+          >
+            {t('messaging:newConversationModal.tabDirect')}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setTab('GROUP');
+              setFormError(null);
+            }}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-[4px] text-xs transition-colors cursor-pointer',
+              tab === 'GROUP'
+                ? 'bg-white text-text-primary font-semibold border border-border-subtle shadow-none'
+                : 'text-text-secondary hover:text-text-primary font-normal',
+            )}
+          >
+            {t('messaging:newConversationModal.tabGroup')}
+          </button>
+        </div>
 
         {tab === 'GROUP' && (
-          <div>
-            <Label htmlFor="new-group-name">{t('messaging:newConversationModal.groupNameLabel')}</Label>
+          <div className="shrink-0 space-y-1">
+            <Label htmlFor="new-group-name" className="text-xs font-medium text-text-primary">
+              {t('messaging:newConversationModal.groupNameLabel')}
+            </Label>
             <Input
               id="new-group-name"
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
               placeholder={t('messaging:newConversationModal.groupNamePlaceholder')}
               maxLength={200}
+              className="h-9 rounded-radius-sm border-border-strong text-xs"
             />
           </div>
         )}
 
-        <div className="relative">
-          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <div className="relative shrink-0">
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-tertiary" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('messaging:newConversationModal.searchPlaceholder')}
-            className="pl-9"
+            className="h-9 rounded-radius-sm border-border-strong pl-8 text-xs"
           />
         </div>
 
         {tab === 'GROUP' && selectedGroupUserIds.length > 0 && (
-          <p className="text-xs font-medium text-slate-500">
+          <p className="shrink-0 font-mono text-[12px] font-normal tabular-nums text-text-tertiary">
             {t('messaging:newConversationModal.selectedCount', { count: selectedGroupUserIds.length })}
           </p>
         )}
 
-        <div className="max-h-64 space-y-0.5 overflow-y-auto rounded-xl border border-slate-200/70 p-1.5">
+        {/* Danh sach nguoi chi cuon tai day (fix double scrollbar) */}
+        <div className="min-h-0 flex-1 overflow-y-auto space-y-0.5 rounded-radius-sm border border-border-subtle p-1 popover-scrollbar">
           {isUsersLoading ? (
             <div className="flex justify-center py-6">
               <Spinner size="sm" />
             </div>
           ) : candidates.length === 0 ? (
-            <p className="py-6 text-center text-xs italic text-slate-400">{t('messaging:newConversationModal.noUsersFound')}</p>
+            <p className="py-6 text-center text-xs italic text-text-tertiary">{t('messaging:newConversationModal.noUsersFound')}</p>
           ) : tab === 'DIRECT' ? (
             candidates.map((u) => {
               const isSelected = u.id === selectedDirectUserId;
@@ -176,16 +216,20 @@ export function NewConversationModal({ open, onClose, onCreated }: NewConversati
                   type="button"
                   onClick={() => setSelectedDirectUserId(u.id)}
                   className={cn(
-                    'flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm transition-colors',
-                    isSelected ? 'bg-primary-50 text-primary-700' : 'text-slate-700 hover:bg-slate-50',
+                    'flex h-11 w-full items-center gap-2.5 rounded-[4px] px-2.5 py-1 text-left text-xs transition-colors cursor-pointer',
+                    isSelected ? 'bg-accent-soft text-text-primary' : 'text-text-primary hover:bg-bg-subtle',
                   )}
                 >
-                  <Avatar name={u.fullName} size="sm" />
+                  <Avatar
+                    name={u.fullName}
+                    size="sm"
+                    className="h-8 w-8 text-[11px] font-semibold bg-accent-soft text-accent shrink-0"
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{u.fullName}</p>
-                    <p className="truncate text-xs text-slate-400">{u.email}</p>
+                    <p className="truncate font-mono text-[11px] text-text-tertiary">{u.email}</p>
                   </div>
-                  {isSelected && <CheckIcon className="h-4 w-4 shrink-0 text-primary-600" />}
+                  {isSelected && <CheckIcon className="h-4 w-4 shrink-0 text-accent" />}
                 </button>
               );
             })
@@ -196,15 +240,19 @@ export function NewConversationModal({ open, onClose, onCreated }: NewConversati
                 <label
                   key={u.id}
                   className={cn(
-                    'flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm transition-colors',
-                    isSelected ? 'bg-primary-50 text-primary-700' : 'text-slate-700 hover:bg-slate-50',
+                    'flex h-11 w-full cursor-pointer items-center gap-2.5 rounded-[4px] px-2.5 py-1 text-left text-xs transition-colors',
+                    isSelected ? 'bg-accent-soft text-text-primary' : 'text-text-primary hover:bg-bg-subtle',
                   )}
                 >
                   <Checkbox checked={isSelected} onChange={() => toggleGroupUser(u.id)} />
-                  <Avatar name={u.fullName} size="sm" />
+                  <Avatar
+                    name={u.fullName}
+                    size="sm"
+                    className="h-8 w-8 text-[11px] font-semibold bg-accent-soft text-accent shrink-0"
+                  />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{u.fullName}</p>
-                    <p className="truncate text-xs text-slate-400">{u.email}</p>
+                    <p className="truncate font-mono text-[11px] text-text-tertiary">{u.email}</p>
                   </div>
                 </label>
               );
@@ -213,7 +261,7 @@ export function NewConversationModal({ open, onClose, onCreated }: NewConversati
         </div>
 
         {formError && (
-          <p role="alert" className="text-xs font-medium text-rose-600">
+          <p role="alert" className="shrink-0 text-xs font-medium text-error">
             {formError}
           </p>
         )}

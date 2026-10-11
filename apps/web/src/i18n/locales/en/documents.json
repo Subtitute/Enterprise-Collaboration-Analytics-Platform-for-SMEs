@@ -132,6 +132,7 @@
   },
   "folderGrid": {
     "loadingFileCount": "Loading…",
+    "filesSuffix": "files",
     "metaSummary": "{{count}} files • Updated {{time}}",
     "restrictedTooltip": "Restricted folder",
     "optionsAria": "Folder options",

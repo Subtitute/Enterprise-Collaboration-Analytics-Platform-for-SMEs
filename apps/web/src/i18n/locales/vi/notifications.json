@@ -24,7 +24,20 @@
     "unreadTitle": "Chưa đọc",
     "empty": "Không có thông báo mới",
     "unreadBadge": "Chưa đọc",
-    "loadMore": "Tải thêm thông báo ({{loaded}}/{{total}})"
+    "loadMore": "Tải thêm thông báo ({{loaded}}/{{total}})",
+    "errorTitle": "Không tải được thông báo",
+    "emptyTitle": "Chưa có thông báo",
+    "emptyDescription": "Bạn sẽ nhận được thông báo khi có hoạt động mới"
+  },
+  "relativeTime": {
+    "justNow": "Vừa xong",
+    "minutesAgo": "{{count}} phút trước",
+    "hoursAgo": "{{count}} giờ trước",
+    "daysAgo": "{{count}} ngày trước",
+    "weeksAgo": "{{count}} tuần trước"
+  },
+  "item": {
+    "unreadPrefix": "Chưa đọc: "
   },
   "visual": {
     "leave": "Nghỉ phép",

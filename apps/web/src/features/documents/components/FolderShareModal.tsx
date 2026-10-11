@@ -77,7 +77,8 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
         {/* 28/07/2026: cong tac dang segmented control - chuyen doi <Select> ben duoi giua danh sach
             thanh vien va danh sach phong ban, vi backend chi nhan DUNG 1 trong 2 truong
             sharedWithUserId/sharedWithDepartmentId cho moi lan chia se. */}
-        <div className="flex gap-1 rounded-xl bg-slate-100/80 p-1 text-xs">
+        {/* Segmented Control Người dùng / Phòng ban */}
+        <div className="flex h-9 rounded-radius-md bg-bg-subtle p-0.5 text-[12px]">
           <button
             type="button"
             onClick={() => {
@@ -87,11 +88,13 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
               setIsDropdownOpen(false);
             }}
             className={cn(
-              'flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 font-semibold transition-all cursor-pointer',
-              targetType === 'user' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800',
+              'flex flex-1 items-center justify-center gap-1.5 rounded-radius-sm font-medium transition-colors cursor-pointer',
+              targetType === 'user'
+                ? 'bg-white text-text-primary border border-border-subtle font-semibold shadow-xs'
+                : 'text-text-secondary hover:text-text-primary',
             )}
           >
-            <UserIcon className="h-3.5 w-3.5" />
+            <UserIcon className="h-3.5 w-3.5 stroke-1.5" />
             {t('documents:folderShareModal.targetType.user')}
           </button>
           <button
@@ -103,18 +106,20 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
               setIsDropdownOpen(false);
             }}
             className={cn(
-              'flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1.5 font-semibold transition-all cursor-pointer',
-              targetType === 'department' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-500 hover:text-slate-800',
+              'flex flex-1 items-center justify-center gap-1.5 rounded-radius-sm font-medium transition-colors cursor-pointer',
+              targetType === 'department'
+                ? 'bg-white text-text-primary border border-border-subtle font-semibold shadow-xs'
+                : 'text-text-secondary hover:text-text-primary',
             )}
           >
-            <BuildingIcon className="h-3.5 w-3.5" />
+            <BuildingIcon className="h-3.5 w-3.5 stroke-1.5" />
             {t('documents:folderShareModal.targetType.department')}
           </button>
         </div>
 
-        {/* Custom Selector Picker ăn nhập với toàn bộ phong cách đồ án */}
+        {/* Custom Selector Picker */}
         <div className="relative">
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+          <label className="block text-[12px] font-medium text-text-secondary mb-1.5">
             {targetType === 'user'
               ? t('documents:folderShareModal.shareWithMemberLabel')
               : t('documents:folderShareModal.shareWithDepartmentLabel')}
@@ -124,13 +129,13 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
             {targetType === 'user' && selectedUser && !isDropdownOpen ? (
               <div
                 onClick={() => setIsDropdownOpen(true)}
-                className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 cursor-pointer hover:border-primary-400 hover:bg-slate-100/70 transition-all"
+                className="flex items-center justify-between rounded-radius-sm border border-border-strong bg-bg-subtle px-3 py-2 cursor-pointer hover:border-accent transition-colors"
               >
                 <div className="flex items-center gap-2.5">
                   <Avatar name={selectedUser.fullName} size="sm" className="h-6 w-6 text-[10px]" />
                   <div>
-                    <span className="block text-xs font-bold text-slate-900">{selectedUser.fullName}</span>
-                    <span className="block text-[11px] text-slate-500">{selectedUser.email}</span>
+                    <span className="block text-[13px] font-medium text-text-primary">{selectedUser.fullName}</span>
+                    <span className="block text-[11px] font-mono text-text-tertiary tabular-nums">{selectedUser.email}</span>
                   </div>
                 </div>
                 <button
@@ -139,25 +144,21 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
                     e.stopPropagation();
                     setIsDropdownOpen(true);
                   }}
-                  className="text-xs text-primary-600 hover:underline cursor-pointer font-medium"
+                  className="text-[12px] text-accent hover:underline cursor-pointer font-medium"
                 >
-                  {/* 15/09/2026: dung chung key documents:shareTargetPicker.* voi ShareModal.tsx -
-                      2 modal nay dung y het 1 khoi UI target-picker (segmented control + search +
-                      nut "Thay doi"/thong bao "khong tim thay"), tach rieng key theo tung modal se
-                      tao 2 ban dich trung lap phai sua doi cho ca 2 moi khi wording thay doi. */}
                   {t('documents:shareTargetPicker.change')}
                 </button>
               </div>
             ) : targetType === 'department' && selectedDept && !isDropdownOpen ? (
               <div
                 onClick={() => setIsDropdownOpen(true)}
-                className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 cursor-pointer hover:border-primary-400 hover:bg-slate-100/70 transition-all"
+                className="flex items-center justify-between rounded-radius-sm border border-border-strong bg-bg-subtle px-3 py-2 cursor-pointer hover:border-accent transition-colors"
               >
                 <div className="flex items-center gap-2.5">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-                    <BuildingIcon className="h-3.5 w-3.5" />
+                  <span className="flex h-6 w-6 items-center justify-center rounded-radius-sm bg-accent-soft text-accent">
+                    <BuildingIcon className="h-3.5 w-3.5 stroke-1.5" />
                   </span>
-                  <span className="text-xs font-bold text-slate-900">{selectedDept.name}</span>
+                  <span className="text-[13px] font-medium text-text-primary">{selectedDept.name}</span>
                 </div>
                 <button
                   type="button"
@@ -165,14 +166,14 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
                     e.stopPropagation();
                     setIsDropdownOpen(true);
                   }}
-                  className="text-xs text-primary-600 hover:underline cursor-pointer font-medium"
+                  className="text-[12px] text-accent hover:underline cursor-pointer font-medium"
                 >
                   {t('documents:shareTargetPicker.change')}
                 </button>
               </div>
             ) : (
               <div className="relative">
-                <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-tertiary" />
                 <input
                   type="text"
                   value={search}
@@ -187,7 +188,7 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
                       ? t('documents:folderShareModal.selectMemberPlaceholder')
                       : t('documents:folderShareModal.selectDepartmentPlaceholder')
                   }
-                  className="h-9 w-full rounded-xl border border-slate-200/80 bg-white pl-9 pr-3 text-xs text-slate-700 placeholder:text-slate-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100"
+                  className="h-9 w-full rounded-radius-sm border border-border-strong bg-white pl-9 pr-3 text-[13px] text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-soft"
                 />
               </div>
             )}
@@ -195,10 +196,10 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
             {isDropdownOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)} aria-hidden />
-                <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-44 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1 shadow-xl shadow-slate-200/80">
+                <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-44 overflow-y-auto rounded-radius-md border border-border-subtle bg-white p-1 shadow-md">
                   {targetType === 'user' ? (
                     filteredUsers.length === 0 ? (
-                      <p className="px-3 py-2 text-center text-xs text-slate-400">{t('documents:shareTargetPicker.noMembersFound')}</p>
+                      <p className="px-3 py-2 text-center text-[12px] text-text-tertiary">{t('documents:shareTargetPicker.noMembersFound')}</p>
                     ) : (
                       filteredUsers.map((u) => (
                         <button
@@ -209,21 +210,21 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
                             setIsDropdownOpen(false);
                             setSearch('');
                           }}
-                          className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors hover:bg-slate-50 cursor-pointer"
+                          className="flex w-full items-center justify-between rounded-radius-sm px-2.5 py-1.5 text-left text-[12px] transition-colors hover:bg-bg-subtle cursor-pointer"
                         >
                           <div className="flex items-center gap-2">
                             <Avatar name={u.fullName} size="sm" className="h-6 w-6 text-[10px]" />
                             <div>
-                              <p className="font-semibold text-slate-900">{u.fullName}</p>
-                              <p className="text-[10px] text-slate-400">{u.email}</p>
+                              <p className="font-medium text-text-primary">{u.fullName}</p>
+                              <p className="text-[10px] font-mono text-text-tertiary tabular-nums">{u.email}</p>
                             </div>
                           </div>
-                          {targetId === u.id && <CheckIcon className="h-4 w-4 text-emerald-600" />}
+                          {targetId === u.id && <CheckIcon className="h-4 w-4 text-[#2F6F44]" />}
                         </button>
                       ))
                     )
                   ) : filteredDepts.length === 0 ? (
-                    <p className="px-3 py-2 text-center text-xs text-slate-400">{t('documents:shareTargetPicker.noDepartmentsFound')}</p>
+                    <p className="px-3 py-2 text-center text-[12px] text-text-tertiary">{t('documents:shareTargetPicker.noDepartmentsFound')}</p>
                   ) : (
                     filteredDepts.map((d) => (
                       <button
@@ -234,15 +235,15 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
                           setIsDropdownOpen(false);
                           setSearch('');
                         }}
-                        className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-left text-xs transition-colors hover:bg-slate-50 cursor-pointer"
+                        className="flex w-full items-center justify-between rounded-radius-sm px-2.5 py-1.5 text-left text-[12px] transition-colors hover:bg-bg-subtle cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
-                          <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-                            <BuildingIcon className="h-3.5 w-3.5" />
+                          <span className="flex h-6 w-6 items-center justify-center rounded-radius-sm bg-accent-soft text-accent">
+                            <BuildingIcon className="h-3.5 w-3.5 stroke-1.5" />
                           </span>
-                          <p className="font-semibold text-slate-900">{d.name}</p>
+                          <p className="font-medium text-text-primary">{d.name}</p>
                         </div>
-                        {targetId === d.id && <CheckIcon className="h-4 w-4 text-emerald-600" />}
+                        {targetId === d.id && <CheckIcon className="h-4 w-4 text-[#2F6F44]" />}
                       </button>
                     ))
                   )}
@@ -258,6 +259,7 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
             size="sm"
             disabled={!targetId || !folder}
             isLoading={createShare.isPending}
+            className="h-8 rounded-radius-sm bg-text-primary hover:bg-black text-[12px] font-medium"
             onClick={() => {
               if (!folder || !targetId) return;
               const payload = targetType === 'user' ? { sharedWithUserId: targetId } : { sharedWithDepartmentId: targetId };
@@ -268,17 +270,17 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
           </Button>
         </div>
 
-        <div className="border-t border-slate-100 pt-3">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">{t('documents:folderShareModal.sharedWithHeading')}</p>
+        <div className="border-t border-border-subtle pt-3">
+          <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-text-tertiary">{t('documents:folderShareModal.sharedWithHeading')}</p>
           {sharesQuery.isLoading ? (
-            <p className="text-sm text-slate-400">{t('documents:folderShareModal.loading')}</p>
+            <p className="text-[13px] text-text-tertiary">{t('documents:folderShareModal.loading')}</p>
           ) : shares.length === 0 ? (
-            <p className="text-sm text-slate-400">{t('documents:folderShareModal.noShares')}</p>
+            <p className="text-[13px] text-text-tertiary">{t('documents:folderShareModal.noShares')}</p>
           ) : (
             <ul className="space-y-1.5">
               {shares.map((share) => (
-                <li key={share.id} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                  <span className="truncate text-slate-700">
+                <li key={share.id} className="flex items-center justify-between gap-2 rounded-radius-sm bg-bg-subtle px-3 py-2 text-[13px]">
+                  <span className="truncate text-text-primary font-medium">
                     {share.sharedWithUserId
                       ? (userNames[share.sharedWithUserId] ?? share.sharedWithUserId)
                       : share.sharedWithDepartmentId
@@ -289,7 +291,7 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
                     type="button"
                     onClick={() => folder && deleteShare.mutate({ folderId: folder.id, shareId: share.id })}
                     aria-label={t('documents:folderShareModal.deleteShareAria')}
-                    className="shrink-0 rounded-md p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                    className="shrink-0 rounded-radius-sm p-1 text-text-tertiary hover:bg-[#F8E5E3] hover:text-[#B3261E] transition-colors cursor-pointer"
                   >
                     <TrashIcon className="h-4 w-4" />
                   </button>
@@ -299,8 +301,8 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
           )}
         </div>
 
-        <div className="flex justify-end pt-1">
-          <Button type="button" variant="outline" onClick={handleClose}>
+        <div className="flex justify-end pt-2 border-t border-border-subtle mt-4">
+          <Button type="button" variant="outline" onClick={handleClose} className="h-9 rounded-radius-sm border-border-strong text-[13px]">
             {t('documents:folderShareModal.close')}
           </Button>
         </div>

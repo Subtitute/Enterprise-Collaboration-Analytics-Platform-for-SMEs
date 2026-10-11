@@ -226,8 +226,8 @@ export function ImportEmployeesModal({ open, onClose }: { open: boolean; onClose
       size="xl"
     >
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
-          <p className="text-sm text-slate-600">{t('admin:importEmployeesModal.instructions')}</p>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-radius-md border border-border-subtle bg-bg-subtle p-3.5">
+          <p className="text-[13px] leading-5 text-text-secondary">{t('admin:importEmployeesModal.instructions')}</p>
           <Button type="button" variant="outline" size="sm" onClick={handleDownloadTemplate}>
             <DownloadIcon className="h-4 w-4" /> {t('admin:importEmployeesModal.downloadTemplate')}
           </Button>
@@ -244,7 +244,7 @@ export function ImportEmployeesModal({ open, onClose }: { open: boolean; onClose
           />
           <label
             htmlFor="import-employees-file"
-            className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50/60 px-4 py-6 text-sm font-medium text-slate-600 transition-colors hover:border-indigo-400 hover:bg-indigo-50/40"
+            className="flex cursor-pointer items-center justify-center gap-2 rounded-radius-md border-2 border-dashed border-border-strong bg-bg-subtle/60 px-4 py-6 text-[13px] font-medium text-text-secondary transition-colors hover:border-accent hover:bg-accent-soft/30 hover:text-text-primary"
           >
             <UploadIcon className="h-5 w-5 text-slate-400" />
             {fileName || t('admin:importEmployeesModal.selectFile')}

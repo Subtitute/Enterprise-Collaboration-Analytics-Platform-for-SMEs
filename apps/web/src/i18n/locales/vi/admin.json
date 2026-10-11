@@ -262,6 +262,16 @@
   "roles": {
     "orgAdmin": "Quản trị viên tổ chức",
     "manager": "Quản lý",
-    "employee": "Nhân viên"
+    "employee": "Nhân viên",
+    "title": "Vai trò & Quyền"
+  },
+  "members": {
+    "title": "Thành viên"
+  },
+  "departments": {
+    "title": "Phòng ban"
+  },
+  "failedEvents": {
+    "title": "Sự kiện lỗi hệ thống"
   }
 }

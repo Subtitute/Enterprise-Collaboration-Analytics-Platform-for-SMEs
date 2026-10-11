@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
 import { Avatar } from '@/components/ui/Avatar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
@@ -47,20 +46,29 @@ export function ConversationsPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">{t('messaging:page.title')}</h1>
-          <p className="mt-1 text-sm text-slate-500">{t('messaging:page.subtitle')}</p>
+          <h1 className="text-[28px] leading-[36px] font-semibold text-text-primary tracking-tight">{t('messaging:page.title')}</h1>
+          <p className="mt-1 text-sm text-text-tertiary">{t('messaging:page.subtitle')}</p>
         </div>
-        <Button onClick={() => setIsNewConversationOpen(true)}>
+        <Button
+          onClick={() => setIsNewConversationOpen(true)}
+          className="bg-text-primary hover:bg-black text-white rounded-radius-sm h-9 px-3.5 text-xs font-semibold shadow-none cursor-pointer"
+        >
           <PlusIcon className="h-4 w-4" />
           {t('messaging:page.newConversation')}
         </Button>
       </div>
 
-      <div className="flex h-[calc(100vh-190px)] min-h-[420px] gap-4">
-        <Card className="flex w-72 shrink-0 flex-col overflow-hidden sm:w-80">
+      <div className="flex h-[calc(100vh-190px)] min-h-[500px] rounded-radius-md border border-border-subtle bg-canvas overflow-hidden shadow-none">
+        {/* Cột danh sách (ẩn trên mobile khi đang mở hội thoại) */}
+        <div
+          className={cn(
+            'flex w-full md:w-80 shrink-0 flex-col border-r border-border-subtle bg-white',
+            activeConversationId ? 'hidden md:flex' : 'flex',
+          )}
+        >
           <QueryState
             isLoading={conversationsQuery.isLoading}
             isError={conversationsQuery.isError}
@@ -70,10 +78,10 @@ export function ConversationsPage() {
           >
             {conversations.length === 0 ? (
               <div className="p-5">
-                <EmptyState icon={<MessageIcon className="h-7 w-7" />} title={t('messaging:page.emptyListTitle')} description={t('messaging:page.emptyListDescription')} />
+                <EmptyState icon={<MessageIcon className="h-7 w-7 text-text-tertiary" />} title={t('messaging:page.emptyListTitle')} description={t('messaging:page.emptyListDescription')} />
               </div>
             ) : (
-              <ul className="min-h-0 flex-1 divide-y divide-slate-100 overflow-y-auto">
+              <ul className="min-h-0 flex-1 divide-y divide-border-subtle overflow-y-auto">
                 {conversations.map((conversation) => {
                   const displayName = getConversationDisplayName(conversation, currentUserId, userNames, unknownLabel);
                   const isActive = conversation.id === activeConversationId;
@@ -90,22 +98,30 @@ export function ConversationsPage() {
                         type="button"
                         onClick={() => setActiveConversationId(conversation.id)}
                         className={cn(
-                          'flex w-full items-center gap-3 px-4 py-3 text-left transition-colors',
-                          isActive ? 'bg-primary-50/70' : 'hover:bg-slate-50',
+                          'flex w-full h-[72px] items-center gap-3 px-4 py-3 text-left transition-colors cursor-pointer',
+                          isActive ? 'bg-accent-soft' : 'hover:bg-bg-subtle',
                         )}
                       >
-                        <Avatar name={displayName} size="md" />
+                        <Avatar
+                          name={displayName}
+                          size="md"
+                          className="h-10 w-10 text-xs font-semibold bg-accent-soft text-accent shrink-0"
+                        />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center justify-between gap-2">
-                            <p className="truncate text-sm font-semibold text-slate-900">{displayName}</p>
-                            {lastMessage && <span className="shrink-0 text-[10px] text-slate-400">{formatRelativeTime(lastMessage.createdAt)}</span>}
+                            <p className="truncate text-sm font-semibold text-text-primary">{displayName}</p>
+                            {lastMessage && (
+                              <span className="shrink-0 font-mono text-[11px] font-normal tabular-nums text-text-tertiary">
+                                {formatRelativeTime(lastMessage.createdAt)}
+                              </span>
+                            )}
                           </div>
                           <div className="mt-0.5 flex items-center justify-between gap-2">
-                            <p className="truncate text-xs text-slate-500">{previewBody}</p>
+                            <p className="truncate text-xs text-text-tertiary">{previewBody}</p>
                             {conversation.unreadCount > 0 && (
-                              <Badge variant="info" className="shrink-0 bg-primary-600 text-white">
+                              <span className="shrink-0 inline-flex items-center justify-center min-w-[18px] h-4 px-1 rounded-full bg-accent text-white font-mono text-[10px] font-semibold tabular-nums leading-none">
                                 {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
-                              </Badge>
+                              </span>
                             )}
                           </div>
                         </div>
@@ -116,17 +132,27 @@ export function ConversationsPage() {
               </ul>
             )}
           </QueryState>
-        </Card>
+        </div>
 
-        <Card className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Cột thread (ẩn trên mobile khi chưa chọn hội thoại) */}
+        <div
+          className={cn(
+            'flex min-w-0 flex-1 flex-col overflow-hidden bg-white',
+            !activeConversationId ? 'hidden md:flex' : 'flex',
+          )}
+        >
           {activeConversation ? (
-            <ConversationThread key={activeConversation.id} conversation={activeConversation} />
+            <ConversationThread
+              key={activeConversation.id}
+              conversation={activeConversation}
+              onBack={() => setActiveConversationId(null)}
+            />
           ) : (
-            <div className="flex h-full items-center justify-center p-6">
-              <EmptyState icon={<MessageIcon className="h-8 w-8" />} title={t('messaging:page.selectConversationTitle')} description={t('messaging:page.selectConversationDescription')} />
+            <div className="flex h-full items-center justify-center p-6 bg-canvas">
+              <EmptyState icon={<MessageIcon className="h-8 w-8 text-text-tertiary" />} title={t('messaging:page.selectConversationTitle')} description={t('messaging:page.selectConversationDescription')} />
             </div>
           )}
-        </Card>
+        </div>
       </div>
 
       <NewConversationModal open={isNewConversationOpen} onClose={() => setIsNewConversationOpen(false)} onCreated={handleCreated} />
