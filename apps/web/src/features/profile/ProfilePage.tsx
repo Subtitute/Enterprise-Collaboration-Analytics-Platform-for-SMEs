@@ -1,34 +1,22 @@
-import { useState, useEffect, useRef, ChangeEvent, FormEvent } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
-import { Avatar } from '@/components/ui/Avatar';
-import { Button } from '@/components/ui/Button';
-import { FormField, Input, PasswordInput } from '@/components/ui/Input';
 import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner } from '@/components/ui/Spinner';
-import {
-  CalendarIcon,
-  BuildingIcon,
-  ShieldIcon,
-  PhoneIcon,
-  UploadIcon,
-  CheckCircleIcon,
-  AlertCircleIcon,
-  LockIcon,
-  FileTextIcon,
-  UserIcon,
-  CopyIcon,
-  CheckIcon,
-} from '@/components/ui/Icons';
-import { formatDate } from '@/lib/utils';
-import { useToastStore } from '@/stores/toast.store';
 import { useDepartmentsQuery } from '@/features/admin/hooks';
 import { useUserNameMap } from '@/hooks/useOrgUsers';
 import { useMyProfileQuery } from './hooks';
+import { ProfileIdentityCard } from './components/ProfileIdentityCard';
+import { ProfileInfoCard } from './components/ProfileInfoCard';
+import { ProfileSecurityCard } from './components/ProfileSecurityCard';
 
+/** Ho so ca nhan (Wireframe.md - bo sung 22/07/2026, xem changelog): trang chi-doc, hien thi du
+ *  lieu that cua chinh nguoi dung dang dang nhap (ten, email, phong ban, vai tro, trang thai,
+ *  ngay tham gia) - lay qua GET /users/:id da co san, khong bia them field khong nam trong
+ *  entity User (Technical_Spec.md muc 5: User chi co fullName/email/departmentId/roles/isActive/
+ *  createdAt, khong co avatar/so dien thoai/tieu su). Sua thong tin (doi phong ban/vai tro) van
+ *  thuc hien o Quan tri > Thanh vien (yeu cau quyen user:manage) - khong lap lai o day. */
 export function ProfilePage() {
   const { t } = useTranslation();
-  const toast = useToastStore((s) => s.push);
   const profileQuery = useMyProfileQuery();
   const departmentsQuery = useDepartmentsQuery();
   const user = profileQuery.data;
@@ -39,9 +27,6 @@ export function ProfilePage() {
   // Trạng thái cục bộ cho tương tác người dùng
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [fullName, setFullName] = useState<string>('');
-  const [phoneNumber, setPhoneNumber] = useState<string>('0912 345 678');
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [copiedEmployeeCode, setCopiedEmployeeCode] = useState(false);
 
   // Đồng bộ họ và tên từ dữ liệu server khi load xong
   useEffect(() => {
@@ -49,113 +34,6 @@ export function ProfilePage() {
       setFullName(user.fullName);
     }
   }, [user?.fullName]);
-
-  // Form đổi mật khẩu
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Giả lập mã nhân viên chuẩn đẹp từ ID
-  const employeeCode = user?.id ? `SME-${user.id.slice(0, 6).toUpperCase()}` : 'SME-ADMIN';
-
-  // Lấy vai trò chính hiển thị
-  const primaryRole = user?.roles?.[0]?.name ?? '';
-  const lowerRole = primaryRole.toLowerCase();
-  const isOrgAdmin = lowerRole.includes('admin');
-  const isManager = lowerRole.includes('manager');
-
-  const roleBadgeLabel = isOrgAdmin
-    ? t('profile:page.roles.orgAdmin')
-    : isManager
-    ? t('profile:page.roles.manager')
-    : t('profile:page.roles.employee');
-
-  const roleBadgeClasses = isOrgAdmin
-    ? 'bg-accent-soft text-accent border border-accent/20'
-    : isManager
-    ? 'bg-info-soft text-info border border-info/20'
-    : 'bg-bg-subtle text-text-secondary border border-border-subtle';
-
-  // Xử lý upload avatar (preview client-side)
-  function handleAvatarChange(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setAvatarPreview(url);
-      toast({
-        variant: 'success',
-        title: t('profile:page.toasts.avatarSimulated'),
-      });
-    }
-  }
-
-  // Sao chép mã nhân viên
-  function handleCopyEmployeeCode() {
-    navigator.clipboard.writeText(employeeCode);
-    setCopiedEmployeeCode(true);
-    setTimeout(() => setCopiedEmployeeCode(false), 2000);
-  }
-
-  // Xử lý lưu thông tin cá nhân (Họ tên, Số điện thoại)
-  function handleSaveProfile(e: FormEvent) {
-    e.preventDefault();
-    if (!fullName.trim()) {
-      toast({
-        variant: 'error',
-        title: t('profile:page.fields.fullNamePlaceholder'),
-      });
-      return;
-    }
-    setIsSavingProfile(true);
-    setTimeout(() => {
-      setIsSavingProfile(false);
-      toast({
-        variant: 'success',
-        title: t('profile:page.toasts.profileUpdated'),
-      });
-    }, 400);
-  }
-
-  // Xử lý đổi mật khẩu
-  function handleUpdatePassword(e: FormEvent) {
-    e.preventDefault();
-    if (!currentPassword) {
-      toast({
-        variant: 'error',
-        title: t('profile:page.toasts.missingCurrentPassword'),
-      });
-      return;
-    }
-    if (newPassword.length < 8) {
-      toast({
-        variant: 'error',
-        title: t('profile:page.toasts.passwordTooShort'),
-      });
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast({
-        variant: 'error',
-        title: t('profile:page.toasts.passwordMismatch'),
-      });
-      return;
-    }
-
-    setIsUpdatingPassword(true);
-    setTimeout(() => {
-      setIsUpdatingPassword(false);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      toast({
-        variant: 'success',
-        title: t('profile:page.toasts.passwordSuccess'),
-      });
-    }, 500);
-  }
 
   return (
     <div className="space-y-6">
@@ -169,6 +47,11 @@ export function ProfilePage() {
         </p>
       </div>
 
+      {/* 22/07/2026: sua loi thuc te - truoc ban sua nay isError chi doc tu profileQuery, nen neu
+          GET /departments loi (departmentsQuery.isError) thi QueryState van coi la "thanh cong",
+          render thang Card voi department?.name luon la '—' MAI MAI - khong the phan biet duoc
+          voi truong hop "nguoi dung that su khong co phong ban". Gop ca isError va onRetry cua
+          departmentsQuery vao day de loi duoc hien thi + co nut "Thu lai" dung nhu profileQuery. */}
       <QueryState
         isLoading={profileQuery.isLoading}
         isError={profileQuery.isError || departmentsQuery.isError}
@@ -183,283 +66,27 @@ export function ProfilePage() {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 items-start">
             {/* 3.2 CỘT TRÁI (~1/3): THẺ ĐỊNH DANH */}
             <div className="lg:col-span-4">
-              <Card className="p-0 border border-border-subtle bg-bg-surface rounded-radius-md shadow-none overflow-hidden">
-                {/* Khối header nền accent-soft với avatar 96x96 căn giữa */}
-                <div className="w-full bg-accent-soft pt-8 pb-6 flex justify-center items-center">
-                  <div className="relative group">
-                    {avatarPreview ? (
-                      <img
-                        src={avatarPreview}
-                        alt={fullName || user.fullName}
-                        className="h-24 w-24 rounded-full object-cover ring-4 ring-white"
-                      />
-                    ) : (
-                      <Avatar
-                        name={fullName || user.fullName}
-                        size="lg"
-                        className="h-24 w-24 text-[32px] font-semibold bg-[#0E5E5E] text-white ring-4 ring-white"
-                      />
-                    )}
-                    {/* Nút upload tròn 32x32, nền accent #0E5E5E, icon upload 14px trắng, hover #0A4848 */}
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-[#0E5E5E] text-white hover:bg-[#0A4848] transition-colors focus:outline-none ring-2 ring-white cursor-pointer"
-                      title={t('profile:page.buttons.uploadAvatar')}
-                    >
-                      <UploadIcon className="h-3.5 w-3.5 stroke-[2.2]" />
-                    </button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarChange}
-                      className="hidden"
-                    />
-                  </div>
-                </div>
-
-                {/* Thông tin định danh */}
-                <div className="px-6 py-6 text-center space-y-4">
-                  <div>
-                    <h2 className="text-[18px] leading-[26px] font-semibold text-text-primary tracking-tight">
-                      {fullName || user.fullName}
-                    </h2>
-                    <p className="text-[13px] leading-[20px] text-text-tertiary truncate max-w-[240px] mx-auto mt-1">
-                      {user.email}
-                    </p>
-                  </div>
-
-                  {/* Row badge: vai trò + trạng thái (gap 6) */}
-                  <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
-                    <span className={`inline-flex items-center gap-1.5 rounded-radius-sm px-2.5 py-1 text-xs font-semibold ${roleBadgeClasses}`}>
-                      <ShieldIcon className="h-3.5 w-3.5" />
-                      {roleBadgeLabel}
-                    </span>
-                    {user.isActive === false ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-radius-sm bg-bg-muted px-2.5 py-1 text-xs font-medium text-text-secondary border border-border-subtle">
-                        <span className="h-1.5 w-1.5 rounded-full bg-text-tertiary" />
-                        {t('profile:page.status.inactive')}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 rounded-radius-sm bg-success-soft px-2.5 py-1 text-xs font-medium text-success border border-success/20">
-                        <span className="h-1.5 w-1.5 rounded-full bg-success" />
-                        {t('profile:page.status.active')}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Divider + Row ngày gia nhập */}
-                  <div className="w-full border-t border-border-subtle pt-4 text-left">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-text-tertiary text-[12px] flex items-center gap-1.5">
-                        <CalendarIcon className="h-3.5 w-3.5 text-text-tertiary" />
-                        {t('profile:page.fields.joinedAt')}
-                      </span>
-                      <span className="font-mono text-[13px] font-medium tabular-nums text-text-primary">
-                        {formatDate(user.createdAt)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </Card>
+              <ProfileIdentityCard
+                user={user}
+                fullName={fullName}
+                avatarPreview={avatarPreview}
+                onAvatarChange={setAvatarPreview}
+              />
             </div>
 
             {/* 3.3 & 3.4 CỘT PHẢI (~2/3): 2 CARD CHỨC NĂNG */}
             <div className="space-y-6 lg:col-span-8">
               {/* CARD 1: THÔNG TIN CÁ NHÂN */}
-              <Card className="border border-border-subtle bg-bg-surface rounded-radius-md shadow-none">
-                <CardHeader className="pb-4 border-b border-border-subtle">
-                  <div className="flex items-center gap-2.5">
-                    {/* Icon frame 32x32 accent-soft + icon 16px accent */}
-                    <div className="flex h-8 w-8 items-center justify-center rounded-radius-sm bg-accent-soft text-accent">
-                      <FileTextIcon className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-[15px] font-semibold text-text-primary">
-                        {t('profile:page.sections.personalInfo')}
-                      </CardTitle>
-                      <CardDescription className="text-[13px] text-text-secondary">
-                        {t('profile:page.sections.personalInfoDesc')}
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="pt-5 space-y-4">
-                  <form onSubmit={handleSaveProfile} className="space-y-4">
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      {/* Họ và tên: editable, h-9 (36px) */}
-                      <FormField label={t('profile:page.fields.fullName')} htmlFor="profile-fullname">
-                        <div className="relative">
-                          <Input
-                            id="profile-fullname"
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            placeholder={t('profile:page.fields.fullNamePlaceholder')}
-                            className="pr-9"
-                          />
-                          <UserIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary pointer-events-none" />
-                        </div>
-                      </FormField>
-
-                      {/* Số điện thoại: editable, h-9 (36px), mono tabular-nums */}
-                      <FormField label={t('profile:page.fields.phone')} htmlFor="profile-phone">
-                        <div className="relative">
-                          <Input
-                            id="profile-phone"
-                            value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value)}
-                            placeholder={t('profile:page.fields.phonePlaceholder')}
-                            className="font-mono text-[13px] font-medium tabular-nums pr-9"
-                          />
-                          <PhoneIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary pointer-events-none" />
-                        </div>
-                      </FormField>
-
-                      {/* Mã nhân viên: read-only, nền bg-muted, value MONO 13/500 text-secondary, icon copy */}
-                      <FormField label={t('profile:page.fields.employeeId')} htmlFor="profile-emp-id">
-                        <div className="relative">
-                          <Input
-                            id="profile-emp-id"
-                            value={employeeCode}
-                            readOnly
-                            tabIndex={-1}
-                            aria-readonly="true"
-                            className="bg-bg-muted text-text-secondary border-border-strong cursor-not-allowed select-none font-mono text-[13px] font-medium tabular-nums pr-9"
-                          />
-                          <button
-                            type="button"
-                            onClick={handleCopyEmployeeCode}
-                            title="Sao chép mã nhân viên"
-                            aria-label="Sao chép mã nhân viên"
-                            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-text-tertiary hover:text-text-secondary transition-colors cursor-pointer"
-                          >
-                            {copiedEmployeeCode ? (
-                              <CheckIcon className="h-3.5 w-3.5 text-accent" />
-                            ) : (
-                              <CopyIcon className="h-3.5 w-3.5" />
-                            )}
-                          </button>
-                        </div>
-                      </FormField>
-
-                      {/* Phòng ban: read-only, value '—' nếu rỗng */}
-                      <FormField label={t('profile:page.fields.department')} htmlFor="profile-dept">
-                        <div className="relative">
-                          <Input
-                            id="profile-dept"
-                            value={department?.name || '—'}
-                            readOnly
-                            tabIndex={-1}
-                            aria-readonly="true"
-                            className="bg-bg-muted text-text-secondary border-border-strong cursor-not-allowed select-none pr-9"
-                          />
-                          <BuildingIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary pointer-events-none" />
-                        </div>
-                      </FormField>
-
-                      {/* Trưởng phòng: read-only full-width, 'Chưa chỉ định' italic text-tertiary khi rỗng */}
-                      <div className="sm:col-span-2">
-                        <FormField label={t('profile:page.fields.departmentManager')} htmlFor="profile-dept-manager">
-                          <div className="relative">
-                            <Input
-                              id="profile-dept-manager"
-                              value={departmentManagerName || t('profile:page.fields.noDepartmentManager')}
-                              readOnly
-                              tabIndex={-1}
-                              aria-readonly="true"
-                              className={`bg-bg-muted border-border-strong cursor-not-allowed select-none pr-9 ${
-                                !departmentManagerName ? 'italic text-text-tertiary' : 'text-text-secondary'
-                              }`}
-                            />
-                            <UserIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary pointer-events-none" />
-                          </div>
-                        </FormField>
-                      </div>
-                    </div>
-
-                    {/* Nút lưu thay đổi: Primary ink + icon check-circle 14px */}
-                    <div className="flex justify-end pt-1">
-                      <Button type="submit" variant="primary" isLoading={isSavingProfile}>
-                        <CheckCircleIcon className="h-3.5 w-3.5 mr-1.5" />
-                        {t('profile:page.buttons.saveProfile')}
-                      </Button>
-                    </div>
-                  </form>
-
-                  {/* Callout: nền info-soft #E4EEF5, chữ info #1E5A8A 13/400, icon alert-circle 14px, radius 6, padding 10x12 */}
-                  <div className="flex items-start gap-2.5 rounded-radius-sm border border-[#1E5A8A]/20 bg-[#E4EEF5] px-3 py-2.5 text-[13px] leading-[20px] text-[#1E5A8A]">
-                    <AlertCircleIcon className="h-3.5 w-3.5 shrink-0 text-[#1E5A8A] mt-0.5" />
-                    <p className="font-normal">
-                      {t('profile:page.contactAdminCallout')}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <ProfileInfoCard
+                user={user}
+                fullName={fullName}
+                onFullNameChange={setFullName}
+                departmentName={department?.name}
+                departmentManagerName={departmentManagerName}
+              />
 
               {/* CARD 2: BẢO MẬT TÀI KHOẢN */}
-              <Card className="border border-border-subtle bg-bg-surface rounded-radius-md shadow-none">
-                <CardHeader className="pb-4 border-b border-border-subtle">
-                  <div className="flex items-center gap-2.5">
-                    {/* Icon frame 32x32 accent-soft + icon 16px accent */}
-                    <div className="flex h-8 w-8 items-center justify-center rounded-radius-sm bg-accent-soft text-accent">
-                      <LockIcon className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-[15px] font-semibold text-text-primary">
-                        {t('profile:page.sections.security')}
-                      </CardTitle>
-                      <CardDescription className="text-[13px] text-text-secondary">
-                        {t('profile:page.sections.securityDesc')}
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="pt-5">
-                  <form onSubmit={handleUpdatePassword} className="space-y-4">
-                    {/* Mật khẩu hiện tại */}
-                    <FormField label={t('profile:page.fields.currentPassword')} htmlFor="current-password" required>
-                      <PasswordInput
-                        id="current-password"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        placeholder={t('profile:page.fields.currentPasswordPlaceholder')}
-                      />
-                    </FormField>
-
-                    {/* Mật khẩu mới & Xác nhận */}
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                      <FormField label={t('profile:page.fields.newPassword')} htmlFor="new-password" required>
-                        <PasswordInput
-                          id="new-password"
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder={t('profile:page.fields.newPasswordPlaceholder')}
-                        />
-                      </FormField>
-
-                      <FormField label={t('profile:page.fields.confirmPassword')} htmlFor="confirm-password" required>
-                        <PasswordInput
-                          id="confirm-password"
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          placeholder={t('profile:page.fields.confirmPasswordPlaceholder')}
-                        />
-                      </FormField>
-                    </div>
-
-                    {/* Nút cập nhật mật khẩu: Primary ink + icon lock 14px */}
-                    <div className="flex justify-end pt-2">
-                      <Button type="submit" variant="primary" isLoading={isUpdatingPassword}>
-                        <LockIcon className="h-3.5 w-3.5 mr-1.5" />
-                        {t('profile:page.buttons.updatePassword')}
-                      </Button>
-                    </div>
-                  </form>
-                </CardContent>
-              </Card>
+              <ProfileSecurityCard />
             </div>
           </div>
         )}

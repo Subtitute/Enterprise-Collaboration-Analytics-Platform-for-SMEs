@@ -1,6 +1,9 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api-client';
 import type { PaginatedResponse, Project } from '@/types';
+
+const EMPTY_PROJECTS: Project[] = [];
 
 // Analytics Service co tinh khong luu ten du an (chi projectId) - phai join phia client bang
 // danh sach du an lay tu Project-Task Service. Limit lon vi to chuc SME thuong khong co qua
@@ -19,7 +22,12 @@ export function useAllProjectsQuery(options?: { enabled?: boolean }) {
 
 export function useProjectNameMap() {
   const query = useAllProjectsQuery();
-  const map: Record<string, string> = {};
-  for (const p of query.data ?? []) map[p.id] = p.name;
-  return { map, projects: query.data ?? [], ...query };
+  const projects = query.data ?? EMPTY_PROJECTS;
+  const map = useMemo(() => {
+    const res: Record<string, string> = {};
+    for (const p of projects) res[p.id] = p.name;
+    return res;
+  }, [projects]);
+  return { map, projects, ...query };
 }
+

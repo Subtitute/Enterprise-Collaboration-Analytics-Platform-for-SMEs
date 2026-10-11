@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { cn } from '@/lib/utils';
 
 export interface TabItem {
@@ -13,7 +14,7 @@ interface TabsProps {
   className?: string;
 }
 
-export function Tabs({ tabs, value, onChange, className }: TabsProps) {
+export const Tabs = memo(function Tabs({ tabs, value, onChange, className }: TabsProps) {
   return (
     <div className={cn('flex items-center gap-1 border-b border-slate-200', className)} role="tablist">
       {tabs.map((tab) => {
@@ -45,4 +46,5 @@ export function Tabs({ tabs, value, onChange, className }: TabsProps) {
       })}
     </div>
   );
-}
+});
+

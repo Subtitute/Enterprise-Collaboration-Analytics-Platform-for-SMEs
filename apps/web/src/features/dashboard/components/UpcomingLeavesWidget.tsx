@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Avatar } from '@/components/ui/Avatar';
@@ -29,7 +29,7 @@ function parseLeaveType(rawReason: string | undefined | null, t: (key: string, d
   return t('dashboard:upcomingLeaves.types.ANNUAL', 'Nghỉ phép năm');
 }
 
-export function UpcomingLeavesWidget() {
+export const UpcomingLeavesWidget = memo(function UpcomingLeavesWidget() {
   const { t } = useTranslation();
   const { data, isLoading, isError, refetch } = useUpcomingLeavesQuery();
   const { map: userNameMap } = useUserNameMap();
@@ -159,6 +159,6 @@ export function UpcomingLeavesWidget() {
       </div>
     </div>
   );
-}
+});
 
 

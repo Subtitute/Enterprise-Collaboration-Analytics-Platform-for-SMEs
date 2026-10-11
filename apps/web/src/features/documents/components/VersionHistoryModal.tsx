@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -11,7 +11,7 @@ import { useFileQuery, useUploadNewVersion } from '../hooks';
 import { validateUploadFile } from '../api';
 import type { FileItem } from '@/types';
 
-export function VersionHistoryModal({ file, folderId, onClose }: { file: FileItem | null; folderId: string | null; onClose: () => void }) {
+export const VersionHistoryModal = memo(function VersionHistoryModal({ file, folderId, onClose }: { file: FileItem | null; folderId: string | null; onClose: () => void }) {
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const fileQuery = useFileQuery(file?.id);
@@ -86,4 +86,4 @@ export function VersionHistoryModal({ file, folderId, onClose }: { file: FileIte
       </div>
     </Modal>
   );
-}
+});

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
@@ -7,7 +7,7 @@ import { FormField, Input, Textarea } from '@/components/ui/Input';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { useCreateCustomer } from '../hooks';
 
-export function NewCustomerModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export const NewCustomerModal = React.memo(function NewCustomerModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -132,4 +132,5 @@ export function NewCustomerModal({ open, onClose }: { open: boolean; onClose: ()
       </form>
     </Modal>
   );
-}
+});
+

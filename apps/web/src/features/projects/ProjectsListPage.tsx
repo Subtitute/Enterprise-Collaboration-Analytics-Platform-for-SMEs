@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner } from '@/components/ui/Spinner';
-import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { Pagination } from '@/components/ui/Pagination';
-import { FolderKanbanIcon, PlusIcon, SearchIcon } from '@/components/ui/Icons';
+import { FolderKanbanIcon, PlusIcon } from '@/components/ui/Icons';
 import { useAllTasksQuery, useProjectsQuery } from './hooks';
 import { ProjectCard } from './components/ProjectCard';
+import { ProjectFilterToolbar } from './components/ProjectFilterToolbar';
 import { NewProjectModal } from './components/NewProjectModal';
 import { computeProgressFromTasks } from './utils';
 import { matchesVietnameseSearch, canManageProjects } from '@/lib/utils';
@@ -285,6 +285,7 @@ export function ProjectsListPage() {
           {canManage && (
             <button
               type="button"
+              aria-label="Dự án mới"
               onClick={() => setIsNewOpen(true)}
               className="inline-flex h-9 items-center justify-center gap-1.5 rounded-radius-md bg-[#1C1B1A] px-3.5 text-[13px] font-medium text-white transition-colors hover:bg-[#2E2C29] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
@@ -296,40 +297,19 @@ export function ProjectsListPage() {
       </div>
 
       {/* 2. Toolbar - 1 hàng ngang (≥ lg 1 hàng, < lg search hàng trên, 2 select hàng dưới) */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2 mb-6">
-        {/* 3.1 Search box flex-1, height 36 */}
-        <div className="relative flex-1 min-w-0">
-          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary" />
-          <input
-            type="search"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder={t('projects:list.searchPlaceholder')}
-            aria-label={t('projects:list.searchPlaceholder')}
-            className="h-9 w-full rounded-radius-sm border border-border-strong bg-white pl-9 pr-3 text-[13px] text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-          />
-        </div>
-
-        {/* 3.2 Status Select & 3.3 Priority Select - width 180 on lg, 2 cols on mobile */}
-        <div className="grid grid-cols-2 lg:flex lg:items-center gap-2 shrink-0">
-          <div className="w-full lg:w-[180px]">
-            <CustomFilterSelect
-              value={status}
-              onChange={(val) => setStatus(val)}
-              ariaLabel={t('projects:list.statusFilter.all')}
-              options={STATUS_OPTIONS}
-            />
-          </div>
-          <div className="w-full lg:w-[180px]">
-            <CustomFilterSelect
-              value={priorityFilter}
-              onChange={(val) => setPriorityFilter(val)}
-              ariaLabel={t('projects:list.priorityFilter.all')}
-              options={PRIORITY_FILTER_OPTIONS}
-            />
-          </div>
-        </div>
-      </div>
+      <ProjectFilterToolbar
+        searchInput={searchInput}
+        onSearchInputChange={setSearchInput}
+        status={status}
+        onStatusChange={setStatus}
+        priorityFilter={priorityFilter}
+        onPriorityChange={setPriorityFilter}
+        statusOptions={STATUS_OPTIONS}
+        priorityOptions={PRIORITY_FILTER_OPTIONS}
+        searchPlaceholder={t('projects:list.searchPlaceholder')}
+        statusAllLabel={t('projects:list.statusFilter.all')}
+        priorityAllLabel={t('projects:list.priorityFilter.all')}
+      />
 
       <QueryState
         isLoading={projectsQuery.isLoading}

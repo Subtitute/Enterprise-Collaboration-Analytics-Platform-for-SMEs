@@ -1,18 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { QueryState } from '@/components/ui/QueryState';
 import { Spinner } from '@/components/ui/Spinner';
-import {
-  BarChartIcon,
-  TrendingUpIcon,
-  HelpCircleIcon,
-} from '@/components/ui/Icons';
+import { HelpCircleIcon } from '@/components/ui/Icons';
 import { useProjectNameMap } from '@/hooks/useOrgProjects';
 import { useUserNameMap } from '@/hooks/useOrgUsers';
 import { useAllDealsQuery } from '@/features/crm/hooks';
-import { formatDealValue } from '@/features/crm/utils';
 import { DATE_RANGE_OPTIONS } from '@/types';
 import type { DateRangeOption, DrillDownScope, InsightScope } from '@/types';
 // 28/07/2026: tai su dung useDepartmentsQuery da co san (dung chung o MembersPage/InviteMemberModal)
@@ -29,10 +23,10 @@ import {
 import { ProjectProgressChart } from './components/ProjectProgressChart';
 import { ProjectProgressTable } from './components/ProjectProgressTable';
 import { DocumentActivityChart } from './components/DocumentActivityChart';
-import { AiInsightCard } from './components/AiInsightCard';
-import { AiInsightsChart } from './components/AiInsightsChart';
 import { DrillDownPanel } from './components/DrillDownPanel';
 import { AnomalySection } from './components/AnomalySection';
+import { AnalyticsKpiCards } from './components/AnalyticsKpiCards';
+import { AiAssistantSection } from './components/AiAssistantSection';
 
 export function AnalyticsPage() {
   const { t } = useTranslation();
@@ -62,36 +56,16 @@ export function AnalyticsPage() {
   /** Backend chi tra ve scopeId (UUID tho, khong co ten - database-per-service). Dung LAI CHINH
    *  2 nguon du lieu cross-service da co san tren trang nay (departmentsQuery/projectNames) thay
    *  vi goi API rieng. */
-  function resolveInsightScopeLabel(scope: InsightScope, scopeId: string | null): string {
-    if (scope === 'organization') return t('analytics:aiInsight.scopeOrg');
-    if (scope === 'department') {
-      return (departmentsQuery.data ?? []).find((d) => d.id === scopeId)?.name ?? t('analytics:aiInsight.scopeDepartment');
-    }
-    return projectNames[scopeId ?? ''] ?? t('analytics:aiInsight.scopeProject');
-  }
-
-  // 24/09/2026: Layer 2 Diagnostic - bam vao 1 thanh trong AiInsightsChart.tsx mo panel drill-down
-  // cho DUNG scope/scopeId cua thanh do (mirror useAiInsightsMutation() ve cach dung useMutation
-  // cho 1 hanh dong theo yeu cau, xem hooks.ts).
-  const drillDownMutation = useDrillDownMutation();
-  const [drillDownTarget, setDrillDownTarget] = useState<{ scope: DrillDownScope; scopeId: string } | null>(null);
-
-  function handleDrillDown(scope: DrillDownScope, scopeId: string) {
-    setDrillDownTarget({ scope, scopeId });
-    // Dung dung range CUA KET QUA dang hien thi (khong phai aiRange hien tai) - tranh lech neu
-    // aiPeriod da doi nhung nguoi dung chua bam "Tao tom tat bao cao" lai (du o truong hop do
-    // AiInsightsChart cung da bi useEffect ben duoi reset mat, chi la phong thu 2 lop).
-    drillDownMutation.mutate({
-      scope,
-      scopeId,
-      range: (aiInsightsMutation.data?.range as DateRangeOption | undefined) ?? aiRange,
-    });
-  }
-
-  function closeDrillDown() {
-    setDrillDownTarget(null);
-    drillDownMutation.reset();
-  }
+  const resolveInsightScopeLabel = useCallback(
+    (scope: InsightScope, scopeId: string | null): string => {
+      if (scope === 'organization') return t('analytics:aiInsight.scopeOrg');
+      if (scope === 'department') {
+        return (departmentsQuery.data ?? []).find((d) => d.id === scopeId)?.name ?? t('analytics:aiInsight.scopeDepartment');
+      }
+      return projectNames[scopeId ?? ''] ?? t('analytics:aiInsight.scopeProject');
+    },
+    [departmentsQuery.data, projectNames, t],
+  );
 
   // State cho bộ lọc chu kỳ nhận xét AI độc lập (Tuần, Tháng, Quý, Năm)
   const [aiPeriod, setAiPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
@@ -111,6 +85,32 @@ export function AnalyticsPage() {
     }
   }, [aiPeriod]);
 
+  // 24/09/2026: Layer 2 Diagnostic - bam vao 1 thanh trong AiInsightsChart.tsx mo panel drill-down
+  // cho DUNG scope/scopeId cua thanh do (mirror useAiInsightsMutation() ve cach dung useMutation
+  // cho 1 hanh dong theo yeu cau, xem hooks.ts).
+  const drillDownMutation = useDrillDownMutation();
+  const [drillDownTarget, setDrillDownTarget] = useState<{ scope: DrillDownScope; scopeId: string } | null>(null);
+
+  const closeDrillDown = useCallback(() => {
+    setDrillDownTarget(null);
+    drillDownMutation.reset();
+  }, [drillDownMutation]);
+
+  const handleDrillDown = useCallback(
+    (scope: DrillDownScope, scopeId: string) => {
+      setDrillDownTarget({ scope, scopeId });
+      // Dung dung range CUA KET QUA dang hien thi (khong phai aiRange hien tai) - tranh lech neu
+      // aiPeriod da doi nhung nguoi dung chua bam "Tao tom tat bao cao" lai (du o truong hop do
+      // AiInsightsChart cung da bi useEffect ben duoi reset mat, chi la phong thu 2 lop).
+      drillDownMutation.mutate({
+        scope,
+        scopeId,
+        range: (aiInsightsMutation.data?.range as DateRangeOption | undefined) ?? aiRange,
+      });
+    },
+    [drillDownMutation, aiInsightsMutation.data?.range, aiRange],
+  );
+
   // 26/08/2026: Fix 5 - reset aiInsightsMutation khi đổi chu kỳ nhận xét (22/09/2026: không còn
   // phụ thuộc departmentId nữa - tính năng AI đã quét toàn bộ tổ chức, không còn bị lọc theo
   // dropdown "Phòng ban" của trang này).
@@ -121,6 +121,10 @@ export function AnalyticsPage() {
     closeDrillDown();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aiPeriod]);
+
+  const handleGenerateAiInsights = useCallback(() => {
+    aiInsightsMutation.mutate({ range: aiRange, anomalies: anomaliesMutation.data?.anomalies });
+  }, [aiInsightsMutation, aiRange, anomaliesMutation.data?.anomalies]);
 
   const progressRows = useMemo(() => {
     const rawRows = (progressQuery.data ?? []).map((item, idx) => {
@@ -273,161 +277,18 @@ export function AnalyticsPage() {
       </div>
 
       {/* HÀNG 4 THẺ CHỈ SỐ KPI NHANH (STAT CARDS - DATA FIRST, ZERO-SHADOW, ZERO-ICON) */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {/* KPI 1: Tổng dự án đang chạy */}
-        <Card className="p-5 bg-surface border border-border-subtle hover:border-border-strong rounded-radius-md transition-colors shadow-none">
-          <div>
-            <span className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">
-              {t('analytics:kpiCards.activeProjects')}
-            </span>
-          </div>
-          <div className="mt-2">
-            <span className="font-mono text-[40px] leading-[48px] font-medium text-text-primary tabular-nums">
-              {kpiStats.totalProjects}
-            </span>
-          </div>
-          <div className="mt-2 flex items-center gap-1 font-mono text-xs font-medium text-success tabular-nums">
-            <TrendingUpIcon className="h-3 w-3 shrink-0" />
-            <span>{kpiStats.trend.proj}</span>
-          </div>
-        </Card>
-
-        {/* KPI 2: Tỷ lệ tiến độ trung bình */}
-        <Card className="p-5 bg-surface border border-border-subtle hover:border-border-strong rounded-radius-md transition-colors shadow-none">
-          <div>
-            <span className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">
-              {t('analytics:kpiCards.avgProgress')}
-            </span>
-          </div>
-          <div className="mt-2">
-            <span className="font-mono text-[40px] leading-[48px] font-medium text-text-primary tabular-nums">
-              {kpiStats.avgProgress}%
-            </span>
-          </div>
-          <div className="mt-2 flex items-center gap-1 font-mono text-xs font-medium text-success tabular-nums">
-            <TrendingUpIcon className="h-3 w-3 shrink-0" />
-            <span>{kpiStats.trend.prog}</span>
-          </div>
-        </Card>
-
-        {/* KPI 3: Khối lượng tài liệu mới */}
-        <Card className="p-5 bg-surface border border-border-subtle hover:border-border-strong rounded-radius-md transition-colors shadow-none">
-          <div>
-            <span className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">
-              {t('analytics:kpiCards.newDocuments')}
-            </span>
-          </div>
-          <div className="mt-2">
-            <span className="font-mono text-[40px] leading-[48px] font-medium text-text-primary tabular-nums">
-              {kpiStats.totalDocVolume}
-            </span>
-          </div>
-          <div className="mt-2 flex items-center gap-1 font-mono text-xs font-medium text-success tabular-nums">
-            <TrendingUpIcon className="h-3 w-3 shrink-0" />
-            <span>{kpiStats.trend.doc}</span>
-          </div>
-        </Card>
-
-        {/* KPI 4: Doanh số / Deal hoàn tất - Teal #0E5E5E */}
-        <Card className="p-5 bg-surface border border-border-subtle hover:border-border-strong rounded-radius-md transition-colors shadow-none">
-          <div>
-            <span className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider">
-              {t('analytics:kpiCards.completedDeals')}
-            </span>
-          </div>
-          <div className="mt-2">
-            <span
-              className="font-mono text-2xl sm:text-3xl xl:text-[28px] 2xl:text-[34px] leading-tight font-medium text-accent whitespace-nowrap block tabular-nums"
-              title={formatDealValue(kpiStats.totalWonValue)}
-            >
-              {kpiStats.totalWonValue > 0 ? formatDealValue(kpiStats.totalWonValue) : `${kpiStats.wonDealsCount} deal`}
-            </span>
-          </div>
-          <div className="mt-2 flex items-center gap-1 font-mono text-xs font-medium text-success tabular-nums">
-            <TrendingUpIcon className="h-3 w-3 shrink-0" />
-            <span>{kpiStats.trend.deal}</span>
-          </div>
-        </Card>
-      </div>
+      <AnalyticsKpiCards stats={kpiStats} />
 
       {/* KHỐI TRỢ LÝ PHÂN TÍCH NỘI BỘ (SPEC V1.1 - DATA-FIRST, ZERO-SHADOW, ZERO-ACCENT-MISMATCH) */}
-      <div className="bg-surface rounded-radius-md border border-border-subtle hover:border-border-strong p-5 shadow-none transition-colors">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-radius-md bg-accent-soft text-accent">
-              <BarChartIcon className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-[15px] leading-[22px] font-semibold text-text-primary">{t('analytics:aiInsight.title')}</h3>
-                <span className="inline-flex items-center h-[22px] rounded-[2px] bg-info-soft px-2 text-[11px] font-semibold text-info">
-                  {t('analytics:aiInsight.badge')}
-                </span>
-              </div>
-              <p className="mt-0.5 text-[13px] leading-[20px] text-text-secondary">
-                {t('analytics:aiInsight.summaryAllOrg', { period: t(`analytics:aiInsight.periods.${aiPeriod}`).toLowerCase() })}
-              </p>
-            </div>
-          </div>
-
-          {/* ROW DƯỚI CÙNG HÀNG: Select kỳ (width 220) bên trái + nút Primary ink bên phải */}
-          <div className="flex items-center justify-between w-full gap-3 pt-1">
-            <div className="w-[220px] max-w-[220px] shrink-0">
-              <CustomFilterSelect
-                value={aiPeriod}
-                onChange={(val) => setAiPeriod(val as 'week' | 'month' | 'quarter' | 'year')}
-                ariaLabel={t('analytics:aiInsight.periodAriaLabel')}
-                options={[
-                  { value: 'week', label: t('analytics:aiInsight.periods.week') },
-                  { value: 'month', label: t('analytics:aiInsight.periods.month') },
-                  { value: 'quarter', label: t('analytics:aiInsight.periods.quarter') },
-                  { value: 'year', label: t('analytics:aiInsight.periods.year') },
-                ]}
-                className="w-full"
-              />
-            </div>
-
-            <Button
-              size="sm"
-              isLoading={aiInsightsMutation.isPending}
-              onClick={() => aiInsightsMutation.mutate({ range: aiRange, anomalies: anomaliesMutation.data?.anomalies })}
-              className="bg-text-primary text-white hover:bg-slate-800 shadow-none cursor-pointer shrink-0 h-9 px-4"
-            >
-              <BarChartIcon className="h-4 w-4" />
-              {t('analytics:aiInsight.generateButton')}
-            </Button>
-          </div>
-        </div>
-
-        <div className="mt-4 pt-3.5 border-t border-border-subtle">
-          {aiInsightsMutation.data ? (
-            <div className="space-y-4">
-              <div className="rounded-radius-md bg-canvas p-4 border border-border-subtle">
-                <AiInsightsChart
-                  candidates={aiInsightsMutation.data.candidates}
-                  insights={aiInsightsMutation.data.insights}
-                  resolveLabel={resolveInsightScopeLabel}
-                  onDrillDown={handleDrillDown}
-                />
-              </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {aiInsightsMutation.data.insights.map((insight, index) => (
-                  <AiInsightCard
-                    key={`${insight.scope}-${insight.scopeId ?? 'org'}-${index}`}
-                    insight={insight}
-                    index={index}
-                    scopeLabel={resolveInsightScopeLabel(insight.scope, insight.scopeId)}
-                  />
-                ))}
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-text-secondary leading-relaxed">
-              {t('analytics:aiInsight.placeholder')}
-            </p>
-          )}
-        </div>
-      </div>
+      <AiAssistantSection
+        aiPeriod={aiPeriod}
+        onPeriodChange={setAiPeriod}
+        onGenerate={handleGenerateAiInsights}
+        isPending={aiInsightsMutation.isPending}
+        data={aiInsightsMutation.data}
+        resolveLabel={resolveInsightScopeLabel}
+        onDrillDown={handleDrillDown}
+      />
 
       <AnomalySection range={range} mutation={anomaliesMutation} />
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
@@ -44,7 +44,7 @@ interface TaskStatusDonutProps {
   onRetry?: () => void;
 }
 
-export function TaskStatusDonut({ data, isLoading, isError, onRetry }: TaskStatusDonutProps) {
+export const TaskStatusDonut = memo(function TaskStatusDonut({ data, isLoading, isError, onRetry }: TaskStatusDonutProps) {
   const { t: translate } = useTranslation();
   const [hoveredStatus, setHoveredStatus] = useState<string | null>(null);
 
@@ -174,5 +174,5 @@ export function TaskStatusDonut({ data, isLoading, isError, onRetry }: TaskStatu
       </div>
     </QueryState>
   );
-}
+});
 

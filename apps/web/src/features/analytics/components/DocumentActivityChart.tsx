@@ -1,3 +1,4 @@
+import React, { useMemo } from 'react';
 import { Area, AreaChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import { CATEGORICAL, CHART_INK } from '@/lib/chart-colors';
@@ -29,9 +30,14 @@ interface DocumentActivityChartProps {
   onRetry?: () => void;
 }
 
-export function DocumentActivityChart({ data, isLoading, isError, onRetry }: DocumentActivityChartProps) {
+export const DocumentActivityChart = React.memo(function DocumentActivityChart({
+  data,
+  isLoading,
+  isError,
+  onRetry,
+}: DocumentActivityChartProps) {
   const { t } = useTranslation();
-  const hasShares = data.some((d) => typeof d.shares === 'number');
+  const hasShares = useMemo(() => data.some((d) => typeof d.shares === 'number'), [data]);
 
   return (
     <QueryState
@@ -98,4 +104,4 @@ export function DocumentActivityChart({ data, isLoading, isError, onRetry }: Doc
       )}
     </QueryState>
   );
-}
+});

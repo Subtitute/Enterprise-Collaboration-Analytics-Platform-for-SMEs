@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Copy, Check, X, FlaskConical } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -28,7 +28,7 @@ const ROLES_ORDER: { id: DemoAccount['id']; label: string }[] = [
   { id: 'superAdmin', label: 'Super' },
 ];
 
-export function QuickLoginWidget({
+export const QuickLoginWidget = memo(function QuickLoginWidget({
   accounts,
   activeRoleIndex: controlledRoleIndex,
   onSelectRole,
@@ -242,4 +242,4 @@ export function QuickLoginWidget({
       </button>
     </>
   );
-}
+});

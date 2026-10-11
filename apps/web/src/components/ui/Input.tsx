@@ -1,8 +1,9 @@
 import { cloneElement, forwardRef, isValidElement, useId, useState } from 'react';
 import type { InputHTMLAttributes, LabelHTMLAttributes, TextareaHTMLAttributes, SelectHTMLAttributes, ReactElement, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { cn, containsVietnameseDiacritics } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { AlertCircleIcon, EyeIcon, EyeOffIcon, ChevronDownIcon } from './Icons';
+
 
 const fieldBase =
   'block w-full h-9 rounded-radius-sm border border-border-strong bg-white px-3 py-2 text-sm leading-[22px] text-text-primary placeholder:text-text-tertiary ' +

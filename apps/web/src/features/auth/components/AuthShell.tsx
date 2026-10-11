@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/ui/LanguageSwitcher';
@@ -11,7 +12,7 @@ interface AuthShellProps {
   maxWidth?: 380 | 480 | number;
 }
 
-export function AuthShell({ children, extraWidget, maxWidth = 380 }: AuthShellProps) {
+export const AuthShell = memo(function AuthShell({ children, extraWidget, maxWidth = 380 }: AuthShellProps) {
   const { t } = useTranslation();
 
   return (
@@ -105,4 +106,4 @@ export function AuthShell({ children, extraWidget, maxWidth = 380 }: AuthShellPr
       {extraWidget}
     </>
   );
-}
+});

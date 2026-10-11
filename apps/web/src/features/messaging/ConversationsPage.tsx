@@ -1,25 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Avatar } from '@/components/ui/Avatar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
 import { MessageIcon, PlusIcon } from '@/components/ui/Icons';
-import { cn, formatRelativeTime } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
 import { useUserNameMap } from '@/hooks/useOrgUsers';
 import { useConversationsQuery } from './hooks';
+import { ConversationList } from './components/ConversationList';
 import { NewConversationModal } from './components/NewConversationModal';
 import { ConversationThread } from './components/ConversationThread';
-import type { Conversation, ConversationWithOwner } from '@/types';
-
-/** Suy ra ten hien thi cua 1 cuoc tro chuyen: GROUP -> ten nhom, DIRECT -> ten nguoi con lai. */
-function getConversationDisplayName(conversation: Conversation, currentUserId: string | undefined, userNames: Record<string, string>, unknownLabel: string): string {
-  if (conversation.type === 'GROUP') return conversation.name ?? unknownLabel;
-  const otherUserId = conversation.participantUserIds.find((id) => id !== currentUserId);
-  return (otherUserId && userNames[otherUserId]) || unknownLabel;
-}
+import type { ConversationWithOwner } from '@/types';
 
 export function ConversationsPage() {
   const { t } = useTranslation();
@@ -41,9 +33,17 @@ export function ConversationsPage() {
   const activeConversation = conversations.find((c) => c.id === activeConversationId) ?? null;
   const unknownLabel = t('messaging:page.unknownUser');
 
-  function handleCreated(conversation: ConversationWithOwner) {
+  const handleCreated = useCallback((conversation: ConversationWithOwner) => {
     setActiveConversationId(conversation.id);
-  }
+  }, []);
+
+  const handleSelectConversation = useCallback((id: string) => {
+    setActiveConversationId(id);
+  }, []);
+
+  const handleBack = useCallback(() => {
+    setActiveConversationId(null);
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -81,55 +81,14 @@ export function ConversationsPage() {
                 <EmptyState icon={<MessageIcon className="h-7 w-7 text-text-tertiary" />} title={t('messaging:page.emptyListTitle')} description={t('messaging:page.emptyListDescription')} />
               </div>
             ) : (
-              <ul className="min-h-0 flex-1 divide-y divide-border-subtle overflow-y-auto">
-                {conversations.map((conversation) => {
-                  const displayName = getConversationDisplayName(conversation, currentUserId, userNames, unknownLabel);
-                  const isActive = conversation.id === activeConversationId;
-                  const lastMessage = conversation.lastMessage;
-                  const previewBody = lastMessage
-                    ? lastMessage.senderId === currentUserId
-                      ? t('messaging:page.lastMessagePreviewMine', { body: lastMessage.body })
-                      : lastMessage.body
-                    : t('messaging:page.noMessagesYet');
-
-                  return (
-                    <li key={conversation.id}>
-                      <button
-                        type="button"
-                        onClick={() => setActiveConversationId(conversation.id)}
-                        className={cn(
-                          'flex w-full h-[72px] items-center gap-3 px-4 py-3 text-left transition-colors cursor-pointer',
-                          isActive ? 'bg-accent-soft' : 'hover:bg-bg-subtle',
-                        )}
-                      >
-                        <Avatar
-                          name={displayName}
-                          size="md"
-                          className="h-10 w-10 text-xs font-semibold bg-accent-soft text-accent shrink-0"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="truncate text-sm font-semibold text-text-primary">{displayName}</p>
-                            {lastMessage && (
-                              <span className="shrink-0 font-mono text-[11px] font-normal tabular-nums text-text-tertiary">
-                                {formatRelativeTime(lastMessage.createdAt)}
-                              </span>
-                            )}
-                          </div>
-                          <div className="mt-0.5 flex items-center justify-between gap-2">
-                            <p className="truncate text-xs text-text-tertiary">{previewBody}</p>
-                            {conversation.unreadCount > 0 && (
-                              <span className="shrink-0 inline-flex items-center justify-center min-w-[18px] h-4 px-1 rounded-full bg-accent text-white font-mono text-[10px] font-semibold tabular-nums leading-none">
-                                {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+              <ConversationList
+                conversations={conversations}
+                activeConversationId={activeConversationId}
+                onSelectConversation={handleSelectConversation}
+                currentUserId={currentUserId}
+                userNames={userNames}
+                unknownLabel={unknownLabel}
+              />
             )}
           </QueryState>
         </div>
@@ -145,7 +104,7 @@ export function ConversationsPage() {
             <ConversationThread
               key={activeConversation.id}
               conversation={activeConversation}
-              onBack={() => setActiveConversationId(null)}
+              onBack={handleBack}
             />
           ) : (
             <div className="flex h-full items-center justify-center p-6 bg-canvas">

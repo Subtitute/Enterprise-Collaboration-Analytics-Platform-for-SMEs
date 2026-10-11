@@ -1,9 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
-import { Button } from '@/components/ui/Button';
-import { FormField, Input, Textarea } from '@/components/ui/Input';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { Avatar } from '@/components/ui/Avatar';
 import { SearchIcon, CheckIcon } from '@/components/ui/Icons';
@@ -32,7 +30,7 @@ function readLegacyProjectMeta(projectId: string): { priority?: 'LOW' | 'MEDIUM'
   }
 }
 
-export function EditProjectModal({ open, onClose, project }: EditProjectModalProps) {
+export const EditProjectModal = React.memo(function EditProjectModal({ open, onClose, project }: EditProjectModalProps) {
   const { t } = useTranslation();
   const nameInputRef = useRef<HTMLInputElement>(null);
   const usersQuery = useOrgUsersQuery({ enabled: open });
@@ -297,4 +295,4 @@ export function EditProjectModal({ open, onClose, project }: EditProjectModalPro
       </form>
     </Modal>
   );
-}
+});

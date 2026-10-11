@@ -1,9 +1,6 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { ProgressBar } from '@/components/ui/ProgressBar';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { CalendarIcon, CheckCircleIcon, EditIcon, MoreVerticalIcon, RefreshIcon, TrashIcon, UsersIcon } from '@/components/ui/Icons';
@@ -29,7 +26,7 @@ interface ProjectCardProps {
   completedTaskCount?: number;
 }
 
-export function ProjectCard({ project, progress, memberCount, taskCount, completedTaskCount }: ProjectCardProps) {
+export const ProjectCard = React.memo(function ProjectCard({ project, progress, memberCount, taskCount, completedTaskCount }: ProjectCardProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
@@ -367,4 +364,4 @@ export function ProjectCard({ project, progress, memberCount, taskCount, complet
       )}
     </>
   );
-}
+});

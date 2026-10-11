@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
@@ -82,6 +82,157 @@ function countWorkingDays(startDateStr: string, endDateStr: string): number {
   }
   return count;
 }
+
+const TimesheetDesktopRow = React.memo(function TimesheetDesktopRow({
+  summary: s,
+}: {
+  summary: UserSummary;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <tr key={s.userId} className="hover:bg-bg-subtle transition-colors h-14">
+      <td className="py-2 px-3 whitespace-nowrap">
+        <div className="flex items-center gap-2">
+          <Avatar name={s.name} size="sm" className="h-6 w-6 text-[10px] bg-[#E4EFEE] text-[#0E5E5E] font-semibold" />
+          <span className="font-medium text-text-primary truncate max-w-[150px]">{s.name}</span>
+        </div>
+      </td>
+      <td className="py-2 px-3 text-text-secondary whitespace-nowrap">{s.departmentName}</td>
+      <td className="py-2 px-3 text-right font-mono text-[13px] font-medium whitespace-nowrap tabular-nums">
+        <span className="text-text-primary">{s.actualDays}</span>
+        <span className="text-text-tertiary font-normal"> / {s.expectedDays}</span>
+      </td>
+      <td className="py-2 px-3 text-right font-mono text-[13px] font-medium whitespace-nowrap tabular-nums">
+        <span className="text-text-primary">{s.totalActualHours}h</span>
+        <span className="text-text-tertiary font-normal"> / {s.totalExpectedHours}h</span>
+      </td>
+      <td className="py-2 px-3 text-center whitespace-nowrap">
+        {s.lateCount > 0 ? (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded-[2px] bg-warning-soft text-warning font-mono font-medium text-[12px]">
+            {s.lateCount}
+          </span>
+        ) : (
+          <span className="text-text-tertiary">—</span>
+        )}
+      </td>
+      <td className="py-2 px-3 text-center whitespace-nowrap">
+        {s.missingCheckOutCount > 0 ? (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded-[2px] bg-warning-soft text-warning font-mono font-medium text-[12px]">
+            {s.missingCheckOutCount}
+          </span>
+        ) : (
+          <span className="text-text-tertiary">—</span>
+        )}
+      </td>
+      <td className="py-2 px-3 text-right font-mono text-[13px] font-medium text-text-primary whitespace-nowrap tabular-nums">
+        {s.otHours > 0 ? `${s.otHours}h` : '—'}
+      </td>
+      <td className="py-2 px-3 text-center whitespace-nowrap">
+        {s.status === 'notJoined' && (
+          <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-bg-muted text-text-tertiary">
+            {t('hrm:attendancePage.allAttendance.timesheet.status.notJoined')}
+          </span>
+        )}
+        {s.status === 'newMember' && (
+          <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-info-soft text-info">
+            {t('hrm:attendancePage.allAttendance.timesheet.status.newMember')}
+          </span>
+        )}
+        {s.status === 'sufficient' && (
+          <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-success-soft text-success">
+            {t('hrm:attendancePage.allAttendance.timesheet.status.sufficient')}
+          </span>
+        )}
+        {s.status === 'insufficient' && (
+          <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-warning-soft text-warning">
+            {t('hrm:attendancePage.allAttendance.timesheet.status.insufficient')}
+          </span>
+        )}
+      </td>
+    </tr>
+  );
+});
+
+const TimesheetMobileCard = React.memo(function TimesheetMobileCard({
+  summary: s,
+}: {
+  summary: UserSummary;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <div
+      key={s.userId}
+      className="p-3 rounded-radius-sm border border-border-subtle bg-white shadow-none space-y-2"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Avatar name={s.name} size="sm" className="h-7 w-7 text-[10px] bg-[#E4EFEE] text-[#0E5E5E] font-semibold" />
+          <div className="min-w-0">
+            <p className="font-semibold text-[13px] text-text-primary truncate">{s.name}</p>
+            <p className="text-[11px] text-text-tertiary truncate">{s.departmentName}</p>
+          </div>
+        </div>
+        {s.status === 'notJoined' && (
+          <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-bg-muted text-text-tertiary">
+            {t('hrm:attendancePage.allAttendance.timesheet.status.notJoined')}
+          </span>
+        )}
+        {s.status === 'newMember' && (
+          <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-info-soft text-info">
+            {t('hrm:attendancePage.allAttendance.timesheet.status.newMember')}
+          </span>
+        )}
+        {s.status === 'sufficient' && (
+          <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-success-soft text-success">
+            {t('hrm:attendancePage.allAttendance.timesheet.status.sufficient')}
+          </span>
+        )}
+        {s.status === 'insufficient' && (
+          <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-warning-soft text-warning">
+            {t('hrm:attendancePage.allAttendance.timesheet.status.insufficient')}
+          </span>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border-subtle text-[11px]">
+        <div>
+          <span className="text-text-tertiary block text-[10px]">
+            {t('hrm:attendancePage.allAttendance.timesheet.columns.actualDays')}:
+          </span>
+          <span className="font-mono font-medium text-text-primary tabular-nums">
+            {s.actualDays} / {s.expectedDays} {t('hrm:attendancePage.allAttendance.timesheet.daysUnit')}
+          </span>
+        </div>
+        <div>
+          <span className="text-text-tertiary block text-[10px]">
+            {t('hrm:attendancePage.allAttendance.timesheet.columns.workHours')}:
+          </span>
+          <span className="font-mono font-medium text-text-primary tabular-nums">
+            {s.totalActualHours}h / {s.totalExpectedHours}h
+          </span>
+        </div>
+        <div>
+          <span className="text-slate-400 block text-[10px]">
+            {t('hrm:attendancePage.allAttendance.timesheet.columns.lateCount')}:
+          </span>
+          <span className={`font-semibold ${s.lateCount > 0 ? 'text-amber-600' : 'text-slate-700'}`}>
+            {s.lateCount} {t('hrm:attendancePage.allAttendance.timesheet.timesUnit')}
+          </span>
+        </div>
+        <div>
+          <span className="text-slate-400 block text-[10px]">
+            {t('hrm:attendancePage.allAttendance.timesheet.columns.otHours')}:
+          </span>
+          <span className="font-mono font-semibold text-slate-700">
+            {s.otHours > 0 ? `${s.otHours}h` : '0h'}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+});
 
 export function MonthlyTimesheetTable({
   records,
@@ -424,66 +575,7 @@ export function MonthlyTimesheetTable({
               </tr>
             ) : (
               filteredSummaries.map((s) => (
-                <tr key={s.userId} className="hover:bg-bg-subtle transition-colors h-14">
-                  <td className="py-2 px-3 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <Avatar name={s.name} size="sm" className="h-6 w-6 text-[10px] bg-[#E4EFEE] text-[#0E5E5E] font-semibold" />
-                      <span className="font-medium text-text-primary truncate max-w-[150px]">{s.name}</span>
-                    </div>
-                  </td>
-                  <td className="py-2 px-3 text-text-secondary whitespace-nowrap">{s.departmentName}</td>
-                  <td className="py-2 px-3 text-right font-mono text-[13px] font-medium whitespace-nowrap tabular-nums">
-                    <span className="text-text-primary">{s.actualDays}</span>
-                    <span className="text-text-tertiary font-normal"> / {s.expectedDays}</span>
-                  </td>
-                  <td className="py-2 px-3 text-right font-mono text-[13px] font-medium whitespace-nowrap tabular-nums">
-                    <span className="text-text-primary">{s.totalActualHours}h</span>
-                    <span className="text-text-tertiary font-normal"> / {s.totalExpectedHours}h</span>
-                  </td>
-                  <td className="py-2 px-3 text-center whitespace-nowrap">
-                    {s.lateCount > 0 ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-[2px] bg-warning-soft text-warning font-mono font-medium text-[12px]">
-                        {s.lateCount}
-                      </span>
-                    ) : (
-                      <span className="text-text-tertiary">—</span>
-                    )}
-                  </td>
-                  <td className="py-2 px-3 text-center whitespace-nowrap">
-                    {s.missingCheckOutCount > 0 ? (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-[2px] bg-warning-soft text-warning font-mono font-medium text-[12px]">
-                        {s.missingCheckOutCount}
-                      </span>
-                    ) : (
-                      <span className="text-text-tertiary">—</span>
-                    )}
-                  </td>
-                  <td className="py-2 px-3 text-right font-mono text-[13px] font-medium text-text-primary whitespace-nowrap tabular-nums">
-                    {s.otHours > 0 ? `${s.otHours}h` : '—'}
-                  </td>
-                  <td className="py-2 px-3 text-center whitespace-nowrap">
-                    {s.status === 'notJoined' && (
-                      <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-bg-muted text-text-tertiary">
-                        {t('hrm:attendancePage.allAttendance.timesheet.status.notJoined')}
-                      </span>
-                    )}
-                    {s.status === 'newMember' && (
-                      <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-info-soft text-info">
-                        {t('hrm:attendancePage.allAttendance.timesheet.status.newMember')}
-                      </span>
-                    )}
-                    {s.status === 'sufficient' && (
-                      <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-success-soft text-success">
-                        {t('hrm:attendancePage.allAttendance.timesheet.status.sufficient')}
-                      </span>
-                    )}
-                    {s.status === 'insufficient' && (
-                      <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-warning-soft text-warning">
-                        {t('hrm:attendancePage.allAttendance.timesheet.status.insufficient')}
-                      </span>
-                    )}
-                  </td>
-                </tr>
+                <TimesheetDesktopRow key={s.userId} summary={s} />
               ))
             )}
           </tbody>
@@ -498,75 +590,7 @@ export function MonthlyTimesheetTable({
           </div>
         ) : (
           filteredSummaries.map((s) => (
-            <div
-              key={s.userId}
-              className="p-3 rounded-radius-sm border border-border-subtle bg-white shadow-none space-y-2"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Avatar name={s.name} size="sm" className="h-7 w-7 text-[10px] bg-[#E4EFEE] text-[#0E5E5E] font-semibold" />
-                  <div className="min-w-0">
-                    <p className="font-semibold text-[13px] text-text-primary truncate">{s.name}</p>
-                    <p className="text-[11px] text-text-tertiary truncate">{s.departmentName}</p>
-                  </div>
-                </div>
-                {s.status === 'notJoined' && (
-                  <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-bg-muted text-text-tertiary">
-                    {t('hrm:attendancePage.allAttendance.timesheet.status.notJoined')}
-                  </span>
-                )}
-                {s.status === 'newMember' && (
-                  <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-info-soft text-info">
-                    {t('hrm:attendancePage.allAttendance.timesheet.status.newMember')}
-                  </span>
-                )}
-                {s.status === 'sufficient' && (
-                  <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-success-soft text-success">
-                    {t('hrm:attendancePage.allAttendance.timesheet.status.sufficient')}
-                  </span>
-                )}
-                {s.status === 'insufficient' && (
-                  <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-warning-soft text-warning">
-                    {t('hrm:attendancePage.allAttendance.timesheet.status.insufficient')}
-                  </span>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border-subtle text-[11px]">
-                <div>
-                  <span className="text-text-tertiary block text-[10px]">
-                    {t('hrm:attendancePage.allAttendance.timesheet.columns.actualDays')}:
-                  </span>
-                  <span className="font-mono font-medium text-text-primary tabular-nums">
-                    {s.actualDays} / {s.expectedDays} {t('hrm:attendancePage.allAttendance.timesheet.daysUnit')}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-text-tertiary block text-[10px]">
-                    {t('hrm:attendancePage.allAttendance.timesheet.columns.workHours')}:
-                  </span>
-                  <span className="font-mono font-medium text-text-primary tabular-nums">
-                    {s.totalActualHours}h / {s.totalExpectedHours}h
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px]">
-                    {t('hrm:attendancePage.allAttendance.timesheet.columns.lateCount')}:
-                  </span>
-                  <span className={`font-semibold ${s.lateCount > 0 ? 'text-amber-600' : 'text-slate-700'}`}>
-                    {s.lateCount} {t('hrm:attendancePage.allAttendance.timesheet.timesUnit')}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block text-[10px]">
-                    {t('hrm:attendancePage.allAttendance.timesheet.columns.otHours')}:
-                  </span>
-                  <span className="font-mono font-semibold text-slate-700">
-                    {s.otHours > 0 ? `${s.otHours}h` : '0h'}
-                  </span>
-                </div>
-              </div>
-            </div>
+            <TimesheetMobileCard key={s.userId} summary={s} />
           ))
         )}
       </div>

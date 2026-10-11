@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -78,7 +78,7 @@ function parseActivityDetails(item: RecentActivityItem, t: TFunction) {
   return { actionText, entityName, entityHref };
 }
 
-export function RecentActivityFeed() {
+export const RecentActivityFeed = memo(function RecentActivityFeed() {
   const { t, i18n } = useTranslation();
   const { items, isLoading, isError } = useRecentActivityFeed();
   const { map: userNames } = useUserNameMap();
@@ -171,5 +171,5 @@ export function RecentActivityFeed() {
       )}
     </div>
   );
-}
+});
 

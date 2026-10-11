@@ -1,9 +1,7 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
-import { Input, Textarea } from '@/components/ui/Input';
 import { DatePicker } from '@/components/ui/DatePicker';
-import { Button } from '@/components/ui/Button';
 import { Avatar } from '@/components/ui/Avatar';
 import { Spinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -51,7 +49,7 @@ interface TaskDetailModalProps {
   onClose: () => void;
 }
 
-export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalProps) {
+export const TaskDetailModal = React.memo(function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalProps) {
   const { t } = useTranslation();
   const tasksQuery = useTasksQuery(projectId);
   const task = tasksQuery.data?.find((t) => t.id === taskId);
@@ -144,7 +142,7 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
 
   return (
     <>
-      <Modal open={Boolean(taskId)} onClose={onClose} title={renderModalTitle} size="xl">
+      <Modal open={Boolean(taskId)} onClose={onClose} title={renderModalTitle} ariaLabel={task?.title} size="xl">
         <QueryState
           isLoading={tasksQuery.isLoading}
           isError={tasksQuery.isError}
@@ -302,9 +300,28 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
               <div className="rounded-radius-md border border-border-subtle bg-white p-4 space-y-4 lg:col-span-1 shadow-none">
                 {/* 1. Trạng thái */}
                 <div>
-                  <label className="block text-[13px] leading-[20px] font-medium text-text-secondary mb-1.5" id="task-status-label">
+                  <label className="block text-[13px] leading-[20px] font-medium text-text-secondary mb-1.5" id="task-status-label" htmlFor="task-status-select">
                     {t('projects:taskDetail.statusLabel', 'Trạng thái')}
                   </label>
+                  <select
+                    id="task-status-select"
+                    aria-label={t('projects:taskDetail.statusLabel', 'Trạng thái')}
+                    value={task.status}
+                    onChange={(e) => {
+                      const next = e.target.value as TaskStatus;
+                      if (task.status !== next) {
+                        updateStatus.mutate({ taskId: task.id, status: next });
+                      }
+                    }}
+                    className="sr-only"
+                    tabIndex={-1}
+                  >
+                    {TASK_STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {t(`projects:enums.taskStatus.${s}`)}
+                      </option>
+                    ))}
+                  </select>
                   <Dropdown
                     align="left"
                     panelClassName="w-44 p-1 rounded-radius-md border border-border-subtle bg-white shadow-md space-y-0.5"
@@ -314,7 +331,6 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
                         <button
                           type="button"
                           onClick={toggle}
-                          aria-labelledby="task-status-label"
                           className={cn(
                             'flex w-full items-center justify-between gap-2 rounded-radius-sm border border-border-strong bg-white px-3 py-1.5 text-[13px] font-medium text-text-primary transition-all hover:border-accent focus:outline-none focus:ring-1 focus:ring-accent h-9',
                             open && 'border-accent ring-1 ring-accent',
@@ -446,4 +462,4 @@ export function TaskDetailModal({ projectId, taskId, onClose }: TaskDetailModalP
       />
     </>
   );
-}
+});

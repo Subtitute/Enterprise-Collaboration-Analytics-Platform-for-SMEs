@@ -5,10 +5,13 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { Pagination } from '@/components/ui/Pagination';
-import { BriefcaseIcon, PlusIcon, SearchIcon } from '@/components/ui/Icons';
+import { Table, TableHead, TableBody, TableRow, TableHeadCell } from '@/components/ui/Table';
+import { BriefcaseIcon, PlusIcon } from '@/components/ui/Icons';
 import { matchesVietnameseSearch } from '@/lib/utils';
 import { useCustomersQuery } from './hooks';
 import { CustomerCard } from './components/CustomerCard';
+import { CustomerTableRow } from './components/CustomerTableRow';
+import { CrmFilterToolbar } from './components/CrmFilterToolbar';
 import { NewCustomerModal } from './components/NewCustomerModal';
 
 // 22/08/2026: mirror ProjectsListPage.tsx (features/projects) - kich thuoc trang cho luoi the.
@@ -30,6 +33,7 @@ export function CustomersListPage() {
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
   // Debounce 300ms de khong goi API lien tuc theo tung ky tu go, mirror ProjectsListPage.tsx.
   useEffect(() => {
@@ -95,17 +99,12 @@ export function CustomersListPage() {
         </button>
       </div>
 
-      <div className="relative w-full">
-        <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary stroke-1.5" />
-        <input
-          type="search"
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          placeholder={t('crm:customersListPage.searchPlaceholder', 'Tìm kiếm khách hàng...')}
-          aria-label={t('crm:customersListPage.searchPlaceholder', 'Tìm kiếm khách hàng...')}
-          className="h-9 w-full rounded-radius-sm border border-border-strong bg-white pl-9 pr-3 text-[13px] text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-soft"
-        />
-      </div>
+      <CrmFilterToolbar
+        searchInput={searchInput}
+        onSearchChange={setSearchInput}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      />
 
       <QueryState
         isLoading={customersQuery.isLoading}
@@ -137,11 +136,31 @@ export function CustomersListPage() {
           />
         ) : (
           <>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {displayedCustomers.map((customer) => (
-                <CustomerCard key={customer.id} customer={customer} />
-              ))}
-            </div>
+            {viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {displayedCustomers.map((customer) => (
+                  <CustomerCard key={customer.id} customer={customer} />
+                ))}
+              </div>
+            ) : (
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableHeadCell className="px-4 py-3">{t('crm:customersListPage.columns.name', 'Khách hàng')}</TableHeadCell>
+                    <TableHeadCell className="px-4 py-3">{t('crm:customersListPage.columns.company', 'Công ty')}</TableHeadCell>
+                    <TableHeadCell className="px-4 py-3">{t('crm:customersListPage.columns.contact', 'Liên hệ')}</TableHeadCell>
+                    <TableHeadCell className="px-4 py-3">{t('crm:customersListPage.columns.deals', 'Deal')}</TableHeadCell>
+                    <TableHeadCell className="px-4 py-3">{t('crm:customersListPage.columns.lastInteraction', 'Tương tác')}</TableHeadCell>
+                    <TableHeadCell className="px-4 py-3 text-right">{t('crm:customersListPage.columns.actions', 'Thao tác')}</TableHeadCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {displayedCustomers.map((customer) => (
+                    <CustomerTableRow key={customer.id} customer={customer} />
+                  ))}
+                </TableBody>
+              </Table>
+            )}
             <Pagination page={page} limit={LIMIT} total={totalFiltered} onPageChange={setPage} />
           </>
         )}

@@ -1,29 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
-import { DragDropContext, Droppable } from '@hello-pangea/dnd';
+import React, { useState, useEffect, useRef } from 'react';
+import { DragDropContext } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeftIcon, ChevronRightIcon } from '@/components/ui/Icons';
-import { cn } from '@/lib/utils';
 import { DEAL_STAGES } from '@/types';
 import type { Deal, DealStage } from '@/types';
-import { DealCard } from './DealCard';
+import { PipelineColumn, STAGE_DOT_COLOR } from './PipelineColumn';
 import { useUpdateDealStage } from '../hooks';
 
-// Dot màu theo spec §3.2:
-// NEW text-tertiary #8A8781
-// CONTACTED info #1E5A8A
-// PROPOSAL accent #0E5E5E
-// NEGOTIATION warning #B45309
-// WON success #2F6F44
-// LOST error #B3261E
-const STAGE_DOT_COLOR: Record<DealStage, string> = {
-  NEW: 'bg-[#8A8781]',
-  CONTACTED: 'bg-[#1E5A8A]',
-  PROPOSAL: 'bg-[#0E5E5E]',
-  NEGOTIATION: 'bg-[#B45309]',
-  WON: 'bg-[#2F6F44]',
-  LOST: 'bg-[#B3261E]',
-};
+// Re-export dot mau cho cac module khac neu can
+export { STAGE_DOT_COLOR };
 
 /**
  * Kanban pipeline ban hang (Wireframe.md muc 12) - mirror KanbanBoard.tsx (features/projects).
@@ -31,7 +17,7 @@ const STAGE_DOT_COLOR: Record<DealStage, string> = {
  * validate chuyen giai doan hop le hoan toan o backend (DealsService.updateStage), frontend chi
  * goi mutation va hien loi qua toast neu backend tu choi (xem useUpdateDealStage).
  */
-export function DealKanbanBoard({ customerId, deals, onDealClick }: { customerId: string; deals: Deal[]; onDealClick: (deal: Deal) => void }) {
+export const DealKanbanBoard = React.memo(function DealKanbanBoard({ customerId, deals, onDealClick }: { customerId: string; deals: Deal[]; onDealClick: (deal: Deal) => void }) {
   const { t } = useTranslation();
   const updateStage = useUpdateDealStage(customerId);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -229,45 +215,17 @@ export function DealKanbanBoard({ customerId, deals, onDealClick }: { customerId
           onMouseLeave={handleMouseUpOrLeave}
           className="flex 2xl:grid 2xl:grid-cols-6 gap-3 overflow-x-auto pb-3 pt-1 select-none cursor-grab active:cursor-grabbing scroll-smooth"
         >
-          {DEAL_STAGES.map((stage) => {
-            const columnDeals = columns[stage] ?? [];
-            return (
-              <div key={stage} className="flex w-64 min-w-[240px] 2xl:w-full shrink-0 flex-col rounded-radius-lg bg-[#F7F6F3] p-3">
-                {/* Header: dot 8px + tên stage 13/600 text-primary + badge đếm mono 12/500 căn phải */}
-                <div className="flex items-center gap-2 pb-2.5">
-                  <span className={cn('h-2 w-2 shrink-0 rounded-full', STAGE_DOT_COLOR[stage])} />
-                  <p className="text-[13px] font-semibold text-text-primary truncate" title={t(`crm:enums.dealStage.${stage}`)}>
-                    {t(`crm:enums.dealStage.${stage}`)}
-                  </p>
-                  <span className="ml-auto font-mono text-[12px] font-medium text-text-tertiary tabular-nums shrink-0">
-                    {columnDeals.length}
-                  </span>
-                </div>
-                <Droppable droppableId={stage}>
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className={cn('flex-1 space-y-2.5 transition-colors min-h-[140px]', snapshot.isDraggingOver && 'bg-accent-soft/40 rounded-radius-sm')}
-                    >
-                      {columnDeals.length === 0 && !snapshot.isDraggingOver ? (
-                        <div className="flex h-24 items-center justify-center rounded-radius-sm border border-dashed border-border-subtle text-[12px] text-text-tertiary">
-                          {t('crm:kanban.emptyColumn')}
-                        </div>
-                      ) : (
-                        columnDeals.map((deal, index) => (
-                          <DealCard key={deal.id} deal={deal} index={index} onClick={() => onDealClick(deal)} />
-                        ))
-                      )}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </div>
-            );
-          })}
+          {DEAL_STAGES.map((stage) => (
+            <PipelineColumn
+              key={stage}
+              stage={stage}
+              deals={columns[stage] ?? []}
+              onDealClick={onDealClick}
+            />
+          ))}
         </div>
       </div>
     </DragDropContext>
   );
-}
+});
+

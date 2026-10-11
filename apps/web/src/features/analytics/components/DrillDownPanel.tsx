@@ -1,3 +1,4 @@
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Spinner } from '@/components/ui/Spinner';
@@ -32,7 +33,15 @@ function FunnelStat({ label, value, colorClass }: { label: string; value: number
  * nguoi" cho 1 phong ban/du an cu the (bam vao 1 thanh AiInsightsChart.tsx se mo panel nay). Tai
  * su dung Modal.tsx co san - dung token DS.
  */
-export function DrillDownPanel({ open, onClose, title, isLoading, isError, data, resolveUserName }: DrillDownPanelProps) {
+export const DrillDownPanel = React.memo(function DrillDownPanel({
+  open,
+  onClose,
+  title,
+  isLoading,
+  isError,
+  data,
+  resolveUserName,
+}: DrillDownPanelProps) {
   const { t } = useTranslation();
 
   return (
@@ -77,4 +86,4 @@ export function DrillDownPanel({ open, onClose, title, isLoading, isError, data,
       )}
     </Modal>
   );
-}
+});

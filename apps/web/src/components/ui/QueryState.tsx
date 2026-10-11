@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FullPageSpinner } from './Spinner';
 import { EmptyState } from './EmptyState';
@@ -24,7 +24,7 @@ interface QueryStateProps {
  * xu ly 2 nhanh loading/error; nhanh "empty" van do component con (children) tu quyet dinh
  * dua tren du lieu da tai xong, de giu nguyen copy/CTA rieng cua tung trang.
  */
-export function QueryState({ isLoading, isError, onRetry, loadingFallback, loadingLabel, errorTitle, errorDescription, children }: QueryStateProps) {
+export const QueryState = memo(function QueryState({ isLoading, isError, onRetry, loadingFallback, loadingLabel, errorTitle, errorDescription, children }: QueryStateProps) {
   const { t } = useTranslation();
 
   if (isLoading) {
@@ -49,4 +49,5 @@ export function QueryState({ isLoading, isError, onRetry, loadingFallback, loadi
   }
 
   return <>{children}</>;
-}
+});
+

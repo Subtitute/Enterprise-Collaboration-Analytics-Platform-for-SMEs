@@ -12,7 +12,7 @@ export type LeaveTypeOption = 'ANNUAL' | 'SICK' | 'UNPAID';
 
 export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
-  const [leaveType, setLeaveType] = useState<string>('');
+  const [leaveType, setLeaveType] = useState<string>('ANNUAL');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [reason, setReason] = useState('');
@@ -23,14 +23,13 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
   const todayGmt7 = getTodayGmt7DateString();
 
   const typeOptions = [
-    { value: '', label: t('hrm:newLeaveRequestModal.typePlaceholder') },
     { value: 'ANNUAL', label: t('hrm:newLeaveRequestModal.types.ANNUAL') },
     { value: 'SICK', label: t('hrm:newLeaveRequestModal.types.SICK') },
     { value: 'UNPAID', label: t('hrm:newLeaveRequestModal.types.UNPAID') },
   ];
 
   function reset() {
-    setLeaveType('');
+    setLeaveType('ANNUAL');
     setStartDate('');
     setEndDate('');
     setReason('');
@@ -79,7 +78,7 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
       open={open}
       onClose={handleClose}
       preventCloseWhilePending={createLeaveRequest.isPending}
-      title={<span className="text-[16px] leading-[24px] font-semibold text-text-primary">{t('hrm:newLeaveRequestModal.title')}</span>}
+      title={t('hrm:newLeaveRequestModal.title')}
       footer={
         <div className="flex items-center justify-end gap-2 w-full">
           <button

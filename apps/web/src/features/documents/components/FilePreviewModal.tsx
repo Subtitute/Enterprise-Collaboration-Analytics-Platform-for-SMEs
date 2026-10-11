@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -18,7 +18,7 @@ interface FilePreviewModalProps {
 // Ngưỡng dung lượng tối đa hỗ trợ xem trực tiếp (20MB)
 const MAX_PREVIEW_SIZE_BYTES = 20 * 1024 * 1024;
 
-export function FilePreviewModal({ file, open, onClose, onDownload }: FilePreviewModalProps) {
+export const FilePreviewModal = memo(function FilePreviewModal({ file, open, onClose, onDownload }: FilePreviewModalProps) {
   const { t } = useTranslation();
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [isLoadingUrl, setIsLoadingUrl] = useState(false);
@@ -306,4 +306,4 @@ export function FilePreviewModal({ file, open, onClose, onDownload }: FilePrevie
       </div>
     </Modal>
   );
-}
+});

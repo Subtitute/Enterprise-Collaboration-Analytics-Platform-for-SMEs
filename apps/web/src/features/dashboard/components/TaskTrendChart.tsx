@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatShortDate } from '@/lib/utils';
@@ -28,7 +29,7 @@ interface TaskTrendChartProps {
   onRetry?: () => void;
 }
 
-export function TaskTrendChart({ data, isLoading, isError, onRetry }: TaskTrendChartProps) {
+export const TaskTrendChart = memo(function TaskTrendChart({ data, isLoading, isError, onRetry }: TaskTrendChartProps) {
   const { t } = useTranslation();
   const hasCreated = data.some((d) => typeof d.created === 'number');
 
@@ -147,5 +148,5 @@ export function TaskTrendChart({ data, isLoading, isError, onRetry }: TaskTrendC
       </div>
     </QueryState>
   );
-}
+});
 

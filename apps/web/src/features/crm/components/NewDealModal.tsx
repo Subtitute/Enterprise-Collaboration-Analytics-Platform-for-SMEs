@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
@@ -7,7 +7,7 @@ import { FormField, Input } from '@/components/ui/Input';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { useCreateDeal } from '../hooks';
 
-export function NewDealModal({ customerId, open, onClose }: { customerId: string; open: boolean; onClose: () => void }) {
+export const NewDealModal = React.memo(function NewDealModal({ customerId, open, onClose }: { customerId: string; open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [value, setValue] = useState('');
@@ -122,4 +122,5 @@ export function NewDealModal({ customerId, open, onClose }: { customerId: string
       </form>
     </Modal>
   );
-}
+});
+

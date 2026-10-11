@@ -1,8 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
-import { Button } from '@/components/ui/Button';
-import { Tabs } from '@/components/ui/Tabs';
 import { Avatar } from '@/components/ui/Avatar';
 import { Input, Checkbox, Label } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
@@ -23,7 +21,7 @@ type ConversationTab = 'DIRECT' | 'GROUP';
 
 /** Modal tao cuoc tro chuyen moi - tab "Tin nhan truc tiep" (chon dung 1 nguoi) va "Nhom" (ten nhom
  *  + chon nhieu nguoi). Goi POST /conversations, DIRECT duoc backend tu dedup neu da ton tai. */
-export function NewConversationModal({ open, onClose, onCreated }: NewConversationModalProps) {
+export const NewConversationModal = React.memo(function NewConversationModal({ open, onClose, onCreated }: NewConversationModalProps) {
   const { t } = useTranslation();
   const currentUserId = useAuthStore((s) => s.user?.id);
   const { data: allUsers = [], isLoading: isUsersLoading } = useOrgUsersQuery({ enabled: open });
@@ -268,4 +266,4 @@ export function NewConversationModal({ open, onClose, onCreated }: NewConversati
       </div>
     </Modal>
   );
-}
+});

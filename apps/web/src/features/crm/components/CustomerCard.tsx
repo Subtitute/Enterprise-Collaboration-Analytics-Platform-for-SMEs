@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '@/components/ui/Card';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { BuildingIcon, EditIcon, MailIcon, MoreVerticalIcon, TrashIcon } from '@/components/ui/Icons';
@@ -11,7 +10,7 @@ import { useDeleteCustomer } from '../hooks';
 import { EditCustomerModal } from './EditCustomerModal';
 import type { Customer } from '@/types';
 
-function CustomerTypeBadge({ notes }: { notes?: string | null }) {
+export function CustomerTypeBadge({ notes }: { notes?: string | null }) {
   if (!notes) return null;
 
   // Đối chiếu Badge loại khách hàng theo §5
@@ -45,7 +44,7 @@ function CustomerTypeBadge({ notes }: { notes?: string | null }) {
   );
 }
 
-export function CustomerCard({ customer }: { customer: Customer }) {
+export const CustomerCard = React.memo(function CustomerCard({ customer }: { customer: Customer }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -170,4 +169,5 @@ export function CustomerCard({ customer }: { customer: Customer }) {
       />
     </>
   );
-}
+});
+

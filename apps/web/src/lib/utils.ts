@@ -23,6 +23,29 @@ function currentIntlLocale(): string {
   return INTL_LOCALE_MAP[i18n.language] ?? 'vi-VN';
 }
 
+const dtfCache = new Map<string, Intl.DateTimeFormat>();
+function getDateTimeFormatter(key: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const locale = currentIntlLocale();
+  const cacheKey = `${locale}:${key}`;
+  let formatter = dtfCache.get(cacheKey);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat(locale, options);
+    dtfCache.set(cacheKey, formatter);
+  }
+  return formatter;
+}
+
+const rtfCache = new Map<string, Intl.RelativeTimeFormat>();
+function getRelativeTimeFormatter(): Intl.RelativeTimeFormat {
+  const locale = currentIntlLocale();
+  let formatter = rtfCache.get(locale);
+  if (!formatter) {
+    formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+    rtfCache.set(locale, formatter);
+  }
+  return formatter;
+}
+
 /**
  * Mot so endpoint co the tra ve mang tho [] hoac { data: [] } tuy service - ham nay chuan hoa
  * ca hai dang de UI khong vo neu quy uoc response cua tung service lech nhau chut it.
@@ -45,16 +68,14 @@ export function formatDate(value?: string | null): string {
   if (!value) return '—';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '—';
-  return new Intl.DateTimeFormat(currentIntlLocale(), { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }).format(
-    d,
-  );
+  return getDateTimeFormatter('date', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }).format(d);
 }
 
 export function formatShortDate(value?: string | null): string {
   if (!value) return '';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '';
-  return new Intl.DateTimeFormat(currentIntlLocale(), {
+  return getDateTimeFormatter('shortDate', {
     day: '2-digit',
     month: '2-digit',
     timeZone: 'Asia/Ho_Chi_Minh',
@@ -65,7 +86,7 @@ export function formatTime(value?: string | null): string {
   if (!value) return '—';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '—';
-  return new Intl.DateTimeFormat(currentIntlLocale(), {
+  return getDateTimeFormatter('time', {
     hour: '2-digit',
     minute: '2-digit',
     timeZone: 'Asia/Ho_Chi_Minh',
@@ -76,7 +97,7 @@ export function formatDateTime(value?: string | null): string {
   if (!value) return '—';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return '—';
-  return new Intl.DateTimeFormat(currentIntlLocale(), {
+  return getDateTimeFormatter('dateTime', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -111,8 +132,9 @@ export function formatRelativeTime(value?: string | null): string {
   const diffSec = Math.round(diffMs / 1000);
   if (diffSec < 5) return i18n.t('common:relativeTime.justNow');
 
-  const rtf = new Intl.RelativeTimeFormat(currentIntlLocale(), { numeric: 'auto' });
+  const rtf = getRelativeTimeFormatter();
   if (diffSec < 60) return rtf.format(-diffSec, 'second');
+
   const diffMin = Math.round(diffSec / 60);
   if (diffMin < 60) return rtf.format(-diffMin, 'minute');
   const diffHour = Math.round(diffMin / 60);

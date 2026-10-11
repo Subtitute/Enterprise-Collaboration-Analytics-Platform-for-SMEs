@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
@@ -15,7 +15,7 @@ import { useDeleteDeal, useUpdateDeal } from '../hooks';
  * Doi giai doan (stage) CHI thuc hien qua keo-tha tren Kanban (xem DealKanbanBoard.tsx), khong co
  * o modal nay - tranh 2 noi cung sua 1 gia tri theo 2 co che khac nhau (drag vs form).
  */
-export function DealDetailModal({
+export const DealDetailModal = React.memo(function DealDetailModal({
   customerId,
   deal,
   onClose,
@@ -177,4 +177,5 @@ export function DealDetailModal({
       />
     </>
   );
-}
+});
+

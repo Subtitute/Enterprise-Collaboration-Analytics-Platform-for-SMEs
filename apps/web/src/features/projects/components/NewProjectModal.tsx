@@ -1,16 +1,14 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
-import { Button } from '@/components/ui/Button';
-import { FormField, Input, Textarea } from '@/components/ui/Input';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { Avatar } from '@/components/ui/Avatar';
 import { SearchIcon, CheckIcon } from '@/components/ui/Icons';
 import { useOrgUsersQuery } from '@/hooks/useOrgUsers';
 import { useCreateProject } from '../hooks';
 
-export function NewProjectModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export const NewProjectModal = React.memo(function NewProjectModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const nameInputRef = useRef<HTMLInputElement>(null);
   const usersQuery = useOrgUsersQuery({ enabled: open });
@@ -290,4 +288,4 @@ export function NewProjectModal({ open, onClose }: { open: boolean; onClose: () 
       </form>
     </Modal>
   );
-}
+});
