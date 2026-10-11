@@ -206,6 +206,7 @@
     "startDateLabel": "Ngày bắt đầu",
     "endDateLabel": "Ngày kết thúc",
     "startDateRequiredError": "Vui lòng chọn ngày bắt đầu",
+    "startDateInPastError": "Ngày bắt đầu không được ở trong quá khứ",
     "endDateBeforeStartError": "Ngày kết thúc không được trước ngày bắt đầu",
     "descriptionLabel": "Mô tả",
     "cancel": "Huỷ",

@@ -116,6 +116,9 @@ export const ERROR_CODES = {
   // ---- HRM-lite: lich cong ty (bo sung 15/09/2026) ----
   CALENDAR_EVENT_NOT_FOUND: 'CALENDAR_EVENT_NOT_FOUND',
   CALENDAR_EVENT_DATE_RANGE_INVALID: 'CALENDAR_EVENT_DATE_RANGE_INVALID',
+  // 05/10/2026: cung loi logic da tung sua o LeaveRequestsService.create() (LEAVE_START_DATE_IN_PAST)
+  // nhung CHUA tung ap dung cho lich cong ty - xem CalendarEventsService.
+  CALENDAR_EVENT_START_DATE_IN_PAST: 'CALENDAR_EVENT_START_DATE_IN_PAST',
   // 03/10/2026: phan quyen lich cong ty mo rong - xem CalendarEventsService.
   CALENDAR_EVENT_FORBIDDEN_HOLIDAY: 'CALENDAR_EVENT_FORBIDDEN_HOLIDAY',
   CALENDAR_EVENT_FORBIDDEN_NOT_OWNER: 'CALENDAR_EVENT_FORBIDDEN_NOT_OWNER',

@@ -206,6 +206,7 @@
     "startDateLabel": "開始日",
     "endDateLabel": "終了日",
     "startDateRequiredError": "開始日を選択してください",
+    "startDateInPastError": "開始日を過去の日付にすることはできません",
     "endDateBeforeStartError": "終了日を開始日より前にすることはできません",
     "descriptionLabel": "説明",
     "cancel": "キャンセル",

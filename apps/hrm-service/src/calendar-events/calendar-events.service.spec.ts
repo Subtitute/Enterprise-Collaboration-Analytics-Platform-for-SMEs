@@ -20,6 +20,17 @@ describe('CalendarEventsService', () => {
   const managerPermissions: string[] = [PERMISSIONS.CALENDAR_MANAGE];
   const orgAdminPermissions: string[] = [PERMISSIONS.CALENDAR_MANAGE, PERMISSIONS.ORG_MANAGE];
 
+  // 05/10/2026: tinh ngay TUONG DOI voi "hom nay" thay vi hardcode 1 chuoi ngay co dinh - mirror
+  // dung futureDateStr() cua leave-requests.service.spec.ts (bai hoc da rut ra 15/09/2026: hardcode
+  // 1 ngay "tuong lai" tai thoi diem viet test se tu dong tro thanh qua khu va lam test FAIL sau
+  // ngay do - dac biet quan trong o day vi assertStartDateNotInPast() moi bo sung chinh la kiem tra
+  // dang ngay).
+  function futureDateStr(daysFromNow: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() + daysFromNow);
+    return d.toISOString().slice(0, 10);
+  }
+
   function existingEvent(overrides: Record<string, unknown> = {}) {
     return {
       id: calendarEventId,
@@ -69,8 +80,8 @@ describe('CalendarEventsService', () => {
       const dto: CreateCalendarEventDto = {
         title: 'Tet Nguyen Dan',
         type: CalendarEventType.HOLIDAY,
-        startDate: '2026-02-14',
-        endDate: '2026-02-20',
+        startDate: futureDateStr(10),
+        endDate: futureDateStr(16),
       };
 
       const result = await service.create(organizationId, userId, orgAdminPermissions, dto);
@@ -93,13 +104,13 @@ describe('CalendarEventsService', () => {
       const dto: CreateCalendarEventDto = {
         title: 'Hop toan cong ty',
         type: CalendarEventType.EVENT,
-        startDate: '2026-03-01',
+        startDate: futureDateStr(20),
       };
 
       const result = await service.create(organizationId, userId, orgAdminPermissions, dto);
 
-      expect(result.startDate).toBe('2026-03-01');
-      expect(result.endDate).toBe('2026-03-01');
+      expect(result.startDate).toBe(futureDateStr(20));
+      expect(result.endDate).toBe(futureDateStr(20));
     });
 
     it('tu choi khi ngay bat dau sau ngay ket thuc, khong mo transaction', async () => {
@@ -107,8 +118,8 @@ describe('CalendarEventsService', () => {
       const dto: CreateCalendarEventDto = {
         title: 'x',
         type: CalendarEventType.EVENT,
-        startDate: '2026-03-05',
-        endDate: '2026-03-01',
+        startDate: futureDateStr(6),
+        endDate: futureDateStr(2),
       };
 
       await expect(service.create(organizationId, userId, orgAdminPermissions, dto)).rejects.toMatchObject({
@@ -120,7 +131,7 @@ describe('CalendarEventsService', () => {
     // 03/10/2026: phan quyen tao moi - EVENT mo cho moi thanh vien, HOLIDAY doi hoi CALENDAR_MANAGE.
     it('Employee tao EVENT -> ok, createdByRank = 1', async () => {
       const { service } = createService();
-      const dto: CreateCalendarEventDto = { title: 'Lien hoan phong ban', type: CalendarEventType.EVENT, startDate: '2026-03-01' };
+      const dto: CreateCalendarEventDto = { title: 'Lien hoan phong ban', type: CalendarEventType.EVENT, startDate: futureDateStr(20) };
 
       const result = await service.create(organizationId, 'employee-1', employeePermissions, dto);
 
@@ -130,7 +141,7 @@ describe('CalendarEventsService', () => {
 
     it('Employee tao HOLIDAY -> 403 (khong giu CALENDAR_MANAGE), khong mo transaction', async () => {
       const { service, dataSourceMock } = createService();
-      const dto: CreateCalendarEventDto = { title: 'Tet', type: CalendarEventType.HOLIDAY, startDate: '2026-02-14' };
+      const dto: CreateCalendarEventDto = { title: 'Tet', type: CalendarEventType.HOLIDAY, startDate: futureDateStr(10) };
 
       await expect(service.create(organizationId, 'employee-1', employeePermissions, dto)).rejects.toMatchObject({
         response: expect.objectContaining({ errorCode: ERROR_CODES.CALENDAR_EVENT_FORBIDDEN_HOLIDAY }),
@@ -140,11 +151,32 @@ describe('CalendarEventsService', () => {
 
     it('Manager tao HOLIDAY -> ok (giu CALENDAR_MANAGE), createdByRank = 2', async () => {
       const { service } = createService();
-      const dto: CreateCalendarEventDto = { title: 'Tet', type: CalendarEventType.HOLIDAY, startDate: '2026-02-14' };
+      const dto: CreateCalendarEventDto = { title: 'Tet', type: CalendarEventType.HOLIDAY, startDate: futureDateStr(10) };
 
       const result = await service.create(organizationId, 'manager-1', managerPermissions, dto);
 
       expect(result.createdByRank).toBe(2);
+    });
+
+    // 05/10/2026: phat hien qua bao loi thuc te (nguoi dung) - cung loi logic da tung sua cho
+    // LeaveRequestsService.create() (15/09/2026) nhung CHUA ap dung cho lich cong ty truoc ban nay.
+    it('tu choi khi ngay bat dau o qua khu, khong mo transaction', async () => {
+      const { service, dataSourceMock } = createService();
+      const dto: CreateCalendarEventDto = { title: 'x', type: CalendarEventType.EVENT, startDate: futureDateStr(-1) };
+
+      await expect(service.create(organizationId, userId, orgAdminPermissions, dto)).rejects.toMatchObject({
+        response: expect.objectContaining({ errorCode: ERROR_CODES.CALENDAR_EVENT_START_DATE_IN_PAST }),
+      });
+      expect(dataSourceMock.transaction).not.toHaveBeenCalled();
+    });
+
+    it('cho phep ngay bat dau la CHINH hom nay (bien, khong bi coi la qua khu)', async () => {
+      const { service } = createService();
+      const dto: CreateCalendarEventDto = { title: 'x', type: CalendarEventType.EVENT, startDate: futureDateStr(0) };
+
+      const result = await service.create(organizationId, userId, orgAdminPermissions, dto);
+
+      expect(result.startDate).toBe(futureDateStr(0));
     });
   });
 
@@ -230,10 +262,43 @@ describe('CalendarEventsService', () => {
       const { service } = createService({ calendarEventRepoMock });
 
       await expect(
-        service.update(organizationId, userId, orgAdminPermissions, calendarEventId, { startDate: '2026-03-01' }),
+        service.update(organizationId, userId, orgAdminPermissions, calendarEventId, { startDate: futureDateStr(30) }),
       ).rejects.toMatchObject({
         response: expect.objectContaining({ errorCode: ERROR_CODES.CALENDAR_EVENT_DATE_RANGE_INVALID }),
       });
+    });
+
+    // 05/10/2026: cung loi logic vua sua cho create() - doi ngay bat dau cua 1 muc lich CO SAN
+    // sang qua khu cung phai bi chan, khong chi luc tao moi.
+    it('tu choi khi cap nhat doi ngay bat dau sang qua khu', async () => {
+      const existing = existingEvent({ startDate: futureDateStr(5), endDate: futureDateStr(10) });
+      const calendarEventRepoMock = {
+        findOne: jest.fn().mockResolvedValue(existing),
+        save: jest.fn((entity: unknown) => Promise.resolve(entity)),
+      };
+      const { service } = createService({ calendarEventRepoMock });
+
+      await expect(
+        service.update(organizationId, userId, orgAdminPermissions, calendarEventId, { startDate: futureDateStr(-2) }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({ errorCode: ERROR_CODES.CALENDAR_EVENT_START_DATE_IN_PAST }),
+      });
+    });
+
+    // 05/10/2026: KHONG duoc chan viec sua cac truong khac (vd tieu de) cua 1 muc lich co san ma
+    // ngay bat dau da troi qua TU TRUOC (khong doi) - chi chan khi ngay bat dau THAT SU doi sang
+    // qua khu. existingEvent() mac dinh startDate='2026-02-14', da la qua khu thuc su theo dong ho
+    // he thong hien tai - dung chinh no la vi du song dong cho truong hop nay.
+    it('cho phep sua tieu de 1 muc lich co san du ngay bat dau da troi qua tu truoc (khong doi ngay)', async () => {
+      const calendarEventRepoMock = {
+        findOne: jest.fn().mockResolvedValue(existingEvent()),
+        save: jest.fn((entity: unknown) => Promise.resolve(entity)),
+      };
+      const { service } = createService({ calendarEventRepoMock });
+
+      const result = await service.update(organizationId, userId, orgAdminPermissions, calendarEventId, { title: 'Da sua' });
+
+      expect(result.title).toBe('Da sua');
     });
   });
 

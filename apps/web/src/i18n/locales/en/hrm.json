@@ -206,6 +206,7 @@
     "startDateLabel": "Start date",
     "endDateLabel": "End date",
     "startDateRequiredError": "Please select a start date",
+    "startDateInPastError": "The start date cannot be in the past",
     "endDateBeforeStartError": "The end date cannot be before the start date",
     "descriptionLabel": "Description",
     "cancel": "Cancel",

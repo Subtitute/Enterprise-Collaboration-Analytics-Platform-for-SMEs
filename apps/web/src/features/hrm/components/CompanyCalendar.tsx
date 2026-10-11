@@ -154,7 +154,13 @@ export function CompanyCalendar() {
           </div>
           <Button
             onClick={() => {
-              setCreateDefaultDate(todayStr >= monthStartStr && todayStr <= monthEndStr ? todayStr : monthStartStr);
+              // 05/10/2026 (fix loi thuc te): truoc ban sua nay, khi dang xem 1 THANG DA QUA (lui
+              // ve qua cac mui ten), nut nay dien san monthStartStr (ngay 1 cua thang do) - 1 ngay
+              // QUA KHU - lam nguoi dung mo form tao moi voi ngay khong hop le san co. Danh gia 3
+              // truong hop: thang dang xem CHUA ngay hom nay -> todayStr; thang trong TUONG LAI
+              // (monthStartStr > todayStr) -> monthStartStr; thang DA QUA -> todayStr (khong duoc
+              // dung monthStartStr qua khu).
+              setCreateDefaultDate(monthStartStr > todayStr ? monthStartStr : todayStr);
               setIsCreateOpen(true);
             }}
           >
@@ -204,6 +210,12 @@ export function CompanyCalendar() {
               const day = i + 1;
               const dayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const isToday = dayStr === todayStr;
+              // 05/10/2026 (fix loi thuc te): ngay da qua khong con mo duoc form tao moi khi bam vao
+              // o ngay - truoc ban sua nay bam vao BAT KY o nao (ke ca qua khu) deu mo CalendarEventModal
+              // voi ngay do dien san, chi bi chan luc submit (bao loi bat ngo). Cac muc lich CO SAN
+              // trong ngay qua khu van xem/sua duoc binh thuong qua nut rieng cua tung muc (bubble
+              // stopPropagation, doc lap voi onClick cua o ngay o day).
+              const isPast = dayStr < todayStr;
               const dayEvents = eventsForDay(dayStr);
               const visibleEvents = dayEvents.slice(0, MAX_PILLS_PER_CELL);
               const hiddenCount = dayEvents.length - visibleEvents.length;
@@ -211,13 +223,20 @@ export function CompanyCalendar() {
               return (
                 <div
                   key={`cur-${day}`}
-                  onClick={() => openCreateForDay(dayStr)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') openCreateForDay(dayStr);
-                  }}
-                  className="min-h-24 cursor-pointer border-b border-r border-slate-100 p-1.5 transition-colors hover:bg-slate-50/80"
+                  onClick={isPast ? undefined : () => openCreateForDay(dayStr)}
+                  role={isPast ? undefined : 'button'}
+                  tabIndex={isPast ? undefined : 0}
+                  onKeyDown={
+                    isPast
+                      ? undefined
+                      : (e) => {
+                          if (e.key === 'Enter') openCreateForDay(dayStr);
+                        }
+                  }
+                  className={cn(
+                    'min-h-24 border-b border-r border-slate-100 p-1.5 transition-colors',
+                    isPast ? 'bg-slate-50/40' : 'cursor-pointer hover:bg-slate-50/80',
+                  )}
                 >
                   <span
                     className={cn(
