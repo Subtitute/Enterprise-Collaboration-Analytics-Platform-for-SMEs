@@ -39,7 +39,8 @@ const DEMO_ACCOUNTS: DemoAccountItem[] = [
     // con ton tai (moi nhan vien duoc invite qua API voi 1 hau to ngau nhien rieng, sinh ra khac
     // nhau moi lan seed lai). "binh.tran+141603" la Truong phong Kinh doanh, da duoc thang chuc
     // Manager that su trong DB hien tai (xem fix-manager-role-and-customer-owners.js).
-    email: 'binh.tran+141603@demo-sme.vn',
+    // 13/10/2026: dong bo voi tai khoan Manager that su dang active trong DB hien tai (an.nguyen+246317).
+    email: 'an.nguyen+246317@demo-sme.vn',
     password: 'Password123!',
   },
   {
@@ -50,7 +51,8 @@ const DEMO_ACCOUNTS: DemoAccountItem[] = [
     // 17/09/2026: tuong tu - "khoa.lam+861373" la nhan vien Kinh doanh dang thuc su phu trach
     // khach hang va duoc giao task/du an, phu hop de minh hoa tinh nang gioi han xem theo
     // "duoc giao" moi bo sung (Employee chi thay du an/khach hang cua chinh minh).
-    email: 'khoa.lam+861373@demo-sme.vn',
+    // 13/10/2026: dong bo voi tai khoan Employee that su dang active trong DB hien tai (binh.tran+246317).
+    email: 'binh.tran+246317@demo-sme.vn',
     password: 'Password123!',
   },
   // 16/09/2026: "Super Admin" (tinh nang moi) - khop dung gia tri mac dinh cua

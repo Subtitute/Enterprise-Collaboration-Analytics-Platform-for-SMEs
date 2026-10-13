@@ -26,7 +26,7 @@ export const PermissionRow = memo(function PermissionRow({
 
   return (
     <tr className="border-b border-border-subtle hover:bg-bg-subtle transition-colors">
-      <td className="sticky left-0 z-10 bg-white px-5 py-3">
+      <td className="md:sticky md:left-0 md:z-10 bg-white px-3 sm:px-5 py-3">
         <span className="text-[13px] font-medium text-text-primary">
           {displayTitle}
         </span>

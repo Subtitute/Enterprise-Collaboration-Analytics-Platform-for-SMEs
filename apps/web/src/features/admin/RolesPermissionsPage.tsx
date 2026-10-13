@@ -14,6 +14,7 @@ import {
 } from './roles-permissions.constants';
 import { PermissionRow } from './components/PermissionRow';
 import { PermissionModuleHeader } from './components/PermissionModuleHeader';
+import { MobileRolesView } from './components/MobileRolesView';
 
 export function RolesPermissionsPage() {
   const { t } = useTranslation();
@@ -114,14 +115,25 @@ export function RolesPermissionsPage() {
             {t('admin:rolesPermissionsPage.hint')}
           </div>
 
-          <div className="rounded-radius-md border border-border-subtle bg-white overflow-hidden">
+          {/* Mobile view: Role selection tabs + Module permission cards */}
+          <div className="block md:hidden">
+            <MobileRolesView
+              roles={roles}
+              groupedModules={groupedModules}
+              isPending={updatePermissions.isPending}
+              onTogglePermission={togglePermission}
+              onToggleModule={toggleModulePermissions}
+            />
+          </div>
+
+          {/* Desktop/Tablet view: Full matrix table with independent horizontal scroll */}
+          <div className="hidden md:block rounded-radius-md border border-border-subtle bg-white overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[700px] table-fixed border-collapse text-sm">
+              <table className="w-full min-w-[760px] table-fixed border-collapse text-sm">
                 <colgroup>
-                  {/* Cột tên quyền chiếm phần lớn không gian, các cột vai trò chia đều tỉ lệ cố định */}
-                  <col className="w-auto" />
+                  <col className="w-[280px]" />
                   {roles.map((r) => (
-                    <col key={r.id} className="w-36 sm:w-44" />
+                    <col key={r.id} className="w-40" />
                   ))}
                 </colgroup>
 

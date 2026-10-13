@@ -28,7 +28,6 @@ import {
   PlusIcon,
   CalendarIcon,
   BriefcaseIcon,
-  SettingsIcon,
   XIcon,
 } from '@/components/ui/Icons';
 
@@ -309,7 +308,7 @@ export function Topbar() {
         <button
           type="button"
           onClick={() => {
-            if (window.innerWidth < 768) {
+            if (window.innerWidth < 1024) {
               setMobileSidebarOpen(true);
             } else {
               toggleSidebarCollapsed();
@@ -319,21 +318,21 @@ export function Topbar() {
           aria-label={t('common:topbar.toggleTooltip', 'Ẩn/Hiện thanh điều hướng')}
           className="flex h-8 w-8 items-center justify-center rounded-radius-sm text-text-secondary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer shrink-0"
         >
-          <span className="md:hidden">
+          <span className="lg:hidden">
             <MenuIcon className="h-[18px] w-[18px]" />
           </span>
-          <span className="hidden md:inline-flex">
+          <span className="hidden lg:inline-flex">
             <PanelLeftIcon className="h-[18px] w-[18px]" />
           </span>
         </button>
 
-        {/* Mobile: Chỉ hiển thị page title hiện tại (1 dòng, truncate) */}
-        <span className="md:hidden truncate text-sm font-semibold text-text-primary">
+        {/* Mobile & Tablet (<1024px): Chỉ hiển thị page title hiện tại (1 dòng, truncate) */}
+        <span className="lg:hidden truncate text-sm font-semibold text-text-primary">
           {currentPageTitle}
         </span>
 
-        {/* Desktop: Breadcrumb đầy đủ, auto-generate từ pathname */}
-        <nav aria-label="Breadcrumb" className="hidden md:flex items-center gap-1.5 text-[13px] leading-5 text-text-tertiary min-w-0 truncate">
+        {/* Desktop (>=1024px): Breadcrumb đầy đủ, auto-generate từ pathname */}
+        <nav aria-label="Breadcrumb" className="hidden lg:flex items-center gap-1.5 text-[13px] leading-5 text-text-tertiary min-w-0 truncate">
           {breadcrumbs.map((crumb, idx) => {
             const isLast = idx === breadcrumbs.length - 1;
             return (
@@ -378,12 +377,12 @@ export function Topbar() {
               onClick={toggle}
               title={t('common:quickCreate.tooltip', 'Tạo mới (Phím tắt: C)')}
               aria-label={t('common:quickCreate.tooltip', 'Tạo mới (Phím tắt: C)')}
-              className="inline-flex h-8 items-center gap-1.5 rounded-radius-md bg-[#1C1B1A] px-3 text-[13px] font-medium text-white hover:bg-[#2E2C29] active:bg-[#141312] transition-colors cursor-pointer select-none"
+              className="inline-flex h-8 items-center gap-1.5 rounded-radius-md bg-[#1C1B1A] px-2 lg:px-3 text-[13px] font-medium text-white hover:bg-[#2E2C29] active:bg-[#141312] transition-colors cursor-pointer select-none"
             >
               <PlusIcon className="h-3.5 w-3.5 stroke-[2.2] text-white" />
-              <span className="hidden md:inline text-white">{t('common:quickCreate.button', 'Tạo mới')}</span>
+              <span className="hidden lg:inline text-white">{t('common:quickCreate.button', 'Tạo mới')}</span>
               <ChevronDownIcon
-                className={cn('hidden md:inline h-3 w-3 text-[#8A8781] transition-transform duration-200', open && 'rotate-180')}
+                className={cn('hidden lg:inline h-3 w-3 text-[#8A8781] transition-transform duration-200', open && 'rotate-180')}
               />
             </button>
           )}
@@ -489,11 +488,11 @@ export function Topbar() {
               )}
             >
               <Avatar name={user?.fullName} size="sm" className="h-6 w-6 text-[10px] bg-[#0E5E5E] text-white" />
-              <span className="hidden max-w-[140px] truncate text-[13px] font-medium text-text-primary md:inline">
+              <span className="hidden max-w-[140px] truncate text-[13px] font-medium text-text-primary lg:inline">
                 {user?.fullName}
               </span>
               <ChevronDownIcon
-                className={cn('hidden h-3 w-3 text-text-tertiary transition-transform duration-200 md:inline', open && 'rotate-180')}
+                className={cn('hidden h-3 w-3 text-text-tertiary transition-transform duration-200 lg:inline', open && 'rotate-180')}
               />
             </button>
           )}
@@ -512,7 +511,19 @@ export function Topbar() {
                   </p>
                   {user?.roles && user.roles.length > 0 && (
                     <span className="mt-1 inline-block rounded-[3px] bg-bg-subtle px-1.5 py-0.5 text-[10px] font-medium text-text-secondary">
-                      {user.roles[0].name}
+                      {(() => {
+                        const rName = user.roles[0].name.trim().toLowerCase();
+                        if (rName.includes('admin') || rName.includes('quản trị')) {
+                          return t('admin:roles.orgAdmin', 'Quản trị viên');
+                        }
+                        if (rName.includes('manager') || rName.includes('quản lý')) {
+                          return t('admin:roles.manager', 'Quản lý');
+                        }
+                        if (rName.includes('employee') || rName.includes('nhân viên')) {
+                          return t('admin:roles.employee', 'Nhân viên');
+                        }
+                        return user.roles[0].name;
+                      })()}
                     </span>
                   )}
                 </div>
@@ -530,19 +541,6 @@ export function Topbar() {
                   <UserIcon className="h-4 w-4 shrink-0 text-text-secondary" />
                   <span className="text-[13px] font-medium text-text-primary">
                     {t('common:topbar.profile', 'Hồ sơ cá nhân')}
-                  </span>
-                </DropdownItem>
-
-                <DropdownItem
-                  onClick={() => {
-                    close();
-                    navigate('/settings');
-                  }}
-                  className="flex items-center gap-2.5 rounded-radius-sm px-2.5 py-2 hover:bg-bg-subtle transition-colors"
-                >
-                  <SettingsIcon className="h-4 w-4 shrink-0 text-text-secondary" />
-                  <span className="text-[13px] font-medium text-text-primary">
-                    {t('common:topbar.settings', 'Cài đặt')}
                   </span>
                 </DropdownItem>
               </div>

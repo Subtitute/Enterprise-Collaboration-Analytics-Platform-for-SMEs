@@ -154,7 +154,8 @@
       "emptyTitle": "休暇申請はまだありません",
       "emptyDescription": "休暇が必要な際は、最初の申請を作成してください。",
       "createFirstButton": "新規申請を作成",
-      "decisionNote": "メモ: {{note}}"
+      "decisionNote": "メモ: {{note}}",
+      "loadMore": "もっと見る"
     }
   },
   "employeePicker": {
@@ -324,6 +325,9 @@
       "reasonPlaceholder": "例: 顧客向け本番リリースの緊急デプロイ作業のため…",
       "estimatedHours": "残業見込時間: {{hours}} 時間",
       "estimatedDuration": "残業見込時間: {{duration}}",
+      "durationHoursMinutes": "{{hours}}時間 {{minutes}}分",
+      "durationHoursOnly": "{{hours}}時間",
+      "durationMinutesOnly": "{{minutes}}分",
       "submitButton": "残業申請を送信",
       "cancelButton": "キャンセル",
       "errors": {

@@ -8,7 +8,7 @@ import { t } from '@/i18n';
  */
 export interface PermissionMeta {
   label: string;
-  moduleKey: 'hrm' | 'crm' | 'project' | 'document' | 'analytics' | 'iam' | 'system';
+  moduleKey: 'hrm' | 'crm' | 'project' | 'document' | 'message' | 'analytics' | 'iam' | 'system';
   order: number;
 }
 
@@ -21,56 +21,70 @@ export const PERMISSION_META: Record<string, PermissionMeta> = {
   // HRM-lite: Chấm công & Nghỉ phép
   'attendance:checkin': { label: t('admin:rolesPermissionsPage.permissions.attendance_checkin'), moduleKey: 'hrm', order: 1 },
   'attendance:view': { label: t('admin:rolesPermissionsPage.permissions.attendance_view'), moduleKey: 'hrm', order: 2 },
-  'leave_request:create': { label: t('admin:rolesPermissionsPage.permissions.leave_request_create'), moduleKey: 'hrm', order: 3 },
-  'leave_request:view': { label: t('admin:rolesPermissionsPage.permissions.leave_request_view'), moduleKey: 'hrm', order: 4 },
-  'leave_request:approve': { label: t('admin:rolesPermissionsPage.permissions.leave_request_approve'), moduleKey: 'hrm', order: 5 },
+  'attendance_adjustment:create': { label: t('admin:rolesPermissionsPage.permissions.attendance_adjustment_create'), moduleKey: 'hrm', order: 3 },
+  'attendance_adjustment:view': { label: t('admin:rolesPermissionsPage.permissions.attendance_adjustment_view'), moduleKey: 'hrm', order: 4 },
+  'attendance_adjustment:approve': { label: t('admin:rolesPermissionsPage.permissions.attendance_adjustment_approve'), moduleKey: 'hrm', order: 5 },
+  'leave_request:create': { label: t('admin:rolesPermissionsPage.permissions.leave_request_create'), moduleKey: 'hrm', order: 6 },
+  'leave_request:view': { label: t('admin:rolesPermissionsPage.permissions.leave_request_view'), moduleKey: 'hrm', order: 7 },
+  'leave_request:approve': { label: t('admin:rolesPermissionsPage.permissions.leave_request_approve'), moduleKey: 'hrm', order: 8 },
+  'overtime_request:create': { label: t('admin:rolesPermissionsPage.permissions.overtime_request_create'), moduleKey: 'hrm', order: 9 },
+  'overtime_request:view': { label: t('admin:rolesPermissionsPage.permissions.overtime_request_view'), moduleKey: 'hrm', order: 10 },
+  'overtime_request:approve': { label: t('admin:rolesPermissionsPage.permissions.overtime_request_approve'), moduleKey: 'hrm', order: 11 },
+  'calendar:manage': { label: t('admin:rolesPermissionsPage.permissions.calendar_manage'), moduleKey: 'hrm', order: 12 },
 
   // CRM-lite: Khách hàng & Bán hàng
-  'customer:view': { label: t('admin:rolesPermissionsPage.permissions.customer_view'), moduleKey: 'crm', order: 10 },
-  'customer:create': { label: t('admin:rolesPermissionsPage.permissions.customer_create'), moduleKey: 'crm', order: 11 },
-  'customer:update': { label: t('admin:rolesPermissionsPage.permissions.customer_update'), moduleKey: 'crm', order: 12 },
-  'customer:delete': { label: t('admin:rolesPermissionsPage.permissions.customer_delete'), moduleKey: 'crm', order: 13 },
-  'deal:view': { label: t('admin:rolesPermissionsPage.permissions.deal_view'), moduleKey: 'crm', order: 14 },
-  'deal:create': { label: t('admin:rolesPermissionsPage.permissions.deal_create'), moduleKey: 'crm', order: 15 },
-  'deal:update': { label: t('admin:rolesPermissionsPage.permissions.deal_update'), moduleKey: 'crm', order: 16 },
-  'deal:delete': { label: t('admin:rolesPermissionsPage.permissions.deal_delete'), moduleKey: 'crm', order: 17 },
+  'customer:view': { label: t('admin:rolesPermissionsPage.permissions.customer_view'), moduleKey: 'crm', order: 20 },
+  'customer:create': { label: t('admin:rolesPermissionsPage.permissions.customer_create'), moduleKey: 'crm', order: 21 },
+  'customer:update': { label: t('admin:rolesPermissionsPage.permissions.customer_update'), moduleKey: 'crm', order: 22 },
+  'customer:delete': { label: t('admin:rolesPermissionsPage.permissions.customer_delete'), moduleKey: 'crm', order: 23 },
+  'deal:view': { label: t('admin:rolesPermissionsPage.permissions.deal_view'), moduleKey: 'crm', order: 24 },
+  'deal:create': { label: t('admin:rolesPermissionsPage.permissions.deal_create'), moduleKey: 'crm', order: 25 },
+  'deal:update': { label: t('admin:rolesPermissionsPage.permissions.deal_update'), moduleKey: 'crm', order: 26 },
+  'deal:delete': { label: t('admin:rolesPermissionsPage.permissions.deal_delete'), moduleKey: 'crm', order: 27 },
 
   // Project & Task: Dự án & Công việc
-  'project:view': { label: t('admin:rolesPermissionsPage.permissions.project_view'), moduleKey: 'project', order: 20 },
-  'project:create': { label: t('admin:rolesPermissionsPage.permissions.project_create'), moduleKey: 'project', order: 21 },
-  'project:update': { label: t('admin:rolesPermissionsPage.permissions.project_update'), moduleKey: 'project', order: 22 },
-  'project:delete': { label: t('admin:rolesPermissionsPage.permissions.project_delete'), moduleKey: 'project', order: 23 },
-  'task:view': { label: t('admin:rolesPermissionsPage.permissions.task_view'), moduleKey: 'project', order: 24 },
-  'task:create': { label: t('admin:rolesPermissionsPage.permissions.task_create'), moduleKey: 'project', order: 25 },
-  'task:update': { label: t('admin:rolesPermissionsPage.permissions.task_update'), moduleKey: 'project', order: 26 },
-  'task:delete': { label: t('admin:rolesPermissionsPage.permissions.task_delete'), moduleKey: 'project', order: 27 },
+  'project:view': { label: t('admin:rolesPermissionsPage.permissions.project_view'), moduleKey: 'project', order: 30 },
+  'project:create': { label: t('admin:rolesPermissionsPage.permissions.project_create'), moduleKey: 'project', order: 31 },
+  'project:update': { label: t('admin:rolesPermissionsPage.permissions.project_update'), moduleKey: 'project', order: 32 },
+  'project:delete': { label: t('admin:rolesPermissionsPage.permissions.project_delete'), moduleKey: 'project', order: 33 },
+  'task:view': { label: t('admin:rolesPermissionsPage.permissions.task_view'), moduleKey: 'project', order: 34 },
+  'task:create': { label: t('admin:rolesPermissionsPage.permissions.task_create'), moduleKey: 'project', order: 35 },
+  'task:update': { label: t('admin:rolesPermissionsPage.permissions.task_update'), moduleKey: 'project', order: 36 },
+  'task:delete': { label: t('admin:rolesPermissionsPage.permissions.task_delete'), moduleKey: 'project', order: 37 },
 
   // Document: Tài liệu & Lưu trữ
-  'document:view': { label: t('admin:rolesPermissionsPage.permissions.document_view'), moduleKey: 'document', order: 30 },
-  'document:upload': { label: t('admin:rolesPermissionsPage.permissions.document_upload'), moduleKey: 'document', order: 31 },
-  'document:share': { label: t('admin:rolesPermissionsPage.permissions.document_share'), moduleKey: 'document', order: 32 },
-  'document:delete': { label: t('admin:rolesPermissionsPage.permissions.document_delete'), moduleKey: 'document', order: 33 },
+  'document:view': { label: t('admin:rolesPermissionsPage.permissions.document_view'), moduleKey: 'document', order: 40 },
+  'document:upload': { label: t('admin:rolesPermissionsPage.permissions.document_upload'), moduleKey: 'document', order: 41 },
+  'document:share': { label: t('admin:rolesPermissionsPage.permissions.document_share'), moduleKey: 'document', order: 42 },
+  'document:delete': { label: t('admin:rolesPermissionsPage.permissions.document_delete'), moduleKey: 'document', order: 43 },
 
-  // Analytics: Báo cáo & Phân tích
-  'analytics:view': { label: t('admin:rolesPermissionsPage.permissions.analytics_view'), moduleKey: 'analytics', order: 40 },
+  // Messaging: Tin nhắn nội bộ
+  'message:view': { label: t('admin:rolesPermissionsPage.permissions.message_view'), moduleKey: 'message', order: 50 },
+  'message:send': { label: t('admin:rolesPermissionsPage.permissions.message_send'), moduleKey: 'message', order: 51 },
+  'message:manage_group': { label: t('admin:rolesPermissionsPage.permissions.message_manage_group'), moduleKey: 'message', order: 52 },
+
+  // Analytics & ML: Báo cáo & Phân tích
+  'analytics:view': { label: t('admin:rolesPermissionsPage.permissions.analytics_view'), moduleKey: 'analytics', order: 60 },
+  'ml:view': { label: t('admin:rolesPermissionsPage.permissions.ml_view'), moduleKey: 'analytics', order: 61 },
 
   // Organization & IAM: Tổ chức & Phân quyền
-  'user:invite': { label: t('admin:rolesPermissionsPage.permissions.user_invite'), moduleKey: 'iam', order: 50 },
-  'user:manage': { label: t('admin:rolesPermissionsPage.permissions.user_manage'), moduleKey: 'iam', order: 51 },
-  'department:manage': { label: t('admin:rolesPermissionsPage.permissions.department_manage'), moduleKey: 'iam', order: 52 },
-  'role:manage': { label: t('admin:rolesPermissionsPage.permissions.role_manage'), moduleKey: 'iam', order: 53 },
-  'organization:manage': { label: t('admin:rolesPermissionsPage.permissions.organization_manage'), moduleKey: 'iam', order: 54 },
+  'user:invite': { label: t('admin:rolesPermissionsPage.permissions.user_invite'), moduleKey: 'iam', order: 70 },
+  'user:manage': { label: t('admin:rolesPermissionsPage.permissions.user_manage'), moduleKey: 'iam', order: 71 },
+  'department:manage': { label: t('admin:rolesPermissionsPage.permissions.department_manage'), moduleKey: 'iam', order: 72 },
+  'role:manage': { label: t('admin:rolesPermissionsPage.permissions.role_manage'), moduleKey: 'iam', order: 73 },
+  'organization:manage': { label: t('admin:rolesPermissionsPage.permissions.organization_manage'), moduleKey: 'iam', order: 74 },
 
   // System & Diagnostics: Hạ tầng & Hệ thống
-  'system:manage': { label: t('admin:rolesPermissionsPage.permissions.system_manage'), moduleKey: 'system', order: 60 },
+  'system:manage': { label: t('admin:rolesPermissionsPage.permissions.system_manage'), moduleKey: 'system', order: 80 },
 };
 
 /** Danh sách thứ tự hiển thị của các module nghiệp vụ */
-export const MODULE_ORDER: Array<{ key: 'hrm' | 'crm' | 'project' | 'document' | 'analytics' | 'iam' | 'system' }> = [
+export const MODULE_ORDER: Array<{ key: 'hrm' | 'crm' | 'project' | 'document' | 'message' | 'analytics' | 'iam' | 'system' }> = [
   { key: 'hrm' },
   { key: 'crm' },
   { key: 'project' },
   { key: 'document' },
+  { key: 'message' },
   { key: 'analytics' },
   { key: 'iam' },
   { key: 'system' },

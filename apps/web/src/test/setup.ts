@@ -6,3 +6,12 @@ import '@testing-library/jest-dom/vitest';
 // useTranslation(), thieu buoc nay se lam t() tra ve raw key hoac nem loi thay vi chuoi tieng
 // Viet that (vd KpiCard.test.tsx assert `screen.getByText('Lỗi tải dữ liệu')`).
 import '@/i18n';
+
+// Mock ResizeObserver for Recharts ResponsiveContainer in jsdom
+if (typeof window !== 'undefined' && !window.ResizeObserver) {
+  window.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}

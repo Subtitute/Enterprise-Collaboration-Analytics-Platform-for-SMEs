@@ -261,7 +261,7 @@ export function Sidebar() {
   const isRailCollapsed = isSecondarySidebarOpen ? true : sidebarCollapsed;
 
   return (
-    <div className={cn('sticky top-0 hidden h-screen shrink-0 md:block transition-[width] duration-200', isRailCollapsed ? 'w-16' : 'w-60')}>
+    <div className={cn('sticky top-0 hidden h-screen shrink-0 lg:block transition-[width] duration-200', isRailCollapsed ? 'w-16' : 'w-60')}>
       <aside
         className={cn(
           'flex h-screen flex-col border-r border-border-subtle bg-bg-surface transition-[width] duration-200 ease-in-out',
@@ -318,7 +318,7 @@ export function MobileSidebar() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex md:hidden">
+    <div className="fixed inset-0 z-50 flex lg:hidden">
       {/* Backdrop rgba(28,27,26,0.5), khong blur theo spec §5.1 */}
       <div
         className="absolute inset-0 bg-[#1C1B1A]/50 animate-fade-in"

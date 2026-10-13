@@ -18,6 +18,7 @@ import { QueryState } from '@/components/ui/QueryState';
 import { BuildingIcon, EditIcon, MoreVerticalIcon, PlusIcon, TrashIcon, UserIcon, UsersIcon } from '@/components/ui/Icons';
 import { useDeleteDepartment, useDepartmentsQuery, useUsersQuery } from './hooks';
 import { DepartmentModal } from './components/DepartmentModal';
+import { DepartmentCard } from './components/DepartmentCard';
 import type { Department } from '@/types';
 
 export function DepartmentsPage() {
@@ -81,108 +82,125 @@ export function DepartmentsPage() {
             <EmptyState icon={<BuildingIcon className="h-8 w-8 text-text-tertiary" />} title={t('admin:departmentsPage.emptyTitle')} />
           </div>
         ) : (
-          <Table className="border-0">
-            <TableHead className="bg-bg-subtle border-b border-border-subtle">
-              <tr className="h-10">
-                <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:departmentsPage.columns.name')}</TableHeadCell>
-                <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:departmentsPage.columns.memberCount')}</TableHeadCell>
-                <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:departmentsPage.columns.manager')}</TableHeadCell>
-                <TableHeadCell className="text-right text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:departmentsPage.columns.actions')}</TableHeadCell>
-              </tr>
-            </TableHead>
-            <TableBody>
+          <>
+            {/* Mobile View: Dạng Card Stack chuẩn đẹp, không bị đè chữ pseudo CSS */}
+            <div className="block md:hidden p-3 space-y-3">
               {departments.map((d) => {
                 const count = d.memberCount ?? memberCountMap[d.id] ?? 0;
-                // 17/09/2026: Department.managerId that tu backend (thay cho heuristic doan qua
-                // role name "lead/manager/admin" cu, co the doan SAI - vd phong ban co nhieu
-                // Manager, hoac Manager khong thuoc phong ban do) - chi con can resolve id -> ten
-                // hien thi qua useUserNameMap() da co san.
                 const managerName = d.managerId ? userNameMap[d.managerId] : undefined;
-
                 return (
-                  <TableRow key={d.id} className="h-14 border-b border-border-subtle hover:bg-bg-subtle transition-colors">
-                    {/* Cột Tên phòng ban kèm Mô tả xám nhạt bên dưới */}
-                    <TableCell label={t('admin:departmentsPage.columns.name')} className="px-4 py-2.5">
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-[13px] text-text-primary">{d.name}</p>
-                        {d.description ? (
-                          <p className="truncate text-[12px] text-text-tertiary">{d.description}</p>
-                        ) : null}
-                      </div>
-                    </TableCell>
-
-                    {/* Cột Số thành viên trực quan: pill nền bg-subtle, icon users 14px + text MONO 13/500 text-primary tabular-nums */}
-                    <TableCell label={t('admin:departmentsPage.columns.memberCount')} className="px-4 py-2.5">
-                      <span className="inline-flex items-center gap-1.5 rounded-radius-sm bg-bg-subtle border border-border-subtle px-2.5 py-1 text-[13px] font-medium font-mono tabular-nums text-text-primary">
-                        <UsersIcon className="h-3.5 w-3.5 text-text-secondary" />
-                        {t('admin:departmentsPage.membersCountLabel', { count })}
-                      </span>
-                    </TableCell>
-
-                    {/* Cột Trưởng bộ phận / Người phụ trách */}
-                    <TableCell label={t('admin:departmentsPage.columns.manager')} className="px-4 py-2.5">
-                      {d.managerId && managerName ? (
-                        <div className="flex items-center gap-2">
-                          <Avatar name={managerName} size="sm" className="h-8 w-8 text-[11px] bg-accent-soft text-accent" />
-                          <p className="truncate text-[13px] font-medium text-text-primary">{managerName}</p>
-                        </div>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 text-[13px] italic text-text-tertiary">
-                          <UserIcon className="h-3.5 w-3.5 text-text-tertiary" />
-                          {t('admin:departmentsPage.noManager')}
-                        </span>
-                      )}
-                    </TableCell>
-
-                    <TableCell label={t('admin:departmentsPage.columns.actions')} className="px-4 py-2.5 text-right">
-                      {/* 17/09/2026: an (khong chi disable) toan bo menu Sua/Xoa khi khong co
-                          DEPARTMENT_MANAGE - Manager vao duoc trang nay (qua USER_INVITE) nhung
-                          chi Org Admin moi duoc thay doi co cau phong ban. */}
-                      {canManageDepartments ? (
-                        <Dropdown
-                          align="right"
-                          trigger={({ toggle }) => (
-                            <button
-                              type="button"
-                              onClick={toggle}
-                              className="rounded-radius-sm p-1.5 text-text-tertiary hover:bg-bg-subtle hover:text-text-primary cursor-pointer transition-colors"
-                              aria-label={t('admin:departmentsPage.optionsAria')}
-                            >
-                              <MoreVerticalIcon className="h-4 w-4" />
-                            </button>
-                          )}
-                        >
-                          {({ close }) => (
-                            <div className="w-40 py-1.5">
-                              <DropdownItem
-                                onClick={() => {
-                                  setEditingDept(d);
-                                  close();
-                                }}
-                              >
-                                <EditIcon className="h-4 w-4" /> {t('admin:departmentsPage.actionsMenu.edit')}
-                              </DropdownItem>
-                              <DropdownItem
-                                className="text-danger hover:bg-danger-soft"
-                                onClick={() => {
-                                  setDeletingDept(d);
-                                  close();
-                                }}
-                              >
-                                <TrashIcon className="h-4 w-4" /> {t('admin:departmentsPage.actionsMenu.delete')}
-                              </DropdownItem>
-                            </div>
-                          )}
-                        </Dropdown>
-                      ) : (
-                        <span className="text-[12px] text-text-tertiary">—</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
+                  <DepartmentCard
+                    key={d.id}
+                    department={d}
+                    memberCount={count}
+                    managerName={managerName}
+                    canManageDepartments={canManageDepartments}
+                    onEdit={setEditingDept}
+                    onDelete={setDeletingDept}
+                  />
                 );
               })}
-            </TableBody>
-          </Table>
+            </div>
+
+            {/* Desktop View: Bảng đầy đủ có container cuộn ngang */}
+            <div className="hidden md:block overflow-x-auto">
+              <Table className="border-0 min-w-[650px]">
+                <TableHead className="bg-bg-subtle border-b border-border-subtle">
+                  <tr className="h-10">
+                    <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:departmentsPage.columns.name')}</TableHeadCell>
+                    <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:departmentsPage.columns.memberCount')}</TableHeadCell>
+                    <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:departmentsPage.columns.manager')}</TableHeadCell>
+                    <TableHeadCell className="text-right text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:departmentsPage.columns.actions')}</TableHeadCell>
+                  </tr>
+                </TableHead>
+                <TableBody>
+                  {departments.map((d) => {
+                    const count = d.memberCount ?? memberCountMap[d.id] ?? 0;
+                    const managerName = d.managerId ? userNameMap[d.managerId] : undefined;
+
+                    return (
+                      <TableRow key={d.id} className="h-14 border-b border-border-subtle hover:bg-bg-subtle transition-colors">
+                        {/* Cột Tên phòng ban kèm Mô tả xám nhạt bên dưới */}
+                        <TableCell label={t('admin:departmentsPage.columns.name')} className="px-4 py-2.5">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-[13px] text-text-primary">{d.name}</p>
+                            {d.description ? (
+                              <p className="truncate text-[12px] text-text-tertiary">{d.description}</p>
+                            ) : null}
+                          </div>
+                        </TableCell>
+
+                        {/* Cột Số thành viên trực quan: pill nền bg-subtle, icon users 14px + text MONO 13/500 text-primary tabular-nums */}
+                        <TableCell label={t('admin:departmentsPage.columns.memberCount')} className="px-4 py-2.5">
+                          <span className="inline-flex items-center gap-1.5 rounded-radius-sm bg-bg-subtle border border-border-subtle px-2.5 py-1 text-[13px] font-medium font-mono tabular-nums text-text-primary">
+                            <UsersIcon className="h-3.5 w-3.5 text-text-secondary" />
+                            {t('admin:departmentsPage.membersCountLabel', { count })}
+                          </span>
+                        </TableCell>
+
+                        {/* Cột Trưởng bộ phận / Người phụ trách */}
+                        <TableCell label={t('admin:departmentsPage.columns.manager')} className="px-4 py-2.5">
+                          {d.managerId && managerName ? (
+                            <div className="flex items-center gap-2">
+                              <Avatar name={managerName} size="sm" className="h-8 w-8 text-[11px] bg-accent-soft text-accent" />
+                              <p className="truncate text-[13px] font-medium text-text-primary">{managerName}</p>
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 text-[13px] italic text-text-tertiary">
+                              <UserIcon className="h-3.5 w-3.5 text-text-tertiary" />
+                              {t('admin:departmentsPage.noManager')}
+                            </span>
+                          )}
+                        </TableCell>
+
+                        <TableCell label={t('admin:departmentsPage.columns.actions')} className="px-4 py-2.5 text-right">
+                          {canManageDepartments ? (
+                            <Dropdown
+                              align="right"
+                              trigger={({ toggle }) => (
+                                <button
+                                  type="button"
+                                  onClick={toggle}
+                                  className="rounded-radius-sm p-1.5 text-text-tertiary hover:bg-bg-subtle hover:text-text-primary cursor-pointer transition-colors"
+                                  aria-label={t('admin:departmentsPage.optionsAria')}
+                                >
+                                  <MoreVerticalIcon className="h-4 w-4" />
+                                </button>
+                              )}
+                            >
+                              {({ close }) => (
+                                <div className="w-40 py-1.5">
+                                  <DropdownItem
+                                    onClick={() => {
+                                      setEditingDept(d);
+                                      close();
+                                    }}
+                                  >
+                                    <EditIcon className="h-4 w-4" /> {t('admin:departmentsPage.actionsMenu.edit')}
+                                  </DropdownItem>
+                                  <DropdownItem
+                                    className="text-danger hover:bg-danger-soft"
+                                    onClick={() => {
+                                      setDeletingDept(d);
+                                      close();
+                                    }}
+                                  >
+                                    <TrashIcon className="h-4 w-4" /> {t('admin:departmentsPage.actionsMenu.delete')}
+                                  </DropdownItem>
+                                </div>
+                              )}
+                            </Dropdown>
+                          ) : (
+                            <span className="text-[12px] text-text-tertiary">—</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </>
         )}
         </QueryState>
       </div>

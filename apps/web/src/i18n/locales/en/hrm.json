@@ -154,7 +154,8 @@
       "emptyTitle": "No leave requests yet",
       "emptyDescription": "Create your first request when you need time off.",
       "createFirstButton": "Create new request",
-      "decisionNote": "Note: {{note}}"
+      "decisionNote": "Note: {{note}}",
+      "loadMore": "View more"
     }
   },
   "employeePicker": {
@@ -324,6 +325,9 @@
       "reasonPlaceholder": "e.g. Complete urgent deployment for enterprise customer…",
       "estimatedHours": "Estimated OT duration: {{hours}} hours",
       "estimatedDuration": "Estimated OT duration: {{duration}}",
+      "durationHoursMinutes": "{{hours}} hours {{minutes}} minutes",
+      "durationHoursOnly": "{{hours}} hours",
+      "durationMinutesOnly": "{{minutes}} minutes",
       "submitButton": "Submit OT Request",
       "cancelButton": "Cancel",
       "errors": {

@@ -49,9 +49,9 @@ export const AiAssistantSection = React.memo(function AiAssistantSection({
           </div>
         </div>
 
-        {/* ROW DƯỚI CÙNG HÀNG: Select kỳ (width 220) bên trái + nút Primary ink bên phải */}
-        <div className="flex items-center justify-between w-full gap-3 pt-1">
-          <div className="w-[220px] max-w-[220px] shrink-0">
+        {/* ROW DƯỚI CÙNG HÀNG: Select kỳ bên trái + nút Primary ink bên phải, responsive flex-col sm:flex-row */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3 pt-1">
+          <div className="w-full sm:w-[220px] sm:max-w-[220px] shrink-0">
             <CustomFilterSelect
               value={aiPeriod}
               onChange={(val) => onPeriodChange(val as 'week' | 'month' | 'quarter' | 'year')}
@@ -70,7 +70,7 @@ export const AiAssistantSection = React.memo(function AiAssistantSection({
             size="sm"
             isLoading={isPending}
             onClick={onGenerate}
-            className="bg-text-primary text-white hover:bg-slate-800 shadow-none cursor-pointer shrink-0 h-9 px-4"
+            className="w-full sm:w-auto bg-text-primary text-white hover:bg-slate-800 shadow-none cursor-pointer shrink-0 h-9 px-4 justify-center"
           >
             <BarChartIcon className="h-4 w-4" />
             {t('analytics:aiInsight.generateButton')}

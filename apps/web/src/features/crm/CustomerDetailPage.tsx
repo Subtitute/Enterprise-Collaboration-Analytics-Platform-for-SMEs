@@ -12,6 +12,7 @@ import { useUserNameMap } from '@/hooks/useOrgUsers';
 import { formatDealValue } from './utils';
 import { useCustomerQuery, useDealsQuery, useUpdateCustomer } from './hooks';
 import { DealKanbanBoard } from './components/DealKanbanBoard';
+import { CustomerTypeBadge } from './components/CustomerCard';
 import { NewDealModal } from './components/NewDealModal';
 import { DealDetailModal } from './components/DealDetailModal';
 import type { Deal } from '@/types';
@@ -133,11 +134,16 @@ export function CustomerDetailPage() {
             </span>
           </div>
 
-          <div className="mt-2 text-[13px] text-text-secondary">
-            <span className="font-mono tabular-nums">{customer.openDealCount ?? 0}</span> {t('crm:customerDetailPage.openDealsSuffix', 'deal đang hoạt động')} — <span className="font-mono text-accent font-medium tabular-nums">{formatDealValue(customer.openDealValue ?? 0)}</span>
+          <div className="mt-2 text-[13px] text-text-secondary flex items-center gap-3">
+            <span>
+              {t('crm:customerDetailPage.openDealsSummary', {
+                count: customer.openDealCount ?? 0,
+                value: formatDealValue(customer.openDealValue ?? 0),
+                defaultValue: `${customer.openDealCount ?? 0} deal đang hoạt động — ${formatDealValue(customer.openDealValue ?? 0)}`,
+              })}
+            </span>
+            {customer.notes && <CustomerTypeBadge notes={customer.notes} />}
           </div>
-
-          {customer.notes && <p className="mt-2 max-w-2xl text-[13px] text-text-tertiary">{customer.notes}</p>}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <button

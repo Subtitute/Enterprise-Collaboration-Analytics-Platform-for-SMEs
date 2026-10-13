@@ -14,6 +14,7 @@ import { InviteMemberModal } from './components/InviteMemberModal';
 import { ImportEmployeesModal } from './components/ImportEmployeesModal';
 import { EditMemberModal } from './components/EditMemberModal';
 import { MemberTableRow } from './components/MemberTableRow';
+import { MemberCard } from './components/MemberCard';
 import { MembersToolbar } from './components/MembersToolbar';
 import type { User } from '@/types';
 
@@ -158,31 +159,50 @@ export function MembersPage() {
           </div>
         ) : (
           <>
-            <Table className="border-0">
-              <TableHead className="bg-bg-subtle border-b border-border-subtle">
-                <tr className="h-10">
-                  <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.member')}</TableHeadCell>
-                  <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.department')}</TableHeadCell>
-                  <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.role')}</TableHeadCell>
-                  <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.status')}</TableHeadCell>
-                  <TableHeadCell className="text-right text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.actions')}</TableHeadCell>
-                </tr>
-              </TableHead>
-              <TableBody>
-                {filteredUsers.map((u) => (
-                  <MemberTableRow
-                    key={u.id}
-                    user={u}
-                    departmentName={u.departmentId ? (departmentNameById[u.departmentId] ?? '—') : '—'}
-                    canManageUsers={canManageUsers}
-                    onEdit={setEditingUser}
-                    onDeactivate={setDeactivatingUser}
-                    onReactivate={handleReactivate}
-                    onDelete={setDeletingUser}
-                  />
-                ))}
-              </TableBody>
-            </Table>
+            {/* Mobile View: Dạng Card Stack chuẩn responsive */}
+            <div className="block md:hidden p-3 space-y-3">
+              {filteredUsers.map((u) => (
+                <MemberCard
+                  key={u.id}
+                  user={u}
+                  departmentName={u.departmentId ? (departmentNameById[u.departmentId] ?? '—') : '—'}
+                  canManageUsers={canManageUsers}
+                  onEdit={setEditingUser}
+                  onDeactivate={setDeactivatingUser}
+                  onReactivate={handleReactivate}
+                  onDelete={setDeletingUser}
+                />
+              ))}
+            </div>
+
+            {/* Desktop & Tablet View: Bọc trong container có overflow-x-auto */}
+            <div className="hidden md:block overflow-x-auto">
+              <Table className="border-0 min-w-[700px]">
+                <TableHead className="bg-bg-subtle border-b border-border-subtle">
+                  <tr className="h-10">
+                    <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.member')}</TableHeadCell>
+                    <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.department')}</TableHeadCell>
+                    <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.role')}</TableHeadCell>
+                    <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.status')}</TableHeadCell>
+                    <TableHeadCell className="text-right text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.actions')}</TableHeadCell>
+                  </tr>
+                </TableHead>
+                <TableBody>
+                  {filteredUsers.map((u) => (
+                    <MemberTableRow
+                      key={u.id}
+                      user={u}
+                      departmentName={u.departmentId ? (departmentNameById[u.departmentId] ?? '—') : '—'}
+                      canManageUsers={canManageUsers}
+                      onEdit={setEditingUser}
+                      onDeactivate={setDeactivatingUser}
+                      onReactivate={handleReactivate}
+                      onDelete={setDeletingUser}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
             <Pagination page={meta.page} limit={meta.limit} total={meta.total} onPageChange={setPage} />
           </>
         )}

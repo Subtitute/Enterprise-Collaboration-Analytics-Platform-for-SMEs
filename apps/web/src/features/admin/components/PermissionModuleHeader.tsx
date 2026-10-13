@@ -25,7 +25,7 @@ export const PermissionModuleHeader = memo(function PermissionModuleHeader({
 
   return (
     <tr className={`border-y border-border-subtle bg-bg-subtle/80 ${!isFirst ? 'border-t-2 border-t-border-subtle' : ''}`}>
-      <td className="sticky left-0 z-10 bg-bg-subtle px-5 py-2">
+      <td className="md:sticky md:left-0 md:z-10 bg-bg-subtle px-3 sm:px-5 py-2">
         <div className="flex items-center gap-2">
           <span className="text-[12px] font-semibold text-text-primary tracking-wide">
             {moduleName}

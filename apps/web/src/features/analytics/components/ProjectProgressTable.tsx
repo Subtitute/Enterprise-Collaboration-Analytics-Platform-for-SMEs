@@ -144,41 +144,94 @@ export const ProjectProgressTable = React.memo(function ProjectProgressTable({
 
   return (
     <div>
-      <Table>
-        <TableHead>
-          <tr className="h-10 bg-bg-subtle">
-            {columns.map((col) => (
-              <TableHeadCell key={col.key} className={cn('text-[12px] font-medium text-text-tertiary uppercase tracking-wider', col.align === 'right' ? 'text-right' : 'text-left')}>
-                <button
-                  onClick={() => toggleSort(col.key)}
-                  className={cn(
-                    'inline-flex items-center gap-1 hover:text-text-primary',
-                    col.align === 'right' && 'justify-end w-full'
-                  )}
-                >
-                  {col.label}
-                  <ChevronDownIcon
+      {/* Mobile View: Card Stack độc lập, sạch sẽ, không đè layout */}
+      <div className="block md:hidden space-y-3">
+        {paginated.map((row) => (
+          <div
+            key={row.projectId}
+            className="rounded-radius-md border border-border-subtle bg-white p-4 shadow-none transition-colors hover:border-border-strong"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <span
+                onClick={() => handleNavigate(row.projectId)}
+                className="font-medium text-[14px] text-text-primary hover:text-accent cursor-pointer transition-colors line-clamp-2"
+              >
+                {row.name}
+              </span>
+              <span className="shrink-0 font-mono text-[13px] font-semibold text-text-primary tabular-nums">
+                {Math.max(0, Math.min(100, Math.round(row.progress || 0)))}%
+              </span>
+            </div>
+
+            {/* Progress bar riêng biệt */}
+            <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-bg-subtle">
+              <div
+                className={cn(
+                  'h-full rounded-full transition-all',
+                  row.progress >= 100 ? 'bg-success' : 'bg-accent'
+                )}
+                style={{ width: `${Math.max(0, Math.min(100, Math.round(row.progress || 0)))}%` }}
+              />
+            </div>
+
+            {/* Số liệu thống kê tasks & deadline */}
+            <div className="mt-3 pt-2.5 border-t border-border-subtle grid grid-cols-2 gap-2 text-[12px]">
+              <div>
+                <span className="text-text-tertiary block">{t('analytics:projectProgressTable.columns.completedTasks')}</span>
+                <span className="font-mono font-medium text-text-primary tabular-nums">
+                  {row.completedTasks} / {row.totalTasks}
+                </span>
+              </div>
+              <div>
+                <span className="text-text-tertiary block">{t('analytics:projectProgressTable.columns.deadline')}</span>
+                <span className="font-mono font-medium text-text-primary tabular-nums">
+                  {row.deadline || '—'}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop & Tablet: Bảng cuộn ngang độc lập */}
+      <div className="hidden md:block overflow-x-auto">
+        <Table className="min-w-[620px]">
+          <TableHead>
+            <tr className="h-10 bg-bg-subtle">
+              {columns.map((col) => (
+                <TableHeadCell key={col.key} className={cn('text-[12px] font-medium text-text-tertiary uppercase tracking-wider', col.align === 'right' ? 'text-right' : 'text-left')}>
+                  <button
+                    onClick={() => toggleSort(col.key)}
                     className={cn(
-                      'h-3 w-3 transition-transform shrink-0',
-                      sortKey === col.key ? 'text-text-primary' : 'text-text-tertiary',
-                      sortKey === col.key && sortDir === 'asc' && 'rotate-180',
+                      'inline-flex items-center gap-1 hover:text-text-primary',
+                      col.align === 'right' && 'justify-end w-full'
                     )}
-                  />
-                </button>
-              </TableHeadCell>
+                  >
+                    {col.label}
+                    <ChevronDownIcon
+                      className={cn(
+                        'h-3 w-3 transition-transform shrink-0',
+                        sortKey === col.key ? 'text-text-primary' : 'text-text-tertiary',
+                        sortKey === col.key && sortDir === 'asc' && 'rotate-180',
+                      )}
+                    />
+                  </button>
+                </TableHeadCell>
+              ))}
+            </tr>
+          </TableHead>
+          <TableBody>
+            {paginated.map((row) => (
+              <ProjectProgressTableRowComponent
+                key={row.projectId}
+                row={row}
+                onNavigate={handleNavigate}
+              />
             ))}
-          </tr>
-        </TableHead>
-        <TableBody>
-          {paginated.map((row) => (
-            <ProjectProgressTableRowComponent
-              key={row.projectId}
-              row={row}
-              onNavigate={handleNavigate}
-            />
-          ))}
-        </TableBody>
-      </Table>
+          </TableBody>
+        </Table>
+      </div>
+
       <Pagination page={currentPage} limit={PAGE_SIZE} total={sorted.length} onPageChange={setPage} />
     </div>
   );

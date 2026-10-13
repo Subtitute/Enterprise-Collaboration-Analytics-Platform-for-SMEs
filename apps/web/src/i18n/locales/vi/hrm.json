@@ -154,7 +154,8 @@
       "emptyTitle": "Chưa có yêu cầu nghỉ phép nào",
       "emptyDescription": "Tạo yêu cầu đầu tiên khi bạn cần nghỉ phép.",
       "createFirstButton": "Tạo yêu cầu mới",
-      "decisionNote": "Ghi chú: {{note}}"
+      "decisionNote": "Ghi chú: {{note}}",
+      "loadMore": "Xem thêm"
     }
   },
   "employeePicker": {
@@ -324,6 +325,9 @@
       "reasonPlaceholder": "Ví dụ: Hoàn thành triển khai dự án cho khách hàng…",
       "estimatedHours": "Thời lượng OT dự kiến: {{hours}} giờ",
       "estimatedDuration": "Thời lượng OT dự kiến: {{duration}}",
+      "durationHoursMinutes": "{{hours}} giờ {{minutes}} phút",
+      "durationHoursOnly": "{{hours}} giờ",
+      "durationMinutesOnly": "{{minutes}} phút",
       "submitButton": "Gửi đăng ký OT",
       "cancelButton": "Hủy",
       "errors": {

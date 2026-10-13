@@ -11,6 +11,7 @@ import { EditCustomerModal } from './EditCustomerModal';
 import type { Customer } from '@/types';
 
 export function CustomerTypeBadge({ notes }: { notes?: string | null }) {
+  const { t } = useTranslation();
   if (!notes) return null;
 
   // Đối chiếu Badge loại khách hàng theo §5
@@ -20,26 +21,40 @@ export function CustomerTypeBadge({ notes }: { notes?: string | null }) {
   // Mặc định / khác: bg-bg-subtle, text-text-secondary
   let colorStyles = 'bg-bg-subtle text-text-secondary';
   let dotColor = 'bg-text-secondary';
+  let label = notes;
 
   const n = notes.toLowerCase();
   if (n.includes('mới') || n.includes('new')) {
     colorStyles = 'bg-[#E4EEF5] text-[#1E5A8A]';
     dotColor = 'bg-[#1E5A8A]';
-  } else if (n.includes('thân thiết') || n.includes('loyal') || n.includes('vip')) {
+    label = t('crm:newCustomerModal.customerTypes.new', 'Khách hàng mới');
+  } else if (n.includes('thân thiết') || n.includes('loyal')) {
     colorStyles = 'bg-[#E6F1E9] text-[#2F6F44]';
     dotColor = 'bg-[#2F6F44]';
+    label = t('crm:newCustomerModal.customerTypes.loyal', 'Khách hàng thân thiết');
+  } else if (n.includes('vip')) {
+    colorStyles = 'bg-[#E6F1E9] text-[#2F6F44]';
+    dotColor = 'bg-[#2F6F44]';
+    label = t('crm:newCustomerModal.customerTypes.vip', 'Khách hàng VIP');
   } else if (n.includes('tiềm năng') || n.includes('lead')) {
     colorStyles = 'bg-[#FBEEE0] text-[#B45309]';
     dotColor = 'bg-[#B45309]';
+    label = t('crm:newCustomerModal.customerTypes.lead', 'Khách hàng tiềm năng');
+  } else if (n.includes('cá nhân') || n.includes('individual')) {
+    label = t('crm:newCustomerModal.customerTypes.individual', 'Khách hàng cá nhân');
+  } else if (n.includes('sme')) {
+    label = t('crm:newCustomerModal.customerTypes.sme', 'Doanh nghiệp SME');
+  } else if (n.includes('doanh nghiệp lớn') || n.includes('tập đoàn') || n.includes('enterprise')) {
+    label = t('crm:newCustomerModal.customerTypes.enterprise', 'Tập đoàn / Doanh nghiệp lớn');
   }
 
   return (
     <span
       className={`inline-flex items-center gap-1.5 h-[22px] px-2 rounded-radius-xs text-[11px] font-semibold shrink-0 max-w-[150px] truncate ${colorStyles}`}
-      title={notes}
+      title={label}
     >
       <span className={`h-1 w-1 rounded-full shrink-0 ${dotColor}`} />
-      <span className="truncate">{notes}</span>
+      <span className="truncate">{label}</span>
     </span>
   );
 }

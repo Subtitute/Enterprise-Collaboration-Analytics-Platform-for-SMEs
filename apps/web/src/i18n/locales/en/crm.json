@@ -68,6 +68,7 @@
       "lead": "Potential Lead",
       "vip": "VIP Customer",
       "loyal": "Loyal Customer",
+      "new": "New Customer",
       "sme": "SME Enterprise",
       "enterprise": "Large Enterprise / Corporation",
       "individual": "Individual Customer"

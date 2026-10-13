@@ -44,7 +44,7 @@ export const MembersToolbar = memo(function MembersToolbar({
       </div>
 
       {/* Dropdown lọc theo Phòng ban */}
-      <div className="w-[180px]">
+      <div className="w-full sm:w-[180px]">
         <CustomFilterSelect
           value={selectedDept}
           onChange={onDeptChange}
@@ -60,7 +60,7 @@ export const MembersToolbar = memo(function MembersToolbar({
       </div>
 
       {/* Dropdown lọc theo Trạng thái hoạt động */}
-      <div className="w-[170px]">
+      <div className="w-full sm:w-[170px]">
         <CustomFilterSelect
           value={selectedStatus}
           onChange={onStatusChange}
