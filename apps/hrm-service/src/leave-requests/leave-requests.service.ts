@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import {
@@ -212,6 +212,57 @@ export class LeaveRequestsService {
       };
       await this.outboxService.record(manager, {
         eventType,
+        organizationId,
+        producer: PRODUCER,
+        payload: payload as unknown as Record<string, unknown>,
+      });
+
+      return updated;
+    });
+  }
+
+  /**
+   * Nguoi nop tu huy don nghi phep PENDING cua chinh minh. Chuyen status sang REJECTED kem decisionNote
+   * de giu nguyen Postgres enum hien co, phong tranh loi lech migration enum DB.
+   */
+  async cancel(organizationId: string, id: string, userId: string): Promise<LeaveRequest> {
+    const existing = await this.leaveRequestRepo.findOne({ where: { id, organizationId } });
+    if (!existing) throw new NotFoundException({ message: 'Không tìm thấy yêu cầu nghỉ phép', errorCode: ERROR_CODES.LEAVE_REQUEST_NOT_FOUND });
+    if (existing.userId !== userId) {
+      throw new ForbiddenException({ message: 'Bạn không có quyền hủy yêu cầu nghỉ phép này' });
+    }
+    if (existing.status !== LeaveRequestStatus.PENDING) {
+      throw new BadRequestException({
+        message: 'Chỉ có thể hủy yêu cầu nghỉ phép đang chờ duyệt',
+        errorCode: ERROR_CODES.LEAVE_REQUEST_ALREADY_DECIDED,
+      });
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const leaveRequest = await manager.findOne(LeaveRequest, {
+        where: { id, organizationId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!leaveRequest) throw new NotFoundException({ message: 'Không tìm thấy yêu cầu nghỉ phép', errorCode: ERROR_CODES.LEAVE_REQUEST_NOT_FOUND });
+      if (leaveRequest.status !== LeaveRequestStatus.PENDING) {
+        throw new BadRequestException({
+          message: 'Chỉ có thể hủy yêu cầu nghỉ phép đang chờ duyệt',
+          errorCode: ERROR_CODES.LEAVE_REQUEST_ALREADY_DECIDED,
+        });
+      }
+
+      leaveRequest.status = LeaveRequestStatus.REJECTED;
+      leaveRequest.decisionNote = 'Đã hủy bởi người nộp';
+      leaveRequest.decidedAt = new Date();
+      const updated = await manager.save(leaveRequest);
+
+      const payload: LeaveRequestRejectedPayload = {
+        leaveRequestId: updated.id,
+        userId: updated.userId,
+        actorId: userId,
+      };
+      await this.outboxService.record(manager, {
+        eventType: EVENT_TYPES.LEAVE_REQUEST_REJECTED,
         organizationId,
         producer: PRODUCER,
         payload: payload as unknown as Record<string, unknown>,

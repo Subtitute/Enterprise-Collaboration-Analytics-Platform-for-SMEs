@@ -89,6 +89,7 @@
           "employee": "従業員",
           "department": "部署",
           "actualDays": "実出勤日数",
+          "paidLeaveDays": "有給休暇日数",
           "workHours": "実労働時間",
           "lateCount": "遅刻回数",
           "missingCheckOut": "退勤未打刻",
@@ -274,6 +275,7 @@
   "extensions": {
     "adjustment": {
       "requestButton": "打刻修正・理由書",
+      "pendingDuplicateTooltip": "承認待ちの申請が既に存在します",
       "modalTitle": "打刻修正申請（理由書）",
       "dateLabel": "勤務日",
       "checkInLabel": "修正後の出勤時刻",

@@ -6,6 +6,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { formatDate, calculateWorkingDays } from '@/lib/utils';
 import type { LeaveRequest } from '@/types';
 import { LeaveTypeBadge, LeaveStatusBadge, parseLeaveReason } from './leave-shared';
+import { useCancelLeaveRequest } from '../hooks';
 
 interface MyLeaveRequestItemProps {
   request: LeaveRequest;
@@ -13,6 +14,7 @@ interface MyLeaveRequestItemProps {
 
 const MyLeaveRequestItem = React.memo(function MyLeaveRequestItem({ request }: MyLeaveRequestItemProps) {
   const { t } = useTranslation();
+  const cancelMutation = useCancelLeaveRequest();
   const days = calculateWorkingDays(request.startDate, request.endDate);
   const { rawType, leaveType, cleanReason } = parseLeaveReason(request.reason, t);
 
@@ -36,13 +38,29 @@ const MyLeaveRequestItem = React.memo(function MyLeaveRequestItem({ request }: M
         )}
       </div>
 
-      {/* Dòng 2: Badge loại nghỉ (§4) + badge trạng thái (§5) */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <LeaveTypeBadge rawType={rawType} label={leaveType} />
-        <LeaveStatusBadge
-          status={request.status}
-          label={t(`hrm:enums.leaveRequestStatus.${request.status}`)}
-        />
+      {/* Dòng 2: Badge loại nghỉ (§4) + badge trạng thái (§5) + Nút Hủy đơn nếu PENDING */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          <LeaveTypeBadge rawType={rawType} label={leaveType} />
+          <LeaveStatusBadge
+            status={request.status}
+            label={t(`hrm:enums.leaveRequestStatus.${request.status}`)}
+          />
+        </div>
+        {request.status === 'PENDING' && (
+          <button
+            type="button"
+            disabled={cancelMutation.isPending}
+            onClick={() => {
+              if (window.confirm(t('hrm:leaveRequestsPage.myRequests.confirmCancel', 'Bạn có chắc chắn muốn hủy đơn nghỉ phép này không?'))) {
+                cancelMutation.mutate(request.id);
+              }
+            }}
+            className="text-[12px] font-medium text-danger hover:underline disabled:opacity-50 cursor-pointer transition-colors"
+          >
+            {cancelMutation.isPending ? t('common:status.canceling', 'Đang hủy...') : t('hrm:leaveRequestsPage.myRequests.cancelButton', 'Hủy đơn')}
+          </button>
+        )}
       </div>
 
       {/* Dòng 3: lý do 12/400 text-secondary italic */}

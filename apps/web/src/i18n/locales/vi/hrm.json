@@ -89,6 +89,7 @@
           "employee": "Nhân viên",
           "department": "Phòng ban",
           "actualDays": "Ngày công",
+          "paidLeaveDays": "Nghỉ phép hưởng lương",
           "workHours": "Tổng giờ làm",
           "lateCount": "Đi muộn",
           "missingCheckOut": "Quên checkout",
@@ -274,6 +275,7 @@
   "extensions": {
     "adjustment": {
       "requestButton": "Giải trình / Sửa công",
+      "pendingDuplicateTooltip": "Đã có đơn đang chờ duyệt",
       "modalTitle": "Giải trình điều chỉnh công",
       "dateLabel": "Ngày công",
       "checkInLabel": "Giờ check-in đề xuất",

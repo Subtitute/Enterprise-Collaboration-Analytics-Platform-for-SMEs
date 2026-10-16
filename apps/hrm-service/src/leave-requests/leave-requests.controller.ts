@@ -70,4 +70,14 @@ export class LeaveRequestsController {
   ) {
     return this.leaveRequestsService.reject(organizationId, id, approverId, dto);
   }
+
+  /** Nguoi nop tu huy don nghi phep dang PENDING cua chinh minh - khong yeu cau quyen APPROVE. */
+  @Patch(':id/cancel')
+  cancel(
+    @CurrentUser('organizationId') organizationId: string,
+    @CurrentUser('userId') userId: string,
+    @Param('id') id: string,
+  ) {
+    return this.leaveRequestsService.cancel(organizationId, id, userId);
+  }
 }

@@ -8,18 +8,21 @@ import { FullPageSpinner } from '@/components/ui/Spinner';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { UserIcon, PlusIcon, CameraIcon, EditIcon } from '@/components/ui/Icons';
 import { formatDate, formatTime, formatDateTime } from '@/lib/utils';
-import type { Attendance } from '@/types';
+import type { Attendance, LeaveRequest } from '@/types';
 import {
   OnSiteBadge,
   formatTotalHours,
   AttendanceStatusBadge,
+  LeaveAttendanceBadge,
   type ViewingPhotoTarget,
 } from './attendance-shared';
+import { parseLeaveReason } from './leave-shared';
 
 interface PersonalAttendanceRowProps {
   record: Attendance;
   today: string;
   isAdjusted: boolean;
+  isPendingAdjustment: boolean;
   onViewPhoto: (target: ViewingPhotoTarget) => void;
   onRequestAdjustment: (record: Attendance) => void;
 }
@@ -28,6 +31,7 @@ const PersonalAttendanceRow = React.memo(function PersonalAttendanceRow({
   record,
   today,
   isAdjusted,
+  isPendingAdjustment,
   onViewPhoto,
   onRequestAdjustment,
 }: PersonalAttendanceRowProps) {
@@ -98,18 +102,33 @@ const PersonalAttendanceRow = React.memo(function PersonalAttendanceRow({
         </span>
       </td>
       <td className="py-2.5 px-3 whitespace-nowrap">
-        <AttendanceStatusBadge record={record} today={today} isAdjusted={isAdjusted} />
+        <AttendanceStatusBadge
+          record={record}
+          today={today}
+          isAdjusted={isAdjusted}
+          isPendingAdjustment={isPendingAdjustment}
+        />
       </td>
       <td className="py-2.5 px-3 whitespace-nowrap text-right">
-        <button
-          type="button"
-          onClick={() => onRequestAdjustment(record)}
-          className="inline-flex items-center gap-1 text-[13px] font-medium text-accent hover:underline cursor-pointer"
-          title={t('hrm:extensions.adjustment.requestButton')}
-        >
-          <EditIcon className="h-3 w-3" />
-          <span>{t('hrm:extensions.adjustment.requestButton')}</span>
-        </button>
+        {isPendingAdjustment ? (
+          <span
+            className="inline-flex items-center gap-1 text-[13px] font-medium text-text-tertiary cursor-not-allowed select-none"
+            title={t('hrm:extensions.adjustment.pendingDuplicateTooltip', 'Đã có đơn đang chờ duyệt')}
+          >
+            <EditIcon className="h-3 w-3 opacity-60" />
+            <span>{t('hrm:extensions.adjustment.requestButton')}</span>
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onRequestAdjustment(record)}
+            className="inline-flex items-center gap-1 text-[13px] font-medium text-accent hover:underline cursor-pointer"
+            title={t('hrm:extensions.adjustment.requestButton')}
+          >
+            <EditIcon className="h-3 w-3" />
+            <span>{t('hrm:extensions.adjustment.requestButton')}</span>
+          </button>
+        )}
       </td>
     </tr>
   );
@@ -117,6 +136,7 @@ const PersonalAttendanceRow = React.memo(function PersonalAttendanceRow({
 
 export interface PersonalAttendanceTableProps {
   records: Attendance[];
+  approvedLeaveRequests?: LeaveRequest[];
   selectedMonth: string;
   monthOptions: { value: string; label: string }[];
   onMonthChange: (val: string) => void;
@@ -125,13 +145,19 @@ export interface PersonalAttendanceTableProps {
   onRetry: () => void;
   today: string;
   approvedAdjustmentAttendanceIds: Set<string>;
+  pendingAdjustmentAttendanceIds?: Set<string>;
   onOpenOtModal: () => void;
   onViewPhoto: (target: ViewingPhotoTarget) => void;
   onRequestAdjustment: (record: Attendance) => void;
 }
 
+type AttendanceRowItem =
+  | { type: 'attendance'; date: string; record: Attendance }
+  | { type: 'leave'; date: string; leaveRequest: LeaveRequest; rawType: string | null; leaveType: string | null };
+
 export function PersonalAttendanceTable({
   records,
+  approvedLeaveRequests = [],
   selectedMonth,
   monthOptions,
   onMonthChange,
@@ -140,11 +166,66 @@ export function PersonalAttendanceTable({
   onRetry,
   today,
   approvedAdjustmentAttendanceIds,
+  pendingAdjustmentAttendanceIds,
   onOpenOtModal,
   onViewPhoto,
   onRequestAdjustment,
 }: PersonalAttendanceTableProps) {
   const { t } = useTranslation();
+
+  // 16/10/2026: Tong hop danh sach cac dong tren bang cham cong ca nhan bao gom ca ban ghi cham cong that
+  // va cac ngay nghi phep da duyet (APPROVED) chua co check-in, nham khong bi hien thi thieu sot hoac loi
+  const combinedRows = React.useMemo(() => {
+    const rows: AttendanceRowItem[] = [];
+    const attendanceDates = new Set<string>();
+
+    for (const r of records) {
+      attendanceDates.add(r.workDate);
+      rows.push({ type: 'attendance', date: r.workDate, record: r });
+    }
+
+    // Duyet cac don nghi phep da duyet
+    for (const lr of approvedLeaveRequests) {
+      if (lr.status !== 'APPROVED') continue;
+      const s = new Date(lr.startDate);
+      const e = new Date(lr.endDate);
+      if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) continue;
+
+      const { rawType, leaveType } = parseLeaveReason(lr.reason, t);
+
+      const cur = new Date(s);
+      while (cur <= e) {
+        // Chi tinh Thu 2 - Thu 6 (1..5)
+        const day = cur.getDay();
+        if (day >= 1 && day <= 5) {
+          const y = cur.getFullYear();
+          const m = String(cur.getMonth() + 1).padStart(2, '0');
+          const d = String(cur.getDate()).padStart(2, '0');
+          const dateStr = `${y}-${m}-${d}`;
+
+          // Loc theo selectedMonth neu co
+          if (selectedMonth === 'all' || dateStr.startsWith(selectedMonth)) {
+            // Neu ngay nay chua co ban ghi cham cong
+            if (!attendanceDates.has(dateStr)) {
+              rows.push({
+                type: 'leave',
+                date: dateStr,
+                leaveRequest: lr,
+                rawType,
+                leaveType,
+              });
+              attendanceDates.add(dateStr); // tranh trung lap neu 2 don chong lan
+            }
+          }
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+    }
+
+    // Sap xep ngay giam dan (moi nhat len dau)
+    rows.sort((a, b) => b.date.localeCompare(a.date));
+    return rows;
+  }, [records, approvedLeaveRequests, selectedMonth, t]);
 
   return (
     <Card className="border border-border-subtle bg-surface shadow-none flex flex-col h-full overflow-hidden rounded-radius-md">
@@ -190,7 +271,7 @@ export function PersonalAttendanceTable({
           errorTitle={t('hrm:attendancePage.history.errorTitle')}
           errorDescription={t('hrm:attendancePage.history.errorDescription')}
         >
-          {records.length === 0 ? (
+          {combinedRows.length === 0 ? (
             <EmptyState
               title={t('hrm:attendancePage.history.emptyTitle')}
               description={
@@ -215,16 +296,46 @@ export function PersonalAttendanceTable({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-subtle">
-                  {records.map((record) => (
-                    <PersonalAttendanceRow
-                      key={record.id}
-                      record={record}
-                      today={today}
-                      isAdjusted={approvedAdjustmentAttendanceIds.has(record.id)}
-                      onViewPhoto={onViewPhoto}
-                      onRequestAdjustment={onRequestAdjustment}
-                    />
-                  ))}
+                  {combinedRows.map((item) => {
+                    if (item.type === 'attendance') {
+                      const record = item.record;
+                      return (
+                        <PersonalAttendanceRow
+                          key={record.id}
+                          record={record}
+                          today={today}
+                          isAdjusted={approvedAdjustmentAttendanceIds.has(record.id)}
+                          isPendingAdjustment={Boolean(pendingAdjustmentAttendanceIds?.has(record.id))}
+                          onViewPhoto={onViewPhoto}
+                          onRequestAdjustment={onRequestAdjustment}
+                        />
+                      );
+                    }
+
+                    // Hàng nghỉ phép đã duyệt nhưng không check-in
+                    return (
+                      <tr key={`leave-${item.leaveRequest.id}-${item.date}`} className="hover:bg-bg-subtle transition-colors">
+                        <td className="py-2.5 px-3 text-text-primary font-mono text-[13px] whitespace-nowrap">
+                          {formatDate(item.date)}
+                        </td>
+                        <td className="py-2.5 px-3 text-text-tertiary font-mono text-[13px] whitespace-nowrap">
+                          —
+                        </td>
+                        <td className="py-2.5 px-3 text-text-tertiary font-mono text-[13px] whitespace-nowrap">
+                          —
+                        </td>
+                        <td className="py-2.5 px-3 text-text-tertiary font-mono text-[13px] whitespace-nowrap text-right">
+                          —
+                        </td>
+                        <td className="py-2.5 px-3 whitespace-nowrap">
+                          <LeaveAttendanceBadge rawType={item.rawType} label={item.leaveType} />
+                        </td>
+                        <td className="py-2.5 px-3 whitespace-nowrap text-right text-text-tertiary font-mono text-[13px]">
+                          —
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

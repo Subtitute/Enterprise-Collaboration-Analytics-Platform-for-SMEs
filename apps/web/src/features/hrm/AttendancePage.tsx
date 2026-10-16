@@ -19,14 +19,19 @@ import {
 import { TodayAttendanceCard } from './components/TodayAttendanceCard';
 import { PersonalAttendanceTable } from './components/PersonalAttendanceTable';
 import { OrgAttendanceCard } from './components/OrgAttendanceCard';
+import { usePermissions } from '@/stores/auth.store';
+import { PERMISSIONS } from '@/constants/permissions';
 import {
   useAllAttendanceQuery,
   useApproveAttendanceAdjustment,
   useApprovedAttendanceAdjustmentsQuery,
+  useApprovedLeaveRequestsQuery,
   useApproveOvertimeRequest,
   useApprovedOvertimeRequestsQuery,
+  useCalendarEventsQuery,
   useCheckIn,
   useCheckOut,
+  useMyAttendanceAdjustmentsQuery,
   useMyAttendanceQuery,
   useMyLeaveRequestsQuery,
   usePendingAttendanceAdjustmentsQuery,
@@ -98,14 +103,41 @@ export function AttendancePage() {
   const checkInMutation = useCheckIn();
   const checkOutMutation = useCheckOut();
 
+  const permissions = usePermissions();
+  const canManageAdjustments = permissions.includes(PERMISSIONS.ATTENDANCE_ADJUSTMENT_VIEW);
+  const canViewOrgLeaves = permissions.includes(PERMISSIONS.LEAVE_REQUEST_VIEW);
+
+  // 16/10/2026: Lien thong Cham cong - Nghi phep - Lich cong ty:
+  // Query lich cong ty de lay cac ngay le (HOLIDAY)
+  const calendarEventsQuery = useCalendarEventsQuery();
+  const holidays = useMemo(
+    () => calendarEventsQuery.data?.filter((e) => e.type === 'HOLIDAY') ?? [],
+    [calendarEventsQuery.data],
+  );
+
+  // Danh sach nghi phep da duyet toan to chuc (Manager/Admin co quyen) hoac cua ca nhan (Employee)
+  const approvedOrgLeavesQuery = useApprovedLeaveRequestsQuery({ enabled: canViewOrgLeaves });
+  const myApprovedLeaves = useMemo(
+    () => myLeaveRequestsQuery.data?.data.filter((l) => l.status === 'APPROVED') ?? [],
+    [myLeaveRequestsQuery.data?.data],
+  );
+  const orgApprovedLeaves = useMemo(
+    () => (canViewOrgLeaves ? (approvedOrgLeavesQuery.data ?? []) : myApprovedLeaves),
+    [canViewOrgLeaves, approvedOrgLeavesQuery.data, myApprovedLeaves],
+  );
+
   // 22/09/2026: giai trinh cham cong/tang ca - du lieu that tu server (thay localStorage truoc
   // day). Danh sach "cho duyet" (Manager/Org Admin) va "cua toi" deu can cho trang nay: "cho duyet"
   // de hien trong PendingAdjustmentsList/PendingOvertimeList, "cua toi" khong con can thiet truc
   // tiep vi hau qua da phan anh THANG vao Attendance that (xem duoi) - nhung van giu useApprovedOvertimeRequestsQuery()
   // rieng cho MonthlyTimesheetTable (otHours that).
+  // 16/10/2026: Voi Employee, KHONG duoc goi useApprovedAttendanceAdjustmentsQuery de tranh loi 403;
+  // gate qua enabled: canManageAdjustments. Dong thoi dung useMyAttendanceAdjustmentsQuery de Employee
+  // cung xem duoc badge "Da sua cong" va badge "Cho duyet giai trinh" cua chinh minh.
+  const myAdjustmentsQuery = useMyAttendanceAdjustmentsQuery({ limit: 100 });
   const pendingAdjustmentsQuery = usePendingAttendanceAdjustmentsQuery();
   const pendingOvertimeQuery = usePendingOvertimeRequestsQuery();
-  const approvedAdjustmentsQuery = useApprovedAttendanceAdjustmentsQuery();
+  const approvedAdjustmentsQuery = useApprovedAttendanceAdjustmentsQuery({ enabled: canManageAdjustments });
   const approvedOvertimeQuery = useApprovedOvertimeRequestsQuery();
   const approveAdjustmentMutation = useApproveAttendanceAdjustment();
   const rejectAdjustmentMutation = useRejectAttendanceAdjustment();
@@ -124,7 +156,7 @@ export function AttendancePage() {
   // rieng 1 trong 2 quyen nay (khong kem ATTENDANCE_VIEW) se bi an mat toan bo khoi, du backend
   // van cho phep duyet/tu choi binh thuong. Suy ra tin hieu rieng cho tung tab, cung 1 quy uoc
   // "doi chieu isSuccess/isError cua chinh query do" nhu canViewAll o tren.
-  const canViewAdjustments = !pendingAdjustmentsQuery.isError && pendingAdjustmentsQuery.isSuccess;
+  const canViewAdjustments = canManageAdjustments && !pendingAdjustmentsQuery.isError && pendingAdjustmentsQuery.isSuccess;
   const canViewOvertime = !pendingOvertimeQuery.isError && pendingOvertimeQuery.isSuccess;
   const canViewOrgCard = canViewAll || canViewAdjustments || canViewOvertime;
 
@@ -162,10 +194,28 @@ export function AttendancePage() {
   const pendingAdjustmentsCount = pendingAdjustments.length;
   const pendingOtCount = pendingOvertimeRequests.length;
 
-  const approvedAdjustmentAttendanceIds = useMemo(
-    () => new Set((approvedAdjustmentsQuery.data ?? []).map((a) => a.attendanceId)),
-    [approvedAdjustmentsQuery.data],
-  );
+  // 16/10/2026: Hop nhat tap hop attendanceId da duyet (APPROVED) tu ca 2 nguon:
+  // - approvedAdjustmentsQuery (toan to chuc, Manager/Admin co quyen)
+  // - myAdjustmentsQuery (danh sach cua chinh user goi tu /attendance-adjustments/me)
+  const approvedAdjustmentAttendanceIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const a of approvedAdjustmentsQuery.data ?? []) {
+      if (a.attendanceId) ids.add(a.attendanceId);
+    }
+    for (const a of myAdjustmentsQuery.data?.data ?? []) {
+      if (a.status === 'APPROVED' && a.attendanceId) ids.add(a.attendanceId);
+    }
+    return ids;
+  }, [approvedAdjustmentsQuery.data, myAdjustmentsQuery.data]);
+
+  // 16/10/2026: Tap hop attendanceId dang co don cho duyet (PENDING) cua ca nhan de hien badge va chan gui trung
+  const pendingAdjustmentAttendanceIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const a of myAdjustmentsQuery.data?.data ?? []) {
+      if (a.status === 'PENDING' && a.attendanceId) ids.add(a.attendanceId);
+    }
+    return ids;
+  }, [myAdjustmentsQuery.data]);
 
   const pendingAdjustmentsWithName = useMemo(
     () => pendingAdjustments.map((a) => ({ ...a, userName: userNameMap[a.userId] ?? a.userId })),
@@ -234,6 +284,7 @@ export function AttendancePage() {
         <div className="w-full lg:col-span-7 flex flex-col">
           <PersonalAttendanceTable
             records={filteredMyRecords}
+            approvedLeaveRequests={myApprovedLeaves}
             selectedMonth={selectedMonth}
             monthOptions={monthOptions}
             onMonthChange={setSelectedMonth}
@@ -242,6 +293,7 @@ export function AttendancePage() {
             onRetry={() => attendanceQuery.refetch()}
             today={today}
             approvedAdjustmentAttendanceIds={approvedAdjustmentAttendanceIds}
+            pendingAdjustmentAttendanceIds={pendingAdjustmentAttendanceIds}
             onOpenOtModal={() => setShowOtModal(true)}
             onViewPhoto={setViewingPhoto}
             onRequestAdjustment={setAdjustmentRecord}
@@ -277,6 +329,8 @@ export function AttendancePage() {
           departments={departmentsQuery.data ?? []}
           today={today}
           approvedOvertime={approvedOvertimeQuery.data ?? []}
+          approvedLeaveRequests={orgApprovedLeaves}
+          calendarEvents={holidays}
           userNameMap={userNameMap}
           approvedAdjustmentAttendanceIds={approvedAdjustmentAttendanceIds}
           onNavigateUser={handleNavigateUser}

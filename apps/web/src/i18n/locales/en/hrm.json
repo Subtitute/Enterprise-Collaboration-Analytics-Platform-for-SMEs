@@ -89,6 +89,7 @@
           "employee": "Employee",
           "department": "Department",
           "actualDays": "Workdays",
+          "paidLeaveDays": "Paid Leave",
           "workHours": "Total Hours",
           "lateCount": "Late",
           "missingCheckOut": "Missing Checkout",
@@ -274,6 +275,7 @@
   "extensions": {
     "adjustment": {
       "requestButton": "Request Adjustment",
+      "pendingDuplicateTooltip": "Adjustment request is pending approval",
       "modalTitle": "Attendance Adjustment Request",
       "dateLabel": "Work Date",
       "checkInLabel": "Proposed Check-In Time",

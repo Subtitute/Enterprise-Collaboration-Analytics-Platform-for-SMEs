@@ -7,7 +7,7 @@ import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { DownloadIcon, SearchIcon, ClockIcon, FileTextIcon } from '@/components/ui/Icons';
 import { useAuthStore } from '@/stores/auth.store';
 import { toast } from '@/stores/toast.store';
-import type { Attendance, Department, OvertimeRequest, User } from '@/types';
+import type { Attendance, CalendarEvent, Department, LeaveRequest, OvertimeRequest, User } from '@/types';
 
 interface MonthlyTimesheetTableProps {
   records: Attendance[];
@@ -19,6 +19,10 @@ interface MonthlyTimesheetTableProps {
    *  theo khoang ngay cua thang dang xet (xem summaries useMemo ben duoi). Thay the heuristic doan
    *  "checkout sau 17:30" truoc day bang du lieu that (OvertimeRequestsService). */
   approvedOvertime: OvertimeRequest[];
+  /** 16/10/2026: Lien thong nghi phep da duyet (status=APPROVED) de tinh cong huong luong (paidLeaveDays) */
+  approvedLeaveRequests?: LeaveRequest[];
+  /** 16/10/2026: Lien thong lich cong ty ngay le (type=HOLIDAY) de tinh ngay le huong luong (paidHolidayDays) */
+  calendarEvents?: CalendarEvent[];
 }
 
 interface UserSummary {
@@ -27,6 +31,9 @@ interface UserSummary {
   departmentName: string;
   departmentId: string | null;
   actualDays: number;
+  paidLeaveDays: number;
+  paidHolidayDays: number;
+  paidDays: number;
   expectedDays: number;
   totalActualHours: number;
   totalExpectedHours: number;
@@ -100,8 +107,13 @@ const TimesheetDesktopRow = React.memo(function TimesheetDesktopRow({
       </td>
       <td className="py-2 px-3 text-text-secondary whitespace-nowrap">{s.departmentName}</td>
       <td className="py-2 px-3 text-right font-mono text-[13px] font-medium whitespace-nowrap tabular-nums">
-        <span className="text-text-primary">{s.actualDays}</span>
+        <span className="text-text-primary">{s.paidDays}</span>
         <span className="text-text-tertiary font-normal"> / {s.expectedDays}</span>
+        {s.paidLeaveDays > 0 && (
+          <span className="block text-[10px] text-accent font-sans font-normal">
+            ({t('hrm:attendancePage.allAttendance.timesheet.columns.actualDays')}: {s.actualDays} + {s.paidLeaveDays} {t('hrm:attendancePage.allAttendance.timesheet.daysUnit')})
+          </span>
+        )}
       </td>
       <td className="py-2 px-3 text-right font-mono text-[13px] font-medium whitespace-nowrap tabular-nums">
         <span className="text-text-primary">{s.totalActualHours}h</span>
@@ -202,8 +214,13 @@ const TimesheetMobileCard = React.memo(function TimesheetMobileCard({
             {t('hrm:attendancePage.allAttendance.timesheet.columns.actualDays')}:
           </span>
           <span className="font-mono font-medium text-text-primary tabular-nums">
-            {s.actualDays} / {s.expectedDays} {t('hrm:attendancePage.allAttendance.timesheet.daysUnit')}
+            {s.paidDays} / {s.expectedDays} {t('hrm:attendancePage.allAttendance.timesheet.daysUnit')}
           </span>
+          {s.paidLeaveDays > 0 && (
+            <span className="block text-[10px] text-accent font-sans">
+              ({s.actualDays} làm + {s.paidLeaveDays} phép)
+            </span>
+          )}
         </div>
         <div>
           <span className="text-text-tertiary block text-[10px]">
@@ -241,6 +258,8 @@ export function MonthlyTimesheetTable({
   selectedMonth,
   today,
   approvedOvertime,
+  approvedLeaveRequests = [],
+  calendarEvents = [],
 }: MonthlyTimesheetTableProps) {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
@@ -272,6 +291,28 @@ export function MonthlyTimesheetTable({
     const lastDayOfMonth = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
     const standardWorkingDays = countWorkingDays(firstDayOfMonth, lastDayOfMonth) || 22;
 
+    // 16/10/2026: Xac dinh cac ngay HOLIDAY roi vao Thu 2 - Thu 6 trong thang (paidHolidayDays)
+    const holidayDatesInMonth = new Set<string>();
+    for (const ev of calendarEvents) {
+      if (ev.type !== 'HOLIDAY') continue;
+      const start = ev.startDate < firstDayOfMonth ? firstDayOfMonth : ev.startDate;
+      const end = ev.endDate > lastDayOfMonth ? lastDayOfMonth : ev.endDate;
+      if (start > end) continue;
+      const cur = new Date(start);
+      const stop = new Date(end);
+      while (cur <= stop) {
+        const dayOfWeek = cur.getDay();
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+          const y = cur.getFullYear();
+          const m = String(cur.getMonth() + 1).padStart(2, '0');
+          const d = String(cur.getDate()).padStart(2, '0');
+          holidayDatesInMonth.add(`${y}-${m}-${d}`);
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+    }
+    const paidHolidayDays = holidayDatesInMonth.size;
+
     // Gom nhóm bản ghi theo userId (lọc theo khoảng ngày của tháng được chọn nếu khác 'all')
     const recordsByUser = new Map<string, Attendance[]>();
     for (const r of records) {
@@ -281,6 +322,48 @@ export function MonthlyTimesheetTable({
       const list = recordsByUser.get(r.userId) || [];
       list.push(r);
       recordsByUser.set(r.userId, list);
+    }
+
+    // 16/10/2026: Gom so ngay nghi phep HUONG LUONG (ANNUAL/SICK) da duyet (APPROVED) theo tung userId
+    // Triệt tiêu lỗi cộng trùng công (Double-counting): Nếu nhân viên đã đi làm và có log check-in thực tế trong ngày,
+    // ưu tiên tính ngày làm việc thực tế, loại trừ không cộng dồn thêm ngày phép.
+    const paidLeaveDaysByUser = new Map<string, number>();
+    const countedLeaveDatesByUser = new Map<string, Set<string>>();
+
+    for (const lr of approvedLeaveRequests) {
+      if (lr.status !== 'APPROVED') continue;
+      // Kiem tra loai nghi phep co luong khong (ANNUAL hoac SICK; UNPAID khong tinh)
+      const isUnpaid = lr.reason.includes('[UNPAID]') || lr.reason.includes('Nghỉ việc riêng') || lr.reason.includes('Personal leave') || lr.reason.includes('私用休暇');
+      if (isUnpaid) continue;
+
+      const start = lr.startDate < firstDayOfMonth ? firstDayOfMonth : lr.startDate;
+      const end = lr.endDate > lastDayOfMonth ? lastDayOfMonth : lr.endDate;
+      if (start > end) continue;
+
+      const userRecords = recordsByUser.get(lr.userId) || [];
+      const userWorkedDates = new Set(userRecords.map((r) => r.workDate));
+      const userCounted = countedLeaveDatesByUser.get(lr.userId) || new Set<string>();
+
+      let leaveWorkingDays = 0;
+      const cur = new Date(start);
+      const stop = new Date(end);
+      while (cur <= stop) {
+        const dayOfWeek = cur.getDay();
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+          const y = cur.getFullYear();
+          const m = String(cur.getMonth() + 1).padStart(2, '0');
+          const d = String(cur.getDate()).padStart(2, '0');
+          const dateStr = `${y}-${m}-${d}`;
+          // Khong dem trung neu ngay nghi phep trung vao ngay nghi le cong ty hoac ngay da di lam thuc te
+          if (!holidayDatesInMonth.has(dateStr) && !userWorkedDates.has(dateStr) && !userCounted.has(dateStr)) {
+            leaveWorkingDays++;
+            userCounted.add(dateStr);
+          }
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+      countedLeaveDatesByUser.set(lr.userId, userCounted);
+      paidLeaveDaysByUser.set(lr.userId, (paidLeaveDaysByUser.get(lr.userId) ?? 0) + leaveWorkingDays);
     }
 
     // 22/09/2026: gio OT THAT (da duyet) trong khoang ngay cua thang dang xet, cong don theo
@@ -319,6 +402,8 @@ export function MonthlyTimesheetTable({
       let lateCount = 0;
       let missingCheckOutCount = 0;
       const otHours = Math.round((otHoursByUser.get(user.id) ?? 0) * 10) / 10;
+      const paidLeaveDays = paidLeaveDaysByUser.get(user.id) ?? 0;
+      const userPaidHolidayDays = isNotJoinedYet ? 0 : paidHolidayDays;
 
       // Tính toán trên từng log chấm công
       for (const rec of userRecords) {
@@ -353,13 +438,16 @@ export function MonthlyTimesheetTable({
         }
       }
 
-      // Đánh giá trạng thái
+      const totalPaidDays = actualDays + paidLeaveDays + userPaidHolidayDays;
+
+      // 16/10/2026: Đánh giá trạng thái công chuẩn hóa:
+      // paidDays >= expectedDays -> sufficient (Đủ công)
       let status: 'sufficient' | 'insufficient' | 'newMember' | 'notJoined' = 'sufficient';
       if (isNotJoinedYet) {
         status = 'notJoined';
       } else if (isNewMember) {
-        status = 'newMember';
-      } else if (actualDays < expectedDays || totalActualHours < totalExpectedHours * 0.9) {
+        status = totalPaidDays >= expectedDays ? 'sufficient' : 'insufficient';
+      } else if (totalPaidDays < expectedDays) {
         status = 'insufficient';
       }
 
@@ -369,6 +457,9 @@ export function MonthlyTimesheetTable({
         departmentName: deptName,
         departmentId: user.departmentId ?? null,
         actualDays,
+        paidLeaveDays,
+        paidHolidayDays: userPaidHolidayDays,
+        paidDays: totalPaidDays,
         expectedDays,
         totalActualHours: Math.round(totalActualHours * 10) / 10,
         totalExpectedHours,
@@ -379,7 +470,7 @@ export function MonthlyTimesheetTable({
         isNewMember,
       };
     });
-  }, [records, users, deptMap, selectedMonth, today, t, approvedOvertime]);
+  }, [records, users, deptMap, selectedMonth, today, t, approvedOvertime, approvedLeaveRequests, calendarEvents]);
 
   // Bộ lọc theo phòng ban & tìm kiếm theo tên
   const filteredSummaries = useMemo(() => {
@@ -404,6 +495,7 @@ export function MonthlyTimesheetTable({
       t('hrm:attendancePage.allAttendance.timesheet.columns.employee'),
       t('hrm:attendancePage.allAttendance.timesheet.columns.department'),
       t('hrm:attendancePage.allAttendance.timesheet.columns.actualDays'),
+      t('hrm:attendancePage.allAttendance.timesheet.columns.paidLeaveDays'),
       `${t('hrm:attendancePage.allAttendance.timesheet.columns.workHours')} (${t('hrm:attendancePage.allAttendance.timesheet.hoursUnit')})`,
       t('hrm:attendancePage.allAttendance.timesheet.columns.lateCount'),
       t('hrm:attendancePage.allAttendance.timesheet.columns.missingCheckOut'),
@@ -414,7 +506,8 @@ export function MonthlyTimesheetTable({
     const rows = filteredSummaries.map((s) => [
       sanitizeCsvValue(s.name),
       sanitizeCsvValue(s.departmentName),
-      sanitizeCsvValue(`${s.actualDays}/${s.expectedDays}`),
+      sanitizeCsvValue(`${s.paidDays}/${s.expectedDays}`),
+      sanitizeCsvValue(s.paidLeaveDays),
       sanitizeCsvValue(`${s.totalActualHours}/${s.totalExpectedHours}`),
       sanitizeCsvValue(s.lateCount),
       sanitizeCsvValue(s.missingCheckOutCount),
@@ -447,7 +540,9 @@ export function MonthlyTimesheetTable({
       'Họ và tên', // i18n-lint-ignore: MISA/Fast payroll header
       'Phòng ban', // i18n-lint-ignore: MISA/Fast payroll header
       'Công chuẩn', // i18n-lint-ignore: MISA/Fast payroll header
-      'Công thực tế', // i18n-lint-ignore: MISA/Fast payroll header
+      'Công hưởng lương', // i18n-lint-ignore: MISA/Fast payroll header
+      'Ngày làm thực tế', // i18n-lint-ignore: MISA/Fast payroll header
+      'Nghỉ phép hưởng lương', // i18n-lint-ignore: MISA/Fast payroll header
       'Giờ làm việc thực tế', // i18n-lint-ignore: MISA/Fast payroll header
       'Giờ làm thêm (OT)', // i18n-lint-ignore: MISA/Fast payroll header
       'Số lần đi muộn', // i18n-lint-ignore: MISA/Fast payroll header
@@ -460,7 +555,9 @@ export function MonthlyTimesheetTable({
       sanitizeCsvValue(s.name),
       sanitizeCsvValue(s.departmentName),
       sanitizeCsvValue(s.expectedDays),
+      sanitizeCsvValue(s.paidDays),
       sanitizeCsvValue(s.actualDays),
+      sanitizeCsvValue(s.paidLeaveDays),
       sanitizeCsvValue(s.totalActualHours),
       sanitizeCsvValue(s.otHours),
       sanitizeCsvValue(s.lateCount),

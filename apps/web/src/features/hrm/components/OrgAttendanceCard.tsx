@@ -6,7 +6,7 @@ import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { UsersIcon, EditIcon, ClockIcon } from '@/components/ui/Icons';
-import type { Attendance, AttendanceAdjustment, OvertimeRequest, User, Department } from '@/types';
+import type { Attendance, AttendanceAdjustment, OvertimeRequest, User, Department, LeaveRequest, CalendarEvent } from '@/types';
 import { MonthlyTimesheetTable } from './MonthlyTimesheetTable';
 import { PendingAdjustmentsList } from './PendingAdjustmentsList';
 import { PendingOvertimeList } from './PendingOvertimeList';
@@ -39,6 +39,8 @@ export interface OrgAttendanceCardProps {
   departments: Department[];
   today: string;
   approvedOvertime: OvertimeRequest[];
+  approvedLeaveRequests?: LeaveRequest[];
+  calendarEvents?: CalendarEvent[];
   userNameMap: Record<string, string>;
   approvedAdjustmentAttendanceIds: Set<string>;
   onNavigateUser: (userId: string) => void;
@@ -71,6 +73,8 @@ export function OrgAttendanceCard({
   departments,
   today,
   approvedOvertime,
+  approvedLeaveRequests,
+  calendarEvents,
   userNameMap,
   approvedAdjustmentAttendanceIds,
   onNavigateUser,
@@ -215,6 +219,8 @@ export function OrgAttendanceCard({
                 selectedMonth={orgSelectedMonth}
                 today={today}
                 approvedOvertime={approvedOvertime}
+                approvedLeaveRequests={approvedLeaveRequests}
+                calendarEvents={calendarEvents}
               />
             ) : filteredAllRecords.length === 0 ? (
               <EmptyState

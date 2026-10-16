@@ -6,6 +6,7 @@ import {
   approveAttendanceAdjustment,
   approveLeaveRequest,
   approveOvertimeRequest,
+  cancelLeaveRequest,
   checkIn,
   checkOut,
   createAttendanceAdjustment,
@@ -15,6 +16,7 @@ import {
   deleteCalendarEvent,
   fetchAllAttendance,
   fetchApprovedAttendanceAdjustments,
+  fetchApprovedLeaveRequests,
   fetchApprovedOvertimeRequests,
   fetchCalendarEvents,
   fetchLeavePolicy,
@@ -157,6 +159,16 @@ export function usePendingLeaveRequestsQuery() {
   });
 }
 
+/** 16/10/2026: Danh sach don nghi phep da duyet (APPROVED) toan to chuc - gate qua enabled de tranh 403 cho Employee. */
+export function useApprovedLeaveRequestsQuery(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['leave-requests', 'approved'],
+    queryFn: () => fetchApprovedLeaveRequests(),
+    retry: false,
+    enabled: options?.enabled,
+  });
+}
+
 /**
  * 03/10/2026: lich su nghi phep DAY DU (khong loc status) cua 1 nhan vien cu the - dung boi
  * LeaveRequestDetailPage.tsx (/leave-requests/:userId, CHI Manager/Org Admin). Mirror
@@ -210,6 +222,19 @@ export function useRejectLeaveRequest() {
   });
 }
 
+export function useCancelLeaveRequest() {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: (id: string) => cancelLeaveRequest(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
+      toast.success(t('hrm:toasts.cancelLeaveRequestSuccess', 'Đã hủy yêu cầu nghỉ phép'));
+    },
+    onError: (error) => toast.error(t('hrm:toasts.cancelLeaveRequestError', 'Hủy yêu cầu nghỉ phép thất bại'), extractErrorMessage(error)),
+  });
+}
+
 // 22/09/2026: giai trinh cham cong - thay the du lieu gia lap bang localStorage truoc day. Mirror
 // dung cac hook LeaveRequest o tren. approve() invalidate ca ['attendance'] vi duyet THANH CONG se
 // ghi de checkInAt/checkOutAt that cua Attendance (xem AttendanceAdjustmentsService.decide()).
@@ -239,12 +264,13 @@ export function useCreateAttendanceAdjustment() {
   });
 }
 
-/** 403 la ket qua BINH THUONG cho Employee - dung boi AttendancePage.tsx de hien badge "Đã sửa công". */
-export function useApprovedAttendanceAdjustmentsQuery() {
+/** Dung boi AttendancePage.tsx de hien badge "Đã sửa công" cho quan ly (gate qua enabled: canViewAdjustments). */
+export function useApprovedAttendanceAdjustmentsQuery(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['attendance-adjustments', 'approved'],
     queryFn: () => fetchApprovedAttendanceAdjustments(),
     retry: false,
+    enabled: options?.enabled,
   });
 }
 

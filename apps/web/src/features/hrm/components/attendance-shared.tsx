@@ -160,12 +160,23 @@ export function AttendanceStatusBadge({
   record,
   today,
   isAdjusted = false,
+  isPendingAdjustment = false,
 }: {
   record: { workDate: string; checkInAt: string; checkOutAt?: string | null };
   today: string;
   isAdjusted?: boolean;
+  isPendingAdjustment?: boolean;
 }) {
   const { t } = useTranslation();
+
+  if (isPendingAdjustment) {
+    return (
+      <span className="inline-flex items-center gap-1.5 h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 whitespace-nowrap">
+        <span className="h-1 w-1 rounded-full bg-amber-500" />
+        {t('hrm:extensions.adjustment.badge.pending')}
+      </span>
+    );
+  }
 
   if (isAdjusted) {
     return (
@@ -219,4 +230,30 @@ export function AttendanceStatusBadge({
  *  nay trung khop ISO date (YYYY-MM-DD), tranh phai tu ghep chuoi thu cong. */
 export function getTodayGmt7(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+}
+
+/**
+ * 16/10/2026: Badge hien thi loai nghi phep tren bang cham cong ca nhan cho cac ngay co don da duyet.
+ * Design System v1.1: h22, padding 2x8, rounded-[2px], font 11/600, dot 4px.
+ */
+export function LeaveAttendanceBadge({ rawType, label }: { rawType: string | null; label: string | null }) {
+  if (!label) return null;
+  let bgClass = 'bg-[#FAF9F6] text-[#5C5A55]';
+  let dotClass = 'bg-[#5C5A55]';
+
+  const typeUpper = (rawType || '').toUpperCase();
+  if (typeUpper === 'ANNUAL' || label.includes('năm') || label.includes('Annual') || label.includes('有給')) {
+    bgClass = 'bg-[#E4EFEE] text-[#0E5E5E]';
+    dotClass = 'bg-[#0E5E5E]';
+  } else if (typeUpper === 'SICK' || label.includes('ốm') || label.includes('Sick') || label.includes('病気')) {
+    bgClass = 'bg-[#FBEEE0] text-[#B45309]';
+    dotClass = 'bg-[#B45309]';
+  }
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 h-[22px] px-2 rounded-[2px] text-[11px] font-semibold shrink-0 ${bgClass}`}>
+      <span className={`h-1 w-1 rounded-full shrink-0 ${dotClass}`} />
+      <span>{label}</span>
+    </span>
+  );
 }

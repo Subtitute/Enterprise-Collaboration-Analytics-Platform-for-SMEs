@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -30,6 +30,17 @@ export function AttendanceAdjustmentModal({ record, open, onClose }: AttendanceA
   const [outTime, setOutTime] = useState(defaultOutTime);
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // 16/10/2026: Tránh lỗi stale state khi mở modal nhiều lần hoặc đổi record khác ngày:
+  // Tự động đồng bộ lại inTime, outTime theo record mới, reset reason và error.
+  useEffect(() => {
+    if (open && record) {
+      setInTime(record.checkInAt ? formatTime(record.checkInAt) : '08:30');
+      setOutTime(record.checkOutAt ? formatTime(record.checkOutAt) : '17:30');
+      setReason('');
+      setError(null);
+    }
+  }, [open, record]);
 
   if (!record) return null;
 

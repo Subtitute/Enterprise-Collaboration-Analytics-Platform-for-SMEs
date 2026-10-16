@@ -48,6 +48,12 @@ export const PERMISSIONS = {
   LEAVE_REQUEST_CREATE: 'leave_request:create',
   LEAVE_REQUEST_VIEW: 'leave_request:view',
   LEAVE_REQUEST_APPROVE: 'leave_request:approve',
+  ATTENDANCE_ADJUSTMENT_CREATE: 'attendance_adjustment:create',
+  ATTENDANCE_ADJUSTMENT_VIEW: 'attendance_adjustment:view',
+  ATTENDANCE_ADJUSTMENT_APPROVE: 'attendance_adjustment:approve',
+  OVERTIME_REQUEST_CREATE: 'overtime_request:create',
+  OVERTIME_REQUEST_VIEW: 'overtime_request:view',
+  OVERTIME_REQUEST_APPROVE: 'overtime_request:approve',
 
   // Hệ thống & Quản trị
   SYSTEM_MANAGE: 'system:manage',
