@@ -508,6 +508,23 @@ export const ArrowRightIcon = (p: IconProps) => (
   </svg>
 );
 
+// 15/10/2026: icon moi (kieu hop/thung carton) - dung cho nav item "Danh mục sản phẩm" (Inventory Service).
+export const PackageIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M3 7.5 12 3l9 4.5-9 4.5-9-4.5Z" />
+    <path d="M3 7.5v9L12 21l9-4.5v-9" />
+    <line x1="12" y1="12" x2="12" y2="21" />
+  </svg>
+);
+
+// 15/10/2026: icon moi (kieu nha kho - mai bang, 2 cua lon) - dung cho nav item "Kho" (Inventory Service).
+export const WarehouseIcon = (p: IconProps) => (
+  <svg {...base(p)}>
+    <path d="M3 9.5 12 4l9 5.5V21H3V9.5Z" />
+    <path d="M8 21v-6h3v6M13 21v-6h3v6" />
+  </svg>
+);
+
 export const PanelLeftIcon = (p: IconProps) => (
   <svg {...base(p)}>
     <rect width="18" height="18" x="3" y="3" rx="2" />

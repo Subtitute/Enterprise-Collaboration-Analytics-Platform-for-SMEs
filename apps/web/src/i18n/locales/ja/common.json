@@ -130,7 +130,9 @@
       "overview": "概要",
       "projects": "プロジェクト・タスク",
       "documents": "ドキュメント",
-      "customers": "顧客"
+      "customers": "顧客",
+      "products": "商品カタログ",
+      "warehouse": "倉庫"
     }
   },
   "datePicker": {

@@ -14,6 +14,10 @@ import { useCustomerQuery, useDealsQuery, useUpdateCustomer } from './hooks';
 import { DealKanbanBoard } from './components/DealKanbanBoard';
 import { NewDealModal } from './components/NewDealModal';
 import { DealDetailModal } from './components/DealDetailModal';
+// 16/10/2026: khoi "San pham da mua" moi (gan giao dich khach hang, Danh muc san pham + Kho,
+// Technical_Spec.md muc 22) - panel rieng dat NGAY DUOI Kanban deal, khong chen tab moi (trang nay
+// chua tung dung Tabs.tsx, giu dung bo cuc hien co, xem chu thich day du tai CustomerPurchaseHistory.tsx).
+import { CustomerPurchaseHistory } from './components/CustomerPurchaseHistory';
 import type { Deal } from '@/types';
 import { PERMISSIONS } from '@/constants/permissions';
 
@@ -175,6 +179,8 @@ export function CustomerDetailPage() {
 
       <NewDealModal customerId={customerId} open={isNewDealOpen} onClose={() => setIsNewDealOpen(false)} />
       <DealDetailModal customerId={customerId} deal={selectedDeal} onClose={() => setSelectedDeal(null)} />
+
+      <CustomerPurchaseHistory customerId={customerId} />
     </div>
   );
 }

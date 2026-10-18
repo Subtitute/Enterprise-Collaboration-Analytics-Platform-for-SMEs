@@ -1,8 +1,10 @@
 # Technical Specification — Enterprise Collaboration & Analytics Platform for SMEs
 
-> Trạng thái: **ĐÃ TRIỂN KHAI** — mô tả kiến trúc/hệ thống đã lập trình và xác minh sống cho §1–§21;
-> phần cố ý chưa triển khai (CDC/Debezium, forecasting ML, Layer 4/6 của §19) được đánh dấu rõ tại
-> chỗ và theo dõi thêm ở `Upgrade.md`. Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
+> Trạng thái: **ĐÃ TRIỂN KHAI** — mô tả kiến trúc/hệ thống đã lập trình cho §1–§22, đã xác minh sống
+> cho §1–§21; §22 (Inventory Service) đã xác minh tĩnh (`typecheck`/`lint`/`test` sạch toàn
+> workspace) nhưng CHƯA xác minh sống qua Gateway thật — xem §22.8. Phần cố ý chưa triển khai
+> (CDC/Debezium, forecasting ML, Layer 4/6 của §19) được đánh dấu rõ tại chỗ và theo dõi thêm ở
+> `Upgrade.md`. Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
 
 **Tài liệu liên quan:** [General_idea.md](General_idea.md) · [Wireframe.md](Wireframe.md)
 **Ngày khởi tạo:** 18/07/2026
@@ -710,6 +712,196 @@ lệ `ml:view`/`message:*` trước đó — quyền mới không tự "vá ngư
 sạch toàn bộ dữ liệu thử nghiệm (sự kiện lịch, đơn nghỉ) tạo ra trong lúc kiểm thử trước khi kết
 thúc.
 
+## 22. Inventory Service — Danh mục sản phẩm, Kho, gán giao dịch khách hàng cho phân tích xu hướng thị trường *(bổ sung 16/10/2026)*
+
+Hạng mục mở rộng theo yêu cầu trực tiếp: bổ sung "Danh mục sản phẩm" và "Kho" còn thiếu, đồng thời
+gán được mặt hàng cho từng khách hàng để làm nguồn dữ liệu cho phân tích xu hướng thị trường —
+điểm khác biệt cốt lõi so với CRM-lite (§16)/HRM-lite (§17): tính năng này không chỉ là CRUD, mà
+còn **chủ động nối vào pipeline Event-Driven sẵn có để nuôi Analytics Service**, mirror kiến trúc
+`apps/crm-service`/`apps/hrm-service` (Outbox Pattern, RBAC, database-per-service) nhưng mở rộng
+thêm 1 tầng tiêu thụ sự kiện hoàn toàn mới. Triển khai song song bằng 1 agent viết toàn bộ backend
++ hạ tầng (tự thực hiện trực tiếp, không qua agent — cần nhất quán cao giữa nhiều file), sau đó 3
+agent song song cho phần phụ thuộc vào hợp đồng API đã chốt: giao diện lõi (danh mục/sản phẩm/kho),
+tích hợp vào các trang có sẵn (CRM/Analytics/Dashboard), và nguồn ảnh sản phẩm + script seed dữ
+liệu demo.
+
+### 22.1 Service mới `apps/inventory-service` (cổng nội bộ 3010, Postgres riêng `postgres-inventory`, bucket MinIO riêng `inventory-products`)
+
+6 entity chính:
+- `ProductCategory` — danh mục sản phẩm (tên, mô tả). `GET /product-categories` trả kèm
+  `productCount` tính gộp qua `GROUP BY category_id` (mirror `CustomerListItem.openDealCount`).
+- `Product` — mặt hàng (tên, `sku` DUY NHẤT trong phạm vi 1 tổ chức — không phải toàn hệ thống,
+  `@Unique(['organizationId', 'sku'])`, đơn giá, `imageObjectKey` trỏ vào bucket MinIO riêng).
+  `categoryId` có FK `onDelete: 'RESTRICT'` — không xoá được danh mục còn sản phẩm (kiểm tra ở
+  tầng service trước, trả 409 rõ ràng thay vì để Postgres ném lỗi FK thô).
+- `Warehouse` — kho hàng (tên, địa chỉ).
+- `WarehouseStock` — tồn kho HIỆN TẠI của 1 sản phẩm trong 1 kho — **giá trị dẫn xuất (derived)**,
+  không bao giờ được ghi trực tiếp qua API, chỉ thay đổi như HỆ QUẢ của 1 `StockMovement` (xem
+  22.2). `@Check('"quantity" >= 0')` là lớp phòng thủ THỨ HAI ở tầng Postgres.
+- `StockMovement` — lịch sử biến động kho (nhập/xuất/điều chỉnh) — nguồn SỰ THẬT DUY NHẤT cho tồn
+  kho. `quantityDelta` có dấu (âm/dương); `type` (`IN`/`OUT`/`ADJUSTMENT`, enum mới
+  `StockMovementType` trong `packages/common-dto`) chỉ là nhãn mô tả/lọc, không tự suy ra dấu —
+  ràng buộc dấu kiểm tra riêng: `IN` bắt buộc dương, `OUT` bắt buộc âm, `ADJUSTMENT` cho phép cả 2.
+- `CustomerPurchase` — **"gán mặt hàng cho khách hàng"**, nguồn dữ liệu CHÍNH cho phân tích xu
+  hướng thị trường (xem 22.3). `customerId` KHÔNG dùng FK (thuộc database riêng của CRM-lite
+  Service — microservice không dùng FK xuyên service/DB, mirror `Deal.customerId`).
+  `unitPriceAtPurchase` là giá SNAPSHOT tại thời điểm giao dịch (không đọc lại `Product.unitPrice`
+  hiện tại có thể đã đổi — đảm bảo báo cáo lịch sử luôn chính xác theo thời gian). `warehouseId`
+  TÙY CHỌN: có giá trị nghĩa là giao dịch này THẬT SỰ trừ kho (atomic, cùng transaction với việc
+  tạo `CustomerPurchase`); để trống nghĩa là chỉ ghi nhận cho mục đích phân tích xu hướng, không
+  đụng vào tồn kho. `productId` có FK `onDelete: 'RESTRICT'` — không xoá được sản phẩm đã có lịch
+  sử giao dịch (bảo toàn tính toàn vẹn dữ liệu phân tích xu hướng quá khứ).
+
+### 22.2 Logic kho — chặt chẽ theo yêu cầu, không tồn tại trạng thái tồn kho âm
+
+`StockService.recordMovementInTransaction()` là nơi DUY NHẤT thay đổi `WarehouseStock.quantity`,
+dùng CHUNG cho cả endpoint `POST /stock-movements` lẫn luồng "gán giao dịch khách hàng kèm kho"
+(§22.1) — mirror CHÍNH XÁC pattern khoá `pessimistic_write` + re-check TRONG transaction của
+`DealsService.updateStage()`/`TasksService.updateStatus()` (chống race condition khi 2 request ghi
+biến động cho CÙNG 1 cặp kho+sản phẩm đồng thời có thể đẩy tồn kho âm). Một cặp (kho, sản phẩm)
+CHƯA TỪNG có biến động nào được "upsert ngầm" về `quantity = 0` qua `INSERT ... ON CONFLICT
+(warehouse_id, product_id) DO NOTHING` TRƯỚC KHI khoá+đọc (không thể `SELECT ... FOR UPDATE` trên 1
+hàng chưa tồn tại). Xuất kho (`OUT`)/điều chỉnh âm vượt quá tồn kho hiện có bị từ chối `409
+STOCK_INSUFFICIENT` với thông báo rõ số lượng đang thiếu, KHÔNG BAO GIỜ cho phép tồn kho âm dù ở
+bất kỳ nhánh nào.
+
+Xoá 1 `CustomerPurchase` ĐÃ từng trừ kho (có `warehouseId`) sẽ tự động HOÀN TÁC đúng số lượng đã
+trừ (ghi 1 `StockMovement` loại `ADJUSTMENT` +quantity, cùng transaction với việc xoá) — không có
+thao tác nào làm "thất thoát" tồn kho mà không để lại bằng chứng biến động tương ứng. Sửa 1
+`CustomerPurchase` CỐ Ý chỉ cho phép đổi `note`/`purchasedAt` (quyết định thiết kế: quantity/sản
+phẩm/giá/kho là bất biến sau khi tạo — sửa các trường này đòi hỏi logic "đảo ngược biến động kho cũ
++ áp dụng biến động mới" phức tạp/rủi ro hơn nhiều so với lợi ích; giao dịch sai thực sự nên XOÁ và
+TẠO LẠI, việc xoá đã tự hoàn tác đúng tồn kho — dùng tinh thần tối giản, ClaudeRule.md mục 8). Tương
+tự, xoá 1 kho còn tồn kho (`quantity > 0` ở bất kỳ sản phẩm nào) bị từ chối `409
+WAREHOUSE_HAS_STOCK` — phải xuất hết hàng trước.
+
+### 22.3 Tích hợp Analytics Service — nguồn dữ liệu CHÍNH cho phân tích xu hướng thị trường
+
+Đây là điểm khác biệt cốt lõi của tính năng này so với CRM-lite/HRM-lite: sự kiện Kafka mới (topic
+`inventory.events`) không chỉ phục vụ audit — `customer_purchase.created` được Analytics Service
+tiêu thụ TRỰC TIẾP vào 1 hypertable TimescaleDB mới, biến mỗi giao dịch thành 1 điểm dữ liệu thời
+gian thực cho biểu đồ xu hướng.
+
+- **Sự kiện Kafka mới:** `product.created`, `product.deleted`, `customer_purchase.created`,
+  `customer_purchase.deleted` (mirror quy ước CREATE/DELETE-only chung của dự án — thao tác sửa
+  không phát event). Analytics Service subscribe thêm `KAFKA_TOPICS.INVENTORY` (nâng từ 3 lên 4
+  topic lắng nghe — xem `KafkaConsumerService.startConsuming()`).
+- **Hypertable mới `fact_product_sales`** (`infra/timescale-init/001-init.sql` +
+  `schema-bootstrap.ts` tự-chữa cho môi trường dev/staging đang chạy sẵn, mirror quy ước đã có từ
+  §4.1 — 2 nơi PHẢI giữ đồng bộ) — **CHỈ ghi `customer_purchase.created`**, KHÔNG ghi
+  `product.created`/`product.deleted` (không hợp schema "fact giao dịch", vẫn được ghi vào
+  `fact_user_activity` như mọi event khác) và KHÔNG ghi `customer_purchase.deleted` (xoá 1 giao
+  dịch là hoàn tác, không có ý nghĩa "trừ đi" trong tính toán xu hướng ở quy mô đồ án này — khác
+  `TASK_DELETED`/`PROJECT_DELETED` của `fact_task_events` vẫn hợp schema "sự kiện vòng đời thực
+  thể" nên vẫn được ghi; quyết định tối giản có chủ đích, ClaudeRule.md mục 8).
+- **Continuous aggregate mới `daily_product_sales_summary`** — gộp theo ngày (GMT+7) × danh mục ×
+  sản phẩm, tính `units_sold`/`revenue` (dùng giá SNAPSHOT đã lưu sẵn trong `fact_product_sales`,
+  không JOIN lại bảng `products` của Inventory Service — database-per-service, không có FK xuyên
+  service). **Giới hạn đã biết (nhất quán với `daily_task_summary` và 2 continuous aggregate khác
+  đã có):** `schema-bootstrap.ts` CHỈ tự-chữa hypertable gốc, KHÔNG tự tạo lại continuous
+  aggregate — môi trường dev/staging đang chạy sẵn cần `DROP`/tạo lại thủ công (không có migration
+  runner thật trong đồ án này).
+- **2 endpoint Analytics mới** (cùng permission `analytics:view` sẵn có, không thêm permission
+  riêng): `GET /analytics/product-sales-trend?range=7d|30d` (biểu đồ xu hướng theo ngày — số lượng
+  bán + doanh thu, gộp toàn bộ danh mục/sản phẩm) và `GET
+  /analytics/top-products?range=7d|30d&limit=1..20` (xếp hạng sản phẩm bán chạy theo doanh thu,
+  `productId`/`categoryId` là UUID thô — frontend tự ghép tên qua `GET /products`, mirror cách
+  `ProjectProgress.projectId` không resolve tên ở tầng BE).
+
+### 22.4 RBAC
+
+Permission mới (`packages/common-dto/src/enums/permission.enum.ts`): `product:view`/`manage` (gộp
+chung Product + ProductCategory — category chỉ là metadata của sản phẩm, không tách CRUD riêng như
+Customer/Deal vốn là 2 thực thể nghiệp vụ độc lập), `warehouse:view`/`manage` (mirror độ rộng quyền
+`calendar:manage` — 1 quyền "quản lý" duy nhất, không tách CRUD từng hành động), và
+`customer_purchase:view`/`create`/`update`/`delete` (mirror CHÍNH XÁC độ rộng quyền Deal: Employee
+tự tạo/sửa được giao dịch, Manager+ CRUD toàn bộ). Manager được cấp đủ cả 3 nhóm quyền "manage"
+(mirror Project/Customer); Employee chỉ `product:view`/`warehouse:view` (không quản lý danh
+mục/kho — thuộc Manager) nhưng tự tạo/sửa được giao dịch khách hàng (không có `delete`, mirror
+Deal).
+
+**Giới hạn đã biết (chấp nhận được, ghi lại rõ ràng thay vì âm thầm bỏ qua):** phạm vi xem của
+Employee đối với `CustomerPurchase` là "giao dịch TỰ TAY ghi nhận" (`actorUserId`), KHÔNG phải
+"khách hàng mình phụ trách" như `Customer.ownerUserId` — vì Inventory Service KHÔNG thể tra cứu
+quyền sở hữu Customer xuyên service (Customer thuộc database riêng của CRM-lite, dự án này không có
+hạ tầng gọi HTTP nội bộ giữa các service). Đây là phạm vi gần nhất làm ĐÚNG kiến trúc hiện có.
+
+### 22.5 Gateway
+
+Route mới (`services.inventory` → `inventory-service:3010`): `/api/v1/product-categories`,
+`/api/v1/products`, `/api/v1/warehouses`, `/api/v1/stock`, `/api/v1/stock-movements`,
+`/api/v1/customer-purchases`. Ảnh sản phẩm tải lên qua `POST /products/:id/image` (multipart, tối
+đa 5MB, allowlist MIME thu gọn chỉ `image/jpeg`/`image/png`/`image/webp` kèm kiểm tra magic-byte —
+sao chép-và-thu-gọn từ `apps/document-service/src/files/allowed-mime-types.ts`, mirror cách
+HRM-lite đã làm cho ảnh chấm công §17) dùng timeout Gateway mặc định (30s, không cần
+`EXTENDED_PROXY_TIMEOUT_MS` như route tài liệu/ML — ảnh sản phẩm nhỏ hơn nhiều so với file tài liệu).
+
+### 22.6 Frontend (`apps/web/src/features/inventory`)
+
+- **`ProductsPage.tsx`** ("Danh mục sản phẩm") — lưới thẻ sản phẩm kèm ảnh thu nhỏ (presigned URL
+  15 phút, tự làm mới mỗi lần tải danh sách), tìm kiếm debounce 300ms + lọc không phân biệt dấu
+  tiếng Việt phía client (mirror `CustomersListPage.tsx`), lọc theo danh mục phía server, phân
+  trang tự clamp về trang cuối hợp lệ khi xoá/lọc làm trang hiện tại vượt quá (mirror
+  `CustomersListPage.tsx`). Modal tạo/sửa sản phẩm kèm tải ảnh (kéo-thả, xem trước phía client,
+  kiểm tra 5MB/jpeg-png-webp trước khi gửi). Modal quản lý danh mục riêng (tạo/sửa/xoá).
+- **`WarehousePage.tsx`** ("Kho") — bảng kho (tên/địa chỉ/tổng tồn kho/hành động) + 2 tab: Tồn kho
+  (lọc theo kho/sản phẩm) và Lịch sử biến động. Modal "Ghi nhận biến động": người dùng luôn nhập
+  SỐ LƯỢNG DƯƠNG (trực quan hơn), component tự tính dấu trước khi gọi API theo đúng quy tắc §22.2
+  (`IN` → +, `OUT` → −, `ADJUSTMENT` → theo chiều người dùng chọn riêng) — lớp phòng thủ PHÍA
+  CLIENT, backend vẫn là nơi thực thi quy tắc dấu thật sự.
+- **`CustomerDetailPage.tsx` (CRM-lite, §16)** — thêm panel "Sản phẩm đã mua" liệt kê lịch sử giao
+  dịch của khách hàng (sản phẩm/số lượng/đơn giá/thành tiền/ngày/ghi chú), nút "Ghi nhận giao dịch"
+  mở form chọn sản phẩm + số lượng + ngày + ghi chú + kho (tùy chọn, có trừ kho nếu chọn) — gated
+  theo `customer_purchase:create`/`update`/`delete` tương ứng, mirror cách trang này đã gate hành
+  động trên Deal.
+- **`AnalyticsPage.tsx` (§3.6/§19)** — thêm 1 hàng Card mới (cùng mẫu hàng ProjectProgress/
+  DocumentActivity sẵn có) ngay trên bảng Project Metrics: biểu đồ xu hướng doanh thu theo ngày
+  (`ProductSalesTrendChart.tsx`, mirror `DocumentActivityChart.tsx`) và biểu đồ xếp hạng sản phẩm
+  bán chạy (`TopProductsChart.tsx`, mirror `ProjectProgressChart.tsx` — resolve tên sản phẩm từ
+  `productId` qua `GET /products`, cùng kỹ thuật join `useProjectNameMap()` đã dùng). Dùng CHUNG
+  bộ chọn khoảng thời gian (`range`) đã có sẵn trên trang, không thêm bộ chọn thứ 2.
+- **`RecentActivityFeed.tsx` (Dashboard, §3.6)** — nhận diện thêm 2 loại hoạt động: `product.*` →
+  nhãn "Sản phẩm", `customer_purchase.*` → nhãn "Giao dịch khách hàng" (thêm vào chuỗi if/else sẵn
+  có, đặt nhánh `customer_purchase` TRƯỚC nhánh `customer` đã có — `customer_purchase.created`
+  chứa chuỗi con `"customer"` nên thứ tự kiểm tra phải đúng, nếu không nhánh `customer_purchase`
+  sẽ không bao giờ khớp được).
+- **Điều hướng:** 2 mục mới trong nhóm "Trang chủ" (`SecondarySidebar.tsx`, xem §21.1) — "Danh mục
+  sản phẩm" (`PackageIcon`, vẽ tay mới) và "Kho" (`WarehouseIcon`, vẽ tay mới) — không gắn
+  `requiredPermission` trên route (`product:view`/`warehouse:view` cấp cho cả 3 vai trò, mirror
+  `/customers`).
+- **Quyết định UX có chủ đích:** form "Ghi nhận giao dịch" trên `CustomerDetailPage.tsx` KHÔNG expose
+  trường ghi đè đơn giá dù `unitPrice` tồn tại như tham số tùy chọn ở tầng API — giao dịch luôn
+  lấy giá hiện tại của sản phẩm làm mặc định, giữ form tối giản đúng tinh thần ClaudeRule.md mục 8;
+  API vẫn hỗ trợ ghi đè nếu cần thao tác trực tiếp sau này.
+
+### 22.7 Dữ liệu demo — cùng 1 chủ đề theo yêu cầu, ảnh thật royalty-free
+
+Theo yêu cầu trực tiếp "các mặt hàng phải cùng 1 chủ đề" — chọn **máy tính và linh kiện laptop/PC**:
+5 danh mục (Laptop, PC để bàn, Linh kiện PC, Màn hình, Phụ kiện), 19 sản phẩm, mỗi sản phẩm 1 ảnh
+THẬT (nguồn royalty-free — Wikimedia Commons, không scrape ảnh sản phẩm có bản quyền từ sàn thương
+mại điện tử — tải về, chuyển sang **WebP** bằng `sharp` để giảm dung lượng, lưu tại
+`scripts/seed-assets/products/`). Script `scripts/seed-inventory.js` (`npm run seed:inventory`,
+chạy SAU `npm run seed` gốc, trên CÙNG tổ chức demo — không tự tạo tổ chức mới, mirror pattern
+đăng ký-hoặc-đăng nhập của `scripts/seed.js`) tạo danh mục + sản phẩm + tải ảnh qua `POST
+/products/:id/image` + 2 kho (Hà Nội/Hồ Chí Minh) + biến động nhập kho ban đầu cho mỗi sản phẩm ở
+mỗi kho + 26 giao dịch khách hàng (gán cho khách hàng THẬT đã được `seed.js` tạo sẵn, trải đều
+~30 ngày gần đây thay vì dồn 1 ngày, thiên lệch nhẹ về vài SKU "bán chạy" — mirror tinh thần
+`biasedProbability()`/`weightedByDept()` của `seed.js` — để biểu đồ xu hướng/xếp hạng sản phẩm bán
+chạy có dữ liệu "có ý nghĩa" khi demo thay vì phẳng đều). Toàn bộ bước tạo/tra cứu đều idempotent
+(tái sử dụng danh mục/sản phẩm/kho đã có theo tên/SKU thay vì tạo trùng lặp nếu script chạy lại).
+
+### 22.8 Xác minh
+
+`typecheck`/`lint`/`lint:i18n-strings`/`test` sạch toàn workspace (bao gồm `apps/inventory-service`
+mới — 41 test mới, và phần mở rộng của `apps/analytics-service` — thêm test cho
+`FactWriterService.recordProductSaleEvent()`, nhánh dispatch `CUSTOMER_PURCHASE_CREATED` của
+`KafkaConsumerService`, và `AnalyticsService.getProductSalesTrend()`/`getTopProducts()`), `docker
+compose config` xác nhận cú pháp hợp lệ cho 2 service/container mới (`inventory-service`,
+`postgres-inventory`) và biến môi trường phân giải đúng. **Giới hạn tại thời điểm viết mục này:**
+xác minh sống qua Gateway thật (rebuild Docker, chạy `npm run seed:inventory`, gọi API thật qua
+trình duyệt) CHƯA thực hiện được — Docker Desktop không chạy trên máy phát triển tại thời điểm hoàn
+tất phần code; sẽ bổ sung kết quả xác minh sống ngay khi môi trường sẵn sàng.
+
 ---
 
 ## Lịch sử thay đổi tài liệu
@@ -877,3 +1069,4 @@ thúc.
 - **25/09/2026 (bổ sung §19.6 — khắc phục sau phản hồi trực tiếp trên hệ thống thật)** — Người dùng phản hồi 2 vấn đề khi xem tổ chức demo thật: dữ liệu rác E2E tích luỹ trong Quản trị > Thành viên/Chấm công, và không thấy tính năng Anomaly Detection/Recommendation Engine đâu cả. Điều tra ra 4 nguyên nhân độc lập: (1) 4 khoá dịch trong "Hoạt động gần đây" viết thể bị động trong khi feed luôn hiển thị tên theo `actorId` — đọc ngược nghĩa; (2) gốc rễ dữ liệu rác — bộ E2E test đăng nhập thẳng bằng tài khoản Org Admin demo, mọi dữ liệu test tạo ra ghi vào chính tổ chức đang trình bày; tách hẳn sang 1 tổ chức E2E riêng (`scripts/seed-e2e.js`); (3) permission `ml:view` không cách nào tự cấp được cho tổ chức chỉ có 1 Org Admin (guard chặn tự nâng quyền không có lối thoát) — thêm route Super Admin mới (`PATCH /platform-admin/organizations/:id/roles/:roleId/permissions`) giải quyết triệt để, không làm yếu guard; (4) `User` là entity duy nhất chưa có API xoá cứng — bổ sung `DELETE /users/:id` (chỉ cho tài khoản đã vô hiệu hoá). Đã dọn 5 khách hàng + 17 tài khoản rác thực tế trong tổ chức demo. Chi tiết đầy đủ: `Doc/RevisionHistory.md` mục "25/09/2026".
 - **28/09/2026 (§20 — Nhắn tin nội bộ)** — Tính năng mới hoàn toàn: nhắn tin 1:1 + nhóm/kênh giữa thành viên cùng tổ chức, mục từng được nêu 17/09/2026 nhưng chưa từng đặc tả/lập trình. Service mới `apps/messaging-service` (NestJS, Postgres riêng, mirror scaffold `crm-service`) — cố ý KHÔNG dùng Kafka/Outbox (không service nào khác cần tiêu thụ) và KHÔNG xây `dim_user` cục bộ (rút kinh nghiệm trực tiếp từ đợt dọn dữ liệu ma `USER_DELETED` §19.6). WebSocket riêng (`/ws/messaging`, mirror `notifications.gateway.ts`). 3 permission mới (`message:view`/`send`/`manage_group`). Frontend cả web lẫn `ecap-mobile` (tab thứ 7, lần đầu dùng real-time thay vì polling trên mobile). Xác minh sống qua Gateway thật: dedup 1:1, tạo nhóm 3 người, gửi tin, đếm/đánh dấu đã đọc, đúng luật uỷ quyền quản lý nhóm. 2 phát hiện thật khi xác minh: thiếu `createdBy` trong `GET /conversations` (đã sửa) và permission mới cần rebuild `iam-service` + cấp thủ công 1 lần cho tổ chức demo (đúng lớp giới hạn đã biết như `ml:view`). Chi tiết đầy đủ: `Doc/RevisionHistory.md` mục "28/09/2026 (tiếp — Nhắn tin nội bộ)".
 - **03/10/2026 (§21 — Tái cấu trúc điều hướng, Lịch công ty, phát hiện nghỉ phép qua chat, ERR_EMPTY_RESPONSE)** — 6 hạng mục theo yêu cầu trực tiếp, triển khai song song bằng 6 agent: (1) Sidebar chính đổi thành icon-rail cố định, mở rộng khi trỏ chuột vào; "Trang chủ" gộp Dự án/Tài liệu/Khách hàng qua 1 sidebar phụ, route giữ nguyên. (2) Trang Thông báo riêng bị xoá, dropdown chuông trở thành giao diện duy nhất (phân trang, đánh dấu đã đọc + điều hướng SPA, mở rộng tại chỗ nếu không có link). (3) Lịch công ty rời khỏi Quản trị, gộp vào Nghỉ phép (60:40) — đổi hẳn mô hình phân quyền: ai cũng xem/tạo được sự kiện thường, chỉ Org Admin/Manager tạo được ngày lễ chính thức, sửa/xoá dựa trên so sánh cấp bậc snapshot lúc tạo (không so tên vai trò); thêm 2 trang xem lịch sử theo từng nhân viên (`/attendance/:userId`, `/leave-requests/:userId`) dùng tham số `userId` đã có sẵn ở backend từ trước. (4) Phát hiện cụm từ ngày/giờ tiếng Việt trong tin nhắn (cả web lẫn `ecap-mobile`) bằng regex thuần, hiện chip "Hẹn lịch nghỉ" chỉ trên tin của chính người gửi, tạo đơn nghỉ thật qua API sẵn có. (5) Gateway tắt hẳn HTTP keep-alive (ép `Connection: close` mọi response) để chấm dứt lỗi `ERR_EMPTY_RESPONSE` sau khi hệ thống chạy rảnh rỗi. Gate cuối sạch toàn bộ 6 nhánh gộp lại (34 test mới ở web, 14 ở hrm-service, 14 ở ecap-mobile); kiểm thử sống xác nhận đúng ma trận phân quyền lịch + tra cứu lịch sử theo nhân viên. Chi tiết đầy đủ: `Doc/RevisionHistory.md` mục "03/10/2026".
+- **16/10/2026 (§22 — Danh mục sản phẩm + Kho hàng, gán mặt hàng cho khách hàng, xu hướng thị trường)** — Bổ sung theo yêu cầu trực tiếp: thiếu phần phân tích xu hướng thị trường nên xây mới toàn bộ chuỗi "sản phẩm → kho → mua hàng của khách → phân tích" chứ không chỉ 1 danh mục đơn lẻ. Service mới `apps/inventory-service` (NestJS, Postgres riêng `postgres-inventory`, mirror scaffold `crm-service`) với 6 entity: `ProductCategory`, `Product` (ảnh lưu MinIO bucket riêng `inventory-products`, presigned URL mirror `document-service`), `Warehouse`, `WarehouseStock`, `StockMovement` (`StockMovementType` mới: `IN`/`OUT`/`ADJUSTMENT`), `CustomerPurchase` (gán mặt hàng cho từng khách hàng CRM — `customerId` tham chiếu chéo service qua Kafka, không gọi HTTP nội bộ, đúng quy ước toàn dự án). Logic kho dùng đúng mẫu khoá bi quan + re-check trong transaction đã có tiền lệ ở `DealsService.updateStage()`/`TasksService.updateStatus()` (`StockService.recordMovementInTransaction()`): `INSERT ... ON CONFLICT DO NOTHING` để "upsert rồi khoá" 1 dòng tồn kho có thể chưa tồn tại, từ chối tạo `OUT`/giảm tồn khi số dư sẽ âm (`STOCK_INSUFFICIENT`), xoá Kho/Danh mục/Sản phẩm đều có guard chặn khi còn tồn kho hoặc còn lịch sử mua hàng tham chiếu. 8 permission mới (`product:view/manage`, `warehouse:view/manage`, `customer_purchase:view/create/update/delete`) gán cho Manager (đầy đủ) và Employee (xem + tạo/sửa mua hàng, không xoá), seed tự động qua `DEFAULT_ROLE_PERMISSIONS` có sẵn. Tích hợp Analytics: 2 event Kafka mới (`product.created/deleted`, `customer_purchase.created/deleted`, topic `inventory.events`) được `analytics-service` tiêu thụ ghi vào hypertable TimescaleDB mới `fact_product_sales` (tự khởi tạo qua `schema-bootstrap.ts`, cùng mẫu idempotent `ON CONFLICT (time, event_id) DO NOTHING` như các fact-table khác), 2 endpoint phân tích mới `GET /analytics/product-sales-trend` (7d/30d) và `GET /analytics/top-products`; frontend thêm 2 biểu đồ mới (`ProductSalesTrendChart`, `TopProductsChart`) vào `AnalyticsPage.tsx` và 1 khối lịch sử mua hàng (`CustomerPurchaseHistory.tsx`) vào `CustomerDetailPage.tsx`. Gateway: route proxy mới nhóm `inventory` (xác nhận không trùng tiền tố qua `matchesPrefix()`), healthcheck + Prometheus scrape job riêng. Frontend web: 2 trang mới `/products` (lưới sản phẩm, tìm kiếm debounce 300ms + lọc không dấu tiếng Việt phía client, lọc danh mục phía server, mirror `CustomersListPage.tsx`) và `/warehouse` (bảng tồn kho + lịch sử biến động, modal ghi nhận nhập/xuất/điều chỉnh tự tính dấu số lượng phía client trước khi gửi — backend vẫn là nơi thực thi quy tắc dấu thật sự), cả 2 không gặp lại lỗi sidebar đè nhau đã sửa ở §21.1 (xác nhận bằng cách tái dùng đúng layout `AppShell`/`nav-items.ts` có sẵn, không tự viết sidebar riêng). Dữ liệu demo: `scripts/seed-inventory.js` mới (19 sản phẩm máy tính/linh kiện PC-laptop cùng 1 chủ đề theo đúng yêu cầu, 5 danh mục, ảnh thật tải từ Wikimedia Commons chuyển sang WebP để giảm dung lượng — tổng 944 KB cho 19 ảnh, có bảng nguồn/giấy phép đầy đủ trong báo cáo agent — 26 lượt mua hàng trải 30 ngày để biểu đồ xu hướng có dữ liệu thật). Gate cuối: 41 test mới `inventory-service`, ~26 test mới/sửa `analytics-service` (151 tổng), `typecheck`/`lint`/`lint:i18n-strings` sạch toàn bộ 11 project TypeScript (kể cả service mới), `docker compose config` xác nhận cú pháp/biến môi trường đúng. **Giới hạn đã biết**: chưa xác minh SỐNG qua Gateway thật (Docker Desktop không chạy được trong môi trường làm việc lúc hoàn thành tính năng) — xem §22.8.

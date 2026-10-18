@@ -688,4 +688,72 @@ describe('AnalyticsService', () => {
       expect(mainParams).toEqual(['org-1', 'emp-1']);
     });
   });
+
+  // 15/10/2026: Inventory Service (Danh muc san pham + Kho) - phan tich xu huong thi truong,
+  // Technical_Spec.md muc 22.
+  describe('getProductSalesTrend', () => {
+    it('truy van daily_product_sales_summary voi interval dung theo range, anh xa dung hinh dang DTO', async () => {
+      queryMock.mockResolvedValue([
+        { bucket: '2026-10-13T00:00:00.000Z', units_sold: '5', revenue: '125000000.00' },
+        { bucket: '2026-10-14T00:00:00.000Z', units_sold: '2', revenue: '50000000.00' },
+      ]);
+
+      const result = await service.getProductSalesTrend('org-1', '30d');
+
+      const [sql, params] = queryMock.mock.calls[0];
+      expect(sql).toContain('daily_product_sales_summary');
+      expect(params).toEqual(['org-1', '30 days']);
+      expect(result).toEqual([
+        { date: new Date('2026-10-13T00:00:00.000Z').toISOString(), unitsSold: 5, revenue: 125000000 },
+        { date: new Date('2026-10-14T00:00:00.000Z').toISOString(), unitsSold: 2, revenue: 50000000 },
+      ]);
+    });
+
+    it('tra ve mang rong khi chua co giao dich nao trong khoang range', async () => {
+      queryMock.mockResolvedValue([]);
+
+      await expect(service.getProductSalesTrend('org-empty', '7d')).resolves.toEqual([]);
+    });
+
+    it('nem BadRequestException voi range khong hop le (vd quarter khong duoc ho tro)', async () => {
+      await expect(service.getProductSalesTrend('org-1', 'quarter')).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('getTopProducts', () => {
+    it('truy van GROUP BY product_id/category_id, ORDER BY revenue DESC, LIMIT dung tham so', async () => {
+      queryMock.mockResolvedValue([
+        { product_id: 'prod-1', category_id: 'cat-1', units_sold: '10', revenue: '250000000.00' },
+        { product_id: 'prod-2', category_id: 'cat-2', units_sold: '3', revenue: '9000000.00' },
+      ]);
+
+      const result = await service.getTopProducts('org-1', '7d', 5);
+
+      const [sql, params] = queryMock.mock.calls[0];
+      expect(sql).toContain('ORDER BY revenue DESC');
+      expect(params).toEqual(['org-1', '7 days', 5]);
+      expect(result).toEqual([
+        { productId: 'prod-1', categoryId: 'cat-1', unitsSold: 10, revenue: 250000000 },
+        { productId: 'prod-2', categoryId: 'cat-2', unitsSold: 3, revenue: 9000000 },
+      ]);
+    });
+
+    it('gioi han limit trong khoang [1, 20] - vd truyen 100 bi chan xuong 20', async () => {
+      queryMock.mockResolvedValue([]);
+
+      await service.getTopProducts('org-1', '7d', 100);
+
+      const [, params] = queryMock.mock.calls[0];
+      expect(params).toEqual(['org-1', '7 days', 20]);
+    });
+
+    it('gioi han limit toi thieu 1 - vd truyen 0 hoac am bi nang len 1', async () => {
+      queryMock.mockResolvedValue([]);
+
+      await service.getTopProducts('org-1', '7d', -5);
+
+      const [, params] = queryMock.mock.calls[0];
+      expect(params).toEqual(['org-1', '7 days', 1]);
+    });
+  });
 });

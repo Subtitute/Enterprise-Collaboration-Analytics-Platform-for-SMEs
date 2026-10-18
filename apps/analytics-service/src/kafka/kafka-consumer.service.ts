@@ -97,7 +97,9 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   private async startConsuming(): Promise<void> {
     await this.consumer.connect();
     await this.consumer.subscribe({
-      topics: [KAFKA_TOPICS.IAM, KAFKA_TOPICS.PROJECT_TASK, KAFKA_TOPICS.DOCUMENT],
+      // 15/10/2026: them KAFKA_TOPICS.INVENTORY (Danh muc san pham + Kho, Technical_Spec.md muc
+      // 22) - nguon du lieu CHINH cho phan tich xu huong thi truong (xem handleEvent() ben duoi).
+      topics: [KAFKA_TOPICS.IAM, KAFKA_TOPICS.PROJECT_TASK, KAFKA_TOPICS.DOCUMENT, KAFKA_TOPICS.INVENTORY],
       // fromBeginning: dashboard/KPI can tong hop lai TOAN BO lich su su kien tu khi trien khai,
       // khong chi su kien phat sinh sau khi Analytics Service khoi dong lan dau.
       fromBeginning: true,
@@ -112,7 +114,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.logger.log(
-      `Da ket noi Kafka consumer (group=${KAFKA_CONSUMER_GROUPS.ANALYTICS_SERVICE}, topics=${KAFKA_TOPICS.IAM},${KAFKA_TOPICS.PROJECT_TASK},${KAFKA_TOPICS.DOCUMENT})`,
+      `Da ket noi Kafka consumer (group=${KAFKA_CONSUMER_GROUPS.ANALYTICS_SERVICE}, topics=${KAFKA_TOPICS.IAM},${KAFKA_TOPICS.PROJECT_TASK},${KAFKA_TOPICS.DOCUMENT},${KAFKA_TOPICS.INVENTORY})`,
     );
   }
 
@@ -272,6 +274,12 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
         } else if (event.eventType === EVENT_TYPES.USER_DELETED) {
           // 25/09/2026: xoa dong dim_user "ma" - xem chu thich chi tiet tai FactWriterService.deleteUser().
           await this.factWriter.deleteUser(event, manager);
+        } else if (event.eventType === EVENT_TYPES.CUSTOMER_PURCHASE_CREATED) {
+          // 15/10/2026: Inventory Service - nguon du lieu CHINH cho phan tich xu huong thi truong
+          // (fact_product_sales). CHI eventType nay duoc ghi - xem chu thich tai
+          // FactWriterService.recordProductSaleEvent()/fact_product_sales ve ly do khong ghi
+          // product.created/deleted/customer_purchase.deleted.
+          await this.factWriter.recordProductSaleEvent(event, manager);
         }
       });
 

@@ -12,6 +12,8 @@ export * from './enums/deal-stage.enum';
 export * from './enums/leave-request-status.enum';
 // 15/09/2026: Lich cong ty (HRM-lite mo rong) - xem enums/calendar-event-type.enum.ts.
 export * from './enums/calendar-event-type.enum';
+// 15/10/2026: Inventory Service (Danh muc san pham + Kho) - xem enums/stock-movement-type.enum.ts.
+export * from './enums/stock-movement-type.enum';
 export * from './interfaces/auth-context.interface';
 export * from './constants/public-routes';
 // 22/07/2026: export hang so bi mat noi bo dung chung (xem constants/internal-shared-secret.constant.ts)

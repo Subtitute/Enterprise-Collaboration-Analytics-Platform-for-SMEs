@@ -1812,3 +1812,97 @@ Employee được/bị chặn xoá HOLIDAY của người cấp cao hơn), tra c
 viên đúng quyền, header `Connection: close` xác nhận có trên cả route thật lẫn route proxy. Cấp
 quyền `calendar:manage` cho Manager của tổ chức demo (đúng tiền lệ `ml:view`/`message:*`). Dọn
 sạch toàn bộ dữ liệu thử nghiệm trước khi kết thúc. Chi tiết đầy đủ: `Doc/Technical_Spec.md` §21.
+
+## 16/10/2026 — Danh mục sản phẩm + Kho hàng (service mới, tích hợp phân tích xu hướng thị trường)
+
+Yêu cầu trực tiếp: hệ thống còn thiếu hẳn phần phân tích xu hướng thị trường, nên không chỉ thêm 1
+danh mục sản phẩm/kho đơn lẻ mà phải gán mặt hàng cho từng khách hàng để có dữ liệu phục vụ phân
+tích xu hướng về sau, cùng 1 chủ đề mặt hàng (máy tính/linh kiện laptop, PC), ảnh thật tải về nén
+WebP, logic kho/danh mục phải chặt chẽ tuyệt đối, và viết tài liệu đầy đủ như mọi microservice
+khác. Người dùng phê duyệt toàn bộ thay đổi cần thiết trước, không cần hỏi lại giữa chừng.
+
+**1. Service mới `apps/inventory-service`:** mirror đúng scaffold `crm-service` (NestJS, Postgres
+riêng `postgres-inventory`, `InternalAuthGuard`+`PermissionsGuard` toàn cục, Outbox+Kafka, MinIO
+bucket riêng `inventory-products` cho ảnh sản phẩm). 6 entity: `ProductCategory`, `Product` (SKU
+duy nhất, ảnh qua presigned URL mirror `document-service`, validator magic-byte giới hạn
+`jpeg/png/webp`), `Warehouse`, `WarehouseStock` (khoá tổng hợp `warehouseId`+`productId`),
+`StockMovement` (`StockMovementType` mới: `IN`/`OUT`/`ADJUSTMENT`, enum dùng chung đặt ở
+`packages/common-dto`), `CustomerPurchase` (gán 1 mặt hàng cho 1 khách hàng CRM tại 1 thời điểm,
+có thể gắn hoặc không gắn kho xuất).
+
+**2. Logic kho chặt chẽ (yêu cầu cốt lõi của người dùng):** `StockService.recordMovementInTransaction()`
+dùng đúng mẫu khoá bi quan + re-check-trong-transaction đã có tiền lệ ở
+`DealsService.updateStage()`/`TasksService.updateStatus()`: `INSERT ... ON CONFLICT (warehouseId,
+productId) DO NOTHING` để "upsert rồi khoá" 1 dòng tồn kho có thể chưa từng tồn tại (không thể
+`SELECT ... FOR UPDATE` lên 1 dòng chưa có), sau đó `SELECT ... FOR UPDATE` khoá đúng dòng đó rồi
+mới cộng/trừ số lượng trong cùng transaction — loại bỏ hoàn toàn race condition giữa 2 request ghi
+nhận biến động đồng thời trên cùng 1 cặp kho/sản phẩm. `OUT`/`ADJUSTMENT` theo chiều giảm bị từ
+chối ngay nếu số dư sau khi trừ sẽ âm (`STOCK_INSUFFICIENT`) — kiểm tra NGAY TRONG transaction sau
+khi đã khoá dòng, không kiểm tra trước rồi mới khoá (tránh đúng lớp lỗi "đọc rồi mới khoá" có thể
+bị vượt qua bởi request chen giữa). Xoá `Warehouse` bị chặn nếu còn bất kỳ dòng tồn kho > 0 nào
+(`WAREHOUSE_HAS_STOCK`); xoá `ProductCategory` bị chặn nếu còn sản phẩm (`PRODUCT_CATEGORY_HAS_PRODUCTS`);
+xoá `Product` bị chặn nếu còn lịch sử mua hàng tham chiếu (`PRODUCT_HAS_PURCHASE_HISTORY`) — cả 3
+đều là lỗi nghiệp vụ 409, không phải lỗi 500 do vi phạm khoá ngoại. `CustomerPurchase` tạo mới trừ
+tồn kho atomic (nếu có `warehouseId`) trong cùng transaction với việc ghi bản thân bản ghi mua
+hàng; xoá mua hàng hoàn tác đúng số lượng đã trừ (cộng lại), cũng atomic.
+
+**3. RBAC:** 8 permission mới (`product:view/manage`, `warehouse:view/manage`,
+`customer_purchase:view/create/update/delete`) thêm vào `PERMISSIONS`/`DEFAULT_ROLE_PERMISSIONS`
+(`packages/common-dto`) — Manager có đủ quyền quản lý (view+manage mọi thứ, CRUD mua hàng đầy
+đủ), Employee chỉ xem danh mục/kho + tạo/sửa mua hàng (không xoá, không quản lý danh mục/kho) —
+đúng mô hình phân quyền theo quyền hạn đã thống nhất từ 17/09/2026, không gán cứng theo tên vai
+trò. Seed tự động qua cơ chế `DEFAULT_ROLE_PERMISSIONS` có sẵn, không cần sửa `RolesService`.
+
+**4. Tích hợp phân tích xu hướng thị trường (mục đích chính của yêu cầu):** mỗi `CustomerPurchase`
+tạo mới phát 1 event Kafka `customer_purchase.created` (topic mới `inventory.events`,
+`KAFKA_TOPICS.INVENTORY`) qua Outbox Pattern sẵn có. `analytics-service` thêm consumer tiêu thụ
+topic này, ghi vào hypertable TimescaleDB mới `fact_product_sales` (tự khởi tạo idempotent qua
+`schema-bootstrap.ts` giống `fact_task_events`/`fact_document_events`/`fact_user_activity`, dùng
+`ON CONFLICT (time, event_id) DO NOTHING RETURNING event_id` để chống ghi trùng khi Kafka gửi lại).
+2 endpoint phân tích mới: `GET /analytics/product-sales-trend` (xu hướng doanh số theo thời gian,
+chỉ hỗ trợ 7d/30d — không có mốc quý vì dữ liệu demo chưa đủ dài) và `GET /analytics/top-products`
+(xếp hạng mặt hàng bán nhiều nhất, giới hạn kết quả có clamp min/max). Frontend: 2 biểu đồ mới
+(`ProductSalesTrendChart`, `TopProductsChart`) thêm vào `AnalyticsPage.tsx`, và 1 khối lịch sử mua
+hàng (`CustomerPurchaseHistory.tsx` + 2 modal tạo/sửa) thêm vào `CustomerDetailPage.tsx` (CRM) —
+đúng yêu cầu "gán mặt hàng cho từng khách hàng để dễ phân tích xu hướng về sau".
+
+**5. Hạ tầng:** `infra/docker-compose.yml` thêm `postgres-inventory` + `inventory-service` (port
+3010) + bucket `inventory-products` vào `minio-init`; Gateway thêm `services.inventory` +
+1 route proxy nhóm mới (xác nhận không trùng tiền tố với route nào khác qua `matchesPrefix()`);
+Prometheus thêm scrape job. Root `package.json` thêm vào `build`/`typecheck`/`dev:inventory`.
+
+**6. Frontend web — 2 trang mới, cố ý tái dùng layout có sẵn để KHÔNG tái diễn lỗi sidebar đè
+nhau đã sửa ở §21.1:** `/products` (lưới thẻ sản phẩm, tìm kiếm debounce 300ms + lọc không dấu
+tiếng Việt phía client, lọc danh mục phía server, phân trang tự clamp khi xoá/lọc vượt trang cuối
+— mirror chính xác `CustomersListPage.tsx`) và `/warehouse` (2 tab: bảng tồn kho theo
+kho/sản phẩm + bảng lịch sử biến động, modal "Ghi nhận biến động" cho người dùng nhập số lượng
+luôn dương rồi tự tính dấu phía client trước khi gửi — `IN`→`+`, `OUT`→`-`, `ADJUSTMENT`→theo
+chiều người dùng chọn riêng — chỉ là lớp tiện UI, backend vẫn là nơi thực thi quy tắc dấu thật như
+mục 2). Cả 2 trang dùng đúng `AppShell`/`nav-items.ts`/`HOME_ROUTE_PREFIXES` có sẵn, không tự viết
+cơ chế sidebar riêng.
+
+**7. Ảnh sản phẩm:** 19 ảnh thật tải từ Wikimedia Commons (đều có giấy phép tái sử dụng tự do,
+provenance ghi lại đầy đủ nguồn/giấy phép cho từng ảnh), chuyển sang WebP để giảm dung lượng —
+tổng 944 KB cho 19 ảnh (thay vì giữ nguyên JPEG/PNG gốc). Script `scripts/seed-inventory.js` mới:
+5 danh mục + 19 sản phẩm cùng 1 chủ đề máy tính/linh kiện laptop-PC (đúng yêu cầu "cho chung 1 chủ
+đề"), giá VND thực tế, tải ảnh lên qua API `POST /products/:id/image` (FormData/Blob gốc của Node
+20, không cần thư viện ngoài), 26 lượt mua hàng của khách hàng CRM có sẵn trải đều 30 ngày (có
+trọng số ưu tiên vài SKU để biểu đồ xu hướng có hình dạng rõ rệt, ~50% lượt mua gắn kèm kho xuất
+thật) — đủ dữ liệu để 2 biểu đồ xu hướng/mục mới không trống rỗng khi demo. Idempotent theo
+tên/SKU, chạy lại nhiều lần không tạo trùng.
+
+**Xác minh:** 41 test mới `inventory-service` (danh mục, sản phẩm, kho, biến động kho — bao gồm
+test trực tiếp hành vi "upsert rồi khoá" + từ chối hướng giảm khi không đủ tồn, mua hàng khách
+hàng), ~26 test mới/sửa `analytics-service` (151 tổng, gồm `fact_product_sales`, 2 endpoint xu
+hướng/top sản phẩm, dispatch Kafka mới). Gate cuối sạch: `typecheck` toàn bộ 11 project TypeScript
+(10 service + `apps/web`, kể cả service mới), `lint` 0 lỗi, `lint:i18n-strings` 0 vi phạm trên 180
+file (bao gồm 3 file `inventory.json` vi/en/ja mới, 154 khoá mỗi file, xác nhận cấu trúc khớp
+nhau), `docker compose config`/`docker compose config --services` xác nhận cú pháp YAML + đăng ký
+service + thay biến môi trường đúng (29 service). **Giới hạn đã biết — chưa xác minh SỐNG qua
+Gateway thật:** Docker Desktop không chạy được trong môi trường làm việc vào lúc hoàn thành tính
+năng (`docker compose build` lỗi kết nối named pipe) — chưa rebuild/redeploy, chưa chạy
+`npm run seed:inventory`, chưa kiểm thử qua trình duyệt thật (tạo danh mục/sản phẩm kèm ảnh, ghi
+nhận biến động kho, tạo mua hàng có/không gắn kho, xác nhận biểu đồ xu hướng/top sản phẩm hiển thị
+dữ liệu thật, xác nhận ma trận RBAC Employee/Manager đúng trên UI thật). Đây là hạn chế môi trường,
+không phải lỗi mã nguồn — cần hoàn tất ngay khi Docker Desktop chạy lại được. Chi tiết đầy đủ:
+`Doc/Technical_Spec.md` §22.

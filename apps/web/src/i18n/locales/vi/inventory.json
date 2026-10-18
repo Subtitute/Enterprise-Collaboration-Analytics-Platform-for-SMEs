@@ -1,0 +1,204 @@
+{
+  "productsPage": {
+    "title": "Danh mục sản phẩm",
+    "subtitle": "Quản lý sản phẩm và danh mục sản phẩm của doanh nghiệp.",
+    "manageCategories": "Quản lý danh mục",
+    "newProduct": "Sản phẩm mới",
+    "searchPlaceholder": "Tìm kiếm sản phẩm…",
+    "categoryFilterAllLabel": "Tất cả danh mục",
+    "loading": "Đang tải danh sách sản phẩm…",
+    "errorTitle": "Không thể tải danh sách sản phẩm",
+    "errorDescription": "Đã xảy ra lỗi khi tải danh sách sản phẩm. Vui lòng thử lại.",
+    "emptyFilteredTitle": "Không tìm thấy sản phẩm phù hợp",
+    "emptyTitle": "Chưa có sản phẩm nào",
+    "emptyFilteredDescription": "Thử điều chỉnh từ khóa tìm kiếm hoặc bộ lọc danh mục.",
+    "emptyDescription": "Thêm sản phẩm đầu tiên để bắt đầu quản lý kho hàng.",
+    "addFirstProduct": "Thêm sản phẩm mới"
+  },
+  "productCard": {
+    "unknownCategory": "Không xác định",
+    "optionsAriaLabel": "Tùy chọn sản phẩm",
+    "editProduct": "Chỉnh sửa sản phẩm",
+    "deleteProduct": "Xoá sản phẩm",
+    "deleteConfirmTitle": "Xoá sản phẩm này?",
+    "deleteConfirmDescription": "Sản phẩm \"{{name}}\" sẽ bị xoá vĩnh viễn. Hành động này không thể hoàn tác."
+  },
+  "productFormModal": {
+    "categoryRequiredError": "Vui lòng chọn danh mục",
+    "nameRequiredError": "Vui lòng nhập tên sản phẩm",
+    "skuRequiredError": "Vui lòng nhập mã SKU",
+    "editTitle": "Chỉnh sửa sản phẩm",
+    "createTitle": "Thêm sản phẩm mới",
+    "cancel": "Hủy",
+    "save": "Lưu thay đổi",
+    "create": "Thêm sản phẩm",
+    "fieldCategory": "Danh mục",
+    "categoryPlaceholder": "-- Chọn danh mục --",
+    "fieldName": "Tên sản phẩm",
+    "namePlaceholder": "Ví dụ: Ghế văn phòng ErgoPlus",
+    "fieldSku": "Mã SKU",
+    "skuPlaceholder": "Ví dụ: SKU-00123",
+    "fieldUnitPrice": "Đơn giá (VND)",
+    "fieldDescription": "Mô tả",
+    "imageSectionTitle": "Hình ảnh sản phẩm",
+    "replaceImage": "Đổi ảnh",
+    "uploadImage": "Tải ảnh lên",
+    "imageHint": "JPEG, PNG hoặc WebP, tối đa {{maxSize}}.",
+    "removeImage": "Xoá ảnh",
+    "noImageYetHint": "Lưu sản phẩm trước, sau đó quay lại chỉnh sửa để tải ảnh lên.",
+    "removeImageConfirmTitle": "Xoá ảnh sản phẩm này?",
+    "removeImageConfirmDescription": "Ảnh hiện tại của sản phẩm sẽ bị xoá. Bạn có thể tải ảnh khác lên sau."
+  },
+  "categoryModal": {
+    "nameRequiredError": "Vui lòng nhập tên danh mục",
+    "editTitle": "Chỉnh sửa danh mục",
+    "createTitle": "Thêm danh mục mới",
+    "cancel": "Hủy",
+    "save": "Lưu thay đổi",
+    "create": "Thêm danh mục",
+    "fieldName": "Tên danh mục",
+    "namePlaceholder": "Ví dụ: Thiết bị văn phòng",
+    "fieldDescription": "Mô tả"
+  },
+  "manageCategoriesModal": {
+    "title": "Quản lý danh mục sản phẩm",
+    "newCategory": "Danh mục mới",
+    "emptyTitle": "Chưa có danh mục nào",
+    "productCount": "{{count}} sản phẩm",
+    "editCategory": "Chỉnh sửa danh mục",
+    "deleteCategory": "Xoá danh mục",
+    "deleteConfirmTitle": "Xoá danh mục này?",
+    "deleteConfirmDescription": "Danh mục \"{{name}}\" sẽ bị xoá vĩnh viễn. Hành động này không thể hoàn tác."
+  },
+  "warehousePage": {
+    "title": "Kho",
+    "subtitle": "Quản lý kho hàng, tồn kho và lịch sử xuất nhập kho.",
+    "recordMovement": "Ghi nhận biến động",
+    "newWarehouse": "Kho mới",
+    "loading": "Đang tải danh sách kho…",
+    "errorTitle": "Không thể tải danh sách kho",
+    "emptyTitle": "Chưa có kho nào",
+    "columns": {
+      "name": "Tên kho",
+      "address": "Địa chỉ",
+      "totalStock": "Tổng tồn kho",
+      "actions": "Hành động"
+    },
+    "optionsAriaLabel": "Tùy chọn kho",
+    "editWarehouse": "Chỉnh sửa kho",
+    "deleteWarehouse": "Xoá kho",
+    "tabs": {
+      "stock": "Tồn kho",
+      "movements": "Lịch sử biến động"
+    },
+    "deleteConfirmTitle": "Xoá kho này?",
+    "deleteConfirmDescription": "Kho \"{{name}}\" sẽ bị xoá vĩnh viễn. Hành động này không thể hoàn tác.",
+    "filters": {
+      "warehouseLabel": "Kho",
+      "allWarehouses": "Tất cả kho",
+      "productLabel": "Sản phẩm",
+      "allProducts": "Tất cả sản phẩm"
+    }
+  },
+  "warehouseModal": {
+    "nameRequiredError": "Vui lòng nhập tên kho",
+    "editTitle": "Chỉnh sửa kho",
+    "createTitle": "Thêm kho mới",
+    "cancel": "Hủy",
+    "save": "Lưu thay đổi",
+    "create": "Thêm kho",
+    "fieldName": "Tên kho",
+    "namePlaceholder": "Ví dụ: Kho trung tâm Hà Nội",
+    "fieldAddress": "Địa chỉ"
+  },
+  "recordStockMovementModal": {
+    "warehouseRequiredError": "Vui lòng chọn kho",
+    "productRequiredError": "Vui lòng chọn sản phẩm",
+    "quantityRequiredError": "Vui lòng nhập số lượng hợp lệ (lớn hơn 0)",
+    "title": "Ghi nhận biến động kho",
+    "cancel": "Hủy",
+    "submit": "Ghi nhận",
+    "fieldWarehouse": "Kho",
+    "warehousePlaceholder": "-- Chọn kho --",
+    "fieldProduct": "Sản phẩm",
+    "productPlaceholder": "-- Chọn sản phẩm --",
+    "fieldType": "Loại biến động",
+    "fieldDirection": "Chiều điều chỉnh",
+    "directionIncrease": "Tăng (+)",
+    "directionDecrease": "Giảm (-)",
+    "fieldQuantity": "Số lượng",
+    "fieldNote": "Ghi chú"
+  },
+  "stockTable": {
+    "emptyTitle": "Chưa có dữ liệu tồn kho",
+    "columns": {
+      "warehouse": "Kho",
+      "product": "Sản phẩm",
+      "quantity": "Số lượng"
+    }
+  },
+  "stockMovementsTable": {
+    "emptyTitle": "Chưa có biến động nào",
+    "columns": {
+      "date": "Thời gian",
+      "warehouse": "Kho",
+      "product": "Sản phẩm",
+      "type": "Loại",
+      "quantityDelta": "Số lượng thay đổi",
+      "note": "Ghi chú"
+    }
+  },
+  "enums": {
+    "stockMovementType": {
+      "IN": "Nhập kho",
+      "OUT": "Xuất kho",
+      "ADJUSTMENT": "Điều chỉnh"
+    }
+  },
+  "api": {
+    "unsupportedImageType": "Chỉ hỗ trợ định dạng ảnh JPEG, PNG hoặc WebP.",
+    "imageTooLarge": "Kích thước ảnh vượt quá giới hạn cho phép ({{maxSize}})."
+  },
+  "hooks": {
+    "productCategory": {
+      "createSuccess": "Đã tạo danh mục mới",
+      "createError": "Không thể tạo danh mục",
+      "updateSuccess": "Đã cập nhật danh mục",
+      "updateError": "Không thể cập nhật danh mục",
+      "deleteSuccess": "Đã xoá danh mục",
+      "deleteError": "Không thể xoá danh mục"
+    },
+    "product": {
+      "createSuccess": "Đã tạo sản phẩm mới",
+      "createError": "Không thể tạo sản phẩm",
+      "updateSuccess": "Đã cập nhật sản phẩm",
+      "updateError": "Không thể cập nhật sản phẩm",
+      "deleteSuccess": "Đã xoá sản phẩm",
+      "deleteError": "Không thể xoá sản phẩm",
+      "imageUpdateSuccess": "Đã cập nhật ảnh sản phẩm",
+      "imageUpdateError": "Không thể cập nhật ảnh sản phẩm",
+      "imageRemoveSuccess": "Đã xoá ảnh sản phẩm",
+      "imageRemoveError": "Không thể xoá ảnh sản phẩm"
+    },
+    "warehouse": {
+      "createSuccess": "Đã tạo kho mới",
+      "createError": "Không thể tạo kho",
+      "updateSuccess": "Đã cập nhật kho",
+      "updateError": "Không thể cập nhật kho",
+      "deleteSuccess": "Đã xoá kho",
+      "deleteError": "Không thể xoá kho"
+    },
+    "stockMovement": {
+      "createSuccess": "Đã ghi nhận biến động kho",
+      "createError": "Không thể ghi nhận biến động kho"
+    },
+    "customerPurchase": {
+      "createSuccess": "Đã ghi nhận giao dịch mua hàng",
+      "createError": "Không thể ghi nhận giao dịch mua hàng",
+      "updateSuccess": "Đã cập nhật giao dịch mua hàng",
+      "updateError": "Không thể cập nhật giao dịch mua hàng",
+      "deleteSuccess": "Đã xoá giao dịch mua hàng",
+      "deleteError": "Không thể xoá giao dịch mua hàng"
+    }
+  }
+}

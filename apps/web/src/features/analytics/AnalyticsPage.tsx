@@ -18,17 +18,27 @@ import type { DateRangeOption, DrillDownScope, InsightScope } from '@/types';
 // 28/07/2026: tai su dung useDepartmentsQuery da co san (dung chung o MembersPage/InviteMemberModal)
 // cho bo loc "Phong ban" moi tren trang Bao cao & Phan tich, khong tao hook fetch phong ban rieng.
 import { useDepartmentsQuery } from '@/features/admin/hooks';
+// 16/10/2026: mirror dung cach lam tren - tai su dung useProductsQuery (Danh muc san pham + Kho,
+// features/inventory/hooks.ts) de resolve ten san pham cho khoi "San pham ban chay nhat" ben
+// duoi, khong tu viet lai ham fetch san pham rieng trong module Analytics.
+import { useProductsQuery } from '@/features/inventory/hooks';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
+import { unwrapList } from '@/lib/utils';
+import type { Product } from '@/types';
 import {
   useAiInsightsMutation,
   useAnomaliesMutation,
   useDocumentActivityQuery,
   useDrillDownMutation,
+  useProductSalesTrendQuery,
   useProjectProgressQuery,
+  useTopProductsQuery,
 } from './hooks';
 import { ProjectProgressChart } from './components/ProjectProgressChart';
 import { ProjectProgressTable } from './components/ProjectProgressTable';
 import { DocumentActivityChart } from './components/DocumentActivityChart';
+import { ProductSalesTrendChart } from './components/ProductSalesTrendChart';
+import { TopProductsChart } from './components/TopProductsChart';
 import { AiInsightCard } from './components/AiInsightCard';
 import { AiInsightsChart } from './components/AiInsightsChart';
 import { DrillDownPanel } from './components/DrillDownPanel';
@@ -49,6 +59,22 @@ export function AnalyticsPage() {
   const dealsQuery = useAllDealsQuery();
   const { map: projectNames } = useProjectNameMap();
   const { map: userNames } = useUserNameMap();
+
+  // 16/10/2026: khoi "Xu huong thi truong" moi - dung CHUNG bo loc khoang thoi gian (range) da co
+  // san cua trang nay, khong them bo chon rieng (tranh 2 bo loc cung y nghia gay nham lan).
+  const productSalesTrendQuery = useProductSalesTrendQuery(range);
+  const topProductsQuery = useTopProductsQuery(range, 5);
+  // Analytics Service chi tra ve productId/categoryId tho (database-per-service) - resolve ten
+  // san pham phia client qua GET /products, mirror dung useProjectNameMap() o tren.
+  const productsQuery = useProductsQuery({ limit: 200 });
+  const productNames: Record<string, string> = {};
+  for (const p of unwrapList<Product>(productsQuery.data)) productNames[p.id] = p.name;
+  const topProductRows = (topProductsQuery.data ?? []).map((item) => ({
+    productId: item.productId,
+    name: productNames[item.productId] ?? t('analytics:productSales.unnamedProduct', { id: item.productId.slice(0, 8) }),
+    unitsSold: item.unitsSold,
+    revenue: item.revenue,
+  }));
 
   // 22/09/2026: tinh nang "Nhan xet AI" - thiet ke lai thanh insight co cau truc (xem
   // AiInsightCard.tsx/AiInsightsChart.tsx), AI tu quet TOAN BO to chuc (khong con phu thuoc bo loc
@@ -456,6 +482,39 @@ export function AnalyticsPage() {
               isLoading={activityQuery.isLoading}
               isError={activityQuery.isError}
               onRetry={() => activityQuery.refetch()}
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 16/10/2026: khoi "Xu huong thi truong" moi (Danh muc san pham + Kho, Technical_Spec.md
+          muc 22) - mirror dung bo cuc 2 cot cua khoi ProjectProgressChart/DocumentActivityChart o
+          tren, dat NGAY SAU de giu nguyen vi tri cac khoi con lai cua trang (toi thieu xao tron). */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card className="shadow-none border border-border-subtle hover:border-border-strong rounded-radius-md transition-colors">
+          <CardHeader className="px-5 py-4 border-b border-border-subtle">
+            <CardTitle className="text-[15px] font-semibold text-text-primary">{t('analytics:productSales.trendTitle')}</CardTitle>
+          </CardHeader>
+          <CardContent className="p-5">
+            <ProductSalesTrendChart
+              data={productSalesTrendQuery.data ?? []}
+              isLoading={productSalesTrendQuery.isLoading}
+              isError={productSalesTrendQuery.isError}
+              onRetry={() => productSalesTrendQuery.refetch()}
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-none border border-border-subtle hover:border-border-strong rounded-radius-md transition-colors">
+          <CardHeader className="px-5 py-4 border-b border-border-subtle">
+            <CardTitle className="text-[15px] font-semibold text-text-primary">{t('analytics:productSales.topProductsTitle')}</CardTitle>
+          </CardHeader>
+          <CardContent className="p-5">
+            <TopProductsChart
+              data={topProductRows}
+              isLoading={topProductsQuery.isLoading}
+              isError={topProductsQuery.isError}
+              onRetry={() => topProductsQuery.refetch()}
             />
           </CardContent>
         </Card>

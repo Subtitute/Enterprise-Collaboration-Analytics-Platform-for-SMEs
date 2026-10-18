@@ -66,6 +66,12 @@ scrape_configs:
     static_configs:
       - targets: ['hrm-service:3006']
 
+  # 15/10/2026: Inventory Service (Danh muc san pham + Kho - Technical_Spec.md muc 22).
+  - job_name: inventory-service
+    metrics_path: /api/v1/metrics
+    static_configs:
+      - targets: ['inventory-service:3010']
+
   - job_name: kafka
     static_configs:
       - targets: ['kafka-exporter:9308']

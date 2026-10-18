@@ -3,7 +3,15 @@ import { toast } from '@/stores/toast.store';
 import { extractErrorMessage } from '@/lib/api-client';
 import { t } from '@/i18n';
 import type { AnomalyItem, DateRangeOption, DrillDownScope } from '@/types';
-import { fetchAiInsights, fetchAnomalies, fetchDocumentActivity, fetchDrillDown, fetchProjectProgress } from './api';
+import {
+  fetchAiInsights,
+  fetchAnomalies,
+  fetchDocumentActivity,
+  fetchDrillDown,
+  fetchProductSalesTrend,
+  fetchProjectProgress,
+  fetchTopProducts,
+} from './api';
 
 // 28/07/2026: them tham so departmentId (tuy chon) cho bo loc "Phong ban" tren trang Bao cao &
 // Phan tich - dua vao queryKey de moi lua chon phong ban duoc cache rieng.
@@ -48,4 +56,16 @@ export function useAnomaliesMutation() {
     mutationFn: (range: DateRangeOption) => fetchAnomalies(range),
     onError: (error) => toast.error(t('analytics:hooks.anomalyError'), extractErrorMessage(error)),
   });
+}
+
+// 16/10/2026: khoi "Xu huong thi truong" moi tren trang Bao cao & Phan tich - dung useQuery (tu
+// dong goi lai, khong phai hanh dong theo yeu cau nhu useAiInsightsMutation()/useAnomaliesMutation()
+// o tren) vi day la 2 bieu do thuong, cung chung bo loc khoang thoi gian (range) co san cua trang,
+// mirror dung useProjectProgressQuery()/useDocumentActivityQuery().
+export function useProductSalesTrendQuery(range: DateRangeOption = '30d') {
+  return useQuery({ queryKey: ['analytics', 'product-sales-trend', range], queryFn: () => fetchProductSalesTrend(range) });
+}
+
+export function useTopProductsQuery(range: DateRangeOption = '30d', limit = 5) {
+  return useQuery({ queryKey: ['analytics', 'top-products', range, limit], queryFn: () => fetchTopProducts(range, limit) });
 }

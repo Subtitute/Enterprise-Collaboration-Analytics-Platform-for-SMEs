@@ -86,4 +86,22 @@ describe('DefaultRoleName / PERMISSIONS / DEFAULT_ROLE_PERMISSIONS', () => {
     expect(DEFAULT_ROLE_PERMISSIONS[DefaultRoleName.MANAGER]).toContain(PERMISSIONS.CALENDAR_MANAGE);
     expect(DEFAULT_ROLE_PERMISSIONS[DefaultRoleName.EMPLOYEE]).not.toContain(PERMISSIONS.CALENDAR_MANAGE);
   });
+
+  // 15/10/2026: Inventory Service (Danh muc san pham + Kho) - mirror cau truc test CUSTOMER_VIEW/
+  // DEAL_CREATE o CRM-lite: Manager quan ly toan bo (PRODUCT_MANAGE/WAREHOUSE_MANAGE), Employee chi
+  // xem + tu ghi nhan giao dich cua khach hang minh phu trach (khong co CUSTOMER_PURCHASE_DELETE).
+  it('PRODUCT_MANAGE/WAREHOUSE_MANAGE thuoc ve Org Admin va Manager, khong o Employee', () => {
+    expect(DEFAULT_ROLE_PERMISSIONS[DefaultRoleName.MANAGER]).toContain(PERMISSIONS.PRODUCT_MANAGE);
+    expect(DEFAULT_ROLE_PERMISSIONS[DefaultRoleName.MANAGER]).toContain(PERMISSIONS.WAREHOUSE_MANAGE);
+    expect(DEFAULT_ROLE_PERMISSIONS[DefaultRoleName.EMPLOYEE]).not.toContain(PERMISSIONS.PRODUCT_MANAGE);
+    expect(DEFAULT_ROLE_PERMISSIONS[DefaultRoleName.EMPLOYEE]).not.toContain(PERMISSIONS.WAREHOUSE_MANAGE);
+  });
+
+  it('Employee co CUSTOMER_PURCHASE_CREATE/UPDATE/VIEW nhung khong co DELETE', () => {
+    const employeePerms = DEFAULT_ROLE_PERMISSIONS[DefaultRoleName.EMPLOYEE];
+    expect(employeePerms).toContain(PERMISSIONS.CUSTOMER_PURCHASE_CREATE);
+    expect(employeePerms).toContain(PERMISSIONS.CUSTOMER_PURCHASE_UPDATE);
+    expect(employeePerms).toContain(PERMISSIONS.CUSTOMER_PURCHASE_VIEW);
+    expect(employeePerms).not.toContain(PERMISSIONS.CUSTOMER_PURCHASE_DELETE);
+  });
 });

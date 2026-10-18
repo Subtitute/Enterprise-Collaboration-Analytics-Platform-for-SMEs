@@ -592,3 +592,97 @@ export interface ChatMessage {
   body: string;
   createdAt: string;
 }
+
+// 15/10/2026: Inventory Service (Danh muc san pham + Kho, gan giao dich khach hang de phan tich
+// xu huong thi truong) - Technical_Spec.md muc 22.
+export interface ProductCategory {
+  id: string;
+  name: string;
+  description?: string | null;
+  /** So san pham dang thuoc danh muc nay - GET /product-categories tra ve tinh gop san. */
+  productCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Product {
+  id: string;
+  categoryId: string;
+  name: string;
+  sku: string;
+  description?: string | null;
+  unitPrice: number;
+  imageObjectKey?: string | null;
+  /** URL tai anh co chu ky tam thoi (15 phut) - GET /products tra ve tinh san, KHONG luu lau dai. */
+  imageUrl?: string | null;
+  createdByUserId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Warehouse {
+  id: string;
+  name: string;
+  address?: string | null;
+  /** Tong ton kho gop tat ca san pham - GET /warehouses tra ve tinh gop san. */
+  totalStockQuantity?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WarehouseStock {
+  id: string;
+  warehouseId: string;
+  warehouse?: Warehouse;
+  productId: string;
+  product?: Product;
+  quantity: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type StockMovementType = 'IN' | 'OUT' | 'ADJUSTMENT';
+
+export interface StockMovement {
+  id: string;
+  warehouseId: string;
+  warehouse?: Warehouse;
+  productId: string;
+  product?: Product;
+  type: StockMovementType;
+  /** Co dau (am/duong) - IN phai duong, OUT phai am, ADJUSTMENT ca 2 dau - xem CreateStockMovementDto (BE). */
+  quantityDelta: number;
+  note?: string | null;
+  actorUserId: string;
+  createdAt: string;
+}
+
+/** "Gan mat hang cho khach hang" - nguon du lieu cho phan tich xu huong thi truong. */
+export interface CustomerPurchase {
+  id: string;
+  customerId: string;
+  productId: string;
+  product?: Product;
+  warehouseId?: string | null;
+  quantity: number;
+  unitPriceAtPurchase: number;
+  purchasedAt: string;
+  note?: string | null;
+  actorUserId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductSalesTrendPoint {
+  date: string;
+  unitsSold: number;
+  revenue: number;
+}
+
+/** productId/categoryId la UUID tho - frontend tu ghep ten qua GET /products (giong ProjectProgressItem.projectId). */
+export interface TopProduct {
+  productId: string;
+  categoryId: string;
+  unitsSold: number;
+  revenue: number;
+}

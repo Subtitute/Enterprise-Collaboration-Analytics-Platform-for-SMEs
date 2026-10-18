@@ -168,7 +168,9 @@
     "document": "Document",
     "leave": "Leave Request",
     "customer": "Customer",
-    "member": "Member"
+    "member": "Member",
+    "product": "Product",
+    "customerPurchase": "Customer Purchase"
   },
   "relativeTime": {
     "justNow": "Just now",

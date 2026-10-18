@@ -128,5 +128,24 @@
     "crmUpgrade": "CRM・営業システムのアップグレード",
     "customerPortal": "顧客ポータルの導入",
     "operationsOptimization": "第4四半期 運用プロセス最適化"
+  },
+  "productSales": {
+    "trendTitle": "商品別売上推移",
+    "topProductsTitle": "売れ筋商品ランキング",
+    "unnamedProduct": "商品 #{{id}}",
+    "trendChart": {
+      "errorTitle": "売上推移を読み込めませんでした",
+      "errorDescription": "グラフデータの読み込み中にエラーが発生しました。もう一度お試しください。",
+      "emptyTitle": "売上データはまだありません",
+      "revenueLabel": "売上",
+      "unitsSoldLabel": "販売数"
+    },
+    "topProductsChart": {
+      "errorTitle": "売れ筋商品を読み込めませんでした",
+      "errorDescription": "グラフデータの読み込み中にエラーが発生しました。もう一度お試しください。",
+      "emptyTitle": "売れ筋商品のデータはまだありません",
+      "tooltipUnitsSoldLabel": "販売数:",
+      "tooltipRevenueLabel": "売上:"
+    }
   }
 }

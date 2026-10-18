@@ -1,0 +1,204 @@
+{
+  "productsPage": {
+    "title": "Product Catalog",
+    "subtitle": "Manage your organization's products and product categories.",
+    "manageCategories": "Manage Categories",
+    "newProduct": "New Product",
+    "searchPlaceholder": "Search products…",
+    "categoryFilterAllLabel": "All categories",
+    "loading": "Loading products…",
+    "errorTitle": "Unable to load products",
+    "errorDescription": "An error occurred while loading the product list. Please try again.",
+    "emptyFilteredTitle": "No matching products found",
+    "emptyTitle": "No products yet",
+    "emptyFilteredDescription": "Try adjusting your search or category filter.",
+    "emptyDescription": "Add your first product to start managing inventory.",
+    "addFirstProduct": "Add first product"
+  },
+  "productCard": {
+    "unknownCategory": "Unknown",
+    "optionsAriaLabel": "Product options",
+    "editProduct": "Edit product",
+    "deleteProduct": "Delete product",
+    "deleteConfirmTitle": "Delete this product?",
+    "deleteConfirmDescription": "The product \"{{name}}\" will be permanently deleted. This action cannot be undone."
+  },
+  "productFormModal": {
+    "categoryRequiredError": "Please select a category",
+    "nameRequiredError": "Please enter a product name",
+    "skuRequiredError": "Please enter a SKU",
+    "editTitle": "Edit product",
+    "createTitle": "Add new product",
+    "cancel": "Cancel",
+    "save": "Save changes",
+    "create": "Add product",
+    "fieldCategory": "Category",
+    "categoryPlaceholder": "-- Select a category --",
+    "fieldName": "Product name",
+    "namePlaceholder": "E.g. ErgoPlus Office Chair",
+    "fieldSku": "SKU",
+    "skuPlaceholder": "E.g. SKU-00123",
+    "fieldUnitPrice": "Unit price (VND)",
+    "fieldDescription": "Description",
+    "imageSectionTitle": "Product image",
+    "replaceImage": "Replace image",
+    "uploadImage": "Upload image",
+    "imageHint": "JPEG, PNG or WebP, up to {{maxSize}}.",
+    "removeImage": "Remove image",
+    "noImageYetHint": "Save the product first, then come back to edit it to upload an image.",
+    "removeImageConfirmTitle": "Remove this product image?",
+    "removeImageConfirmDescription": "The product's current image will be removed. You can upload another one later."
+  },
+  "categoryModal": {
+    "nameRequiredError": "Please enter a category name",
+    "editTitle": "Edit category",
+    "createTitle": "Add new category",
+    "cancel": "Cancel",
+    "save": "Save changes",
+    "create": "Add category",
+    "fieldName": "Category name",
+    "namePlaceholder": "E.g. Office equipment",
+    "fieldDescription": "Description"
+  },
+  "manageCategoriesModal": {
+    "title": "Manage product categories",
+    "newCategory": "New category",
+    "emptyTitle": "No categories yet",
+    "productCount": "{{count}} products",
+    "editCategory": "Edit category",
+    "deleteCategory": "Delete category",
+    "deleteConfirmTitle": "Delete this category?",
+    "deleteConfirmDescription": "The category \"{{name}}\" will be permanently deleted. This action cannot be undone."
+  },
+  "warehousePage": {
+    "title": "Warehouse",
+    "subtitle": "Manage warehouses, stock levels and stock movement history.",
+    "recordMovement": "Record Movement",
+    "newWarehouse": "New Warehouse",
+    "loading": "Loading warehouses…",
+    "errorTitle": "Unable to load warehouses",
+    "emptyTitle": "No warehouses yet",
+    "columns": {
+      "name": "Warehouse name",
+      "address": "Address",
+      "totalStock": "Total stock",
+      "actions": "Actions"
+    },
+    "optionsAriaLabel": "Warehouse options",
+    "editWarehouse": "Edit warehouse",
+    "deleteWarehouse": "Delete warehouse",
+    "tabs": {
+      "stock": "Stock",
+      "movements": "Movement history"
+    },
+    "deleteConfirmTitle": "Delete this warehouse?",
+    "deleteConfirmDescription": "The warehouse \"{{name}}\" will be permanently deleted. This action cannot be undone.",
+    "filters": {
+      "warehouseLabel": "Warehouse",
+      "allWarehouses": "All warehouses",
+      "productLabel": "Product",
+      "allProducts": "All products"
+    }
+  },
+  "warehouseModal": {
+    "nameRequiredError": "Please enter a warehouse name",
+    "editTitle": "Edit warehouse",
+    "createTitle": "Add new warehouse",
+    "cancel": "Cancel",
+    "save": "Save changes",
+    "create": "Add warehouse",
+    "fieldName": "Warehouse name",
+    "namePlaceholder": "E.g. Hanoi Central Warehouse",
+    "fieldAddress": "Address"
+  },
+  "recordStockMovementModal": {
+    "warehouseRequiredError": "Please select a warehouse",
+    "productRequiredError": "Please select a product",
+    "quantityRequiredError": "Please enter a valid quantity (greater than 0)",
+    "title": "Record stock movement",
+    "cancel": "Cancel",
+    "submit": "Record",
+    "fieldWarehouse": "Warehouse",
+    "warehousePlaceholder": "-- Select a warehouse --",
+    "fieldProduct": "Product",
+    "productPlaceholder": "-- Select a product --",
+    "fieldType": "Movement type",
+    "fieldDirection": "Adjustment direction",
+    "directionIncrease": "Increase (+)",
+    "directionDecrease": "Decrease (-)",
+    "fieldQuantity": "Quantity",
+    "fieldNote": "Note"
+  },
+  "stockTable": {
+    "emptyTitle": "No stock data yet",
+    "columns": {
+      "warehouse": "Warehouse",
+      "product": "Product",
+      "quantity": "Quantity"
+    }
+  },
+  "stockMovementsTable": {
+    "emptyTitle": "No movements yet",
+    "columns": {
+      "date": "Date",
+      "warehouse": "Warehouse",
+      "product": "Product",
+      "type": "Type",
+      "quantityDelta": "Quantity change",
+      "note": "Note"
+    }
+  },
+  "enums": {
+    "stockMovementType": {
+      "IN": "Stock in",
+      "OUT": "Stock out",
+      "ADJUSTMENT": "Adjustment"
+    }
+  },
+  "api": {
+    "unsupportedImageType": "Only JPEG, PNG or WebP image formats are supported.",
+    "imageTooLarge": "The image exceeds the maximum allowed size ({{maxSize}})."
+  },
+  "hooks": {
+    "productCategory": {
+      "createSuccess": "Category created",
+      "createError": "Unable to create category",
+      "updateSuccess": "Category updated",
+      "updateError": "Unable to update category",
+      "deleteSuccess": "Category deleted",
+      "deleteError": "Unable to delete category"
+    },
+    "product": {
+      "createSuccess": "Product created",
+      "createError": "Unable to create product",
+      "updateSuccess": "Product updated",
+      "updateError": "Unable to update product",
+      "deleteSuccess": "Product deleted",
+      "deleteError": "Unable to delete product",
+      "imageUpdateSuccess": "Product image updated",
+      "imageUpdateError": "Unable to update product image",
+      "imageRemoveSuccess": "Product image removed",
+      "imageRemoveError": "Unable to remove product image"
+    },
+    "warehouse": {
+      "createSuccess": "Warehouse created",
+      "createError": "Unable to create warehouse",
+      "updateSuccess": "Warehouse updated",
+      "updateError": "Unable to update warehouse",
+      "deleteSuccess": "Warehouse deleted",
+      "deleteError": "Unable to delete warehouse"
+    },
+    "stockMovement": {
+      "createSuccess": "Stock movement recorded",
+      "createError": "Unable to record stock movement"
+    },
+    "customerPurchase": {
+      "createSuccess": "Purchase recorded",
+      "createError": "Unable to record purchase",
+      "updateSuccess": "Purchase updated",
+      "updateError": "Unable to update purchase",
+      "deleteSuccess": "Purchase deleted",
+      "deleteError": "Unable to delete purchase"
+    }
+  }
+}

@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { resolveDocumentActivityInterval, resolveTaskTrendConfig } from './range.util';
+import { resolveDocumentActivityInterval, resolveProductSalesTrendInterval, resolveTaskTrendConfig } from './range.util';
 
 /**
  * Unit test cho logic anh xa range query-param -> SQL interval/table-choice
@@ -48,6 +48,21 @@ describe('range.util', () => {
 
     it('nem BadRequestException voi range khong hop le (vd quarter khong duoc ho tro o day)', () => {
       expect(() => resolveDocumentActivityInterval('quarter')).toThrow(BadRequestException);
+    });
+  });
+
+  // 15/10/2026: xu huong ban hang (Inventory Service, Technical_Spec.md muc 22).
+  describe('resolveProductSalesTrendInterval', () => {
+    it('7d -> 7 days', () => {
+      expect(resolveProductSalesTrendInterval('7d')).toBe('7 days');
+    });
+
+    it('30d -> 30 days', () => {
+      expect(resolveProductSalesTrendInterval('30d')).toBe('30 days');
+    });
+
+    it('nem BadRequestException voi range khong hop le (vd quarter khong duoc ho tro o day)', () => {
+      expect(() => resolveProductSalesTrendInterval('quarter')).toThrow(BadRequestException);
     });
   });
 });

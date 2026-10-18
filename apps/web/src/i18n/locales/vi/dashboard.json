@@ -168,7 +168,9 @@
     "document": "Tài liệu",
     "leave": "Đơn nghỉ phép",
     "customer": "Khách hàng",
-    "member": "Thành viên"
+    "member": "Thành viên",
+    "product": "Sản phẩm",
+    "customerPurchase": "Giao dịch khách hàng"
   },
   "relativeTime": {
     "justNow": "Vừa xong",

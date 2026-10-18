@@ -57,6 +57,8 @@ describe('KafkaConsumerService (Analytics Service) - handleEvent', () => {
     upsertUserDepartment: jest.Mock;
     // 23/09/2026: mock moi - nhanh DEPARTMENT_MANAGER_CHANGED cua handleEvent().
     upsertDepartmentManager: jest.Mock;
+    // 15/10/2026: mock moi - nhanh CUSTOMER_PURCHASE_CREATED cua handleEvent() (Inventory Service).
+    recordProductSaleEvent: jest.Mock;
   };
   let gatewayMock: { emitActivity: jest.Mock };
   let dataSourceMock: { transaction: jest.Mock };
@@ -86,6 +88,7 @@ describe('KafkaConsumerService (Analytics Service) - handleEvent', () => {
       // resolve undefined, cung ly do nhu 3 ham con lai deu mac dinh "thanh cong".
       upsertUserDepartment: jest.fn().mockResolvedValue(undefined),
       upsertDepartmentManager: jest.fn().mockResolvedValue(undefined),
+      recordProductSaleEvent: jest.fn().mockResolvedValue(true),
     };
     gatewayMock = { emitActivity: jest.fn() };
     // 25/07/2026: mo phong dataSource.transaction() CHAY THAT callback (giong hanh vi that cua
@@ -281,6 +284,61 @@ describe('KafkaConsumerService (Analytics Service) - handleEvent', () => {
       factWriterMock.upsertDepartmentManager.mockRejectedValue(dbError);
 
       await expect(service['handleEvent'](managerChangedEvent, KAFKA_TOPICS.IAM)).rejects.toThrow(
+        'TimescaleDB connection timeout',
+      );
+      expect(gatewayMock.emitActivity).not.toHaveBeenCalled();
+    });
+  });
+
+  // 15/10/2026: bo sung - nhanh MOI cua handleEvent() cho phan tich xu huong thi truong (Inventory
+  // Service, Technical_Spec.md muc 22), goi qua EVENT_TYPES.CUSTOMER_PURCHASE_CREATED (topic
+  // KAFKA_TOPICS.INVENTORY) - mirror CHINH XAC nhom test DEPARTMENT_MANAGER_CHANGED o tren.
+  describe('ghi fact_product_sales tu event CUSTOMER_PURCHASE_CREATED (Inventory Service)', () => {
+    const purchaseCreatedEvent: DomainEvent = {
+      ...baseEvent,
+      eventType: EVENT_TYPES.CUSTOMER_PURCHASE_CREATED,
+      producer: 'inventory-service',
+      payload: {
+        purchaseId: 'purchase-1',
+        customerId: 'cust-1',
+        productId: 'prod-1',
+        categoryId: 'cat-1',
+        quantity: 3,
+        unitPrice: 25000000,
+        purchasedAt: '2026-10-15',
+        actorId: 'user-1',
+      },
+    };
+
+    it('goi recordProductSaleEvent() (khong phai recordTaskEvent/recordDocumentEvent/upsertUserDepartment/upsertDepartmentManager), trong CUNG transaction', async () => {
+      await service['handleEvent'](purchaseCreatedEvent, KAFKA_TOPICS.INVENTORY);
+
+      expect(factWriterMock.recordProductSaleEvent).toHaveBeenCalledWith(purchaseCreatedEvent, managerStub);
+      expect(factWriterMock.recordTaskEvent).not.toHaveBeenCalled();
+      expect(factWriterMock.recordDocumentEvent).not.toHaveBeenCalled();
+      expect(factWriterMock.upsertUserDepartment).not.toHaveBeenCalled();
+      expect(factWriterMock.upsertDepartmentManager).not.toHaveBeenCalled();
+      expect(factWriterMock.recordUserActivity).toHaveBeenCalledWith(purchaseCreatedEvent, managerStub);
+    });
+
+    it('KHONG goi recordProductSaleEvent() cho CUSTOMER_PURCHASE_DELETED (chi CREATED duoc ghi vao fact_product_sales)', async () => {
+      const deletedEvent: DomainEvent = {
+        ...baseEvent,
+        eventType: EVENT_TYPES.CUSTOMER_PURCHASE_DELETED,
+        payload: { purchaseId: 'purchase-1', productId: 'prod-1', actorId: 'user-1' },
+      };
+
+      await service['handleEvent'](deletedEvent, KAFKA_TOPICS.INVENTORY);
+
+      expect(factWriterMock.recordProductSaleEvent).not.toHaveBeenCalled();
+      expect(factWriterMock.recordUserActivity).toHaveBeenCalledWith(deletedEvent, managerStub);
+    });
+
+    it('RETHROW loi TAM THOI khi recordProductSaleEvent that bai (vd TimescaleDB down)', async () => {
+      const dbError = new Error('TimescaleDB connection timeout');
+      factWriterMock.recordProductSaleEvent.mockRejectedValue(dbError);
+
+      await expect(service['handleEvent'](purchaseCreatedEvent, KAFKA_TOPICS.INVENTORY)).rejects.toThrow(
         'TimescaleDB connection timeout',
       );
       expect(gatewayMock.emitActivity).not.toHaveBeenCalled();

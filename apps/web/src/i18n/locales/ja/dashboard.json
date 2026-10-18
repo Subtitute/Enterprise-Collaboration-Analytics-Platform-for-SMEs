@@ -168,7 +168,9 @@
     "document": "ドキュメント",
     "leave": "休暇申請",
     "customer": "顧客",
-    "member": "メンバー"
+    "member": "メンバー",
+    "product": "商品",
+    "customerPurchase": "顧客の購入"
   },
   "relativeTime": {
     "justNow": "たった今",

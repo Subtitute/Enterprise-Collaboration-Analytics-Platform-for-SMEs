@@ -67,6 +67,15 @@ function parseActivityDetails(item: RecentActivityItem, t: TFunction) {
   } else if (normalized.includes('leave')) {
     entityName = t('dashboard:entities.leave');
     entityHref = '/leave-requests';
+    // 16/10/2026: 2 loai hoat dong moi (Danh muc san pham + Kho, Technical_Spec.md muc 22) - nhanh
+    // "customer_purchase" PHAI dat TRUOC nhanh "customer" ngay duoi (chuoi "customer_purchase_..."
+    // cung chua "customer" nhu mot chuoi con, dat sau se khong bao gio toi duoc nhanh nay).
+  } else if (normalized.includes('customer_purchase')) {
+    entityName = t('dashboard:entities.customerPurchase');
+    entityHref = '/customers';
+  } else if (normalized.includes('product')) {
+    entityName = t('dashboard:entities.product');
+    entityHref = '/products';
   } else if (normalized.includes('customer') || normalized.includes('deal')) {
     entityName = t('dashboard:entities.customer');
     entityHref = '/customers';

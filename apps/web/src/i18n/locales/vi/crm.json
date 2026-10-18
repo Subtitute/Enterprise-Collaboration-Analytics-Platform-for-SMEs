@@ -126,5 +126,51 @@
       "deleteError": "Không thể xoá deal",
       "updateStageError": "Không thể cập nhật giai đoạn deal"
     }
+  },
+  "customerPurchases": {
+    "title": "Sản phẩm đã mua",
+    "recordButton": "Ghi nhận giao dịch",
+    "optionsAriaLabel": "Tùy chọn giao dịch",
+    "editAction": "Sửa",
+    "deleteAction": "Xoá",
+    "errorTitle": "Không thể tải lịch sử mua hàng",
+    "errorDescription": "Đã xảy ra lỗi khi tải lịch sử mua hàng của khách hàng. Vui lòng thử lại.",
+    "emptyTitle": "Chưa có giao dịch nào",
+    "emptyDescription": "Ghi nhận giao dịch đầu tiên khi khách hàng mua sản phẩm.",
+    "unknownProduct": "Sản phẩm không xác định",
+    "deleteConfirmTitle": "Xoá giao dịch này?",
+    "deleteConfirmDescription": "Giao dịch mua \"{{productName}}\" sẽ bị xoá vĩnh viễn. Hành động này không thể hoàn tác.",
+    "columns": {
+      "product": "Sản phẩm",
+      "quantity": "Số lượng",
+      "unitPrice": "Đơn giá",
+      "lineTotal": "Thành tiền",
+      "date": "Ngày mua",
+      "note": "Ghi chú"
+    }
+  },
+  "newCustomerPurchaseModal": {
+    "title": "Ghi nhận giao dịch mua hàng",
+    "fieldProduct": "Sản phẩm",
+    "productPlaceholder": "-- Chọn sản phẩm --",
+    "productRequiredError": "Vui lòng chọn sản phẩm",
+    "fieldQuantity": "Số lượng",
+    "quantityRequiredError": "Vui lòng nhập số lượng hợp lệ",
+    "fieldDate": "Ngày mua",
+    "dateRequiredError": "Vui lòng chọn ngày mua",
+    "fieldWarehouse": "Kho xuất hàng",
+    "warehouseHint": "Tùy chọn - nếu chọn, hệ thống sẽ tự trừ tồn kho tương ứng.",
+    "noWarehouseOption": "-- Không trừ kho --",
+    "fieldNote": "Ghi chú",
+    "notePlaceholder": "Ghi chú thêm về giao dịch này…",
+    "cancel": "Hủy",
+    "submit": "Ghi nhận"
+  },
+  "editCustomerPurchaseModal": {
+    "title": "Chỉnh sửa giao dịch",
+    "fieldDate": "Ngày mua",
+    "fieldNote": "Ghi chú",
+    "cancel": "Hủy",
+    "save": "Lưu thay đổi"
   }
 }

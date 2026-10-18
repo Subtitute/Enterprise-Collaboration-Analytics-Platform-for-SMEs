@@ -140,6 +140,24 @@ export const ERROR_CODES = {
   DEAL_NOT_FOUND: 'DEAL_NOT_FOUND',
   CUSTOMER_NOT_FOUND: 'CUSTOMER_NOT_FOUND',
 
+  // ---- Inventory Service: danh muc san pham + kho (bo sung 15/10/2026) ----
+  PRODUCT_CATEGORY_NOT_FOUND: 'PRODUCT_CATEGORY_NOT_FOUND',
+  // Khong cho xoa 1 danh muc con san pham thuoc ve no - xem Product.categoryId (onDelete: RESTRICT).
+  PRODUCT_CATEGORY_HAS_PRODUCTS: 'PRODUCT_CATEGORY_HAS_PRODUCTS',
+  PRODUCT_NOT_FOUND: 'PRODUCT_NOT_FOUND',
+  PRODUCT_SKU_DUPLICATE: 'PRODUCT_SKU_DUPLICATE',
+  // Khong cho xoa 1 san pham DA CO lich su giao dich - bao toan tinh toan ven du lieu phan tich xu
+  // huong qua khu (xem CustomerPurchase.productId, onDelete: RESTRICT).
+  PRODUCT_HAS_PURCHASE_HISTORY: 'PRODUCT_HAS_PURCHASE_HISTORY',
+  WAREHOUSE_NOT_FOUND: 'WAREHOUSE_NOT_FOUND',
+  // Khong cho xoa 1 kho con ton kho (quantity > 0) - phai xuat het hang truoc.
+  WAREHOUSE_HAS_STOCK: 'WAREHOUSE_HAS_STOCK',
+  // Xuat kho (OUT)/dieu chinh am vuot qua ton kho hien co - xem StockService.recordMovement().
+  STOCK_INSUFFICIENT: 'STOCK_INSUFFICIENT',
+  // IN voi quantityDelta am, hoac OUT voi quantityDelta duong - xem StockMovementType (@app/common-dto).
+  STOCK_MOVEMENT_INVALID_DIRECTION: 'STOCK_MOVEMENT_INVALID_DIRECTION',
+  CUSTOMER_PURCHASE_NOT_FOUND: 'CUSTOMER_PURCHASE_NOT_FOUND',
+
   // ---- Analytics ----
   AI_INSIGHT_NOT_CONFIGURED: 'AI_INSIGHT_NOT_CONFIGURED',
   AI_INSIGHT_GENERATION_FAILED: 'AI_INSIGHT_GENERATION_FAILED',

@@ -130,7 +130,9 @@
       "overview": "Tổng quan",
       "projects": "Dự án & Công việc",
       "documents": "Tài liệu",
-      "customers": "Khách hàng"
+      "customers": "Khách hàng",
+      "products": "Danh mục sản phẩm",
+      "warehouse": "Kho"
     }
   },
   "datePicker": {

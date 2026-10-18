@@ -83,6 +83,11 @@
 
   "NOTIFICATION_NOT_FOUND": "Notification not found.",
 
+  "PRODUCT_CATEGORY_HAS_PRODUCTS": "This category still has products assigned to it. Remove or reassign them first.",
+  "PRODUCT_HAS_PURCHASE_HISTORY": "This product has purchase history and cannot be deleted.",
+  "WAREHOUSE_HAS_STOCK": "This warehouse still has stock. Empty the stock before deleting it.",
+  "STOCK_INSUFFICIENT": "Insufficient stock to complete this operation.",
+
   "VALIDATION_INVALID_EMAIL": "{{field}} must be a valid email address.",
   "VALIDATION_INVALID_STRING": "{{field}} must be a string.",
   "VALIDATION_REQUIRED": "{{field}} must not be empty.",

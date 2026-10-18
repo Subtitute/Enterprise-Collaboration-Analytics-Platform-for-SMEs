@@ -27,6 +27,9 @@ const DocumentsPage = lazy(() => import('@/features/documents/DocumentsPage').th
 // 04/08/2026: CRM-lite (Technical_Spec.md muc 16) - khach hang + pipeline ban hang.
 const CustomersListPage = lazy(() => import('@/features/crm/CustomersListPage').then((m) => ({ default: m.CustomersListPage })));
 const CustomerDetailPage = lazy(() => import('@/features/crm/CustomerDetailPage').then((m) => ({ default: m.CustomerDetailPage })));
+// 15/10/2026: Inventory Service (Danh muc san pham + Kho, Technical_Spec.md muc 22).
+const ProductsPage = lazy(() => import('@/features/inventory/ProductsPage').then((m) => ({ default: m.ProductsPage })));
+const WarehousePage = lazy(() => import('@/features/inventory/WarehousePage').then((m) => ({ default: m.WarehousePage })));
 // 05/08/2026: HRM-lite (Technical_Spec.md muc 17) - cham cong (photo-proof) + nghi phep.
 const AttendancePage = lazy(() => import('@/features/hrm/AttendancePage').then((m) => ({ default: m.AttendancePage })));
 // 03/10/2026: trang chi tiet cham cong/nghi phep theo tung nhan vien (component mac dinh, khong
@@ -115,6 +118,10 @@ export default function App() {
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/customers" element={<CustomersListPage />} />
           <Route path="/customers/:customerId" element={<CustomerDetailPage />} />
+          {/* 15/10/2026: Inventory Service - khong ProtectedRoute requiredPermission (PRODUCT_VIEW/
+              WAREHOUSE_VIEW cap cho ca 3 vai tro, mirror /customers ngay tren). */}
+          <Route path="/products" element={<ProductsPage />} />
+          <Route path="/warehouse" element={<WarehousePage />} />
           <Route path="/attendance" element={<AttendancePage />} />
           {/* 03/10/2026: trang chi tiet cham cong 1 nhan vien (xem AttendanceDetailPage.tsx). */}
           <Route path="/attendance/:userId" element={<AttendanceDetailPage />} />

@@ -61,6 +61,16 @@ export const PERMISSIONS = {
   MESSAGE_VIEW: 'message:view',
   MESSAGE_SEND: 'message:send',
   MESSAGE_MANAGE_GROUP: 'message:manage_group',
+
+  // 15/10/2026: Inventory Service (Danh muc san pham + Kho) - mirror packages/common-dto/src/enums/permission.enum.ts.
+  PRODUCT_VIEW: 'product:view',
+  PRODUCT_MANAGE: 'product:manage',
+  WAREHOUSE_VIEW: 'warehouse:view',
+  WAREHOUSE_MANAGE: 'warehouse:manage',
+  CUSTOMER_PURCHASE_VIEW: 'customer_purchase:view',
+  CUSTOMER_PURCHASE_CREATE: 'customer_purchase:create',
+  CUSTOMER_PURCHASE_UPDATE: 'customer_purchase:update',
+  CUSTOMER_PURCHASE_DELETE: 'customer_purchase:delete',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

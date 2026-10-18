@@ -130,7 +130,9 @@
       "overview": "Overview",
       "projects": "Projects & Tasks",
       "documents": "Documents",
-      "customers": "Customers"
+      "customers": "Customers",
+      "products": "Product Catalog",
+      "warehouse": "Warehouse"
     }
   },
   "datePicker": {

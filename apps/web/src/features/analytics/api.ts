@@ -8,7 +8,9 @@ import type {
   DocumentActivityPoint,
   DrillDownResult,
   DrillDownScope,
+  ProductSalesTrendPoint,
   ProjectProgressItem,
+  TopProduct,
 } from '@/types';
 
 // Analytics Service co tinh khong luu ten du an (chi projectId) - features/analytics/AnalyticsPage.tsx
@@ -84,4 +86,20 @@ export async function fetchDrillDown(scope: DrillDownScope, scopeId: string, ran
 export async function fetchAnomalies(range: DateRangeOption): Promise<AnomaliesResult> {
   const { data } = await apiClient.post('/ml/anomalies', null, { params: { range } });
   return data;
+}
+
+// 16/10/2026: 2 endpoint moi phuc vu phan tich xu huong thi truong (Danh muc san pham + Kho,
+// Technical_Spec.md muc 22) - dung lai dung quyen analytics:view cua ca trang, khong them gi moi
+// o tang phan quyen. unwrapList() ho tro truong hop response tra ve mang tho hoac { data: [] }.
+export async function fetchProductSalesTrend(range: DateRangeOption = '30d'): Promise<ProductSalesTrendPoint[]> {
+  const { data } = await apiClient.get('/analytics/product-sales-trend', { params: { range } });
+  return unwrapList<ProductSalesTrendPoint>(data);
+}
+
+// productId/categoryId la UUID tho (Analytics Service khong luu ten san pham) - AnalyticsPage.tsx
+// tu resolve ten qua GET /products (useProductsQuery, features/inventory/hooks.ts), mirror dung
+// cach useProjectNameMap() dang lam cho ProjectProgressChart/Table o tren.
+export async function fetchTopProducts(range: DateRangeOption = '30d', limit = 5): Promise<TopProduct[]> {
+  const { data } = await apiClient.get('/analytics/top-products', { params: { range, limit } });
+  return unwrapList<TopProduct>(data);
 }
