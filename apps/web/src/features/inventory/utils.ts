@@ -16,6 +16,6 @@ export function stockMovementTypeBadgeVariant(type: StockMovementType): BadgeVar
     case 'OUT':
       return 'danger';
     default:
-      return 'info';
+      return 'warning';
   }
 }

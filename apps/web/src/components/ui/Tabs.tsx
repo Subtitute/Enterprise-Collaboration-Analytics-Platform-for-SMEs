@@ -26,8 +26,8 @@ export const Tabs = memo(function Tabs({ tabs, value, onChange, className }: Tab
             aria-selected={active}
             onClick={() => onChange(tab.value)}
             className={cn(
-              '-mb-px flex items-center gap-1.5 border-b-2 px-3.5 py-2.5 text-sm font-medium transition-colors',
-              active ? 'border-primary-600 text-primary-700' : 'border-transparent text-slate-500 hover:text-slate-700',
+              '-mb-px flex items-center gap-1.5 border-b-2 px-3.5 py-2.5 text-sm transition-colors',
+              active ? 'border-[#0E5E5E] text-[#0E5E5E] font-semibold' : 'border-transparent text-text-secondary hover:text-text-primary font-medium',
             )}
           >
             {tab.label}
@@ -35,7 +35,7 @@ export const Tabs = memo(function Tabs({ tabs, value, onChange, className }: Tab
               <span
                 className={cn(
                   'rounded-full px-1.5 py-0.5 text-xs',
-                  active ? 'bg-primary-100 text-primary-700' : 'bg-slate-100 text-slate-500',
+                  active ? 'bg-[#E4EFEE] text-[#0E5E5E]' : 'bg-bg-subtle text-text-secondary',
                 )}
               >
                 {tab.count}

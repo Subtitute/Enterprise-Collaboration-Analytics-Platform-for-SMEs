@@ -43,6 +43,7 @@
     "imageSectionTitle": "Hình ảnh sản phẩm",
     "replaceImage": "Đổi ảnh",
     "uploadImage": "Tải ảnh lên",
+    "dropzoneUploadHint": "Tải ảnh lên (Tối đa 5MB)",
     "imageHint": "JPEG, PNG hoặc WebP, tối đa {{maxSize}}.",
     "removeImage": "Xoá ảnh",
     "noImageYetHint": "Lưu sản phẩm trước, sau đó quay lại chỉnh sửa để tải ảnh lên.",
@@ -71,7 +72,7 @@
     "deleteConfirmDescription": "Danh mục \"{{name}}\" sẽ bị xoá vĩnh viễn. Hành động này không thể hoàn tác."
   },
   "warehousePage": {
-    "title": "Kho",
+    "title": "Kho hàng",
     "subtitle": "Quản lý kho hàng, tồn kho và lịch sử xuất nhập kho.",
     "recordMovement": "Ghi nhận biến động",
     "newWarehouse": "Kho mới",
@@ -127,10 +128,12 @@
     "directionIncrease": "Tăng (+)",
     "directionDecrease": "Giảm (-)",
     "fieldQuantity": "Số lượng",
-    "fieldNote": "Ghi chú"
+    "fieldNote": "Ghi chú",
+    "currentStockHint": "Tồn kho hiện tại: {{count}} sản phẩm"
   },
   "stockTable": {
     "emptyTitle": "Chưa có dữ liệu tồn kho",
+    "searchPlaceholder": "Tìm kiếm theo tên hoặc SKU...",
     "columns": {
       "warehouse": "Kho",
       "product": "Sản phẩm",

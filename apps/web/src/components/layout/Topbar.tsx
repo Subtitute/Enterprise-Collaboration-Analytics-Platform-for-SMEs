@@ -28,6 +28,7 @@ import {
   PlusIcon,
   CalendarIcon,
   BriefcaseIcon,
+  PackageIcon,
   SettingsIcon,
   XIcon,
 } from '@/components/ui/Icons';
@@ -375,6 +376,7 @@ export function Topbar() {
           trigger={({ toggle, open }) => (
             <button
               type="button"
+              onClick={toggle}
               title={t('common:quickCreate.tooltip', 'Tạo mới (Phím tắt: C)')}
               aria-label={t('common:quickCreate.tooltip', 'Tạo mới (Phím tắt: C)')}
               className="inline-flex h-8 items-center gap-1.5 rounded-radius-md bg-[#1C1B1A] px-2 lg:px-3 text-[13px] font-medium text-white hover:bg-[#2E2C29] active:bg-[#141312] transition-colors cursor-pointer select-none"
@@ -445,6 +447,22 @@ export function Topbar() {
                     <BriefcaseIcon className="h-4 w-4 shrink-0 text-text-secondary" />
                     <span className="text-[13px] font-medium text-text-primary truncate">
                       {t('common:quickCreate.createCustomer')}
+                    </span>
+                  </DropdownItem>
+                )}
+
+                {/* Thêm sản phẩm mới — Quản lý & Admin */}
+                {canManageProjectsOrCRM && (
+                  <DropdownItem
+                    onClick={() => {
+                      close();
+                      navigate('/products?action=create');
+                    }}
+                    className="flex items-center gap-2.5 rounded-radius-sm px-2.5 py-2 hover:bg-bg-subtle transition-colors"
+                  >
+                    <PackageIcon className="h-4 w-4 shrink-0 text-text-secondary" />
+                    <span className="text-[13px] font-medium text-text-primary truncate">
+                      {t('common:quickCreate.createProduct')}
                     </span>
                   </DropdownItem>
                 )}

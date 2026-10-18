@@ -81,6 +81,8 @@
     "createProjectDesc": "Start a new project",
     "createCustomer": "Add Customer",
     "createCustomerDesc": "Manage deals & customers",
+    "createProduct": "Add New Product",
+    "createProductDesc": "Add product to inventory catalog",
     "requestLeave": "Submit Leave Request",
     "requestLeaveDesc": "Request time off",
     "projectLabel": "Project",

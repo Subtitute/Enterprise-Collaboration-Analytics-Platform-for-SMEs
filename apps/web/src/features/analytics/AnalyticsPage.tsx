@@ -61,14 +61,23 @@ export function AnalyticsPage() {
   // Analytics Service chi tra ve productId/categoryId tho (database-per-service) - resolve ten
   // san pham phia client qua GET /products, mirror dung useProjectNameMap() o tren.
   const productsQuery = useProductsQuery({ limit: 200 });
-  const productNames: Record<string, string> = {};
-  for (const p of unwrapList<Product>(productsQuery.data)) productNames[p.id] = p.name;
-  const topProductRows = (topProductsQuery.data ?? []).map((item) => ({
-    productId: item.productId,
-    name: productNames[item.productId] ?? t('analytics:productSales.unnamedProduct', { id: item.productId.slice(0, 8) }),
-    unitsSold: item.unitsSold,
-    revenue: item.revenue,
-  }));
+
+  const productNames = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const p of unwrapList<Product>(productsQuery.data)) {
+      map[p.id] = p.name;
+    }
+    return map;
+  }, [productsQuery.data]);
+
+  const topProductRows = useMemo(() => {
+    return (topProductsQuery.data ?? []).map((item) => ({
+      productId: item.productId,
+      name: productNames[item.productId] ?? t('analytics:productSales.unnamedProduct', { id: item.productId.slice(0, 8) }),
+      unitsSold: item.unitsSold,
+      revenue: item.revenue,
+    }));
+  }, [topProductsQuery.data, productNames, t]);
 
   // 22/09/2026: tinh nang "Nhan xet AI" - thiet ke lai thanh insight co cau truc (xem
   // AiInsightCard.tsx/AiInsightsChart.tsx), AI tu quet TOAN BO to chuc (khong con phu thuoc bo loc

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { FormField, Input, Textarea } from '@/components/ui/Input';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { Spinner } from '@/components/ui/Spinner';
-import { AlertCircleIcon, PackageIcon, UploadIcon } from '@/components/ui/Icons';
+import { AlertCircleIcon, ImagePlusIcon, XIcon } from '@/components/ui/Icons';
 import { cn, formatBytes } from '@/lib/utils';
 import { useCreateProduct, useProductCategoriesQuery, useRemoveProductImage, useSetProductImage, useUpdateProduct } from '../hooks';
 import { MAX_PRODUCT_IMAGE_SIZE_BYTES, validateProductImageFile } from '../api';
@@ -154,33 +154,154 @@ export function ProductFormModal({
         size="md"
         footer={
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose} disabled={isPending} className="h-9 rounded-radius-sm border-border-strong text-[13px]">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isPending}
+              className="h-9 rounded-radius-sm border-[#E5E4E0] bg-white hover:bg-[#F4F4F5] text-[#1C1B1A] text-[13px] font-medium"
+            >
               {t('inventory:productFormModal.cancel')}
             </Button>
             <Button
               type="submit"
               form="product-form"
               isLoading={isPending}
-              className="h-9 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium"
+              className="h-9 rounded-radius-sm bg-[#1C1B1A] hover:bg-black text-white text-[13px] font-medium"
             >
               {isEditing ? t('inventory:productFormModal.save') : t('inventory:productFormModal.create')}
             </Button>
           </div>
         }
       >
-        <form id="product-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
-          <FormField label={t('inventory:productFormModal.fieldCategory')} htmlFor="product-category" error={categoryError} required>
-            <CustomFilterSelect
-              value={categoryId}
-              onChange={setCategoryId}
-              position="top"
-              ariaLabel={t('inventory:productFormModal.fieldCategory')}
-              options={[
-                { value: '', label: t('inventory:productFormModal.categoryPlaceholder') },
-                ...categories.map((c) => ({ value: c.id, label: c.name })),
-              ]}
-            />
-          </FormField>
+        <form
+          id="product-form"
+          onSubmit={handleSubmit}
+          className="space-y-4"
+          noValidate
+        >
+          {/* Dropzone Ảnh (OPTIONAL - KHÔNG dấu *) */}
+          <div className="space-y-1.5">
+            <label className="text-[13px] font-medium text-text-primary">
+              {t('inventory:productFormModal.imageSectionTitle')}
+            </label>
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragOver(true);
+              }}
+              onDragLeave={() => setIsDragOver(false)}
+              onDrop={handleImageDrop}
+              onClick={() => {
+                if (!displayedImageUrl) fileInputRef.current?.click();
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if ((e.key === 'Enter' || e.key === ' ') && !displayedImageUrl) {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+              className={cn(
+                'relative flex h-[120px] w-full flex-col items-center justify-center rounded-[8px] border border-dashed transition-colors',
+                displayedImageUrl
+                  ? 'border-[#E5E4E0] bg-[#F4F4F5]/30'
+                  : 'cursor-pointer border-[#E5E4E0] bg-[#F4F4F5]/50 hover:border-[#0E5E5E] hover:bg-[#F4F4F5]',
+                isDragOver && 'border-[#0E5E5E] bg-[#E4EFEE]/50',
+              )}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const selected = e.target.files?.[0];
+                  if (selected) selectImageFile(selected);
+                  e.target.value = '';
+                }}
+              />
+
+              {displayedImageUrl ? (
+                <div className="relative flex h-full w-full items-center justify-center p-2">
+                  <img
+                    src={displayedImageUrl}
+                    alt={name || 'Product preview'}
+                    className="h-full max-h-[104px] w-auto max-w-full rounded-[4px] object-contain"
+                  />
+                  {(setImage.isPending || removeImage.isPending) && (
+                    <div className="absolute inset-0 flex items-center justify-center rounded-[8px] bg-white/70">
+                      <Spinner size="sm" />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (product?.imageUrl && !previewUrl) {
+                        setConfirmRemoveImage(true);
+                      } else {
+                        if (previewUrl) URL.revokeObjectURL(previewUrl);
+                        setPreviewUrl(null);
+                        setImageError('');
+                      }
+                    }}
+                    className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-[4px] bg-white/90 text-[#B3261E] hover:bg-[#F8E5E3] transition-colors cursor-pointer"
+                    aria-label={t('inventory:productFormModal.removeImage')}
+                  >
+                    <XIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-1.5 text-center">
+                  <ImagePlusIcon className="h-6 w-6 text-text-tertiary stroke-1.5" />
+                  <p className="text-[12px] font-medium text-text-secondary">
+                    {t('inventory:productFormModal.dropzoneUploadHint')}
+                  </p>
+                  <p className="text-[11px] text-text-tertiary">
+                    {t('inventory:productFormModal.imageHint', { maxSize: formatBytes(MAX_PRODUCT_IMAGE_SIZE_BYTES) })}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {imageError && (
+              <p className="flex items-center gap-1 text-[11px] text-[#B3261E]">
+                <AlertCircleIcon className="h-3 w-3 shrink-0" /> {imageError}
+              </p>
+            )}
+            {!isEditing && (
+              <p className="text-[11px] text-text-tertiary">{t('inventory:productFormModal.noImageYetHint')}</p>
+            )}
+          </div>
+
+          {/* Row 2 cột: Danh mục * | Mã SKU * */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <FormField label={t('inventory:productFormModal.fieldCategory')} htmlFor="product-category" error={categoryError} required>
+              <CustomFilterSelect
+                value={categoryId}
+                onChange={setCategoryId}
+                position="bottom"
+                ariaLabel={t('inventory:productFormModal.fieldCategory')}
+                options={[
+                  { value: '', label: t('inventory:productFormModal.categoryPlaceholder') },
+                  ...categories.map((c) => ({ value: c.id, label: c.name })),
+                ]}
+              />
+            </FormField>
+            <FormField label={t('inventory:productFormModal.fieldSku')} htmlFor="product-sku" error={skuError} required>
+              <Input
+                id="product-sku"
+                value={sku}
+                onChange={(e) => setSku(e.target.value)}
+                placeholder={t('inventory:productFormModal.skuPlaceholder')}
+                className="font-mono"
+              />
+            </FormField>
+          </div>
+
+          {/* Tên sản phẩm * */}
           <FormField label={t('inventory:productFormModal.fieldName')} htmlFor="product-name" error={nameError} required>
             <Input
               id="product-name"
@@ -189,16 +310,9 @@ export function ProductFormModal({
               placeholder={t('inventory:productFormModal.namePlaceholder')}
             />
           </FormField>
-          <FormField label={t('inventory:productFormModal.fieldSku')} htmlFor="product-sku" error={skuError} required>
-            <Input
-              id="product-sku"
-              value={sku}
-              onChange={(e) => setSku(e.target.value)}
-              placeholder={t('inventory:productFormModal.skuPlaceholder')}
-              className="font-mono"
-            />
-          </FormField>
-          <FormField label={t('inventory:productFormModal.fieldUnitPrice')} htmlFor="product-unit-price">
+
+          {/* Đơn giá * */}
+          <FormField label={t('inventory:productFormModal.fieldUnitPrice')} htmlFor="product-unit-price" required>
             <div className="relative">
               <Input
                 id="product-unit-price"
@@ -207,93 +321,23 @@ export function ProductFormModal({
                 value={unitPrice}
                 onChange={(e) => handleUnitPriceChange(e.target.value)}
                 placeholder="0"
-                className="text-right pr-12 font-mono text-[14px] leading-5 font-medium tabular-nums"
+                className="text-right pr-12 font-mono text-[14px] leading-5 font-semibold tabular-nums text-[#1C1B1A]"
               />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[12px] font-medium text-text-tertiary">
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 font-mono text-[11px] font-medium text-text-tertiary">
                 VND
               </span>
             </div>
           </FormField>
-          <FormField label={t('inventory:productFormModal.fieldDescription')} htmlFor="product-description">
-            <Textarea id="product-description" value={description} onChange={(e) => setDescription(e.target.value)} />
-          </FormField>
 
-          {isEditing && product ? (
-            <div className="space-y-2 border-t border-border-subtle pt-3">
-              <p className="text-[13px] font-medium text-text-secondary">{t('inventory:productFormModal.imageSectionTitle')}</p>
-              <div className="flex items-start gap-3">
-                <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-radius-md border border-border-subtle bg-bg-subtle">
-                  {displayedImageUrl ? (
-                    <img src={displayedImageUrl} alt={product.name} className="h-full w-full object-cover" />
-                  ) : (
-                    <PackageIcon className="h-8 w-8 text-text-tertiary stroke-1.5" />
-                  )}
-                  {(setImage.isPending || removeImage.isPending) && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/70">
-                      <Spinner size="sm" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 space-y-1.5">
-                  <div
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setIsDragOver(true);
-                    }}
-                    onDragLeave={() => setIsDragOver(false)}
-                    onDrop={handleImageDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        fileInputRef.current?.click();
-                      }
-                    }}
-                    className={cn(
-                      'flex cursor-pointer items-center justify-center gap-1.5 rounded-radius-sm border border-dashed px-3 py-2 text-[12px] text-text-secondary transition-colors',
-                      'focus:outline-none focus:ring-2 focus:ring-accent-soft',
-                      isDragOver ? 'border-accent bg-accent-soft/60' : 'border-border-strong hover:border-accent hover:bg-bg-subtle',
-                    )}
-                  >
-                    <UploadIcon className="h-3.5 w-3.5 shrink-0" />
-                    <span>{product.imageUrl ? t('inventory:productFormModal.replaceImage') : t('inventory:productFormModal.uploadImage')}</span>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      className="hidden"
-                      onChange={(e) => {
-                        const selected = e.target.files?.[0];
-                        if (selected) selectImageFile(selected);
-                        e.target.value = '';
-                      }}
-                    />
-                  </div>
-                  <p className="text-[11px] text-text-tertiary">
-                    {t('inventory:productFormModal.imageHint', { maxSize: formatBytes(MAX_PRODUCT_IMAGE_SIZE_BYTES) })}
-                  </p>
-                  {imageError && (
-                    <p className="flex items-center gap-1 text-[11px] text-[#B3261E]">
-                      <AlertCircleIcon className="h-3 w-3 shrink-0" /> {imageError}
-                    </p>
-                  )}
-                  {product.imageUrl && !previewUrl && (
-                    <button
-                      type="button"
-                      onClick={() => setConfirmRemoveImage(true)}
-                      className="text-[11px] font-medium text-[#B3261E] hover:underline cursor-pointer"
-                    >
-                      {t('inventory:productFormModal.removeImage')}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <p className="text-[12px] text-text-tertiary">{t('inventory:productFormModal.noImageYetHint')}</p>
-          )}
+          {/* Mô tả */}
+          <FormField label={t('inventory:productFormModal.fieldDescription')} htmlFor="product-description">
+            <Textarea
+              id="product-description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="min-h-[80px]"
+            />
+          </FormField>
         </form>
       </Modal>
 

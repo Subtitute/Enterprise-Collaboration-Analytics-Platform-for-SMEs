@@ -82,15 +82,27 @@ export function StockMovementsTable({ warehouses, products }: { warehouses: Ware
                     </TableCell>
                     <TableCell label={t('inventory:stockMovementsTable.columns.warehouse')}>{m.warehouse?.name ?? '—'}</TableCell>
                     <TableCell label={t('inventory:stockMovementsTable.columns.product')}>
-                      {m.product?.name ?? '—'}
-                      {m.product?.sku && <span className="ml-1 font-mono text-xs text-slate-400">({m.product.sku})</span>}
+                      <div className="flex flex-col">
+                        <span className="text-[13px] leading-5 font-medium text-[#1C1B1A]">{m.product?.name ?? '—'}</span>
+                        {m.product?.sku && (
+                          <span className="font-mono text-[11px] leading-4 font-medium text-text-tertiary">
+                            {m.product.sku}
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell label={t('inventory:stockMovementsTable.columns.type')}>
                       <Badge variant={stockMovementTypeBadgeVariant(m.type)}>{t(`inventory:enums.stockMovementType.${m.type}`)}</Badge>
                     </TableCell>
                     <TableCell
                       label={t('inventory:stockMovementsTable.columns.quantityDelta')}
-                      className={`text-right font-mono tabular-nums font-medium ${m.quantityDelta >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}
+                      className={`text-right font-mono text-[13px] tabular-nums font-medium ${
+                        m.type === 'IN'
+                          ? 'text-[#2F6F44]'
+                          : m.type === 'OUT'
+                            ? 'text-[#B3261E]'
+                            : 'text-[#B45309]'
+                      }`}
                     >
                       {m.quantityDelta > 0 ? `+${m.quantityDelta}` : m.quantityDelta}
                     </TableCell>

@@ -81,6 +81,8 @@
     "createProjectDesc": "Khởi tạo dự án công việc",
     "createCustomer": "Thêm khách hàng",
     "createCustomerDesc": "Quản lý cơ hội và khách hàng",
+    "createProduct": "Thêm sản phẩm mới",
+    "createProductDesc": "Thêm mặt hàng vào danh mục",
     "requestLeave": "Gửi đơn nghỉ phép",
     "requestLeaveDesc": "Yêu cầu nghỉ phép cá nhân",
     "projectLabel": "Dự án",
@@ -132,7 +134,7 @@
       "documents": "Tài liệu",
       "customers": "Khách hàng",
       "products": "Danh mục sản phẩm",
-      "warehouse": "Kho"
+      "warehouse": "Kho hàng"
     }
   },
   "datePicker": {
