@@ -24,7 +24,20 @@
     "unreadTitle": "未読",
     "empty": "新しい通知はありません",
     "unreadBadge": "未読",
-    "loadMore": "通知をもっと読み込む ({{loaded}}/{{total}})"
+    "loadMore": "通知をもっと読み込む ({{loaded}}/{{total}})",
+    "errorTitle": "通知を読み込めませんでした",
+    "emptyTitle": "まだ通知はありません",
+    "emptyDescription": "新しい活動があると通知が届きます"
+  },
+  "relativeTime": {
+    "justNow": "たった今",
+    "minutesAgo": "{{count}}分前",
+    "hoursAgo": "{{count}}時間前",
+    "daysAgo": "{{count}}日前",
+    "weeksAgo": "{{count}}週間前"
+  },
+  "item": {
+    "unreadPrefix": "未読: "
   },
   "visual": {
     "leave": "休暇",

@@ -15,7 +15,7 @@ export const MockDashboardPreview = memo(function MockDashboardPreview() {
         {/* Khối 1 — Metric Card */}
         <div className="flex flex-col gap-1">
           <span className="text-[10px] leading-4 font-semibold tracking-[0.06em] uppercase text-[#F7F6F3]/50">
-            {t('auth:loginPage.previewRevenueTitle', 'DOANH THU THÁNG')}
+            {t('auth:loginPage.previewRevenueTitle')}
           </span>
           <div className="flex items-center justify-between">
             <span className="font-mono text-[22px] leading-7 font-medium text-[#F7F6F3]">
@@ -57,7 +57,7 @@ export const MockDashboardPreview = memo(function MockDashboardPreview() {
             <div className="flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-radius-full bg-[#2F6F44]" />
               <span className="text-xs leading-4 font-normal text-[#F7F6F3]/50">
-                {t('auth:loginPage.previewSyncStatus', 'Đồng bộ 2 phút trước')}
+                {t('auth:loginPage.previewSyncStatus')}
               </span>
             </div>
             <span className="font-mono text-xs leading-4 font-medium text-[#F7F6F3]/70">

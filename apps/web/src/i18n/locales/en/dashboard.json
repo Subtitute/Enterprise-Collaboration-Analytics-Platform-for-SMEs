@@ -91,7 +91,8 @@
     "emptyTitle": "No tasks yet",
     "emptyDescription": "The status chart will appear once there are tasks in the system.",
     "unit": "tasks",
-    "ofTotal": "{{percent}}% of total"
+    "ofTotal": "{{percent}}% of total",
+    "chartAriaLabel": "Task status distribution chart"
   },
   "taskTrendChart": {
     "errorTitle": "Couldn't load task trend",
@@ -100,7 +101,8 @@
     "emptyDescription": "Data will appear once tasks are created or completed.",
     "completedLine": "Completed",
     "createdLine": "Created",
-    "emptyOverlay": "No data available for this time range"
+    "emptyOverlay": "No data available for this time range",
+    "chartAriaLabel": "Task completion trend chart"
   },
   "recentActivityFeed": {
     "live": "Live updates",
@@ -166,7 +168,9 @@
     "document": "Document",
     "leave": "Leave Request",
     "customer": "Customer",
-    "member": "Member"
+    "member": "Member",
+    "product": "Product",
+    "customerPurchase": "Customer Purchase"
   },
   "relativeTime": {
     "justNow": "Just now",

@@ -53,3 +53,26 @@ export function resolveDocumentActivityInterval(range: string): string {
   }
   return interval;
 }
+
+// 15/10/2026: xu huong ban hang (Inventory Service, Technical_Spec.md muc 22) - mirror CHINH XAC
+// DocumentActivityRange/resolveDocumentActivityInterval o tren (chi 7d/30d, khong co "quarter" -
+// chi co 1 continuous aggregate daily_product_sales_summary, khong co ban rollup theo tuan nhu
+// weekly_project_progress, dung tinh than toi gian ClaudeRule.md muc 8 cho tinh nang moi nay).
+export type ProductSalesTrendRange = '7d' | '30d';
+
+const PRODUCT_SALES_TREND_INTERVAL: Record<ProductSalesTrendRange, string> = {
+  '7d': '7 days',
+  '30d': '30 days',
+};
+
+export function resolveProductSalesTrendInterval(range: string): string {
+  const interval = PRODUCT_SALES_TREND_INTERVAL[range as ProductSalesTrendRange];
+  if (!interval) {
+    throw new BadRequestException({
+      message: `Khoang thoi gian khong hop le: '${range}' (chi chap nhan 7d, 30d)`,
+      errorCode: ERROR_CODES.INVALID_RANGE_NO_QUARTER,
+      errorParams: { range },
+    });
+  }
+  return interval;
+}

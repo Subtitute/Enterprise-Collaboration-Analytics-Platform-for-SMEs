@@ -213,6 +213,49 @@ export class FactWriterService {
   }
 
   /**
+   * 15/10/2026: eventType = EVENT_TYPES.CUSTOMER_PURCHASE_CREATED (Inventory Service, Technical_Spec.md
+   * muc 22). NGUON DU LIEU CHINH cho phan tich xu huong thi truong - xem chu thich tai
+   * fact_product_sales (infra/timescale-init/001-init.sql / schema-bootstrap.ts) ve ly do CHI
+   * eventType nay duoc ghi (khong ghi product.created/deleted/customer_purchase.deleted).
+   *
+   * 17/10/2026 (fix loi logic phat hien qua kiem thu song): cot `time` PHAI la
+   * `payload.purchasedAt` (ngay giao dich THAT, nguoi dung/seed script co the ghi lui ngay) chu
+   * KHONG PHAI `event.occurredAt` (thoi diem Outbox ghi nhan event - OutboxService.record() luon
+   * dat `new Date()`, tuc la "bay gio", bat ke giao dich duoc khai bao xay ra luc nao). Dung
+   * `event.occurredAt` o day se khien MOI giao dich - ke ca giao dich ghi lui 29 ngay truoc - deu
+   * rơi vao bucket "hom nay" trong `daily_product_sales_summary`, lam bieu do "Xu huong doanh so
+   * theo san pham" (Wireframe.md muc 7) vo nghia (chi co 1 cot duy nhat thay vi trai deu theo
+   * thoi gian) - di nguoc muc dich chinh cua tinh nang (phan tich XU HUONG). Fallback ve
+   * `event.occurredAt` chi khi payload thieu/sai dinh dang (khong bao gio xay ra qua
+   * CreateCustomerPurchaseDto.purchasedAt bat buoc, nhung giu phong thu cho du lieu cu/hong).
+   */
+  async recordProductSaleEvent(event: DomainEvent, runner: QueryExecutor = this.dataSource): Promise<boolean> {
+    const purchasedAt = extractString(event, 'purchasedAt') ?? event.occurredAt;
+    const rows = await runner.query(
+      `
+      INSERT INTO fact_product_sales (time, event_id, organization_id, event_type, purchase_id, product_id, category_id, customer_id, quantity, unit_price, actor_id)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ON CONFLICT (time, event_id) DO NOTHING
+      RETURNING event_id
+      `,
+      [
+        purchasedAt,
+        event.eventId,
+        event.organizationId,
+        event.eventType,
+        extractString(event, 'purchaseId'),
+        extractString(event, 'productId'),
+        extractString(event, 'categoryId'),
+        extractString(event, 'customerId'),
+        extractNumber(event, 'quantity'),
+        extractNumber(event, 'unitPrice'),
+        extractString(event, 'actorId'),
+      ],
+    );
+    return rows.length > 0;
+  }
+
+  /**
    * 23/09/2026: upsert dim_department_manager tu event EVENT_TYPES.DEPARTMENT_MANAGER_CHANGED
    * (DepartmentManagerChangedPayload) - mirror CHINH XAC upsertUserDepartment() o tren (cung mau
    * "ON CONFLICT ... WHERE last_event_at" chong event den sai thu tu, xem ghi chu chi tiet tai do).
@@ -251,4 +294,11 @@ function extractString(event: DomainEvent, field: string): string | null {
   const payload = (event.payload ?? {}) as Record<string, unknown>;
   const value = payload[field];
   return typeof value === 'string' ? value : null;
+}
+
+/** 15/10/2026: mirror extractString() - dung cho CustomerPurchaseCreatedPayload.quantity/unitPrice (so, khong phai chuoi). */
+function extractNumber(event: DomainEvent, field: string): number | null {
+  const payload = (event.payload ?? {}) as Record<string, unknown>;
+  const value = payload[field];
+  return typeof value === 'number' ? value : null;
 }

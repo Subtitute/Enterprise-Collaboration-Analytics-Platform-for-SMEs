@@ -47,7 +47,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, InputHTMLAttributes<HT
         <button
           type="button"
           onClick={() => setVisible((v) => !v)}
-          aria-label={visible ? t('common:password.hide', 'Ẩn mật khẩu') : t('common:password.show', 'Hiện mật khẩu')}
+          aria-label={visible ? t('common:password.hide') : t('common:password.show')}
           className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-1 text-text-tertiary hover:text-text-secondary transition-colors"
         >
           {visible ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}

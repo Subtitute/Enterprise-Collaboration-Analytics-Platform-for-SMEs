@@ -83,6 +83,11 @@
 
   "NOTIFICATION_NOT_FOUND": "通知が見つかりませんでした。",
 
+  "PRODUCT_CATEGORY_HAS_PRODUCTS": "このカテゴリにはまだ商品が登録されています。先に商品を削除または変更してください。",
+  "PRODUCT_HAS_PURCHASE_HISTORY": "この商品には購入履歴があるため削除できません。",
+  "WAREHOUSE_HAS_STOCK": "この倉庫にはまだ在庫があります。先に在庫を空にしてください。",
+  "STOCK_INSUFFICIENT": "在庫が不足しているため、この操作を完了できません。",
+
   "VALIDATION_INVALID_EMAIL": "{{field}}は有効なメールアドレスを入力してください。",
   "VALIDATION_INVALID_STRING": "{{field}}は文字列で入力してください。",
   "VALIDATION_REQUIRED": "{{field}}は必須です。",

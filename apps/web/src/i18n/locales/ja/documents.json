@@ -132,6 +132,7 @@
   },
   "folderGrid": {
     "loadingFileCount": "読み込み中…",
+    "filesSuffix": "ファイル",
     "metaSummary": "{{count}}件のファイル • 更新: {{time}}",
     "restrictedTooltip": "アクセス制限のあるフォルダ",
     "optionsAria": "フォルダオプション",

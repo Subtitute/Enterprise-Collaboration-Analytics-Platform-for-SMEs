@@ -26,10 +26,10 @@ export function SecondarySidebar() {
           DASHBOARD
         </span>
         <span className="mt-0.5 truncate text-[15px] font-semibold leading-none text-text-primary">
-          {t('common:nav.home', 'Trang chủ')}
+          {t('common:nav.home')}
         </span>
       </div>
-      <nav aria-label="Điều hướng nhóm trang chủ" className="flex-1 space-y-0.5 overflow-x-hidden overflow-y-auto px-2 py-2">
+      <nav aria-label={t('common:nav.homeGroupAria')} className="flex-1 space-y-0.5 overflow-x-hidden overflow-y-auto px-2 py-2">
         {HOME_SUB_NAV_ITEMS.map((item) => {
           const isActive = location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
 

@@ -36,6 +36,7 @@
     "emptyDealsTitle": "No deals yet",
     "emptyDealsDescription": "Create the first sales opportunity for this customer.",
     "createFirstDeal": "Create new deal",
+    "openDealsSuffix": "open deals",
     "ownerLabel": "Owner",
     "changeOwner": "Change",
     "changeOwnerAriaLabel": "Change owner",
@@ -83,6 +84,7 @@
     "deleteCustomer": "Delete customer",
     "openDeals": "{{count}} open deals",
     "lastInteraction": "Interaction: {{time}}",
+    "lastInteractionLabel": "Interaction:",
     "deleteConfirmTitle": "Delete this customer?",
     "deleteConfirmDescription": "All deals belonging to \"{{name}}\" will also be deleted. This action cannot be undone."
   },
@@ -125,5 +127,51 @@
       "deleteError": "Couldn't delete deal",
       "updateStageError": "Couldn't update deal stage"
     }
+  },
+  "customerPurchases": {
+    "title": "Products Purchased",
+    "recordButton": "Record purchase",
+    "optionsAriaLabel": "Purchase options",
+    "editAction": "Edit",
+    "deleteAction": "Delete",
+    "errorTitle": "Couldn't load purchase history",
+    "errorDescription": "Something went wrong loading this customer's purchase history. Please try again.",
+    "emptyTitle": "No purchases yet",
+    "emptyDescription": "Record the first purchase when this customer buys a product.",
+    "unknownProduct": "Unknown product",
+    "deleteConfirmTitle": "Delete this purchase?",
+    "deleteConfirmDescription": "The purchase of \"{{productName}}\" will be permanently deleted. This action cannot be undone.",
+    "columns": {
+      "product": "Product",
+      "quantity": "Quantity",
+      "unitPrice": "Unit price",
+      "lineTotal": "Line total",
+      "date": "Purchase date",
+      "note": "Note"
+    }
+  },
+  "newCustomerPurchaseModal": {
+    "title": "Record a purchase",
+    "fieldProduct": "Product",
+    "productPlaceholder": "-- Select a product --",
+    "productRequiredError": "Please select a product",
+    "fieldQuantity": "Quantity",
+    "quantityRequiredError": "Please enter a valid quantity",
+    "fieldDate": "Purchase date",
+    "dateRequiredError": "Please select a purchase date",
+    "fieldWarehouse": "Warehouse to deduct from",
+    "warehouseHint": "Optional - if selected, matching stock will be deducted automatically.",
+    "noWarehouseOption": "-- Don't deduct stock --",
+    "fieldNote": "Note",
+    "notePlaceholder": "Add a note about this purchase…",
+    "cancel": "Cancel",
+    "submit": "Record"
+  },
+  "editCustomerPurchaseModal": {
+    "title": "Edit purchase",
+    "fieldDate": "Purchase date",
+    "fieldNote": "Note",
+    "cancel": "Cancel",
+    "save": "Save changes"
   }
 }

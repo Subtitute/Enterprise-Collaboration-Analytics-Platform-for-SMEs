@@ -89,7 +89,6 @@
           "employee": "従業員",
           "department": "部署",
           "actualDays": "実出勤日数",
-          "paidLeaveDays": "有給休暇日数",
           "workHours": "実労働時間",
           "lateCount": "遅刻回数",
           "missingCheckOut": "退勤未打刻",
@@ -184,6 +183,7 @@
     "emptyDescription": "この従業員の勤怠データはまだありません。"
   },
   "companyCalendar": {
+    "title": "会社カレンダー",
     "description": "組織全体で共有するカレンダーです。誰でもイベントを作成できますが、祝日の設定はマネージャーと組織管理者のみ可能です。日付をクリックすると新規作成、既存の項目をクリックすると閲覧・編集できます。",
     "newEntry": "新規項目",
     "loading": "カレンダーを読み込み中…",
@@ -209,6 +209,7 @@
     "startDateLabel": "開始日",
     "endDateLabel": "終了日",
     "startDateRequiredError": "開始日を選択してください",
+    "startDateInPastError": "開始日を過去の日付にすることはできません",
     "endDateBeforeStartError": "終了日を開始日より前にすることはできません",
     "descriptionLabel": "説明",
     "cancel": "キャンセル",
@@ -275,7 +276,6 @@
   "extensions": {
     "adjustment": {
       "requestButton": "打刻修正・理由書",
-      "pendingDuplicateTooltip": "承認待ちの申請が既に存在します",
       "modalTitle": "打刻修正申請（理由書）",
       "dateLabel": "勤務日",
       "checkInLabel": "修正後の出勤時刻",
@@ -327,9 +327,10 @@
       "reasonPlaceholder": "例: 顧客向け本番リリースの緊急デプロイ作業のため…",
       "estimatedHours": "残業見込時間: {{hours}} 時間",
       "estimatedDuration": "残業見込時間: {{duration}}",
-      "durationHoursMinutes": "{{hours}}時間 {{minutes}}分",
+      "durationZero": "0時間",
+      "durationHoursMinutes": "{{hours}}時間{{mins}}分",
       "durationHoursOnly": "{{hours}}時間",
-      "durationMinutesOnly": "{{minutes}}分",
+      "durationMinutesOnly": "{{mins}}分",
       "submitButton": "残業申請を送信",
       "cancelButton": "キャンセル",
       "errors": {

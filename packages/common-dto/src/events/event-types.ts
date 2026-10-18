@@ -17,6 +17,8 @@ export const KAFKA_TOPICS = {
   CRM: 'crm.events',
   // 05/08/2026: HRM-lite Service (Technical_Spec.md muc 17).
   HRM: 'hrm.events',
+  // 15/10/2026: Inventory Service (Danh muc san pham + Kho, Technical_Spec.md muc 22).
+  INVENTORY: 'inventory.events',
 } as const;
 
 export type KafkaTopic = (typeof KAFKA_TOPICS)[keyof typeof KAFKA_TOPICS];
@@ -84,6 +86,16 @@ export const EVENT_TYPES = {
   ATTENDANCE_ADJUSTMENT_REJECTED: 'attendance_adjustment.rejected',
   OVERTIME_REQUEST_APPROVED: 'overtime_request.approved',
   OVERTIME_REQUEST_REJECTED: 'overtime_request.rejected',
+
+  // 15/10/2026: Inventory Service (Danh muc san pham + Kho, Technical_Spec.md muc 22) - mirror
+  // CUSTOMER_CREATED/DELETED (khong co UPDATED, dung quy uoc chung cua du an - chi CREATE/DELETE
+  // phat event, thao tac sua khong phat). CUSTOMER_PURCHASE_CREATED la su kien QUAN TRONG NHAT cua
+  // tinh nang nay - Analytics Service tieu thu de dung fact_product_sales (schema-bootstrap.ts),
+  // phuc vu phan tich xu huong thi truong (san pham ban chay, doanh thu theo thoi gian/danh muc).
+  PRODUCT_CREATED: 'product.created',
+  PRODUCT_DELETED: 'product.deleted',
+  CUSTOMER_PURCHASE_CREATED: 'customer_purchase.created',
+  CUSTOMER_PURCHASE_DELETED: 'customer_purchase.deleted',
 } as const;
 
 export type EventType = (typeof EVENT_TYPES)[keyof typeof EVENT_TYPES];
@@ -126,6 +138,11 @@ export const EVENT_TYPE_TOPIC_MAP: Record<EventType, KafkaTopic> = {
   [EVENT_TYPES.ATTENDANCE_ADJUSTMENT_REJECTED]: KAFKA_TOPICS.HRM,
   [EVENT_TYPES.OVERTIME_REQUEST_APPROVED]: KAFKA_TOPICS.HRM,
   [EVENT_TYPES.OVERTIME_REQUEST_REJECTED]: KAFKA_TOPICS.HRM,
+
+  [EVENT_TYPES.PRODUCT_CREATED]: KAFKA_TOPICS.INVENTORY,
+  [EVENT_TYPES.PRODUCT_DELETED]: KAFKA_TOPICS.INVENTORY,
+  [EVENT_TYPES.CUSTOMER_PURCHASE_CREATED]: KAFKA_TOPICS.INVENTORY,
+  [EVENT_TYPES.CUSTOMER_PURCHASE_DELETED]: KAFKA_TOPICS.INVENTORY,
 };
 
 /** Consumer group id chuan - moi service subscribe dung 1 group rieng de nhan du 3 topic. */

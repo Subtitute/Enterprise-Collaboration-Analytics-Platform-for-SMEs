@@ -24,6 +24,7 @@ export function CustomerTypeBadge({ notes }: { notes?: string | null }) {
   let label = notes;
 
   const n = notes.toLowerCase();
+  // i18n-lint-ignore: matching raw customerType/notes data values (free-text, possibly Vietnamese), not UI copy.
   if (n.includes('mới') || n.includes('new')) {
     colorStyles = 'bg-[#E4EEF5] text-[#1E5A8A]';
     dotColor = 'bg-[#1E5A8A]';
@@ -150,7 +151,7 @@ export const CustomerCard = React.memo(function CustomerCard({ customer }: { cus
         {/* Row 3 (divider trên): Trái: Tương tác: {date} mono 12/400 text-tertiary. Phải: {value} ₫ mono 15/500 text-accent #0E5E5E. Nếu 0 → text-tertiary w400. */}
         <div className="mt-4 flex items-center justify-between border-t border-border-subtle pt-3">
           <span className="text-[12px] font-mono text-text-tertiary tabular-nums">
-            {t('crm:customerCard.lastInteractionLabel', 'Tương tác:')} {lastInteraction}
+            {t('crm:customerCard.lastInteractionLabel')} {lastInteraction}
           </span>
           <span
             className={`font-mono tabular-nums ${

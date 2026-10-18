@@ -12,21 +12,21 @@ import type { LeaveRequest } from '@/types';
 /** Tách loại nghỉ phép từ chuỗi reason đã lưu */
 function parseLeaveType(rawReason: string | undefined | null, t: (key: string, defaultValue?: string) => string): string {
   if (!rawReason) {
-    return t('dashboard:upcomingLeaves.types.ANNUAL', 'Nghỉ phép năm');
+    return t('dashboard:upcomingLeaves.types.ANNUAL');
   }
 
   const match = rawReason.match(/^\[(.*?)\]\s*(.*)$/);
   const rawType = match ? match[1] : '';
 
-  if (rawType === 'SICK' || rawType.includes('ốm') || rawType.includes('Sick') || rawType.includes('病気')) {
-    return t('dashboard:upcomingLeaves.types.SICK', 'Nghỉ ốm');
+  if (rawType === 'SICK' || rawType.includes('ốm') || rawType.includes('Sick') || rawType.includes('病気')) { // i18n-lint-ignore matches raw backend leaveType data values, not displayed UI copy
+    return t('dashboard:upcomingLeaves.types.SICK');
   }
 
-  if (rawType === 'UNPAID' || rawType.includes('việc riêng') || rawType.includes('Personal') || rawType.includes('私用')) {
-    return t('dashboard:upcomingLeaves.types.UNPAID', 'Nghỉ không lương');
+  if (rawType === 'UNPAID' || rawType.includes('việc riêng') || rawType.includes('Personal') || rawType.includes('私用')) { // i18n-lint-ignore matches raw backend leaveType data values, not displayed UI copy
+    return t('dashboard:upcomingLeaves.types.UNPAID');
   }
 
-  return t('dashboard:upcomingLeaves.types.ANNUAL', 'Nghỉ phép năm');
+  return t('dashboard:upcomingLeaves.types.ANNUAL');
 }
 
 export const UpcomingLeavesWidget = memo(function UpcomingLeavesWidget() {
@@ -69,13 +69,13 @@ export const UpcomingLeavesWidget = memo(function UpcomingLeavesWidget() {
       {/* Header: title 15/600 + link Xem tất cả → căn phải font 13/500 accent */}
       <div className="flex items-center justify-between pb-3 border-b border-border-subtle mb-1">
         <h2 className="text-[15px] leading-[22px] font-semibold text-text-primary">
-          {t('dashboard:upcomingLeaves.title', 'Nghỉ phép sắp tới')}
+          {t('dashboard:upcomingLeaves.title')}
         </h2>
         <Link
           to="/leave-requests"
           className="text-[13px] font-medium text-accent hover:underline no-print"
         >
-          {t('dashboard:upcomingLeaves.viewAll', 'Xem tất cả →')}
+          {t('dashboard:upcomingLeaves.viewAll')}
         </Link>
       </div>
 
@@ -83,24 +83,24 @@ export const UpcomingLeavesWidget = memo(function UpcomingLeavesWidget() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-10 gap-2">
             <Spinner className="h-5 w-5 text-accent" />
-            <p className="text-xs text-text-tertiary">{t('dashboard:upcomingLeaves.loading', 'Đang tải...')}</p>
+            <p className="text-xs text-text-tertiary">{t('dashboard:upcomingLeaves.loading')}</p>
           </div>
         ) : isError ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <p className="text-xs text-text-error font-medium">{t('dashboard:upcomingLeaves.errorTitle', 'Không thể tải danh sách')}</p>
+            <p className="text-xs text-text-error font-medium">{t('dashboard:upcomingLeaves.errorTitle')}</p>
             <button
               type="button"
               onClick={() => refetch()}
               className="mt-2 text-xs font-semibold text-accent hover:underline cursor-pointer"
             >
-              {t('dashboard:upcomingLeaves.retry', 'Thử lại')}
+              {t('dashboard:upcomingLeaves.retry')}
             </button>
           </div>
         ) : upcomingList.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <CalendarIcon className="h-10 w-10 text-text-tertiary mb-2" aria-hidden="true" />
             <p className="text-[13px] leading-[20px] text-text-secondary">
-              {t('dashboard:upcomingLeaves.emptyTitle', 'Không có ai nghỉ phép sắp tới')}
+              {t('dashboard:upcomingLeaves.emptyTitle')}
             </p>
           </div>
         ) : (
@@ -111,7 +111,7 @@ export const UpcomingLeavesWidget = memo(function UpcomingLeavesWidget() {
               const isToday = startStr <= todayStr && endStr >= todayStr;
               const isTomorrow = startStr === tomorrowStr;
               const daysCount = calculateWorkingDays(item.startDate, item.endDate);
-              const employeeName = userNameMap[item.userId] || t('dashboard:upcomingLeaves.employee', 'Nhân viên');
+              const employeeName = userNameMap[item.userId] || t('dashboard:upcomingLeaves.employee');
               const typeLabel = parseLeaveType(item.reason, t as any);
 
               return (
@@ -130,7 +130,7 @@ export const UpcomingLeavesWidget = memo(function UpcomingLeavesWidget() {
                         {employeeName}
                       </p>
                       <p className="text-[12px] leading-[16px] text-text-tertiary mt-0.5">
-                        {typeLabel} · {t('dashboard:upcomingLeaves.daysCount', { count: daysCount, defaultValue: `${daysCount} ngày` })}
+                        {typeLabel} · {t('dashboard:upcomingLeaves.daysCount', { count: daysCount })}
                       </p>
                     </div>
                   </div>
@@ -139,11 +139,11 @@ export const UpcomingLeavesWidget = memo(function UpcomingLeavesWidget() {
                   <div className="shrink-0 text-right">
                     {isToday ? (
                       <span className="inline-flex items-center justify-center h-5 px-2 rounded-[2px] text-[11px] font-semibold bg-[#FBEEE0] text-[#B45309]">
-                        {t('dashboard:upcomingLeaves.today', 'Hôm nay')}
+                        {t('dashboard:upcomingLeaves.today')}
                       </span>
                     ) : isTomorrow ? (
                       <span className="inline-flex items-center justify-center h-5 px-2 rounded-[2px] text-[11px] font-medium bg-bg-subtle text-text-secondary">
-                        {t('dashboard:upcomingLeaves.tomorrow', 'Ngày mai')}
+                        {t('dashboard:upcomingLeaves.tomorrow')}
                       </span>
                     ) : (
                       <span className="inline-flex items-center justify-center h-5 px-2 rounded-[2px] text-[11px] font-medium bg-bg-subtle text-text-tertiary">

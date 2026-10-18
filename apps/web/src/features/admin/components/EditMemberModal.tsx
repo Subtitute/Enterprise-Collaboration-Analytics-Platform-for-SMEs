@@ -72,7 +72,7 @@ export function EditMemberModal({ user, onClose }: { user: User | null; onClose:
             }}
             className="inline-flex items-center justify-center h-9 px-4 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer disabled:opacity-50"
           >
-            {isPending ? t('common:loading', 'Đang xử lý...') : t('admin:editMemberModal.saveChanges')}
+            {isPending ? t('common:processing') : t('admin:editMemberModal.saveChanges')}
           </button>
         </div>
       </div>

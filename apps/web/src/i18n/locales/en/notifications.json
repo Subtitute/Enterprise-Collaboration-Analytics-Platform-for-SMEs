@@ -24,7 +24,20 @@
     "unreadTitle": "Unread",
     "empty": "No new notifications",
     "unreadBadge": "Unread",
-    "loadMore": "Load more notifications ({{loaded}}/{{total}})"
+    "loadMore": "Load more notifications ({{loaded}}/{{total}})",
+    "errorTitle": "Couldn't load notifications",
+    "emptyTitle": "No notifications yet",
+    "emptyDescription": "You'll receive a notification when there's new activity"
+  },
+  "relativeTime": {
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} minutes ago",
+    "hoursAgo": "{{count}} hours ago",
+    "daysAgo": "{{count}} days ago",
+    "weeksAgo": "{{count}} weeks ago"
+  },
+  "item": {
+    "unreadPrefix": "Unread: "
   },
   "visual": {
     "leave": "Leave",

@@ -181,11 +181,11 @@ export const TaskTrendChart = memo(function TaskTrendChart({ data, range = '30d'
       errorTitle={t('dashboard:taskTrendChart.errorTitle')}
       errorDescription={t('dashboard:taskTrendChart.errorDescription')}
     >
-      <div className="relative w-full" aria-label="Biểu đồ xu hướng hoàn thành công việc">
+      <div className="relative w-full" aria-label={t('dashboard:taskTrendChart.chartAriaLabel')}>
         {isEmpty && (
           <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
             <span className="text-[13px] text-text-tertiary bg-bg-surface/80 px-3 py-1.5 rounded">
-              {t('dashboard:taskTrendChart.emptyOverlay', 'Chưa có dữ liệu trong khoảng thời gian này')}
+              {t('dashboard:taskTrendChart.emptyOverlay')}
             </span>
           </div>
         )}
@@ -224,7 +224,7 @@ export const TaskTrendChart = memo(function TaskTrendChart({ data, range = '30d'
             <Area
               type="monotone"
               dataKey="completed"
-              name={t('dashboard:taskTrendChart.completedLine', 'Hoàn thành')}
+              name={t('dashboard:taskTrendChart.completedLine')}
               stroke="#0E5E5E"
               strokeWidth={1.5}
               fillOpacity={1}
@@ -238,7 +238,7 @@ export const TaskTrendChart = memo(function TaskTrendChart({ data, range = '30d'
               <Area
                 type="monotone"
                 dataKey="created"
-                name={t('dashboard:taskTrendChart.createdLine', 'Được tạo mới')}
+                name={t('dashboard:taskTrendChart.createdLine')}
                 stroke="#8A8781"
                 strokeWidth={1.5}
                 strokeDasharray="4 4"
@@ -257,7 +257,7 @@ export const TaskTrendChart = memo(function TaskTrendChart({ data, range = '30d'
             <svg width="18" height="6" viewBox="0 0 18 6" className="shrink-0" aria-hidden="true">
               <line x1="0" y1="3" x2="18" y2="3" stroke="#0E5E5E" strokeWidth="2" strokeLinecap="round" />
             </svg>
-            <span>{t('dashboard:taskTrendChart.completedLine', 'Hoàn thành')}</span>
+            <span>{t('dashboard:taskTrendChart.completedLine')}</span>
           </div>
 
           {/* Series 2: Đường gạch đứt màu #8A8781 */}
@@ -275,7 +275,7 @@ export const TaskTrendChart = memo(function TaskTrendChart({ data, range = '30d'
                   strokeLinecap="round"
                 />
               </svg>
-              <span>{t('dashboard:taskTrendChart.createdLine', 'Được tạo mới')}</span>
+              <span>{t('dashboard:taskTrendChart.createdLine')}</span>
             </div>
           )}
         </div>

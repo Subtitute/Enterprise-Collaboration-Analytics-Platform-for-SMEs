@@ -91,7 +91,8 @@
     "emptyTitle": "タスクがまだありません",
     "emptyDescription": "システムにタスクが登録されると、ステータスグラフが表示されます。",
     "unit": "件",
-    "ofTotal": "全体の{{percent}}%"
+    "ofTotal": "全体の{{percent}}%",
+    "chartAriaLabel": "タスクステータス分布グラフ"
   },
   "taskTrendChart": {
     "errorTitle": "タスクの推移を読み込めませんでした",
@@ -100,7 +101,8 @@
     "emptyDescription": "タスクが作成または完了すると、データが表示されます。",
     "completedLine": "完了",
     "createdLine": "新規作成",
-    "emptyOverlay": "この期間のデータはありません"
+    "emptyOverlay": "この期間のデータはありません",
+    "chartAriaLabel": "タスク完了推移グラフ"
   },
   "recentActivityFeed": {
     "live": "リアルタイム更新中",
@@ -166,7 +168,9 @@
     "document": "ドキュメント",
     "leave": "休暇申請",
     "customer": "顧客",
-    "member": "メンバー"
+    "member": "メンバー",
+    "product": "商品",
+    "customerPurchase": "顧客の購入"
   },
   "relativeTime": {
     "justNow": "たった今",

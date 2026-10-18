@@ -142,7 +142,7 @@ export function DepartmentModal({
             className="inline-flex items-center justify-center h-9 px-4 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer disabled:opacity-50"
           >
             {isPending
-              ? t('common:loading', 'Đang xử lý...')
+              ? t('common:processing')
               : isEditing
               ? t('admin:departmentModal.saveChanges')
               : t('admin:departmentModal.create')}

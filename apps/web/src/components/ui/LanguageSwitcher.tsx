@@ -32,7 +32,7 @@ export function LanguageSwitcher() {
         <button
           type="button"
           onClick={toggle}
-          aria-label={t('common:language.switcherLabel', 'Chọn ngôn ngữ')}
+          aria-label={t('common:language.switcherLabel')}
           className={cn(
             'flex h-8 items-center gap-1.5 rounded-radius-md px-2 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-subtle cursor-pointer select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-soft',
             open && 'bg-bg-subtle text-text-primary',

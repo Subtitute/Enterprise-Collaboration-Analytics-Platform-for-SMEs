@@ -14,6 +14,7 @@ volumes:
   postgres-hrm-data:
   postgres-ml-data:
   postgres-messaging-data:
+  postgres-inventory-data:
   timescale-data:
   mongo-data:
   kafka-data:
@@ -179,6 +180,27 @@ services:
       timeout: 5s
       retries: 10
 
+  # 15/10/2026: Postgres rieng cho Inventory Service (Danh muc san pham + Kho, Technical_Spec.md
+  # muc 22) - dung quy uoc database-per-service nhu cac Postgres nghiep vu hien co.
+  postgres-inventory:
+    image: postgres:16-alpine
+    container_name: postgres-inventory
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_INVENTORY_DB}
+      POSTGRES_USER: ${POSTGRES_INVENTORY_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_INVENTORY_PASSWORD}
+    volumes:
+      - postgres-inventory-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5442:5432"
+    networks: [internal-net]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_INVENTORY_USER} -d ${POSTGRES_INVENTORY_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   timescaledb:
     # 22/08/2026: pin theo digest (thay vi tag "latest-pg16" troi) - phat hien qua audit ha tang:
     # tag troi nghia la build lai vai thang sau co the am tham keo ban khac voi ban da kiem thu.
@@ -309,6 +331,7 @@ services:
       mc alias set local http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
       mc mb -p local/${MINIO_BUCKET};
       mc mb -p local/${MINIO_HRM_BUCKET};
+      mc mb -p local/${MINIO_INVENTORY_BUCKET};
       exit 0;
       "
 
@@ -422,6 +445,7 @@ services:
       hrm-service: { condition: service_healthy }
       ml-service: { condition: service_healthy }
       messaging-service: { condition: service_healthy }
+      inventory-service: { condition: service_healthy }
       # 25/07/2026: kiem tra vong 2 phat hien - gateway dung REDIS_HOST/PORT ben duoi (rate-limit,
       # blacklist token) nhung truoc day khong khai bao phu thuoc "redis" nen co the khoi dong
       # truoc khi Redis san sang, gay loi tam thoi luc "docker compose up" lan dau.
@@ -444,6 +468,7 @@ services:
       HRM_SERVICE_URL: http://hrm-service:3006
       ML_SERVICE_URL: http://ml-service:8000
       MESSAGING_SERVICE_URL: http://messaging-service:3009
+      INVENTORY_SERVICE_URL: http://inventory-service:3010
     ports:
       - "3000:3000"
     networks: [internal-net]
@@ -785,6 +810,47 @@ services:
     networks: [internal-net]
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3009/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  # 15/10/2026: Inventory Service (Danh muc san pham + Kho, gan giao dich khach hang de phan tich
+  # xu huong thi truong - Technical_Spec.md muc 22).
+  inventory-service:
+    build:
+      context: ..
+      dockerfile: apps/inventory-service/Dockerfile
+    container_name: inventory-service
+    restart: unless-stopped
+    depends_on:
+      postgres-inventory: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      minio-init: { condition: service_completed_successfully }
+    environment:
+      NODE_ENV: production
+      PORT: 3010
+      DB_HOST: postgres-inventory
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_INVENTORY_DB}
+      DB_USER: ${POSTGRES_INVENTORY_USER}
+      DB_PASSWORD: ${POSTGRES_INVENTORY_PASSWORD}
+      KAFKA_BROKER: kafka:29092
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_USE_SSL: "false"
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_INVENTORY_BUCKET}
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost}
+      MINIO_PUBLIC_PORT: ${MINIO_PUBLIC_PORT:-9010}
+      MINIO_PUBLIC_USE_SSL: ${MINIO_PUBLIC_USE_SSL:-false}
+      INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
+    # Khong map port ra host, chi Gateway/noi bo moi goi duoc qua internal-net - cung quy uoc voi
+    # cac service nghiep vu con lai (Technical_Spec.md muc 8).
+    networks: [internal-net]
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3010/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 10

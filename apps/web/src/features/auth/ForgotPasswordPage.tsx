@@ -117,12 +117,12 @@ export function ForgotPasswordPage() {
         <div key="state-a" className="flex flex-col w-full fade-in-180">
           {/* 2. Tiêu đề Quên mật khẩu */}
           <h2 className="font-sans text-[28px] leading-9 font-semibold text-text-primary mb-1.5">
-            {t('auth:forgotPasswordPage.title', 'Quên mật khẩu')}
+            {t('auth:forgotPasswordPage.title')}
           </h2>
 
           {/* 3. Phụ đề - text-wrap: balance tránh rớt từ đơn lẻ */}
           <p className="font-sans text-sm leading-[22px] text-text-secondary mb-8 max-w-[380px] [text-wrap:balance]">
-            {t('auth:forgotPasswordPage.subtitle', 'Nhập email đã đăng ký, chúng tôi sẽ gửi liên kết đặt lại mật khẩu')}
+            {t('auth:forgotPasswordPage.subtitle')}
           </p>
 
           {/* 4. Form */}
@@ -169,8 +169,8 @@ export function ForgotPasswordPage() {
               isLoading={forgotPassword.isPending}
             >
               {forgotPassword.isPending
-                ? t('auth:forgotPasswordPage.submitting', 'Đang gửi…')
-                : t('auth:forgotPasswordPage.submit', 'Gửi liên kết đặt lại')}
+                ? t('auth:forgotPasswordPage.submitting')
+                : t('auth:forgotPasswordPage.submit')}
             </Button>
           </form>
 
@@ -182,7 +182,7 @@ export function ForgotPasswordPage() {
               className="inline-flex items-center gap-1.5 text-[13px] leading-5 text-text-secondary hover:text-accent transition-colors"
             >
               <ArrowLeftIcon className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>{t('auth:forgotPasswordPage.backToLogin', 'Quay lại đăng nhập')}</span>
+              <span>{t('auth:forgotPasswordPage.backToLogin')}</span>
             </Link>
           </div>
         </div>
@@ -203,12 +203,12 @@ export function ForgotPasswordPage() {
             role="status"
             className="font-sans text-[22px] leading-[30px] font-semibold text-text-primary mb-3 outline-none"
           >
-            {t('auth:forgotPasswordPage.stateB.title', 'Kiểm tra hộp thư của bạn')}
+            {t('auth:forgotPasswordPage.stateB.title')}
           </h2>
 
           {/* 3. Mô tả: email font-mono, weight 500, màu text-primary (§3.3, §5.4) */}
           <p className="font-sans text-sm leading-[22px] text-text-secondary mb-8 max-w-[380px]">
-            {t('auth:forgotPasswordPage.stateB.description', 'Chúng tôi đã gửi liên kết đặt lại mật khẩu đến')}{' '}
+            {t('auth:forgotPasswordPage.stateB.description')}{' '}
             <span className="font-mono font-medium text-text-primary break-all">{email.trim()}</span>
           </p>
 
@@ -216,7 +216,7 @@ export function ForgotPasswordPage() {
           <div className="flex flex-col items-center min-h-[24px]">
             {countdown > 0 ? (
               <span className="text-[13px] leading-5 text-text-tertiary select-none" aria-live="off">
-                {t('auth:forgotPasswordPage.stateB.cooldown', 'Gửi lại sau {{seconds}}s', { seconds: countdown })}
+                {t('auth:forgotPasswordPage.stateB.cooldown', { seconds: countdown })}
               </span>
             ) : (
               <button
@@ -232,10 +232,10 @@ export function ForgotPasswordPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
                     </svg>
-                    <span>{t('auth:forgotPasswordPage.submitting', 'Đang gửi…')}</span>
+                    <span>{t('auth:forgotPasswordPage.submitting')}</span>
                   </>
                 ) : (
-                  <span>{t('auth:forgotPasswordPage.stateB.resend', 'Gửi lại liên kết')}</span>
+                  <span>{t('auth:forgotPasswordPage.stateB.resend')}</span>
                 )}
               </button>
             )}
@@ -247,7 +247,7 @@ export function ForgotPasswordPage() {
             onClick={handleChangeEmail}
             className="mt-4 text-[13px] leading-5 text-text-secondary hover:text-accent transition-colors cursor-pointer"
           >
-            {t('auth:forgotPasswordPage.stateB.changeEmail', 'Nhập lại email khác')}
+            {t('auth:forgotPasswordPage.stateB.changeEmail')}
           </button>
 
           {/* 6. Link quay lại Login — ghost button icon arrow-left, mt-8 (§3.6) */}
@@ -258,7 +258,7 @@ export function ForgotPasswordPage() {
               className="inline-flex items-center gap-1.5 text-[13px] leading-5 text-text-secondary hover:text-accent transition-colors"
             >
               <ArrowLeftIcon className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>{t('auth:forgotPasswordPage.backToLogin', 'Quay lại đăng nhập')}</span>
+              <span>{t('auth:forgotPasswordPage.backToLogin')}</span>
             </Link>
           </div>
         </div>

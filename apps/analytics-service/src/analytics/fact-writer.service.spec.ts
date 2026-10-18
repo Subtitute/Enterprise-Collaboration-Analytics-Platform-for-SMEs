@@ -372,6 +372,82 @@ describe('FactWriterService', () => {
     });
   });
 
+  // 15/10/2026: Inventory Service (Danh muc san pham + Kho, Technical_Spec.md muc 22) - nguon du
+  // lieu CHINH cho phan tich xu huong thi truong.
+  describe('recordProductSaleEvent', () => {
+    const purchaseCreatedEvent: DomainEvent = {
+      ...baseEvent,
+      eventType: EVENT_TYPES.CUSTOMER_PURCHASE_CREATED,
+      producer: 'inventory-service',
+      payload: {
+        purchaseId: 'purchase-1',
+        customerId: 'cust-1',
+        productId: 'prod-1',
+        categoryId: 'cat-1',
+        quantity: 3,
+        unitPrice: 25000000,
+        purchasedAt: '2026-10-15',
+        actorId: 'user-1',
+      },
+    };
+
+    it('tra ve true khi INSERT tao ban ghi MOI, cot time LAY TU payload.purchasedAt (ngay giao dich THAT) chu KHONG PHAI event.occurredAt (thoi diem Outbox ghi nhan)', async () => {
+      queryMock.mockResolvedValueOnce([{ event_id: 'evt-1' }]);
+
+      const result = await service.recordProductSaleEvent(purchaseCreatedEvent);
+
+      expect(result).toBe(true);
+      const [sql, params] = queryMock.mock.calls[0];
+      expect(sql).toContain('INSERT INTO fact_product_sales');
+      expect(sql).toContain('ON CONFLICT (time, event_id) DO NOTHING');
+      expect(sql).toContain('RETURNING event_id');
+      // purchasedAt ('2026-10-15') khac han occurredAt ('2026-07-25T09:30:00.000Z') cua baseEvent -
+      // xac nhan ham THUC SU doc tu payload, khong vo tinh con dung occurredAt.
+      expect(params).toEqual([
+        '2026-10-15',
+        purchaseCreatedEvent.eventId,
+        purchaseCreatedEvent.organizationId,
+        purchaseCreatedEvent.eventType,
+        'purchase-1',
+        'prod-1',
+        'cat-1',
+        'cust-1',
+        3,
+        25000000,
+        'user-1',
+      ]);
+    });
+
+    it('fallback ve event.occurredAt khi payload thieu purchasedAt (du lieu cu/hong, khong bao gio xay ra qua DTO hien tai)', async () => {
+      queryMock.mockResolvedValueOnce([{ event_id: 'evt-1' }]);
+      const { purchasedAt: _omit, ...payloadWithoutPurchasedAt } = purchaseCreatedEvent.payload as Record<string, unknown>;
+      const eventMissingPurchasedAt: DomainEvent = { ...purchaseCreatedEvent, payload: payloadWithoutPurchasedAt };
+
+      await service.recordProductSaleEvent(eventMissingPurchasedAt);
+
+      const [, params] = queryMock.mock.calls[0];
+      expect(params[0]).toBe(eventMissingPurchasedAt.occurredAt);
+    });
+
+    it('tra ve false khi ON CONFLICT DO NOTHING bo qua ban ghi trung eventId', async () => {
+      queryMock.mockResolvedValueOnce([]);
+
+      const result = await service.recordProductSaleEvent(purchaseCreatedEvent);
+
+      expect(result).toBe(false);
+    });
+
+    it('dung runner.query() (vd EntityManager cua 1 transaction) thay vi this.dataSource.query() khi duoc truyen vao', async () => {
+      const managerQueryMock = jest.fn().mockResolvedValue([{ event_id: 'evt-1' }]);
+      const managerStub = { query: managerQueryMock };
+
+      await service.recordProductSaleEvent(purchaseCreatedEvent, managerStub as unknown as DataSource);
+
+      expect(managerQueryMock).toHaveBeenCalledTimes(1);
+      expect(queryMock).not.toHaveBeenCalled();
+    });
+  });
+
   // 25/07/2026 (Fix 2 - Major, audit): chung minh 3 ham co the CHIA SE 1 runner DUY NHAT (mo
   // phong EntityManager cua 1 transaction) - dung tinh huong that ma KafkaConsumerService.handleEvent()
   // tao ra: recordUserActivity() + recordTaskEvent() cho CUNG 1 event, CUNG 1 transaction.

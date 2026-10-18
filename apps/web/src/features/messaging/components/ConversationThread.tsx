@@ -98,7 +98,7 @@ export const ConversationThread = React.memo(function ConversationThread({ conve
             <button
               type="button"
               onClick={onBack}
-              aria-label="Quay lại danh sách"
+              aria-label={t('messaging:page.backToList')}
               className="md:hidden flex h-8 w-8 items-center justify-center rounded-radius-sm border border-border-strong text-text-primary hover:bg-bg-subtle cursor-pointer"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

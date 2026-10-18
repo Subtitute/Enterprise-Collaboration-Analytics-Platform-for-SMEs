@@ -51,7 +51,7 @@ export const KpiCard = memo(function KpiCard({
         {isError ? (
           <div className="mt-3 flex items-center gap-1.5">
             <AlertCircleIcon className="h-4 w-4 shrink-0 text-text-error" />
-            <span className="text-xs text-text-error">{t('dashboard:kpiCard.errorLabel', 'Lỗi tải dữ liệu')}</span>
+            <span className="text-xs text-text-error">{t('dashboard:kpiCard.errorLabel')}</span>
             {onRetry && (
               <button
                 type="button"

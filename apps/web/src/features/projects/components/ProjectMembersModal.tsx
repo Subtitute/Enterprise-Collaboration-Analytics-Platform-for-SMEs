@@ -145,9 +145,9 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-[16px] leading-[24px] font-semibold text-text-primary">{t('projects:membersModal.title', 'Thành viên dự án')}</h2>
+                <h2 className="text-[16px] leading-[24px] font-semibold text-text-primary">{t('projects:membersModal.title')}</h2>
                 <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-bg-subtle text-text-secondary border border-border-subtle tabular-nums">
-                  {t('projects:membersModal.memberCount', { count: members.length, defaultValue: `${members.length} thành viên` })}
+                  {t('projects:membersModal.memberCount', { count: members.length })}
                 </span>
               </div>
               <p className="text-[12px] text-text-tertiary truncate max-w-sm mt-0.5 font-normal">{project.name}</p>
@@ -160,7 +160,7 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
           {canManage && (
             <div className="rounded-radius-md border border-border-subtle bg-bg-subtle/60 p-3.5 space-y-2.5">
               <label className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider leading-none">
-                {t('projects:membersModal.addMemberTitle', 'Thêm thành viên vào dự án')}
+                {t('projects:membersModal.addMemberTitle')}
               </label>
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
@@ -180,7 +180,7 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
                           <span className="text-[11px] text-text-tertiary truncate">({selectedCandidate.email})</span>
                         </div>
                       ) : (
-                        <span className="text-text-tertiary">{t('projects:membersModal.selectMemberPlaceholder', 'Chọn thành viên trong tổ chức...')}</span>
+                        <span className="text-text-tertiary">{t('projects:membersModal.selectMemberPlaceholder')}</span>
                       )}
                       <ChevronDownIcon className={`h-4 w-4 text-text-tertiary shrink-0 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                     </button>
@@ -194,7 +194,7 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
                           type="text"
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder={t('projects:membersModal.searchPlaceholder', 'Tìm theo tên hoặc email...')}
+                          placeholder={t('projects:membersModal.searchPlaceholder')}
                           className="w-full pl-8 pr-3 py-1.5 text-[12px] rounded-radius-sm border border-border-strong bg-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
                           autoFocus
                         />
@@ -203,7 +203,7 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
                       <div className="max-h-52 overflow-y-auto space-y-0.5">
                         {availableCandidates.length === 0 ? (
                           <p className="py-4 text-center text-[12px] text-text-tertiary italic">
-                            {t('projects:membersModal.noAvailableCandidates', 'Không tìm thấy người phù hợp')}
+                            {t('projects:membersModal.noAvailableCandidates')}
                           </p>
                         ) : (
                           availableCandidates.map((u) => {
@@ -248,7 +248,7 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
                   className="shrink-0 h-9 px-3.5 inline-flex items-center justify-center gap-1.5 rounded-radius-md bg-[#1C1B1A] hover:bg-[#2E2C29] text-white text-[13px] font-medium transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   <PlusIcon className="h-3.5 w-3.5" />
-                  <span>{t('projects:membersModal.addButton', 'Thêm')}</span>
+                  <span>{t('projects:membersModal.addButton')}</span>
                 </button>
               </div>
             </div>
@@ -258,10 +258,10 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
           <div className="space-y-2">
             <div className="flex items-center justify-between px-1">
               <span className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider leading-none">
-                {t('projects:membersModal.currentMembersTitle', 'Danh sách thành viên hiện tại')}
+                {t('projects:membersModal.currentMembersTitle')}
               </span>
               <span className="text-[11px] font-mono text-text-tertiary font-medium tabular-nums">
-                {t('projects:membersModal.totalCount', { count: members.length, defaultValue: `Tổng cộng ${members.length} người` })}
+                {t('projects:membersModal.totalCount', { count: members.length })}
               </span>
             </div>
 
@@ -272,8 +272,8 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
             ) : members.length === 0 ? (
               <div className="py-8 text-center border border-dashed border-border-subtle rounded-radius-md bg-white">
                 <UsersIcon className="h-8 w-8 text-text-tertiary mx-auto mb-2 stroke-1" />
-                <p className="text-[13px] font-medium text-text-primary">{t('projects:membersModal.emptyTitle', 'Chưa có thành viên nào')}</p>
-                <p className="text-[12px] text-text-tertiary mt-0.5">{t('projects:membersModal.emptyDescription', 'Dự án hiện chưa có thành viên nào tham gia.')}</p>
+                <p className="text-[13px] font-medium text-text-primary">{t('projects:membersModal.emptyTitle')}</p>
+                <p className="text-[12px] text-text-tertiary mt-0.5">{t('projects:membersModal.emptyDescription')}</p>
               </div>
             ) : (
               <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
@@ -296,7 +296,7 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
                             </span>
                             {isLead && (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded-[2px] text-[10px] font-medium bg-[#E4EFEE] text-[#0E5E5E]">
-                                {t('projects:membersModal.roles.lead', 'Phụ trách')}
+                                {t('projects:membersModal.roles.lead')}
                               </span>
                             )}
                           </div>
@@ -309,7 +309,7 @@ export function ProjectMembersModal({ open, onClose, project, tasks = [] }: Proj
                       <div className="flex items-center gap-2.5 shrink-0">
                         {taskCount > 0 && (
                           <span className="text-[11px] font-mono font-medium text-text-secondary bg-bg-subtle px-2 py-0.5 rounded-[4px] border border-border-subtle tabular-nums">
-                            {t('projects:membersModal.taskCount', { count: taskCount, defaultValue: `${taskCount} việc` })}
+                            {t('projects:membersModal.taskCount', { count: taskCount })}
                           </span>
                         )}
 

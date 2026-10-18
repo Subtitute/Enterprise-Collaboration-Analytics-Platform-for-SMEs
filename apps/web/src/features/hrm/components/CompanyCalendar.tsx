@@ -49,6 +49,7 @@ interface CalendarDayCellProps {
   day: number;
   dayStr: string;
   isToday: boolean;
+  isPast?: boolean;
   dayEvents: CalendarEvent[];
   onOpenCreate: (dayStr: string) => void;
   onEditEvent: (ev: CalendarEvent) => void;
@@ -58,6 +59,7 @@ const CalendarDayCell = React.memo(function CalendarDayCell({
   day,
   dayStr,
   isToday,
+  isPast = false,
   dayEvents,
   onOpenCreate,
   onEditEvent,
@@ -67,13 +69,20 @@ const CalendarDayCell = React.memo(function CalendarDayCell({
 
   return (
     <div
-      onClick={() => onOpenCreate(dayStr)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') onOpenCreate(dayStr);
-      }}
-      className="group relative flex min-h-[72px] sm:min-h-[84px] flex-col justify-between border-b border-r border-border-subtle p-1.5 transition-colors hover:bg-bg-subtle cursor-pointer"
+      onClick={isPast ? undefined : () => onOpenCreate(dayStr)}
+      role={isPast ? undefined : 'button'}
+      tabIndex={isPast ? undefined : 0}
+      onKeyDown={
+        isPast
+          ? undefined
+          : (e) => {
+              if (e.key === 'Enter') onOpenCreate(dayStr);
+            }
+      }
+      className={cn(
+        'group relative flex min-h-[72px] sm:min-h-[84px] flex-col justify-between border-b border-r border-border-subtle p-1.5 transition-colors',
+        isPast ? 'bg-bg-subtle/50' : 'cursor-pointer hover:bg-bg-subtle',
+      )}
     >
       <div className="flex items-center justify-between">
         <span
@@ -224,7 +233,13 @@ export function CompanyCalendar() {
         <button
           type="button"
           onClick={() => {
-            setCreateDefaultDate(todayStr >= monthStartStr && todayStr <= monthEndStr ? todayStr : monthStartStr);
+            // 05/10/2026 (fix loi thuc te): truoc ban sua nay, khi dang xem 1 THANG DA QUA (lui
+            // ve qua cac mui ten), nut nay dien san monthStartStr (ngay 1 cua thang do) - 1 ngay
+            // QUA KHU - lam nguoi dung mo form tao moi voi ngay khong hop le san co. Danh gia 3
+            // truong hop: thang dang xem CHUA ngay hom nay -> todayStr; thang trong TUONG LAI
+            // (monthStartStr > todayStr) -> monthStartStr; thang DA QUA -> todayStr (khong duoc
+            // dung monthStartStr qua khu).
+            setCreateDefaultDate(monthStartStr > todayStr ? monthStartStr : todayStr);
             setIsCreateOpen(true);
           }}
           className="inline-flex items-center justify-center gap-1 h-7 px-2.5 rounded-radius-xs border border-border-strong bg-white hover:bg-bg-subtle text-[12px] font-medium text-text-primary transition-colors cursor-pointer shrink-0"
@@ -286,12 +301,15 @@ export function CompanyCalendar() {
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
               const dayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+              const isToday = dayStr === todayStr;
+              const isPast = dayStr < todayStr;
               return (
                 <CalendarDayCell
                   key={`cur-${day}`}
                   day={day}
                   dayStr={dayStr}
-                  isToday={dayStr === todayStr}
+                  isToday={isToday}
+                  isPast={isPast}
                   dayEvents={eventsForDay(dayStr)}
                   onOpenCreate={openCreateForDay}
                   onEditEvent={setEditingEvent}

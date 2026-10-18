@@ -62,7 +62,7 @@ function SidebarLinks({ collapsed, onNavigate, isMobile = false }: SidebarConten
   };
 
   return (
-    <nav aria-label="Điều hướng chính" className="flex-1 space-y-0.5 overflow-x-hidden overflow-y-auto px-2 py-2">
+    <nav aria-label={t('common:nav.mainAria')} className="flex-1 space-y-0.5 overflow-x-hidden overflow-y-auto px-2 py-2">
       {items.map((item) => {
         const isHome = Boolean(item.matchPrefixes);
         const isItemActive = isHome
@@ -77,7 +77,7 @@ function SidebarLinks({ collapsed, onNavigate, isMobile = false }: SidebarConten
 
         const ariaLabel =
           item.to === '/messages' && unreadMessagesCount > 0
-            ? `${label}, ${unreadMessagesCount} tin chưa đọc`
+            ? `${label}, ${t('common:nav.unreadMessagesSuffix', { count: unreadMessagesCount })}`
             : label;
 
         return (
@@ -138,7 +138,7 @@ function SidebarLinks({ collapsed, onNavigate, isMobile = false }: SidebarConten
                 <button
                   type="button"
                   onClick={() => setHomeAccordionOpen((prev) => !prev)}
-                  aria-label="Mở rộng danh sách trang chủ"
+                  aria-label={t('common:nav.homeAccordionExpandAria')}
                   className="flex h-10 w-9 items-center justify-center rounded-radius-sm text-text-tertiary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer"
                 >
                   <ChevronDownIcon
@@ -206,6 +206,7 @@ function SidebarLinks({ collapsed, onNavigate, isMobile = false }: SidebarConten
 }
 
 function SidebarHeader({ collapsed, onNavigate, onClose }: { collapsed: boolean; onNavigate?: () => void; onClose?: () => void }) {
+  const { t } = useTranslation();
   return (
     <div
       className={cn(
@@ -237,7 +238,7 @@ function SidebarHeader({ collapsed, onNavigate, onClose }: { collapsed: boolean;
         <button
           type="button"
           onClick={onClose}
-          aria-label="Đóng menu"
+          aria-label={t('common:nav.closeMenuAria')}
           className="flex h-8 w-8 items-center justify-center rounded-radius-sm text-text-tertiary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer"
         >
           <span className="text-lg leading-none font-medium">&times;</span>
@@ -278,6 +279,7 @@ export function Sidebar() {
 
 /** 5. MobileSidebar: Drawer 288px (w-72), backdrop rgba(28,27,26,0.5), focus trap, close button, Esc, click-outside */
 export function MobileSidebar() {
+  const { t } = useTranslation();
   const open = useUIStore((s) => s.mobileSidebarOpen);
   const setOpen = useUIStore((s) => s.setMobileSidebarOpen);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -329,7 +331,7 @@ export function MobileSidebar() {
         ref={drawerRef}
         role="dialog"
         aria-modal="true"
-        aria-label="Thanh điều hướng"
+        aria-label={t('common:nav.mobileDrawerAria')}
         tabIndex={-1}
         className="relative z-10 flex h-full w-72 max-w-[80vw] animate-slide-up flex-col rounded-r-radius-lg bg-bg-surface shadow-lg focus:outline-none"
       >

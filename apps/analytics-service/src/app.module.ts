@@ -10,7 +10,7 @@ import { HttpMetricsInterceptor, MetricsController, MetricsService } from '@app/
 // 28/07/2026: DDL tu-cham schema KPI theo phong ban (dim_user, fact_task_events.assignee_id) -
 // xem giai thich day du va ly do can ca 2 noi (o day VA infra/timescale-init/001-init.sql) trong
 // database/schema-bootstrap.ts.
-import { bootstrapDepartmentKpiSchema } from './database/schema-bootstrap';
+import { bootstrapDepartmentKpiSchema, bootstrapProductSalesSchema } from './database/schema-bootstrap';
 import { AllExceptionsFilter, InternalAuthGuard, PermissionsGuard } from '@app/common-guard';
 import configuration from './config/configuration';
 import { RedisModule } from './redis/redis.module';
@@ -56,6 +56,8 @@ import { AiInsightsModule } from './ai-insights/ai-insights.module';
         const dataSource = new DataSource(options!);
         await dataSource.initialize();
         await bootstrapDepartmentKpiSchema(dataSource);
+        // 15/10/2026: hypertable fact_product_sales (Inventory Service) - xem schema-bootstrap.ts.
+        await bootstrapProductSalesSchema(dataSource);
         return dataSource;
       },
     }),

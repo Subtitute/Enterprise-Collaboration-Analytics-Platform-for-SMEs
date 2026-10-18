@@ -69,19 +69,19 @@ export const ProjectCard = React.memo(function ProjectCard({ project, progress, 
   // §5.1 Status badge colors & labels
   const statusConfig = {
     ACTIVE: {
-      label: t('projects:enums.projectStatus.ACTIVE', 'Đang hoạt động'),
+      label: t('projects:enums.projectStatus.ACTIVE'),
       bg: 'bg-[#E4EFEE]',
       text: 'text-[#0E5E5E]',
       dot: 'bg-[#0E5E5E]',
     },
     COMPLETED: {
-      label: t('projects:enums.projectStatus.COMPLETED', 'Hoàn thành'),
+      label: t('projects:enums.projectStatus.COMPLETED'),
       bg: 'bg-[#E6F1E9]',
       text: 'text-[#2F6F44]',
       dot: 'bg-[#2F6F44]',
     },
     ARCHIVED: {
-      label: t('projects:enums.projectStatus.ARCHIVED', 'Lưu trữ'),
+      label: t('projects:enums.projectStatus.ARCHIVED'),
       bg: 'bg-[#EFEDE8]',
       text: 'text-[#8A8781]',
       dot: 'bg-[#8A8781]',
@@ -102,11 +102,11 @@ export const ProjectCard = React.memo(function ProjectCard({ project, progress, 
   // §5.2 Priority badge colors: Font 11/600, height 22, padding 2x8, radius 2px
   const priorityConfig = {
     LOW: {
-      label: t('projects:newProjectModal.priorities.LOW', 'Thấp'),
+      label: t('projects:newProjectModal.priorities.LOW'),
       className: 'bg-[#FAF9F6] text-[#8A8781]',
     },
     MEDIUM: {
-      label: t('projects:newProjectModal.priorities.MEDIUM', 'Trung bình'),
+      label: t('projects:newProjectModal.priorities.MEDIUM'),
       className: 'bg-[#EFEDE8] text-[#5C5A55]',
     },
     HIGH: {
@@ -114,7 +114,7 @@ export const ProjectCard = React.memo(function ProjectCard({ project, progress, 
       className: 'bg-[#FBEEE0] text-[#B45309]',
     },
     URGENT: {
-      label: t('projects:newProjectModal.priorities.URGENT', 'Khẩn cấp'),
+      label: t('projects:newProjectModal.priorities.URGENT'),
       className: 'bg-[#F8E5E3] text-[#B3261E]',
     },
   }[currentPriority];
@@ -236,7 +236,7 @@ export const ProjectCard = React.memo(function ProjectCard({ project, progress, 
               project.description
             ) : (
               <span className="italic text-text-tertiary font-normal">
-                {t('projects:projectCard.noDescription', 'Không có mô tả')}
+                {t('projects:projectCard.noDescription')}
               </span>
             )}
           </p>
@@ -247,7 +247,7 @@ export const ProjectCard = React.memo(function ProjectCard({ project, progress, 
           {/* Row 2.5 — Người phụ trách (Lead) — CỐ ĐỊNH 24px, LUÔN HIỂN THỊ */}
           <div className="mt-4 mb-3 h-6 flex items-center gap-1.5 min-w-0">
             <span className="text-[12px] leading-[16px] font-normal text-text-tertiary shrink-0">
-              {t('projects:projectCard.leadLabel', 'Phụ trách:')}
+              {t('projects:projectCard.leadLabel')}
             </span>
             {leadUser ? (
               <div className="flex items-center gap-1.5 min-w-0">
@@ -262,7 +262,7 @@ export const ProjectCard = React.memo(function ProjectCard({ project, progress, 
               </div>
             ) : (
               <span className="text-[13px] leading-[20px] font-normal italic text-text-tertiary">
-                {t('projects:projectCard.leadUnassigned', 'Chưa chỉ định')}
+                {t('projects:projectCard.leadUnassigned')}
               </span>
             )}
           </div>
@@ -271,11 +271,11 @@ export const ProjectCard = React.memo(function ProjectCard({ project, progress, 
           <div className="flex items-baseline justify-between text-xs">
             <div className="flex items-center gap-1">
               <span className="text-[12px] leading-[16px] font-medium text-text-secondary">
-                {t('projects:projectCard.progressLabel', 'Tiến độ')}
+                {t('projects:projectCard.progressLabel')}
               </span>
               {typeof taskCount === 'number' && (
                 <span className="font-mono text-[12px] leading-[16px] font-medium text-text-tertiary">
-                  ({t('projects:projectCard.taskCountLabel', { completed: completedTaskCount ?? 0, total: taskCount, defaultValue: `${completedTaskCount ?? 0}/${taskCount} việc` })})
+                  ({t('projects:projectCard.taskCountLabel', { completed: completedTaskCount ?? 0, total: taskCount })})
                 </span>
               )}
             </div>

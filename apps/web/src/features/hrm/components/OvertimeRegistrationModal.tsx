@@ -37,13 +37,12 @@ export function OvertimeRegistrationModal({ userId, open, onClose, leaveRequests
   const { totalHours, durationText } = useMemo(() => {
     const [sH, sM] = otStart.split(':').map(Number);
     const [eH, eM] = otEnd.split(':').map(Number);
-    const defaultZero = t('hrm:extensions.overtime.durationHoursOnly', { hours: 0, defaultValue: '0 giờ' });
     if (isNaN(sH) || isNaN(sM) || isNaN(eH) || isNaN(eM)) {
-      return { totalHours: 0, durationText: defaultZero };
+      return { totalHours: 0, durationText: t('hrm:extensions.overtime.durationZero') };
     }
     const diffMins = (eH * 60 + eM) - (sH * 60 + sM);
     if (diffMins <= 0) {
-      return { totalHours: 0, durationText: defaultZero };
+      return { totalHours: 0, durationText: t('hrm:extensions.overtime.durationZero') };
     }
 
     const hours = Math.floor(diffMins / 60);
@@ -52,21 +51,11 @@ export function OvertimeRegistrationModal({ userId, open, onClose, leaveRequests
 
     let text = '';
     if (hours > 0 && mins > 0) {
-      text = t('hrm:extensions.overtime.durationHoursMinutes', {
-        hours,
-        minutes: mins,
-        defaultValue: `${hours} giờ ${mins} phút`,
-      });
+      text = t('hrm:extensions.overtime.durationHoursMinutes', { hours, mins });
     } else if (hours > 0) {
-      text = t('hrm:extensions.overtime.durationHoursOnly', {
-        hours,
-        defaultValue: `${hours} giờ`,
-      });
+      text = t('hrm:extensions.overtime.durationHoursOnly', { hours });
     } else {
-      text = t('hrm:extensions.overtime.durationMinutesOnly', {
-        minutes: mins,
-        defaultValue: `${mins} phút`,
-      });
+      text = t('hrm:extensions.overtime.durationMinutesOnly', { mins });
     }
 
     return { totalHours: decimalHours, durationText: text };
@@ -215,7 +204,7 @@ export function OvertimeRegistrationModal({ userId, open, onClose, leaveRequests
         <div className="flex items-center gap-2 p-2.5 rounded-radius-sm bg-accent-soft text-accent text-xs font-medium">
           <InfoIcon className="h-4 w-4 shrink-0" />
           <span>
-            {t('hrm:extensions.overtime.estimatedDuration', { defaultValue: 'Thời lượng OT dự kiến: {{duration}}' , duration: durationText })}
+            {t('hrm:extensions.overtime.estimatedDuration', { duration: durationText })}
           </span>
         </div>
 

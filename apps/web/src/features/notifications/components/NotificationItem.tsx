@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import {
   CalendarCheckIcon,
@@ -32,7 +33,7 @@ function getSemanticIconConfig(type?: string, title?: string): {
   const rawTitle = (title || '').toLowerCase();
 
   // 1. Nghỉ phép duyệt: success #2F6F44
-  if (t.includes('leave_request.approved') || rawTitle.includes('nghỉ phép đã được duyệt') || rawTitle.includes('approved')) {
+  if (t.includes('leave_request.approved') || rawTitle.includes('nghỉ phép đã được duyệt') || rawTitle.includes('approved')) { // i18n-lint-ignore: khop title backend, khong phai chuoi UI
     return {
       icon: <CalendarCheckIcon className="h-4 w-4" />,
       iconColor: 'text-[#2F6F44]',
@@ -40,7 +41,7 @@ function getSemanticIconConfig(type?: string, title?: string): {
   }
 
   // 2. Nghỉ phép từ chối: error #B3261E
-  if (t.includes('leave_request.rejected') || rawTitle.includes('từ chối') || rawTitle.includes('rejected')) {
+  if (t.includes('leave_request.rejected') || rawTitle.includes('từ chối') || rawTitle.includes('rejected')) { // i18n-lint-ignore: khop title backend, khong phai chuoi UI
     return {
       icon: <CalendarXIcon className="h-4 w-4" />,
       iconColor: 'text-[#B3261E]',
@@ -48,7 +49,7 @@ function getSemanticIconConfig(type?: string, title?: string): {
   }
 
   // 3. Mention: accent #0E5E5E
-  if (t.includes('mention') || rawTitle.includes('nhắc đến')) {
+  if (t.includes('mention') || rawTitle.includes('nhắc đến')) { // i18n-lint-ignore: khop title backend, khong phai chuoi UI
     return {
       icon: <AtSignIcon className="h-4 w-4" />,
       iconColor: 'text-[#0E5E5E]',
@@ -56,7 +57,7 @@ function getSemanticIconConfig(type?: string, title?: string): {
   }
 
   // 4. Bình luận mới: accent #0E5E5E
-  if (t.includes('comment') || rawTitle.includes('bình luận')) {
+  if (t.includes('comment') || rawTitle.includes('bình luận')) { // i18n-lint-ignore: khop title backend, khong phai chuoi UI
     return {
       icon: <MessageSquareIcon className="h-4 w-4" />,
       iconColor: 'text-[#0E5E5E]',
@@ -64,7 +65,7 @@ function getSemanticIconConfig(type?: string, title?: string): {
   }
 
   // 5. Giao công việc: accent #0E5E5E
-  if (t.includes('task') || rawTitle.includes('công việc')) {
+  if (t.includes('task') || rawTitle.includes('công việc')) { // i18n-lint-ignore: khop title backend, khong phai chuoi UI
     return {
       icon: <CheckSquareIcon className="h-4 w-4" />,
       iconColor: 'text-[#0E5E5E]',
@@ -72,7 +73,7 @@ function getSemanticIconConfig(type?: string, title?: string): {
   }
 
   // 6. Cập nhật dự án / tài liệu: info #1E5A8A
-  if (t.includes('project') || t.includes('document') || rawTitle.includes('dự án') || rawTitle.includes('tài liệu')) {
+  if (t.includes('project') || t.includes('document') || rawTitle.includes('dự án') || rawTitle.includes('tài liệu')) { // i18n-lint-ignore: khop title backend, khong phai chuoi UI
     return {
       icon: <FolderSyncIcon className="h-4 w-4" />,
       iconColor: 'text-[#1E5A8A]',
@@ -117,6 +118,7 @@ export function NotificationItem({
   onClick,
   className,
 }: NotificationItemProps) {
+  const { t } = useTranslation();
   const { icon, iconColor } = getSemanticIconConfig(type, title);
   const formattedId = formatEntityId(id);
 
@@ -124,7 +126,7 @@ export function NotificationItem({
     <button
       type="button"
       onClick={onClick}
-      aria-label={`${isUnread ? 'Chưa đọc: ' : ''}${title}. ${body}`}
+      aria-label={`${isUnread ? t('notifications:item.unreadPrefix') : ''}${title}. ${body}`}
       className={cn(
         'group relative flex w-full items-start gap-3 px-4 py-3 text-left transition-colors cursor-pointer hover:bg-bg-subtle focus-visible:outline-none focus-visible:bg-bg-subtle focus-visible:ring-1 focus-visible:ring-accent',
         className,
@@ -137,7 +139,7 @@ export function NotificationItem({
             className="absolute left-2 top-[18px] h-1.5 w-1.5 rounded-full bg-[#0E5E5E]"
             aria-hidden="true"
           />
-          <span className="sr-only">Chưa đọc</span>
+          <span className="sr-only">{t('notifications:bell.unreadBadge')}</span>
         </>
       )}
 

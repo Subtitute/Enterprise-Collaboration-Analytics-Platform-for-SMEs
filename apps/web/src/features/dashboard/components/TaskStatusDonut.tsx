@@ -17,9 +17,9 @@ const STATUS_COLORS: Record<string, string> = {
 
 function getStatusLabel(status: string, translate: (key: string, def?: any) => string) {
   const normalized = status === 'IN_PROGRESS' ? 'DOING' : status;
-  if (normalized === 'TODO') return translate('dashboard:status.toDo', 'Cần làm');
-  if (normalized === 'DOING') return translate('dashboard:status.inProgress', 'Đang làm');
-  if (normalized === 'DONE') return translate('dashboard:status.done', 'Hoàn thành');
+  if (normalized === 'TODO') return translate('dashboard:status.toDo');
+  if (normalized === 'DOING') return translate('dashboard:status.inProgress');
+  if (normalized === 'DONE') return translate('dashboard:status.done');
   return translate(`projects:enums.taskStatus.${normalized}`, { defaultValue: status });
 }
 
@@ -85,7 +85,7 @@ export const TaskStatusDonut = memo(function TaskStatusDonut({ data, isLoading, 
       errorTitle={translate('dashboard:taskStatusDonut.errorTitle')}
       errorDescription={translate('dashboard:taskStatusDonut.errorDescription')}
     >
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-6 w-full min-w-0" aria-label="Biểu đồ phân bổ trạng thái công việc">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-6 w-full min-w-0" aria-label={translate('dashboard:taskStatusDonut.chartAriaLabel')}>
         {/* Ring mỏng: innerRadius 65, outerRadius 85 */}
         <div className="relative h-[180px] w-[180px] shrink-0 mx-auto">
           {/* Tâm tròn: số tổng font IBM Plex Mono 32/40 + label 12/400 */}
@@ -94,7 +94,7 @@ export const TaskStatusDonut = memo(function TaskStatusDonut({ data, isLoading, 
               {total}
             </span>
             <span className="text-[12px] leading-[16px] text-text-tertiary">
-              {translate('dashboard:taskStatusDonut.unit', 'công việc')}
+              {translate('dashboard:taskStatusDonut.unit')}
             </span>
           </div>
 

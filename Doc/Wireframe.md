@@ -210,6 +210,7 @@ Dropdown từ Topbar (🔔) — nay là giao diện thông báo DUY NHẤT:
 - **(Bổ sung 24/09/2026 — Layer 2 Diagnostic drill-down, Technical_Spec.md §19.2)** Mỗi thanh trong biểu đồ so sánh ở trên (trừ thanh "Toàn tổ chức") có thể bấm vào — mở 1 panel chi tiết hiển thị phễu "Tổng công việc → Chưa xong → Quá hạn → Tập trung ở 1 người" cho đúng phòng ban/dự án đó, giúp trả lời "vì sao" thay vì chỉ dừng ở con số tổng hợp. Panel ghi rõ ghi chú giới hạn: "quá hạn" tính theo hạn hoàn thành tại thời điểm tạo công việc, có thể chưa cập nhật nếu hạn được đổi sau đó.
 - **(Bổ sung 24/09/2026 — Layer 3 Anomaly Detection, Technical_Spec.md §19.3)** Khối mới "Phát hiện bất thường" dưới khối "Nhận xét AI" — nút "Chạy phát hiện bất thường" (theo yêu cầu, không tự động) quét toàn bộ nhân viên trong phạm vi (Org Admin: toàn tổ chức; Manager: phòng ban mình phụ trách) bằng mô hình Isolation Forest thật, hiển thị thẻ nhân viên bị gắn cờ kèm chỉ số lệch nhiều nhất so với trung bình đội nhóm (vd "Tỷ lệ chấm công 58% ↓ so với trung bình đội nhóm 93"). Khối này chỉ hiện với người có quyền `ml:view` (Org Admin/Manager theo mặc định).
 - **(Bổ sung 24/09/2026 — Layer 5 Recommendation Engine, Technical_Spec.md §19.4)** Nếu đã chạy "Phát hiện bất thường" trước đó, lần bấm "Tạo nhận xét AI" tiếp theo sẽ gửi kèm kết quả đó cho AI — các thẻ insight liên quan có thêm khối "Kế hoạch hành động" (huy hiệu mức ưu tiên Cao/Vừa/Thấp, kèm hành động cụ thể/lý do/tác động kỳ vọng/mức công sức ước tính), hiển thị ngay dưới khối gợi ý đã có.
+- **(Bổ sung 16/10/2026 — xu hướng thị trường sản phẩm, Technical_Spec.md §22.3)** 2 biểu đồ mới ở cuối trang, dưới khối "Phát hiện bất thường": **"Xu hướng doanh số theo sản phẩm"** (area/line chart, chọn được khung 7 hoặc 30 ngày gần nhất — không có mốc quý vì dữ liệu mua hàng demo chưa đủ dài) và **"Top sản phẩm bán nhiều nhất"** (bar chart ngang, xếp hạng theo tổng số lượng đã bán trong khung thời gian đang chọn). Cả 2 đọc từ hypertable `fact_product_sales` mới, dữ liệu nguồn là các lượt "Ghi nhận mua hàng" ở §12.2 — không có bộ lọc "Phòng ban" (dữ liệu bán hàng không gắn với phòng ban nào).
 
 ## 8. Trang Quản trị hệ thống (chỉ Org Admin)
 
@@ -377,6 +378,21 @@ Toàn bộ bảng dữ liệu (danh sách dự án, tài liệu, thành viên) c
 - Kéo-thả (drag & drop) thẻ deal giữa các cột → gọi `PATCH /api/v1/deals/:id/stage` → phát sự kiện `deal.stage_changed`. **Khác với Kanban Công việc (§4.2, 3 cột tuyến tính):** 4 cột đầu (Mới/Đã liên hệ/Đề xuất/Đàm phán) di chuyển tự do qua lại lẫn nhau (đúng thực tế bán hàng — khách hàng có thể đổi ý, quay lại giai đoạn trước); "Thắng"/"Thua" là cột **cuối cùng** — deal đã vào 1 trong 2 cột này không kéo đi tiếp được nữa (máy chủ từ chối, trả lỗi rõ ràng nếu cố tình gọi API trực tiếp).
 - Deal chuyển sang "Thắng" tự động ghi nhận thời điểm chốt (`closedAt`) và gửi 1 thông báo real-time chúc mừng cho người thực hiện thao tác (Module Thông báo, §6).
 - Click vào thẻ deal mở **Modal chi tiết Deal**: tiêu đề, giá trị, ngày dự kiến chốt, nút Xoá. **Không** có ô đổi giai đoạn trong modal này — đổi giai đoạn chỉ qua kéo-thả, tránh 2 nơi cùng sửa 1 giá trị theo 2 cơ chế khác nhau.
+- **(Bổ sung 16/10/2026, xem Technical_Spec.md §22)** Dưới khung Kanban, thêm khối **"Lịch sử mua hàng"**:
+  ```
+  ├──────────────────────────────────────────────────────────────┤
+  │  Lịch sử mua hàng                        [+ Ghi nhận mua hàng]│
+  │  Sản phẩm      | Số lượng | Đơn giá    | Thời điểm  | Kho xuất │
+  │  Laptop Dell   | 2        | 18.500.000đ| 10/10/2026 | Kho HN   │
+  │  RAM 16GB      | 5        | 1.450.000đ | 05/10/2026 | —        │
+  └──────────────────────────────────────────────────────────────┘
+  ```
+  Nút "+ Ghi nhận mua hàng" mở modal chọn sản phẩm (từ danh mục sản phẩm, §14.1) + số lượng + đơn
+  giá + kho xuất (tuỳ chọn). Nếu chọn kho, ghi nhận mua hàng đồng thời trừ tồn kho của đúng kho đó
+  (atomic trong 1 transaction — xem Technical_Spec.md §22.2); không chọn kho thì chỉ ghi nhận mua
+  hàng thuần, không ảnh hưởng tồn kho (vd đơn hàng giao thẳng từ nhà cung cấp, không qua kho công
+  ty). Đây chính là cơ chế "gán mặt hàng cho từng khách hàng" phục vụ phân tích xu hướng thị
+  trường ở §7. Xoá 1 lượt mua hàng (nếu có gắn kho) hoàn tác đúng số lượng đã trừ.
 
 ## 13. Nhắn tin nội bộ *(bổ sung 28/09/2026, xem Technical_Spec.md §20)*
 
@@ -426,6 +442,85 @@ Mục điều hướng mới "Nhắn tin" (Sidebar, có badge số tin chưa đ�
   lạ hoặc nhận nhầm một vài từ trùng ngẫu nhiên (vd tên riêng "Mai") — chấp nhận được vì đây chỉ là
   một gợi ý tiện lợi, không bắt buộc phải dùng.
 
+## 14. Danh mục sản phẩm & Kho hàng *(bổ sung 16/10/2026, xem Technical_Spec.md §22)*
+
+Mục điều hướng mới "Sản phẩm"/"Kho" (nhóm "Trang chủ", §2) → 2 trang riêng.
+
+### 14.1 Danh mục sản phẩm (`/products`)
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ Danh mục sản phẩm              [Quản lý danh mục] [+ Sản phẩm mới] │
+├──────────────────────────────────────────────────────────────┤
+│ [Tìm kiếm sản phẩm______] [Danh mục: Tất cả ▾]                 │
+├──────────────────────────────────────────────────────────────┤
+│ ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────┐       │
+│ │ (ảnh WebP)│ │ (ảnh WebP)│ │ (ảnh WebP)│ │ (ảnh WebP)│       │
+│ │ Laptop Dell│ │ RAM 16GB  │ │ Chuột Gaming│ │ SSD 1TB   │       │
+│ │ SKU-00142  │ │ SKU-00088  │ │ SKU-00231  │ │ SKU-00067  │       │
+│ │ 18.500.000đ│ │ 1.450.000đ │ │ 650.000đ   │ │ 2.100.000đ │       │
+│ └───────────┘ └───────────┘ └───────────┘ └───────────┘       │
+├──────────────────────────────────────────────────────────────┤
+│                                    [ ← Trước  1/3  Sau → ]     │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- Lưới thẻ sản phẩm (2 cột mobile, lên tới 4 cột desktop), mỗi thẻ hiện ảnh (nếu đã tải lên —
+  thiếu ảnh thì hiện icon hộp mặc định, không hỏng layout), tên, SKU, đơn giá (định dạng VND), và
+  menu `⋮` (Sửa/Xoá — chỉ hiện với người có quyền `product:manage`).
+- Tìm kiếm theo tên/SKU lọc phía client (không phân biệt dấu tiếng Việt, debounce 300ms — mirror
+  §12.1); lọc theo danh mục gửi lên server. Xoá bộ lọc/đổi trang tự dồn về trang hợp lệ cuối cùng
+  nếu trang hiện tại trống sau khi lọc.
+- Nút "Quản lý danh mục" mở modal riêng (danh sách danh mục, tạo/sửa/xoá — xoá bị chặn nếu danh
+  mục còn sản phẩm, thông báo lỗi rõ ràng chứ không phải lỗi 500 chung).
+- Modal "Sản phẩm mới"/"Sửa sản phẩm": tên, SKU (không trùng — máy chủ từ chối nếu đã tồn tại),
+  danh mục, đơn giá, mô tả, và khối tải ảnh riêng (chỉ hiện sau khi sản phẩm đã được lưu lần đầu —
+  ảnh gắn vào sản phẩm đã có `id`, không gắn vào bản nháp chưa lưu). Ảnh chấp nhận JPEG/PNG/WebP,
+  có giới hạn dung lượng tối đa, thông báo lỗi rõ ràng nếu sai định dạng/quá lớn.
+- Người chỉ có quyền `product:view` (Employee) xem được toàn bộ trang này nhưng không thấy nút
+  "Sản phẩm mới"/"Quản lý danh mục" và không có menu `⋮` trên thẻ — chỉ-đọc hoàn toàn.
+
+### 14.2 Kho hàng (`/warehouse`)
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ Kho hàng                        [Ghi nhận biến động] [+ Kho mới]│
+├──────────────────────────────────────────────────────────────┤
+│ Tab phụ: [ Tồn kho ] [ Lịch sử biến động ]                      │
+├──────────────────────────────────────────────────────────────┤
+│ Kho          | Sản phẩm           | Số lượng                  │
+│ Kho Hà Nội   | Laptop Dell XPS     | 12                        │
+│ Kho Hà Nội   | RAM 16GB            | 340                       │
+│ Kho Hồ Chí Minh | Chuột Gaming     | 85                        │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- Tab "Tồn kho": bảng số lượng hiện tại theo từng cặp Kho × Sản phẩm, lọc được theo Kho/Sản phẩm.
+  Số lượng không bao giờ hiển thị âm (máy chủ đã chặn ở nguồn — xem Technical_Spec.md §22.2).
+- Tab "Lịch sử biến động": bảng theo thời gian (mới nhất trước), mỗi dòng gồm thời điểm, kho, sản
+  phẩm, loại (Nhập/Xuất/Điều chỉnh — huy hiệu màu riêng cho từng loại), số lượng biến động (có dấu
+  `+`/`-`), ghi chú.
+- Nút "Ghi nhận biến động" mở modal: chọn kho, sản phẩm, loại (Nhập/Xuất/Điều chỉnh), số lượng
+  (người dùng LUÔN nhập số dương, trực quan hơn — riêng "Điều chỉnh" có thêm lựa chọn phụ "Tăng"/
+  "Giảm" vì chiều điều chỉnh không cố định như Nhập/Xuất), ghi chú tuỳ chọn. Nếu chọn "Xuất"/"Điều
+  chỉnh — Giảm" với số lượng vượt quá tồn kho hiện có, máy chủ từ chối ngay (thông báo lỗi "không đủ
+  hàng trong kho", không tạo ra số âm).
+- Nút "+ Kho mới" mở modal tạo/sửa kho (tên, địa chỉ). Xoá kho bị chặn nếu kho còn tồn bất kỳ sản
+  phẩm nào (dù chỉ 1 đơn vị) — thông báo lỗi rõ ràng, không phải lỗi 500.
+- Employee (chỉ có `warehouse:view`) xem được cả 2 tab nhưng không thấy nút "Ghi nhận biến
+  động"/"Kho mới" — chỉ-đọc, giống mô hình phân quyền ở §14.1.
+- Cả 2 trang (§14.1/§14.2) dùng đúng `AppShell`/sidebar có sẵn (§2) — không tự vẽ sidebar riêng,
+  tránh lặp lại lỗi sidebar đè lên nhau đã sửa ở §2 (xem Technical_Spec.md §21.1).
+
+### 14.3 Gán mặt hàng cho khách hàng — liên kết với §12.2 và §7
+
+Mục đích chính của §14 không chỉ là có danh mục/kho riêng lẻ, mà là nối "mặt hàng" với "khách
+hàng" để phục vụ phân tích xu hướng thị trường — cụ thể hoá bằng 2 phần đã cập nhật ở nơi khác
+trong tài liệu này (tránh lặp lại nội dung 2 lần): khối **"Lịch sử mua hàng"** mới tại trang chi
+tiết khách hàng (§12.2) là nơi gán 1 mặt hàng cho 1 khách hàng cụ thể; 2 biểu đồ **"Xu hướng doanh
+số theo sản phẩm"**/**"Top sản phẩm bán nhiều nhất"** mới tại trang Báo cáo & Phân tích (§7) là
+nơi dữ liệu đó được tổng hợp lại thành xu hướng thị trường.
+
 ---
 
 ## Lịch sử thay đổi tài liệu
@@ -458,3 +553,4 @@ Mục điều hướng mới "Nhắn tin" (Sidebar, có badge số tin chưa đ�
 - **25/09/2026 (xoá vĩnh viễn tài khoản)** — §8 (Quản trị > Thành viên) cập nhật: hành động `⋮` của tài khoản đã vô hiệu hoá có thêm "Xoá vĩnh viễn" (kèm `ConfirmDialog` cảnh báo riêng, khác "Vô hiệu hoá" ở chỗ không thể hoàn tác) — khắc phục sau khi người dùng phản hồi tài khoản rác (do kiểm thử tự động tạo ra) hiển thị vĩnh viễn dù đã vô hiệu hoá. Không có màn hình/luồng UI mới nào khác — phần còn lại của đợt sửa lỗi này (endpoint Super Admin mới, tách môi trường kiểm thử tự động) không thuộc phạm vi tài liệu này. Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §19.6.
 - **28/09/2026 (Nhắn tin nội bộ)** — §13 (mới): trang Nhắn tin 2 cột (danh sách hội thoại + khung chat), hỗ trợ cả 1:1 và nhóm, cập nhật tức thời qua WebSocket riêng. Mục còn treo lại từ 17/09/2026, lần đầu được đặc tả và lập trình. Cùng đợt: `ecap-mobile` có thêm tab thứ 7 cùng chức năng (trừ quản lý thành viên nhóm). Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §20.
 - **03/10/2026 (tái cấu trúc điều hướng + gộp Lịch công ty + phát hiện nghỉ phép qua chat)** — §2 viết lại hoàn toàn (sidebar chính đổi thành icon-rail mở rộng khi trỏ chuột vào, "Trang chủ" gộp Dự án/Tài liệu/Khách hàng qua 1 sidebar phụ); §6 viết lại (xoá trang Thông báo riêng, dropdown chuông trở thành giao diện duy nhất); §9.1/§9.2 cập nhật (Lịch công ty rời Quản trị, gộp vào Nghỉ phép theo tỷ lệ 60:40 kèm mô hình phân quyền theo cấp bậc mới; thêm trang xem lịch sử chấm công/nghỉ phép theo từng nhân viên cho Manager/Org Admin); §13 bổ sung chip "Hẹn lịch nghỉ" tự nhận diện cụm từ ngày/giờ trong tin nhắn của chính mình. Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §21.
+- **16/10/2026 (Danh mục sản phẩm & Kho hàng)** — §14 (mới): 2 trang `/products`/`/warehouse` cho tính năng mới hoàn toàn (danh mục sản phẩm cùng 1 chủ đề máy tính/linh kiện laptop-PC, kho hàng với ghi nhận nhập/xuất/điều chỉnh, số lượng không bao giờ âm). §12.2 (Chi tiết khách hàng) bổ sung khối "Lịch sử mua hàng" — cơ chế gán mặt hàng cho từng khách hàng phục vụ phân tích xu hướng thị trường. §7 (Báo cáo & Phân tích) bổ sung 2 biểu đồ mới ("Xu hướng doanh số theo sản phẩm", "Top sản phẩm bán nhiều nhất"). Cả 2 trang mới dùng đúng `AppShell`/sidebar có sẵn ở §2, không tự vẽ sidebar riêng — tránh tái diễn lỗi sidebar đè lên nhau đã sửa ngày 03/10/2026. Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §22.

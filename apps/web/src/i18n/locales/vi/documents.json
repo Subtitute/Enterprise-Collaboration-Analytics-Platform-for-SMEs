@@ -132,6 +132,7 @@
   },
   "folderGrid": {
     "loadingFileCount": "Đang tải…",
+    "filesSuffix": "tệp",
     "metaSummary": "{{count}} tệp • Cập nhật {{time}}",
     "restrictedTooltip": "Thư mục hạn chế truy cập",
     "optionsAria": "Tùy chọn thư mục",

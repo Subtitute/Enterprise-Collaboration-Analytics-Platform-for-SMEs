@@ -89,7 +89,6 @@
           "employee": "Employee",
           "department": "Department",
           "actualDays": "Workdays",
-          "paidLeaveDays": "Paid Leave",
           "workHours": "Total Hours",
           "lateCount": "Late",
           "missingCheckOut": "Missing Checkout",
@@ -156,7 +155,7 @@
       "emptyDescription": "Create your first request when you need time off.",
       "createFirstButton": "Create new request",
       "decisionNote": "Note: {{note}}",
-      "loadMore": "View more"
+      "loadMore": "Load more"
     }
   },
   "employeePicker": {
@@ -184,6 +183,7 @@
     "emptyDescription": "This employee doesn't have any attendance data yet."
   },
   "companyCalendar": {
+    "title": "Company Calendar",
     "description": "The organization's shared calendar. Anyone can create an event; only Managers and Org Admins can set up holidays. Click a day to create a new entry, or click an existing entry to view/edit it.",
     "newEntry": "New entry",
     "loading": "Loading calendar…",
@@ -209,6 +209,7 @@
     "startDateLabel": "Start date",
     "endDateLabel": "End date",
     "startDateRequiredError": "Please select a start date",
+    "startDateInPastError": "The start date cannot be in the past",
     "endDateBeforeStartError": "The end date cannot be before the start date",
     "descriptionLabel": "Description",
     "cancel": "Cancel",
@@ -275,7 +276,6 @@
   "extensions": {
     "adjustment": {
       "requestButton": "Request Adjustment",
-      "pendingDuplicateTooltip": "Adjustment request is pending approval",
       "modalTitle": "Attendance Adjustment Request",
       "dateLabel": "Work Date",
       "checkInLabel": "Proposed Check-In Time",
@@ -327,9 +327,10 @@
       "reasonPlaceholder": "e.g. Complete urgent deployment for enterprise customer…",
       "estimatedHours": "Estimated OT duration: {{hours}} hours",
       "estimatedDuration": "Estimated OT duration: {{duration}}",
-      "durationHoursMinutes": "{{hours}} hours {{minutes}} minutes",
+      "durationZero": "0 hours",
+      "durationHoursMinutes": "{{hours}} hours {{mins}} minutes",
       "durationHoursOnly": "{{hours}} hours",
-      "durationMinutesOnly": "{{minutes}} minutes",
+      "durationMinutesOnly": "{{mins}} minutes",
       "submitButton": "Submit OT Request",
       "cancelButton": "Cancel",
       "errors": {

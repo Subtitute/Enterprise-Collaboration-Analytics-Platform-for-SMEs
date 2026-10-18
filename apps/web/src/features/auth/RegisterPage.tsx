@@ -42,9 +42,9 @@ export function RegisterPage() {
 
   // Danh sách các bước trong Stepper (§2, §8)
   const STEPS: StepItem[] = [
-    { id: 1, label: t('auth:registerPage.steps.organization', 'Thông tin tổ chức') },
-    { id: 2, label: t('auth:registerPage.steps.adminAccount', 'Tài khoản quản trị') },
-    { id: 3, label: t('auth:registerPage.steps.complete', 'Hoàn tất') },
+    { id: 1, label: t('auth:registerPage.steps.organization') },
+    { id: 2, label: t('auth:registerPage.steps.adminAccount') },
+    { id: 3, label: t('auth:registerPage.steps.complete') },
   ];
 
   const [step, setStep] = useState<number>(1);
@@ -231,11 +231,11 @@ export function RegisterPage() {
             }
 
             // Lỗi hệ thống hoặc validation khác từ server
-            const fallbackMsg = t('auth:registerPage.errors.genericError', 'Có lỗi xảy ra, vui lòng thử lại sau');
+            const fallbackMsg = t('auth:registerPage.errors.genericError');
             const message = extractErrorMessage(error, fallbackMsg);
             setSystemError(message);
           } else {
-            setSystemError(t('auth:registerPage.errors.genericError', 'Có lỗi xảy ra, vui lòng thử lại sau'));
+            setSystemError(t('auth:registerPage.errors.genericError'));
           }
         },
       },
@@ -264,10 +264,10 @@ export function RegisterPage() {
             tabIndex={-1}
             className="font-sans text-[28px] leading-9 font-semibold text-text-primary mb-1.5 outline-none"
           >
-            {t('auth:registerPage.title', 'Đăng ký tổ chức mới')}
+            {t('auth:registerPage.title')}
           </h1>
           <p className="font-sans text-sm leading-[22px] text-text-secondary mb-8">
-            {t('auth:registerPage.subtitle', 'Khởi tạo không gian làm việc cho doanh nghiệp của bạn')}
+            {t('auth:registerPage.subtitle')}
           </p>
         </>
       )}
@@ -290,7 +290,7 @@ export function RegisterPage() {
           {/* Field Tên tổ chức (*) */}
           <div className="mb-4">
             <FormField
-              label={t('auth:registerPage.step1.orgNameLabel', 'Tên tổ chức')}
+              label={t('auth:registerPage.step1.orgNameLabel')}
               htmlFor="organizationName"
               error={errorKeys.organizationName ? t(`auth:registerPage.errors.${errorKeys.organizationName}`) : undefined}
               required
@@ -303,7 +303,7 @@ export function RegisterPage() {
                 <Input
                   id="organizationName"
                   className="pl-9"
-                  placeholder={t('auth:registerPage.step1.orgNamePlaceholder', 'Công ty TNHH ABC')}
+                  placeholder={t('auth:registerPage.step1.orgNamePlaceholder')}
                   value={data.organizationName}
                   onChange={(e) => update('organizationName', e.target.value)}
                   autoFocus
@@ -317,9 +317,9 @@ export function RegisterPage() {
             <FormField
               label={
                 <span className="flex items-center">
-                  <span>{t('auth:registerPage.step1.taxCodeLabel', 'Mã số thuế')}</span>
+                  <span>{t('auth:registerPage.step1.taxCodeLabel')}</span>
                   <span className="ml-1 text-xs font-normal text-text-tertiary">
-                    {t('auth:registerPage.step1.taxCodeOptional', '(Không bắt buộc)')}
+                    {t('auth:registerPage.step1.taxCodeOptional')}
                   </span>
                 </span>
               }
@@ -345,17 +345,17 @@ export function RegisterPage() {
 
           {/* Nút Tiếp tục */}
           <Button type="submit" variant="primary" size="lg" className="w-full h-11 bg-[#1C1B1A] hover:bg-[#2E2C29] text-white">
-            {t('auth:registerPage.step1.continue', 'Tiếp tục')}
+            {t('auth:registerPage.step1.continue')}
           </Button>
 
           {/* Link Đã có tài khoản? Đăng nhập */}
           <div className="mt-6 text-center text-sm leading-[22px] text-text-secondary">
-            <span>{t('auth:registerPage.hasAccount', 'Đã có tài khoản?')} </span>
+            <span>{t('auth:registerPage.hasAccount')} </span>
             <Link
               to="/login"
               className="text-[#0E5E5E] font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E5E5E]/30 rounded-xs"
             >
-              {t('auth:registerPage.loginLink', 'Đăng nhập')}
+              {t('auth:registerPage.loginLink')}
             </Link>
           </div>
         </form>
@@ -369,7 +369,7 @@ export function RegisterPage() {
           {/* 3. Field Họ và tên quản trị viên (*) */}
           <div className="mb-4">
             <FormField
-              label={t('auth:registerPage.step2.adminFullNameLabel', 'Họ và tên quản trị viên')}
+              label={t('auth:registerPage.step2.adminFullNameLabel')}
               htmlFor="adminFullName"
               error={errorKeys.adminFullName ? t(`auth:registerPage.errors.${errorKeys.adminFullName}`) : undefined}
               required
@@ -383,7 +383,7 @@ export function RegisterPage() {
                   ref={adminFullNameRef}
                   id="adminFullName"
                   className="pl-9"
-                  placeholder={t('auth:registerPage.step2.adminFullNamePlaceholder', 'Nguyễn Văn A')}
+                  placeholder={t('auth:registerPage.step2.adminFullNamePlaceholder')}
                   value={data.adminFullName}
                   onChange={(e) => update('adminFullName', e.target.value)}
                   autoFocus
@@ -395,7 +395,7 @@ export function RegisterPage() {
           {/* 4. Field Email quản trị viên (*) */}
           <div className="mb-4">
             <FormField
-              label={t('auth:registerPage.step2.adminEmailLabel', 'Email quản trị viên')}
+              label={t('auth:registerPage.step2.adminEmailLabel')}
               htmlFor="adminEmail"
               error={errorKeys.adminEmail ? t(`auth:registerPage.errors.${errorKeys.adminEmail}`) : undefined}
               required
@@ -421,7 +421,7 @@ export function RegisterPage() {
           {/* 5. Field Mật khẩu (*) - Xếp dọc */}
           <div className="mb-4">
             <FormField
-              label={t('auth:registerPage.step2.adminPasswordLabel', 'Mật khẩu')}
+              label={t('auth:registerPage.step2.adminPasswordLabel')}
               htmlFor="adminPassword"
               error={errorKeys.adminPassword ? t(`auth:registerPage.errors.${errorKeys.adminPassword}`) : undefined}
               required
@@ -430,7 +430,7 @@ export function RegisterPage() {
               <PasswordInput
                 ref={adminPasswordRef}
                 id="adminPassword"
-                placeholder={t('auth:registerPage.step2.adminPasswordPlaceholder', 'Tối thiểu 8 ký tự')}
+                placeholder={t('auth:registerPage.step2.adminPasswordPlaceholder')}
                 value={data.adminPassword}
                 onChange={(e) => update('adminPassword', e.target.value)}
                 leftIcon={<LockIcon className="w-4 h-4 stroke-[1.5]" />}
@@ -441,7 +441,7 @@ export function RegisterPage() {
           {/* 6. Field Xác nhận mật khẩu (*) - Xếp dọc */}
           <div className="mb-6">
             <FormField
-              label={t('auth:registerPage.step2.confirmPasswordLabel', 'Xác nhận mật khẩu')}
+              label={t('auth:registerPage.step2.confirmPasswordLabel')}
               htmlFor="confirmPassword"
               error={errorKeys.confirmPassword ? t(`auth:registerPage.errors.${errorKeys.confirmPassword}`) : undefined}
               required
@@ -450,7 +450,7 @@ export function RegisterPage() {
               <PasswordInput
                 ref={confirmPasswordRef}
                 id="confirmPassword"
-                placeholder={t('auth:registerPage.step2.confirmPasswordPlaceholder', 'Nhập lại mật khẩu')}
+                placeholder={t('auth:registerPage.step2.confirmPasswordPlaceholder')}
                 value={data.confirmPassword}
                 onChange={(e) => update('confirmPassword', e.target.value)}
                 leftIcon={<LockIcon className="w-4 h-4 stroke-[1.5]" />}
@@ -470,7 +470,7 @@ export function RegisterPage() {
               className="w-[40%] h-11 inline-flex items-center justify-center gap-1.5 rounded-radius-sm border border-[#D1D5DB] bg-transparent text-sm font-medium text-text-primary hover:bg-[#F3F4F6] transition-colors cursor-pointer"
             >
               <ArrowLeftIcon className="w-3.5 h-3.5" />
-              <span>{t('auth:registerPage.step2.back', 'Quay lại')}</span>
+              <span>{t('auth:registerPage.step2.back')}</span>
             </button>
 
             <Button
@@ -481,19 +481,19 @@ export function RegisterPage() {
               className="w-[60%] h-11 bg-[#1C1B1A] hover:bg-[#2E2C29] text-white"
             >
               {registerOrgMutation.isPending
-                ? t('auth:registerPage.step2.submitting', 'Đang tạo không gian…')
-                : t('auth:registerPage.step2.finish', 'Hoàn tất đăng ký')}
+                ? t('auth:registerPage.step2.submitting')
+                : t('auth:registerPage.step2.finish')}
             </Button>
           </div>
 
           {/* 8. Link Đã có tài khoản? Đăng nhập */}
           <div className="mt-6 text-center text-sm leading-[22px] text-text-secondary">
-            <span>{t('auth:registerPage.hasAccount', 'Đã có tài khoản?')} </span>
+            <span>{t('auth:registerPage.hasAccount')} </span>
             <Link
               to="/login"
               className="text-[#0E5E5E] font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0E5E5E]/30 rounded-xs"
             >
-              {t('auth:registerPage.loginLink', 'Đăng nhập')}
+              {t('auth:registerPage.loginLink')}
             </Link>
           </div>
         </form>
@@ -523,14 +523,14 @@ export function RegisterPage() {
             tabIndex={-1}
             className="text-[22px] leading-[30px] font-semibold text-text-primary text-center mb-3 outline-none"
           >
-            {t('auth:registerPage.step3.title', 'Không gian làm việc đã sẵn sàng')}
+            {t('auth:registerPage.step3.title')}
           </h1>
 
           {/* 4. Mô tả */}
           <p className="text-sm leading-[22px] text-text-secondary text-center max-w-[380px] mb-6">
-            {t('auth:registerPage.step3.descriptionPrefix', 'Tổ chức')}{' '}
+            {t('auth:registerPage.step3.descriptionPrefix')}{' '}
             <span className="font-mono font-medium text-text-primary">{data.organizationName}</span>{' '}
-            {t('auth:registerPage.step3.descriptionSuffix', 'đã được khởi tạo thành công.')}
+            {t('auth:registerPage.step3.descriptionSuffix')}
           </p>
 
           {/* 5. Tóm tắt tổ chức — panel */}
@@ -539,7 +539,7 @@ export function RegisterPage() {
               {/* Dòng 1: Tên tổ chức */}
               <div className="flex items-center justify-between text-left">
                 <span className="text-xs text-text-tertiary">
-                  {t('auth:registerPage.step3.summaryOrgName', 'Tên tổ chức')}
+                  {t('auth:registerPage.step3.summaryOrgName')}
                 </span>
                 <span className="text-[13px] font-medium text-text-primary text-right max-w-[260px] truncate">
                   {data.organizationName}
@@ -549,7 +549,7 @@ export function RegisterPage() {
               {/* Dòng 2: Mã số thuế */}
               <div className="flex items-center justify-between text-left">
                 <span className="text-xs text-text-tertiary">
-                  {t('auth:registerPage.step3.summaryTaxCode', 'Mã số thuế')}
+                  {t('auth:registerPage.step3.summaryTaxCode')}
                 </span>
                 <span className="text-[13px] font-mono font-medium text-text-primary text-right">
                   {data.taxCode.trim() || '—'}
@@ -559,7 +559,7 @@ export function RegisterPage() {
               {/* Dòng 3: Quản trị viên */}
               <div className="flex items-center justify-between text-left">
                 <span className="text-xs text-text-tertiary">
-                  {t('auth:registerPage.step3.summaryAdmin', 'Quản trị viên')}
+                  {t('auth:registerPage.step3.summaryAdmin')}
                 </span>
                 <span className="text-[13px] font-medium text-text-primary text-right max-w-[260px] truncate">
                   {data.adminFullName}
@@ -577,7 +577,7 @@ export function RegisterPage() {
             }}
             className="w-full h-11 bg-[#1C1B1A] hover:bg-[#2E2C29] text-white inline-flex items-center justify-center gap-1.5"
           >
-            <span>{t('auth:registerPage.step3.cta', 'Vào không gian làm việc')}</span>
+            <span>{t('auth:registerPage.step3.cta')}</span>
             <ArrowRightIcon className="w-4 h-4" />
           </Button>
 
@@ -587,7 +587,7 @@ export function RegisterPage() {
               to="/"
               className="text-[13px] leading-5 text-text-secondary hover:text-text-primary transition-colors inline-block"
             >
-              {t('auth:registerPage.step3.homeLink', 'Về trang chủ')}
+              {t('auth:registerPage.step3.homeLink')}
             </Link>
           </div>
         </div>

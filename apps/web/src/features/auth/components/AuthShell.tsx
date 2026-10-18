@@ -37,12 +37,12 @@ export const AuthShell = memo(function AuthShell({ children, extraWidget, maxWid
 
             {/* Tiêu đề chính + Phụ đề */}
             <h1 className="font-sans text-[28px] leading-9 font-semibold text-[#F7F6F3] max-w-[380px] mb-3">
-              <span>{t('auth:loginPage.brandingHeading', 'Nền tảng Cộng tác &')}</span>
+              <span>{t('auth:loginPage.brandingHeading')}</span>
               <br />
-              <span>{t('auth:loginPage.brandingHeadingAccent', 'Phân tích')} {t('auth:loginPage.brandingHeadingEnd', 'Doanh nghiệp')}</span>
+              <span>{t('auth:loginPage.brandingHeadingAccent')} {t('auth:loginPage.brandingHeadingEnd')}</span>
             </h1>
             <p className="font-sans text-sm leading-[22px] text-[#F7F6F3]/60 mb-10">
-              {t('auth:loginPage.brandingSubheading', 'Dành cho doanh nghiệp SME Việt Nam')}
+              {t('auth:loginPage.brandingSubheading')}
             </p>
 
             {/* Mock Dashboard Preview (§B.3) */}
@@ -54,19 +54,19 @@ export const AuthShell = memo(function AuthShell({ children, extraWidget, maxWid
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0E5E5E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                <span>{t('auth:loginPage.featureRealtime', 'Phân tích số liệu real-time')}</span>
+                <span>{t('auth:loginPage.featureRealtime')}</span>
               </div>
               <div className="flex items-center gap-2 text-[13px] leading-5 text-[#F7F6F3]/70">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0E5E5E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                <span>{t('auth:loginPage.featureCollab', 'Cộng tác nhóm không giới hạn')}</span>
+                <span>{t('auth:loginPage.featureCollab')}</span>
               </div>
               <div className="flex items-center gap-2 text-[13px] leading-5 text-[#F7F6F3]/70">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0E5E5E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
-                <span>{t('auth:loginPage.featureReporting', 'Báo cáo tự động theo vai trò')}</span>
+                <span>{t('auth:loginPage.featureReporting')}</span>
               </div>
             </div>
           </div>

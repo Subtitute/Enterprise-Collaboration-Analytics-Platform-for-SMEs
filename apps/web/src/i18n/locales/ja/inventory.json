@@ -1,0 +1,204 @@
+{
+  "productsPage": {
+    "title": "商品カタログ",
+    "subtitle": "自社の商品と商品カテゴリを管理します。",
+    "manageCategories": "カテゴリ管理",
+    "newProduct": "新規商品",
+    "searchPlaceholder": "商品を検索…",
+    "categoryFilterAllLabel": "すべてのカテゴリ",
+    "loading": "商品一覧を読み込んでいます…",
+    "errorTitle": "商品一覧を読み込めませんでした",
+    "errorDescription": "商品一覧の読み込み中にエラーが発生しました。もう一度お試しください。",
+    "emptyFilteredTitle": "該当する商品が見つかりません",
+    "emptyTitle": "まだ商品がありません",
+    "emptyFilteredDescription": "検索キーワードやカテゴリの絞り込みを調整してみてください。",
+    "emptyDescription": "最初の商品を追加して在庫管理を始めましょう。",
+    "addFirstProduct": "商品を追加"
+  },
+  "productCard": {
+    "unknownCategory": "不明",
+    "optionsAriaLabel": "商品の操作メニュー",
+    "editProduct": "商品を編集",
+    "deleteProduct": "商品を削除",
+    "deleteConfirmTitle": "この商品を削除しますか?",
+    "deleteConfirmDescription": "商品「{{name}}」は完全に削除されます。この操作は取り消せません。"
+  },
+  "productFormModal": {
+    "categoryRequiredError": "カテゴリを選択してください",
+    "nameRequiredError": "商品名を入力してください",
+    "skuRequiredError": "SKUを入力してください",
+    "editTitle": "商品を編集",
+    "createTitle": "新規商品を追加",
+    "cancel": "キャンセル",
+    "save": "変更を保存",
+    "create": "商品を追加",
+    "fieldCategory": "カテゴリ",
+    "categoryPlaceholder": "-- カテゴリを選択 --",
+    "fieldName": "商品名",
+    "namePlaceholder": "例: エルゴプラス オフィスチェア",
+    "fieldSku": "SKU",
+    "skuPlaceholder": "例: SKU-00123",
+    "fieldUnitPrice": "単価 (VND)",
+    "fieldDescription": "説明",
+    "imageSectionTitle": "商品画像",
+    "replaceImage": "画像を変更",
+    "uploadImage": "画像をアップロード",
+    "imageHint": "JPEG、PNGまたはWebP形式、最大{{maxSize}}まで。",
+    "removeImage": "画像を削除",
+    "noImageYetHint": "先に商品を保存してから、再度編集画面を開いて画像をアップロードしてください。",
+    "removeImageConfirmTitle": "この商品画像を削除しますか?",
+    "removeImageConfirmDescription": "現在の商品画像が削除されます。後で別の画像をアップロードできます。"
+  },
+  "categoryModal": {
+    "nameRequiredError": "カテゴリ名を入力してください",
+    "editTitle": "カテゴリを編集",
+    "createTitle": "新規カテゴリを追加",
+    "cancel": "キャンセル",
+    "save": "変更を保存",
+    "create": "カテゴリを追加",
+    "fieldName": "カテゴリ名",
+    "namePlaceholder": "例: オフィス用品",
+    "fieldDescription": "説明"
+  },
+  "manageCategoriesModal": {
+    "title": "商品カテゴリの管理",
+    "newCategory": "新規カテゴリ",
+    "emptyTitle": "まだカテゴリがありません",
+    "productCount": "商品{{count}}件",
+    "editCategory": "カテゴリを編集",
+    "deleteCategory": "カテゴリを削除",
+    "deleteConfirmTitle": "このカテゴリを削除しますか?",
+    "deleteConfirmDescription": "カテゴリ「{{name}}」は完全に削除されます。この操作は取り消せません。"
+  },
+  "warehousePage": {
+    "title": "倉庫",
+    "subtitle": "倉庫、在庫状況、入出庫履歴を管理します。",
+    "recordMovement": "入出庫を記録",
+    "newWarehouse": "新規倉庫",
+    "loading": "倉庫一覧を読み込んでいます…",
+    "errorTitle": "倉庫一覧を読み込めませんでした",
+    "emptyTitle": "まだ倉庫がありません",
+    "columns": {
+      "name": "倉庫名",
+      "address": "住所",
+      "totalStock": "総在庫数",
+      "actions": "操作"
+    },
+    "optionsAriaLabel": "倉庫の操作メニュー",
+    "editWarehouse": "倉庫を編集",
+    "deleteWarehouse": "倉庫を削除",
+    "tabs": {
+      "stock": "在庫",
+      "movements": "入出庫履歴"
+    },
+    "deleteConfirmTitle": "この倉庫を削除しますか?",
+    "deleteConfirmDescription": "倉庫「{{name}}」は完全に削除されます。この操作は取り消せません。",
+    "filters": {
+      "warehouseLabel": "倉庫",
+      "allWarehouses": "すべての倉庫",
+      "productLabel": "商品",
+      "allProducts": "すべての商品"
+    }
+  },
+  "warehouseModal": {
+    "nameRequiredError": "倉庫名を入力してください",
+    "editTitle": "倉庫を編集",
+    "createTitle": "新規倉庫を追加",
+    "cancel": "キャンセル",
+    "save": "変更を保存",
+    "create": "倉庫を追加",
+    "fieldName": "倉庫名",
+    "namePlaceholder": "例: ハノイ中央倉庫",
+    "fieldAddress": "住所"
+  },
+  "recordStockMovementModal": {
+    "warehouseRequiredError": "倉庫を選択してください",
+    "productRequiredError": "商品を選択してください",
+    "quantityRequiredError": "正しい数量を入力してください（0より大きい値）",
+    "title": "入出庫を記録",
+    "cancel": "キャンセル",
+    "submit": "記録する",
+    "fieldWarehouse": "倉庫",
+    "warehousePlaceholder": "-- 倉庫を選択 --",
+    "fieldProduct": "商品",
+    "productPlaceholder": "-- 商品を選択 --",
+    "fieldType": "区分",
+    "fieldDirection": "調整の方向",
+    "directionIncrease": "増加 (+)",
+    "directionDecrease": "減少 (-)",
+    "fieldQuantity": "数量",
+    "fieldNote": "メモ"
+  },
+  "stockTable": {
+    "emptyTitle": "在庫データがまだありません",
+    "columns": {
+      "warehouse": "倉庫",
+      "product": "商品",
+      "quantity": "数量"
+    }
+  },
+  "stockMovementsTable": {
+    "emptyTitle": "入出庫履歴がまだありません",
+    "columns": {
+      "date": "日時",
+      "warehouse": "倉庫",
+      "product": "商品",
+      "type": "区分",
+      "quantityDelta": "変動数量",
+      "note": "メモ"
+    }
+  },
+  "enums": {
+    "stockMovementType": {
+      "IN": "入庫",
+      "OUT": "出庫",
+      "ADJUSTMENT": "調整"
+    }
+  },
+  "api": {
+    "unsupportedImageType": "JPEG、PNG、WebP形式の画像のみ対応しています。",
+    "imageTooLarge": "画像サイズが上限（{{maxSize}}）を超えています。"
+  },
+  "hooks": {
+    "productCategory": {
+      "createSuccess": "カテゴリを作成しました",
+      "createError": "カテゴリを作成できませんでした",
+      "updateSuccess": "カテゴリを更新しました",
+      "updateError": "カテゴリを更新できませんでした",
+      "deleteSuccess": "カテゴリを削除しました",
+      "deleteError": "カテゴリを削除できませんでした"
+    },
+    "product": {
+      "createSuccess": "商品を作成しました",
+      "createError": "商品を作成できませんでした",
+      "updateSuccess": "商品を更新しました",
+      "updateError": "商品を更新できませんでした",
+      "deleteSuccess": "商品を削除しました",
+      "deleteError": "商品を削除できませんでした",
+      "imageUpdateSuccess": "商品画像を更新しました",
+      "imageUpdateError": "商品画像を更新できませんでした",
+      "imageRemoveSuccess": "商品画像を削除しました",
+      "imageRemoveError": "商品画像を削除できませんでした"
+    },
+    "warehouse": {
+      "createSuccess": "倉庫を作成しました",
+      "createError": "倉庫を作成できませんでした",
+      "updateSuccess": "倉庫を更新しました",
+      "updateError": "倉庫を更新できませんでした",
+      "deleteSuccess": "倉庫を削除しました",
+      "deleteError": "倉庫を削除できませんでした"
+    },
+    "stockMovement": {
+      "createSuccess": "入出庫を記録しました",
+      "createError": "入出庫を記録できませんでした"
+    },
+    "customerPurchase": {
+      "createSuccess": "購入情報を記録しました",
+      "createError": "購入情報を記録できませんでした",
+      "updateSuccess": "購入情報を更新しました",
+      "updateError": "購入情報を更新できませんでした",
+      "deleteSuccess": "購入情報を削除しました",
+      "deleteError": "購入情報を削除できませんでした"
+    }
+  }
+}

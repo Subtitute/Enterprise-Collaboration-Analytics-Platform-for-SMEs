@@ -128,5 +128,24 @@
     "crmUpgrade": "CRM & Sales System Upgrade",
     "customerPortal": "Customer Portal Rollout",
     "operationsOptimization": "Q4 Operations Process Optimization"
+  },
+  "productSales": {
+    "trendTitle": "Product Sales Trend",
+    "topProductsTitle": "Top-Selling Products",
+    "unnamedProduct": "Product #{{id}}",
+    "trendChart": {
+      "errorTitle": "Couldn't load sales trend",
+      "errorDescription": "Something went wrong loading the chart data. Please try again.",
+      "emptyTitle": "No sales data yet",
+      "revenueLabel": "Revenue",
+      "unitsSoldLabel": "Units sold"
+    },
+    "topProductsChart": {
+      "errorTitle": "Couldn't load top-selling products",
+      "errorDescription": "Something went wrong loading the chart data. Please try again.",
+      "emptyTitle": "No top-selling product data yet",
+      "tooltipUnitsSoldLabel": "Units sold:",
+      "tooltipRevenueLabel": "Revenue:"
+    }
   }
 }

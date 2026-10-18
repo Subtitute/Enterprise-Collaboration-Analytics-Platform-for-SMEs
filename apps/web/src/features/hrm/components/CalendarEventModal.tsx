@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
-import { FormField, Input, Textarea } from '@/components/ui/Input';
+import { FormField, Textarea } from '@/components/ui/Input';
 import { DatePicker } from '@/components/ui/DatePicker';
-import { cn } from '@/lib/utils';
+import { cn, getTodayGmt7DateString } from '@/lib/utils';
 import { usePermissions } from '@/stores/auth.store';
 import { PERMISSIONS } from '@/constants/permissions';
 import { useCreateCalendarEvent, useUpdateCalendarEvent } from '../hooks';
@@ -48,6 +48,12 @@ export function CalendarEventModal({
   const createCalendarEvent = useCreateCalendarEvent();
   const updateCalendarEvent = useUpdateCalendarEvent();
   const isEditing = Boolean(calendarEvent);
+  // 05/10/2026 (fix loi thuc te - phat hien qua nguoi dung): truoc ban sua nay KHONG co kiem tra
+  // nao ca - co the tao/doi 1 muc lich (EVENT lan HOLIDAY) sang ngay bat dau trong QUA KHU, cung
+  // mot loi logic da tung sua cho NewLeaveRequestModal.tsx (15/09/2026) nhung chua ap dung o day.
+  // `minDate`/kiem tra duoi day chi la lop chan dau tien (UI) - CalendarEventsService (server) moi
+  // la lop xac thuc THAT SU (xem assertStartDateNotInPast).
+  const todayGmt7 = getTodayGmt7DateString();
 
   // 17/09/2026 (giu nguyen tu ban admin): mac dinh HOLIDAY chi hop le voi nguoi co CALENDAR_MANAGE -
   // nguoi khong co quyen nay CHI tao duoc EVENT, nen danh sach tuy chon trong cong tac loai bo bot
@@ -82,6 +88,13 @@ export function CalendarEventModal({
     }
     if (!startDate) {
       setError(t('hrm:calendarEventModal.startDateRequiredError'));
+      return;
+    }
+    // Chi chan khi ngay bat dau THAT SU doi sang qua khu - khong chan viec sua cac truong khac
+    // (tieu de, mo ta...) cua 1 muc lich co san ma ngay bat dau da troi qua tu truoc (mirror dung
+    // CalendarEventsService.update() phia server).
+    if (startDate < todayGmt7 && startDate !== calendarEvent?.startDate) {
+      setError(t('hrm:calendarEventModal.startDateInPastError'));
       return;
     }
     if (endDate && endDate < startDate) {
@@ -208,7 +221,7 @@ export function CalendarEventModal({
               <label className="block text-[12px] font-medium text-text-secondary mb-1" htmlFor="calendar-event-start-date">
                 {t('hrm:calendarEventModal.startDateLabel')} <span className="text-[#B3261E]">*</span>
               </label>
-              <DatePicker id="calendar-event-start-date" value={startDate} onChange={setStartDate} position="bottom" />
+              <DatePicker id="calendar-event-start-date" value={startDate} onChange={setStartDate} minDate={todayGmt7} position="bottom" />
             </div>
             <div>
               <label className="block text-[12px] font-medium text-text-secondary mb-1" htmlFor="calendar-event-end-date">

@@ -19,7 +19,6 @@ import { MembersToolbar } from './components/MembersToolbar';
 import type { User } from '@/types';
 
 const LIMIT = 15;
-
 export function MembersPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);

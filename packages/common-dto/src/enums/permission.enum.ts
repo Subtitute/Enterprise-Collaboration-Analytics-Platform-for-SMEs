@@ -89,6 +89,23 @@ export const PERMISSIONS = {
   MESSAGE_VIEW: 'message:view',
   MESSAGE_SEND: 'message:send',
   MESSAGE_MANAGE_GROUP: 'message:manage_group',
+
+  // 15/10/2026: Inventory Service (Danh muc san pham + Kho) - danh muc san pham (Product +
+  // ProductCategory) gop 1 nhom quyen (category chi la metadata cua product, khong can tach rieng
+  // nhu Customer/Deal von la 2 thuc the nghiep vu doc lap). Kho (Warehouse + WarehouseStock +
+  // StockMovement) tach rieng vi la moi quan tam van hanh khac - mirror do rong quyen CALENDAR_MANAGE
+  // (1 quyen "quan ly" duy nhat, khong tach CRUD rieng tung hanh dong, dung tinh than toi gian
+  // ClaudeRule.md muc 8).
+  PRODUCT_VIEW: 'product:view',
+  PRODUCT_MANAGE: 'product:manage',
+  WAREHOUSE_VIEW: 'warehouse:view',
+  WAREHOUSE_MANAGE: 'warehouse:manage',
+  // "Gan mat hang cho khach hang" (ghi nhan giao dich) - mirror CHINH XAC do rong quyen Deal (CRM-
+  // lite): Employee tu tao/sua giao dich CUA KHACH HANG MINH PHU TRACH, Manager+ CRUD toan bo.
+  CUSTOMER_PURCHASE_VIEW: 'customer_purchase:view',
+  CUSTOMER_PURCHASE_CREATE: 'customer_purchase:create',
+  CUSTOMER_PURCHASE_UPDATE: 'customer_purchase:update',
+  CUSTOMER_PURCHASE_DELETE: 'customer_purchase:delete',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -153,6 +170,17 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<DefaultRoleName, Permission[]> = {
     // 03/10/2026: Lich cong ty - Manager duoc cap "co quan ly lich nang cao" (xem chu thich tai
     // khai bao CALENDAR_MANAGE o tren), truoc day quyen nay CHI Org Admin co.
     PERMISSIONS.CALENDAR_MANAGE,
+    // 15/10/2026: Inventory Service - Manager quan ly toan bo danh muc san pham + kho (tao/sua/xoa
+    // san pham, danh muc, kho, ghi nhan nhap/xuat kho), cong them CRUD day du giao dich khach hang
+    // (mirror nhom quyen Deal ngay tren).
+    PERMISSIONS.PRODUCT_VIEW,
+    PERMISSIONS.PRODUCT_MANAGE,
+    PERMISSIONS.WAREHOUSE_VIEW,
+    PERMISSIONS.WAREHOUSE_MANAGE,
+    PERMISSIONS.CUSTOMER_PURCHASE_VIEW,
+    PERMISSIONS.CUSTOMER_PURCHASE_CREATE,
+    PERMISSIONS.CUSTOMER_PURCHASE_UPDATE,
+    PERMISSIONS.CUSTOMER_PURCHASE_DELETE,
   ],
   [DefaultRoleName.EMPLOYEE]: [
     PERMISSIONS.PROJECT_VIEW,
@@ -183,5 +211,14 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<DefaultRoleName, Permission[]> = {
     // dieu kien createdBy (xem ConversationsService.updateParticipants()), khong can permission nay.
     PERMISSIONS.MESSAGE_VIEW,
     PERMISSIONS.MESSAGE_SEND,
+    // 15/10/2026: Inventory Service - Employee (nhan vien sale) chi XEM danh muc san pham/kho
+    // (khong quan ly - thuoc Manager, mirror CUSTOMER_VIEW ngay tren), nhung tu ghi nhan/sua duoc
+    // giao dich (san pham da ban) CUA KHACH HANG MINH PHU TRACH, mirror CHINH XAC DEAL_CREATE/
+    // DEAL_UPDATE/DEAL_VIEW (khong co DELETE, thuoc Manager).
+    PERMISSIONS.PRODUCT_VIEW,
+    PERMISSIONS.WAREHOUSE_VIEW,
+    PERMISSIONS.CUSTOMER_PURCHASE_CREATE,
+    PERMISSIONS.CUSTOMER_PURCHASE_UPDATE,
+    PERMISSIONS.CUSTOMER_PURCHASE_VIEW,
   ],
 };

@@ -31,11 +31,11 @@ describe('AttendanceAdjustmentModal', () => {
   const baseRecord: Attendance = {
     id: 'att-123',
     userId: 'user-1',
-    workDate: '2026-10-10',
-    checkInAt: '2026-10-10T08:30:00+07:00',
-    checkOutAt: '2026-10-10T17:30:00+07:00',
-    createdAt: '2026-10-10T08:30:00Z',
-    updatedAt: '2026-10-10T17:30:00Z',
+    workDate: new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(Date.now() - 24 * 60 * 60 * 1000)),
+    checkInAt: '2026-10-17T08:30:00+07:00',
+    checkOutAt: '2026-10-17T17:30:00+07:00',
+    createdAt: '2026-10-17T08:30:00Z',
+    updatedAt: '2026-10-17T17:30:00Z',
   };
 
   it('blocks submission when check-out time is before or equal to check-in time (invalidRange)', () => {

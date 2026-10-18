@@ -26,21 +26,21 @@ const ROUTE_LABEL_KEYS: Record<string, string> = {
 
 const DEFAULT_ROUTE_FALLBACKS: Record<string, string> = {
   dashboard: 'Dashboard',
-  projects: 'Dự án',
-  documents: 'Tài liệu',
-  customers: 'Khách hàng',
-  attendance: 'Chấm công',
-  'leave-requests': 'Nghỉ phép',
-  messages: 'Nhắn tin',
-  analytics: 'Báo cáo & Phân tích',
-  admin: 'Quản trị',
-  members: 'Thành viên',
-  departments: 'Phòng ban',
-  roles: 'Vai trò & Quyền',
-  'roles-permissions': 'Vai trò & Phân quyền',
-  'failed-events': 'Sự kiện lỗi hệ thống',
-  profile: 'Hồ sơ cá nhân',
-  settings: 'Cài đặt',
+  projects: 'Projects',
+  documents: 'Documents',
+  customers: 'Customers',
+  attendance: 'Attendance',
+  'leave-requests': 'Leave requests',
+  messages: 'Messages',
+  analytics: 'Analytics & Reports',
+  admin: 'Admin',
+  members: 'Members',
+  departments: 'Departments',
+  roles: 'Roles & Permissions',
+  'roles-permissions': 'Roles & Permissions',
+  'failed-events': 'Failed events',
+  profile: 'Profile',
+  settings: 'Settings',
 };
 
 const HOME_GROUP_SEGMENTS = new Set(['dashboard', 'projects', 'documents', 'customers']);
@@ -89,7 +89,7 @@ export function getBreadcrumbs(pathname: string): BreadcrumbItem[] {
     if (label === seg) {
       // Trường hợp ID động (UUID / CUID / MongoDB ObjectId)
       if (seg.length > 12) {
-        label = i18n.isInitialized ? i18n.t('common:detail', 'Chi tiết') : 'Chi tiết';
+        label = i18n.isInitialized ? i18n.t('common:detail') : 'Detail';
       } else {
         label = decodeURIComponent(seg);
       }

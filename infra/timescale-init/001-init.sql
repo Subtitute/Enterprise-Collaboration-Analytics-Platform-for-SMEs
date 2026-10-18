@@ -90,7 +90,41 @@ SELECT create_hypertable('fact_document_events', by_range('time'), if_not_exists
 CREATE INDEX IF NOT EXISTS idx_fact_document_events_org ON fact_document_events (organization_id, time DESC);
 
 -- ============================================================
--- Fact table: hoat dong nguoi dung tong quat (moi event tu ca 3 topic)
+-- 15/10/2026: Fact table: giao dich "gan mat hang cho khach hang" (nguon: inventory.events, event
+-- customer_purchase.created - xem packages/common-dto/src/events/event-types.ts). NGUON DU LIEU
+-- CHINH cho phan tich xu huong thi truong (Technical_Spec.md muc 22): san pham/danh muc ban chay,
+-- doanh thu theo thoi gian. unit_price la gia SNAPSHOT tai thoi diem giao dich (khong doi theo gia
+-- san pham hien tai), dam bao bao cao lich su luon chinh xac.
+--
+-- CHI customer_purchase.created duoc ghi vao day - KHONG ghi product.created/product.deleted (khong
+-- phu hop schema "fact giao dich", van duoc ghi vao fact_user_activity nhu moi event khac) VA KHONG
+-- ghi ca customer_purchase.deleted (xoa 1 giao dich la hoan tac - khong co y nghia "tru di" trong
+-- tinh toan xu huong o quy mo do an nay, khac TASK_DELETED/PROJECT_DELETED cua fact_task_events van
+-- con hop schema "su kien vong doi thuc the" nen van duoc ghi). Quyet dinh toi gian co chu dich -
+-- ClaudeRule.md muc 8.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS fact_product_sales (
+  time             TIMESTAMPTZ      NOT NULL,
+  event_id         UUID             NOT NULL,
+  organization_id  UUID             NOT NULL,
+  event_type       TEXT             NOT NULL,
+  purchase_id      UUID,
+  product_id       UUID,
+  category_id      UUID,
+  customer_id      UUID,
+  quantity         INT,
+  unit_price       NUMERIC(14,2),
+  actor_id         UUID,
+  PRIMARY KEY (time, event_id)
+);
+SELECT create_hypertable('fact_product_sales', by_range('time'), if_not_exists => TRUE);
+CREATE INDEX IF NOT EXISTS idx_fact_product_sales_org ON fact_product_sales (organization_id, time DESC);
+CREATE INDEX IF NOT EXISTS idx_fact_product_sales_product ON fact_product_sales (product_id, time DESC);
+CREATE INDEX IF NOT EXISTS idx_fact_product_sales_category ON fact_product_sales (category_id, time DESC);
+
+-- ============================================================
+-- Fact table: hoat dong nguoi dung tong quat (moi event tu cac topic Consumer dang subscribe -
+-- xem KafkaConsumerService.startConsuming(), 15/10/2026 them inventory.events thanh topic thu 4)
 -- Phuc vu "Hoat dong gan day (real-time)" tren Dashboard (Wireframe.md muc 3)
 -- ============================================================
 CREATE TABLE IF NOT EXISTS fact_user_activity (
@@ -177,6 +211,32 @@ GROUP BY bucket, organization_id
 WITH NO DATA;
 
 SELECT add_continuous_aggregate_policy('daily_document_activity',
+  start_offset => INTERVAL '3 days',
+  end_offset   => INTERVAL '1 hour',
+  schedule_interval => INTERVAL '1 hour',
+  if_not_exists => TRUE
+);
+
+-- ============================================================
+-- 15/10/2026: Continuous aggregate: xu huong ban hang theo ngay, gop theo danh muc + san pham
+-- (daily_product_sales_summary) - Technical_Spec.md muc 22. revenue = sum(quantity * unit_price),
+-- dung gia SNAPSHOT luu san trong fact_product_sales (khong JOIN lai bang products cua Inventory
+-- Service - database-per-service, khong co FK xuyen service).
+-- ============================================================
+CREATE MATERIALIZED VIEW IF NOT EXISTS daily_product_sales_summary
+WITH (timescaledb.continuous) AS
+SELECT
+  time_bucket('1 day', time, 'Asia/Ho_Chi_Minh')                                             AS bucket,
+  organization_id,
+  category_id,
+  product_id,
+  sum(quantity) FILTER (WHERE event_type = 'customer_purchase.created')                       AS units_sold,
+  sum(quantity * unit_price) FILTER (WHERE event_type = 'customer_purchase.created')          AS revenue
+FROM fact_product_sales
+GROUP BY bucket, organization_id, category_id, product_id
+WITH NO DATA;
+
+SELECT add_continuous_aggregate_policy('daily_product_sales_summary',
   start_offset => INTERVAL '3 days',
   end_offset   => INTERVAL '1 hour',
   schedule_interval => INTERVAL '1 hour',

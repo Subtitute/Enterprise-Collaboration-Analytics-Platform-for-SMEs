@@ -1,4 +1,4 @@
-import { BarChartIcon, BriefcaseIcon, CalendarIcon, ClockIcon, FileTextIcon, FolderKanbanIcon, GridIcon, HomeIcon, MessageIcon, ShieldIcon } from '@/components/ui/Icons';
+import { BarChartIcon, BriefcaseIcon, CalendarIcon, ClockIcon, FileTextIcon, FolderKanbanIcon, GridIcon, HomeIcon, MessageIcon, PackageIcon, ShieldIcon, WarehouseIcon } from '@/components/ui/Icons';
 import type { IconProps } from '@/components/ui/Icons';
 import { PERMISSIONS } from '@/constants/permissions';
 
@@ -26,7 +26,10 @@ export interface NavItem {
 
 /** 03/10/2026: 4 route duoc gop chung sau icon "Trang chủ" (xem NavItem.matchPrefixes o tren va
  *  SecondarySidebar.tsx - panel liet ke lai chinh 4 route nay khi dang o trong nhom). */
-export const HOME_ROUTE_PREFIXES = ['/dashboard', '/projects', '/documents', '/customers'];
+// 15/10/2026: them '/products', '/warehouse' (Inventory Service - Danh muc san pham + Kho,
+// Technical_Spec.md muc 22) - thuoc ve nhom "Trang chủ" cung tinh than voi Du an/Tai lieu/Khach
+// hang (hoat dong nghiep vu hang ngay), khac nhom HRM ca nhan (Cham cong/Nghi phep) dung rieng.
+export const HOME_ROUTE_PREFIXES = ['/dashboard', '/projects', '/documents', '/customers', '/products', '/warehouse'];
 
 // Wireframe.md muc 2: Dashboard, Du an & Cong viec, Tai lieu, Thong bao, Bao cao & Phan tich, Quan tri.
 // 03/10/2026: tai cau truc - "Trang chủ" gop chung Dashboard/Du an & Cong viec/Tai lieu/Khach hang
@@ -53,4 +56,9 @@ export const HOME_SUB_NAV_ITEMS: NavItem[] = [
   { to: '/documents', labelKey: 'common:nav.homeNav.documents', icon: FileTextIcon },
   // 04/08/2026: CRM-lite (Technical_Spec.md muc 16) - khach hang + pipeline ban hang.
   { to: '/customers', labelKey: 'common:nav.homeNav.customers', icon: BriefcaseIcon },
+  // 15/10/2026: Inventory Service (Technical_Spec.md muc 22) - danh muc san pham + kho hang.
+  // Khong requiredPermission vi PRODUCT_VIEW/WAREHOUSE_VIEW duoc cap cho CA 3 vai tro (mirror
+  // CUSTOMER_VIEW ngay tren) - thao tac quan ly (tao/sua/xoa) tu an/hien nut trong tung trang.
+  { to: '/products', labelKey: 'common:nav.homeNav.products', icon: PackageIcon },
+  { to: '/warehouse', labelKey: 'common:nav.homeNav.warehouse', icon: WarehouseIcon },
 ];

@@ -86,8 +86,8 @@ export function CustomersListPage() {
     <div className="space-y-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-[28px] leading-[36px] font-semibold tracking-tight text-text-primary">{t('crm:customersListPage.title', 'Khách hàng')}</h1>
-          <p className="mt-1 text-[14px] leading-[22px] text-text-secondary">{t('crm:customersListPage.subtitle', 'Quản lý khách hàng và cơ hội bán hàng (deal pipeline).')}</p>
+          <h1 className="text-[28px] leading-[36px] font-semibold tracking-tight text-text-primary">{t('crm:customersListPage.title')}</h1>
+          <p className="mt-1 text-[14px] leading-[22px] text-text-secondary">{t('crm:customersListPage.subtitle')}</p>
         </div>
         <button
           type="button"
@@ -95,7 +95,7 @@ export function CustomersListPage() {
           className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer shrink-0"
         >
           <PlusIcon className="h-3.5 w-3.5" />
-          <span>{t('crm:customersListPage.newCustomer', 'Khách hàng mới')}</span>
+          <span>{t('crm:customersListPage.newCustomer')}</span>
         </button>
       </div>
 
@@ -130,7 +130,7 @@ export function CustomersListPage() {
                 className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer"
               >
                 <PlusIcon className="h-3.5 w-3.5" />
-                <span>{t('crm:customersListPage.addFirstCustomer', 'Thêm khách hàng mới')}</span>
+                <span>{t('crm:customersListPage.addFirstCustomer')}</span>
               </button>
             )}
           />

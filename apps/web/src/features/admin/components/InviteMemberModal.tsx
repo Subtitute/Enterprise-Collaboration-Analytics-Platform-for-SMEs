@@ -131,7 +131,7 @@ export function InviteMemberModal({ open, onClose }: { open: boolean; onClose: (
             disabled={inviteUser.isPending}
             className="inline-flex items-center justify-center h-9 px-4 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer disabled:opacity-50"
           >
-            {inviteUser.isPending ? t('common:loading', 'Đang xử lý...') : t('admin:inviteMemberModal.submit')}
+            {inviteUser.isPending ? t('common:processing') : t('admin:inviteMemberModal.submit')}
           </button>
         </div>
       </form>

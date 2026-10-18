@@ -80,3 +80,46 @@ export async function bootstrapDepartmentKpiSchema(dataSource: DataSource): Prom
     'Da kiem tra/tao xong schema KPI theo phong ban (dim_user + dim_user.last_event_at, fact_task_events.assignee_id/due_date, dim_department_manager).',
   );
 }
+
+/**
+ * 15/10/2026: tu cham (self-heal) hypertable fact_product_sales (Inventory Service - Danh muc san
+ * pham + Kho, Technical_Spec.md muc 22) tren moi truong dev/staging DANG CHAY SAN (volume KHONG
+ * con "moi" nen infra/timescale-init/001-init.sql khong tu chay lai - xem ghi chu dau file nay va
+ * tai 001-init.sql, DDL PHAI giu dong bo giua 2 noi).
+ *
+ * KHONG tu tao continuous aggregate `daily_product_sales_summary` o day - mirror dung gioi han da
+ * ghi nhan tu truoc cho daily_task_summary/weekly_project_progress/daily_document_activity (xem
+ * chu thich tai 001-init.sql): materialized view CHI duoc tao qua script fresh-install, moi truong
+ * dang chay san can DROP + tao lai thu cong (khong co migration runner that su trong du an nay).
+ */
+export async function bootstrapProductSalesSchema(dataSource: DataSource): Promise<void> {
+  await dataSource.query(`
+    CREATE TABLE IF NOT EXISTS fact_product_sales (
+      time             TIMESTAMPTZ      NOT NULL,
+      event_id         UUID             NOT NULL,
+      organization_id  UUID             NOT NULL,
+      event_type       TEXT             NOT NULL,
+      purchase_id      UUID,
+      product_id       UUID,
+      category_id      UUID,
+      customer_id      UUID,
+      quantity         INT,
+      unit_price       NUMERIC(14,2),
+      actor_id         UUID,
+      PRIMARY KEY (time, event_id)
+    )
+  `);
+  await dataSource.query(`
+    SELECT create_hypertable('fact_product_sales', by_range('time'), if_not_exists => TRUE)
+  `);
+  await dataSource.query(`
+    CREATE INDEX IF NOT EXISTS idx_fact_product_sales_org ON fact_product_sales (organization_id, time DESC)
+  `);
+  await dataSource.query(`
+    CREATE INDEX IF NOT EXISTS idx_fact_product_sales_product ON fact_product_sales (product_id, time DESC)
+  `);
+  await dataSource.query(`
+    CREATE INDEX IF NOT EXISTS idx_fact_product_sales_category ON fact_product_sales (category_id, time DESC)
+  `);
+  logger.log('Da kiem tra/tao xong hypertable fact_product_sales (Inventory Service).');
+}

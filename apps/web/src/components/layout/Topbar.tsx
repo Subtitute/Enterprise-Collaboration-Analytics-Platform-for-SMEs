@@ -28,6 +28,7 @@ import {
   PlusIcon,
   CalendarIcon,
   BriefcaseIcon,
+  SettingsIcon,
   XIcon,
 } from '@/components/ui/Icons';
 
@@ -141,8 +142,8 @@ function GlobalSearchBox() {
           setHasInteracted(true);
         }}
         onKeyDown={handleKeyDown}
-        placeholder={t('common:search.placeholder', 'Tìm kiếm dự án, tài liệu, công việc...')}
-        aria-label={t('common:search.placeholder', 'Tìm kiếm dự án, tài liệu, công việc...')}
+        placeholder={t('common:search.placeholder')}
+        aria-label={t('common:search.placeholder')}
         role="combobox"
         aria-expanded={open}
         aria-haspopup="listbox"
@@ -167,8 +168,8 @@ function GlobalSearchBox() {
             setSelectedIndex(-1);
             inputRef.current?.focus();
           }}
-          title={t('common:clear', 'Xóa')}
-          aria-label={t('common:clear', 'Xóa')}
+          title={t('common:clear')}
+          aria-label={t('common:clear')}
           className="absolute right-2 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full text-text-tertiary hover:bg-bg-muted hover:text-text-primary transition-colors cursor-pointer"
         >
           <XIcon className="h-3 w-3 stroke-[2.2]" />
@@ -187,14 +188,14 @@ function GlobalSearchBox() {
           {isLoading && (
             <div className="flex items-center justify-center py-6 text-accent">
               <Spinner size="sm" />
-              <span className="ml-2 text-xs font-medium text-text-secondary">{t('common:search.loading', 'Đang tìm kiếm...')}</span>
+              <span className="ml-2 text-xs font-medium text-text-secondary">{t('common:search.loading')}</span>
             </div>
           )}
 
           {!isLoading && results.length === 0 && (
             <div className="px-4 py-6 text-center">
               <p className="text-[13px] leading-5 text-text-secondary">
-                {t('common:search.noResults', { query: input, defaultValue: `Không tìm thấy kết quả cho "${input}"` })}
+                {t('common:search.noResults', { query: input })}
               </p>
             </div>
           )}
@@ -296,7 +297,7 @@ export function Topbar() {
 
   // Tự động sinh danh sách breadcrumb từ route React Router (§3.2)
   const breadcrumbs = useMemo(() => getBreadcrumbs(location.pathname), [location.pathname, i18n.language]);
-  const currentPageTitle = breadcrumbs[breadcrumbs.length - 1]?.label || t('common:nav.homeNav.overview', 'Tổng quan');
+  const currentPageTitle = breadcrumbs[breadcrumbs.length - 1]?.label || t('common:nav.homeNav.overview');
 
   return (
     <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-border-subtle bg-bg-surface px-4 md:px-5">
@@ -314,8 +315,8 @@ export function Topbar() {
               toggleSidebarCollapsed();
             }
           }}
-          title={t('common:topbar.toggleTooltip', 'Ẩn/Hiện thanh điều hướng')}
-          aria-label={t('common:topbar.toggleTooltip', 'Ẩn/Hiện thanh điều hướng')}
+          title={t('common:topbar.toggleTooltip')}
+          aria-label={t('common:topbar.toggleTooltip')}
           className="flex h-8 w-8 items-center justify-center rounded-radius-sm text-text-secondary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer shrink-0"
         >
           <span className="lg:hidden">
@@ -374,7 +375,6 @@ export function Topbar() {
           trigger={({ toggle, open }) => (
             <button
               type="button"
-              onClick={toggle}
               title={t('common:quickCreate.tooltip', 'Tạo mới (Phím tắt: C)')}
               aria-label={t('common:quickCreate.tooltip', 'Tạo mới (Phím tắt: C)')}
               className="inline-flex h-8 items-center gap-1.5 rounded-radius-md bg-[#1C1B1A] px-2 lg:px-3 text-[13px] font-medium text-white hover:bg-[#2E2C29] active:bg-[#141312] transition-colors cursor-pointer select-none"
@@ -391,7 +391,7 @@ export function Topbar() {
             <div className="py-1">
               {/* Nhóm 1: Công việc (§6.1) */}
               <div className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-tertiary">
-                {t('common:quickCreate.groupTasks', 'Công việc')}
+                {t('common:quickCreate.groupTasks')}
               </div>
               <DropdownItem
                 onClick={() => {
@@ -403,7 +403,7 @@ export function Topbar() {
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <CheckCircleIcon className="h-4 w-4 shrink-0 text-text-secondary" />
                   <span className="text-[13px] font-medium text-text-primary truncate">
-                    {t('common:quickCreate.createTask', 'Tạo công việc')}
+                    {t('common:quickCreate.createTask')}
                   </span>
                 </div>
                 <span className="pointer-events-none rounded-[3px] border border-border-subtle bg-bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold text-text-tertiary">
@@ -414,7 +414,7 @@ export function Topbar() {
               {/* Nhóm 2: Khác (§6.1, §6.3 phân quyền role) */}
               <div className="mt-2 border-t border-border-subtle pt-1.5">
                 <div className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-text-tertiary">
-                  {t('common:quickCreate.groupOthers', 'Khác')}
+                  {t('common:quickCreate.groupOthers')}
                 </div>
 
                 {/* Tạo dự án mới — Quản lý & Admin (§6.3) */}
@@ -428,7 +428,7 @@ export function Topbar() {
                   >
                     <FolderKanbanIcon className="h-4 w-4 shrink-0 text-text-secondary" />
                     <span className="text-[13px] font-medium text-text-primary truncate">
-                      {t('common:quickCreate.createProject', 'Tạo dự án mới')}
+                      {t('common:quickCreate.createProject')}
                     </span>
                   </DropdownItem>
                 )}
@@ -444,7 +444,7 @@ export function Topbar() {
                   >
                     <BriefcaseIcon className="h-4 w-4 shrink-0 text-text-secondary" />
                     <span className="text-[13px] font-medium text-text-primary truncate">
-                      {t('common:quickCreate.createCustomer', 'Thêm khách hàng')}
+                      {t('common:quickCreate.createCustomer')}
                     </span>
                   </DropdownItem>
                 )}
@@ -459,7 +459,7 @@ export function Topbar() {
                 >
                   <CalendarIcon className="h-4 w-4 shrink-0 text-text-secondary" />
                   <span className="text-[13px] font-medium text-text-primary truncate">
-                    {t('common:quickCreate.requestLeave', 'Gửi đơn nghỉ phép')}
+                    {t('common:quickCreate.requestLeave')}
                   </span>
                 </DropdownItem>
               </div>
@@ -481,7 +481,7 @@ export function Topbar() {
             <button
               type="button"
               onClick={toggle}
-              aria-label={t('common:topbar.accountMenu', 'Menu tài khoản')}
+              aria-label={t('common:topbar.accountMenu')}
               className={cn(
                 'flex h-8 items-center gap-2 rounded-radius-sm p-1 pr-2 text-text-secondary hover:bg-bg-subtle transition-colors cursor-pointer',
                 open && 'bg-bg-subtle text-text-primary',
@@ -540,7 +540,19 @@ export function Topbar() {
                 >
                   <UserIcon className="h-4 w-4 shrink-0 text-text-secondary" />
                   <span className="text-[13px] font-medium text-text-primary">
-                    {t('common:topbar.profile', 'Hồ sơ cá nhân')}
+                    {t('common:topbar.profile')}
+                  </span>
+                </DropdownItem>
+                <DropdownItem
+                  onClick={() => {
+                    close();
+                    navigate('/settings');
+                  }}
+                  className="flex items-center gap-2.5 rounded-radius-sm px-2.5 py-2 hover:bg-bg-subtle transition-colors"
+                >
+                  <SettingsIcon className="h-4 w-4 shrink-0 text-text-secondary" />
+                  <span className="text-[13px] font-medium text-text-primary">
+                    {t('common:topbar.settings')}
                   </span>
                 </DropdownItem>
               </div>
@@ -556,7 +568,7 @@ export function Topbar() {
                 >
                   <LogOutIcon className="h-4 w-4 shrink-0 text-[#B3261E]" />
                   <span className="text-[13px] font-medium text-[#B3261E]">
-                    {t('common:topbar.logout', 'Đăng xuất')}
+                    {t('common:topbar.logout')}
                   </span>
                 </DropdownItem>
               </div>
@@ -580,10 +592,10 @@ export function Topbar() {
           setShowLogoutConfirm(false);
           logout.mutate();
         }}
-        title={t('common:topbar.logoutConfirmTitle', 'Xác nhận đăng xuất')}
-        description={t('common:topbar.logoutConfirmDescription', 'Bạn có chắc chắn muốn đăng xuất khỏi phiên làm việc hiện tại không?')}
-        confirmLabel={t('common:topbar.logout', 'Đăng xuất')}
-        cancelLabel={t('common:actions.cancel', 'Hủy')}
+        title={t('common:topbar.logoutConfirmTitle')}
+        description={t('common:topbar.logoutConfirmDescription')}
+        confirmLabel={t('common:topbar.logout')}
+        cancelLabel={t('common:actions.cancel')}
         danger
         isLoading={logout.isPending}
       />

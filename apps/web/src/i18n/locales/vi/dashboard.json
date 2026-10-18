@@ -91,7 +91,8 @@
     "emptyTitle": "Chưa có công việc nào",
     "emptyDescription": "Biểu đồ trạng thái sẽ hiển thị khi có công việc trong hệ thống.",
     "unit": "công việc",
-    "ofTotal": "{{percent}}% tổng số"
+    "ofTotal": "{{percent}}% tổng số",
+    "chartAriaLabel": "Biểu đồ phân bổ trạng thái công việc"
   },
   "taskTrendChart": {
     "errorTitle": "Không thể tải xu hướng công việc",
@@ -100,7 +101,8 @@
     "emptyDescription": "Dữ liệu sẽ xuất hiện khi có công việc được tạo hoặc hoàn thành.",
     "completedLine": "Hoàn thành",
     "createdLine": "Được tạo mới",
-    "emptyOverlay": "Chưa có dữ liệu trong khoảng thời gian này"
+    "emptyOverlay": "Chưa có dữ liệu trong khoảng thời gian này",
+    "chartAriaLabel": "Biểu đồ xu hướng hoàn thành công việc"
   },
   "recentActivityFeed": {
     "live": "Đang cập nhật trực tiếp",
@@ -166,7 +168,9 @@
     "document": "Tài liệu",
     "leave": "Đơn nghỉ phép",
     "customer": "Khách hàng",
-    "member": "Thành viên"
+    "member": "Thành viên",
+    "product": "Sản phẩm",
+    "customerPurchase": "Giao dịch khách hàng"
   },
   "relativeTime": {
     "justNow": "Vừa xong",

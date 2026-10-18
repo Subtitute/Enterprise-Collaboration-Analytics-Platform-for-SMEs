@@ -35,7 +35,8 @@
     "buttons": {
       "uploadAvatar": "写真をアップロード",
       "saveProfile": "変更を保存",
-      "updatePassword": "パスワードを更新"
+      "updatePassword": "パスワードを更新",
+      "copyEmployeeCode": "社員番号をコピー"
     },
     "roles": {
       "orgAdmin": "組織管理者",

@@ -15,6 +15,10 @@ import { DealKanbanBoard } from './components/DealKanbanBoard';
 import { CustomerTypeBadge } from './components/CustomerCard';
 import { NewDealModal } from './components/NewDealModal';
 import { DealDetailModal } from './components/DealDetailModal';
+// 16/10/2026: khoi "San pham da mua" moi (gan giao dich khach hang, Danh muc san pham + Kho,
+// Technical_Spec.md muc 22) - panel rieng dat NGAY DUOI Kanban deal, khong chen tab moi (trang nay
+// chua tung dung Tabs.tsx, giu dung bo cuc hien co, xem chu thich day du tai CustomerPurchaseHistory.tsx).
+import { CustomerPurchaseHistory } from './components/CustomerPurchaseHistory';
 import type { Deal } from '@/types';
 import { PERMISSIONS } from '@/constants/permissions';
 
@@ -62,7 +66,7 @@ export function CustomerDetailPage() {
   return (
     <div className="space-y-5">
       <Link to="/customers" className="inline-flex items-center gap-1.5 text-[13px] text-text-secondary hover:text-text-primary transition-colors">
-        <ChevronLeftIcon className="h-3.5 w-3.5 stroke-1.5" /> {t('crm:customerDetailPage.backToList', 'Quay lại danh sách khách hàng')}
+        <ChevronLeftIcon className="h-3.5 w-3.5 stroke-1.5" /> {t('crm:customerDetailPage.backToList')}
       </Link>
 
       <div className="flex flex-col justify-between gap-4 rounded-radius-lg border border-border-subtle bg-white p-5 sm:flex-row sm:items-center">
@@ -81,7 +85,7 @@ export function CustomerDetailPage() {
             )}
             <span className="flex items-center gap-1.5 text-[13px] text-text-secondary">
               <UserIcon className="h-3.5 w-3.5 text-text-tertiary stroke-1.5" />
-              <span>{t('crm:customerDetailPage.ownerLabel', 'Phụ trách')}: <strong className="font-medium text-text-primary">{ownerName}</strong></span>
+              <span>{t('crm:customerDetailPage.ownerLabel')}: <strong className="font-medium text-text-primary">{ownerName}</strong></span>
               {canReassignOwner && (
                 <>
                   <span>·</span>
@@ -95,7 +99,7 @@ export function CustomerDetailPage() {
                         title={t('crm:customerDetailPage.changeOwnerAriaLabel')}
                         className="cursor-pointer font-medium text-accent hover:underline text-[13px]"
                       >
-                        {t('crm:customerDetailPage.changeOwner', 'Đổi')}
+                        {t('crm:customerDetailPage.changeOwner')}
                       </button>
                     )}
                   >
@@ -152,7 +156,7 @@ export function CustomerDetailPage() {
             className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer"
           >
             <PlusIcon className="h-3.5 w-3.5" />
-            <span>{t('crm:customerDetailPage.newDeal', 'Deal mới')}</span>
+            <span>{t('crm:customerDetailPage.newDeal')}</span>
           </button>
         </div>
       </div>
@@ -187,6 +191,8 @@ export function CustomerDetailPage() {
 
       <NewDealModal customerId={customerId} open={isNewDealOpen} onClose={handleCloseNewDeal} />
       <DealDetailModal customerId={customerId} deal={selectedDeal} onClose={handleCloseDealDetail} />
+
+      <CustomerPurchaseHistory customerId={customerId} />
     </div>
   );
 }

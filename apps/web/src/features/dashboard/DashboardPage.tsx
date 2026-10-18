@@ -204,10 +204,10 @@ export function DashboardPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[28px] leading-[36px] font-semibold text-text-primary">
-            {t('common:nav.homeNav.overview', 'Tổng quan')}
+            {t('common:nav.homeNav.overview')}
           </h1>
           <p className="mt-1 text-[14px] leading-[22px] text-text-secondary">
-            {t('dashboard:page.subtitle', 'Tổng quan vận hành · Cập nhật dữ liệu kinh doanh mới nhất hôm nay.')}
+            {t('dashboard:page.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2 no-print shrink-0">
@@ -226,11 +226,11 @@ export function DashboardPage() {
             variant="secondary"
             isLoading={isExportingPdf}
             onClick={handleExportPdf}
-            title={t('dashboard:page.exportPdf', 'Xuất PDF')}
+            title={t('dashboard:page.exportPdf')}
             className="h-9 px-3.5 text-[13px] font-medium border-border-strong bg-white hover:bg-bg-subtle"
           >
             <DownloadIcon className="h-3.5 w-3.5 mr-1.5" />
-            <span>{t('dashboard:page.exportPdf', 'Xuất PDF')}</span>
+            <span>{t('dashboard:page.exportPdf')}</span>
           </Button>
         </div>
       </div>
@@ -241,7 +241,7 @@ export function DashboardPage() {
           <CustomFilterSelect
             value={range}
             onChange={(val) => setRange(val as DateRangeOption)}
-            ariaLabel={t('dashboard:filters.dateRangeAriaLabel', 'Lọc theo khoảng thời gian')}
+            ariaLabel={t('dashboard:filters.dateRangeAriaLabel')}
             options={DATE_RANGE_OPTIONS.map((key) => ({
               value: key,
               label: t(`common:enums.dateRange.${key}`),
@@ -253,9 +253,9 @@ export function DashboardPage() {
             <CustomFilterSelect
               value={departmentId}
               onChange={(val) => setDepartmentId(val)}
-              ariaLabel={t('dashboard:filters.departmentAriaLabel', 'Lọc theo phòng ban')}
+              ariaLabel={t('dashboard:filters.departmentAriaLabel')}
               options={[
-                { value: '', label: t('dashboard:filters.allDepartments', 'Tất cả phòng ban') },
+                { value: '', label: t('dashboard:filters.allDepartments') },
                 ...(departmentsQuery.data ?? []).map((d) => ({
                   value: d.id,
                   label: d.name,
@@ -297,17 +297,17 @@ export function DashboardPage() {
             <>
               {/* KPI 1: DỰ ÁN ĐANG TRIỂN KHAI */}
               <KpiCard
-                overline={t('dashboard:kpi.projects.label', 'DỰ ÁN ĐANG TRIỂN KHAI')}
+                overline={t('dashboard:kpi.projects.label')}
                 value={existingProjects.length}
                 delta={
                   newProjectsLast7Days > 0
                     ? {
                         type: 'increase',
-                        text: t('dashboard:kpi.projects.delta', { count: newProjectsLast7Days, defaultValue: `+${newProjectsLast7Days} so với tuần trước` }),
+                        text: t('dashboard:kpi.projects.delta', { count: newProjectsLast7Days }),
                       }
                     : {
                         type: 'neutral',
-                        text: t('dashboard:kpi.projects.noNew', 'Không có dự án mới tuần này'),
+                        text: t('dashboard:kpi.projects.noNew'),
                       }
                 }
                 isLoading={allProjectsQuery.isLoading}
@@ -316,18 +316,18 @@ export function DashboardPage() {
               />
               {/* KPI 2: TỶ LỆ HOÀN THÀNH */}
               <KpiCard
-                overline={t('dashboard:kpi.completionRate.label', 'TỶ LỆ HOÀN THÀNH')}
+                overline={t('dashboard:kpi.completionRate.label')}
                 value={completionRate}
                 unit="%"
                 delta={
                   completedTasksLast7Days > 0
                     ? {
                         type: 'increase',
-                        text: t('dashboard:kpi.completionRate.delta', { count: completedTasksLast7Days, defaultValue: `+${completedTasksLast7Days} việc hoàn thành tuần này` }),
+                        text: t('dashboard:kpi.completionRate.delta', { count: completedTasksLast7Days }),
                       }
                     : {
                         type: 'neutral',
-                        text: t('dashboard:kpi.completionRate.noCompleted', 'Chưa có việc hoàn thành tuần này'),
+                        text: t('dashboard:kpi.completionRate.noCompleted'),
                       }
                 }
                 isLoading={allTasksQuery.isLoading}
@@ -336,17 +336,17 @@ export function DashboardPage() {
               />
               {/* KPI 3: CÔNG VIỆC QUÁ HẠN */}
               <KpiCard
-                overline={t('dashboard:kpi.overdueTasks.label', 'CÔNG VIỆC QUÁ HẠN')}
+                overline={t('dashboard:kpi.overdueTasks.label')}
                 value={myOverdueCount}
                 delta={
                   myOverdueCount > 0
                     ? {
                         type: 'decrease',
-                        text: t('dashboard:kpi.overdueTasks.deltaAction', { count: myOverdueCount, defaultValue: `+${myOverdueCount} cần xử lý` }),
+                        text: t('dashboard:kpi.overdueTasks.deltaAction', { count: myOverdueCount }),
                       }
                     : {
                         type: 'empty-good',
-                        text: t('dashboard:kpi.overdueTasks.noOverdue', 'Không có việc quá hạn'),
+                        text: t('dashboard:kpi.overdueTasks.noOverdue'),
                       }
                 }
                 isLoading={allTasksQuery.isLoading}
@@ -355,11 +355,11 @@ export function DashboardPage() {
               />
               {/* KPI 4: THÀNH VIÊN HOẠT ĐỘNG */}
               <KpiCard
-                overline={t('dashboard:kpi.activeUsers.label', 'THÀNH VIÊN HOẠT ĐỘNG')}
+                overline={t('dashboard:kpi.activeUsers.label')}
                 value={`${summary?.activeUsersLast7Days ?? (allUsersQuery.data?.length || 0)}/${allUsersQuery.data?.length || summary?.activeUsersLast7Days || 0}`}
                 delta={{
                   type: 'neutral',
-                  text: t('dashboard:kpi.activeUsers.delta', 'trong 7 ngày qua'),
+                  text: t('dashboard:kpi.activeUsers.delta'),
                 }}
                 isLoading={summaryQuery.isLoading || allUsersQuery.isLoading}
                 isError={summaryQuery.isError && allUsersQuery.isError}
@@ -373,17 +373,17 @@ export function DashboardPage() {
             <>
               {/* Employee KPI 1: DỰ ÁN THAM GIA */}
               <KpiCard
-                overline={t('dashboard:kpi.projects.personalLabel', 'DỰ ÁN THAM GIA')}
+                overline={t('dashboard:kpi.projects.personalLabel')}
                 value={existingProjects.length}
                 delta={
                   newProjectsLast7Days > 0
                     ? {
                         type: 'increase',
-                        text: t('dashboard:kpi.projects.delta', { count: newProjectsLast7Days, defaultValue: `+${newProjectsLast7Days} so với tuần trước` }),
+                        text: t('dashboard:kpi.projects.delta', { count: newProjectsLast7Days }),
                       }
                     : {
                         type: 'neutral',
-                        text: t('dashboard:kpi.projects.noNew', 'Không có dự án mới tuần này'),
+                        text: t('dashboard:kpi.projects.noNew'),
                       }
                 }
                 isLoading={allProjectsQuery.isLoading}
@@ -392,18 +392,18 @@ export function DashboardPage() {
               />
               {/* Employee KPI 2: TỶ LỆ HOÀN THÀNH */}
               <KpiCard
-                overline={t('dashboard:kpi.completionRate.label', 'TỶ LỆ HOÀN THÀNH')}
+                overline={t('dashboard:kpi.completionRate.label')}
                 value={completionRate}
                 unit="%"
                 delta={
                   completedTasksLast7Days > 0
                     ? {
                         type: 'increase',
-                        text: t('dashboard:kpi.completionRate.delta', { count: completedTasksLast7Days, defaultValue: `+${completedTasksLast7Days} việc hoàn thành tuần này` }),
+                        text: t('dashboard:kpi.completionRate.delta', { count: completedTasksLast7Days }),
                       }
                     : {
                         type: 'neutral',
-                        text: t('dashboard:kpi.completionRate.noCompleted', 'Chưa có việc hoàn thành tuần này'),
+                        text: t('dashboard:kpi.completionRate.noCompleted'),
                       }
                 }
                 isLoading={allTasksQuery.isLoading}
@@ -412,17 +412,17 @@ export function DashboardPage() {
               />
               {/* Employee KPI 3: CÔNG VIỆC QUÁ HẠN */}
               <KpiCard
-                overline={t('dashboard:kpi.overdueTasks.label', 'CÔNG VIỆC QUÁ HẠN')}
+                overline={t('dashboard:kpi.overdueTasks.label')}
                 value={myOverdueCount}
                 delta={
                   myOverdueCount > 0
                     ? {
                         type: 'decrease',
-                        text: t('dashboard:kpi.overdueTasks.needsAction', 'cần xử lý'),
+                        text: t('dashboard:kpi.overdueTasks.needsAction'),
                       }
                     : {
                         type: 'empty-good',
-                        text: t('dashboard:kpi.overdueTasks.noOverdue', 'Không có việc quá hạn'),
+                        text: t('dashboard:kpi.overdueTasks.noOverdue'),
                       }
                 }
                 isLoading={allTasksQuery.isLoading}
@@ -431,11 +431,11 @@ export function DashboardPage() {
               />
               {/* Employee KPI 4: CÔNG VIỆC ĐANG LÀM */}
               <KpiCard
-                overline={t('dashboard:kpi.myTasks.label', 'CÔNG VIỆC ĐANG LÀM')}
+                overline={t('dashboard:kpi.myTasks.label')}
                 value={myInProgressCount}
                 delta={{
                   type: 'neutral',
-                  text: myInProgressCount > 5 ? t('dashboard:kpi.myTasks.priority', 'Cần ưu tiên') : t('dashboard:kpi.myTasks.onTrack', 'Đang trong tiến độ'),
+                  text: myInProgressCount > 5 ? t('dashboard:kpi.myTasks.priority') : t('dashboard:kpi.myTasks.onTrack'),
                 }}
                 isLoading={allTasksQuery.isLoading}
                 isError={allTasksQuery.isError}
@@ -451,7 +451,7 @@ export function DashboardPage() {
         {/* Line Chart (col-span-3) */}
         <div className="lg:col-span-3 rounded-lg border border-border-subtle bg-bg-surface p-5">
           <h2 className="text-[15px] leading-[22px] font-semibold text-text-primary mb-4 text-left">
-            {t('dashboard:charts.taskTrendTitle', 'Xu hướng hoàn thành công việc')}
+            {t('dashboard:charts.taskTrendTitle')}
           </h2>
           <TaskTrendChart
             data={dynamicTaskTrend}
@@ -468,7 +468,7 @@ export function DashboardPage() {
         {/* Donut Chart (col-span-2) */}
         <div className="lg:col-span-2 rounded-lg border border-border-subtle bg-bg-surface p-5">
           <h2 className="text-[15px] leading-[22px] font-semibold text-text-primary mb-4 text-left">
-            {t('dashboard:charts.taskStatusTitle', 'Phân bổ trạng thái công việc')}
+            {t('dashboard:charts.taskStatusTitle')}
           </h2>
           <TaskStatusDonut
             data={dynamicTaskBreakdown}
@@ -490,7 +490,7 @@ export function DashboardPage() {
             <div className="lg:col-span-3 rounded-lg border border-border-subtle bg-bg-surface p-5 flex flex-col justify-between">
               <div>
                 <h2 className="text-[15px] leading-[22px] font-semibold text-text-primary pb-3 border-b border-border-subtle mb-1">
-                  {t('dashboard:recentActivitySection.title', 'Hoạt động gần đây')}
+                  {t('dashboard:recentActivitySection.title')}
                 </h2>
                 <RecentActivityFeed />
               </div>

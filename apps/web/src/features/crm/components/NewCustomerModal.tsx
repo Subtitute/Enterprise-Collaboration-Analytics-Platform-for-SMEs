@@ -65,65 +65,65 @@ export const NewCustomerModal = React.memo(function NewCustomerModal({ open, onC
       open={open}
       onClose={handleClose}
       preventCloseWhilePending={createCustomer.isPending}
-      title={t('crm:newCustomerModal.title', 'Thêm khách hàng mới')}
+      title={t('crm:newCustomerModal.title')}
       size="md"
       footer={
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={handleClose} disabled={createCustomer.isPending} className="h-9 rounded-radius-sm border-border-strong text-[13px]">
-            {t('crm:newCustomerModal.cancel', 'Hủy')}
+            {t('crm:newCustomerModal.cancel')}
           </Button>
           <Button type="submit" form="new-customer-form" isLoading={createCustomer.isPending} className="h-9 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium">
-            {t('crm:newCustomerModal.submit', 'Thêm khách hàng')}
+            {t('crm:newCustomerModal.submit')}
           </Button>
         </div>
       }
     >
       <form id="new-customer-form" onSubmit={handleSubmit} className="space-y-4" noValidate>
-        <FormField label={t('crm:newCustomerModal.fieldName', 'Tên khách hàng')} htmlFor="customer-name" error={error} required>
+        <FormField label={t('crm:newCustomerModal.fieldName')} htmlFor="customer-name" error={error} required>
           <Input
             id="customer-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder={t('crm:newCustomerModal.namePlaceholder', 'Ví dụ: Công ty TNHH ABC')}
+            placeholder={t('crm:newCustomerModal.namePlaceholder')}
           />
         </FormField>
-        <FormField label={t('crm:newCustomerModal.fieldCompany', 'Công ty')} htmlFor="customer-company">
+        <FormField label={t('crm:newCustomerModal.fieldCompany')} htmlFor="customer-company">
           <Input id="customer-company" value={company} onChange={(e) => setCompany(e.target.value)} />
         </FormField>
-        <FormField label={t('crm:newCustomerModal.fieldEmail', 'Email')} htmlFor="customer-email">
+        <FormField label={t('crm:newCustomerModal.fieldEmail')} htmlFor="customer-email">
           <Input id="customer-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         </FormField>
-        <FormField label={t('crm:newCustomerModal.fieldPhone', 'Số điện thoại')} htmlFor="customer-phone">
+        <FormField label={t('crm:newCustomerModal.fieldPhone')} htmlFor="customer-phone">
           <Input id="customer-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
         </FormField>
 
         {/* Phần Ghi chú: Mục chọn loại khách hàng & Khác (tự điền) */}
         <div className="space-y-3 pt-2 border-t border-border-subtle">
-          <FormField label={t('crm:newCustomerModal.fieldNotes', 'Ghi chú & Loại khách hàng')} htmlFor="customer-type">
+          <FormField label={t('crm:newCustomerModal.fieldNotes')} htmlFor="customer-type">
             <CustomFilterSelect
               value={customerType}
               onChange={setCustomerType}
               position="top"
               options={[
-                { value: '', label: t('crm:newCustomerModal.customerTypePlaceholder', '-- Chọn phân loại khách hàng --') },
-                { value: 'lead', label: t('crm:newCustomerModal.customerTypes.lead', 'Khách hàng tiềm năng') },
-                { value: 'vip', label: t('crm:newCustomerModal.customerTypes.vip', 'Khách hàng VIP') },
-                { value: 'loyal', label: t('crm:newCustomerModal.customerTypes.loyal', 'Khách hàng thân thiết') },
-                { value: 'sme', label: t('crm:newCustomerModal.customerTypes.sme', 'Doanh nghiệp SME') },
-                { value: 'enterprise', label: t('crm:newCustomerModal.customerTypes.enterprise', 'Tập đoàn / Doanh nghiệp lớn') },
-                { value: 'individual', label: t('crm:newCustomerModal.customerTypes.individual', 'Khách hàng cá nhân') },
-                { value: 'other', label: t('crm:newCustomerModal.customerTypeOther', 'Khác (Tự điền ghi chú)') },
+                { value: '', label: t('crm:newCustomerModal.customerTypePlaceholder') },
+                { value: 'lead', label: t('crm:newCustomerModal.customerTypes.lead') },
+                { value: 'vip', label: t('crm:newCustomerModal.customerTypes.vip') },
+                { value: 'loyal', label: t('crm:newCustomerModal.customerTypes.loyal') },
+                { value: 'sme', label: t('crm:newCustomerModal.customerTypes.sme') },
+                { value: 'enterprise', label: t('crm:newCustomerModal.customerTypes.enterprise') },
+                { value: 'individual', label: t('crm:newCustomerModal.customerTypes.individual') },
+                { value: 'other', label: t('crm:newCustomerModal.customerTypeOther') },
               ]}
             />
           </FormField>
 
           {customerType === 'other' && (
-            <FormField label={t('crm:newCustomerModal.customNotesLabel', 'Chi tiết ghi chú (tự điền)')} htmlFor="customer-custom-notes">
+            <FormField label={t('crm:newCustomerModal.customNotesLabel')} htmlFor="customer-custom-notes">
               <Textarea
                 id="customer-custom-notes"
                 value={customNotes}
                 onChange={(e) => setCustomNotes(e.target.value)}
-                placeholder={t('crm:newCustomerModal.notesPlaceholder', 'Nhập ghi chú hoặc thông tin cụ thể về khách hàng…')}
+                placeholder={t('crm:newCustomerModal.notesPlaceholder')}
                 className="animate-fade-in"
               />
             </FormField>

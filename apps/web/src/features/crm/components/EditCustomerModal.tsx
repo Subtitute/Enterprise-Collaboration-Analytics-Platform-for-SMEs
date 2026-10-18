@@ -112,7 +112,7 @@ export const EditCustomerModal = React.memo(function EditCustomerModal({
             className="bg-primary hover:bg-primary-hover text-primary-contrast rounded-radius-sm h-9"
             isLoading={updateCustomer.isPending}
           >
-            {t('crm:editCustomerModal.save', 'Lưu thay đổi')}
+            {t('crm:editCustomerModal.save')}
           </Button>
         </div>
       }
@@ -161,14 +161,14 @@ export const EditCustomerModal = React.memo(function EditCustomerModal({
               onChange={setCustomerType}
               position="top"
               options={[
-                { value: '', label: t('crm:newCustomerModal.customerTypePlaceholder', '-- Chọn phân loại khách hàng --') },
-                { value: 'lead', label: t('crm:newCustomerModal.customerTypes.lead', 'Khách hàng tiềm năng') },
-                { value: 'vip', label: t('crm:newCustomerModal.customerTypes.vip', 'Khách hàng VIP') },
-                { value: 'loyal', label: t('crm:newCustomerModal.customerTypes.loyal', 'Khách hàng thân thiết') },
-                { value: 'sme', label: t('crm:newCustomerModal.customerTypes.sme', 'Doanh nghiệp SME') },
-                { value: 'enterprise', label: t('crm:newCustomerModal.customerTypes.enterprise', 'Tập đoàn / Doanh nghiệp lớn') },
-                { value: 'individual', label: t('crm:newCustomerModal.customerTypes.individual', 'Khách hàng cá nhân') },
-                { value: 'other', label: t('crm:newCustomerModal.customerTypeOther', 'Khác (Tự điền ghi chú)') },
+                { value: '', label: t('crm:newCustomerModal.customerTypePlaceholder') },
+                { value: 'lead', label: t('crm:newCustomerModal.customerTypes.lead') },
+                { value: 'vip', label: t('crm:newCustomerModal.customerTypes.vip') },
+                { value: 'loyal', label: t('crm:newCustomerModal.customerTypes.loyal') },
+                { value: 'sme', label: t('crm:newCustomerModal.customerTypes.sme') },
+                { value: 'enterprise', label: t('crm:newCustomerModal.customerTypes.enterprise') },
+                { value: 'individual', label: t('crm:newCustomerModal.customerTypes.individual') },
+                { value: 'other', label: t('crm:newCustomerModal.customerTypeOther') },
               ]}
             />
           </FormField>

@@ -10,7 +10,8 @@
     "confirm": "Xác nhận",
     "close": "Đóng",
     "save": "Lưu",
-    "done": "Xong"
+    "done": "Xong",
+    "processing": "Đang xử lý..."
   },
   "appTitle": "Nền tảng Cộng tác & Phân tích Doanh nghiệp",
   "notFound": {
@@ -19,10 +20,14 @@
     "backToDashboard": "Về trang Dashboard"
   },
   "loading": "Đang tải…",
+  "processing": "Đang xử lý...",
   "loadingPage": "Đang tải trang…",
   "genericError": "Đã xảy ra lỗi. Vui lòng thử lại.",
   "skipToContent": "Bỏ qua tới nội dung chính",
   "progress": "Tiến độ",
+  "clear": "Xóa",
+  "detail": "Chi tiết",
+  "none": "Chưa đặt",
   "password": {
     "show": "Hiện mật khẩu",
     "hide": "Ẩn mật khẩu",
@@ -60,11 +65,15 @@
     "logout": "Đăng xuất",
     "logoutConfirmTitle": "Xác nhận đăng xuất",
     "logoutConfirmDescription": "Bạn có chắc chắn muốn đăng xuất khỏi phiên làm việc hiện tại không?",
-    "quickCreate": "Tạo mới"
+    "quickCreate": "Tạo mới",
+    "toggleTooltip": "Ẩn/Hiện thanh điều hướng",
+    "settings": "Cài đặt"
   },
   "quickCreate": {
     "button": "Tạo mới",
     "tooltip": "Tạo mới (Phím tắt: C)",
+    "groupTasks": "Công việc",
+    "groupOthers": "Khác",
     "createTask": "Tạo công việc",
     "createTaskDesc": "Giao việc nhanh cho dự án",
     "createTaskTitle": "Tạo công việc mới",
@@ -107,6 +116,12 @@
     "messages": "Nhắn tin",
     "analytics": "Báo cáo & Phân tích",
     "admin": "Quản trị",
+    "mainAria": "Điều hướng chính",
+    "homeGroupAria": "Điều hướng nhóm trang chủ",
+    "homeAccordionExpandAria": "Mở rộng danh sách trang chủ",
+    "closeMenuAria": "Đóng menu",
+    "mobileDrawerAria": "Thanh điều hướng",
+    "unreadMessagesSuffix": "{{count}} tin chưa đọc",
     "pin": {
       "expand": "Mở rộng thanh điều hướng",
       "collapse": "Thu gọn thanh điều hướng"
@@ -115,7 +130,9 @@
       "overview": "Tổng quan",
       "projects": "Dự án & Công việc",
       "documents": "Tài liệu",
-      "customers": "Khách hàng"
+      "customers": "Khách hàng",
+      "products": "Danh mục sản phẩm",
+      "warehouse": "Kho"
     }
   },
   "datePicker": {
@@ -147,5 +164,18 @@
     "hours": "Giờ",
     "minutes": "Phút",
     "presets": "Mốc nhanh:"
+  },
+  "stepper": {
+    "ariaLabel": "Tiến trình đăng ký",
+    "mobileLabel": "Bước {{current}} / {{total}} · {{label}}",
+    "stepAriaLabel": "Bước {{id}}: {{label}} ({{status}})",
+    "status": {
+      "done": "Đã hoàn thành",
+      "current": "Hiện tại",
+      "upcoming": "Chưa hoàn thành"
+    }
+  },
+  "popover": {
+    "defaultAriaLabel": "Thông báo"
   }
 }

@@ -83,6 +83,12 @@ export const REST_PROXY_ROUTES: RestProxyRouteGroup[] = [
     prefixes: ['/api/v1/conversations'],
     targetConfigKey: 'services.messaging',
   },
+  {
+    // 15/10/2026: Inventory Service (Danh muc san pham + Kho, gan giao dich khach hang de phan
+    // tich xu huong thi truong - Technical_Spec.md muc 22).
+    prefixes: ['/api/v1/product-categories', '/api/v1/products', '/api/v1/warehouses', '/api/v1/stock', '/api/v1/stock-movements', '/api/v1/customer-purchases'],
+    targetConfigKey: 'services.inventory',
+  },
 ];
 
 export interface WsProxyRoute {

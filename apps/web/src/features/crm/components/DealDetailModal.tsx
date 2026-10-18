@@ -104,7 +104,7 @@ export const DealDetailModal = React.memo(function DealDetailModal({
               className="bg-primary hover:bg-primary-hover text-primary-contrast rounded-radius-sm h-9"
               isLoading={updateDeal.isPending}
             >
-              {t('crm:dealDetailModal.save', 'Lưu thay đổi')}
+              {t('crm:dealDetailModal.save')}
             </Button>
           </div>
         }

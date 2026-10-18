@@ -9,6 +9,8 @@ import { DocumentActivityQueryDto } from './dto/document-activity-query.dto';
 import { SummaryQueryDto } from './dto/summary-query.dto';
 import { ProjectProgressQueryDto } from './dto/project-progress-query.dto';
 import { DrillDownQueryDto } from './dto/drill-down-query.dto';
+import { ProductSalesTrendQueryDto } from './dto/product-sales-trend-query.dto';
+import { TopProductsQueryDto } from './dto/top-products-query.dto';
 
 /**
  * REST API cho Dashboard tong quan (Wireframe.md muc 3) va trang Bao cao & Phan tich
@@ -69,6 +71,26 @@ export class AnalyticsController {
     @Query() query: DocumentActivityQueryDto,
   ) {
     return this.analyticsService.getDocumentActivity(organizationId, query.range ?? '7d');
+  }
+
+  // 15/10/2026: Inventory Service (Danh muc san pham + Kho) - phan tich xu huong thi truong,
+  // Technical_Spec.md muc 22.
+  @ApiOperation({ summary: 'Xu huong ban hang theo ngay (so luong + doanh thu, gop toan bo danh muc/san pham) - 7 ngay hoac 30 ngay' })
+  @Get('product-sales-trend')
+  getProductSalesTrend(
+    @CurrentUser('organizationId') organizationId: string,
+    @Query() query: ProductSalesTrendQueryDto,
+  ) {
+    return this.analyticsService.getProductSalesTrend(organizationId, query.range ?? '7d');
+  }
+
+  @ApiOperation({ summary: 'San pham ban chay nhat theo doanh thu trong khoang thoi gian (range=7d|30d, limit mac dinh 5, toi da 20)' })
+  @Get('top-products')
+  getTopProducts(
+    @CurrentUser('organizationId') organizationId: string,
+    @Query() query: TopProductsQueryDto,
+  ) {
+    return this.analyticsService.getTopProducts(organizationId, query.range ?? '7d', query.limit ?? 5);
   }
 
   @ApiOperation({

@@ -109,7 +109,7 @@ export const QuickLoginWidget = memo(function QuickLoginWidget({
         <div
           ref={panelRef}
           role="dialog"
-          aria-label={t('auth:loginPage.demoAccount.title', 'Tài khoản demo')}
+          aria-label={t('auth:loginPage.demoAccount.title')}
           className={cn(
             'fixed z-40 bg-white border border-border-subtle shadow-md rounded-radius-lg p-4 animate-slide-up',
             'bottom-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:bottom-18 right-4 md:right-5',
@@ -119,12 +119,12 @@ export const QuickLoginWidget = memo(function QuickLoginWidget({
           {/* Header row */}
           <div className="flex items-center justify-between mb-3">
             <span className="text-[10px] leading-4 font-semibold tracking-[0.06em] uppercase text-text-tertiary">
-              {t('auth:loginPage.demoAccount.overline', 'TÀI KHOẢN DEMO')}
+              {t('auth:loginPage.demoAccount.overline')}
             </span>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              aria-label={t('common:actions.close', 'Đóng bảng demo')}
+              aria-label={t('common:actions.close')}
               className="p-1 rounded-radius-sm text-text-tertiary hover:text-text-primary hover:bg-bg-subtle transition-colors"
             >
               <X className="h-3.5 w-3.5" />
@@ -166,8 +166,8 @@ export const QuickLoginWidget = memo(function QuickLoginWidget({
                 <button
                   type="button"
                   onClick={() => handleCopy(selectedAccount.email, 'email')}
-                  title={t('auth:loginPage.demoAccount.copyEmailTitle', 'Sao chép email')}
-                  aria-label={t('auth:loginPage.demoAccount.copyEmailTitle', 'Sao chép email')}
+                  title={t('auth:loginPage.demoAccount.copyEmailTitle')}
+                  aria-label={t('auth:loginPage.demoAccount.copyEmailTitle')}
                   className="p-1 text-text-tertiary hover:text-text-primary rounded transition-colors"
                 >
                   {copiedField === 'email' ? (
@@ -181,7 +181,7 @@ export const QuickLoginWidget = memo(function QuickLoginWidget({
 
             {/* Khối Mật khẩu */}
             <div className="bg-bg-subtle border border-border-subtle rounded-radius-sm p-2 flex flex-col gap-0.5">
-              <span className="text-[11px] font-medium text-text-tertiary">{t('auth:loginPage.demoAccount.passwordLabel', 'Mật khẩu')}</span>
+              <span className="text-[11px] font-medium text-text-tertiary">{t('auth:loginPage.demoAccount.passwordLabel')}</span>
               <div className="flex items-center justify-between gap-1">
                 <span className="font-mono text-xs font-medium text-text-primary">
                   {selectedAccount.password}
@@ -189,8 +189,8 @@ export const QuickLoginWidget = memo(function QuickLoginWidget({
                 <button
                   type="button"
                   onClick={() => handleCopy(selectedAccount.password, 'password')}
-                  title={t('auth:loginPage.demoAccount.copyPasswordTitle', 'Sao chép mật khẩu')}
-                  aria-label={t('auth:loginPage.demoAccount.copyPasswordTitle', 'Sao chép mật khẩu')}
+                  title={t('auth:loginPage.demoAccount.copyPasswordTitle')}
+                  aria-label={t('auth:loginPage.demoAccount.copyPasswordTitle')}
                   className="p-1 text-text-tertiary hover:text-text-primary rounded transition-colors"
                 >
                   {copiedField === 'password' ? (
@@ -210,7 +210,7 @@ export const QuickLoginWidget = memo(function QuickLoginWidget({
             disabled={isLoading}
             className="w-full h-9 rounded-radius-md bg-[#1C1B1A] text-[#F7F6F3] hover:bg-[#2E2C29] active:bg-[#141312] text-[13px] font-medium flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50"
           >
-            <span>{t('auth:loginPage.demoAccount.quickLogin', 'Đăng nhập ngay →')}</span>
+            <span>{t('auth:loginPage.demoAccount.quickLogin')}</span>
           </button>
         </div>
       )}
@@ -221,7 +221,7 @@ export const QuickLoginWidget = memo(function QuickLoginWidget({
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
-        aria-label={t('auth:loginPage.demoAccount.openDemoLabel', 'Mở bảng tài khoản demo')}
+        aria-label={t('auth:loginPage.demoAccount.openDemoLabel')}
         className={cn(
           'fixed z-40 bg-[#1C1B1A] text-[#F7F6F3] hover:bg-[#2E2C29] active:bg-[#141312] transition-colors shadow-sm',
           'bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] md:bottom-5 right-4 md:right-5',

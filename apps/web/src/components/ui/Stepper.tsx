@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { CheckIcon } from '@/components/ui/Icons';
 
@@ -26,20 +27,20 @@ export const Stepper = memo(function Stepper({
   currentStep,
   onStepClick,
   className,
-  'aria-label': ariaLabel = 'Tiến trình đăng ký',
+  'aria-label': ariaLabel,
 }: StepperProps) {
+  const { t } = useTranslation();
   const currentStepItem = steps.find((s) => s.id === currentStep) || steps[0];
   const progressPercent = Math.min(100, Math.max(0, (currentStep / steps.length) * 100));
 
   return (
-    <div className={cn('w-full max-w-[420px] mx-auto mb-10', className)} aria-label={ariaLabel}>
-
+    <div className={cn('w-full max-w-[420px] mx-auto mb-10', className)} aria-label={ariaLabel || t('common:stepper.ariaLabel', 'Tiến trình đăng ký')}>
       {/* =========================================================================
           MOBILE VIEW (< md): Text mode + progress bar 4px (§2.5)
           ========================================================================= */}
       <div className="flex flex-col md:hidden w-full">
         <div className="text-[13px] leading-5 text-text-secondary text-center font-medium mb-2">
-          Bước {currentStep} / {steps.length} · {currentStepItem?.label}
+          {t('common:stepper.mobileLabel', { current: currentStep, total: steps.length, label: currentStepItem?.label })}
         </div>
         <div className="h-1 w-full bg-[#E5E7EB] rounded-full overflow-hidden">
           <div
@@ -89,7 +90,15 @@ export const Stepper = memo(function Stepper({
                     onStepClick(step.id);
                   }
                 }}
-                aria-label={`Bước ${step.id}: ${step.label} (${isDone ? 'Đã hoàn thành' : isCurrent ? 'Hiện tại' : 'Chưa hoàn thành'})`}
+                aria-label={t('common:stepper.stepAriaLabel', {
+                  id: step.id,
+                  label: step.label,
+                  status: isDone
+                    ? t('common:stepper.status.done')
+                    : isCurrent
+                    ? t('common:stepper.status.current')
+                    : t('common:stepper.status.upcoming'),
+                })}
                 aria-current={isCurrent ? 'step' : undefined}
                 className={cn(
                   'relative z-10 w-7 h-7 rounded-full flex items-center justify-center transition-colors duration-150',

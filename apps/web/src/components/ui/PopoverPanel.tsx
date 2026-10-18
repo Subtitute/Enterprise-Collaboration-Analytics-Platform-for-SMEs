@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 export interface PopoverPanelProps {
@@ -28,8 +29,10 @@ export function PopoverPanel({
   maxHeight = 'min(560px, calc(100vh - 120px))',
   className,
   align = 'right',
-  'aria-label': ariaLabel = 'Thông báo',
+  'aria-label': ariaLabel,
 }: PopoverPanelProps) {
+  const { t } = useTranslation();
+  const resolvedAriaLabel = ariaLabel ?? t('common:popover.defaultAriaLabel');
   const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -68,7 +71,7 @@ export function PopoverPanel({
       ref={panelRef}
       role="dialog"
       aria-modal="true"
-      aria-label={ariaLabel}
+      aria-label={resolvedAriaLabel}
       tabIndex={-1}
       style={{
         width: styleWidth,

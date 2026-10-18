@@ -128,5 +128,24 @@
     "crmUpgrade": "Nâng cấp Hệ thống CRM & Bán hàng",
     "customerPortal": "Triển khai Cổng Thông tin Khách hàng",
     "operationsOptimization": "Tối ưu Hóa Quy trình Vận hành Q4"
+  },
+  "productSales": {
+    "trendTitle": "Xu hướng bán hàng theo sản phẩm",
+    "topProductsTitle": "Sản phẩm bán chạy nhất",
+    "unnamedProduct": "Sản phẩm #{{id}}",
+    "trendChart": {
+      "errorTitle": "Không thể tải xu hướng bán hàng",
+      "errorDescription": "Đã xảy ra lỗi khi tải dữ liệu biểu đồ. Vui lòng thử lại.",
+      "emptyTitle": "Chưa có dữ liệu bán hàng",
+      "revenueLabel": "Doanh thu",
+      "unitsSoldLabel": "Số lượng bán"
+    },
+    "topProductsChart": {
+      "errorTitle": "Không thể tải sản phẩm bán chạy",
+      "errorDescription": "Đã xảy ra lỗi khi tải dữ liệu biểu đồ. Vui lòng thử lại.",
+      "emptyTitle": "Chưa có dữ liệu sản phẩm bán chạy",
+      "tooltipUnitsSoldLabel": "Số lượng bán:",
+      "tooltipRevenueLabel": "Doanh thu:"
+    }
   }
 }

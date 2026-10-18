@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import { CalendarEventCreatedPayload, CalendarEventDeletedPayload, CalendarEventType, ERROR_CODES, EVENT_TYPES, PERMISSIONS } from '@app/common-dto';
+import { toGmt7DateString } from '../attendance/attendance-date.util';
 import { CalendarEvent } from '../entities/calendar-event.entity';
 import { OutboxService } from '../outbox/outbox.service';
 import { computeCallerCalendarRank } from './calendar-event-rank.util';
@@ -41,6 +42,22 @@ export class CalendarEventsService {
       throw new BadRequestException({
         message: 'Ngày bắt đầu không được sau ngày kết thúc',
         errorCode: ERROR_CODES.CALENDAR_EVENT_DATE_RANGE_INVALID,
+      });
+    }
+  }
+
+  // 05/10/2026: phat hien qua bao loi thuc te (nguoi dung) - CompanyCalendar.tsx (chuyen vao
+  // LeaveRequestsPage.tsx dot "Major update" 03/10/2026) cho tao/doi mot muc lich (EVENT lan
+  // HOLIDAY) voi ngay bat dau o QUA KHU, CUNG mot loi logic da tung sua cho don nghi phep
+  // (LeaveRequestsService.create(), 15/09/2026) nhung o day CHUA tung co kiem tra nao ca. So sanh
+  // dang chuoi 'YYYY-MM-DD' neo theo GMT+7 (mirror dung leave-requests.service.ts), khong parse ve
+  // Date object de tranh moi rui ro lech gio/timezone.
+  private assertStartDateNotInPast(startDate: string): void {
+    const todayGmt7 = toGmt7DateString(new Date());
+    if (startDate.slice(0, 10) < todayGmt7) {
+      throw new BadRequestException({
+        message: 'Ngày bắt đầu không được ở trong quá khứ',
+        errorCode: ERROR_CODES.CALENDAR_EVENT_START_DATE_IN_PAST,
       });
     }
   }
@@ -112,6 +129,7 @@ export class CalendarEventsService {
     // bien nhat: 1 ngay le don le hoac 1 su kien trong ngay).
     const endDate = dto.endDate ?? dto.startDate;
     this.assertValidRange(dto.startDate, endDate);
+    this.assertStartDateNotInPast(dto.startDate);
     const createdByRank = computeCallerCalendarRank(permissions);
 
     return this.dataSource.transaction(async (manager) => {
@@ -197,6 +215,13 @@ export class CalendarEventsService {
     const nextStartDate = dto.startDate ?? existing.startDate;
     const nextEndDate = dto.endDate ?? existing.endDate;
     this.assertValidRange(nextStartDate, nextEndDate);
+    // Chi chan khi ngay bat dau THAT SU doi sang 1 gia tri khac (vd doi lich sang qua khu) - khong
+    // chan viec sua cac truong khac (tieu de, mo ta...) cua 1 muc lich co san ma ngay bat dau da
+    // troi qua tu truoc (startDate khong doi), tranh khoa nguoi dung khoi sua loi chinh ta tren 1
+    // muc lich qua khu hop le.
+    if (nextStartDate !== existing.startDate) {
+      this.assertStartDateNotInPast(nextStartDate);
+    }
 
     if (dto.title !== undefined) existing.title = dto.title;
     if (dto.description !== undefined) existing.description = dto.description;

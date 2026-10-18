@@ -262,3 +262,42 @@ export interface OvertimeRequestRejectedPayload {
   userId: string;
   actorId: string;
 }
+
+// 15/10/2026: Inventory Service (Danh muc san pham + Kho, Technical_Spec.md muc 22).
+export interface ProductCreatedPayload {
+  productId: string;
+  categoryId: string;
+  name: string;
+  actorId: string;
+}
+
+export interface ProductDeletedPayload {
+  productId: string;
+  actorId: string;
+}
+
+/**
+ * Su kien QUAN TRONG NHAT cua tinh nang nay - Analytics Service tieu thu de ghi vao hypertable
+ * `fact_product_sales` (schema-bootstrap.ts), phuc vu phan tich xu huong thi truong (san pham ban
+ * chay, doanh thu theo thoi gian/danh muc/khach hang). `unitPrice` la gia TAI THOI DIEM giao dich
+ * (CustomerPurchase.unitPriceAtPurchase - snapshot, KHONG doc lai Product.unitPrice hien tai co
+ * the da thay doi sau do) - dam bao bao cao lich su chinh xac du gia san pham thay doi theo thoi
+ * gian. `customerId` thuoc database rieng cua CRM-lite Service - microservice khong dung FK xuyen
+ * service/DB (mirror Deal.customerId).
+ */
+export interface CustomerPurchaseCreatedPayload {
+  purchaseId: string;
+  customerId: string;
+  productId: string;
+  categoryId: string;
+  quantity: number;
+  unitPrice: number;
+  purchasedAt: string;
+  actorId: string;
+}
+
+export interface CustomerPurchaseDeletedPayload {
+  purchaseId: string;
+  productId: string;
+  actorId: string;
+}

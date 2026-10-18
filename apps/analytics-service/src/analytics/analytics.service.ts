@@ -3,7 +3,7 @@ import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { ERROR_CODES, PERMISSIONS } from '@app/common-dto';
 import { RedisService } from '../redis/redis.service';
-import { resolveDocumentActivityInterval, resolveTaskTrendConfig } from './utils/range.util';
+import { resolveDocumentActivityInterval, resolveProductSalesTrendInterval, resolveTaskTrendConfig } from './utils/range.util';
 
 export interface AnalyticsSummary {
   totalTasksCreated: number;
@@ -29,6 +29,25 @@ export interface DocumentActivityPoint {
   date: string;
   filesUploaded: number;
   filesShared: number;
+}
+
+/** 15/10/2026: xu huong ban hang theo ngay (Inventory Service, Technical_Spec.md muc 22). */
+export interface ProductSalesTrendPoint {
+  date: string;
+  unitsSold: number;
+  revenue: number;
+}
+
+/**
+ * San pham ban chay nhat trong khoang thoi gian - productId/categoryId la UUID tho, KHONG resolve
+ * ten san pham/danh muc o day (database-per-service, cung ly do voi ProjectProgress.projectId).
+ * Frontend tu ghep noi qua GET /products cua Inventory Service.
+ */
+export interface TopProduct {
+  productId: string;
+  categoryId: string;
+  unitsSold: number;
+  revenue: number;
 }
 
 /**
@@ -449,6 +468,73 @@ export class AnalyticsService {
       date: new Date(row.bucket as string).toISOString(),
       filesUploaded: toNumber(row.files_uploaded),
       filesShared: toNumber(row.files_shared),
+    }));
+  }
+
+  /**
+   * 15/10/2026: GET /analytics/product-sales-trend?range=7d|30d - xu huong ban hang theo ngay,
+   * gop TOAN BO danh muc/san pham (Inventory Service, Technical_Spec.md muc 22) - mirror CHINH
+   * XAC getDocumentActivity() o tren, doc tu continuous aggregate daily_product_sales_summary.
+   */
+  async getProductSalesTrend(organizationId: string, range: string): Promise<ProductSalesTrendPoint[]> {
+    const sinceInterval = resolveProductSalesTrendInterval(range);
+
+    const rows = await this.dataSource.query(
+      `
+      SELECT
+        bucket,
+        SUM(units_sold)              AS units_sold,
+        SUM(revenue)                 AS revenue
+      FROM daily_product_sales_summary
+      WHERE organization_id = $1
+        AND bucket >= now() - $2::interval
+      GROUP BY bucket
+      ORDER BY bucket ASC
+      `,
+      [organizationId, sinceInterval],
+    );
+
+    return rows.map((row: Record<string, unknown>) => ({
+      date: new Date(row.bucket as string).toISOString(),
+      unitsSold: toNumber(row.units_sold),
+      revenue: toNumber(row.revenue),
+    }));
+  }
+
+  /**
+   * 15/10/2026: GET /analytics/top-products?range=7d|30d&limit=5 - san pham ban chay nhat (theo
+   * doanh thu) trong khoang thoi gian - cung mot phan "phan tich xu huong thi truong" voi
+   * getProductSalesTrend() o tren nhung tra loi cau hoi "CAI GI dang ban chay" thay vi "xu huong
+   * THEO THOI GIAN nhu the nao". `limit` tuy chon, mac dinh 5, tran toi da 20 (chan lam dung truy
+   * van - mirror tinh than @Max() cua PaginationQueryDto, khong can them 1 DTO rieng chi cho 1
+   * tham so).
+   */
+  async getTopProducts(organizationId: string, range: string, limit = 5): Promise<TopProduct[]> {
+    const sinceInterval = resolveProductSalesTrendInterval(range);
+    const cappedLimit = Math.min(Math.max(1, limit), 20);
+
+    const rows = await this.dataSource.query(
+      `
+      SELECT
+        product_id,
+        category_id,
+        SUM(units_sold) AS units_sold,
+        SUM(revenue)    AS revenue
+      FROM daily_product_sales_summary
+      WHERE organization_id = $1
+        AND bucket >= now() - $2::interval
+      GROUP BY product_id, category_id
+      ORDER BY revenue DESC
+      LIMIT $3
+      `,
+      [organizationId, sinceInterval, cappedLimit],
+    );
+
+    return rows.map((row: Record<string, unknown>) => ({
+      productId: row.product_id as string,
+      categoryId: row.category_id as string,
+      unitsSold: toNumber(row.units_sold),
+      revenue: toNumber(row.revenue),
     }));
   }
 

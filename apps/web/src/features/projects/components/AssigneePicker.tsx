@@ -46,7 +46,7 @@ export function AssigneePicker({
         <div className="max-h-60 overflow-y-auto space-y-0.5">
           <div className="px-2.5 py-1.5 border-b border-border-subtle">
             <p className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider leading-none">
-              {t('projects:taskDetail.assigneesLabel', 'Người phụ trách')}
+              {t('projects:taskDetail.assigneesLabel')}
             </p>
           </div>
 
@@ -56,7 +56,7 @@ export function AssigneePicker({
             </div>
           ) : candidates.length === 0 ? (
             <p className="px-3 py-3 text-[12px] text-text-tertiary text-center italic">
-              {t('projects:assigneePicker.allAssigned', 'Đã phân công tất cả')}
+              {t('projects:assigneePicker.allAssigned')}
             </p>
           ) : (
             candidates.map((u) => (

@@ -181,7 +181,7 @@ export function DocumentsPage() {
                   : 'text-text-secondary hover:text-accent transition-colors cursor-pointer'
               }
             >
-              {t('documents:documentsPage.breadcrumbRoot', 'Tất cả tài liệu')}
+              {t('documents:documentsPage.breadcrumbRoot')}
             </button>
             {breadcrumb.map((folder, index) => {
               const isLast = index === breadcrumb.length - 1;
@@ -207,7 +207,7 @@ export function DocumentsPage() {
             })}
           </nav>
           {currentFolderId === null && (
-            <p className="mt-1 text-[13px] sm:text-[14px] leading-[22px] text-text-secondary">{t('documents:documentsPage.subtitle', 'Quản lý thư mục và tệp tài liệu dùng chung của tổ chức.')}</p>
+            <p className="mt-1 text-[13px] sm:text-[14px] leading-[22px] text-text-secondary">{t('documents:documentsPage.subtitle')}</p>
           )}
         </div>
 
@@ -219,7 +219,7 @@ export function DocumentsPage() {
             className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-md border border-border-strong bg-white text-[13px] font-medium text-text-primary hover:bg-bg-subtle transition-colors cursor-pointer"
           >
             <PlusIcon className="h-3.5 w-3.5" />
-            <span>{t('documents:documentsPage.newFolder', 'Thư mục mới')}</span>
+            <span>{t('documents:documentsPage.newFolder')}</span>
           </button>
           <button
             type="button"
@@ -227,7 +227,7 @@ export function DocumentsPage() {
             className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-md bg-[#1C1B1A] hover:bg-[#2E2C29] text-white text-[13px] font-medium transition-colors cursor-pointer"
           >
             <UploadIcon className="h-3.5 w-3.5" />
-            <span>{t('documents:documentsPage.upload', 'Tải lên')}</span>
+            <span>{t('documents:documentsPage.upload')}</span>
           </button>
         </div>
       </div>

@@ -24,6 +24,8 @@ export default () => ({
     ml: process.env.ML_SERVICE_URL ?? 'http://localhost:3008',
     // 28/09/2026: Messaging Service (nhan tin noi bo 1:1 va nhom/kenh).
     messaging: process.env.MESSAGING_SERVICE_URL ?? 'http://localhost:3009',
+    // 15/10/2026: Inventory Service (Danh muc san pham + Kho, Technical_Spec.md muc 22).
+    inventory: process.env.INVENTORY_SERVICE_URL ?? 'http://localhost:3010',
   },
   rateLimit: {
     max: parseInt(process.env.RATE_LIMIT_MAX ?? '100', 10),

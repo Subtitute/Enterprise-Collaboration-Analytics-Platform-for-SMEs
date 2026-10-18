@@ -25,16 +25,16 @@ function formatGmt7RelativeTime(value: string | null | undefined, t: TFunction, 
   const diffMs = Date.now() - d.getTime();
   const diffSec = Math.round(diffMs / 1000);
 
-  if (diffSec < 60) return t('dashboard:relativeTime.justNow', 'Vừa xong');
+  if (diffSec < 60) return t('dashboard:relativeTime.justNow');
   const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return t('dashboard:relativeTime.minutesAgo', { count: diffMin, defaultValue: `${diffMin} phút trước` });
+  if (diffMin < 60) return t('dashboard:relativeTime.minutesAgo', { count: diffMin });
   const diffHour = Math.floor(diffMin / 60);
-  if (diffHour < 24) return t('dashboard:relativeTime.hoursAgo', { count: diffHour, defaultValue: `${diffHour} giờ trước` });
+  if (diffHour < 24) return t('dashboard:relativeTime.hoursAgo', { count: diffHour });
   const diffDay = Math.floor(diffHour / 24);
-  if (diffDay < 7) return t('dashboard:relativeTime.daysAgo', { count: diffDay, defaultValue: `${diffDay} ngày trước` });
+  if (diffDay < 7) return t('dashboard:relativeTime.daysAgo', { count: diffDay });
   if (diffDay < 30) {
     const diffWeek = Math.floor(diffDay / 7);
-    return t('dashboard:relativeTime.weeksAgo', { count: diffWeek, defaultValue: `${diffWeek} tuần trước` });
+    return t('dashboard:relativeTime.weeksAgo', { count: diffWeek });
   }
 
   const locale = lang === 'en' ? 'en-US' : lang === 'ja' ? 'ja-JP' : 'vi-VN';
@@ -52,26 +52,35 @@ function parseActivityDetails(item: RecentActivityItem, t: TFunction) {
   const translated = t(key);
   const actionText = translated && translated !== key && !translated.endsWith(`.${normalized}`)
     ? translated
-    : t('dashboard:recentActivityFeed.performedAction', 'đã cập nhật trạng thái công việc');
+    : t('dashboard:recentActivityFeed.performedAction');
 
   // Trích xuất entity name hoặc target route
-  let entityName = t('dashboard:entities.task', 'Công việc');
+  let entityName = t('dashboard:entities.task');
   let entityHref = '/projects';
 
   if (normalized.includes('project')) {
-    entityName = t('dashboard:entities.project', 'Dự án');
+    entityName = t('dashboard:entities.project');
     entityHref = '/projects';
   } else if (normalized.includes('document')) {
-    entityName = t('dashboard:entities.document', 'Tài liệu');
+    entityName = t('dashboard:entities.document');
     entityHref = '/documents';
   } else if (normalized.includes('leave')) {
-    entityName = t('dashboard:entities.leave', 'Đơn nghỉ phép');
+    entityName = t('dashboard:entities.leave');
     entityHref = '/leave-requests';
+    // 16/10/2026: 2 loai hoat dong moi (Danh muc san pham + Kho, Technical_Spec.md muc 22) - nhanh
+    // "customer_purchase" PHAI dat TRUOC nhanh "customer" ngay duoi (chuoi "customer_purchase_..."
+    // cung chua "customer" nhu mot chuoi con, dat sau se khong bao gio toi duoc nhanh nay).
+  } else if (normalized.includes('customer_purchase')) {
+    entityName = t('dashboard:entities.customerPurchase');
+    entityHref = '/customers';
+  } else if (normalized.includes('product')) {
+    entityName = t('dashboard:entities.product');
+    entityHref = '/products';
   } else if (normalized.includes('customer') || normalized.includes('deal')) {
-    entityName = t('dashboard:entities.customer', 'Khách hàng');
+    entityName = t('dashboard:entities.customer');
     entityHref = '/customers';
   } else if (normalized.includes('user') || normalized.includes('org') || normalized.includes('department')) {
-    entityName = t('dashboard:entities.member', 'Thành viên');
+    entityName = t('dashboard:entities.member');
     entityHref = '/admin/members';
   }
 
@@ -99,7 +108,7 @@ export const RecentActivityFeed = memo(function RecentActivityFeed() {
       <div className="flex flex-col items-center justify-center py-10 text-center">
         <InboxIcon className="h-10 w-10 text-text-tertiary mb-2" aria-hidden="true" />
         <p className="text-[13px] leading-[20px] text-text-secondary">
-          {t('dashboard:recentActivityFeed.emptyTitle', 'Chưa có hoạt động nào gần đây')}
+          {t('dashboard:recentActivityFeed.emptyTitle')}
         </p>
       </div>
     );
@@ -109,7 +118,7 @@ export const RecentActivityFeed = memo(function RecentActivityFeed() {
     <div>
       <div className="divide-y divide-border-subtle">
         {displayItems.map((item) => {
-          const actorName = (item.actorId ? userNames[item.actorId] : undefined) ?? t('dashboard:recentActivityFeed.unknownActor', 'Một thành viên');
+          const actorName = (item.actorId ? userNames[item.actorId] : undefined) ?? t('dashboard:recentActivityFeed.unknownActor');
           const { actionText, entityName, entityHref } = parseActivityDetails(item, t);
 
           return (
@@ -139,7 +148,7 @@ export const RecentActivityFeed = memo(function RecentActivityFeed() {
                     to={entityHref}
                     className="font-medium text-accent hover:underline inline-block truncate max-w-full"
                   >
-                    "{entityName}"
+                    &ldquo;{entityName}&rdquo;
                   </Link>
                 </p>
 
@@ -163,8 +172,8 @@ export const RecentActivityFeed = memo(function RecentActivityFeed() {
           >
             <span>
               {isExpanded
-                ? t('dashboard:recentActivityFeed.collapse', 'Thu gọn bớt')
-                : t('dashboard:recentActivityFeed.viewAll', 'Xem tất cả hoạt động →')}
+                ? t('dashboard:recentActivityFeed.collapse')
+                : t('dashboard:recentActivityFeed.viewAll')}
             </span>
           </button>
         </div>

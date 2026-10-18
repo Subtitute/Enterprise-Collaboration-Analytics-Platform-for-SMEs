@@ -126,7 +126,7 @@ export function LoginPage() {
   const emailError = errorKeys.email ? t(`auth:loginPage.errors.${errorKeys.email}`) : undefined;
   const passwordError = errorKeys.password
     ? errorKeys.password === 'invalidCredentials'
-      ? t('auth:loginPage.errors.invalidCredentials', 'Email hoặc mật khẩu không đúng')
+      ? t('auth:loginPage.errors.invalidCredentials')
       : t(`auth:loginPage.errors.${errorKeys.password}`)
     : undefined;
   const passwordWarning =
@@ -146,10 +146,10 @@ export function LoginPage() {
       }
     >
       <h2 className="font-sans text-[28px] leading-9 font-semibold text-text-primary mb-1.5">
-        {t('auth:loginPage.title', 'Đăng nhập')}
+        {t('auth:loginPage.title')}
       </h2>
       <p className="font-sans text-sm leading-[22px] text-text-secondary mb-8">
-        {t('auth:loginPage.subtitle', 'Nền tảng Cộng tác & Phân tích Doanh nghiệp cho SME')}
+        {t('auth:loginPage.subtitle')}
       </p>
 
       <form onSubmit={handleSubmit} noValidate className="flex flex-col">
@@ -182,7 +182,7 @@ export function LoginPage() {
             {/* Field Mật khẩu */}
             <div className="mb-1">
               <FormField
-                label={t('auth:loginPage.passwordLabel', 'Mật khẩu')}
+                label={t('auth:loginPage.passwordLabel')}
                 htmlFor="password"
                 error={passwordError}
                 warning={passwordWarning}
@@ -192,7 +192,7 @@ export function LoginPage() {
                 <PasswordInput
                   id="password"
                   autoComplete="current-password"
-                  placeholder={t('auth:loginPage.passwordPlaceholder', 'Nhập mật khẩu')}
+                  placeholder={t('auth:loginPage.passwordPlaceholder')}
                   value={password}
                   leftIcon={
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -217,14 +217,14 @@ export function LoginPage() {
                   onChange={(e) => setRememberMe(e.target.checked)}
                 />
                 <span className="text-[13px] leading-5 text-text-secondary">
-                  {t('auth:loginPage.rememberMe', 'Ghi nhớ đăng nhập')}
+                  {t('auth:loginPage.rememberMe')}
                 </span>
               </label>
               <Link
                 to="/forgot-password"
                 className="text-[13px] leading-5 font-normal text-accent hover:text-accent-hover hover:underline transition-colors"
               >
-                {t('auth:loginPage.forgotPasswordLink', 'Quên mật khẩu?')}
+                {t('auth:loginPage.forgotPasswordLink')}
               </Link>
             </div>
 
@@ -236,18 +236,18 @@ export function LoginPage() {
               className="w-full h-11 text-sm font-medium bg-[#1C1B1A] text-[#F7F6F3] hover:bg-[#2E2C29] active:bg-[#141312]"
               isLoading={login.isPending}
             >
-              {login.isPending ? t('common:loading', 'Đang đăng nhập…') : t('auth:loginPage.submit', 'Đăng nhập')}
+              {login.isPending ? t('common:loading') : t('auth:loginPage.submit')}
             </Button>
           </form>
 
           {/* Khối đăng ký tổ chức mới */}
           <div className="mt-6 text-center text-[13px] leading-5 text-text-secondary">
-            <span>{t('auth:loginPage.noOrganization', 'Chưa có tổ chức?')} </span>
+            <span>{t('auth:loginPage.noOrganization')} </span>
             <Link
               to="/register"
               className="font-medium text-accent hover:text-accent-hover hover:underline transition-colors ml-1"
             >
-              {t('auth:loginPage.registerLink', 'Đăng ký tổ chức mới')}
+              {t('auth:loginPage.registerLink')}
             </Link>
           </div>
     </AuthShell>

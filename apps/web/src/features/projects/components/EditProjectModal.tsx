@@ -102,10 +102,10 @@ export const EditProjectModal = React.memo(function EditProjectModal({ open, onC
   }
 
   const PRIORITY_OPTIONS = [
-    { value: 'LOW', label: t('projects:newProjectModal.priorities.LOW', 'Thấp') },
-    { value: 'MEDIUM', label: t('projects:newProjectModal.priorities.MEDIUM', 'Trung bình') },
+    { value: 'LOW', label: t('projects:newProjectModal.priorities.LOW') },
+    { value: 'MEDIUM', label: t('projects:newProjectModal.priorities.MEDIUM') },
     { value: 'HIGH', label: t('projects:newProjectModal.priorities.HIGH', 'Cao') },
-    { value: 'URGENT', label: t('projects:newProjectModal.priorities.URGENT', 'Khẩn cấp') },
+    { value: 'URGENT', label: t('projects:newProjectModal.priorities.URGENT') },
   ] as const;
 
   return (
@@ -113,14 +113,14 @@ export const EditProjectModal = React.memo(function EditProjectModal({ open, onC
       open={open}
       onClose={onClose}
       preventCloseWhilePending={updateProject.isPending}
-      title={t('projects:editProjectModal.title', 'Chỉnh sửa thông tin dự án')}
+      title={t('projects:editProjectModal.title')}
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         {/* Tên dự án */}
         <div>
           <label className="block text-[13px] leading-[20px] font-medium text-text-secondary mb-1.5" htmlFor="edit-project-name">
-            {t('projects:newProjectModal.nameLabel', 'Tên dự án')} <span className="text-text-error ml-0.5">*</span>
+            {t('projects:newProjectModal.nameLabel')} <span className="text-text-error ml-0.5">*</span>
           </label>
           <input
             ref={nameInputRef}
@@ -130,7 +130,7 @@ export const EditProjectModal = React.memo(function EditProjectModal({ open, onC
               setName(e.target.value);
               if (error) setError('');
             }}
-            placeholder={t('projects:newProjectModal.namePlaceholder', 'Ví dụ: Ra mắt website mới')}
+            placeholder={t('projects:newProjectModal.namePlaceholder')}
             className={`h-9 w-full rounded-radius-sm border px-3 text-[13px] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-1 ${
               error ? 'border-text-error focus:border-text-error focus:ring-text-error/20' : 'border-border-strong bg-white focus:border-accent focus:ring-accent'
             }`}
@@ -141,14 +141,14 @@ export const EditProjectModal = React.memo(function EditProjectModal({ open, onC
         {/* Mô tả dự án */}
         <div>
           <label className="block text-[13px] leading-[20px] font-medium text-text-secondary mb-1.5" htmlFor="edit-project-description">
-            {t('projects:newProjectModal.descriptionLabel', 'Mô tả')}
+            {t('projects:newProjectModal.descriptionLabel')}
           </label>
           <textarea
             id="edit-project-description"
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder={t('projects:newProjectModal.descriptionPlaceholder', 'Mục tiêu, phạm vi công việc của dự án...')}
+            placeholder={t('projects:newProjectModal.descriptionPlaceholder')}
             className="w-full rounded-radius-sm border border-border-strong bg-white p-2.5 text-[13px] text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent min-h-[80px] resize-y"
           />
         </div>
@@ -157,14 +157,14 @@ export const EditProjectModal = React.memo(function EditProjectModal({ open, onC
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-start">
           <div>
             <label className="block text-[13px] leading-[20px] font-medium text-text-secondary mb-1.5" htmlFor="edit-project-due-date">
-              {t('projects:newProjectModal.dueDateLabel', 'Hạn hoàn thành')}
+              {t('projects:newProjectModal.dueDateLabel')}
             </label>
             <DatePicker id="edit-project-due-date" value={dueDate} onChange={setDueDate} />
           </div>
 
           <div>
             <label className="block text-[13px] leading-[20px] font-medium text-text-secondary mb-1.5">
-              {t('projects:newProjectModal.priorityLabel', 'Độ ưu tiên')}
+              {t('projects:newProjectModal.priorityLabel')}
             </label>
             {/* §2.2 Segmented Control: Nền bg-subtle, p-0.5 (2px), radius radius-md 6px, h-9 */}
             <div className="flex h-9 w-full items-center rounded-radius-md bg-bg-subtle p-0.5 gap-0.5">
@@ -192,7 +192,7 @@ export const EditProjectModal = React.memo(function EditProjectModal({ open, onC
         {/* Người phụ trách (§2.5: Searchable select) */}
         <div className="relative">
           <label className="block text-[13px] leading-[20px] font-medium text-text-secondary mb-1.5">
-            {t('projects:newProjectModal.leadLabel', 'Người phụ trách')}
+            {t('projects:newProjectModal.leadLabel')}
           </label>
 
           <div className="relative">
@@ -214,7 +214,7 @@ export const EditProjectModal = React.memo(function EditProjectModal({ open, onC
                   }}
                   className="text-[12px] text-accent hover:underline cursor-pointer font-medium shrink-0 ml-2"
                 >
-                  {t('projects:newProjectModal.changeLead', 'Đổi')}
+                  {t('projects:newProjectModal.changeLead')}
                 </button>
               </div>
             ) : (
@@ -229,7 +229,7 @@ export const EditProjectModal = React.memo(function EditProjectModal({ open, onC
                     setMemberSearch(e.target.value);
                     setIsMemberDropdownOpen(true);
                   }}
-                  placeholder={t('projects:newProjectModal.searchMemberPlaceholder', 'Tìm và chọn người phụ trách...')}
+                  placeholder={t('projects:newProjectModal.searchMemberPlaceholder')}
                   className="h-9 w-full rounded-radius-sm border border-border-strong bg-white pl-9 pr-3 text-[13px] text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 />
               </div>
@@ -244,7 +244,7 @@ export const EditProjectModal = React.memo(function EditProjectModal({ open, onC
                 />
                 <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-radius-md border border-border-subtle bg-white p-1 shadow-md popover-scrollbar animate-slide-up">
                   {filteredUsers.length === 0 ? (
-                    <p className="px-3 py-2 text-center text-[12px] text-text-tertiary">{t('projects:newProjectModal.noMembersFound', 'Không tìm thấy thành viên')}</p>
+                    <p className="px-3 py-2 text-center text-[12px] text-text-tertiary">{t('projects:newProjectModal.noMembersFound')}</p>
                   ) : (
                     filteredUsers.map((u) => (
                       <button
@@ -282,14 +282,14 @@ export const EditProjectModal = React.memo(function EditProjectModal({ open, onC
             disabled={updateProject.isPending}
             className="h-9 px-3.5 rounded-radius-md border border-border-strong bg-white text-[13px] font-medium text-text-primary hover:bg-bg-subtle transition-colors cursor-pointer disabled:opacity-50"
           >
-            {t('projects:newProjectModal.cancel', 'Hủy')}
+            {t('projects:newProjectModal.cancel')}
           </button>
           <button
             type="submit"
             disabled={updateProject.isPending}
             className="h-9 px-3.5 rounded-radius-md bg-[#1C1B1A] text-[13px] font-medium text-white hover:bg-[#2E2C29] transition-colors cursor-pointer disabled:opacity-50"
           >
-            {updateProject.isPending ? t('common:actions.processing', 'Đang xử lý...') : t('projects:editProjectModal.submit', 'Lưu thay đổi')}
+            {updateProject.isPending ? t('common:actions.processing') : t('projects:editProjectModal.submit')}
           </button>
         </div>
       </form>
