@@ -89,7 +89,7 @@ export const MessageList = React.memo(function MessageList({
             disabled={isPendingOlder}
             className="h-8 px-3 rounded-radius-sm border border-border-strong bg-white hover:bg-bg-subtle text-[12px] font-medium text-text-primary transition-colors cursor-pointer disabled:opacity-50"
           >
-            {isPendingOlder ? t('common:status.loading') : t('messaging:page.loadOlder')}
+            {isPendingOlder ? t('common:loading') : t('messaging:page.loadOlder')}
           </button>
         </div>
       )}

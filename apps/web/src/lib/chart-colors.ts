@@ -3,18 +3,18 @@
 
 /** Thu tu co dinh, KHONG xoay vong - gan theo vi tri chuoi (categorical identity). */
 export const CATEGORICAL = [
-  '#4f46e5', // 1 indigo-600 (mau chu dao)
+  '#0E5E5E', // 1 teal-700 (mau chu dao)
   '#0d9488', // 2 teal-600
-  '#8b5cf6', // 3 violet-500
+  '#2F6F44', // 3 muted-teal/forest
   '#f59e0b', // 4 amber-500
-  '#6366f1', // 5 indigo-500 (danh cho shares/tai lieu)
+  '#475569', // 5 slate-600 (danh cho shares/tai lieu)
   '#f97316', // 6 orange-500
   '#06b6d4', // 7 cyan-500
   '#e11d48', // 8 rose-600
 ] as const;
 
-/** Thang mot-hue (indigo/slate) dung cho du lieu tuan tu / magnitude (vd cuong do hoat dong). */
-export const SEQUENTIAL_BLUE = ['#e0e7ff', '#c7d2fe', '#a5b4fc', '#818cf8', '#6366f1', '#4f46e5', '#3730a3'];
+/** Thang mot-hue (teal/slate) dung cho du lieu tuan tu / magnitude (vd cuong do hoat dong). */
+export const SEQUENTIAL_BLUE = ['#E4EFEE', '#B5D5D3', '#83B8B5', '#4A9490', '#1F7573', '#0E5E5E', '#083B3B'];
 
 /** Mau trang thai co dinh - khong dung lai cho series thong thuong. */
 export const STATUS = {

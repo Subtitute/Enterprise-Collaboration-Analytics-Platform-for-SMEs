@@ -187,7 +187,7 @@ export const DealKanbanBoard = React.memo(function DealKanbanBoard({ customerId,
           <button
             type="button"
             onClick={() => scrollByAmount(-280)}
-            className="absolute left-1 top-1/2 -translate-y-1/2 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white text-text-primary shadow-md border border-border-strong hover:bg-bg-subtle transition-colors cursor-pointer"
+            className="absolute left-1 top-1/2 -translate-y-1/2 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white text-text-primary border border-border-strong hover:bg-bg-subtle transition-colors cursor-pointer"
             aria-label={t('crm:kanban.scrollLeftAriaLabel')}
           >
             <ChevronLeftIcon className="h-4 w-4" />
@@ -199,7 +199,7 @@ export const DealKanbanBoard = React.memo(function DealKanbanBoard({ customerId,
           <button
             type="button"
             onClick={() => scrollByAmount(280)}
-            className="absolute right-1 top-1/2 -translate-y-1/2 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white text-text-primary shadow-md border border-border-strong hover:bg-bg-subtle transition-colors cursor-pointer"
+            className="absolute right-1 top-1/2 -translate-y-1/2 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-white text-text-primary border border-border-strong hover:bg-bg-subtle transition-colors cursor-pointer"
             aria-label={t('crm:kanban.scrollRightAriaLabel')}
           >
             <ChevronRightIcon className="h-4 w-4" />

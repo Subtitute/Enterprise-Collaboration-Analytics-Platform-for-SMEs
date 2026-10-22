@@ -49,7 +49,7 @@ export function PendingAdjustmentsList({
         return (
           <div
             key={adj.id}
-            className="p-3.5 rounded-xl border border-slate-200/80 bg-white shadow-2xs space-y-2.5 transition-all hover:border-indigo-200"
+            className="p-3.5 rounded-xl border border-[#E5E4E0] bg-white space-y-2.5 transition-all hover:border-[#0E5E5E]"
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -72,10 +72,10 @@ export function PendingAdjustmentsList({
                 <span className="font-mono text-slate-600">{origIn} → {origOut}</span>
               </div>
               <div>
-                <span className="text-indigo-600 block text-[10px] font-semibold">
+                <span className="text-[#0E5E5E] block text-[10px] font-semibold">
                   {t('hrm:extensions.adjustment.proposedLabel')}
                 </span>
-                <span className="font-mono font-bold text-indigo-900">{proposedIn} → {proposedOut}</span>
+                <span className="font-mono font-bold text-[#0E5E5E]">{proposedIn} → {proposedOut}</span>
               </div>
             </div>
 

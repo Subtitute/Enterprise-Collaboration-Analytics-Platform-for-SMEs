@@ -21,7 +21,17 @@
     "emptyTitle": "顧客がまだありません",
     "emptyFilteredDescription": "検索キーワードを調整してみてください。",
     "emptyDescription": "最初の顧客を追加して、商談の管理を始めましょう。",
-    "addFirstCustomer": "新規顧客を追加"
+    "addFirstCustomer": "新規顧客を追加",
+    "viewGrid": "カード表示",
+    "viewTable": "テーブル表示",
+    "columns": {
+      "name": "顧客",
+      "company": "会社",
+      "contact": "連絡先",
+      "deals": "商談",
+      "lastInteraction": "最終やり取り",
+      "actions": "操作"
+    }
   },
   "customerDetailPage": {
     "loading": "顧客情報を読み込み中…",

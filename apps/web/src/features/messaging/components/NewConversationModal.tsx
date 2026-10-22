@@ -122,7 +122,7 @@ export const NewConversationModal = React.memo(function NewConversationModal({ o
             className="inline-flex items-center justify-center h-8 px-3 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[12px] font-medium transition-colors cursor-pointer disabled:pointer-events-none disabled:opacity-50"
           >
             {createConversation.isPending
-              ? t('common:status.loading')
+              ? t('common:loading')
               : tab === 'DIRECT'
               ? t('messaging:newConversationModal.submit')
               : t('messaging:newConversationModal.submitGroup')}

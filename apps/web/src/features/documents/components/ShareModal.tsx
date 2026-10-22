@@ -273,7 +273,7 @@ export const ShareModal = memo(function ShareModal({ file, onClose }: { file: Fi
           </div>
         </div>
 
-        {/* Quyền truy cập dạng Segmented Control phẳng (nền bg-subtle, active nền trắng + Ink w600, KHÔNG viền indigo 2px) */}
+        {/* Quyền truy cập dạng Segmented Control phẳng (nền bg-subtle, active nền trắng + Ink w600, KHÔNG viền 2px) */}
         <div>
           <label className="block text-[12px] font-medium text-text-secondary mb-1.5">
             {t('documents:shareModal.permissionLabel')}

@@ -152,7 +152,7 @@ export function formatNotificationTitle(notification: AppNotification, t?: (key:
  * Lấy cấu hình thị giác hóa danh mục và màu sắc ngữ cảnh (Semantic Colors) theo kết quả sự kiện:
  * - Phê duyệt / Thành công: Màu xanh lá (emerald)
  * - Từ chối / Cảnh báo: Màu đỏ hồng (rose)
- * - Cơ hội bán hàng (Deal): Màu tím chủ đạo (indigo)
+ * - Cơ hội bán hàng (Deal): Màu Teal chủ đạo
  * - Công việc (Task): Màu xanh da trời (sky)
  * - Tài liệu: Màu tím nhạt / slate
  */
@@ -218,13 +218,13 @@ export function getNotificationVisualConfig(notification: AppNotification, t?: (
     };
   }
 
-  // 4. Cơ hội bán hàng (Deal / CRM) - MÀU TÍM CHỦ ĐẠO (Indigo)
+  // 4. Cơ hội bán hàng (Deal / CRM) - MÀU TEAL CHỦ ĐẠO
   if (type.includes('deal') || title.includes('deal') || message.includes('deal') || title.includes('bán hàng')) { // i18n-lint-ignore: khop text backend, khong phai chuoi UI
     const customerId = payload.customerId as string | undefined;
     return {
       icon: <DollarSignIcon className="h-4 w-4" />,
-      bgColor: 'bg-indigo-100 text-indigo-700 ring-1 ring-indigo-600/20',
-      textColor: 'text-indigo-700',
+      bgColor: 'bg-[#E4EFEE] text-[#0E5E5E] ring-1 ring-[#0E5E5E]/20',
+      textColor: 'text-[#0E5E5E]',
       linkUrl: customerId ? `/customers/${customerId}` : '/customers',
       targetName: t ? t('notifications:page.targets.deal') : 'Bán hàng (Deal)', // i18n-lint-ignore: fallback mirror dung key i18n that
       targetKey: 'deal',
@@ -256,7 +256,7 @@ export function getNotificationVisualConfig(notification: AppNotification, t?: (
     };
   }
 
-  // 6. Nghiệp vụ Tài liệu (Document) - Slate / Indigo
+  // 6. Nghiệp vụ Tài liệu (Document) - Slate / Teal
   if (type.includes('document') || title.includes('tài liệu') || message.includes('tài liệu')) { // i18n-lint-ignore: khop text backend, khong phai chuoi UI
     return {
       icon: <FileTextIcon className="h-4 w-4" />,

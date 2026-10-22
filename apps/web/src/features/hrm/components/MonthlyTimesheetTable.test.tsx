@@ -229,4 +229,77 @@ describe('MonthlyTimesheetTable - Liên thông Chấm công, Nghỉ phép và L�
     // Không hiển thị chú thích cộng ngày phép vì paidLeaveDays = 0
     expect(screen.queryByText('(20 làm + 1 phép)')).toBeNull();
   });
+  it('Case 6: Nhan vien gia nhap giua thang chi duoc huong ngay le >= ngay gia nhap (khong bi cong ngay le truoc do)', () => {
+    // Nhan vien gia nhap vao 15/10/2026
+    const newMemberUser: User = {
+      id: 'user-newbie',
+      email: 'newbie@company.com',
+      fullName: 'Tran Van Newbie',
+      departmentId: 'dept-1',
+      roles: [],
+      isActive: true,
+      createdAt: '2026-10-15T08:00:00Z',
+    };
+
+    // 2 ngay le trong thang:
+    // Le 1: 02/10/2026 (Truoc khi vao cong ty) -> KHONG duoc huong
+    // Le 2: 20/10/2026 (Sau khi da vao cong ty) -> DUOC huong
+    const holidays: CalendarEvent[] = [
+      {
+        id: 'holiday-early',
+        title: 'Le dau thang',
+        startDate: '2026-10-02',
+        endDate: '2026-10-02',
+        type: 'HOLIDAY',
+        createdByUserId: 'admin-1',
+        createdByRank: 3,
+        createdAt: '2026-10-01T00:00:00Z',
+      },
+      {
+        id: 'holiday-mid',
+        title: 'Le giua thang',
+        startDate: '2026-10-20',
+        endDate: '2026-10-20',
+        type: 'HOLIDAY',
+        createdByUserId: 'admin-1',
+        createdByRank: 3,
+        createdAt: '2026-10-01T00:00:00Z',
+      },
+    ];
+
+    // Nhan vien lam thuc te 5 ngay tu 15/10 den 21/10 (tru ngay 20/10 la ngay le)
+    const records: Attendance[] = [
+      '2026-10-15',
+      '2026-10-16',
+      '2026-10-19',
+      '2026-10-21',
+      '2026-10-22',
+    ].map((workDate, idx) => ({
+      id: `att-new-${idx}`,
+      userId: newMemberUser.id,
+      workDate,
+      checkInAt: `${workDate}T08:30:00+07:00`,
+      checkOutAt: `${workDate}T17:30:00+07:00`,
+      createdAt: `${workDate}T08:30:00Z`,
+      updatedAt: `${workDate}T17:30:00Z`,
+    }));
+
+    render(
+      <MonthlyTimesheetTable
+        records={records}
+        users={[newMemberUser]}
+        departments={[mockDepartment]}
+        selectedMonth={selectedMonth}
+        today={today}
+        approvedOvertime={[]}
+        approvedLeaveRequests={[]}
+        calendarEvents={holidays}
+      />,
+    );
+
+    // Dinh muc tu 15/10 den 31/10 co 12 ngay lam viec (T2-T6)
+    // paidDays = 5 ngay thuc lam + 1 ngay le (20/10) = 6 ngay.
+    // Neu bi loi lay holidayDatesInMonth.size thi se bi cong 2 ngay le -> paidDays thanh 7 (SAI).
+    expect(screen.getAllByText(/6 \/ 12/).length).toBeGreaterThan(0);
+  });
 });

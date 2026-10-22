@@ -109,7 +109,7 @@ export default function AttendanceDetailPage() {
                                   isOnSite: record.checkInIsOnSite,
                                 })
                               }
-                              className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
+                              className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-[#E4EFEE] hover:text-[#0E5E5E] transition-colors cursor-pointer"
                               title={t('hrm:attendancePage.history.viewProofIn')}
                               aria-label={t('hrm:attendancePage.history.viewProofIn')}
                             >
@@ -133,7 +133,7 @@ export default function AttendanceDetailPage() {
                                     isOnSite: record.checkOutIsOnSite,
                                   })
                                 }
-                                className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
+                                className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-[#E4EFEE] hover:text-[#0E5E5E] transition-colors cursor-pointer"
                                 title={t('hrm:attendancePage.history.viewProofOut')}
                                 aria-label={t('hrm:attendancePage.history.viewProofOut')}
                               >

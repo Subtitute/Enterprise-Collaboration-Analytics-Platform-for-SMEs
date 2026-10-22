@@ -185,7 +185,7 @@ export const KanbanBoard = React.memo(function KanbanBoard({
           <button
             type="button"
             onClick={() => scrollByAmount(-300)}
-            className="lg:hidden absolute left-1 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-lg border border-slate-200 hover:bg-white hover:text-indigo-600 hover:scale-110 active:scale-95 transition-all cursor-pointer"
+            className="lg:hidden absolute left-1 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 border border-[#E5E4E0] hover:bg-[#E4EFEE] hover:text-[#0E5E5E] active:scale-95 transition-all cursor-pointer"
             aria-label={t('projects:kanban.scrollLeftAriaLabel')}
           >
             <ChevronLeftIcon className="h-5 w-5" />
@@ -197,7 +197,7 @@ export const KanbanBoard = React.memo(function KanbanBoard({
           <button
             type="button"
             onClick={() => scrollByAmount(300)}
-            className="lg:hidden absolute right-1 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-lg border border-slate-200 hover:bg-white hover:text-indigo-600 hover:scale-110 active:scale-95 transition-all cursor-pointer animate-pulse hover:animate-none"
+            className="lg:hidden absolute right-1 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 border border-[#E5E4E0] hover:bg-[#E4EFEE] hover:text-[#0E5E5E] active:scale-95 transition-all cursor-pointer animate-pulse hover:animate-none"
             aria-label={t('projects:kanban.scrollRightAriaLabel')}
           >
             <ChevronRightIcon className="h-5 w-5" />

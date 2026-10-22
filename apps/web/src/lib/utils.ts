@@ -215,7 +215,7 @@ export function stringToColorClass(seed: string): string {
     'bg-emerald-500',
     'bg-amber-500',
     'bg-rose-500',
-    'bg-violet-500',
+    'bg-teal-600',
     'bg-cyan-600',
     'bg-fuchsia-500',
     'bg-lime-600',

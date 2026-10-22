@@ -26,7 +26,7 @@ const DEMO_ACCOUNTS: DemoAccountItem[] = [
     id: 'admin',
     roleNameKey: 'auth:loginPage.demoAccount.roles.admin',
     descKey: 'auth:loginPage.demoAccount.roles.adminDesc',
-    badgeClass: 'bg-purple-100 text-purple-700 border-purple-200',
+    badgeClass: 'bg-[#E4EFEE] text-[#0E5E5E] border-[#0E5E5E]/20',
     email: 'admin@demo-sme.vn',
     password: 'Password123!',
   },
@@ -34,7 +34,7 @@ const DEMO_ACCOUNTS: DemoAccountItem[] = [
     id: 'manager',
     roleNameKey: 'auth:loginPage.demoAccount.roles.manager',
     descKey: 'auth:loginPage.demoAccount.roles.managerDesc',
-    badgeClass: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+    badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
     // 17/09/2026: sua lai email demo Manager - hau to ngau nhien "+246317" tu ban seed cu khong
     // con ton tai (moi nhan vien duoc invite qua API voi 1 hau to ngau nhien rieng, sinh ra khac
     // nhau moi lan seed lai). "binh.tran+141603" la Truong phong Kinh doanh, da duoc thang chuc

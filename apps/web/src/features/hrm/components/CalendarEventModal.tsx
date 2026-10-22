@@ -161,7 +161,7 @@ export function CalendarEventModal({
                 className="inline-flex items-center justify-center h-9 px-4 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer disabled:pointer-events-none disabled:opacity-50"
               >
                 {isPending
-                  ? t('common:status.loading')
+                  ? t('common:loading')
                   : isEditing
                     ? t('hrm:calendarEventModal.saveChanges')
                     : t('hrm:calendarEventModal.create')}
@@ -171,7 +171,7 @@ export function CalendarEventModal({
         </div>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4 max-h-[min(640px,calc(100vh-80px))] overflow-y-auto" noValidate>
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <fieldset disabled={readOnly} className="space-y-4">
           {/* 1. Segmented Control 2 tab (nền bg-subtle, active nền trắng + Ink w600 + border subtle): Sự kiện | Ngày lễ. Icon 14px */}
           <div className="flex gap-1 rounded-radius-sm bg-bg-subtle p-1 text-[13px]">

@@ -62,7 +62,7 @@ export function ManageCategoriesModal({ open, onClose }: { open: boolean; onClos
             {categories.length === 0 ? (
               <EmptyState icon={<FolderIcon className="h-8 w-8 text-text-tertiary" />} title={t('inventory:manageCategoriesModal.emptyTitle')} />
             ) : (
-              <div className="max-h-[50vh] overflow-y-auto divide-y divide-[#E5E4E0] border-t border-b border-[#E5E4E0]">
+              <div className="divide-y divide-[#E5E4E0] border-t border-b border-[#E5E4E0]">
                 {categories.map((c) => (
                   <div key={c.id} className="flex items-center justify-between gap-3 px-4 py-3">
                     <div className="min-w-0 flex-1">

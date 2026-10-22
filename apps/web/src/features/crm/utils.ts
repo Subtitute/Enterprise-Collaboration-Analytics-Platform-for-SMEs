@@ -16,6 +16,7 @@ export function dealStageBadgeVariant(stage: DealStage): BadgeVariant {
 
 /** Dinh dang gia tri deal thanh chuoi tien te VND (khong dung Intl.NumberFormat truc tiep o
  *  moi noi de de doi dinh dang tap trung 1 cho neu can sau nay). */
-export function formatDealValue(value: number): string {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value);
+export function formatDealValue(value?: number | null): string {
+  if (value === undefined || value === null || Number.isNaN(value)) return '—';
+  return `${new Intl.NumberFormat('vi-VN').format(value)} VND`;
 }

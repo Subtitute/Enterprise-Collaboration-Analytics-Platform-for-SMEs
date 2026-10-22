@@ -383,8 +383,9 @@ export function MonthlyTimesheetTable({
       let isNewMember = false;
       let isNotJoinedYet = false;
       let expectedDays = standardWorkingDays;
+      let joinDateGmt7: string | null = null;
       if (user.createdAt) {
-        const joinDateGmt7 = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(user.createdAt));
+        joinDateGmt7 = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(user.createdAt));
         if (joinDateGmt7 > lastDayOfMonth) {
           // Chưa gia nhập tại thời điểm của tháng đang xem
           isNotJoinedYet = true;
@@ -403,7 +404,15 @@ export function MonthlyTimesheetTable({
       let missingCheckOutCount = 0;
       const otHours = Math.round((otHoursByUser.get(user.id) ?? 0) * 10) / 10;
       const paidLeaveDays = paidLeaveDaysByUser.get(user.id) ?? 0;
-      const userPaidHolidayDays = isNotJoinedYet ? 0 : paidHolidayDays;
+      let userPaidHolidayDays = 0;
+      if (!isNotJoinedYet) {
+        if (isNewMember && joinDateGmt7) {
+          // Chi cong ngay le roi vao hoac sau ngay nhan vien gia nhap
+          userPaidHolidayDays = Array.from(holidayDatesInMonth).filter((d) => d >= joinDateGmt7).length;
+        } else {
+          userPaidHolidayDays = paidHolidayDays;
+        }
+      }
 
       // Tính toán trên từng log chấm công
       for (const rec of userRecords) {

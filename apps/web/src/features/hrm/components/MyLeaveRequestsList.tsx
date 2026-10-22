@@ -58,7 +58,7 @@ const MyLeaveRequestItem = React.memo(function MyLeaveRequestItem({ request }: M
             }}
             className="text-[12px] font-medium text-danger hover:underline disabled:opacity-50 cursor-pointer transition-colors"
           >
-            {cancelMutation.isPending ? t('common:status.canceling', 'Đang hủy...') : t('hrm:leaveRequestsPage.myRequests.cancelButton', 'Hủy đơn')}
+            {cancelMutation.isPending ? t('common:canceling', 'Đang hủy...') : t('hrm:leaveRequestsPage.myRequests.cancelButton', 'Hủy đơn')}
           </button>
         )}
       </div>

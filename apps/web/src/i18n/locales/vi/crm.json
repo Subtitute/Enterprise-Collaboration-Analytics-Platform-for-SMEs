@@ -21,7 +21,17 @@
     "emptyTitle": "Chưa có khách hàng nào",
     "emptyFilteredDescription": "Thử điều chỉnh từ khóa tìm kiếm.",
     "emptyDescription": "Thêm khách hàng đầu tiên để bắt đầu theo dõi cơ hội bán hàng.",
-    "addFirstCustomer": "Thêm khách hàng mới"
+    "addFirstCustomer": "Thêm khách hàng mới",
+    "viewGrid": "Hiển thị dạng thẻ",
+    "viewTable": "Hiển thị dạng bảng",
+    "columns": {
+      "name": "Khách hàng",
+      "company": "Công ty",
+      "contact": "Liên hệ",
+      "deals": "Deal",
+      "lastInteraction": "Tương tác",
+      "actions": "Thao tác"
+    }
   },
   "customerDetailPage": {
     "loading": "Đang tải khách hàng…",

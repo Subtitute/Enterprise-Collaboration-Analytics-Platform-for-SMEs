@@ -46,7 +46,7 @@ export function PendingOvertimeList({
         return (
           <div
             key={ot.id}
-            className="p-3.5 rounded-xl border border-slate-200/80 bg-white shadow-2xs space-y-2.5 transition-all hover:border-indigo-200"
+            className="p-3.5 rounded-xl border border-[#E5E4E0] bg-white space-y-2.5 transition-all hover:border-[#0E5E5E]"
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
@@ -56,7 +56,7 @@ export function PendingOvertimeList({
                   <span className="text-[10px] text-slate-400 block">{formatDate(ot.workDate)}</span>
                 </div>
               </div>
-              <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200 text-[10px]">
+              <Badge variant="outline" className="bg-[#E4EFEE] text-[#0E5E5E] border-[#0E5E5E]/20 text-[10px]">
                 {t('hrm:extensions.overtime.badge.pending')}
               </Badge>
             </div>
@@ -73,7 +73,7 @@ export function PendingOvertimeList({
                 <span className="text-slate-400 block text-[10px]">
                   {t('hrm:extensions.overtime.multiplierLabelShort')}
                 </span>
-                <span className="font-bold text-indigo-700">{multLabel}</span>
+                <span className="font-bold text-[#0E5E5E]">{multLabel}</span>
               </div>
             </div>
 
@@ -96,7 +96,7 @@ export function PendingOvertimeList({
                 type="button"
                 size="sm"
                 onClick={() => onApprove(ot.id)}
-                className="text-xs h-7 px-2.5 bg-indigo-600 hover:bg-indigo-700 text-white"
+                className="text-xs h-7 px-2.5 bg-[#0E5E5E] hover:bg-[#093e3e] text-white"
               >
                 <CheckIcon className="h-3 w-3 mr-1" />
                 {t('hrm:extensions.overtime.approveButton')}
