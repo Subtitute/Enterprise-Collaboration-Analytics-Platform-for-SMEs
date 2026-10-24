@@ -5,7 +5,13 @@ import { ERROR_CODES, type JwtAccessPayload } from '@app/common-dto';
 import { RedisService } from '../redis/redis.service';
 import { sendErrorResponse } from '../common/send-error-response';
 import { withTimeout } from '../common/with-timeout.util';
-import { buildRateLimitKey, evaluateRateLimit, getClientIp, type RateLimitDecision } from './rate-limit.util';
+import {
+  buildRateLimitKey,
+  evaluateRateLimit,
+  getClientIp,
+  type RateLimitDecision,
+  type RateLimitIdentity,
+} from './rate-limit.util';
 
 const logger = new Logger('RateLimitMiddleware');
 
@@ -39,12 +45,16 @@ export async function checkRateLimit(
   redisService: RedisService,
   configService: ConfigService,
   ip: string,
-  organizationId?: string,
+  identity?: RateLimitIdentity,
 ): Promise<RateLimitDecision> {
-  const max = configService.get<number>('rateLimit.max') ?? 100;
+  // 24/10/2026: 2 nguong rieng - theo NGUOI DUNG (da xac thuc) va theo IP (chua xac thuc), xem
+  // buildRateLimitKey(). Nguong theo IP giu nguyen 100 nhu truoc de khong noi long chan brute-force.
+  const max = identity
+    ? (configService.get<number>('rateLimit.max') ?? 300)
+    : (configService.get<number>('rateLimit.anonymousMax') ?? 100);
   const windowSeconds = configService.get<number>('rateLimit.windowSeconds') ?? 60;
   const client = redisService.getClient();
-  const key = buildRateLimitKey(ip, organizationId);
+  const key = buildRateLimitKey(ip, identity);
 
   try {
     // 26/08/2026: fix loi MAJOR (ra soat bao mat) - truoc day INCR va EXPIRE (co dieu kien, chi khi
@@ -88,9 +98,10 @@ export function createRateLimitMiddleware(
 ): RequestHandler {
   return (req: Request, res: Response, next: NextFunction): void => {
     const ip = getClientIp(req);
-    const organizationId = (req as RequestWithUser).user?.organizationId;
+    const user = (req as RequestWithUser).user;
+    const identity = user ? { organizationId: user.organizationId, userId: user.sub } : undefined;
 
-    checkRateLimit(redisService, configService, ip, organizationId).then((decision) => {
+    checkRateLimit(redisService, configService, ip, identity).then((decision) => {
       if (!decision.allowed) {
         sendErrorResponse(
           res,

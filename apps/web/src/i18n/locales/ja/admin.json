@@ -102,7 +102,9 @@
       "document": "ドキュメント・ファイル",
       "analytics": "レポート・分析",
       "iam": "組織・権限管理",
-      "system": "システム・診断"
+      "system": "システム・診断",
+      "inventory": "商品・在庫管理",
+      "messaging": "メッセージ・AIアシスタント"
     },
     "permissions": {
       "attendance_checkin": "勤怠打刻（出勤 / 退勤）",
@@ -136,7 +138,27 @@
       "department_manage": "部署構造と編成の管理",
       "role_manage": "ロール別権限マトリクスの設定管理",
       "organization_manage": "組織・企業プロファイルの管理",
-      "system_manage": "システム診断とDLQ（デッドレター）監視"
+      "system_manage": "システム診断とDLQ（デッドレター）監視",
+      "attendance_adjustment_create": "勤怠修正申請の作成",
+      "attendance_adjustment_view": "勤怠修正申請一覧の閲覧",
+      "attendance_adjustment_approve": "勤怠修正申請の承認 / 却下",
+      "overtime_request_create": "残業申請の作成",
+      "overtime_request_view": "残業申請一覧の閲覧",
+      "overtime_request_approve": "残業申請の承認 / 却下",
+      "calendar_manage": "会社カレンダーの管理（祝日・イベント）",
+      "ml_view": "異常検知（AI）の閲覧",
+      "product_view": "商品カタログの閲覧",
+      "product_manage": "商品・カテゴリの管理",
+      "warehouse_view": "倉庫・在庫の閲覧",
+      "warehouse_manage": "倉庫管理と入出庫",
+      "customer_purchase_view": "顧客購買履歴の閲覧",
+      "customer_purchase_create": "顧客購買の登録",
+      "customer_purchase_update": "顧客購買の更新",
+      "customer_purchase_delete": "顧客購買の削除",
+      "message_view": "メッセージ・会話の閲覧",
+      "message_send": "メッセージの送信",
+      "message_manage_group": "グループ / チャンネルのメンバー管理",
+      "chatbot_use": "社内アシスタントチャットボットの利用"
     }
   },
   "failedEventsPage": {

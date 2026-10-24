@@ -8,8 +8,17 @@ describe('buildRateLimitKey', () => {
     expect(buildRateLimitKey('1.2.3.4')).toBe('ratelimit:ip:1.2.3.4');
   });
 
-  it('gom ca organizationId khi da biet (sau khi xac thuc)', () => {
-    expect(buildRateLimitKey('1.2.3.4', 'org-1')).toBe('ratelimit:org:org-1:1.2.3.4');
+  // 24/10/2026: da xac thuc -> dem theo NGUOI DUNG, khong phu thuoc IP (ca van phong chung 1 IP NAT).
+  it('dem theo nguoi dung khi da xac thuc, khong phu thuoc IP', () => {
+    const identity = { organizationId: 'org-1', userId: 'user-1' };
+    expect(buildRateLimitKey('1.2.3.4', identity)).toBe('ratelimit:user:org-1:user-1');
+    expect(buildRateLimitKey('5.6.7.8', identity)).toBe(buildRateLimitKey('1.2.3.4', identity));
+  });
+
+  it('2 nguoi dung cung 1 IP co 2 bo dem rieng', () => {
+    expect(buildRateLimitKey('1.2.3.4', { organizationId: 'org-1', userId: 'user-1' })).not.toBe(
+      buildRateLimitKey('1.2.3.4', { organizationId: 'org-1', userId: 'user-2' }),
+    );
   });
 });
 

@@ -13,6 +13,12 @@ export const PUBLIC_GATEWAY_ROUTES: string[] = [
   // luc nguoi dung RAT CO KHA NANG muon dang xuat la khi access token (15 phut) da het han, gay
   // 401 ngay tai Gateway va refresh token/DB row khong bao gio bi thu hoi qua duong nay.
   '/api/v1/auth/logout',
+  // 24/10/2026: "Quen mat khau" (them 15/09/2026) chua tung nam trong danh sach nay - nguoi dung
+  // CHUA dang nhap (dung la luc can quen mat khau) bi Gateway tra 401 GATEWAY_MISSING_TOKEN, nen
+  // khong bao gio nhan duoc email. Dot 15/09 chi xac minh bang unit test cua iam-service + mo trang
+  // tren Vite dev server, chua di qua Gateway that. Phat hien qua kiem thu song 24/10/2026.
+  '/api/v1/auth/forgot-password',
+  '/api/v1/auth/reset-password',
   '/api/v1/health',
   // 04/08/2026: endpoint /metrics de Prometheus scrape (Technical_Spec.md muc 15) - Prometheus
   // khong co JWT nen phai nam trong danh sach public giong /health.

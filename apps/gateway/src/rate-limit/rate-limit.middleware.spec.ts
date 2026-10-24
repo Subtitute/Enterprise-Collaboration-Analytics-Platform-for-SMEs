@@ -23,9 +23,40 @@ describe('createRateLimitMiddleware', () => {
     return { req, res, next };
   }
 
+  // 24/10/2026: tach 2 nguong - rateLimit.max (theo nguoi dung da xac thuc) va rateLimit.anonymousMax
+  // (theo IP, chua xac thuc). Request trong buildReqRes() khong co req.user -> dung anonymousMax.
+  const CONFIG: Record<string, number> = { 'rateLimit.max': 300, 'rateLimit.anonymousMax': 100, 'rateLimit.windowSeconds': 60 };
   function buildConfigService(): ConfigService {
-    return { get: jest.fn((key: string) => (key === 'rateLimit.max' ? 100 : 60)) } as unknown as ConfigService;
+    return { get: jest.fn((key: string) => CONFIG[key]) } as unknown as ConfigService;
   }
+
+  it('da xac thuc: dem theo nguoi dung voi nguong rieng (cao hon nguong theo IP)', async () => {
+    const client = { incrWithExpire: jest.fn().mockResolvedValue(150) };
+    const redisService = { getClient: () => client } as never;
+    const middleware = createRateLimitMiddleware(redisService, buildConfigService());
+    const { req, res, next } = buildReqRes();
+    (req as Request & { user?: unknown }).user = { sub: 'user-1', organizationId: 'org-1' };
+
+    middleware(req, res, next);
+    await flushMicrotasks();
+
+    expect(client.incrWithExpire).toHaveBeenCalledWith('ratelimit:user:org-1:user-1', 60);
+    expect(next).toHaveBeenCalledTimes(1);
+  });
+
+  it('chua xac thuc: 150 request/cua so vuot nguong theo IP (100) -> 429', async () => {
+    const client = { incrWithExpire: jest.fn().mockResolvedValue(150) };
+    const redisService = { getClient: () => client } as never;
+    const middleware = createRateLimitMiddleware(redisService, buildConfigService());
+    const { req, res, next } = buildReqRes();
+
+    middleware(req, res, next);
+    await flushMicrotasks();
+
+    expect(client.incrWithExpire).toHaveBeenCalledWith('ratelimit:ip:1.2.3.4', 60);
+    expect(next).not.toHaveBeenCalled();
+    expect(sendErrorResponseModule.sendErrorResponse).toHaveBeenCalled();
+  });
 
   afterEach(() => {
     jest.useRealTimers();

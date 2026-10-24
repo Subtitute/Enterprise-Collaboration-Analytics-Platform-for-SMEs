@@ -30,12 +30,26 @@ export function getClientIp(req: Pick<Request, 'headers' | 'socket'>): string {
   return req.socket?.remoteAddress ?? 'unknown';
 }
 
+/** Danh tinh nguoi goi da xac thuc (tu JWT) dung de xay khoa rate-limit theo nguoi dung. */
+export interface RateLimitIdentity {
+  organizationId: string;
+  userId: string;
+}
+
 /**
- * Xay khoa Redis cho bo dem rate-limit: theo IP, va them organizationId khi da biet
- * (vd: request da qua duoc buoc xac thuc JWT truoc do) - Technical_Spec.md muc 8.
+ * Xay khoa Redis cho bo dem rate-limit - Technical_Spec.md muc 8.
+ *
+ * 24/10/2026: request DA xac thuc nay dem theo NGUOI DUNG (organizationId + userId), khong con theo
+ * (organizationId + IP) nhu truoc. Phat hien qua ra soat cuoi (Playwright: 3 nguoi dung demo duyet
+ * 26 trang, nghi 2,5 giay giua cac trang -> 50 lan 429, ma tran /admin/roles khong hien duoc > 20
+ * giay): 1 van phong that thuong di ra Internet qua CUNG 1 IP (NAT), nen ca to chuc dung chung 1 bo
+ * dem 100 request/phut trong khi 1 trang SPA da ban 8-15 request. Cung ly do do, moi lenh goi tool
+ * cua Chat bot (di tu IP container analytics-service, Technical_Spec.md muc 23) truoc day dung chung
+ * 1 bo dem cho ca to chuc - nay moi lenh mang JWT cua chinh nguoi hoi nen tu dong dem dung nguoi.
+ * Request chua xac thuc (dang nhap, quen mat khau...) VAN dem theo IP - lop chan brute-force giu nguyen.
  */
-export function buildRateLimitKey(ip: string, organizationId?: string): string {
-  return organizationId ? `ratelimit:org:${organizationId}:${ip}` : `ratelimit:ip:${ip}`;
+export function buildRateLimitKey(ip: string, identity?: RateLimitIdentity): string {
+  return identity ? `ratelimit:user:${identity.organizationId}:${identity.userId}` : `ratelimit:ip:${ip}`;
 }
 
 export interface RateLimitDecision {

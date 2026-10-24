@@ -28,7 +28,11 @@ export default () => ({
     inventory: process.env.INVENTORY_SERVICE_URL ?? 'http://localhost:3010',
   },
   rateLimit: {
-    max: parseInt(process.env.RATE_LIMIT_MAX ?? '100', 10),
+    // 24/10/2026: `max` nay ap dung cho moi NGUOI DUNG da xac thuc (truoc la moi to chuc + IP, 100) -
+    // 300/phut du cho 1 nguoi mo nhieu trang SPA lien tiep (8-15 request/trang). `anonymousMax` cho
+    // request chua xac thuc, dem theo IP, giu nguyen 100 - xem buildRateLimitKey().
+    max: parseInt(process.env.RATE_LIMIT_MAX ?? '300', 10),
+    anonymousMax: parseInt(process.env.RATE_LIMIT_ANONYMOUS_MAX ?? '100', 10),
     windowSeconds: parseInt(process.env.RATE_LIMIT_WINDOW_SECONDS ?? '60', 10),
   },
 });

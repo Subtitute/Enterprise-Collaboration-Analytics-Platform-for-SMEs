@@ -20,6 +20,9 @@ describe('isPublicRoute', () => {
     // token (15 phut) da het han. Gateway phai cho request nay qua ma khong doi Authorization
     // header hop le, giong het refresh - xem packages/common-dto/src/constants/public-routes.ts.
     '/api/v1/auth/logout',
+    // 24/10/2026: nguoi quen mat khau chua dang nhap - xem public-routes.ts.
+    '/api/v1/auth/forgot-password',
+    '/api/v1/auth/reset-password',
     '/api/v1/health',
   ])('coi %s la route cong khai', (path) => {
     expect(isPublicRoute(path)).toBe(true);

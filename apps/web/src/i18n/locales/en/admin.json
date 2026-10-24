@@ -102,7 +102,9 @@
       "document": "Documents & Files",
       "analytics": "Reports & Analytics",
       "iam": "Organization & Roles",
-      "system": "System & Diagnostics"
+      "system": "System & Diagnostics",
+      "inventory": "Products & Inventory",
+      "messaging": "Messaging & AI Assistant"
     },
     "permissions": {
       "attendance_checkin": "Time Tracking (Check-in / Check-out)",
@@ -136,7 +138,27 @@
       "department_manage": "Manage departmental structure",
       "role_manage": "Manage role permission matrix",
       "organization_manage": "Manage organization settings",
-      "system_manage": "Infrastructure diagnostics & DLQ monitoring"
+      "system_manage": "Infrastructure diagnostics & DLQ monitoring",
+      "attendance_adjustment_create": "Create attendance adjustment request",
+      "attendance_adjustment_view": "View attendance adjustment requests",
+      "attendance_adjustment_approve": "Approve / Reject attendance adjustments",
+      "overtime_request_create": "Register overtime",
+      "overtime_request_view": "View overtime requests",
+      "overtime_request_approve": "Approve / Reject overtime requests",
+      "calendar_manage": "Manage company calendar (holidays, events)",
+      "ml_view": "View anomaly detection (AI)",
+      "product_view": "View product catalog",
+      "product_manage": "Manage products & categories",
+      "warehouse_view": "View warehouses & stock",
+      "warehouse_manage": "Manage warehouses & stock movements",
+      "customer_purchase_view": "View customer purchases",
+      "customer_purchase_create": "Record customer purchase",
+      "customer_purchase_update": "Update customer purchase",
+      "customer_purchase_delete": "Delete customer purchase",
+      "message_view": "View messages & conversations",
+      "message_send": "Send messages",
+      "message_manage_group": "Manage group / channel members",
+      "chatbot_use": "Use the internal assistant chatbot"
     }
   },
   "failedEventsPage": {

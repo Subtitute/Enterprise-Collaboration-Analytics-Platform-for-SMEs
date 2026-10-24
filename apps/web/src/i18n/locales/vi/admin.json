@@ -102,7 +102,9 @@
       "document": "Tài liệu & Lưu trữ",
       "analytics": "Báo cáo & Phân tích",
       "iam": "Tổ chức & Phân quyền",
-      "system": "Hạ tầng & Hệ thống"
+      "system": "Hạ tầng & Hệ thống",
+      "inventory": "Sản phẩm & Kho",
+      "messaging": "Nhắn tin & Trợ lý AI"
     },
     "permissions": {
       "attendance_checkin": "Chấm công (Check-in / Check-out)",
@@ -136,7 +138,27 @@
       "department_manage": "Quản lý cơ cấu phòng ban",
       "role_manage": "Quản lý & cấu hình ma trận phân quyền",
       "organization_manage": "Quản lý thông tin tổ chức / doanh nghiệp",
-      "system_manage": "Chẩn đoán hạ tầng & theo dõi Dead Letter Queue"
+      "system_manage": "Chẩn đoán hạ tầng & theo dõi Dead Letter Queue",
+      "attendance_adjustment_create": "Tạo đơn giải trình chấm công",
+      "attendance_adjustment_view": "Xem danh sách đơn giải trình chấm công",
+      "attendance_adjustment_approve": "Duyệt / Từ chối đơn giải trình chấm công",
+      "overtime_request_create": "Đăng ký tăng ca",
+      "overtime_request_view": "Xem danh sách đăng ký tăng ca",
+      "overtime_request_approve": "Duyệt / Từ chối đăng ký tăng ca",
+      "calendar_manage": "Quản lý lịch công ty (ngày lễ, sự kiện)",
+      "ml_view": "Xem phát hiện bất thường (AI)",
+      "product_view": "Xem danh mục sản phẩm",
+      "product_manage": "Quản lý sản phẩm & danh mục",
+      "warehouse_view": "Xem kho & tồn kho",
+      "warehouse_manage": "Quản lý kho & nhập / xuất kho",
+      "customer_purchase_view": "Xem giao dịch mua hàng của khách",
+      "customer_purchase_create": "Ghi nhận giao dịch mua hàng",
+      "customer_purchase_update": "Cập nhật giao dịch mua hàng",
+      "customer_purchase_delete": "Xóa giao dịch mua hàng",
+      "message_view": "Xem tin nhắn & cuộc trò chuyện",
+      "message_send": "Gửi tin nhắn",
+      "message_manage_group": "Quản lý thành viên nhóm / kênh chat",
+      "chatbot_use": "Sử dụng chatbot trợ lý nội bộ"
     }
   },
   "failedEventsPage": {

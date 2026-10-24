@@ -16,9 +16,16 @@ import { t } from '@/i18n';
 /**
  * Bản đồ dịch tên quyền kỹ thuật sang tiếng Việt tường minh và chỉ định phân hệ module.
  */
+// 24/10/2026: bo sung 20 quyen ra doi sau map nay (giai trinh/tang ca, lich cong ty, ml:view, San
+// pham & Kho, Nhan tin, chatbot:use) - truoc day chung roi vao nhom 'Khac' voi nhan la key ky
+// thuat tho nen Org Admin kho nhan ra de bat/tat. Them 2 nhom moi 'inventory' va 'messaging';
+// PERMISSION_META duoc export de RolesPermissionsPage.test.ts doi chieu voi PERMISSIONS (common-dto),
+// quyen moi nao quen khai bao o day se lam test that bai.
+type ModuleKey = 'hrm' | 'crm' | 'inventory' | 'project' | 'document' | 'messaging' | 'analytics' | 'iam' | 'system';
+
 interface PermissionMeta {
   label: string;
-  moduleKey: 'hrm' | 'crm' | 'project' | 'document' | 'analytics' | 'iam' | 'system';
+  moduleKey: ModuleKey;
   order: number;
 }
 
@@ -27,13 +34,20 @@ interface PermissionMeta {
 // admin:rolesPermissionsPage.permissions.<key voi ':' -> '_'>, dung key da co san (va dung khop
 // tung ky tu) trong locales/{vi,en,ja}/admin.json, giong cach translationKey duoc dung khi render
 // ben duoi nen khong tao trung lap noi dung dich.
-const PERMISSION_META: Record<string, PermissionMeta> = {
+export const PERMISSION_META: Record<string, PermissionMeta> = {
   // HRM-lite: Chấm công & Nghỉ phép
   'attendance:checkin': { label: t('admin:rolesPermissionsPage.permissions.attendance_checkin'), moduleKey: 'hrm', order: 1 },
   'attendance:view': { label: t('admin:rolesPermissionsPage.permissions.attendance_view'), moduleKey: 'hrm', order: 2 },
   'leave_request:create': { label: t('admin:rolesPermissionsPage.permissions.leave_request_create'), moduleKey: 'hrm', order: 3 },
   'leave_request:view': { label: t('admin:rolesPermissionsPage.permissions.leave_request_view'), moduleKey: 'hrm', order: 4 },
   'leave_request:approve': { label: t('admin:rolesPermissionsPage.permissions.leave_request_approve'), moduleKey: 'hrm', order: 5 },
+  'attendance_adjustment:create': { label: t('admin:rolesPermissionsPage.permissions.attendance_adjustment_create'), moduleKey: 'hrm', order: 6 },
+  'attendance_adjustment:view': { label: t('admin:rolesPermissionsPage.permissions.attendance_adjustment_view'), moduleKey: 'hrm', order: 7 },
+  'attendance_adjustment:approve': { label: t('admin:rolesPermissionsPage.permissions.attendance_adjustment_approve'), moduleKey: 'hrm', order: 8 },
+  'overtime_request:create': { label: t('admin:rolesPermissionsPage.permissions.overtime_request_create'), moduleKey: 'hrm', order: 9 },
+  'overtime_request:view': { label: t('admin:rolesPermissionsPage.permissions.overtime_request_view'), moduleKey: 'hrm', order: 10 },
+  'overtime_request:approve': { label: t('admin:rolesPermissionsPage.permissions.overtime_request_approve'), moduleKey: 'hrm', order: 11 },
+  'calendar:manage': { label: t('admin:rolesPermissionsPage.permissions.calendar_manage'), moduleKey: 'hrm', order: 12 },
 
   // CRM-lite: Khách hàng & Bán hàng
   'customer:view': { label: t('admin:rolesPermissionsPage.permissions.customer_view'), moduleKey: 'crm', order: 10 },
@@ -44,6 +58,16 @@ const PERMISSION_META: Record<string, PermissionMeta> = {
   'deal:create': { label: t('admin:rolesPermissionsPage.permissions.deal_create'), moduleKey: 'crm', order: 15 },
   'deal:update': { label: t('admin:rolesPermissionsPage.permissions.deal_update'), moduleKey: 'crm', order: 16 },
   'deal:delete': { label: t('admin:rolesPermissionsPage.permissions.deal_delete'), moduleKey: 'crm', order: 17 },
+
+  // 24/10/2026: Inventory: Sản phẩm & Kho (gồm giao dịch mua hàng của khách)
+  'product:view': { label: t('admin:rolesPermissionsPage.permissions.product_view'), moduleKey: 'inventory', order: 70 },
+  'product:manage': { label: t('admin:rolesPermissionsPage.permissions.product_manage'), moduleKey: 'inventory', order: 71 },
+  'warehouse:view': { label: t('admin:rolesPermissionsPage.permissions.warehouse_view'), moduleKey: 'inventory', order: 72 },
+  'warehouse:manage': { label: t('admin:rolesPermissionsPage.permissions.warehouse_manage'), moduleKey: 'inventory', order: 73 },
+  'customer_purchase:view': { label: t('admin:rolesPermissionsPage.permissions.customer_purchase_view'), moduleKey: 'inventory', order: 74 },
+  'customer_purchase:create': { label: t('admin:rolesPermissionsPage.permissions.customer_purchase_create'), moduleKey: 'inventory', order: 75 },
+  'customer_purchase:update': { label: t('admin:rolesPermissionsPage.permissions.customer_purchase_update'), moduleKey: 'inventory', order: 76 },
+  'customer_purchase:delete': { label: t('admin:rolesPermissionsPage.permissions.customer_purchase_delete'), moduleKey: 'inventory', order: 77 },
 
   // Project & Task: Dự án & Công việc
   'project:view': { label: t('admin:rolesPermissionsPage.permissions.project_view'), moduleKey: 'project', order: 20 },
@@ -61,8 +85,15 @@ const PERMISSION_META: Record<string, PermissionMeta> = {
   'document:share': { label: t('admin:rolesPermissionsPage.permissions.document_share'), moduleKey: 'document', order: 32 },
   'document:delete': { label: t('admin:rolesPermissionsPage.permissions.document_delete'), moduleKey: 'document', order: 33 },
 
+  // 24/10/2026: Messaging: Nhắn tin & Trợ lý AI (chatbot)
+  'message:view': { label: t('admin:rolesPermissionsPage.permissions.message_view'), moduleKey: 'messaging', order: 80 },
+  'message:send': { label: t('admin:rolesPermissionsPage.permissions.message_send'), moduleKey: 'messaging', order: 81 },
+  'message:manage_group': { label: t('admin:rolesPermissionsPage.permissions.message_manage_group'), moduleKey: 'messaging', order: 82 },
+  'chatbot:use': { label: t('admin:rolesPermissionsPage.permissions.chatbot_use'), moduleKey: 'messaging', order: 83 },
+
   // Analytics: Báo cáo & Phân tích
   'analytics:view': { label: t('admin:rolesPermissionsPage.permissions.analytics_view'), moduleKey: 'analytics', order: 40 },
+  'ml:view': { label: t('admin:rolesPermissionsPage.permissions.ml_view'), moduleKey: 'analytics', order: 41 },
 
   // Organization & IAM: Tổ chức & Phân quyền
   'user:invite': { label: t('admin:rolesPermissionsPage.permissions.user_invite'), moduleKey: 'iam', order: 50 },
@@ -76,11 +107,13 @@ const PERMISSION_META: Record<string, PermissionMeta> = {
 };
 
 /** Danh sách thứ tự hiển thị của các module nghiệp vụ */
-const MODULE_ORDER: Array<{ key: 'hrm' | 'crm' | 'project' | 'document' | 'analytics' | 'iam' | 'system' }> = [
+const MODULE_ORDER: Array<{ key: ModuleKey }> = [
   { key: 'hrm' },
   { key: 'crm' },
+  { key: 'inventory' },
   { key: 'project' },
   { key: 'document' },
+  { key: 'messaging' },
   { key: 'analytics' },
   { key: 'iam' },
   { key: 'system' },

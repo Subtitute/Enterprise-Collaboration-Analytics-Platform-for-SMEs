@@ -109,7 +109,17 @@ export function ProjectProgressTable({ rows }: { rows: ProjectProgressTableRow[]
               </TableCell>
               <TableCell label={t('analytics:projectProgressTable.columns.progress')} className="md:w-44">
                 <div className="flex items-center gap-2">
-                  <div className="h-1.5 w-full flex-1 overflow-hidden rounded-full bg-bg-subtle">
+                  {/* 24/10/2026: them role/aria (mirror components/ui/ProgressBar) - thieu tu dot doi giao
+                      dien 11/10/2026, lam e2e analytics.spec.ts (tim [role="progressbar"]) luon that bai
+                      va trinh doc man hinh khong doc duoc gia tri tien do. Phat hien qua ra soat cuoi. */}
+                  <div
+                    className="h-1.5 w-full flex-1 overflow-hidden rounded-full bg-bg-subtle"
+                    role="progressbar"
+                    aria-valuenow={Math.max(0, Math.min(100, Math.round(row.progress || 0)))}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={t('common:progress')}
+                  >
                     <div
                       className={cn(
                         'h-full rounded-full transition-all',
