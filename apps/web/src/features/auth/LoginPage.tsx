@@ -35,11 +35,12 @@ const DEMO_ACCOUNTS: DemoAccountItem[] = [
     roleNameKey: 'auth:loginPage.demoAccount.roles.manager',
     descKey: 'auth:loginPage.demoAccount.roles.managerDesc',
     badgeClass: 'bg-indigo-100 text-indigo-700 border-indigo-200',
-    // 17/09/2026: sua lai email demo Manager - hau to ngau nhien "+246317" tu ban seed cu khong
+    // 18/10/2026: sua lai email demo Manager - hau to ngau nhien "+141603" tu ban seed cu khong
     // con ton tai (moi nhan vien duoc invite qua API voi 1 hau to ngau nhien rieng, sinh ra khac
-    // nhau moi lan seed lai). "binh.tran+141603" la Truong phong Kinh doanh, da duoc thang chuc
-    // Manager that su trong DB hien tai (xem fix-manager-role-and-customer-owners.js).
-    email: 'binh.tran+141603@demo-sme.vn',
+    // nhau moi lan chay `npm run seed` lai - KHONG co dinh qua cac lan seed). "an.nguyen+227860"
+    // la Manager phong Kinh doanh trong du lieu demo hien tai (doi chieu truc tiep qua iam_db,
+    // khong doan).
+    email: 'an.nguyen+227860@demo-sme.vn',
     password: 'Password123!',
   },
   {
@@ -47,10 +48,13 @@ const DEMO_ACCOUNTS: DemoAccountItem[] = [
     roleNameKey: 'auth:loginPage.demoAccount.roles.employee',
     descKey: 'auth:loginPage.demoAccount.roles.employeeDesc',
     badgeClass: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-    // 17/09/2026: tuong tu - "khoa.lam+861373" la nhan vien Kinh doanh dang thuc su phu trach
-    // khach hang va duoc giao task/du an, phu hop de minh hoa tinh nang gioi han xem theo
-    // "duoc giao" moi bo sung (Employee chi thay du an/khach hang cua chinh minh).
-    email: 'khoa.lam+861373@demo-sme.vn',
+    // 18/10/2026: tuong tu - "khoa.lam+861373" khong con ton tai. "duc.hoang+227860" la nhan vien
+    // phong Kinh doanh dang co task duoc giao that trong du lieu demo hien tai (6 task, doi chieu
+    // qua project_task_db), phu hop de minh hoa tinh nang gioi han xem theo "duoc giao" cua
+    // Employee. Luu y: hien tai KHONG co Employee nao dang la chu so huu khach hang nao trong CRM
+    // (toan bo 24 khach hang demo thuoc ve chinh Org Admin) - gioi han cua du lieu demo hien tai,
+    // khong phai loi tai khoan nay chon sai.
+    email: 'duc.hoang+227860@demo-sme.vn',
     password: 'Password123!',
   },
   // 16/09/2026: "Super Admin" (tinh nang moi) - khop dung gia tri mac dinh cua
