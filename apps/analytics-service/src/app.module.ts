@@ -10,7 +10,7 @@ import { HttpMetricsInterceptor, MetricsController, MetricsService } from '@app/
 // 28/07/2026: DDL tu-cham schema KPI theo phong ban (dim_user, fact_task_events.assignee_id) -
 // xem giai thich day du va ly do can ca 2 noi (o day VA infra/timescale-init/001-init.sql) trong
 // database/schema-bootstrap.ts.
-import { bootstrapDepartmentKpiSchema, bootstrapProductSalesSchema } from './database/schema-bootstrap';
+import { bootstrapChatbotSchema, bootstrapDepartmentKpiSchema, bootstrapProductSalesSchema } from './database/schema-bootstrap';
 import { AllExceptionsFilter, InternalAuthGuard, PermissionsGuard } from '@app/common-guard';
 import configuration from './config/configuration';
 import { RedisModule } from './redis/redis.module';
@@ -20,6 +20,8 @@ import { HealthController } from './health/health.controller';
 // 28/07/2026: tinh nang "Nhan xet AI" (GET /analytics/ai-insights) - hang muc dau tien trong
 // loat nang cap AI, xem ai-insights/ai-insights.service.ts.
 import { AiInsightsModule } from './ai-insights/ai-insights.module';
+// 24/10/2026: Chat bot noi bo (RAG tai lieu + tool-calling) - xem chatbot/chatbot.service.ts.
+import { ChatbotModule } from './chatbot/chatbot.module';
 
 @Module({
   imports: [
@@ -58,6 +60,8 @@ import { AiInsightsModule } from './ai-insights/ai-insights.module';
         await bootstrapDepartmentKpiSchema(dataSource);
         // 15/10/2026: hypertable fact_product_sales (Inventory Service) - xem schema-bootstrap.ts.
         await bootstrapProductSalesSchema(dataSource);
+        // 24/10/2026: bang hoi thoai Chat bot noi bo - xem schema-bootstrap.ts.
+        await bootstrapChatbotSchema(dataSource);
         return dataSource;
       },
     }),
@@ -65,6 +69,7 @@ import { AiInsightsModule } from './ai-insights/ai-insights.module';
     AnalyticsModule,
     KafkaModule,
     AiInsightsModule,
+    ChatbotModule,
     // 22/08/2026: fix audit "/health liveness-only" - cung cap HealthCheckService/
     // TypeOrmHealthIndicator cho HealthController (xem health/health.controller.ts).
     TerminusModule,

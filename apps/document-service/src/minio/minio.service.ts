@@ -38,6 +38,9 @@ const REMOVE_OBJECT_TIMEOUT_MS = 10_000;
 // truong hop "treo" THAT SU (0 thong luong, khong phai cham), khong phai gioi han thoi gian upload
 // binh thuong.
 const PUT_OBJECT_TIMEOUT_MS = 30_000;
+// 24/10/2026: doc lai noi dung file de trich van ban cho RAG (rag/document-indexer.service.ts) -
+// chay nen, khong nam tren duong request cua nguoi dung, cung tran 30s voi putObject.
+const GET_OBJECT_TIMEOUT_MS = 30_000;
 
 /**
  * Wrapper mong quanh MinIO SDK (S3-compatible object storage) - Technical_Spec.md muc 2, muc 3.4.
@@ -88,6 +91,29 @@ export class MinioService implements OnModuleInit {
       PUT_OBJECT_TIMEOUT_MS,
       `Upload MinIO vuot qua ${PUT_OBJECT_TIMEOUT_MS}ms (object: ${objectKey})`,
     );
+  }
+
+  /**
+   * 24/10/2026: tai toan bo noi dung 1 object vao bo nho (Buffer) - dung cho RAG. `maxBytes` chan
+   * tren: vuot qua thi huy stream va nem loi ngay (khong buffer tiep 1 file qua lon vao RAM).
+   */
+  async getObjectBuffer(objectKey: string, maxBytes: number): Promise<Buffer> {
+    const read = async (): Promise<Buffer> => {
+      const stream = await this.client.getObject(this.bucket, objectKey);
+      const parts: Buffer[] = [];
+      let total = 0;
+      for await (const part of stream) {
+        const buffer = Buffer.isBuffer(part) ? part : Buffer.from(part as Uint8Array);
+        total += buffer.length;
+        if (total > maxBytes) {
+          stream.destroy();
+          throw new Error(`Object MinIO vuot qua ${maxBytes} byte (object: ${objectKey})`);
+        }
+        parts.push(buffer);
+      }
+      return Buffer.concat(parts);
+    };
+    return withTimeout(read(), GET_OBJECT_TIMEOUT_MS, `Doc object MinIO vuot qua ${GET_OBJECT_TIMEOUT_MS}ms (object: ${objectKey})`);
   }
 
   async removeObject(objectKey: string): Promise<void> {

@@ -26,4 +26,14 @@ export default () => ({
     publicPort: parseInt(process.env.MINIO_PUBLIC_PORT ?? process.env.MINIO_PORT ?? '9000', 10),
     publicUseSsl: (process.env.MINIO_PUBLIC_USE_SSL ?? process.env.MINIO_USE_SSL ?? 'false') === 'true',
   },
+  // 24/10/2026: RAG tai lieu cho Chat bot noi bo (Technical_Spec.md muc 23) - nhung van ban qua
+  // Gemini API (dung chung GEMINI_API_KEY voi "Nhan xet AI" cua analytics-service, KHONG chay model
+  // local). apiKey RONG la trang thai HOP LE: service van chay binh thuong, chi tat RAG (khong index,
+  // search tra ket qua rong kem co `ragEnabled: false`) - mirror quy uoc gemini.apiKey cua analytics.
+  // Model mac dinh da xac minh song 24/10/2026: gemini-embedding-001 (outputDimensionality 768) -
+  // text-embedding-004 da bi Google ngung (404).
+  gemini: {
+    apiKey: process.env.GEMINI_API_KEY,
+    embeddingModel: process.env.GEMINI_EMBEDDING_MODEL ?? 'gemini-embedding-001',
+  },
 });

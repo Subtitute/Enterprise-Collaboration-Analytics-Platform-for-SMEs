@@ -55,9 +55,12 @@ export class FoldersController {
   create(
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') actorId: string,
+    // 24/10/2026: kiem tra quyen truy cap thu muc cha - xem FoldersService.create().
+    @CurrentUser('departmentId') departmentId: string | null,
+    @CurrentUser('permissions') permissions: string[],
     @Body() dto: CreateFolderDto,
   ) {
-    return this.foldersService.create(organizationId, actorId, dto);
+    return this.foldersService.create(organizationId, actorId, dto, this.buildAccessContext(actorId, departmentId, permissions));
   }
 
   @Patch(':id')

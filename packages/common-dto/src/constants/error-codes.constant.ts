@@ -93,6 +93,13 @@ export const ERROR_CODES = {
   FILE_NOT_FOUND: 'FILE_NOT_FOUND',
   FILE_NAME_TOO_LONG: 'FILE_NAME_TOO_LONG',
   UNSUPPORTED_FILE_TYPE: 'UNSUPPORTED_FILE_TYPE',
+  // 24/10/2026: tim kiem ngu nghia tai lieu (RAG, POST /files/search-chunks) - loi tam thoi khi goi
+  // API nhung cau hoi (Gemini qua tai/het han ngach). RAG CHUA cau hinh (thieu GEMINI_API_KEY) KHONG
+  // dung ma nay - endpoint tra ket qua rong kem co `ragEnabled: false`, xem DocumentSearchService.
+  DOCUMENT_SEARCH_UNAVAILABLE: 'DOCUMENT_SEARCH_UNAVAILABLE',
+  // 24/10/2026: 1 nguoi dung goi search-chunks qua nhieu lan trong 1 khung thoi gian (429) - bao ve
+  // han ngach Gemini dung CHUNG cho toan nen tang, xem SEARCH_RATE_LIMIT trong DocumentSearchService.
+  DOCUMENT_SEARCH_RATE_LIMITED: 'DOCUMENT_SEARCH_RATE_LIMITED',
 
   // ---- HRM-lite: attendance/leave ----
   MISSING_CHECKIN_PHOTO: 'MISSING_CHECKIN_PHOTO',
@@ -109,6 +116,9 @@ export const ERROR_CODES = {
   ATTENDANCE_PHOTO_MISSING: 'ATTENDANCE_PHOTO_MISSING',
   INVALID_COORDINATE: 'INVALID_COORDINATE',
   PHOTO_CONTENT_MISMATCH: 'PHOTO_CONTENT_MISMATCH',
+  // 24/10/2026: Face recognition (verify 1:1) cho cham cong - diem tuong dong (faceMatchScore)
+  // doc THO tu multipart/form-data mirror dung latitude/longitude, xem face-match-score.util.ts.
+  INVALID_FACE_MATCH_SCORE: 'INVALID_FACE_MATCH_SCORE',
   // 17/09/2026: chan cham cong vao ngay nghi le cong ty (CalendarEvent.type=HOLIDAY) - xem
   // AttendanceService.checkIn(), CalendarEventsService.findHolidayForDate().
   ATTENDANCE_BLOCKED_HOLIDAY: 'ATTENDANCE_BLOCKED_HOLIDAY',
@@ -116,9 +126,6 @@ export const ERROR_CODES = {
   // ---- HRM-lite: lich cong ty (bo sung 15/09/2026) ----
   CALENDAR_EVENT_NOT_FOUND: 'CALENDAR_EVENT_NOT_FOUND',
   CALENDAR_EVENT_DATE_RANGE_INVALID: 'CALENDAR_EVENT_DATE_RANGE_INVALID',
-  // 24/10/2026: Face recognition (verify 1:1) cho cham cong - diem tuong dong (faceMatchScore)
-  // doc THO tu multipart/form-data mirror dung latitude/longitude, xem face-match-score.util.ts.
-  INVALID_FACE_MATCH_SCORE: 'INVALID_FACE_MATCH_SCORE',
   // 05/10/2026: cung loi logic da tung sua o LeaveRequestsService.create() (LEAVE_START_DATE_IN_PAST)
   // nhung CHUA tung ap dung cho lich cong ty - xem CalendarEventsService.
   CALENDAR_EVENT_START_DATE_IN_PAST: 'CALENDAR_EVENT_START_DATE_IN_PAST',
@@ -167,6 +174,16 @@ export const ERROR_CODES = {
   INVALID_RANGE_WITH_QUARTER: 'INVALID_RANGE_WITH_QUARTER',
   INVALID_RANGE_NO_QUARTER: 'INVALID_RANGE_NO_QUARTER',
   DRILL_DOWN_SCOPE_FORBIDDEN: 'DRILL_DOWN_SCOPE_FORBIDDEN',
+
+  // ---- Chat bot noi bo (Analytics Service, bo sung 24/10/2026 - Technical_Spec.md muc 23) ----
+  CHATBOT_NOT_CONFIGURED: 'CHATBOT_NOT_CONFIGURED',
+  CHATBOT_GENERATION_FAILED: 'CHATBOT_GENERATION_FAILED',
+  // Vuot tran so cau hoi/ngay/nguoi dung (han ngach Gemini free tier dung chung voi "Nhan xet AI").
+  CHATBOT_DAILY_LIMIT_EXCEEDED: 'CHATBOT_DAILY_LIMIT_EXCEEDED',
+  // Dung chung cho id sai VA hoi thoai cua nguoi khac - khong lo lieu hoi thoai do co ton tai hay khong.
+  CHATBOT_CONVERSATION_NOT_FOUND: 'CHATBOT_CONVERSATION_NOT_FOUND',
+  // 24/10/2026: hoi thoai dang cho tra loi 1 cau hoi khac (gui dong thoi tu 2 tab/double-click) - 409.
+  CHATBOT_CONVERSATION_BUSY: 'CHATBOT_CONVERSATION_BUSY',
 
   // ---- Notification ----
   NOTIFICATION_NOT_FOUND: 'NOTIFICATION_NOT_FOUND',

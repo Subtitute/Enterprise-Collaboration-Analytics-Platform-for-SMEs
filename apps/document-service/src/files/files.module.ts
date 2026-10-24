@@ -20,5 +20,7 @@ import { FoldersModule } from '../folders/folders.module';
   ],
   providers: [FilesService],
   controllers: [FilesController],
+  // 24/10/2026: export cho RagModule dung chung FilesService.canAccessFile() - xem rag/rag.module.ts.
+  exports: [FilesService],
 })
 export class FilesModule {}

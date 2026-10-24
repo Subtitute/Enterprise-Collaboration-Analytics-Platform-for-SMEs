@@ -43,16 +43,25 @@ export class FoldersService {
       where: { organizationId, parentFolderId: parentFolderId ? parentFolderId : IsNull() },
       order: { name: 'ASC' },
     });
-    const accessFlags = await Promise.all(folders.map((folder) => this.folderAccessService.canAccessFolder(folder, ctx)));
-    return folders.filter((_folder, index) => accessFlags[index]);
+    // 24/10/2026: 1 checker cho ca danh sach (quyen ke thua tu thu muc cha - xem FolderAccessService),
+    // thay cho canAccessFolder() tung thu muc. Liet ke thu muc con cua 1 thu muc RESTRICTED khong xem
+    // duoc gio tra ve rong (truoc day lo het cac thu muc con ORGANIZATION ben trong).
+    const check = await this.folderAccessService.createChecker(organizationId, ctx);
+    return folders.filter((folder) => check(folder.id));
   }
 
-  async create(organizationId: string, actorId: string, dto: CreateFolderDto): Promise<Folder> {
+  // 24/10/2026: bo sung `ctx` - nguoi goi PHAI xem duoc thu muc cha. Truoc day tao duoc thu muc con
+  // ngay trong 1 thu muc RESTRICTED khong co quyen (do song: Employee POST /folders vao kho mat -> 201;
+  // thu muc con do lai do chinh ho tao nen "co quyen tuong minh", thanh cho dat file vao kho mat).
+  async create(organizationId: string, actorId: string, dto: CreateFolderDto, ctx: AccessContext): Promise<Folder> {
     if (dto.parentFolderId) {
       const parent = await this.folderRepo.findOne({
         where: { id: dto.parentFolderId, organizationId },
       });
       if (!parent) throw new NotFoundException({ message: 'Khong tim thay thu muc cha', errorCode: ERROR_CODES.PARENT_FOLDER_NOT_FOUND });
+      if (!(await this.folderAccessService.canAccessFolder(parent, ctx))) {
+        throw new ForbiddenException({ message: 'Ban khong co quyen truy cap thu muc nay', errorCode: ERROR_CODES.FORBIDDEN_FOLDER_ACCESS });
+      }
     }
     const folder = this.folderRepo.create({
       organizationId,
@@ -219,6 +228,16 @@ export class FoldersService {
     }
 
     const folderIds = await this.collectFolderTreeIds(organizationId, id);
+    // 24/10/2026: xoa thu muc = xoa CA cay con - nguoi goi phai xem duoc MOI thu muc trong cay. Do song:
+    // Manager xoa duoc 1 thu muc ORGANIZATION chua thu muc con RESTRICTED cua Org Admin (Manager khong
+    // xem duoc file nao trong do) -> mat sach file mat ma nguoi xoa chua tung thay.
+    const canAccess = await this.folderAccessService.createChecker(organizationId, ctx);
+    if (!folderIds.every((folderId) => canAccess(folderId))) {
+      throw new ForbiddenException({
+        message: 'Thu muc chua thu muc con ban khong co quyen truy cap, khong the xoa',
+        errorCode: ERROR_CODES.FORBIDDEN_FOLDER_ACCESS,
+      });
+    }
 
     // 25/07/2026: doc FileMeta/FileVersion bang `manager` (trong transaction), khong phai bang
     // `fileMetaRepo`/`fileVersionRepo` (ngoai transaction) nhu ban cu - xem giai thich day du o

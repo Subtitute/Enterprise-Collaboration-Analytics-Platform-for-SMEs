@@ -25,6 +25,8 @@ import messagingVi from './locales/vi/messaging.json';
 import platformAdminVi from './locales/vi/platformAdmin.json';
 // 15/10/2026: Inventory Service (Danh muc san pham + Kho) - xem features/inventory/.
 import inventoryVi from './locales/vi/inventory.json';
+// 24/10/2026: Chat bot noi bo (RAG tai lieu + tool-calling) - xem features/chatbot/.
+import chatbotVi from './locales/vi/chatbot.json';
 
 import commonEn from './locales/en/common.json';
 import authEn from './locales/en/auth.json';
@@ -41,6 +43,7 @@ import errorsEn from './locales/en/errors.json';
 import messagingEn from './locales/en/messaging.json';
 import platformAdminEn from './locales/en/platformAdmin.json';
 import inventoryEn from './locales/en/inventory.json';
+import chatbotEn from './locales/en/chatbot.json';
 
 import commonJa from './locales/ja/common.json';
 import authJa from './locales/ja/auth.json';
@@ -57,6 +60,7 @@ import errorsJa from './locales/ja/errors.json';
 import messagingJa from './locales/ja/messaging.json';
 import platformAdminJa from './locales/ja/platformAdmin.json';
 import inventoryJa from './locales/ja/inventory.json';
+import chatbotJa from './locales/ja/chatbot.json';
 
 export const SUPPORTED_LANGUAGES = ['vi', 'en', 'ja'] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
@@ -79,6 +83,7 @@ const resources = {
     platformAdmin: platformAdminVi,
     messaging: messagingVi,
     inventory: inventoryVi,
+    chatbot: chatbotVi,
   },
   en: {
     common: commonEn,
@@ -96,6 +101,7 @@ const resources = {
     platformAdmin: platformAdminEn,
     messaging: messagingEn,
     inventory: inventoryEn,
+    chatbot: chatbotEn,
   },
   ja: {
     common: commonJa,
@@ -113,6 +119,7 @@ const resources = {
     platformAdmin: platformAdminJa,
     messaging: messagingJa,
     inventory: inventoryJa,
+    chatbot: chatbotJa,
   },
 };
 

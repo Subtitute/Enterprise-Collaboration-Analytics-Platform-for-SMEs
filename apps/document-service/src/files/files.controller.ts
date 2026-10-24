@@ -113,6 +113,9 @@ export class FilesController {
   upload(
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') actorId: string,
+    // 24/10/2026: kiem tra quyen truy cap thu muc dich - xem FilesService.upload().
+    @CurrentUser('departmentId') departmentId: string | null,
+    @CurrentUser('permissions') permissions: string[],
     @UploadedFile() file: Express.Multer.File,
     @Body('folderId') folderId?: string,
   ) {
@@ -130,7 +133,7 @@ export class FilesController {
     if (folderId && !isUUID(folderId, '4')) {
       throw new BadRequestException({ message: 'folderId phai la UUID hop le', errorCode: ERROR_CODES.INVALID_FOLDER_ID });
     }
-    return this.filesService.upload(organizationId, actorId, folderId || null, file);
+    return this.filesService.upload(organizationId, actorId, folderId || null, file, this.buildAccessContext(actorId, departmentId, permissions));
   }
 
   @Post(':id/upload')

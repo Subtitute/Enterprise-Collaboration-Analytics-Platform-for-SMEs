@@ -1,0 +1,56 @@
+{
+  "launcher": {
+    "open": "ECAPアシスタントを開く",
+    "close": "ECAPアシスタントを閉じる"
+  },
+  "panel": {
+    "title": "ECAPアシスタント",
+    "subtitle": "文書・タスク・勤怠・休暇について質問できます",
+    "newChat": "新しいチャット",
+    "history": "チャット履歴",
+    "backToChat": "チャットに戻る",
+    "close": "閉じる",
+    "loading": "読み込み中…"
+  },
+  "thread": {
+    "welcomeTitle": "こんにちは！何をお手伝いしましょうか？",
+    "welcomeDescription": "社内文書とあなた自身のデータをもとに、閲覧権限のある範囲内でお答えします。",
+    "suggestionsLabel": "質問の例",
+    "suggestions": {
+      "tasks": "まだ完了していない自分のタスクは？",
+      "leave": "今年の有給休暇はあと何日残っていますか？",
+      "documents": "会社のリモートワーク規定は？"
+    },
+    "placeholder": "質問を入力…（Enterで送信、Shift+Enterで改行）",
+    "send": "質問を送信",
+    "processing": "処理中…",
+    "you": "あなた",
+    "assistant": "アシスタント",
+    "sources": "出典",
+    "openSource": "文書 {{name}} を開く",
+    "usedTools": "参照: {{tools}}",
+    "usage": "本日の質問 {{used}}/{{limit}} 件",
+    "charCount": "{{count}}/{{max}}",
+    "loadError": "このチャットを読み込めませんでした。",
+    "retry": "再試行",
+    "disclaimer": "AIアシスタントは誤ることがあります。重要な情報は必ずご確認ください。"
+  },
+  "tools": {
+    "search_documents": "文書",
+    "get_my_tasks": "自分のタスク",
+    "get_project_status": "プロジェクト",
+    "get_my_leave_balance": "休暇残日数",
+    "get_my_attendance_today": "本日の勤怠"
+  },
+  "history": {
+    "empty": "まだチャットはありません。",
+    "untitled": "新しいチャット",
+    "delete": "チャットを削除",
+    "confirmDeleteTitle": "このチャットを削除しますか？",
+    "confirmDeleteDescription": "このチャット内のすべての質問と回答が完全に削除されます。",
+    "loadError": "チャット履歴を読み込めませんでした。"
+  },
+  "toast": {
+    "deleteError": "チャットを削除できませんでした"
+  }
+}

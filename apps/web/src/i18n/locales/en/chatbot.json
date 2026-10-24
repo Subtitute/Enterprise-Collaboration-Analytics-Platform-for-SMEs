@@ -1,0 +1,56 @@
+{
+  "launcher": {
+    "open": "Open ECAP Assistant",
+    "close": "Close ECAP Assistant"
+  },
+  "panel": {
+    "title": "ECAP Assistant",
+    "subtitle": "Ask about documents, tasks, attendance, leave",
+    "newChat": "New chat",
+    "history": "Chat history",
+    "backToChat": "Back to chat",
+    "close": "Close",
+    "loading": "Loading…"
+  },
+  "thread": {
+    "welcomeTitle": "Hi! How can I help you?",
+    "welcomeDescription": "I answer from internal documents and your own data — only within what you are allowed to see.",
+    "suggestionsLabel": "Suggested questions",
+    "suggestions": {
+      "tasks": "Which of my tasks are not finished yet?",
+      "leave": "How many leave days do I have left this year?",
+      "documents": "What is the company's remote work policy?"
+    },
+    "placeholder": "Type a question… (Enter to send, Shift+Enter for a new line)",
+    "send": "Send question",
+    "processing": "Processing…",
+    "you": "You",
+    "assistant": "Assistant",
+    "sources": "Sources",
+    "openSource": "Open document {{name}}",
+    "usedTools": "Looked up: {{tools}}",
+    "usage": "{{used}}/{{limit}} questions used today",
+    "charCount": "{{count}}/{{max}}",
+    "loadError": "Could not load this conversation.",
+    "retry": "Retry",
+    "disclaimer": "The AI assistant can make mistakes — double-check important information."
+  },
+  "tools": {
+    "search_documents": "documents",
+    "get_my_tasks": "your tasks",
+    "get_project_status": "projects",
+    "get_my_leave_balance": "leave balance",
+    "get_my_attendance_today": "today's attendance"
+  },
+  "history": {
+    "empty": "No conversations yet.",
+    "untitled": "New chat",
+    "delete": "Delete conversation",
+    "confirmDeleteTitle": "Delete this conversation?",
+    "confirmDeleteDescription": "All questions and answers in this conversation will be permanently deleted.",
+    "loadError": "Could not load chat history."
+  },
+  "toast": {
+    "deleteError": "Could not delete the conversation"
+  }
+}

@@ -4,7 +4,7 @@ import { DataSource, FindOptionsWhere, IsNull, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { FileMeta } from '../entities/file-meta.entity';
 import { FileVersion } from '../entities/file-version.entity';
-import { FileShare } from '../entities/file-share.entity';
+import { FileShare, FileSharePermission } from '../entities/file-share.entity';
 import { Folder } from '../entities/folder.entity';
 // 28/07/2026: dung chung logic canAccessFolder voi FoldersService - xem folder-access.service.ts.
 import { AccessContext, FolderAccessService } from '../folders/folder-access.service';
@@ -80,28 +80,65 @@ export class FilesService {
    * FileShare khop TRUC TIEP voi file nay (userId hoac departmentId cua nguoi goi) - day la
    * "duong link rieng toi 1 file don le" (vi du 1 Manager chia se rieng 1 hop dong cho 1 nhan vien
    * NGOAI pham vi duoc chia se cua ca thu muc chua no).
+   *
+   * 24/10/2026: chuyen private -> public (KHONG doi logic) de DocumentSearchService (RAG, rag/) loc ket
+   * qua tim kiem ngu nghia theo DUNG quy tac truy cap nay - khong viet lai quy tac o noi thu 2.
+   *
+   * 24/10/2026: canAccessFolder() gio KE THUA tu thu muc cha (file trong thu muc con ORGANIZATION cua 1
+   * thu muc RESTRICTED cung bi chan) - ngoai le FileShare truc tiep ben duoi giu nguyen.
+   *
+   * 24/10/2026: them `requireEdit` - truoc day quyen VIEW/EDIT cua FileShare chi duoc LUU ma khong duoc
+   * KIEM TRA o dau ca: nguoi chi duoc chia se quyen VIEW (khong xem duoc thu muc chua file) van tai
+   * len phien ban moi de ghi de noi dung, xoa file, hay tu chia se lai cho chinh minh quyen EDIT (da
+   * tai hien song). Voi thao tac ghi (uploadNewVersion/share/remove), nhanh "duong link rieng" chi
+   * con chap nhan FileShare co permission = EDIT; quyen qua thu muc (va file cap ROOT) giu nguyen.
    */
-  private async canAccessFile(organizationId: string, fileMeta: FileMeta, ctx: AccessContext): Promise<boolean> {
+  async canAccessFile(organizationId: string, fileMeta: FileMeta, ctx: AccessContext, requireEdit = false): Promise<boolean> {
     if (!fileMeta.folderId) return true;
 
     const folder = await this.folderRepo.findOne({ where: { id: fileMeta.folderId, organizationId } });
-    // Ve ly thuyet khong xay ra (FK folderId tro toi 1 Folder that su ton tai) - coi nhu khong bi
-    // han che (fail-open cho truong hop du lieu khong nhat quan hon la chan nham nguoi dung hop le).
-    if (!folder) return true;
+    // Ve ly thuyet khong xay ra (FK folderId tro toi 1 Folder that su ton tai).
+    // 24/10/2026: doi fail-open -> fail-closed (tru Org Admin), dong bo voi quy tac "du lieu bat thuong
+    // -> tu choi" cua FolderAccessService (quyen thu muc gio ke thua tu thu muc cha).
+    if (!folder) return ctx.isOrgAdmin;
 
     if (await this.folderAccessService.canAccessFolder(folder, ctx)) return true;
 
-    const conditions: FindOptionsWhere<FileShare>[] = [{ fileId: fileMeta.id, sharedWithUserId: ctx.userId }];
+    const permissionFilter: FindOptionsWhere<FileShare> = requireEdit ? { permission: FileSharePermission.EDIT } : {};
+    const conditions: FindOptionsWhere<FileShare>[] = [{ fileId: fileMeta.id, sharedWithUserId: ctx.userId, ...permissionFilter }];
     if (ctx.departmentId) {
-      conditions.push({ fileId: fileMeta.id, sharedWithDepartmentId: ctx.departmentId });
+      conditions.push({ fileId: fileMeta.id, sharedWithDepartmentId: ctx.departmentId, ...permissionFilter });
     }
     const directShare = await this.fileShareRepo.findOne({ where: conditions });
     return !!directShare;
   }
 
-  private async assertFileAccess(organizationId: string, fileMeta: FileMeta, ctx: AccessContext): Promise<void> {
-    if (!(await this.canAccessFile(organizationId, fileMeta, ctx))) {
-      throw new ForbiddenException({ message: 'Ban khong co quyen truy cap file nay', errorCode: ERROR_CODES.FORBIDDEN_FILE_ACCESS });
+  /**
+   * 24/10/2026: ban "loc hang loat" cua canAccessFile() (CUNG quy tac) cho noi can kiem tra nhieu file
+   * trong 1 request (DocumentSearchService - RAG): 1 checker thu muc (2 truy van) + 1 truy van FileShare
+   * truc tiep cua nguoi goi, thay vi 2-3 truy van cho MOI file.
+   */
+  async createFileAccessFilter(
+    organizationId: string,
+    ctx: AccessContext,
+  ): Promise<(fileMeta: Pick<FileMeta, 'id' | 'folderId'>) => boolean> {
+    if (ctx.isOrgAdmin) return () => true;
+    const canAccessFolder = await this.folderAccessService.createChecker(organizationId, ctx);
+
+    const conditions: FindOptionsWhere<FileShare>[] = [{ sharedWithUserId: ctx.userId }];
+    if (ctx.departmentId) conditions.push({ sharedWithDepartmentId: ctx.departmentId });
+    const directShares = await this.fileShareRepo.find({ select: { fileId: true }, where: conditions });
+    const directFileIds = new Set(directShares.map((share) => share.fileId));
+
+    return (fileMeta) => !fileMeta.folderId || canAccessFolder(fileMeta.folderId) || directFileIds.has(fileMeta.id);
+  }
+
+  private async assertFileAccess(organizationId: string, fileMeta: FileMeta, ctx: AccessContext, requireEdit = false): Promise<void> {
+    if (!(await this.canAccessFile(organizationId, fileMeta, ctx, requireEdit))) {
+      throw new ForbiddenException({
+        message: requireEdit ? 'Ban chi co quyen xem file nay' : 'Ban khong co quyen truy cap file nay',
+        errorCode: ERROR_CODES.FORBIDDEN_FILE_ACCESS,
+      });
     }
   }
 
@@ -178,17 +215,16 @@ export class FilesService {
     return { downloadUrl };
   }
 
-  // 28/07/2026: CO CHU DICH KHONG kiem tra canAccessFolder o day (kiem soat truy cap thu muc,
-  // opt-in - yeu cau nhiem vu chi liet ke GET /files/:id, download URL, share(), remove(),
-  // uploadNewVersion() la cac "single-file operations" can gac, KHONG bao gom upload() tao file
-  // MOI). Tao 1 file MOI vao 1 thu muc RESTRICTED ma nguoi goi khong xem duoc van la 1 khe ho ly
-  // thuyet (can biet truoc UUID cua thu muc), nhung nam ngoai pham vi liet ke cua nhiem vu nay -
-  // ghi nhan la gioi han da biet, giong tinh than cac comment gioi han khac trong file nay.
+  // 24/10/2026: bo sung `ctx` - dong "gioi han da biet" ghi ngay 28/07/2026 (upload() khong kiem tra
+  // quyen thu muc dich). Tu khi co RAG, file "cai" vao 1 thu muc RESTRICTED duoc index va dua thang vao
+  // ngu canh Chat bot cua nguoi CO quyen (kenh prompt injection); do song: Employee upload vao kho mat
+  // -> 201. Nay nguoi goi phai xem duoc thu muc dich (cung quy tac ke thua - canAccessFolder()).
   async upload(
     organizationId: string,
     actorId: string,
     folderId: string | null,
     file: Express.Multer.File,
+    ctx: AccessContext,
   ): Promise<FileMeta> {
     // 22/07/2026: Fix 1 (code review) - kiem tra do dai TEN FILE GOC va lam sach NGAY TU DAU
     // ham, TRUOC KHI dung no de tinh object key hay goi MinIO. Tu choi som (400) thay vi de loi
@@ -213,6 +249,9 @@ export class FilesService {
     if (folderId) {
       const folder = await this.folderRepo.findOne({ where: { id: folderId, organizationId } });
       if (!folder) throw new NotFoundException({ message: 'Khong tim thay thu muc', errorCode: ERROR_CODES.FOLDER_NOT_FOUND });
+      if (!(await this.folderAccessService.canAccessFolder(folder, ctx))) {
+        throw new ForbiddenException({ message: 'Ban khong co quyen truy cap thu muc nay', errorCode: ERROR_CODES.FORBIDDEN_FOLDER_ACCESS });
+      }
     }
 
     const fileId = uuidv4();
@@ -305,7 +344,8 @@ export class FilesService {
     // ngay sau day - khong dua thang `fileMeta` doc o day vao logic tinh versionNumber).
     const fileMetaForAccessCheck = await this.fileMetaRepo.findOne({ where: { id: fileId, organizationId } });
     if (!fileMetaForAccessCheck) throw new NotFoundException({ message: 'Khong tim thay file', errorCode: ERROR_CODES.FILE_NOT_FOUND });
-    await this.assertFileAccess(organizationId, fileMetaForAccessCheck, ctx);
+    // 24/10/2026: thao tac ghi -> FileShare truc tiep phai la EDIT (xem canAccessFile()).
+    await this.assertFileAccess(organizationId, fileMetaForAccessCheck, ctx, true);
 
     // 22/07/2026: Fix 2 (code review) - TOAN BO doc + tinh versionNumber + ghi FileVersion/cap
     // nhat FileMeta.currentVersion duoc dua vao 1 transaction DUY NHAT, khoa dong FileMeta bang
@@ -412,7 +452,9 @@ export class FilesService {
   ): Promise<FileShare> {
     const fileMeta = await this.fileMetaRepo.findOne({ where: { id: fileId, organizationId } });
     if (!fileMeta) throw new NotFoundException({ message: 'Khong tim thay file', errorCode: ERROR_CODES.FILE_NOT_FOUND });
-    await this.assertFileAccess(organizationId, fileMeta, ctx);
+    // 24/10/2026: chia se tiep = thao tac ghi -> nguoi chi co FileShare VIEW khong tu nang quyen/chia
+    // se tiep duoc (xem canAccessFile()).
+    await this.assertFileAccess(organizationId, fileMeta, ctx, true);
 
     const hasUser = !!dto.sharedWithUserId;
     const hasDepartment = !!dto.sharedWithDepartmentId;
@@ -475,7 +517,8 @@ export class FilesService {
   async remove(organizationId: string, actorId: string, id: string, ctx: AccessContext): Promise<void> {
     const fileMetaForAccessCheck = await this.fileMetaRepo.findOne({ where: { id, organizationId } });
     if (!fileMetaForAccessCheck) throw new NotFoundException({ message: 'Khong tim thay file', errorCode: ERROR_CODES.FILE_NOT_FOUND });
-    await this.assertFileAccess(organizationId, fileMetaForAccessCheck, ctx);
+    // 24/10/2026: thao tac ghi -> FileShare truc tiep phai la EDIT (xem canAccessFile()).
+    await this.assertFileAccess(organizationId, fileMetaForAccessCheck, ctx, true);
 
     // 25/08/2026: fix code review Major (phat hien qua dot ra soat toan du an lan 3) - ban sua
     // 22/08/2026 (doc FileVersion bang `manager` TRONG transaction) van con 1 khe ho: doc do KHONG

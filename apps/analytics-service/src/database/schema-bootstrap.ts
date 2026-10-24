@@ -123,3 +123,52 @@ export async function bootstrapProductSalesSchema(dataSource: DataSource): Promi
   `);
   logger.log('Da kiem tra/tao xong hypertable fact_product_sales (Inventory Service).');
 }
+
+/**
+ * 24/10/2026: bang cua Chat bot noi bo (Technical_Spec.md muc 23, xem chatbot/) - bang THUONG (KHONG
+ * phai hypertable: du lieu hoi thoai khong phai chuoi su kien phan tich theo thoi gian). Dat trong
+ * TimescaleDB san co cua analytics-service thay vi 1 Postgres/container moi (tai nguyen Docker han
+ * che). Hoi thoai la CA NHAN (organization_id + user_id) - moi truy van o ChatbotService deu loc
+ * theo CA 2 cot. chatbot_daily_usage: bo dem so cau hoi/ngay (GMT+7) cho tran han ngach.
+ *
+ * DDL PHAI giu dong bo voi infra/timescale-init/001-init.sql (xem ghi chu dau file nay).
+ */
+export async function bootstrapChatbotSchema(dataSource: DataSource): Promise<void> {
+  await dataSource.query(`
+    CREATE TABLE IF NOT EXISTS chatbot_conversations (
+      id               UUID             PRIMARY KEY DEFAULT gen_random_uuid(),
+      organization_id  UUID             NOT NULL,
+      user_id          UUID             NOT NULL,
+      title            TEXT,
+      created_at       TIMESTAMPTZ      NOT NULL DEFAULT now(),
+      updated_at       TIMESTAMPTZ      NOT NULL DEFAULT now()
+    )
+  `);
+  await dataSource.query(`
+    CREATE INDEX IF NOT EXISTS idx_chatbot_conversations_owner ON chatbot_conversations (organization_id, user_id, updated_at DESC)
+  `);
+  await dataSource.query(`
+    CREATE TABLE IF NOT EXISTS chatbot_messages (
+      id               UUID             PRIMARY KEY DEFAULT gen_random_uuid(),
+      conversation_id  UUID             NOT NULL REFERENCES chatbot_conversations(id) ON DELETE CASCADE,
+      role             TEXT             NOT NULL CHECK (role IN ('user', 'assistant')),
+      content          TEXT             NOT NULL,
+      tool_calls       JSONB,
+      citations        JSONB,
+      created_at       TIMESTAMPTZ      NOT NULL DEFAULT now()
+    )
+  `);
+  await dataSource.query(`
+    CREATE INDEX IF NOT EXISTS idx_chatbot_messages_conversation ON chatbot_messages (conversation_id, created_at)
+  `);
+  await dataSource.query(`
+    CREATE TABLE IF NOT EXISTS chatbot_daily_usage (
+      user_id          UUID             NOT NULL,
+      usage_date       DATE             NOT NULL,
+      organization_id  UUID             NOT NULL,
+      question_count   INT              NOT NULL DEFAULT 0,
+      PRIMARY KEY (user_id, usage_date)
+    )
+  `);
+  logger.log('Da kiem tra/tao xong bang Chat bot noi bo (chatbot_conversations, chatbot_messages, chatbot_daily_usage).');
+}

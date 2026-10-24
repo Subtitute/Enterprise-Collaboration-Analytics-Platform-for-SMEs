@@ -42,9 +42,12 @@ export const REST_PROXY_ROUTES: RestProxyRouteGroup[] = [
     targetConfigKey: 'services.notification',
   },
   {
-    prefixes: ['/api/v1/analytics'],
+    // 24/10/2026: them '/api/v1/chatbot' (Chat bot noi bo, Technical_Spec.md muc 23) - module chatbot
+    // nam trong analytics-service (dung chung client Gemini/Groq cua "Nhan xet AI", khong them
+    // container moi). 1 cau hoi co the qua nhieu vong goi tool nen cung huong tran thoi gian mo rong.
+    prefixes: ['/api/v1/analytics', '/api/v1/chatbot'],
     targetConfigKey: 'services.analytics',
-    timeoutMs: EXTENDED_PROXY_TIMEOUT_MS, // "Nhan xet AI"/bao cao tong hop co the mat hon 30s
+    timeoutMs: EXTENDED_PROXY_TIMEOUT_MS, // "Nhan xet AI"/bao cao tong hop/chat bot co the mat hon 30s
   },
   {
     // 04/08/2026: CRM-lite Service (Technical_Spec.md muc 16).

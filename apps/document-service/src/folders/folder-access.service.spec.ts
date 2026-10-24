@@ -1,107 +1,117 @@
 // 28/07/2026: file moi - unit test cho FolderAccessService.canAccessFolder (kiem soat truy cap
-// thu muc, opt-in). Bao phu day du 4 duong "duoc phep" + 1 duong "tu choi" mo ta trong yeu cau
-// nhiem vu: (1) thu muc ORGANIZATION, (2) la nguoi tao thu muc, (3) la Org Admin, (4) co
-// FolderShare khop (theo userId HOAC departmentId), va (5) khong khop dieu kien nao -> tu choi.
-import { FolderAccessService, AccessContext } from './folder-access.service';
+// thu muc, opt-in).
+// 24/10/2026: viet lai theo quy tac KE THUA tu thu muc cha (resolveFolderAccess) - giu cac duong cu
+// (ORGANIZATION / nguoi tao / Org Admin / FolderShare theo user hoac phong ban / tu choi) va bo sung
+// thu muc long nhau, quyen tuong minh phu cay con, vong lap du lieu, so truy van.
+import { AccessContext, FolderAccessNode, FolderAccessService, MAX_FOLDER_DEPTH, resolveFolderAccess } from './folder-access.service';
 import { Folder, FolderVisibility } from '../entities/folder.entity';
 
-describe('FolderAccessService.canAccessFolder', () => {
-  function buildService(findOneMock: jest.Mock = jest.fn().mockResolvedValue(null)) {
-    const folderShareRepo = { findOne: findOneMock };
-    const service = new FolderAccessService(folderShareRepo as never);
-    return { service, folderShareRepo };
+const { ORGANIZATION, RESTRICTED } = FolderVisibility;
+const EMPLOYEE: AccessContext = { userId: 'emp-1', departmentId: 'dept-1', isOrgAdmin: false };
+
+function node(id: string, visibility: FolderVisibility, parentFolderId: string | null = null, createdByUserId = 'owner-1'): FolderAccessNode {
+  return { id, visibility, parentFolderId, createdByUserId };
+}
+const tree = (...nodes: FolderAccessNode[]) => new Map(nodes.map((n) => [n.id, n]));
+
+describe('resolveFolderAccess (quy tac ke thua)', () => {
+  it('thu muc ORGANIZATION cap goc -> ai cung xem duoc; RESTRICTED khong quyen -> tu choi', () => {
+    const nodes = tree(node('org', ORGANIZATION), node('secret', RESTRICTED));
+    expect(resolveFolderAccess('org', nodes, new Set(), EMPLOYEE)).toBe(true);
+    expect(resolveFolderAccess('secret', nodes, new Set(), EMPLOYEE)).toBe(false);
+  });
+
+  it('thu muc cha RESTRICTED + thu muc con ORGANIZATION -> con cung bi tu choi (lo hong cu)', () => {
+    const nodes = tree(node('secret', RESTRICTED), node('child', ORGANIZATION, 'secret'));
+    expect(resolveFolderAccess('child', nodes, new Set(), EMPLOYEE)).toBe(false);
+  });
+
+  it('FolderShare CHI tren thu muc con -> xem duoc con, khong xem duoc cha', () => {
+    const nodes = tree(node('secret', RESTRICTED), node('child', ORGANIZATION, 'secret'));
+    const granted = new Set(['child']);
+    expect(resolveFolderAccess('child', nodes, granted, EMPLOYEE)).toBe(true);
+    expect(resolveFolderAccess('secret', nodes, granted, EMPLOYEE)).toBe(false);
+  });
+
+  it('FolderShare tren thu muc cha -> phu thu muc con ORGANIZATION; con RESTRICTED rieng (khong share) van chan', () => {
+    const nodes = tree(node('secret', RESTRICTED), node('child', ORGANIZATION, 'secret'), node('inner', RESTRICTED, 'secret'));
+    const granted = new Set(['secret']);
+    expect(resolveFolderAccess('child', nodes, granted, EMPLOYEE)).toBe(true);
+    expect(resolveFolderAccess('inner', nodes, granted, EMPLOYEE)).toBe(false); // inner tu han che rieng, chan truoc khi toi cha
+  });
+
+  it('nguoi tao thu muc con ben trong thu muc cha RESTRICTED -> xem duoc thu muc cua minh', () => {
+    const nodes = tree(node('secret', RESTRICTED), node('mine', ORGANIZATION, 'secret', 'emp-1'));
+    expect(resolveFolderAccess('mine', nodes, new Set(), EMPLOYEE)).toBe(true);
+    expect(resolveFolderAccess('secret', nodes, new Set(), EMPLOYEE)).toBe(false);
+  });
+
+  it('3 cap: goc RESTRICTED > ORGANIZATION > ORGANIZATION -> chau bi tu choi; share o goc -> chau xem duoc', () => {
+    const nodes = tree(node('a', RESTRICTED), node('b', ORGANIZATION, 'a'), node('c', ORGANIZATION, 'b'));
+    expect(resolveFolderAccess('c', nodes, new Set(), EMPLOYEE)).toBe(false);
+    expect(resolveFolderAccess('c', nodes, new Set(['a']), EMPLOYEE)).toBe(true);
+    // 3 cap toan ORGANIZATION -> cho phep
+    const open = tree(node('a', ORGANIZATION), node('b', ORGANIZATION, 'a'), node('c', ORGANIZATION, 'b'));
+    expect(resolveFolderAccess('c', open, new Set(), EMPLOYEE)).toBe(true);
+  });
+
+  it('du lieu bat thuong -> tu choi: vong lap cha-con, thu muc cha khong ton tai, thu muc khong ton tai, qua sau', () => {
+    const cycle = tree(node('x', ORGANIZATION, 'y'), node('y', ORGANIZATION, 'x'));
+    expect(resolveFolderAccess('x', cycle, new Set(), EMPLOYEE)).toBe(false);
+    expect(resolveFolderAccess('orphan', tree(node('orphan', ORGANIZATION, 'missing')), new Set(), EMPLOYEE)).toBe(false);
+    expect(resolveFolderAccess('missing', tree(), new Set(), EMPLOYEE)).toBe(false);
+
+    const deep = Array.from({ length: MAX_FOLDER_DEPTH + 1 }, (_, i) => node(`d${i}`, ORGANIZATION, i === 0 ? null : `d${i - 1}`));
+    expect(resolveFolderAccess(`d${MAX_FOLDER_DEPTH}`, tree(...deep), new Set(), EMPLOYEE)).toBe(false);
+  });
+
+  it('Org Admin -> luon cho phep (ke ca du lieu bat thuong)', () => {
+    const nodes = tree(node('secret', RESTRICTED), node('child', ORGANIZATION, 'secret'));
+    expect(resolveFolderAccess('child', nodes, new Set(), { ...EMPLOYEE, isOrgAdmin: true })).toBe(true);
+  });
+});
+
+describe('FolderAccessService', () => {
+  function buildService(folders: FolderAccessNode[], shares: { folderId: string }[] = []) {
+    const folderRepo = { find: jest.fn().mockResolvedValue(folders) };
+    const folderShareRepo = { find: jest.fn().mockResolvedValue(shares) };
+    const service = new FolderAccessService(folderShareRepo as never, folderRepo as never);
+    return { service, folderRepo, folderShareRepo };
   }
+  const asFolder = (n: FolderAccessNode) => ({ ...n, organizationId: 'org-1' }) as Folder;
 
-  const restrictedFolder: Pick<Folder, 'id' | 'visibility' | 'createdByUserId'> = {
-    id: 'folder-1',
-    visibility: FolderVisibility.RESTRICTED,
-    createdByUserId: 'owner-1',
-  };
+  it('createChecker: 2 truy van cho CA request (thu muc cua to chuc + share theo user HOAC phong ban)', async () => {
+    const { service, folderRepo, folderShareRepo } = buildService([node('a', RESTRICTED), node('b', ORGANIZATION, 'a'), node('c', ORGANIZATION)], [
+      { folderId: 'a' },
+    ]);
+    const check = await service.createChecker('org-1', EMPLOYEE);
 
-  it('[duong 1] cho phep khi thu muc la ORGANIZATION (mac dinh), bat ke nguoi goi la ai', async () => {
-    const { service, folderShareRepo } = buildService();
-    const organizationFolder = { ...restrictedFolder, visibility: FolderVisibility.ORGANIZATION };
-    const ctx: AccessContext = { userId: 'stranger-1', departmentId: null, isOrgAdmin: false };
-
-    const result = await service.canAccessFolder(organizationFolder, ctx);
-
-    expect(result).toBe(true);
-    expect(folderShareRepo.findOne).not.toHaveBeenCalled(); // khong can truy van DB - da quyet dinh xong o dieu kien dau.
-  });
-
-  it('[duong 2] cho phep khi nguoi goi chinh la nguoi tao thu muc RESTRICTED', async () => {
-    const { service, folderShareRepo } = buildService();
-    const ctx: AccessContext = { userId: 'owner-1', departmentId: null, isOrgAdmin: false };
-
-    const result = await service.canAccessFolder(restrictedFolder, ctx);
-
-    expect(result).toBe(true);
-    expect(folderShareRepo.findOne).not.toHaveBeenCalled();
-  });
-
-  it('[duong 3] cho phep khi nguoi goi la Org Admin (du khong phai nguoi tao, khong co FolderShare)', async () => {
-    const { service, folderShareRepo } = buildService();
-    const ctx: AccessContext = { userId: 'admin-1', departmentId: null, isOrgAdmin: true };
-
-    const result = await service.canAccessFolder(restrictedFolder, ctx);
-
-    expect(result).toBe(true);
-    expect(folderShareRepo.findOne).not.toHaveBeenCalled();
-  });
-
-  it('[duong 4a] cho phep khi co 1 dong FolderShare khop truc tiep voi userId cua nguoi goi', async () => {
-    const findOneMock = jest.fn().mockResolvedValue({ id: 'share-1', sharedWithUserId: 'member-1' });
-    const { service } = buildService(findOneMock);
-    const ctx: AccessContext = { userId: 'member-1', departmentId: null, isOrgAdmin: false };
-
-    const result = await service.canAccessFolder(restrictedFolder, ctx);
-
-    expect(result).toBe(true);
-    expect(findOneMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: [{ folderId: 'folder-1', sharedWithUserId: 'member-1' }],
-      }),
+    expect([check('a'), check('b'), check('c'), check('b')]).toEqual([true, true, true, true]);
+    expect(folderRepo.find).toHaveBeenCalledTimes(1);
+    expect(folderRepo.find).toHaveBeenCalledWith(expect.objectContaining({ where: { organizationId: 'org-1' } }));
+    expect(folderShareRepo.find).toHaveBeenCalledWith(
+      expect.objectContaining({ where: [{ sharedWithUserId: 'emp-1' }, { sharedWithDepartmentId: 'dept-1' }] }),
     );
   });
 
-  it('[duong 4b] cho phep khi co 1 dong FolderShare khop voi departmentId cua nguoi goi (khong khop userId)', async () => {
-    const findOneMock = jest.fn().mockResolvedValue({ id: 'share-1', sharedWithDepartmentId: 'dept-1' });
-    const { service } = buildService(findOneMock);
-    const ctx: AccessContext = { userId: 'member-1', departmentId: 'dept-1', isOrgAdmin: false };
-
-    const result = await service.canAccessFolder(restrictedFolder, ctx);
-
-    expect(result).toBe(true);
-    // Ca 2 dieu kien (userId VA departmentId) phai duoc dua vao 1 truy van OR DUY NHAT.
-    expect(findOneMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: [
-          { folderId: 'folder-1', sharedWithUserId: 'member-1' },
-          { folderId: 'folder-1', sharedWithDepartmentId: 'dept-1' },
-        ],
-      }),
-    );
+  it('canAccessFolder: duong tat khong truy van (Org Admin, nguoi tao, ORGANIZATION cap goc)', async () => {
+    const { service, folderRepo } = buildService([]);
+    expect(await service.canAccessFolder(asFolder(node('s', RESTRICTED)), { ...EMPLOYEE, isOrgAdmin: true })).toBe(true);
+    expect(await service.canAccessFolder(asFolder(node('s', RESTRICTED, 'p', 'emp-1')), EMPLOYEE)).toBe(true);
+    expect(await service.canAccessFolder(asFolder(node('o', ORGANIZATION)), EMPLOYEE)).toBe(true);
+    expect(folderRepo.find).not.toHaveBeenCalled();
   });
 
-  it('khong dua dieu kien departmentId vao truy van khi ctx.departmentId la null (nguoi dung chua duoc gan phong ban)', async () => {
-    const findOneMock = jest.fn().mockResolvedValue(null);
-    const { service } = buildService(findOneMock);
-    const ctx: AccessContext = { userId: 'member-1', departmentId: null, isOrgAdmin: false };
-
-    await service.canAccessFolder(restrictedFolder, ctx);
-
-    expect(findOneMock).toHaveBeenCalledWith(
-      expect.objectContaining({ where: [{ folderId: 'folder-1', sharedWithUserId: 'member-1' }] }),
-    );
+  it('canAccessFolder: thu muc con ORGANIZATION trong thu muc cha RESTRICTED -> tu choi', async () => {
+    const parent = node('secret', RESTRICTED);
+    const child = node('child', ORGANIZATION, 'secret');
+    const { service } = buildService([parent, child]);
+    expect(await service.canAccessFolder(asFolder(child), EMPLOYEE)).toBe(false);
   });
 
-  it('[duong tu choi] tra ve false khi thu muc RESTRICTED, khong phai nguoi tao/Org Admin, khong co FolderShare khop', async () => {
-    const findOneMock = jest.fn().mockResolvedValue(null);
-    const { service } = buildService(findOneMock);
-    const ctx: AccessContext = { userId: 'stranger-1', departmentId: 'dept-khac', isOrgAdmin: false };
-
-    const result = await service.canAccessFolder(restrictedFolder, ctx);
-
-    expect(result).toBe(false);
+  it('canAccessFolder: FolderShare theo phong ban tren thu muc RESTRICTED -> cho phep', async () => {
+    const secret = node('secret', RESTRICTED);
+    const { service } = buildService([secret], [{ folderId: 'secret' }]);
+    expect(await service.canAccessFolder(asFolder(secret), EMPLOYEE)).toBe(true);
   });
 });

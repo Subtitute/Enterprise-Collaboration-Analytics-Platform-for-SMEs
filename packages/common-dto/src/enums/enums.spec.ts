@@ -104,4 +104,12 @@ describe('DefaultRoleName / PERMISSIONS / DEFAULT_ROLE_PERMISSIONS', () => {
     expect(employeePerms).toContain(PERMISSIONS.CUSTOMER_PURCHASE_VIEW);
     expect(employeePerms).not.toContain(PERMISSIONS.CUSTOMER_PURCHASE_DELETE);
   });
+
+  // 24/10/2026: Chat bot noi bo - tien ich ngang hang, ca 3 vai tro mac dinh deu duoc dung.
+  it('CHATBOT_USE thuoc ve ca 3 vai tro mac dinh', () => {
+    expect(PERMISSIONS.CHATBOT_USE).toBe('chatbot:use');
+    for (const role of Object.values(DefaultRoleName)) {
+      expect(DEFAULT_ROLE_PERMISSIONS[role]).toContain(PERMISSIONS.CHATBOT_USE);
+    }
+  });
 });

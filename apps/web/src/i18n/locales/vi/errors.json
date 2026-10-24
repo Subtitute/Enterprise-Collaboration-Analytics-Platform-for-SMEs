@@ -1,4 +1,10 @@
 {
-  "INVALID_CREDENTIALS": "Email hoặc mật khẩu không đúng."
+  "INVALID_CREDENTIALS": "Email hoặc mật khẩu không đúng.",
+  "CHATBOT_NOT_CONFIGURED": "Trợ lý ECAP chưa được cấu hình (thiếu khóa API của dịch vụ AI). Vui lòng liên hệ quản trị hệ thống.",
+  "CHATBOT_GENERATION_FAILED": "Trợ lý ECAP tạm thời không trả lời được, vui lòng thử lại sau.",
+  "CHATBOT_DAILY_LIMIT_EXCEEDED": "Bạn đã dùng hết {{limit}} câu hỏi cho Trợ lý ECAP hôm nay. Vui lòng quay lại vào ngày mai.",
+  "CHATBOT_CONVERSATION_NOT_FOUND": "Không tìm thấy cuộc trò chuyện.",
+  "DOCUMENT_SEARCH_UNAVAILABLE": "Tìm kiếm nội dung tài liệu tạm thời không khả dụng, vui lòng thử lại sau.",
+  "DOCUMENT_SEARCH_RATE_LIMITED": "Bạn đã tìm kiếm tài liệu quá nhiều lần trong thời gian ngắn, vui lòng thử lại sau ít phút.",
+  "CHATBOT_CONVERSATION_BUSY": "Cuộc trò chuyện này đang xử lý một câu hỏi khác, vui lòng đợi câu trả lời trước khi hỏi tiếp."
 }
-

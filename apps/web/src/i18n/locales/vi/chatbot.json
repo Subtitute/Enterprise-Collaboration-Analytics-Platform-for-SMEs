@@ -1,0 +1,56 @@
+{
+  "launcher": {
+    "open": "Mở Trợ lý ECAP",
+    "close": "Đóng Trợ lý ECAP"
+  },
+  "panel": {
+    "title": "Trợ lý ECAP",
+    "subtitle": "Hỏi về tài liệu, công việc, chấm công, nghỉ phép",
+    "newChat": "Cuộc trò chuyện mới",
+    "history": "Lịch sử trò chuyện",
+    "backToChat": "Quay lại cuộc trò chuyện",
+    "close": "Đóng",
+    "loading": "Đang tải…"
+  },
+  "thread": {
+    "welcomeTitle": "Xin chào! Mình có thể giúp gì cho bạn?",
+    "welcomeDescription": "Mình trả lời dựa trên tài liệu nội bộ và dữ liệu của chính bạn — chỉ trong phạm vi bạn có quyền xem.",
+    "suggestionsLabel": "Gợi ý câu hỏi",
+    "suggestions": {
+      "tasks": "Tôi đang có những công việc nào chưa hoàn thành?",
+      "leave": "Tôi còn bao nhiêu ngày phép năm nay?",
+      "documents": "Quy định làm việc từ xa của công ty là gì?"
+    },
+    "placeholder": "Nhập câu hỏi… (Enter để gửi, Shift+Enter để xuống dòng)",
+    "send": "Gửi câu hỏi",
+    "processing": "Đang xử lý…",
+    "you": "Bạn",
+    "assistant": "Trợ lý",
+    "sources": "Nguồn",
+    "openSource": "Mở tài liệu {{name}}",
+    "usedTools": "Đã tra cứu: {{tools}}",
+    "usage": "Đã dùng {{used}}/{{limit}} câu hỏi hôm nay",
+    "charCount": "{{count}}/{{max}}",
+    "loadError": "Không tải được nội dung cuộc trò chuyện.",
+    "retry": "Thử lại",
+    "disclaimer": "Trợ lý AI có thể nhầm lẫn — hãy kiểm tra lại thông tin quan trọng."
+  },
+  "tools": {
+    "search_documents": "tài liệu",
+    "get_my_tasks": "công việc của bạn",
+    "get_project_status": "dự án",
+    "get_my_leave_balance": "ngày phép",
+    "get_my_attendance_today": "chấm công hôm nay"
+  },
+  "history": {
+    "empty": "Chưa có cuộc trò chuyện nào.",
+    "untitled": "Cuộc trò chuyện mới",
+    "delete": "Xóa cuộc trò chuyện",
+    "confirmDeleteTitle": "Xóa cuộc trò chuyện?",
+    "confirmDeleteDescription": "Toàn bộ câu hỏi và câu trả lời trong cuộc trò chuyện này sẽ bị xóa vĩnh viễn.",
+    "loadError": "Không tải được lịch sử trò chuyện."
+  },
+  "toast": {
+    "deleteError": "Không xóa được cuộc trò chuyện"
+  }
+}

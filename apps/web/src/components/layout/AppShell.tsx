@@ -8,6 +8,9 @@ import { Topbar } from './Topbar';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { useNotificationSocket } from '@/features/notifications/hooks';
 import { useMessagingSocket } from '@/features/messaging/hooks';
+// 24/10/2026: Chat bot noi bo - nut chat noi + panel co mat tren MOI trang da dang nhap (tu an voi
+// nguoi khong co quyen chatbot:use), xem features/chatbot/ChatbotWidget.tsx.
+import { ChatbotWidget } from '@/features/chatbot/ChatbotWidget';
 
 export function AppShell() {
   const { t } = useTranslation();
@@ -69,6 +72,7 @@ export function AppShell() {
           </Suspense>
         </main>
       </div>
+      <ChatbotWidget />
     </div>
   );
 }

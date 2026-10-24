@@ -106,6 +106,12 @@ export const PERMISSIONS = {
   CUSTOMER_PURCHASE_CREATE: 'customer_purchase:create',
   CUSTOMER_PURCHASE_UPDATE: 'customer_purchase:update',
   CUSTOMER_PURCHASE_DELETE: 'customer_purchase:delete',
+
+  // 24/10/2026: Chat bot noi bo (RAG tai lieu + tool-calling, Technical_Spec.md muc 23) - tien ich
+  // ngang hang cho MOI vai tro (mirror tinh than MESSAGE_VIEW/MESSAGE_SEND), khong phai tinh nang
+  // quan tri. Quyen nay CHI mo cua chat bot; du lieu bot doc duoc van bi gioi han boi quyen that cua
+  // nguoi hoi (moi tool goi lai Gateway bang chinh JWT cua ho - xem apps/analytics-service/src/chatbot).
+  CHATBOT_USE: 'chatbot:use',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -181,6 +187,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<DefaultRoleName, Permission[]> = {
     PERMISSIONS.CUSTOMER_PURCHASE_CREATE,
     PERMISSIONS.CUSTOMER_PURCHASE_UPDATE,
     PERMISSIONS.CUSTOMER_PURCHASE_DELETE,
+    // 24/10/2026: Chat bot noi bo - xem chu thich tai khai bao CHATBOT_USE o tren.
+    PERMISSIONS.CHATBOT_USE,
   ],
   [DefaultRoleName.EMPLOYEE]: [
     PERMISSIONS.PROJECT_VIEW,
@@ -220,5 +228,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<DefaultRoleName, Permission[]> = {
     PERMISSIONS.CUSTOMER_PURCHASE_CREATE,
     PERMISSIONS.CUSTOMER_PURCHASE_UPDATE,
     PERMISSIONS.CUSTOMER_PURCHASE_VIEW,
+    // 24/10/2026: Chat bot noi bo - xem chu thich tai khai bao CHATBOT_USE o tren.
+    PERMISSIONS.CHATBOT_USE,
   ],
 };

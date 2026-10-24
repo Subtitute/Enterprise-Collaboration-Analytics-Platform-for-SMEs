@@ -37,4 +37,15 @@ export default () => ({
     apiKey: process.env.GROQ_API_KEY,
     model: process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b',
   },
+  // 24/10/2026: Chat bot noi bo (Technical_Spec.md muc 23, xem chatbot/). Dung lai gemini.apiKey/
+  // groq.apiKey/groq.model o tren (cung thu tu uu tien Gemini -> Groq du phong nhu "Nhan xet AI"),
+  // chi tach rieng MODEL Gemini: hoi-dap co nhieu vong goi tool lien tiep nen can model phan hoi
+  // nhanh - xac minh song 24/10/2026: gemini-flash-latest > 40s/vong (qua tai), gemini-flash-lite-latest
+  // ~1-2s/vong, ca 2 deu ho tro function calling. gatewayUrl: Gateway CONG KHAI ma tool goi lai kem
+  // JWT nguoi hoi (trong Docker la http://gateway:3000).
+  chatbot: {
+    geminiModel: process.env.CHATBOT_GEMINI_MODEL ?? 'gemini-flash-lite-latest',
+    gatewayUrl: process.env.CHATBOT_GATEWAY_URL ?? 'http://localhost:3000',
+    dailyQuestionLimit: parseInt(process.env.CHATBOT_DAILY_QUESTION_LIMIT ?? '30', 10),
+  },
 });

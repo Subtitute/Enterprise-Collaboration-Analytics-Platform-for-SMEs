@@ -71,6 +71,9 @@ export const PERMISSIONS = {
   CUSTOMER_PURCHASE_CREATE: 'customer_purchase:create',
   CUSTOMER_PURCHASE_UPDATE: 'customer_purchase:update',
   CUSTOMER_PURCHASE_DELETE: 'customer_purchase:delete',
+
+  // 24/10/2026: Chat bot noi bo (RAG tai lieu + tool-calling) - mirror packages/common-dto/src/enums/permission.enum.ts.
+  CHATBOT_USE: 'chatbot:use',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

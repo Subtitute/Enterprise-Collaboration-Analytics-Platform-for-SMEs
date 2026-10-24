@@ -5,7 +5,6 @@
   "GATEWAY_RATE_LIMITED": "リクエストが多すぎます。数分後にもう一度お試しください。",
   "GATEWAY_PROXY_FAILED": "サービスに接続できません。しばらくしてからもう一度お試しください。",
   "INTERNAL_ERROR": "予期しないエラーが発生しました。しばらくしてからもう一度お試しください。",
-
   "FORBIDDEN_SELF_PROFILE_ONLY": "自分自身のプロフィールのみ閲覧できます。",
   "USER_NOT_FOUND": "ユーザーが見つかりませんでした。",
   "EMAIL_ALREADY_USED": "このメールアドレスは既に使用されています。",
@@ -15,7 +14,6 @@
   "CANNOT_DEACTIVATE_SELF": "自分自身のアカウントを無効化することはできません。",
   "CANNOT_DELETE_SELF": "自分自身のアカウントを削除することはできません。",
   "CANNOT_DELETE_ACTIVE_USER": "既に無効化されたアカウントのみ完全に削除できます。",
-
   "MISSING_REFRESH_TOKEN": "リフレッシュトークンがありません。再度ログインしてください。",
   "EMAIL_ALREADY_USED_BY_ORG": "このメールアドレスは既に別の組織で使用されています。",
   "INVALID_CREDENTIALS": "メールアドレスまたはパスワードが正しくありません。",
@@ -25,19 +23,15 @@
   "USER_INACTIVE_OR_MISSING": "このユーザーは存在しないか、無効化されています。",
   "REFRESH_TOKEN_NOT_FOUND_OR_REVOKED": "このリフレッシュトークンは存在しないか、既に無効化されています。",
   "PASSWORD_RESET_TOKEN_INVALID": "このパスワード再設定リンクは無効か期限切れです。もう一度リクエストしてください。",
-
   "ROLE_NOT_FOUND": "ロールが見つかりませんでした。",
-
   "FORBIDDEN_SUPER_ADMIN_ONLY": "この操作はプラットフォームのSuper Adminのみ実行できます。",
   "ORGANIZATION_NOT_FOUND": "組織が見つかりませんでした。",
-
   "PROJECT_NOT_FOUND_IN_ORG": "組織内にこのプロジェクトが見つかりませんでした。",
   "TASK_STATUS_TRANSITION_INVALID": "タスクのステータスを{{from}}から{{to}}に変更することはできません。",
   "TASK_NOT_FOUND": "タスクが見つかりませんでした。",
   "PROJECT_NOT_FOUND": "プロジェクトが見つかりませんでした。",
   "PROJECT_ALREADY_COMPLETED": "このプロジェクトは既に完了しています。",
   "PROJECT_ALREADY_ARCHIVED": "このプロジェクトは既にアーカイブされています。",
-
   "MISSING_UPLOAD_FILE": "アップロードするファイルがありません。",
   "INVALID_FOLDER_ID": "folderIdは有効なUUIDである必要があります。",
   "PARENT_FOLDER_NOT_FOUND": "親フォルダが見つかりませんでした。",
@@ -52,14 +46,12 @@
   "FILE_NOT_FOUND": "ファイルが見つかりませんでした。",
   "FILE_NAME_TOO_LONG": "ファイル名が長すぎます（最大{{max}}文字）。",
   "UNSUPPORTED_FILE_TYPE": "サポートされていないファイル形式です: {{mimeType}}。",
-
   "MISSING_CHECKIN_PHOTO": "勤怠写真がありません。",
   "INVALID_PHOTO_KIND": "kindは\"checkin\"または\"checkout\"である必要があります。",
   "LEAVE_DATE_RANGE_INVALID": "開始日は終了日より後にすることはできません。",
   "LEAVE_START_DATE_IN_PAST": "開始日を過去の日付にすることはできません。",
   "LEAVE_REQUEST_NOT_FOUND": "休暇申請が見つかりませんでした。",
   "LEAVE_REQUEST_ALREADY_DECIDED": "この休暇申請は既に処理済みです。",
-  "INVALID_FACE_MATCH_SCORE": "顔認証の一致度が無効です。",
   "ALREADY_CHECKED_IN_TODAY": "本日は既に出勤打刻済みです。",
   "NOT_CHECKED_IN_YET": "本日はまだ出勤打刻をしていないため、退勤打刻はできません。",
   "ALREADY_CHECKED_OUT_TODAY": "本日は既に退勤打刻済みです。",
@@ -67,28 +59,23 @@
   "FORBIDDEN_ATTENDANCE_PHOTO": "この勤怠写真を閲覧する権限がありません。",
   "ATTENDANCE_PHOTO_MISSING": "この操作に対応する写真がまだ登録されていません。",
   "INVALID_COORDINATE": "{{field}}が無効です。",
+  "INVALID_FACE_MATCH_SCORE": "顔認証の一致度が無効です。",
   "PHOTO_CONTENT_MISMATCH": "写真の内容が宣言された種類（{{mimeType}}）と一致しません。",
-
   "CALENDAR_EVENT_NOT_FOUND": "カレンダーの項目が見つかりませんでした。",
   "CALENDAR_EVENT_DATE_RANGE_INVALID": "開始日は終了日より後にすることはできません。",
-
   "CUSTOMER_NOT_FOUND_IN_ORG": "組織内にこの顧客が見つかりませんでした。",
   "DEAL_STAGE_TRANSITION_INVALID": "取引のステージを{{from}}から{{to}}に変更することはできません。",
   "DEAL_NOT_FOUND": "取引が見つかりませんでした。",
   "CUSTOMER_NOT_FOUND": "顧客が見つかりませんでした。",
-
   "AI_INSIGHT_NOT_CONFIGURED": "AIインサイト機能が設定されていません（GEMINI_API_KEYとGROQ_API_KEYのいずれも未設定です）。システム管理者にお問い合わせください。",
   "AI_INSIGHT_GENERATION_FAILED": "現在AIインサイトを生成できません。しばらくしてからもう一度お試しください。",
   "INVALID_RANGE_WITH_QUARTER": "無効な期間です:「{{range}}」（7d、30d、quarterのみ指定できます）。",
   "INVALID_RANGE_NO_QUARTER": "無効な期間です:「{{range}}」（7dまたは30dのみ指定できます）。",
-
   "NOTIFICATION_NOT_FOUND": "通知が見つかりませんでした。",
-
   "PRODUCT_CATEGORY_HAS_PRODUCTS": "このカテゴリにはまだ商品が登録されています。先に商品を削除または変更してください。",
   "PRODUCT_HAS_PURCHASE_HISTORY": "この商品には購入履歴があるため削除できません。",
   "WAREHOUSE_HAS_STOCK": "この倉庫にはまだ在庫があります。先に在庫を空にしてください。",
   "STOCK_INSUFFICIENT": "在庫が不足しているため、この操作を完了できません。",
-
   "VALIDATION_INVALID_EMAIL": "{{field}}は有効なメールアドレスを入力してください。",
   "VALIDATION_INVALID_STRING": "{{field}}は文字列で入力してください。",
   "VALIDATION_REQUIRED": "{{field}}は必須です。",
@@ -107,5 +94,12 @@
   "VALIDATION_MAX_VALUE": "{{field}}は{{n}}以下の値を入力してください。",
   "VALIDATION_ARRAY_MIN_SIZE": "{{field}}は{{n}}個以上の要素を含めてください。",
   "VALIDATION_ARRAY_MAX_SIZE": "{{field}}は{{n}}個以内の要素にしてください。",
-  "VALIDATION_INVALID": "{{field}}の値が無効です。"
+  "VALIDATION_INVALID": "{{field}}の値が無効です。",
+  "CHATBOT_NOT_CONFIGURED": "ECAPアシスタントが設定されていません（AIサービスのAPIキーがありません）。システム管理者にお問い合わせください。",
+  "CHATBOT_GENERATION_FAILED": "ECAPアシスタントは現在回答できません。しばらくしてから再度お試しください。",
+  "CHATBOT_DAILY_LIMIT_EXCEEDED": "本日のECAPアシスタントへの質問上限（{{limit}}件）に達しました。明日またご利用ください。",
+  "CHATBOT_CONVERSATION_NOT_FOUND": "チャットが見つかりません。",
+  "DOCUMENT_SEARCH_UNAVAILABLE": "文書内容の検索は一時的に利用できません。しばらくしてから再度お試しください。",
+  "DOCUMENT_SEARCH_RATE_LIMITED": "短時間に文書検索が多すぎます。数分後に再度お試しください。",
+  "CHATBOT_CONVERSATION_BUSY": "このチャットは別の質問に回答中です。回答が届いてから次の質問をしてください。"
 }

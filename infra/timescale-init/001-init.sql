@@ -141,6 +141,40 @@ SELECT create_hypertable('fact_user_activity', by_range('time'), if_not_exists =
 CREATE INDEX IF NOT EXISTS idx_fact_user_activity_org ON fact_user_activity (organization_id, time DESC);
 
 -- ============================================================
+-- 24/10/2026: Chat bot noi bo (Technical_Spec.md muc 23) - bang THUONG (khong phai hypertable), hoi
+-- thoai CA NHAN theo (organization_id, user_id) + bo dem tran cau hoi/ngay. Dong bo voi
+-- bootstrapChatbotSchema() trong apps/analytics-service/src/database/schema-bootstrap.ts.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS chatbot_conversations (
+  id               UUID             PRIMARY KEY DEFAULT gen_random_uuid(),
+  organization_id  UUID             NOT NULL,
+  user_id          UUID             NOT NULL,
+  title            TEXT,
+  created_at       TIMESTAMPTZ      NOT NULL DEFAULT now(),
+  updated_at       TIMESTAMPTZ      NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_chatbot_conversations_owner ON chatbot_conversations (organization_id, user_id, updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS chatbot_messages (
+  id               UUID             PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id  UUID             NOT NULL REFERENCES chatbot_conversations(id) ON DELETE CASCADE,
+  role             TEXT             NOT NULL CHECK (role IN ('user', 'assistant')),
+  content          TEXT             NOT NULL,
+  tool_calls       JSONB,
+  citations        JSONB,
+  created_at       TIMESTAMPTZ      NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_chatbot_messages_conversation ON chatbot_messages (conversation_id, created_at);
+
+CREATE TABLE IF NOT EXISTS chatbot_daily_usage (
+  user_id          UUID             NOT NULL,
+  usage_date       DATE             NOT NULL,
+  organization_id  UUID             NOT NULL,
+  question_count   INT              NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, usage_date)
+);
+
+-- ============================================================
 -- Continuous aggregate: tong hop task theo ngay (daily_task_summary)
 -- Theo Technical_Spec.md muc 3.6 va muc 4.4
 --
