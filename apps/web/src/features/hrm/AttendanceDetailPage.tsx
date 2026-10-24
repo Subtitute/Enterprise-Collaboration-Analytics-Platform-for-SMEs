@@ -12,9 +12,17 @@ import { useUserNameMap } from '@/hooks/useOrgUsers';
 import { usePermissions } from '@/stores/auth.store';
 import { PERMISSIONS } from '@/constants/permissions';
 import { useApprovedAttendanceAdjustmentsQuery, useEmployeeAttendanceQuery } from './hooks';
-import { AttendanceStatusBadge, formatTotalHours, getTodayGmt7, OnSiteBadge, PhotoProofModal } from './AttendancePage';
+import { AttendanceStatusBadge, FaceMatchBadge, formatTotalHours, getTodayGmt7, OnSiteBadge, PhotoProofModal } from './AttendancePage';
 
-type PhotoTarget = { id: string; kind: 'checkin' | 'checkout'; time: string; userName?: string; isOnSite?: boolean | null } | null;
+type PhotoTarget = {
+  id: string;
+  kind: 'checkin' | 'checkout';
+  time: string;
+  userName?: string;
+  isOnSite?: boolean | null;
+  faceMatched?: boolean | null;
+  faceMatchScore?: number | null;
+} | null;
 
 /**
  * 03/10/2026: trang chi tiet cham cong cua 1 nhan vien (/attendance/:userId) - CHI Manager/Org Admin
@@ -98,6 +106,7 @@ export default function AttendanceDetailPage() {
                           <div className="flex items-center gap-2">
                             <span className="font-mono font-semibold text-slate-800">{formatTime(record.checkInAt)}</span>
                             <OnSiteBadge isOnSite={record.checkInIsOnSite} />
+                            <FaceMatchBadge matched={record.checkInFaceMatched} score={record.checkInFaceMatchScore} />
                             <button
                               type="button"
                               onClick={() =>
@@ -107,6 +116,8 @@ export default function AttendanceDetailPage() {
                                   time: formatDateTime(record.checkInAt),
                                   userName: employeeName,
                                   isOnSite: record.checkInIsOnSite,
+                                  faceMatched: record.checkInFaceMatched,
+                                  faceMatchScore: record.checkInFaceMatchScore,
                                 })
                               }
                               className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"
@@ -122,6 +133,7 @@ export default function AttendanceDetailPage() {
                             <div className="flex items-center gap-2">
                               <span className="font-mono font-semibold text-slate-800">{formatTime(record.checkOutAt)}</span>
                               <OnSiteBadge isOnSite={record.checkOutIsOnSite} />
+                              <FaceMatchBadge matched={record.checkOutFaceMatched} score={record.checkOutFaceMatchScore} />
                               <button
                                 type="button"
                                 onClick={() =>
@@ -131,6 +143,8 @@ export default function AttendanceDetailPage() {
                                     time: formatDateTime(record.checkOutAt),
                                     userName: employeeName,
                                     isOnSite: record.checkOutIsOnSite,
+                                    faceMatched: record.checkOutFaceMatched,
+                                    faceMatchScore: record.checkOutFaceMatchScore,
                                   })
                                 }
                                 className="inline-flex items-center justify-center h-5.5 w-5.5 rounded bg-slate-100 text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors cursor-pointer"

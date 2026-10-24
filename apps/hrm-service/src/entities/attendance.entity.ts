@@ -62,4 +62,26 @@ export class Attendance extends AppBaseEntity {
 
   @Column({ name: 'check_out_is_on_site', type: 'boolean', nullable: true })
   checkOutIsOnSite?: boolean | null;
+
+  // 24/10/2026: diem tuong dong khuon mat (Face recognition - verify 1:1, ml-service) - mirror
+  // CHINH XAC tinh than cua checkInLatitude/checkInIsOnSite o tren: CO Y KHONG bat buoc (nullable)
+  // va KHONG chan check-in/out khi thieu/khong khop - chi la 1 tin hieu THEM de Manager doi
+  // chieu, KHONG phai co che thuc thi cung (xem AttendanceService.computeFaceMatched() cho ly do
+  // day du: cung 1 lop rui ro gia mao/sai so nhu GPS, chap nhan duoc o quy mo do an). `score` la
+  // gia tri tho (cosine similarity, [-1, 1]) do ml-service tra ve; `matched` la co THAT (boolean)
+  // tu tinh LAI o day bang nguong cua CHINH hrm-service (khong tin thang gia tri "matched" cua
+  // client goi len) - mirror dung cach checkInIsOnSite duoc hrm-service tu tinh tu lat/long tho,
+  // khong nhan 1 boolean co san tu client.
+  @Column({ name: 'check_in_face_match_score', type: 'double precision', nullable: true })
+  checkInFaceMatchScore?: number | null;
+
+  /** null = chua dang ky khuon mat/khong co du lieu de danh gia - KHAC voi false (da danh gia la khong khop). */
+  @Column({ name: 'check_in_face_matched', type: 'boolean', nullable: true })
+  checkInFaceMatched?: boolean | null;
+
+  @Column({ name: 'check_out_face_match_score', type: 'double precision', nullable: true })
+  checkOutFaceMatchScore?: number | null;
+
+  @Column({ name: 'check_out_face_matched', type: 'boolean', nullable: true })
+  checkOutFaceMatched?: boolean | null;
 }

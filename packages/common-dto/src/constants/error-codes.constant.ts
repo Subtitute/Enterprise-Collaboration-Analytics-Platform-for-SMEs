@@ -116,6 +116,9 @@ export const ERROR_CODES = {
   // ---- HRM-lite: lich cong ty (bo sung 15/09/2026) ----
   CALENDAR_EVENT_NOT_FOUND: 'CALENDAR_EVENT_NOT_FOUND',
   CALENDAR_EVENT_DATE_RANGE_INVALID: 'CALENDAR_EVENT_DATE_RANGE_INVALID',
+  // 24/10/2026: Face recognition (verify 1:1) cho cham cong - diem tuong dong (faceMatchScore)
+  // doc THO tu multipart/form-data mirror dung latitude/longitude, xem face-match-score.util.ts.
+  INVALID_FACE_MATCH_SCORE: 'INVALID_FACE_MATCH_SCORE',
   // 05/10/2026: cung loi logic da tung sua o LeaveRequestsService.create() (LEAVE_START_DATE_IN_PAST)
   // nhung CHUA tung ap dung cho lich cong ty - xem CalendarEventsService.
   CALENDAR_EVENT_START_DATE_IN_PAST: 'CALENDAR_EVENT_START_DATE_IN_PAST',

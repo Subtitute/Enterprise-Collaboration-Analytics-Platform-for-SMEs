@@ -1,4 +1,5 @@
 import { ERROR_CODES, EVENT_TYPES, CalendarEventType, PERMISSIONS } from '@app/common-dto';
+import { toGmt7DateString } from '../attendance/attendance-date.util';
 import { CalendarEventsService } from './calendar-events.service';
 import { CreateCalendarEventDto } from './dto/create-calendar-event.dto';
 import { UpdateCalendarEventDto } from './dto/update-calendar-event.dto';
@@ -25,10 +26,17 @@ describe('CalendarEventsService', () => {
   // 1 ngay "tuong lai" tai thoi diem viet test se tu dong tro thanh qua khu va lam test FAIL sau
   // ngay do - dac biet quan trong o day vi assertStartDateNotInPast() moi bo sung chinh la kiem tra
   // dang ngay).
+  //
+  // 24/10/2026 (fix loi thuc te phat hien khi chay gate): ban truoc dung `d.toISOString()` (UTC)
+  // de tinh "hom nay", trong khi assertStartDateNotInPast() so sanh voi `toGmt7DateString()` (GMT+7)
+  // - 2 ham nay LECH NHAU dung 1 ngay trong khung gio 00:00-07:00 GMT+7 (17:00-23:59 UTC ngay truoc),
+  // khien futureDateStr(0) tra ve ngay "hom qua" theo GMT+7 va test tu fail ngay trong khung gio do -
+  // dung loai loi da duoc rut kinh nghiem toan du an tu 22/07/2026 (khong tinh ngay bang Date UTC
+  // tho). Sua bang cach dung lai CHINH toGmt7DateString() thay vi tu tinh rieng mot lan nua.
   function futureDateStr(daysFromNow: number): string {
     const d = new Date();
     d.setDate(d.getDate() + daysFromNow);
-    return d.toISOString().slice(0, 10);
+    return toGmt7DateString(d);
   }
 
   function existingEvent(overrides: Record<string, unknown> = {}) {

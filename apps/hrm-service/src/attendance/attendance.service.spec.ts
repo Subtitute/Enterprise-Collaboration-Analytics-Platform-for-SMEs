@@ -244,6 +244,58 @@ describe('AttendanceService', () => {
     });
   });
 
+  describe('computeFaceMatched qua checkIn()/checkOut() - diem tuong dong khuon mat CHI la tin hieu them, KHONG chan cham cong', () => {
+    it('gan true khi diem tuong dong >= nguong (0.35)', async () => {
+      const attendanceRepoMock = { findOne: jest.fn().mockResolvedValue(null) };
+      const { service } = createService({ attendanceRepoMock });
+
+      const result = await service.checkIn(organizationId, userId, validJpegFile(), undefined, undefined, 0.9);
+
+      expect(result.checkInFaceMatchScore).toBe(0.9);
+      expect(result.checkInFaceMatched).toBe(true);
+    });
+
+    it('gan false khi diem tuong dong duoi nguong (khong phai null - DA danh gia la khong khop)', async () => {
+      const attendanceRepoMock = { findOne: jest.fn().mockResolvedValue(null) };
+      const { service } = createService({ attendanceRepoMock });
+
+      const result = await service.checkIn(organizationId, userId, validJpegFile(), undefined, undefined, 0.1);
+
+      expect(result.checkInFaceMatchScore).toBe(0.1);
+      expect(result.checkInFaceMatched).toBe(false);
+    });
+
+    it('gan null (KHAC voi false) khi khong gui diem tuong dong - chua dang ky khuon mat/khong phat hien duoc mat, khong chan check-in', async () => {
+      const attendanceRepoMock = { findOne: jest.fn().mockResolvedValue(null) };
+      const { service } = createService({ attendanceRepoMock });
+
+      const result = await service.checkIn(organizationId, userId, validJpegFile());
+
+      expect(result.checkInFaceMatchScore).toBeNull();
+      expect(result.checkInFaceMatched).toBeNull();
+    });
+
+    it('checkOutFaceMatched duoc tinh doc lap voi checkInFaceMatched', async () => {
+      const attendance = {
+        id: 'att-1',
+        organizationId,
+        userId,
+        workDate: '2026-10-24',
+        checkInAt: new Date(),
+        checkInFaceMatchScore: 0.9,
+        checkInFaceMatched: true,
+        checkOutAt: null,
+      };
+      const attendanceRepoMock = { findOne: jest.fn().mockResolvedValue(attendance) };
+      const { service } = createService({ attendanceRepoMock });
+
+      const result = await service.checkOut(organizationId, userId, validJpegFile(), undefined, undefined, 0.1);
+
+      expect(result.checkInFaceMatched).toBe(true);
+      expect(result.checkOutFaceMatched).toBe(false);
+    });
+  });
+
   describe('checkOut', () => {
     it('bao loi khi chua check-in ngay hom nay (khong tim thay ban ghi Attendance) - khong upload anh', async () => {
       const attendanceRepoMock = { findOne: jest.fn().mockResolvedValue(null) };

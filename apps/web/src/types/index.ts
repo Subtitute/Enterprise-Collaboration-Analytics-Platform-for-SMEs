@@ -490,6 +490,12 @@ export interface Attendance {
   checkInIsOnSite?: boolean | null;
   checkOutAt?: string | null;
   checkOutIsOnSite?: boolean | null;
+  // 24/10/2026: Face recognition (verify 1:1) - CANH BAO MEM, mirror CHINH XAC checkInIsOnSite o
+  // tren (null = chua dang ky khuon mat/khong co du lieu, khac false). Xem Technical_Spec.md.
+  checkInFaceMatchScore?: number | null;
+  checkInFaceMatched?: boolean | null;
+  checkOutFaceMatchScore?: number | null;
+  checkOutFaceMatched?: boolean | null;
   createdAt: string;
   updatedAt: string;
 }

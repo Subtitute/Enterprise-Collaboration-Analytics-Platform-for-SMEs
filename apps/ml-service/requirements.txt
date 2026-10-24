@@ -6,3 +6,10 @@ psycopg2-binary==2.9.9
 scikit-learn==1.5.2
 numpy==1.26.4
 pydantic==2.9.2
+python-multipart==0.0.12
+# 24/10/2026: Face recognition (verify 1:1) cho cham cong - xem app/face.py. Ca 2 model pretrained
+# (YuNet phat hien khuon mat MIT, ArcFace ResNet100 nhung dac trung Apache-2.0) duoc TAI LUC BUILD
+# DOCKER IMAGE (xem Dockerfile), KHONG commit vao git - chi can onnxruntime (suy luan) +
+# opencv-python-headless (doc anh/phat hien/can chinh khuon mat), KHONG can PyTorch/TensorFlow.
+onnxruntime==1.19.2
+opencv-python-headless==4.10.0.84

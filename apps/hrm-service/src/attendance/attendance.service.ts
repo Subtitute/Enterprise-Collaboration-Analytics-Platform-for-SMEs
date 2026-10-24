@@ -25,6 +25,15 @@ const PRODUCER = 'hrm-service';
 /** Ma loi Postgres cho vi pham rang buoc unique (@Unique(['organizationId','userId','workDate'])). */
 const POSTGRES_UNIQUE_VIOLATION = '23505';
 
+/**
+ * 24/10/2026: nguong cosine similarity de coi la "khop khuon mat" - gia tri THAM KHAO tu tai
+ * lieu cong khai (ArcFace), CHUA tinh chinh bang du lieu thuc te he thong nay - xem chu thich
+ * day du tai MATCH_THRESHOLD (apps/ml-service/app/face.py). Dinh nghia RIENG o day (khong import
+ * tu ml-service - 2 ngon ngu khac nhau, khong co co che chia se hang so xuyen Python/Node trong
+ * du an) - PHAI giu dong bo thu cong neu tinh chinh lai.
+ */
+const FACE_MATCH_THRESHOLD = 0.35;
+
 @Injectable()
 export class AttendanceService {
   constructor(
@@ -56,6 +65,19 @@ export class AttendanceService {
   }
 
   /**
+   * 24/10/2026: co "da khop khuon mat"/"khong khop" - mirror CHINH XAC tinh than
+   * computeIsOnSite() o tren: CHI la 1 tin hieu THEM de Manager doi chieu voi anh, KHONG dung de
+   * chan check-in/out (xem chu thich tai Attendance.checkInFaceMatched - entity). Nguong
+   * FACE_MATCH_THRESHOLD duoc TU TINH LAI o day tu `score` tho do ml-service tra ve, KHONG nhan
+   * thang 1 boolean "matched" co san tu client - cung ly do khong tin thang 1 boolean da-tinh-san
+   * nhu khong tin thang 1 "isOnSite" tu client (phai tu tinh tu lat/long tho).
+   */
+  private computeFaceMatched(score?: number): boolean | null {
+    if (score === undefined) return null;
+    return score >= FACE_MATCH_THRESHOLD;
+  }
+
+  /**
    * Photo-proof check-in - nguoi dung da dang nhap (danh tinh xac dinh qua JWT nhu moi endpoint
    * khac), camera CHI chup 1 anh lam bang chung dinh kem, KHONG nhan dien khuon mat (xem
    * Technical_Spec.md muc 17). 1 ban ghi/nguoi/ngay lam viec theo
@@ -67,6 +89,7 @@ export class AttendanceService {
     file: Express.Multer.File,
     latitude?: number,
     longitude?: number,
+    faceMatchScore?: number,
   ): Promise<Attendance> {
     verifyPhotoContentMatchesMimeType(file);
     const workDate = toGmt7DateString(new Date());
@@ -92,6 +115,7 @@ export class AttendanceService {
     const objectKey = buildAttendancePhotoObjectKey(organizationId, userId, workDate, 'checkin', file.mimetype);
     await this.minioService.putObject(objectKey, file.buffer, file.size, file.mimetype);
     const isOnSite = this.computeIsOnSite(latitude, longitude);
+    const faceMatched = this.computeFaceMatched(faceMatchScore);
 
     try {
       return await this.dataSource.transaction(async (manager) => {
@@ -105,6 +129,8 @@ export class AttendanceService {
             checkInLatitude: latitude ?? null,
             checkInLongitude: longitude ?? null,
             checkInIsOnSite: isOnSite,
+            checkInFaceMatchScore: faceMatchScore ?? null,
+            checkInFaceMatched: faceMatched,
           }),
         );
 
@@ -143,6 +169,7 @@ export class AttendanceService {
     file: Express.Multer.File,
     latitude?: number,
     longitude?: number,
+    faceMatchScore?: number,
   ): Promise<Attendance> {
     verifyPhotoContentMatchesMimeType(file);
 
@@ -183,6 +210,7 @@ export class AttendanceService {
     const objectKey = buildAttendancePhotoObjectKey(organizationId, userId, preCheck.workDate, 'checkout', file.mimetype);
     await this.minioService.putObject(objectKey, file.buffer, file.size, file.mimetype);
     const isOnSite = this.computeIsOnSite(latitude, longitude);
+    const faceMatched = this.computeFaceMatched(faceMatchScore);
 
     // 22/08/2026: phat hien qua rieng ra soat - checkOut() truoc day CHI doc/ghi ben ngoai/khong
     // khoa (bien `attendance` o pre-check duoc dung THANG trong transaction ben duoi), khac han
@@ -217,6 +245,8 @@ export class AttendanceService {
       attendance.checkOutLatitude = latitude ?? null;
       attendance.checkOutLongitude = longitude ?? null;
       attendance.checkOutIsOnSite = isOnSite;
+      attendance.checkOutFaceMatchScore = faceMatchScore ?? null;
+      attendance.checkOutFaceMatched = faceMatched;
       const updated = await manager.save(attendance);
 
       const payload: AttendanceCheckedOutPayload = { attendanceId: updated.id, userId, workDate: attendance.workDate };

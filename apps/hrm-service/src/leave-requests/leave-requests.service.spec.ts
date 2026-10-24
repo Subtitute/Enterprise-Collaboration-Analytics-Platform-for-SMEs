@@ -1,4 +1,5 @@
 import { ERROR_CODES, EVENT_TYPES, LeaveRequestStatus } from '@app/common-dto';
+import { toGmt7DateString } from '../attendance/attendance-date.util';
 import { LeaveRequestsService } from './leave-requests.service';
 import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
 import { DecideLeaveRequestDto } from './dto/decide-leave-request.dto';
@@ -25,10 +26,17 @@ describe('LeaveRequestsService', () => {
   // hop kinh dien: da xay ra ngay khi them validation moi cho loi nay - '2026-09-01' luc viet test
   // ban dau la tuong lai, nhung nay da la qua khu thuc su theo dong ho he thong). Dung +N ngay ke
   // tu hom nay de test luon dung bat ke chay vao thoi diem nao.
+  //
+  // 24/10/2026 (fix loi thuc te phat hien khi chay gate): ban truoc dung `d.toISOString()` (UTC)
+  // de tinh "hom nay", trong khi logic chan ngay qua khu cua service so sanh voi
+  // `toGmt7DateString()` (GMT+7) - 2 ham nay LECH NHAU dung 1 ngay trong khung gio 00:00-07:00
+  // GMT+7, khien futureDateStr(0) tra ve ngay "hom qua" theo GMT+7 va test tu fail ngay trong
+  // khung gio do (mirror dung lop loi da sua o calendar-events.service.spec.ts cung ngay). Sua
+  // bang cach dung lai CHINH toGmt7DateString() thay vi tu tinh rieng mot lan nua.
   function futureDateStr(daysFromNow: number): string {
     const d = new Date();
     d.setDate(d.getDate() + daysFromNow);
-    return d.toISOString().slice(0, 10);
+    return toGmt7DateString(d);
   }
 
   function pendingRequest(overrides: Record<string, unknown> = {}) {

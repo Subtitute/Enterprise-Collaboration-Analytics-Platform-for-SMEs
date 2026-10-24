@@ -52,11 +52,17 @@ export function CheckInCamera({
   onClose,
   onConfirm,
   isSubmitting,
+  mode = 'checkin',
 }: {
   open: boolean;
   onClose: () => void;
   onConfirm: (photo: Blob, location?: CheckInLocation) => void;
   isSubmitting?: boolean;
+  // 24/10/2026: Face recognition - tai su dung CHINH component nay cho man "Dang ky khuon mat"
+  // (ProfilePage.tsx) thay vi viet lai tu dau (cung logic camera lifecycle/retake). `mode='enroll'`
+  // CHI doi vai khoa i18n (tieu de/nut) + bo qua xin vi tri GPS (khong can cho dang ky khuon mat) -
+  // khong doi logic camera/anh.
+  mode?: 'checkin' | 'enroll';
 }) {
   const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -139,7 +145,7 @@ export function CheckInCamera({
     }
     isOpenRef.current = true;
     startCamera();
-    locationRef.current = getCurrentLocationSoft();
+    if (mode !== 'enroll') locationRef.current = getCurrentLocationSoft();
     return () => {
       isOpenRef.current = false;
       stopStream();
@@ -181,11 +187,16 @@ export function CheckInCamera({
     onConfirm(previewBlob, location);
   }
 
+  const titleKey = mode === 'enroll' ? 'hrm:faceEnroll.cameraModalTitle' : 'hrm:checkInCamera.modalTitle';
+  const captureKey = mode === 'enroll' ? 'hrm:faceEnroll.captureButton' : 'hrm:checkInCamera.captureButton';
+  const confirmKey = mode === 'enroll' ? 'hrm:faceEnroll.confirmButton' : 'hrm:checkInCamera.confirmButton';
+  const previewAltKey = mode === 'enroll' ? 'hrm:faceEnroll.previewAlt' : 'hrm:checkInCamera.previewAlt';
+
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={t('hrm:checkInCamera.modalTitle')}
+      title={t(titleKey)}
       size="sm"
       footer={
         <div className="flex justify-end gap-2 w-full">
@@ -198,12 +209,12 @@ export function CheckInCamera({
                 <RefreshIcon className="h-4 w-4" /> {t('hrm:checkInCamera.retakeButton')}
               </Button>
               <Button type="button" variant="primary" onClick={handleConfirm} isLoading={isSubmitting}>
-                {t('hrm:checkInCamera.confirmButton')}
+                {t(confirmKey)}
               </Button>
             </>
           ) : (
             <Button type="button" variant="primary" onClick={handleCapture} disabled={status !== 'ready'}>
-              <CameraIcon className="h-4 w-4" /> {t('hrm:checkInCamera.captureButton')}
+              <CameraIcon className="h-4 w-4" /> {t(captureKey)}
             </Button>
           )}
         </div>
@@ -230,7 +241,7 @@ export function CheckInCamera({
             </div>
           )}
           {previewUrl ? (
-            <img src={previewUrl} alt={t('hrm:checkInCamera.previewAlt')} className="h-full w-full object-cover" />
+            <img src={previewUrl} alt={t(previewAltKey)} className="h-full w-full object-cover" />
           ) : (
             <video
               ref={videoRef}

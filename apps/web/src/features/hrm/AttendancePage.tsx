@@ -63,6 +63,27 @@ export function OnSiteBadge({ isOnSite }: { isOnSite?: boolean | null }) {
 }
 
 /**
+ * 24/10/2026 (Face recognition): mirror CHINH XAC OnSiteBadge o tren - CANH BAO MEM, KHONG hien
+ * gi ca khi `matched` la null/undefined (chua dang ky khuon mat/khong phat hien duoc mat trong
+ * anh), chi hien khi co ket qua ro rang. Hien kem % diem tuong dong de Manager tu doi chieu.
+ */
+export function FaceMatchBadge({ matched, score }: { matched?: boolean | null; score?: number | null }) {
+  const { t } = useTranslation();
+  if (matched === undefined || matched === null) return null;
+  const percent = score != null ? Math.round(Math.max(0, score) * 100) : null;
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-[11px] font-semibold ${matched ? 'text-emerald-600' : 'text-amber-600'}`}
+      title={matched ? t('hrm:attendancePage.faceMatchBadge.matchedTitle') : t('hrm:attendancePage.faceMatchBadge.notMatchedTitle')}
+    >
+      <CameraIcon className="h-3 w-3" />
+      {matched ? t('hrm:attendancePage.faceMatchBadge.matched') : t('hrm:attendancePage.faceMatchBadge.notMatched')}
+      {percent !== null && ` (${percent}%)`}
+    </span>
+  );
+}
+
+/**
  * Tính tổng số giờ làm việc giữa check-in và check-out (Ví dụ: 8.5 giờ)
  * 16/09/2026: gop merge - ca 2 nhanh deu tu them 1 key i18n rieng cho chuoi "X giờ"
  * (totalHoursValue vs hoursUnit). Giu totalHoursValue (di kem kieu TFunction da co san import
@@ -84,7 +105,15 @@ export function PhotoProofModal({
   target,
   onClose,
 }: {
-  target: { id: string; kind: 'checkin' | 'checkout'; time: string; userName?: string; isOnSite?: boolean | null } | null;
+  target: {
+    id: string;
+    kind: 'checkin' | 'checkout';
+    time: string;
+    userName?: string;
+    isOnSite?: boolean | null;
+    faceMatched?: boolean | null;
+    faceMatchScore?: number | null;
+  } | null;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
@@ -151,7 +180,10 @@ export function PhotoProofModal({
             <span className="font-semibold text-text-primary">{target.userName || t('hrm:attendancePage.photoModal.personal')}</span>
             <div className="font-mono text-text-primary font-medium mt-0.5 tabular-nums">{target.time}</div>
           </div>
-          <OnSiteBadge isOnSite={target.isOnSite} />
+          <div className="flex flex-col items-end gap-1">
+            <OnSiteBadge isOnSite={target.isOnSite} />
+            <FaceMatchBadge matched={target.faceMatched} score={target.faceMatchScore} />
+          </div>
         </div>
 
         <div className="relative aspect-square w-full overflow-hidden rounded-radius-md bg-slate-900 border border-border-subtle flex items-center justify-center">
@@ -261,6 +293,8 @@ export function AttendancePage() {
     time: string;
     userName?: string;
     isOnSite?: boolean | null;
+    faceMatched?: boolean | null;
+    faceMatchScore?: number | null;
   } | null>(null);
   const [adjustmentRecord, setAdjustmentRecord] = useState<import('@/types').Attendance | null>(null);
   const [showOtModal, setShowOtModal] = useState(false);
@@ -478,6 +512,7 @@ export function AttendancePage() {
                           {formatTime(effectiveTodayRecord.checkInAt)}
                         </span>
                         <OnSiteBadge isOnSite={effectiveTodayRecord.checkInIsOnSite} />
+                        <FaceMatchBadge matched={effectiveTodayRecord.checkInFaceMatched} score={effectiveTodayRecord.checkInFaceMatchScore} />
                       </span>
                     ) : (
                       <span className="text-text-tertiary italic font-normal">{t('hrm:attendancePage.today.notRecorded')}</span>
@@ -495,6 +530,7 @@ export function AttendancePage() {
                           {formatTime(effectiveTodayRecord.checkOutAt)}
                         </span>
                         <OnSiteBadge isOnSite={effectiveTodayRecord.checkOutIsOnSite} />
+                        <FaceMatchBadge matched={effectiveTodayRecord.checkOutFaceMatched} score={effectiveTodayRecord.checkOutFaceMatchScore} />
                       </span>
                     ) : (
                       <span className="text-text-tertiary italic font-normal">{t('hrm:attendancePage.today.notRecorded')}</span>
@@ -607,6 +643,7 @@ export function AttendancePage() {
                                 <div className="flex items-center gap-2">
                                   <span className="font-mono text-[13px] font-medium text-text-primary tabular-nums">{formatTime(record.checkInAt)}</span>
                                   <OnSiteBadge isOnSite={record.checkInIsOnSite} />
+                                  <FaceMatchBadge matched={record.checkInFaceMatched} score={record.checkInFaceMatchScore} />
                                   <button
                                     type="button"
                                     onClick={() =>
@@ -615,6 +652,8 @@ export function AttendancePage() {
                                         kind: 'checkin',
                                         time: formatDateTime(record.checkInAt),
                                         isOnSite: record.checkInIsOnSite,
+                                        faceMatched: record.checkInFaceMatched,
+                                        faceMatchScore: record.checkInFaceMatchScore,
                                       })
                                     }
                                     className="inline-flex items-center justify-center h-6 w-6 rounded-radius-sm bg-bg-subtle text-text-tertiary hover:bg-canvas hover:text-text-primary transition-colors cursor-pointer"
@@ -630,6 +669,7 @@ export function AttendancePage() {
                                   <div className="flex items-center gap-2">
                                     <span className="font-mono text-[13px] font-medium text-text-primary tabular-nums">{formatTime(record.checkOutAt)}</span>
                                     <OnSiteBadge isOnSite={record.checkOutIsOnSite} />
+                                    <FaceMatchBadge matched={record.checkOutFaceMatched} score={record.checkOutFaceMatchScore} />
                                     <button
                                       type="button"
                                       onClick={() =>
@@ -638,6 +678,8 @@ export function AttendancePage() {
                                           kind: 'checkout',
                                           time: formatDateTime(record.checkOutAt),
                                           isOnSite: record.checkOutIsOnSite,
+                                          faceMatched: record.checkOutFaceMatched,
+                                          faceMatchScore: record.checkOutFaceMatchScore,
                                         })
                                       }
                                       className="inline-flex items-center justify-center h-6 w-6 rounded-radius-sm bg-bg-subtle text-text-tertiary hover:bg-canvas hover:text-text-primary transition-colors cursor-pointer"
@@ -868,6 +910,7 @@ export function AttendancePage() {
                                 <div className="flex items-center gap-2">
                                   <span className="font-mono text-[13px] font-medium text-text-primary tabular-nums">{formatTime(record.checkInAt)}</span>
                                   <OnSiteBadge isOnSite={record.checkInIsOnSite} />
+                                  <FaceMatchBadge matched={record.checkInFaceMatched} score={record.checkInFaceMatchScore} />
                                   <button
                                     type="button"
                                     onClick={(e) => {
@@ -878,6 +921,8 @@ export function AttendancePage() {
                                         time: formatDateTime(record.checkInAt),
                                         userName: name,
                                         isOnSite: record.checkInIsOnSite,
+                                        faceMatched: record.checkInFaceMatched,
+                                        faceMatchScore: record.checkInFaceMatchScore,
                                       });
                                     }}
                                     className="inline-flex items-center justify-center h-6 w-6 rounded-radius-sm bg-bg-subtle text-text-tertiary hover:bg-canvas hover:text-text-primary transition-colors cursor-pointer"
@@ -893,6 +938,7 @@ export function AttendancePage() {
                                   <div className="flex items-center gap-2">
                                     <span className="font-mono text-[13px] font-medium text-text-primary tabular-nums">{formatTime(record.checkOutAt)}</span>
                                     <OnSiteBadge isOnSite={record.checkOutIsOnSite} />
+                                    <FaceMatchBadge matched={record.checkOutFaceMatched} score={record.checkOutFaceMatchScore} />
                                     <button
                                       type="button"
                                       onClick={(e) => {
@@ -903,6 +949,8 @@ export function AttendancePage() {
                                           time: formatDateTime(record.checkOutAt),
                                           userName: name,
                                           isOnSite: record.checkOutIsOnSite,
+                                          faceMatched: record.checkOutFaceMatched,
+                                          faceMatchScore: record.checkOutFaceMatchScore,
                                         });
                                       }}
                                       className="inline-flex items-center justify-center h-6 w-6 rounded-radius-sm bg-bg-subtle text-text-tertiary hover:bg-canvas hover:text-text-primary transition-colors cursor-pointer"

@@ -14,6 +14,12 @@ from app.config import INTERNAL_SHARED_SECRET
 
 ML_VIEW_PERMISSION = "ml:view"
 USER_MANAGE_PERMISSION = "user:manage"
+# 24/10/2026: Face recognition cho cham cong - dung LAI permission attendance:checkin da co
+# (khong them permission moi rieng) vi day la hanh dong TU PHUC VU gan lien attendance:checkin
+# (dang ky/kiem tra khuon mat CUA CHINH MINH, mirror dung logic "ai co the tu cham cong thi cung
+# tu dang ky khuon mat duoc" - khong can tach quyen rieng, dung tinh than toi gian ClaudeRule.md
+# muc 8).
+ATTENDANCE_CHECKIN_PERMISSION = "attendance:checkin"
 
 
 @dataclass
@@ -62,3 +68,8 @@ async def get_auth_context(
 def require_ml_view(ctx: AuthContext) -> None:
     if ML_VIEW_PERMISSION not in ctx.permissions:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Thieu quyen ml:view")
+
+
+def require_attendance_checkin(ctx: AuthContext) -> None:
+    if ATTENDANCE_CHECKIN_PERMISSION not in ctx.permissions:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Thieu quyen attendance:checkin")

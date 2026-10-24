@@ -26,6 +26,12 @@
       "onSite": "On-site",
       "offSite": "Off-site"
     },
+    "faceMatchBadge": {
+      "matchedTitle": "The face in the photo matches the enrolled face",
+      "notMatchedTitle": "The face in the photo does NOT match the enrolled face - reference signal only, does not block check-in",
+      "matched": "Face matched",
+      "notMatched": "Not matched"
+    },
     "today": {
       "cardTitle": "Today ({{date}})",
       "notCheckedIn": "You haven't checked in today.",
@@ -254,6 +260,29 @@
     "retakeButton": "Retake",
     "confirmButton": "Confirm",
     "captureButton": "Capture"
+  },
+  "faceEnroll": {
+    "sectionTitle": "Face recognition for check-in",
+    "sectionDesc": "Enroll your face so the system can cross-check it (soft warning, never blocks check-in).",
+    "loadError": "Couldn't load your face enrollment status.",
+    "previewAlt": "Captured face enrollment photo",
+    "consentLabel": "I agree to let the system store my facial features to cross-check during check-in/out.",
+    "enrollButton": "Enroll face",
+    "reEnrollButton": "Re-enroll",
+    "deleteButton": "Delete enrollment",
+    "enrolledAt": "Face enrolled at {{date}}",
+    "softWarningNote": "This is only a reference signal for managers to cross-check against the attendance photo - it never blocks your check-in/out, even if the face doesn't match or hasn't been enrolled yet.",
+    "deleteConfirmTitle": "Delete face enrollment?",
+    "deleteConfirmDescription": "Your enrolled facial data will be permanently deleted. You can re-enroll at any time.",
+    "cameraModalTitle": "Capture face enrollment photo",
+    "captureButton": "Capture",
+    "confirmButton": "Confirm enrollment",
+    "toasts": {
+      "enrollSuccess": "Face enrolled successfully",
+      "enrollError": "Couldn't enroll face",
+      "deleteSuccess": "Face enrollment deleted",
+      "deleteError": "Couldn't delete face enrollment"
+    }
   },
   "toasts": {
     "checkInSuccess": "Checked in",

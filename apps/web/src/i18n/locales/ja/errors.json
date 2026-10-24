@@ -59,6 +59,7 @@
   "LEAVE_START_DATE_IN_PAST": "開始日を過去の日付にすることはできません。",
   "LEAVE_REQUEST_NOT_FOUND": "休暇申請が見つかりませんでした。",
   "LEAVE_REQUEST_ALREADY_DECIDED": "この休暇申請は既に処理済みです。",
+  "INVALID_FACE_MATCH_SCORE": "顔認証の一致度が無効です。",
   "ALREADY_CHECKED_IN_TODAY": "本日は既に出勤打刻済みです。",
   "NOT_CHECKED_IN_YET": "本日はまだ出勤打刻をしていないため、退勤打刻はできません。",
   "ALREADY_CHECKED_OUT_TODAY": "本日は既に退勤打刻済みです。",

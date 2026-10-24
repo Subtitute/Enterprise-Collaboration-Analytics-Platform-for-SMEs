@@ -68,6 +68,20 @@ _SCHEMA_STATEMENTS = [
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_fact_attendance_org ON fact_attendance (organization_id)",
+    # 24/10/2026: face_enrollments - KHAC 4 bang tren (khong phai ban sao/read-model tu Kafka) -
+    # day la du lieu THAT su thuoc ve ml-service, khong service nao khac so huu "vector dac trung
+    # khuon mat da dang ky cua user nay". 1 ban ghi/user (dang ky lai = ghi de embedding cu, xem
+    # app/face.py). `embedding` la mang 512 so thuc (ArcFace) - KHONG dung pgvector o day vi chi
+    # so sanh 1-vs-1 (verify), khong can tim kiem gan nhat tren nhieu vector.
+    """
+    CREATE TABLE IF NOT EXISTS face_enrollments (
+        user_id UUID PRIMARY KEY,
+        organization_id UUID NOT NULL,
+        embedding DOUBLE PRECISION[] NOT NULL,
+        enrolled_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_face_enrollments_org ON face_enrollments (organization_id)",
 ]
 
 
@@ -75,4 +89,7 @@ def bootstrap_schema() -> None:
     with engine.begin() as conn:
         for statement in _SCHEMA_STATEMENTS:
             conn.execute(text(statement))
-    logger.info("Da kiem tra/tao xong schema ml-service (dim_user, dim_department_manager, fact_task_events, fact_attendance).")
+    logger.info(
+        "Da kiem tra/tao xong schema ml-service (dim_user, dim_department_manager, "
+        "fact_task_events, fact_attendance, face_enrollments)."
+    )

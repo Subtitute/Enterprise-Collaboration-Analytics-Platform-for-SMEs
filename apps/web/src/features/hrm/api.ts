@@ -19,10 +19,89 @@ function appendLocation(form: FormData, location?: CheckInLocation) {
   form.append('longitude', String(location.longitude));
 }
 
+export interface FaceEnrollmentStatus {
+  enrolled: boolean;
+  enrolledAt?: string | null;
+}
+
+export interface FaceVerifyResult {
+  enrolled: boolean;
+  score?: number | null;
+  matched?: boolean | null;
+}
+
+/**
+ * 24/10/2026: Face recognition (verify 1:1) cho cham cong - goi `ml-service` qua CUNG apiClient
+ * (Gateway proxy `/api/v1/ml/*` da co san, xem proxy-routes.config.ts) - KHONG qua `/attendance/*`
+ * cua hrm-service, 2 service HOAN TOAN doc lap, khong goi HTTP noi bo lan nhau (mirror quy uoc
+ * toan du an).
+ */
+export async function getFaceEnrollmentStatus(): Promise<FaceEnrollmentStatus> {
+  const { data } = await apiClient.get<FaceEnrollmentStatus>('/ml/face/enrollment');
+  return data;
+}
+
+export async function enrollFace(photo: Blob): Promise<FaceEnrollmentStatus> {
+  const form = new FormData();
+  form.append('photo', photo, 'enroll.jpg');
+  const { data } = await apiClient.post<FaceEnrollmentStatus>('/ml/face/enroll', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return data;
+}
+
+export async function deleteFaceEnrollment(): Promise<void> {
+  await apiClient.delete('/ml/face/enrollment');
+}
+
+// 24/10/2026 (fix phat hien qua QA doc lap): Gateway dat timeout rieng 120s cho nhom route
+// `/api/v1/ml/*` (proxy-routes.config.ts, EXTENDED_PROXY_TIMEOUT_MS - vi /ml/anomalies co the
+// chay lau), nhung /face/verify can NGUOC LAI: PHAI tra loi NHANH, vi day la 1 buoc PHU them
+// TRUOC check-in thuc su - khong co timeout rieng o day, 1 lan ml-service cham/treo se khien
+// nguoi dang cham cong cho toi 120s truoc khi request check-in THAT SU duoc gui di, hoan toan di
+// nguoc tinh than "khong lam cham cham cong" ma getCurrentLocationSoft() (CheckInCamera.tsx) da
+// lam dung (timeout 5s). Dung cung do dai 5s de dong bo.
+const FACE_VERIFY_TIMEOUT_MS = 5000;
+
+/**
+ * CANH BAO MEM, KHONG BAO GIO throw - bat kem moi loi (khong phat hien duoc khuon mat, mang
+ * loi, chua dang ky, qua thoi gian cho...) va tra ve `undefined` (nghia "khong co du lieu de
+ * danh gia", mirror CHINH XAC getCurrentLocationSoft() o CheckInCamera.tsx). checkIn()/checkOut()
+ * ben duoi goi ham nay TRUOC khi gui check-in/out thuc su - LUON tiep tuc cham cong du ket qua
+ * la gi.
+ */
+async function verifyFaceSoft(photo: Blob): Promise<number | undefined> {
+  try {
+    const result = await verifyFaceRaw(photo);
+    if (!result.enrolled || result.score === null || result.score === undefined) return undefined;
+    return result.score;
+  } catch {
+    return undefined;
+  }
+}
+
+async function verifyFaceRaw(photo: Blob): Promise<FaceVerifyResult> {
+  const form = new FormData();
+  form.append('photo', photo, 'verify.jpg');
+  const { data } = await apiClient.post<FaceVerifyResult>('/ml/face/verify', form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: FACE_VERIFY_TIMEOUT_MS,
+  });
+  return data;
+}
+
+/** 24/10/2026: `faceMatchScore` la tuy chon - thieu (chua dang ky/khong phat hien duoc mat) thi khong gui field, mirror appendLocation() o tren. */
+function appendFaceMatchScore(form: FormData, score?: number) {
+  if (score === undefined) return;
+  form.append('faceMatchScore', String(score));
+}
+
 export async function checkIn(photo: Blob, location?: CheckInLocation): Promise<Attendance> {
+  const faceMatchScore = await verifyFaceSoft(photo);
   const form = new FormData();
   form.append('photo', photo, 'checkin.jpg');
   appendLocation(form, location);
+  appendFaceMatchScore(form, faceMatchScore);
   const { data } = await apiClient.post<Attendance>('/attendance/check-in', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
@@ -30,9 +109,11 @@ export async function checkIn(photo: Blob, location?: CheckInLocation): Promise<
 }
 
 export async function checkOut(photo: Blob, location?: CheckInLocation): Promise<Attendance> {
+  const faceMatchScore = await verifyFaceSoft(photo);
   const form = new FormData();
   form.append('photo', photo, 'checkout.jpg');
   appendLocation(form, location);
+  appendFaceMatchScore(form, faceMatchScore);
   const { data } = await apiClient.post<Attendance>('/attendance/check-out', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });

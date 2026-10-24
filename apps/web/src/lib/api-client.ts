@@ -94,6 +94,14 @@ interface ErrorResponseData {
   errorCode?: string;
   errorParams?: Record<string, string | number>;
   details?: { code: string; params?: Record<string, string | number> }[];
+  // 24/10/2026: apps/ml-service (FastAPI/Python) tra ve loi dang `{ detail: string }`, KHAC han
+  // dinh dang `{ message, errorCode, ... }` cua moi service Node (Technical_Spec.md muc 7) - phat
+  // hien qua kiem thu song tinh nang Face recognition (lan dau co 1 luong tu-phuc-vu thuong xuyen
+  // goi toi ml-service, truoc day chi co /ml/anomalies, it ai cham toi loi nghiep vu cua no).
+  // Thieu field nay khien MOI loi tu ml-service roi qua nhanh `error.message` cuoi cung, hien
+  // nguyen van chuoi tieng Anh cua axios ("Request failed with status code 400") thay vi ly do
+  // thuc su, bat ke ngon ngu dang chon.
+  detail?: string;
 }
 
 /**
@@ -125,6 +133,7 @@ export function extractErrorMessage(error: unknown, fallback = i18n.t('common:ge
     if (data?.message) {
       return Array.isArray(data.message) ? data.message.join(', ') : data.message;
     }
+    if (data?.detail) return data.detail;
     if (error.message) return error.message;
   }
   return fallback;

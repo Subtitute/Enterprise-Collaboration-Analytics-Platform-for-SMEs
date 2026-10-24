@@ -17,6 +17,7 @@ import { AttendanceService } from './attendance.service';
 import { AttendanceQueryDto } from './dto/attendance-query.dto';
 import { photoMimeTypeFileFilter } from './allowed-photo-mime-types';
 import { parseOptionalCoordinate } from './coordinate.util';
+import { parseOptionalFaceMatchScore } from './face-match-score.util';
 
 const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024;
 
@@ -40,11 +41,13 @@ export class AttendanceController {
     @UploadedFile() photo: Express.Multer.File,
     @Body('latitude') latitudeRaw?: string,
     @Body('longitude') longitudeRaw?: string,
+    @Body('faceMatchScore') faceMatchScoreRaw?: string,
   ) {
     if (!photo) throw new BadRequestException({ message: 'Thiếu ảnh chấm công', errorCode: ERROR_CODES.MISSING_CHECKIN_PHOTO });
     const latitude = parseOptionalCoordinate(latitudeRaw, 'latitude', -90, 90);
     const longitude = parseOptionalCoordinate(longitudeRaw, 'longitude', -180, 180);
-    return this.attendanceService.checkIn(organizationId, userId, photo, latitude, longitude);
+    const faceMatchScore = parseOptionalFaceMatchScore(faceMatchScoreRaw);
+    return this.attendanceService.checkIn(organizationId, userId, photo, latitude, longitude, faceMatchScore);
   }
 
   @Post('check-out')
@@ -57,11 +60,13 @@ export class AttendanceController {
     @UploadedFile() photo: Express.Multer.File,
     @Body('latitude') latitudeRaw?: string,
     @Body('longitude') longitudeRaw?: string,
+    @Body('faceMatchScore') faceMatchScoreRaw?: string,
   ) {
     if (!photo) throw new BadRequestException({ message: 'Thiếu ảnh chấm công', errorCode: ERROR_CODES.MISSING_CHECKIN_PHOTO });
     const latitude = parseOptionalCoordinate(latitudeRaw, 'latitude', -90, 90);
     const longitude = parseOptionalCoordinate(longitudeRaw, 'longitude', -180, 180);
-    return this.attendanceService.checkOut(organizationId, userId, photo, latitude, longitude);
+    const faceMatchScore = parseOptionalFaceMatchScore(faceMatchScoreRaw);
+    return this.attendanceService.checkOut(organizationId, userId, photo, latitude, longitude, faceMatchScore);
   }
 
   /** Lich su cham cong cua chinh nguoi goi - khong yeu cau permission dac biet, mirror trang Ho so ca nhan. */

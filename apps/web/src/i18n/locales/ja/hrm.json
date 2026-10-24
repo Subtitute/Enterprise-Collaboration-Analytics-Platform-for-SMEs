@@ -26,6 +26,12 @@
       "onSite": "オフィス内",
       "offSite": "オフィス外"
     },
+    "faceMatchBadge": {
+      "matchedTitle": "写真の顔が登録済みの顔と一致しています",
+      "notMatchedTitle": "写真の顔が登録済みの顔と一致していません - 参考情報のみで、出退勤をブロックしません",
+      "matched": "顔が一致",
+      "notMatched": "不一致"
+    },
     "today": {
       "cardTitle": "本日（{{date}}）",
       "notCheckedIn": "本日はまだ出勤していません。",
@@ -254,6 +260,29 @@
     "retakeButton": "再撮影",
     "confirmButton": "確認",
     "captureButton": "撮影"
+  },
+  "faceEnroll": {
+    "sectionTitle": "出退勤用の顔認証",
+    "sectionDesc": "顔を登録すると、システムが照合できます（参考情報のみで、出退勤をブロックしません）。",
+    "loadError": "顔の登録状況を読み込めませんでした。",
+    "previewAlt": "撮影した顔登録用の写真",
+    "consentLabel": "出退勤時の照合のため、顔の特徴データの保存に同意します。",
+    "enrollButton": "顔を登録",
+    "reEnrollButton": "再登録",
+    "deleteButton": "登録を削除",
+    "enrolledAt": "{{date}} に顔を登録しました",
+    "softWarningNote": "これは管理者が勤怠写真と照合するための参考情報に過ぎません - 顔が一致しない場合や未登録の場合でも、出退勤がブロックされることはありません。",
+    "deleteConfirmTitle": "顔の登録を削除しますか?",
+    "deleteConfirmDescription": "登録済みの顔データは完全に削除されます。いつでも再登録できます。",
+    "cameraModalTitle": "顔登録用の写真を撮影",
+    "captureButton": "撮影",
+    "confirmButton": "登録を確定",
+    "toasts": {
+      "enrollSuccess": "顔を登録しました",
+      "enrollError": "顔を登録できませんでした",
+      "deleteSuccess": "顔の登録を削除しました",
+      "deleteError": "顔の登録を削除できませんでした"
+    }
   },
   "toasts": {
     "checkInSuccess": "出勤を記録しました",

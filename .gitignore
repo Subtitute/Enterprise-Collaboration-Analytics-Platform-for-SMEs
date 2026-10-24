@@ -63,3 +63,9 @@ apps/web/.vite/
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# 24/10/2026: 2 model ONNX pretrained cho Face recognition (YuNet ~232KB + ArcFace ResNet100
+# ~261MB) - TAI LUC BUILD DOCKER IMAGE (xem apps/ml-service/Dockerfile), KHONG BAO GIO commit vao
+# git (se phinh vinh vien lich su repo). Dev chay pytest cuc bo (ngoai Docker) can tu tai 2 file
+# nay vao apps/ml-service/models/ bang dung 2 lenh curl trong Dockerfile.
+apps/ml-service/models/

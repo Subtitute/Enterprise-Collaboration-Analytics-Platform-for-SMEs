@@ -75,12 +75,24 @@ def _handle_user_deleted(session, org_id: str, payload: dict) -> None:
     dim_user) tiep tuc dua nhung user "ma" nay vao IsolationForest, hien UUID tho (khong resolve
     duoc ten qua GET /users da xoa) thay vi bo qua han - phat hien qua phan hoi thuc te tren giao
     dien Phat hien bat thuong. Chi xoa dim_user (ban ghi lookup danh tinh/phong ban), GIU NGUYEN
-    fact_task_events/fact_attendance (lich su su kien, khong phai lookup danh tinh)."""
+    fact_task_events/fact_attendance (lich su su kien, khong phai lookup danh tinh).
+
+    24/10/2026 (fix lo hong rieng tu THAT phat hien qua QA doc lap - Face recognition): bo sung
+    xoa CA face_enrollments - day la DU LIEU SINH TRAC HOC (vector dac trung khuon mat), cung
+    nhom "lookup danh tinh HIEN TAI" nhu dim_user (khong phai lich su su kien can giu de kiem
+    toan/phan tich), nen PHAI xoa khi user bi xoa vinh vien, giong dung ly do dim_user duoc xoa
+    o tren. Truoc fix nay, xoa tai khoan khong he dong nghia voi xoa du lieu khuon mat da dang
+    ky cua ho - vi pham nguyen tac toi thieu hoa du lieu sinh trac hoc.
+    """
     user_id = _as_uuid_or_none(payload.get("userId"))
     if not user_id:
         return
     session.execute(
         text("DELETE FROM dim_user WHERE user_id = :user_id AND organization_id = :org_id"),
+        {"user_id": user_id, "org_id": org_id},
+    )
+    session.execute(
+        text("DELETE FROM face_enrollments WHERE user_id = :user_id AND organization_id = :org_id"),
         {"user_id": user_id, "org_id": org_id},
     )
 

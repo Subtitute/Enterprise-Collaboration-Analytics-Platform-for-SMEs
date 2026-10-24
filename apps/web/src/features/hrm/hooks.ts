@@ -13,6 +13,8 @@ import {
   createLeaveRequest,
   createOvertimeRequest,
   deleteCalendarEvent,
+  deleteFaceEnrollment,
+  enrollFace,
   fetchAllAttendance,
   fetchApprovedAttendanceAdjustments,
   fetchApprovedOvertimeRequests,
@@ -27,6 +29,7 @@ import {
   fetchPendingAttendanceAdjustments,
   fetchPendingLeaveRequests,
   fetchPendingOvertimeRequests,
+  getFaceEnrollmentStatus,
   rejectAttendanceAdjustment,
   rejectLeaveRequest,
   rejectOvertimeRequest,
@@ -117,6 +120,37 @@ export function useCheckOut() {
       toast.success(t('hrm:toasts.checkOutSuccess'));
     },
     onError: (error) => toast.error(t('hrm:toasts.checkOutError'), extractErrorMessage(error)),
+  });
+}
+
+/** 24/10/2026: Face recognition - trang thai dang ky khuon mat CUA CHINH nguoi dang xem (ProfilePage.tsx). */
+export function useFaceEnrollmentStatusQuery() {
+  return useQuery({ queryKey: ['face-enrollment', 'me'], queryFn: getFaceEnrollmentStatus });
+}
+
+export function useEnrollFace() {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: (photo: Blob) => enrollFace(photo),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['face-enrollment'] });
+      toast.success(t('hrm:faceEnroll.toasts.enrollSuccess'));
+    },
+    onError: (error) => toast.error(t('hrm:faceEnroll.toasts.enrollError'), extractErrorMessage(error)),
+  });
+}
+
+export function useDeleteFaceEnrollment() {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: deleteFaceEnrollment,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['face-enrollment'] });
+      toast.success(t('hrm:faceEnroll.toasts.deleteSuccess'));
+    },
+    onError: (error) => toast.error(t('hrm:faceEnroll.toasts.deleteError'), extractErrorMessage(error)),
   });
 }
 

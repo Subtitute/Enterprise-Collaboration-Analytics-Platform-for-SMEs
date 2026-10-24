@@ -26,6 +26,12 @@
       "onSite": "Tại văn phòng",
       "offSite": "Ngoài văn phòng"
     },
+    "faceMatchBadge": {
+      "matchedTitle": "Khuôn mặt trong ảnh khớp với khuôn mặt đã đăng ký",
+      "notMatchedTitle": "Khuôn mặt trong ảnh KHÔNG khớp với khuôn mặt đã đăng ký - chỉ là tín hiệu tham khảo, không chặn chấm công",
+      "matched": "Khớp khuôn mặt",
+      "notMatched": "Không khớp"
+    },
     "today": {
       "cardTitle": "Hôm nay ({{date}})",
       "notCheckedIn": "Bạn chưa chấm công vào làm hôm nay.",
@@ -254,6 +260,29 @@
     "retakeButton": "Chụp lại",
     "confirmButton": "Xác nhận",
     "captureButton": "Chụp ảnh"
+  },
+  "faceEnroll": {
+    "sectionTitle": "Nhận diện khuôn mặt chấm công",
+    "sectionDesc": "Đăng ký khuôn mặt để hệ thống đối chiếu (cảnh báo mềm, không chặn chấm công).",
+    "loadError": "Không thể tải trạng thái đăng ký khuôn mặt.",
+    "previewAlt": "Ảnh đăng ký khuôn mặt vừa chụp",
+    "consentLabel": "Tôi đồng ý cho hệ thống lưu lại đặc trưng khuôn mặt của tôi để đối chiếu khi chấm công.",
+    "enrollButton": "Đăng ký khuôn mặt",
+    "reEnrollButton": "Đăng ký lại",
+    "deleteButton": "Xoá đăng ký",
+    "enrolledAt": "Đã đăng ký khuôn mặt lúc {{date}}",
+    "softWarningNote": "Đây chỉ là tín hiệu tham khảo để người quản lý đối chiếu với ảnh chấm công - không bao giờ chặn việc chấm công của bạn, dù khuôn mặt không khớp hoặc chưa đăng ký.",
+    "deleteConfirmTitle": "Xoá đăng ký khuôn mặt?",
+    "deleteConfirmDescription": "Dữ liệu khuôn mặt đã đăng ký sẽ bị xoá vĩnh viễn. Bạn có thể đăng ký lại bất kỳ lúc nào.",
+    "cameraModalTitle": "Chụp ảnh đăng ký khuôn mặt",
+    "captureButton": "Chụp ảnh",
+    "confirmButton": "Xác nhận đăng ký",
+    "toasts": {
+      "enrollSuccess": "Đã đăng ký khuôn mặt thành công",
+      "enrollError": "Không thể đăng ký khuôn mặt",
+      "deleteSuccess": "Đã xoá đăng ký khuôn mặt",
+      "deleteError": "Không thể xoá đăng ký khuôn mặt"
+    }
   },
   "toasts": {
     "checkInSuccess": "Đã chấm công vào làm",
