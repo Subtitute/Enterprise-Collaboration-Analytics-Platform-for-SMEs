@@ -12,7 +12,7 @@ export type LeaveTypeOption = 'ANNUAL' | 'SICK' | 'UNPAID';
 
 export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
-  const [leaveType, setLeaveType] = useState<string>('');
+  const [leaveType, setLeaveType] = useState<string>('ANNUAL');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [reason, setReason] = useState('');
@@ -23,14 +23,13 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
   const todayGmt7 = getTodayGmt7DateString();
 
   const typeOptions = [
-    { value: '', label: t('hrm:newLeaveRequestModal.typePlaceholder') },
     { value: 'ANNUAL', label: t('hrm:newLeaveRequestModal.types.ANNUAL') },
     { value: 'SICK', label: t('hrm:newLeaveRequestModal.types.SICK') },
     { value: 'UNPAID', label: t('hrm:newLeaveRequestModal.types.UNPAID') },
   ];
 
   function reset() {
-    setLeaveType('');
+    setLeaveType('ANNUAL');
     setStartDate('');
     setEndDate('');
     setReason('');
@@ -79,7 +78,7 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
       open={open}
       onClose={handleClose}
       preventCloseWhilePending={createLeaveRequest.isPending}
-      title={<span className="text-[16px] leading-[24px] font-semibold text-text-primary">{t('hrm:newLeaveRequestModal.title')}</span>}
+      title={t('hrm:newLeaveRequestModal.title')}
       footer={
         <div className="flex items-center justify-end gap-2 w-full">
           <button
@@ -96,12 +95,12 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
             disabled={createLeaveRequest.isPending}
             className="inline-flex items-center justify-center h-9 px-4 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer disabled:pointer-events-none disabled:opacity-50"
           >
-            {createLeaveRequest.isPending ? t('common:status.loading') : t('hrm:newLeaveRequestModal.submitButton')}
+            {createLeaveRequest.isPending ? t('common:loading') : t('hrm:newLeaveRequestModal.submitButton')}
           </button>
         </div>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4 max-h-[min(640px,calc(100vh-80px))] overflow-y-auto" noValidate>
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         {/* 1. Row 2 cột: Ngày bắt đầu * / Ngày kết thúc * DatePicker Module 07 */}
         <div className="grid grid-cols-2 gap-3">
           <div>

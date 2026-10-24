@@ -27,8 +27,8 @@ export function CustomFilterSelect({
   className,
   align = 'left',
   position,
-  variant = 'default',
 }: CustomFilterSelectProps) {
+
   const [open, setOpen] = useState(false);
   const [panelPos, setPanelPos] = useState<{ top?: number; bottom?: number; left: number; right: number; width: number } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);

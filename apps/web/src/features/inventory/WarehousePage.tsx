@@ -68,7 +68,7 @@ export function WarehousePage() {
         )}
       </div>
 
-      <div className="rounded-radius-md border border-border-subtle bg-white overflow-hidden">
+      <div className="rounded-radius-md border border-[#E5E4E0] bg-white overflow-hidden mb-8">
         <QueryState
           isLoading={warehousesQuery.isLoading}
           isError={warehousesQuery.isError}

@@ -5,6 +5,7 @@
 // PRODUCT_MANAGE (PRODUCT_VIEW da du de vao trang, xem App.tsx - route nay khong gan
 // requiredPermission vi ca 3 vai tro deu co PRODUCT_VIEW).
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/stores/auth.store';
@@ -24,11 +25,21 @@ const LIMIT = 20;
 
 export function ProductsPage() {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const permissions = usePermissions();
   const canManage = permissions.includes(PERMISSIONS.PRODUCT_MANAGE);
 
   const [isNewOpen, setIsNewOpen] = useState(false);
   const [isManageCategoriesOpen, setIsManageCategoriesOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'create' && canManage) {
+      setIsNewOpen(true);
+      searchParams.delete('action');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, canManage]);
+
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [categoryId, setCategoryId] = useState('');
@@ -92,7 +103,7 @@ export function ProductsPage() {
             <button
               type="button"
               onClick={() => setIsManageCategoriesOpen(true)}
-              className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-sm border border-border-strong bg-white hover:bg-bg-subtle text-text-primary text-[13px] font-medium transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-sm border border-[#E5E4E0] bg-white hover:bg-[#F4F4F5] text-[#1C1B1A] text-[13px] font-medium transition-colors cursor-pointer"
             >
               <SettingsIcon className="h-3.5 w-3.5" />
               <span>{t('inventory:productsPage.manageCategories')}</span>
@@ -100,7 +111,7 @@ export function ProductsPage() {
             <button
               type="button"
               onClick={() => setIsNewOpen(true)}
-              className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-sm bg-[#1C1B1A] hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer"
             >
               <PlusIcon className="h-3.5 w-3.5" />
               <span>{t('inventory:productsPage.newProduct')}</span>
@@ -109,7 +120,7 @@ export function ProductsPage() {
         )}
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary stroke-1.5" />
           <input
@@ -118,7 +129,7 @@ export function ProductsPage() {
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder={t('inventory:productsPage.searchPlaceholder')}
             aria-label={t('inventory:productsPage.searchPlaceholder')}
-            className="h-9 w-full rounded-radius-sm border border-border-strong bg-white pl-9 pr-3 text-[13px] text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-soft"
+            className="h-9 w-full rounded-radius-sm border border-[#E5E4E0] bg-white pl-9 pr-3 text-[13px] text-[#1C1B1A] placeholder:text-text-tertiary focus:border-[#0E5E5E] focus:outline-none focus:ring-2 focus:ring-[#E4EFEE]"
           />
         </div>
         <div className="w-full sm:w-56">

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, ConfirmDialog } from '@/components/ui/Modal';
 import { Avatar } from '@/components/ui/Avatar';
@@ -18,7 +18,7 @@ interface ManageGroupMembersModalProps {
  *  ManageGroupMembersButton (da tu gate quyen truoc do). Mirror layout cua
  *  features/projects/components/ProjectMembersModal.tsx (bo phan department/task count, khong ap
  *  dung cho hoi thoai nhom). */
-export function ManageGroupMembersModal({ open, onClose, conversation }: ManageGroupMembersModalProps) {
+export const ManageGroupMembersModal = React.memo(function ManageGroupMembersModal({ open, onClose, conversation }: ManageGroupMembersModalProps) {
   const { t } = useTranslation();
   const { data: allUsers = [], isLoading: isUsersLoading } = useOrgUsersQuery({ enabled: open });
   const updateParticipants = useUpdateParticipants(conversation.id);
@@ -195,4 +195,4 @@ export function ManageGroupMembersModal({ open, onClose, conversation }: ManageG
       />
     </>
   );
-}
+});

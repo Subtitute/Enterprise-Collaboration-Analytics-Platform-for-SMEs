@@ -21,7 +21,17 @@
     "emptyTitle": "No customers yet",
     "emptyFilteredDescription": "Try adjusting your search terms.",
     "emptyDescription": "Add your first customer to start tracking sales opportunities.",
-    "addFirstCustomer": "Add new customer"
+    "addFirstCustomer": "Add new customer",
+    "viewGrid": "Grid view",
+    "viewTable": "Table view",
+    "columns": {
+      "name": "Customer",
+      "company": "Company",
+      "contact": "Contact",
+      "deals": "Deals",
+      "lastInteraction": "Last interaction",
+      "actions": "Actions"
+    }
   },
   "customerDetailPage": {
     "loading": "Loading customer…",
@@ -69,6 +79,7 @@
       "lead": "Potential Lead",
       "vip": "VIP Customer",
       "loyal": "Loyal Customer",
+      "new": "New Customer",
       "sme": "SME Enterprise",
       "enterprise": "Large Enterprise / Corporation",
       "individual": "Individual Customer"

@@ -19,7 +19,7 @@ test('tim kiem tong hop tim thay du an co san va dieu huong dung khi bam vao ket
   // ngam dinh cua the <button>; cap nhat locator cho khop. exact:true + .first() van can thiet vi
   // "Website ban hang SME" khop CA du an (danh muc "Dự án", dung dau tien theo thu tu render) LAN
   // cac task/thu muc thuoc du an do (sublabel cua chung cung chua ten du an).
-  const result = page.getByRole('option', { name: 'Website ban hang SME', exact: true }).first();
+  const result = page.getByRole('option', { name: /Website b[aá]n h[aà]ng SME/i }).first();
   await expect(result).toBeVisible();
   await result.click();
   await page.waitForURL('**/projects/**');

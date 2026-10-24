@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { cn, getInitials, stringToColorClass } from '@/lib/utils';
 
 interface AvatarProps {
@@ -12,7 +13,7 @@ const sizeClasses = {
   lg: 'h-11 w-11 text-sm',
 };
 
-export function Avatar({ name, size = 'md', className }: AvatarProps) {
+export const Avatar = memo(function Avatar({ name, size = 'md', className }: AvatarProps) {
   const hasCustomBg = className && /(^|\s)bg-/.test(className);
   const hasCustomText = className && /(^|\s)text-/.test(className);
 
@@ -35,9 +36,9 @@ export function Avatar({ name, size = 'md', className }: AvatarProps) {
       {getInitials(name)}
     </span>
   );
-}
+});
 
-export function AvatarStack({ names, max = 4 }: { names: string[]; max?: number }) {
+export const AvatarStack = memo(function AvatarStack({ names, max = 4 }: { names: string[]; max?: number }) {
   const shown = names.slice(0, max);
   const extra = names.length - shown.length;
   return (
@@ -52,4 +53,5 @@ export function AvatarStack({ names, max = 4 }: { names: string[]; max?: number 
       )}
     </div>
   );
-}
+});
+

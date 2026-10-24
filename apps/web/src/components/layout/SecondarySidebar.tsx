@@ -19,7 +19,7 @@ export function SecondarySidebar() {
     // dam bao panel nay KHONG bao giờ che len flyout cua rail chinh khi mo rong, du 2 <aside sticky>
     // la anh em cung cap trong AppShell.tsx (neu khong co z-index tuong minh, thu tu chong hinh mac
     // dinh phu thuoc thu tu DOM, de gay nham lan/loi khi co nguoi sua lai AppShell.tsx sau nay).
-    <aside className="sticky top-0 z-10 hidden h-screen w-56 shrink-0 flex-col border-r border-border-subtle bg-bg-surface md:flex">
+    <aside className="sticky top-0 z-10 hidden h-screen w-56 shrink-0 flex-col border-r border-border-subtle bg-bg-surface lg:flex">
       {/* 3.2. Header 56px, padding-x 16, 2 dòng: overline 10/600 + title 15/600 */}
       <div className="flex h-14 shrink-0 flex-col justify-center border-b border-border-subtle px-4">
         <span className="text-[10px] font-semibold uppercase tracking-[0.06em] text-text-tertiary">

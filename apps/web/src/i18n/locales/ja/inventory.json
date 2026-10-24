@@ -43,6 +43,7 @@
     "imageSectionTitle": "商品画像",
     "replaceImage": "画像を変更",
     "uploadImage": "画像をアップロード",
+    "dropzoneUploadHint": "画像をアップロード (最大5MB)",
     "imageHint": "JPEG、PNGまたはWebP形式、最大{{maxSize}}まで。",
     "removeImage": "画像を削除",
     "noImageYetHint": "先に商品を保存してから、再度編集画面を開いて画像をアップロードしてください。",
@@ -127,10 +128,12 @@
     "directionIncrease": "増加 (+)",
     "directionDecrease": "減少 (-)",
     "fieldQuantity": "数量",
-    "fieldNote": "メモ"
+    "fieldNote": "メモ",
+    "currentStockHint": "現在の在庫: {{count}} 点"
   },
   "stockTable": {
     "emptyTitle": "在庫データがまだありません",
+    "searchPlaceholder": "商品名またはSKUで検索...",
     "columns": {
       "warehouse": "倉庫",
       "product": "商品",

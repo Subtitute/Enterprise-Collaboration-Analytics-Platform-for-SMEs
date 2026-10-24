@@ -61,14 +61,20 @@ export function CategoryModal({
       size="sm"
       footer={
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onClose} disabled={isPending} className="h-9 rounded-radius-sm border-border-strong text-[13px]">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={isPending}
+            className="h-9 rounded-radius-sm border-[#E5E4E0] bg-white hover:bg-[#F4F4F5] text-[#1C1B1A] text-[13px] font-medium"
+          >
             {t('inventory:categoryModal.cancel')}
           </Button>
           <Button
             type="submit"
             form="category-form"
             isLoading={isPending}
-            className="h-9 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium"
+            className="h-9 rounded-radius-sm bg-[#1C1B1A] hover:bg-black text-white text-[13px] font-medium"
           >
             {isEditing ? t('inventory:categoryModal.save') : t('inventory:categoryModal.create')}
           </Button>

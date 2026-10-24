@@ -15,6 +15,7 @@ interface ModalProps {
   open: boolean;
   onClose: () => void;
   title?: React.ReactNode;
+  ariaLabel?: string;
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
@@ -47,6 +48,7 @@ export function Modal({
   open,
   onClose,
   title,
+  ariaLabel,
   description,
   children,
   footer,
@@ -141,7 +143,7 @@ export function Modal({
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label={typeof title === 'string' ? title : undefined}
+        aria-label={ariaLabel ?? (typeof title === 'string' ? title : undefined)}
         tabIndex={-1}
         className={cn(
           'relative z-10 flex max-h-[90vh] w-full flex-col overflow-hidden rounded-radius-lg border border-border-subtle bg-white shadow-lg animate-slide-up',

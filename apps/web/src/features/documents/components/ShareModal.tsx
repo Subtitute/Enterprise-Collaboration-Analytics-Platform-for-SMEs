@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -16,7 +16,7 @@ import type { FileItem } from '@/types';
 // (tinh nang kiem soat truy cap thu muc/tep theo cap do, mo rong chia se sang ca phong ban).
 type ShareTargetType = 'user' | 'department';
 
-export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: () => void }) {
+export const ShareModal = memo(function ShareModal({ file, onClose }: { file: FileItem | null; onClose: () => void }) {
   const { t } = useTranslation();
   const { data: users } = useOrgUsersQuery();
   const { data: departments } = useDepartmentsQuery();
@@ -120,9 +120,30 @@ export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: 
 
         {/* Custom Selector Picker */}
         <div className="relative">
-          <label className="block text-[12px] font-medium text-text-secondary mb-1.5">
+          <label className="block text-[12px] font-medium text-text-secondary mb-1.5" htmlFor="share-target-select">
             {targetType === 'user' ? t('documents:shareModal.shareWithLabel') : t('documents:shareModal.shareWithDepartmentLabel')}
           </label>
+          <select
+            id="share-target-select"
+            aria-label={t('documents:shareModal.shareWithLabel')}
+            value={targetId}
+            onChange={(e) => setTargetId(e.target.value)}
+            className="sr-only"
+            tabIndex={-1}
+          >
+            <option value="">{t('documents:shareModal.selectMemberPlaceholder')}</option>
+            {targetType === 'user'
+              ? (users ?? []).map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.fullName || u.email}
+                  </option>
+                ))
+              : (departments ?? []).map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+          </select>
 
           <div className="relative">
             {targetType === 'user' && selectedUser && !isDropdownOpen ? (
@@ -252,7 +273,7 @@ export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: 
           </div>
         </div>
 
-        {/* Quyền truy cập dạng Segmented Control phẳng (nền bg-subtle, active nền trắng + Ink w600, KHÔNG viền indigo 2px) */}
+        {/* Quyền truy cập dạng Segmented Control phẳng (nền bg-subtle, active nền trắng + Ink w600, KHÔNG viền 2px) */}
         <div>
           <label className="block text-[12px] font-medium text-text-secondary mb-1.5">
             {t('documents:shareModal.permissionLabel')}
@@ -308,4 +329,6 @@ export function ShareModal({ file, onClose }: { file: FileItem | null; onClose: 
       </div>
     </Modal>
   );
-}
+});
+
+export const DocumentShareModal = ShareModal;

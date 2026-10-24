@@ -112,7 +112,8 @@
         "timesUnit": "lần",
         "noDepartment": "Chưa gán",
         "empty": "Không có dữ liệu tổng hợp cho tháng này"
-      }
+      },
+      "workedPlusLeave": "({{actual}} làm + {{paid}} phép)"
     },
     "photoModal": {
       "title": "Ảnh chấm công {{action}}",
@@ -161,7 +162,9 @@
       "emptyDescription": "Tạo yêu cầu đầu tiên khi bạn cần nghỉ phép.",
       "createFirstButton": "Tạo yêu cầu mới",
       "decisionNote": "Ghi chú: {{note}}",
-      "loadMore": "Xem thêm"
+      "loadMore": "Xem thêm",
+      "cancelButton": "Hủy đơn",
+      "confirmCancel": "Bạn có chắc chắn muốn hủy đơn nghỉ phép này không?"
     }
   },
   "employeePicker": {
@@ -300,7 +303,9 @@
     "calendarEventUpdated": "Đã cập nhật mục lịch",
     "calendarEventUpdateFailed": "Không thể cập nhật mục lịch",
     "calendarEventDeleted": "Đã xoá mục lịch",
-    "calendarEventDeleteFailed": "Không thể xoá mục lịch"
+    "calendarEventDeleteFailed": "Không thể xoá mục lịch",
+    "cancelLeaveRequestError": "Hủy yêu cầu nghỉ phép thất bại",
+    "cancelLeaveRequestSuccess": "Đã hủy yêu cầu nghỉ phép"
   },
   "extensions": {
     "adjustment": {
@@ -336,7 +341,8 @@
       "successReject": "Đã từ chối yêu cầu giải trình công",
       "errorSubmit": "Không thể gửi giải trình điều chỉnh công",
       "errorApprove": "Không thể duyệt yêu cầu giải trình công",
-      "errorReject": "Không thể từ chối yêu cầu giải trình công"
+      "errorReject": "Không thể từ chối yêu cầu giải trình công",
+      "pendingDuplicateTooltip": "Đã có đơn đang chờ duyệt"
     },
     "overtime": {
       "registerButton": "Đăng ký làm thêm (OT)",

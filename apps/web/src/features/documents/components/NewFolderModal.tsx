@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { FormField, Input } from '@/components/ui/Input';
 import { useCreateFolder } from '../hooks';
 
-export function NewFolderModal({ parentId, open, onClose }: { parentId: string | null; open: boolean; onClose: () => void }) {
+export const NewFolderModal = memo(function NewFolderModal({ parentId, open, onClose }: { parentId: string | null; open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const [name, setName] = useState('');
   const [error, setError] = useState('');
@@ -60,4 +60,4 @@ export function NewFolderModal({ parentId, open, onClose }: { parentId: string |
       </form>
     </Modal>
   );
-}
+});

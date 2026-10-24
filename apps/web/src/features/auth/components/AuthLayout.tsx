@@ -10,13 +10,13 @@ export function AuthLayout({ title, subtitle, children, wide }: { title: string;
       </div>
       <div className={`relative z-10 ${wide ? 'w-full max-w-3xl' : 'w-full max-w-lg'}`}>
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-primary-600 to-indigo-600 shadow-md shadow-primary-500/20 text-base font-bold text-white">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0E5E5E] text-base font-bold text-white">
             EFS
           </div>
           <h1 className="font-display text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
           {subtitle && <p className="text-sm text-slate-500 max-w-sm sm:max-w-none">{subtitle}</p>}
         </div>
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-200/50 sm:p-8">
+        <div className="rounded-2xl border border-[#E5E4E0] bg-white p-6 sm:p-8">
           {children}
         </div>
       </div>

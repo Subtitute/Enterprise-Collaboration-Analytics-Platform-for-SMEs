@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
@@ -15,7 +15,7 @@ interface NewTaskModalProps {
   defaultColumn?: TaskStatus;
 }
 
-export function NewTaskModal({ open, onClose, projectId, defaultColumn }: NewTaskModalProps) {
+export const NewTaskModal = React.memo(function NewTaskModal({ open, onClose, projectId, defaultColumn }: NewTaskModalProps) {
   const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -97,4 +97,5 @@ export function NewTaskModal({ open, onClose, projectId, defaultColumn }: NewTas
       </form>
     </Modal>
   );
-}
+});
+

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/Badge';
@@ -28,7 +28,7 @@ type LeaveTypeOption = (typeof LEAVE_TYPE_OPTIONS)[number];
  *  Trang thai "da gui" la state CUC BO cua component nay (khong luu DB/localStorage) - gan voi doi
  *  song cua 1 the <MessageBubble key={message.id}>, nen "theo message id" 1 cach tu nhien va MAT khi
  *  tai lai trang, dung nhu pham vi yeu cau (chi tranh gui trung trong phien lam viec hien tai). */
-export function LeaveRequestSuggestion({ message, resolvedDate }: { message: ChatMessage; resolvedDate: string }) {
+export const LeaveRequestSuggestion = React.memo(function LeaveRequestSuggestion({ message, resolvedDate }: { message: ChatMessage; resolvedDate: string }) {
   const { t } = useTranslation();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -158,9 +158,9 @@ export function LeaveRequestSuggestion({ message, resolvedDate }: { message: Cha
           disabled={createLeaveRequest.isPending}
           className="inline-flex items-center justify-center h-8 px-3 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[12px] font-medium transition-colors cursor-pointer disabled:pointer-events-none disabled:opacity-50"
         >
-          {createLeaveRequest.isPending ? t('common:status.loading') : t('messaging:leaveSuggestion.submit')}
+          {createLeaveRequest.isPending ? t('common:loading') : t('messaging:leaveSuggestion.submit')}
         </button>
       </div>
     </form>
   );
-}
+});

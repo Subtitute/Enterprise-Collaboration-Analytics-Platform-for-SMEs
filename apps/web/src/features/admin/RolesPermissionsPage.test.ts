@@ -7,7 +7,8 @@ import { PERMISSIONS } from '../../../../../packages/common-dto/src/enums/permis
 import vi from '@/i18n/locales/vi/admin.json';
 import en from '@/i18n/locales/en/admin.json';
 import ja from '@/i18n/locales/ja/admin.json';
-import { PERMISSION_META } from './RolesPermissionsPage';
+// 24/10/2026 (merge Frontend2): PERMISSION_META chuyen sang roles-permissions.constants.ts.
+import { PERMISSION_META } from './roles-permissions.constants';
 
 const ALL_KEYS = Object.values(PERMISSIONS) as string[];
 

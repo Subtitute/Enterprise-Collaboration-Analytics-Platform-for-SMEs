@@ -172,6 +172,8 @@ export function useCreateTask(projectId: string) {
     mutationFn: (payload: Omit<CreateTaskPayload, 'projectId'>) => createTask({ projectId, ...payload }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
       toast.success(t('projects:toast.task.created'));
     },
     onError: (error) => toast.error(t('projects:toast.task.createError'), extractErrorMessage(error)),
@@ -185,6 +187,8 @@ export function useUpdateTask(projectId: string, taskId: string) {
     mutationFn: (payload: Partial<Omit<CreateTaskPayload, 'projectId'>>) => updateTask(taskId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
       toast.success(t('projects:toast.task.updated'));
     },
     onError: (error) => toast.error(t('projects:toast.task.updateError'), extractErrorMessage(error)),
@@ -198,6 +202,8 @@ export function useDeleteTask(projectId: string) {
     mutationFn: (taskId: string) => deleteTask(taskId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
       toast.success(t('projects:toast.task.deleted'));
     },
     onError: (error) => toast.error(t('projects:toast.task.deleteError'), extractErrorMessage(error)),
@@ -229,6 +235,8 @@ export function useUpdateTaskStatus(projectId: string) {
       // Invalidate các query khác như analytics nếu cần nhưng không làm flash tasks cache
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
     },
   });
 }

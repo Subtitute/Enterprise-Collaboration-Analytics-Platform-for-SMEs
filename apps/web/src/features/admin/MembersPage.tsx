@@ -1,63 +1,24 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/stores/auth.store';
-import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
-import { Avatar } from '@/components/ui/Avatar';
-import { Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow } from '@/components/ui/Table';
-import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
+import { Table, TableBody, TableHead, TableHeadCell } from '@/components/ui/Table';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { Pagination } from '@/components/ui/Pagination';
 import { FullPageSpinner } from '@/components/ui/Spinner';
-import { EditIcon, MoreVerticalIcon, PlusIcon, RefreshIcon, SearchIcon, TrashIcon, UploadIcon, UserIcon } from '@/components/ui/Icons';
+import { PlusIcon, SearchIcon, UploadIcon, UserIcon } from '@/components/ui/Icons';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
-import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { useDeactivateUser, useDeleteUser, useDepartmentsQuery, useReactivateUser, useUsersQuery } from './hooks';
 import { InviteMemberModal } from './components/InviteMemberModal';
 import { ImportEmployeesModal } from './components/ImportEmployeesModal';
 import { EditMemberModal } from './components/EditMemberModal';
+import { MemberTableRow } from './components/MemberTableRow';
+import { MemberCard } from './components/MemberCard';
+import { MembersToolbar } from './components/MembersToolbar';
 import type { User } from '@/types';
 
 const LIMIT = 15;
-
-/**
- * Chuẩn hóa nhãn và màu sắc ngữ cảnh cho Role Badge:
- * - Admin: bg-accent-soft text-accent border-accent/20
- * - Manager: bg-info-soft text-info border-info/20
- * - Employee: bg-subtle text-secondary border-border-subtle
- */
-function getRoleBadgeConfig(roleName: string, t?: (key: string) => string) {
-  const lower = roleName.trim().toLowerCase();
-  if (lower.includes('admin')) {
-    const label = t ? t('admin:roles.orgAdmin') : 'Quản trị viên tổ chức'; // i18n-lint-ignore: fallback mirror dung key i18n that
-    return {
-      label,
-      className: 'bg-accent-soft text-accent border border-accent/20 font-medium',
-    };
-  }
-  if (lower.includes('manager')) {
-    const label = t ? t('admin:roles.manager') : 'Quản lý'; // i18n-lint-ignore: fallback mirror dung key i18n that
-    return {
-      label,
-      className: 'bg-info-soft text-info border border-info/20 font-medium',
-    };
-  }
-  if (lower.includes('employee')) {
-    const label = t ? t('admin:roles.employee') : 'Nhân viên'; // i18n-lint-ignore: fallback mirror dung key i18n that
-    return {
-      label,
-      className: 'bg-bg-subtle text-text-secondary border border-border-subtle font-medium',
-    };
-  }
-  return {
-    label: roleName,
-    className: 'bg-bg-subtle text-text-secondary border border-border-subtle font-medium',
-  };
-}
-
 export function MembersPage() {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
@@ -84,8 +45,11 @@ export function MembersPage() {
   const permissions = usePermissions();
   const canManageUsers = permissions.includes(PERMISSIONS.USER_MANAGE);
 
-  const departmentNameById: Record<string, string> = {};
-  for (const d of departmentsQuery.data ?? []) departmentNameById[d.id] = d.name;
+  const departmentNameById = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const d of departmentsQuery.data ?? []) map[d.id] = d.name;
+    return map;
+  }, [departmentsQuery.data]);
 
   const users = usersQuery.data?.data ?? [];
   const meta = usersQuery.data?.meta ?? { page: 1, limit: LIMIT, total: 0 };
@@ -114,6 +78,16 @@ export function MembersPage() {
 
   const isFiltering = Boolean(search.trim() || selectedDept || selectedStatus !== 'ALL');
 
+  const handleClearFilters = useCallback(() => {
+    setSearch('');
+    setSelectedDept('');
+    setSelectedStatus('ALL');
+  }, []);
+
+  const handleReactivate = useCallback((id: string) => {
+    reactivateUser.mutate(id);
+  }, [reactivateUser]);
+
   return (
     <div className="space-y-4">
       {/* Header dòng mô tả và nút mời thành viên */}
@@ -141,63 +115,17 @@ export function MembersPage() {
       </div>
 
       {/* Thanh công cụ quản trị (Toolbar): Tìm kiếm + Lọc Phòng ban + Lọc Trạng thái */}
-      <div className="flex flex-wrap items-center gap-2.5 rounded-radius-md border border-border-subtle bg-white p-2.5">
-        {/* Ô tìm kiếm theo tên hoặc email */}
-        <div className="relative min-w-[240px] flex-1">
-          <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary pointer-events-none" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('admin:membersPage.searchPlaceholder')}
-            className="h-9 w-full rounded-radius-sm border border-border-strong bg-white pl-9 pr-3 text-[13px] text-text-primary placeholder:text-text-tertiary transition-colors focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-          />
-        </div>
-
-        {/* Dropdown lọc theo Phòng ban */}
-        <div className="w-[180px]">
-          <CustomFilterSelect
-            value={selectedDept}
-            onChange={(val) => setSelectedDept(val)}
-            ariaLabel={t('admin:membersPage.filterDepartmentAria')}
-            options={[
-              { value: '', label: t('admin:membersPage.allDepartments') },
-              ...(departmentsQuery.data ?? []).map((d) => ({
-                value: d.id,
-                label: d.name,
-              })),
-            ]}
-          />
-        </div>
-
-        {/* Dropdown lọc theo Trạng thái hoạt động */}
-        <div className="w-[170px]">
-          <CustomFilterSelect
-            value={selectedStatus}
-            onChange={(val) => setSelectedStatus(val)}
-            ariaLabel={t('admin:membersPage.filterStatusAria')}
-            options={[
-              { value: 'ALL', label: t('admin:membersPage.allStatuses') },
-              { value: 'ACTIVE', label: t('admin:membersPage.status.active') },
-              { value: 'INACTIVE', label: t('admin:membersPage.status.inactive') },
-            ]}
-          />
-        </div>
-
-        {isFiltering && (
-          <button
-            type="button"
-            onClick={() => {
-              setSearch('');
-              setSelectedDept('');
-              setSelectedStatus('ALL');
-            }}
-            className="text-[12px] font-medium text-text-secondary hover:text-text-primary px-2 py-1.5 rounded-radius-sm hover:bg-bg-subtle transition-colors cursor-pointer"
-          >
-            {t('admin:membersPage.clearFilters')}
-          </button>
-        )}
-      </div>
+      <MembersToolbar
+        search={search}
+        onSearchChange={setSearch}
+        selectedDept={selectedDept}
+        onDeptChange={setSelectedDept}
+        selectedStatus={selectedStatus}
+        onStatusChange={setSelectedStatus}
+        departments={departmentsQuery.data ?? []}
+        isFiltering={isFiltering}
+        onClearFilters={handleClearFilters}
+      />
 
       <div className="rounded-radius-md border border-border-subtle bg-white overflow-hidden">
         <QueryState
@@ -220,11 +148,7 @@ export function MembersPage() {
               action={
                 <button
                   type="button"
-                  onClick={() => {
-                    setSearch('');
-                    setSelectedDept('');
-                    setSelectedStatus('ALL');
-                  }}
+                  onClick={handleClearFilters}
                   className="inline-flex items-center justify-center h-8 px-3 rounded-radius-sm border border-border-strong bg-white hover:bg-bg-subtle text-[12px] font-medium text-text-primary cursor-pointer transition-colors"
                 >
                   {t('admin:membersPage.clearFilters')}
@@ -234,141 +158,51 @@ export function MembersPage() {
           </div>
         ) : (
           <>
-            <Table className="border-0">
-              <TableHead className="bg-bg-subtle border-b border-border-subtle">
-                <tr className="h-10">
-                  <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.member')}</TableHeadCell>
-                  <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.department')}</TableHeadCell>
-                  <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.role')}</TableHeadCell>
-                  <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.status')}</TableHeadCell>
-                  <TableHeadCell className="text-right text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.actions')}</TableHeadCell>
-                </tr>
-              </TableHead>
-              <TableBody>
-                {filteredUsers.map((u) => (
-                  <TableRow key={u.id} className="h-14 border-b border-border-subtle hover:bg-bg-subtle transition-colors">
-                    <TableCell label={t('admin:membersPage.columns.member')} className="px-4 py-2.5">
-                      <div className="flex items-center gap-2.5">
-                        <Avatar name={u.fullName} size="sm" className="h-8 w-8 text-[11px] bg-accent-soft text-accent" />
-                        <div className="min-w-0">
-                          <p className="truncate font-medium text-[13px] text-text-primary">{u.fullName}</p>
-                          <p className="truncate text-[12px] text-text-tertiary">{u.email}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell label={t('admin:membersPage.columns.department')} className="px-4 py-2.5 text-[13px] text-text-secondary">
-                      {u.departmentId ? (departmentNameById[u.departmentId] ?? '—') : '—'}
-                    </TableCell>
-                    <TableCell label={t('admin:membersPage.columns.role')} className="px-4 py-2.5">
-                      <div className="flex flex-wrap gap-1">
-                        {(u.roles ?? []).length === 0 ? (
-                          <span className="text-[12px] text-text-tertiary">—</span>
-                        ) : (
-                          (u.roles ?? []).map((r) => {
-                            const badgeCfg = getRoleBadgeConfig(r.name, t);
-                            return (
-                              <span
-                                key={r.id}
-                                className={`inline-flex items-center rounded-radius-sm px-2 py-0.5 text-[12px] ${badgeCfg.className}`}
-                              >
-                                {badgeCfg.label}
-                              </span>
-                            );
-                          })
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell label={t('admin:membersPage.columns.status')} className="px-4 py-2.5">
-                      {u.isActive === false ? (
-                        <span className="inline-flex items-center rounded-radius-sm px-2 py-0.5 text-[12px] font-medium bg-bg-muted text-text-secondary border border-border-subtle">
-                          {t('admin:membersPage.status.inactive')}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center rounded-radius-sm px-2 py-0.5 text-[12px] font-medium bg-success-soft text-success border border-success/20">
-                          {t('admin:membersPage.status.active')}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell label={t('admin:membersPage.columns.actions')} className="px-4 py-2.5 text-right">
-                      {/* 17/09/2026: an (khong chi disable) toan bo menu hanh dong khi khong co
-                          USER_MANAGE - moi hanh dong trong menu nay (sua vai tro/phong ban, vo hieu
-                          hoa, kich hoat lai) deu can quyen do, khac voi nut "Moi thanh vien" o dau
-                          trang (chi can USER_INVITE, van hien cho Manager). */}
-                      {canManageUsers ? (
-                        <Dropdown
-                          align="right"
-                          trigger={({ toggle }) => (
-                            <button
-                              type="button"
-                              onClick={toggle}
-                              className="rounded-radius-sm p-1.5 text-text-tertiary hover:bg-bg-subtle hover:text-text-primary cursor-pointer transition-colors"
-                              aria-label={t('admin:membersPage.optionsAria')}
-                            >
-                              <MoreVerticalIcon className="h-4 w-4" />
-                            </button>
-                          )}
-                        >
-                          {({ close }) => (
-                            <div className="w-48 py-1.5">
-                              <DropdownItem
-                                onClick={() => {
-                                  setEditingUser(u);
-                                  close();
-                                }}
-                              >
-                                <EditIcon className="h-4 w-4" /> {t('admin:membersPage.actionsMenu.editRoleDepartment')}
-                              </DropdownItem>
-                              {u.isActive !== false ? (
-                                <DropdownItem
-                                  className="text-rose-600 hover:bg-rose-50"
-                                  onClick={() => {
-                                    setDeactivatingUser(u);
-                                    close();
-                                  }}
-                                >
-                                  <UserIcon className="h-4 w-4" /> {t('admin:membersPage.actionsMenu.deactivate')}
-                                </DropdownItem>
-                              ) : (
-                                <>
-                                  {/* 22/07/2026 (review toan du an): truoc day KHONG co cach nao
-                                      kich hoat lai 1 tai khoan da vo hieu hoa tu giao dien - backend
-                                      da bo sung PATCH /users/:id/reactivate (fix loi Major) nhung
-                                      thieu diem vao tu UI. Chi hien khi tai khoan dang bi vo hieu hoa. */}
-                                  <DropdownItem
-                                    onClick={() => {
-                                      reactivateUser.mutate(u.id);
-                                      close();
-                                    }}
-                                  >
-                                    <RefreshIcon className="h-4 w-4" /> {t('admin:membersPage.actionsMenu.reactivate')}
-                                  </DropdownItem>
-                                  {/* 25/09/2026: xoa vinh vien - chi hien khi tai khoan DA vo hieu
-                                      hoa (backend cung tu kiem tra dieu nay, xem UsersService.remove()) -
-                                      dung de don han du lieu rac (vd tai khoan E2E test tao ra) khoi
-                                      danh sach, khac voi "Vo hieu hoa" (van con hien, khong xoa). */}
-                                  <DropdownItem
-                                    className="text-rose-600 hover:bg-rose-50"
-                                    onClick={() => {
-                                      setDeletingUser(u);
-                                      close();
-                                    }}
-                                  >
-                                    <TrashIcon className="h-4 w-4" /> {t('admin:membersPage.actionsMenu.delete')}
-                                  </DropdownItem>
-                                </>
-                              )}
-                            </div>
-                          )}
-                        </Dropdown>
-                      ) : (
-                        <span className="text-xs text-slate-300">—</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            <Pagination page={meta.page} limit={meta.limit} total={isFiltering ? filteredUsers.length : meta.total} onPageChange={setPage} />
+            {/* Mobile View: Dạng Card Stack chuẩn responsive */}
+            <div className="block md:hidden p-3 space-y-3">
+              {filteredUsers.map((u) => (
+                <MemberCard
+                  key={u.id}
+                  user={u}
+                  departmentName={u.departmentId ? (departmentNameById[u.departmentId] ?? '—') : '—'}
+                  canManageUsers={canManageUsers}
+                  onEdit={setEditingUser}
+                  onDeactivate={setDeactivatingUser}
+                  onReactivate={handleReactivate}
+                  onDelete={setDeletingUser}
+                />
+              ))}
+            </div>
+
+            {/* Desktop & Tablet View: Bọc trong container có overflow-x-auto */}
+            <div className="hidden md:block overflow-x-auto">
+              <Table className="border-0 min-w-[700px]">
+                <TableHead className="bg-bg-subtle border-b border-border-subtle">
+                  <tr className="h-10">
+                    <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.member')}</TableHeadCell>
+                    <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.department')}</TableHeadCell>
+                    <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.role')}</TableHeadCell>
+                    <TableHeadCell className="text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.status')}</TableHeadCell>
+                    <TableHeadCell className="text-right text-[12px] font-medium uppercase tracking-wider text-text-tertiary px-4 py-2">{t('admin:membersPage.columns.actions')}</TableHeadCell>
+                  </tr>
+                </TableHead>
+                <TableBody>
+                  {filteredUsers.map((u) => (
+                    <MemberTableRow
+                      key={u.id}
+                      user={u}
+                      departmentName={u.departmentId ? (departmentNameById[u.departmentId] ?? '—') : '—'}
+                      canManageUsers={canManageUsers}
+                      onEdit={setEditingUser}
+                      onDeactivate={setDeactivatingUser}
+                      onReactivate={handleReactivate}
+                      onDelete={setDeletingUser}
+                    />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <Pagination page={meta.page} limit={meta.limit} total={meta.total} onPageChange={setPage} />
           </>
         )}
         </QueryState>
@@ -377,31 +211,39 @@ export function MembersPage() {
       <InviteMemberModal open={isInviteOpen} onClose={() => setIsInviteOpen(false)} />
       <ImportEmployeesModal open={isImportOpen} onClose={() => setIsImportOpen(false)} />
       <EditMemberModal user={editingUser} onClose={() => setEditingUser(null)} />
+
       <ConfirmDialog
         open={Boolean(deactivatingUser)}
         onClose={() => setDeactivatingUser(null)}
-        onConfirm={() => {
-          if (deactivatingUser) deactivateUser.mutate(deactivatingUser.id);
-          setDeactivatingUser(null);
-        }}
         title={t('admin:membersPage.deactivateConfirm.title')}
-        description={
-          deactivatingUser ? t('admin:membersPage.deactivateConfirm.description', { fullName: deactivatingUser.fullName }) : undefined
-        }
+        description={t('admin:membersPage.deactivateConfirm.description', { name: deactivatingUser?.fullName })}
         confirmLabel={t('admin:membersPage.deactivateConfirm.confirmLabel')}
         danger
+        isLoading={deactivateUser.isPending}
+        onConfirm={() => {
+          if (deactivatingUser) {
+            deactivateUser.mutate(deactivatingUser.id, {
+              onSuccess: () => setDeactivatingUser(null),
+            });
+          }
+        }}
       />
+
       <ConfirmDialog
         open={Boolean(deletingUser)}
         onClose={() => setDeletingUser(null)}
-        onConfirm={() => {
-          if (deletingUser) deleteUser.mutate(deletingUser.id);
-          setDeletingUser(null);
-        }}
         title={t('admin:membersPage.deleteConfirm.title')}
-        description={deletingUser ? t('admin:membersPage.deleteConfirm.description', { fullName: deletingUser.fullName }) : undefined}
+        description={t('admin:membersPage.deleteConfirm.description', { name: deletingUser?.fullName })}
         confirmLabel={t('admin:membersPage.deleteConfirm.confirmLabel')}
         danger
+        isLoading={deleteUser.isPending}
+        onConfirm={() => {
+          if (deletingUser) {
+            deleteUser.mutate(deletingUser.id, {
+              onSuccess: () => setDeletingUser(null),
+            });
+          }
+        }}
       />
     </div>
   );

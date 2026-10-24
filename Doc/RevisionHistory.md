@@ -2061,3 +2061,47 @@ cơ chế dọn dẹp) + `scripts/mock-data/` (kịch bản đọc URL/tài kho�
 **Xác minh cuối:** bộ kịch bản `scripts/mock-data/run-all.js` chạy lại sau mọi lần rebuild: 186/186
 PASS (01–07); 08–09 PASS ở lần chạy của agent nghiệm thu. Gate toàn workspace sau lần sửa cuối cùng: `typecheck`/`lint` (0 lỗi)/`lint:i18n-strings` (sạch, 188 file)/`test` (1.072 test qua)/`build` đều thành công; 26 container chạy thường trực đều healthy.
 Chi tiết kỹ thuật: `Technical_Spec.md` §8, §23, §25.
+
+## 25/10/2026 — Merge nhánh Frontend2 (Tiến) vào main + khắc phục CI
+
+Merge 6 commit mới của nhánh `Frontend2`: tối ưu toàn bộ code frontend (tách trang lớn thành các
+component nhỏ), cập nhật biểu đồ Dashboard, ngôn ngữ các module và giao diện mobile/tablet, giao diện
+Danh mục sản phẩm & Kho, và tính năng nhân viên **tự hủy đơn nghỉ phép đang chờ duyệt** (endpoint mới
+`PATCH /api/v1/leave-requests/:id/cancel` ở `hrm-service`).
+
+**6 file conflict, cách xử lý:**
+- `RolesPermissionsPage.tsx`: Frontend2 tách bảng quyền sang `roles-permissions.constants.ts` — chuyển
+  phần bổ sung của main (8 quyền Sản phẩm & Kho, quyền `chatbot:use`) vào file mới; dùng khoá nhóm
+  `message` của Frontend2 (nhãn đổi thành "Nhắn tin & Trợ lý AI") thay cho khoá `messaging` trùng ý.
+- `ProfilePage.tsx` và `AttendancePage.tsx`: Frontend2 tách thành các card/bảng con — thẻ đăng ký
+  khuôn mặt chuyển thành component riêng `ProfileFaceEnrollmentCard.tsx`; badge khớp khuôn mặt
+  chuyển vào `attendance-shared.tsx` và gắn vào thẻ chấm công hôm nay, 2 bảng lịch sử, modal ảnh.
+- `ProjectProgressTable.tsx`: lấy bản Frontend2 (đã tự có `role="progressbar"`).
+- `LoginPage.tsx`: giữ màu badge mới của Frontend2, giữ email demo hậu tố `+227860` khớp DB hiện tại.
+- `vi/errors.json`: lấy bản dịch đầy đủ của Frontend2, bổ sung mã lỗi chatbot/RAG/khuôn mặt.
+
+**Lỗi do merge tự động gây ra, phát hiện và sửa:** Git gộp được 3 file `admin.json` (vi/en/ja) không báo
+conflict nhưng để lại **11 khoá trùng** trong mỗi file (cả 2 nhánh cùng thêm nhãn cho các quyền giải
+trình/tăng ca/lịch/nhắn tin/`ml:view`) — JSON hợp lệ về cú pháp nên không gate nào bắt được. Giữ nhãn
+của Frontend2, bỏ bản trùng.
+
+**Gate `lint:i18n-strings` đỏ sau merge — 102 chuỗi tiếng Việt viết thẳng trong code của Frontend2:**
+74 chỗ `t('khoá', 'chuỗi dự phòng')` mà khoá đã có đủ vi/en/ja → bỏ chuỗi dự phòng; 5 khoá chưa có →
+bổ sung vi/en/ja; ~10 chỗ chữ hiển thị viết thẳng → chuyển sang khoá (ưu tiên khoá sẵn có); 16 dòng so
+khớp dữ liệu (tên vai trò, loại khách hàng, loại nghỉ phép) → đánh dấu `i18n-lint-ignore` theo quy
+ước sẵn có. Cập nhật 1 test (`MonthlyTimesheetTable.test.tsx`) đang so chuỗi cứng.
+
+**CI trên GitHub đỏ liên tục từ 11/10/2026 (3 lần push gần nhất):** bước `npm run test:coverage` thất
+bại. Tái hiện ở máy với `TZ=UTC` như runner CI: `inventory-service` (thêm 16/10) chép nguyên ngưỡng
+coverage của `crm-service` (45/55/45/45%) trong khi số đo thật chỉ 39/35/40/29% — đặt lại ngưỡng
+bằng số đo thật làm sàn chặn thụt lùi, đúng quy ước đặt ngưỡng của dự án từ 22/08/2026. npm dừng ở
+workspace lỗi đầu tiên nên chạy lần lượt từng workspace còn lại: tất cả qua.
+
+**Ghi nhận cho tính năng hủy đơn của Frontend2 (chưa sửa):** đơn bị hủy chuyển sang `REJECTED` và phát
+sự kiện `LEAVE_REQUEST_REJECTED`, nên chính người hủy nhận 1 thông báo "đơn bị từ chối" và số liệu
+phân tích tính đơn đó là bị từ chối. Lỗi `403` khi hủy đơn của người khác chưa có `errorCode`.
+
+**Xác minh:** `typecheck`/`lint` (0 lỗi)/`lint:i18n-strings` (sạch, 230 file)/`test`/`build` toàn
+workspace; `test:coverage` ở `TZ=UTC` qua mọi workspace; `package-lock.json` khớp manifest. Rebuild
+`hrm-service` + `web`: kịch bản `02-hrm` 28/28, `09-ui-smoke` 32/32 (3 vai trò × 26 trang, 0 lần 429);
+hủy đơn sống: người khác hủy → 403, chủ đơn hủy → 200, hủy lần 2 → 400.

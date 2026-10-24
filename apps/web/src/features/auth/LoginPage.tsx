@@ -26,7 +26,7 @@ const DEMO_ACCOUNTS: DemoAccountItem[] = [
     id: 'admin',
     roleNameKey: 'auth:loginPage.demoAccount.roles.admin',
     descKey: 'auth:loginPage.demoAccount.roles.adminDesc',
-    badgeClass: 'bg-purple-100 text-purple-700 border-purple-200',
+    badgeClass: 'bg-[#E4EFEE] text-[#0E5E5E] border-[#0E5E5E]/20',
     email: 'admin@demo-sme.vn',
     password: 'Password123!',
   },
@@ -34,12 +34,15 @@ const DEMO_ACCOUNTS: DemoAccountItem[] = [
     id: 'manager',
     roleNameKey: 'auth:loginPage.demoAccount.roles.manager',
     descKey: 'auth:loginPage.demoAccount.roles.managerDesc',
-    badgeClass: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+    badgeClass: 'bg-slate-100 text-slate-700 border-slate-200',
     // 18/10/2026: sua lai email demo Manager - hau to ngau nhien "+141603" tu ban seed cu khong
     // con ton tai (moi nhan vien duoc invite qua API voi 1 hau to ngau nhien rieng, sinh ra khac
     // nhau moi lan chay `npm run seed` lai - KHONG co dinh qua cac lan seed). "an.nguyen+227860"
     // la Manager phong Kinh doanh trong du lieu demo hien tai (doi chieu truc tiep qua iam_db,
     // khong doan).
+    // 24/10/2026 (merge Frontend2): nhanh Frontend2 dung "an.nguyen+246317" - hau to sinh tu lan
+    // seed tren may khac; giu "+227860" khop DB demo hien tai va Doc/Mock_data.md. Seed lai tren
+    // may moi thi phai doi chieu lai hau to trong iam_db.
     email: 'an.nguyen+227860@demo-sme.vn',
     password: 'Password123!',
   },
@@ -54,6 +57,8 @@ const DEMO_ACCOUNTS: DemoAccountItem[] = [
     // Employee. Luu y: hien tai KHONG co Employee nao dang la chu so huu khach hang nao trong CRM
     // (toan bo 24 khach hang demo thuoc ve chinh Org Admin) - gioi han cua du lieu demo hien tai,
     // khong phai loi tai khoan nay chon sai.
+    // 24/10/2026 (merge Frontend2): giu "+227860" thay cho "binh.tran+246317" cua nhanh Frontend2 -
+    // cung ly do voi tai khoan Manager o tren.
     email: 'duc.hoang+227860@demo-sme.vn',
     password: 'Password123!',
   },

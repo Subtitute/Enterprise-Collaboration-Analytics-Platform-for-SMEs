@@ -112,7 +112,8 @@
         "timesUnit": "times",
         "noDepartment": "Unassigned",
         "empty": "No summary data for this month"
-      }
+      },
+      "workedPlusLeave": "({{actual}} worked + {{paid}} leave)"
     },
     "photoModal": {
       "title": "{{action}} Photo Proof",
@@ -161,7 +162,9 @@
       "emptyDescription": "Create your first request when you need time off.",
       "createFirstButton": "Create new request",
       "decisionNote": "Note: {{note}}",
-      "loadMore": "Load more"
+      "loadMore": "Load more",
+      "cancelButton": "Cancel request",
+      "confirmCancel": "Are you sure you want to cancel this leave request?"
     }
   },
   "employeePicker": {
@@ -300,7 +303,9 @@
     "calendarEventUpdated": "Calendar entry updated",
     "calendarEventUpdateFailed": "Couldn't update calendar entry",
     "calendarEventDeleted": "Calendar entry deleted",
-    "calendarEventDeleteFailed": "Couldn't delete calendar entry"
+    "calendarEventDeleteFailed": "Couldn't delete calendar entry",
+    "cancelLeaveRequestError": "Failed to cancel the leave request",
+    "cancelLeaveRequestSuccess": "Leave request cancelled"
   },
   "extensions": {
     "adjustment": {
@@ -336,7 +341,8 @@
       "successReject": "Attendance adjustment rejected",
       "errorSubmit": "Could not submit attendance adjustment",
       "errorApprove": "Could not approve attendance adjustment",
-      "errorReject": "Could not reject attendance adjustment"
+      "errorReject": "Could not reject attendance adjustment",
+      "pendingDuplicateTooltip": "A request is already pending approval"
     },
     "overtime": {
       "registerButton": "Register Overtime (OT)",

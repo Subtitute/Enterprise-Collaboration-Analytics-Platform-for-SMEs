@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon, XIcon } from '@/components/ui/Icons';
+import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
+
 
 interface DatePickerProps {
   id?: string;
@@ -40,7 +41,6 @@ export function DatePicker({
   // `t(key, {returnObjects:true})` de t() luon tra ve string don gian, dung quy uoc i18next hien
   // co trong toan repo (chua noi nao dung returnObjects truoc do).
   const MONTH_NAMES = Array.from({ length: 12 }, (_, i) => t(`common:datePicker.months.${i}`));
-  const MONTH_NAMES_SHORT = Array.from({ length: 12 }, (_, i) => t(`common:datePicker.monthsShort.${i}`));
   const WEEK_DAYS = Array.from({ length: 7 }, (_, i) => t(`common:datePicker.weekDays.${i}`));
   // 26/08/2026: placeholder mac dinh chuyen vao i18n (common:datePicker.placeholder) - GIU NGUYEN
   // dinh dang "DD/MM/YYYY" cho ca 3 ngon ngu (khong doi thanh YYYY/MM/DD cho tieng Nhat) de nhat
@@ -49,11 +49,11 @@ export function DatePicker({
   const effectivePlaceholder = placeholder ?? t('common:datePicker.placeholder');
 
   const [isOpen, setIsOpen] = useState(false);
-  const [isMonthYearPickerOpen, setIsMonthYearPickerOpen] = useState(false);
   // 26/08/2026: Fix 2 - trang thai bao "chuoi da nhap dung dinh dang dd/mm/yyyy nhung ngay khong
   // ton tai thuc te" (vd 31/02/2026) - component truoc day khong co bat ky trang thai loi nao cho
   // input nhap tay.
   const [inputError, setInputError] = useState(false);
+
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Parse date value (YYYY-MM-DD)
@@ -82,13 +82,11 @@ export function DatePicker({
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
-        setIsMonthYearPickerOpen(false);
       }
     }
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         setIsOpen(false);
-        setIsMonthYearPickerOpen(false);
       }
     }
     if (isOpen) {
@@ -100,6 +98,7 @@ export function DatePicker({
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen]);
+
 
   useEffect(() => {
     if (value) {
@@ -164,10 +163,11 @@ export function DatePicker({
     }
 
     const ddmmyyyy = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(trimmed);
-    if (ddmmyyyy) {
-      const d = parseInt(ddmmyyyy[1], 10);
-      const m = parseInt(ddmmyyyy[2], 10);
-      const y = parseInt(ddmmyyyy[3], 10);
+    const yyyymmdd = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(trimmed);
+    if (ddmmyyyy || yyyymmdd) {
+      const d = ddmmyyyy ? parseInt(ddmmyyyy[1], 10) : parseInt(yyyymmdd![3], 10);
+      const m = ddmmyyyy ? parseInt(ddmmyyyy[2], 10) : parseInt(yyyymmdd![2], 10);
+      const y = ddmmyyyy ? parseInt(ddmmyyyy[3], 10) : parseInt(yyyymmdd![1], 10);
       const inRange = m >= 1 && m <= 12 && d >= 1 && d <= 31 && y >= 1900 && y <= 2100;
       // 26/08/2026: Fix 2 - sua loi thuc te - truoc ban sua nay chi kiem tra khoang gia tri
       // (ngay 1-31, thang 1-12) roi truyen thang vao `new Date()`; JS se TU DONG "tran" ngay khong
@@ -220,10 +220,8 @@ export function DatePicker({
     setIsOpen(false);
   };
 
-  // Generate Year options
-  const YEARS = Array.from({ length: 16 }, (_, i) => today.getFullYear() - 5 + i);
-
   const [resolvedPosition, setResolvedPosition] = useState<'top' | 'bottom'>(position);
+
 
   useEffect(() => {
     if (!isOpen || !containerRef.current) return;

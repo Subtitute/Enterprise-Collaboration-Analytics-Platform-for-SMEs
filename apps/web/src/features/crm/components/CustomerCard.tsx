@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Card } from '@/components/ui/Card';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { BuildingIcon, EditIcon, MailIcon, MoreVerticalIcon, TrashIcon } from '@/components/ui/Icons';
@@ -11,7 +10,8 @@ import { useDeleteCustomer } from '../hooks';
 import { EditCustomerModal } from './EditCustomerModal';
 import type { Customer } from '@/types';
 
-function CustomerTypeBadge({ notes }: { notes?: string | null }) {
+export function CustomerTypeBadge({ notes }: { notes?: string | null }) {
+  const { t } = useTranslation();
   if (!notes) return null;
 
   // Đối chiếu Badge loại khách hàng theo §5
@@ -21,34 +21,46 @@ function CustomerTypeBadge({ notes }: { notes?: string | null }) {
   // Mặc định / khác: bg-bg-subtle, text-text-secondary
   let colorStyles = 'bg-bg-subtle text-text-secondary';
   let dotColor = 'bg-text-secondary';
+  let label = notes;
 
   const n = notes.toLowerCase();
   // i18n-lint-ignore: matching raw customerType/notes data values (free-text, possibly Vietnamese), not UI copy.
-  if (n.includes('mới') || n.includes('new')) {
+  if (n.includes('mới') || n.includes('new')) { // i18n-lint-ignore - gia tri SO KHOP du lieu, khong phai text hien thi
     colorStyles = 'bg-[#E4EEF5] text-[#1E5A8A]';
     dotColor = 'bg-[#1E5A8A]';
-  // i18n-lint-ignore: matching raw customerType/notes data values (free-text, possibly Vietnamese), not UI copy.
-  } else if (n.includes('thân thiết') || n.includes('loyal') || n.includes('vip')) {
+    label = t('crm:newCustomerModal.customerTypes.new');
+  } else if (n.includes('thân thiết') || n.includes('loyal')) { // i18n-lint-ignore - gia tri SO KHOP du lieu, khong phai text hien thi
     colorStyles = 'bg-[#E6F1E9] text-[#2F6F44]';
     dotColor = 'bg-[#2F6F44]';
-  // i18n-lint-ignore: matching raw customerType/notes data values (free-text, possibly Vietnamese), not UI copy.
-  } else if (n.includes('tiềm năng') || n.includes('lead')) {
+    label = t('crm:newCustomerModal.customerTypes.loyal');
+  } else if (n.includes('vip')) {
+    colorStyles = 'bg-[#E6F1E9] text-[#2F6F44]';
+    dotColor = 'bg-[#2F6F44]';
+    label = t('crm:newCustomerModal.customerTypes.vip');
+  } else if (n.includes('tiềm năng') || n.includes('lead')) { // i18n-lint-ignore - gia tri SO KHOP du lieu, khong phai text hien thi
     colorStyles = 'bg-[#FBEEE0] text-[#B45309]';
     dotColor = 'bg-[#B45309]';
+    label = t('crm:newCustomerModal.customerTypes.lead');
+  } else if (n.includes('cá nhân') || n.includes('individual')) { // i18n-lint-ignore - gia tri SO KHOP du lieu, khong phai text hien thi
+    label = t('crm:newCustomerModal.customerTypes.individual');
+  } else if (n.includes('sme')) {
+    label = t('crm:newCustomerModal.customerTypes.sme');
+  } else if (n.includes('doanh nghiệp lớn') || n.includes('tập đoàn') || n.includes('enterprise')) { // i18n-lint-ignore - gia tri SO KHOP du lieu, khong phai text hien thi
+    label = t('crm:newCustomerModal.customerTypes.enterprise');
   }
 
   return (
     <span
       className={`inline-flex items-center gap-1.5 h-[22px] px-2 rounded-radius-xs text-[11px] font-semibold shrink-0 max-w-[150px] truncate ${colorStyles}`}
-      title={notes}
+      title={label}
     >
       <span className={`h-1 w-1 rounded-full shrink-0 ${dotColor}`} />
-      <span className="truncate">{notes}</span>
+      <span className="truncate">{label}</span>
     </span>
   );
 }
 
-export function CustomerCard({ customer }: { customer: Customer }) {
+export const CustomerCard = React.memo(function CustomerCard({ customer }: { customer: Customer }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -173,4 +185,5 @@ export function CustomerCard({ customer }: { customer: Customer }) {
       />
     </>
   );
-}
+});
+

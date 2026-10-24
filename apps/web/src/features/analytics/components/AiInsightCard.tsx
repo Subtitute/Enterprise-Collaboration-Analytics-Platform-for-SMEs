@@ -1,3 +1,4 @@
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { AlertCircleIcon, TrendingUpIcon, InfoIcon, CheckCircleIcon } from '@/components/ui/Icons';
@@ -30,7 +31,7 @@ const PRIORITY_STYLE: Record<ActionPlanPriority, string> = {
  * san - dung chung voi Toast.tsx) + `animationDelay` theo `index` tao hieu ung "lan luot xuat
  * hien" khi danh sach insight moi duoc tra ve, thay vi bung ra ca khoi cung luc.
  */
-export function AiInsightCard({ insight, scopeLabel, index }: AiInsightCardProps) {
+export const AiInsightCard = React.memo(function AiInsightCard({ insight, scopeLabel, index }: AiInsightCardProps) {
   const { t } = useTranslation();
   const style = SEVERITY_STYLE[insight.severity];
   const Icon = style.icon;
@@ -96,4 +97,4 @@ export function AiInsightCard({ insight, scopeLabel, index }: AiInsightCardProps
       )}
     </div>
   );
-}
+});

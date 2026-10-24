@@ -6,7 +6,7 @@ import type { StockMovementType } from '@/types';
 /** Dinh dang gia tien/gia tri VND - mirror formatDealValue() (features/crm/utils.ts). */
 export function formatVnd(value?: number | null): string {
   const n = typeof value === 'number' && !Number.isNaN(value) ? value : 0;
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n);
+  return `${new Intl.NumberFormat('vi-VN').format(n)} VND`;
 }
 
 export function stockMovementTypeBadgeVariant(type: StockMovementType): BadgeVariant {
@@ -16,6 +16,6 @@ export function stockMovementTypeBadgeVariant(type: StockMovementType): BadgeVar
     case 'OUT':
       return 'danger';
     default:
-      return 'info';
+      return 'warning';
   }
 }

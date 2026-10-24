@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -12,6 +12,7 @@ import { useUserNameMap } from '@/hooks/useOrgUsers';
 import { formatDealValue } from './utils';
 import { useCustomerQuery, useDealsQuery, useUpdateCustomer } from './hooks';
 import { DealKanbanBoard } from './components/DealKanbanBoard';
+import { CustomerTypeBadge } from './components/CustomerCard';
 import { NewDealModal } from './components/NewDealModal';
 import { DealDetailModal } from './components/DealDetailModal';
 // 16/10/2026: khoi "San pham da mua" moi (gan giao dich khach hang, Danh muc san pham + Kho,
@@ -30,6 +31,10 @@ export function CustomerDetailPage() {
 
   const [isNewDealOpen, setIsNewDealOpen] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
+
+  const handleOpenNewDeal = useCallback(() => setIsNewDealOpen(true), []);
+  const handleCloseNewDeal = useCallback(() => setIsNewDealOpen(false), []);
+  const handleCloseDealDetail = useCallback(() => setSelectedDeal(null), []);
 
   const { map: userNameMap, users: orgUsers } = useUserNameMap();
   const updateCustomerOwner = useUpdateCustomer(customerId);
@@ -133,16 +138,20 @@ export function CustomerDetailPage() {
             </span>
           </div>
 
-          <div className="mt-2 text-[13px] text-text-secondary">
-            <span className="font-mono tabular-nums">{customer.openDealCount ?? 0}</span> {t('crm:customerDetailPage.openDealsSuffix')} — <span className="font-mono text-accent font-medium tabular-nums">{formatDealValue(customer.openDealValue ?? 0)}</span>
+          <div className="mt-2 text-[13px] text-text-secondary flex items-center gap-3">
+            <span>
+              {t('crm:customerDetailPage.openDealsSummary', {
+                count: customer.openDealCount ?? 0,
+                value: formatDealValue(customer.openDealValue ?? 0),
+              })}
+            </span>
+            {customer.notes && <CustomerTypeBadge notes={customer.notes} />}
           </div>
-
-          {customer.notes && <p className="mt-2 max-w-2xl text-[13px] text-text-tertiary">{customer.notes}</p>}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
-            onClick={() => setIsNewDealOpen(true)}
+            onClick={handleOpenNewDeal}
             className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer"
           >
             <PlusIcon className="h-3.5 w-3.5" />
@@ -160,25 +169,27 @@ export function CustomerDetailPage() {
         errorDescription={t('crm:customerDetailPage.dealsErrorDescription')}
       >
         {deals.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-radius-lg border border-dashed border-border-subtle bg-white p-10 text-center">
-            <h3 className="text-[16px] font-medium text-text-primary">{t('crm:customerDetailPage.emptyDealsTitle')}</h3>
-            <p className="mt-1 text-[13px] text-text-tertiary">{t('crm:customerDetailPage.emptyDealsDescription')}</p>
-            <button
-              type="button"
-              onClick={() => setIsNewDealOpen(true)}
-              className="mt-4 inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer"
-            >
-              <PlusIcon className="h-3.5 w-3.5" />
-              <span>{t('crm:customerDetailPage.createFirstDeal')}</span>
-            </button>
-          </div>
+          <EmptyState
+            title={t('crm:customerDetailPage.emptyDealsTitle')}
+            description={t('crm:customerDetailPage.emptyDealsDescription')}
+            action={
+              <button
+                type="button"
+                onClick={handleOpenNewDeal}
+                className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer"
+              >
+                <PlusIcon className="h-3.5 w-3.5" />
+                <span>{t('crm:customerDetailPage.createFirstDeal')}</span>
+              </button>
+            }
+          />
         ) : (
           <DealKanbanBoard customerId={customerId} deals={deals} onDealClick={setSelectedDeal} />
         )}
       </QueryState>
 
-      <NewDealModal customerId={customerId} open={isNewDealOpen} onClose={() => setIsNewDealOpen(false)} />
-      <DealDetailModal customerId={customerId} deal={selectedDeal} onClose={() => setSelectedDeal(null)} />
+      <NewDealModal customerId={customerId} open={isNewDealOpen} onClose={handleCloseNewDeal} />
+      <DealDetailModal customerId={customerId} deal={selectedDeal} onClose={handleCloseDealDetail} />
 
       <CustomerPurchaseHistory customerId={customerId} />
     </div>

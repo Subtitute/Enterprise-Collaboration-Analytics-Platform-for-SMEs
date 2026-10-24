@@ -34,24 +34,26 @@ export function AdminPage() {
         <p className="mt-1 text-[14px] leading-[22px] text-text-secondary">{t('admin:adminPage.subtitle')}</p>
       </div>
 
-      {/* Segmented Control phẳng (nền bg-subtle, active nền trắng + Ink w600 + border subtle) */}
-      <div className="inline-flex flex-wrap items-center gap-1 rounded-radius-md bg-bg-subtle p-1 border border-border-subtle">
-        {visibleTabs.map((tab) => (
-          <NavLink
-            key={tab.to}
-            to={tab.to}
-            className={({ isActive }) =>
-              cn(
-                'px-3.5 py-1.5 text-[13px] leading-5 rounded-[4px] transition-all cursor-pointer font-medium',
-                isActive
-                  ? 'bg-white text-text-primary font-semibold border border-border-subtle'
-                  : 'text-text-secondary hover:text-text-primary border border-transparent',
-              )
-            }
-          >
-            {t(tab.labelKey)}
-          </NavLink>
-        ))}
+      {/* Segmented Control phẳng: cuộn ngang 1 hàng trên mobile, không bị gãy 2 hàng */}
+      <div className="w-full overflow-x-auto no-scrollbar pb-1">
+        <div className="inline-flex items-center gap-1 rounded-radius-md bg-bg-subtle p-1 border border-border-subtle whitespace-nowrap">
+          {visibleTabs.map((tab) => (
+            <NavLink
+              key={tab.to}
+              to={tab.to}
+              className={({ isActive }) =>
+                cn(
+                  'px-3.5 py-1.5 text-[13px] leading-5 rounded-[4px] transition-all cursor-pointer font-medium shrink-0',
+                  isActive
+                    ? 'bg-white text-text-primary font-semibold border border-border-subtle'
+                    : 'text-text-secondary hover:text-text-primary border border-transparent',
+                )
+              }
+            >
+              {t(tab.labelKey)}
+            </NavLink>
+          ))}
+        </div>
       </div>
 
       <Outlet />

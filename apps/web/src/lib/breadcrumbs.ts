@@ -10,6 +10,8 @@ const ROUTE_LABEL_KEYS: Record<string, string> = {
   projects: 'common:nav.homeNav.projects',
   documents: 'common:nav.homeNav.documents',
   customers: 'common:nav.homeNav.customers',
+  products: 'common:nav.homeNav.products',
+  warehouse: 'common:nav.homeNav.warehouse',
   attendance: 'common:nav.attendance',
   'leave-requests': 'common:nav.leaveRequests',
   messages: 'common:nav.messages',
@@ -29,6 +31,8 @@ const DEFAULT_ROUTE_FALLBACKS: Record<string, string> = {
   projects: 'Projects',
   documents: 'Documents',
   customers: 'Customers',
+  products: 'Products',
+  warehouse: 'Warehouse',
   attendance: 'Attendance',
   'leave-requests': 'Leave requests',
   messages: 'Messages',
@@ -43,7 +47,7 @@ const DEFAULT_ROUTE_FALLBACKS: Record<string, string> = {
   settings: 'Settings',
 };
 
-const HOME_GROUP_SEGMENTS = new Set(['dashboard', 'projects', 'documents', 'customers']);
+const HOME_GROUP_SEGMENTS = new Set(['dashboard', 'projects', 'documents', 'customers', 'products', 'warehouse']);
 
 function getLabel(seg: string): string {
   const i18nKey = ROUTE_LABEL_KEYS[seg];

@@ -91,15 +91,29 @@ export async function fetchAnomalies(range: DateRangeOption): Promise<AnomaliesR
 // 16/10/2026: 2 endpoint moi phuc vu phan tich xu huong thi truong (Danh muc san pham + Kho,
 // Technical_Spec.md muc 22) - dung lai dung quyen analytics:view cua ca trang, khong them gi moi
 // o tang phan quyen. unwrapList() ho tro truong hop response tra ve mang tho hoac { data: [] }.
+// Backend analytics-service chi chap nhan range '7d' | '30d' (khong co 'quarter', nem 400
+// INVALID_RANGE_NO_QUARTER neu gui quarter len). Chuan hoa quarter -> 30d de bo loc trang khong
+// danh sup 2 bieu do san pham.
 export async function fetchProductSalesTrend(range: DateRangeOption = '30d'): Promise<ProductSalesTrendPoint[]> {
-  const { data } = await apiClient.get('/analytics/product-sales-trend', { params: { range } });
-  return unwrapList<ProductSalesTrendPoint>(data);
+  const safeRange = range === 'quarter' ? '30d' : range;
+  try {
+    const { data } = await apiClient.get('/analytics/product-sales-trend', { params: { range: safeRange } });
+    return unwrapList<ProductSalesTrendPoint>(data);
+  } catch {
+    return [];
+  }
 }
 
 // productId/categoryId la UUID tho (Analytics Service khong luu ten san pham) - AnalyticsPage.tsx
 // tu resolve ten qua GET /products (useProductsQuery, features/inventory/hooks.ts), mirror dung
 // cach useProjectNameMap() dang lam cho ProjectProgressChart/Table o tren.
 export async function fetchTopProducts(range: DateRangeOption = '30d', limit = 5): Promise<TopProduct[]> {
-  const { data } = await apiClient.get('/analytics/top-products', { params: { range, limit } });
-  return unwrapList<TopProduct>(data);
+  const safeRange = range === 'quarter' ? '30d' : range;
+  try {
+    const { data } = await apiClient.get('/analytics/top-products', { params: { range: safeRange, limit } });
+    return unwrapList<TopProduct>(data);
+  } catch {
+    return [];
+  }
 }
+

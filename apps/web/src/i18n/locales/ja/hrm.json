@@ -112,7 +112,8 @@
         "timesUnit": "回",
         "noDepartment": "未設定",
         "empty": "この月の集計データはありません"
-      }
+      },
+      "workedPlusLeave": "（出勤{{actual}}日＋有給{{paid}}日）"
     },
     "photoModal": {
       "title": "{{action}}証明写真",
@@ -161,7 +162,9 @@
       "emptyDescription": "休暇が必要な際は、最初の申請を作成してください。",
       "createFirstButton": "新規申請を作成",
       "decisionNote": "メモ: {{note}}",
-      "loadMore": "もっと見る"
+      "loadMore": "もっと見る",
+      "cancelButton": "申請を取り消す",
+      "confirmCancel": "この休暇申請を取り消してもよろしいですか？"
     }
   },
   "employeePicker": {
@@ -300,7 +303,9 @@
     "calendarEventUpdated": "カレンダー項目を更新しました",
     "calendarEventUpdateFailed": "カレンダー項目を更新できませんでした",
     "calendarEventDeleted": "カレンダー項目を削除しました",
-    "calendarEventDeleteFailed": "カレンダー項目を削除できませんでした"
+    "calendarEventDeleteFailed": "カレンダー項目を削除できませんでした",
+    "cancelLeaveRequestError": "休暇申請の取り消しに失敗しました",
+    "cancelLeaveRequestSuccess": "休暇申請を取り消しました"
   },
   "extensions": {
     "adjustment": {
@@ -336,7 +341,8 @@
       "successReject": "打刻修正申請を却下しました",
       "errorSubmit": "打刻修正申請を送信できませんでした",
       "errorApprove": "打刻修正申請を承認できませんでした",
-      "errorReject": "打刻修正申請を却下できませんでした"
+      "errorReject": "打刻修正申請を却下できませんでした",
+      "pendingDuplicateTooltip": "承認待ちの申請がすでにあります"
     },
     "overtime": {
       "registerButton": "残業申請 (OT)",

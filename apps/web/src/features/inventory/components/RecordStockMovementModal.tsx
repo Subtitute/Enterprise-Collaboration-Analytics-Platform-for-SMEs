@@ -10,7 +10,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { FormField, Input, Textarea } from '@/components/ui/Input';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
-import { useCreateStockMovement, useProductsQuery, useWarehousesQuery } from '../hooks';
+import { useCreateStockMovement, useProductsQuery, useStockQuery, useWarehousesQuery } from '../hooks';
 import type { StockMovementType } from '@/types';
 
 type Direction = 'increase' | 'decrease';
@@ -31,6 +31,18 @@ export function RecordStockMovementModal({ open, onClose }: { open: boolean; onC
   const productsQuery = useProductsQuery({ page: 1, limit: 100 });
   const warehouses = warehousesQuery.data?.data ?? [];
   const products = productsQuery.data?.data ?? [];
+
+  const stockQuery = useStockQuery({
+    warehouseId: warehouseId || undefined,
+    productId: productId || undefined,
+    page: 1,
+    limit: 1,
+  });
+
+  const currentStockQuantity =
+    warehouseId && productId && stockQuery.data?.data?.[0]
+      ? stockQuery.data.data[0].quantity
+      : 0;
 
   const createMovement = useCreateStockMovement();
 
@@ -115,7 +127,17 @@ export function RecordStockMovementModal({ open, onClose }: { open: boolean; onC
             ]}
           />
         </FormField>
-        <FormField label={t('inventory:recordStockMovementModal.fieldProduct')} htmlFor="movement-product" error={productError} required>
+        <FormField
+          label={t('inventory:recordStockMovementModal.fieldProduct')}
+          htmlFor="movement-product"
+          error={productError}
+          hint={
+            warehouseId && productId
+              ? t('inventory:recordStockMovementModal.currentStockHint', { count: currentStockQuantity })
+              : undefined
+          }
+          required
+        >
           <CustomFilterSelect
             value={productId}
             onChange={setProductId}
@@ -127,6 +149,11 @@ export function RecordStockMovementModal({ open, onClose }: { open: boolean; onC
             ]}
           />
         </FormField>
+        {warehouseId && productId && (
+          <p className="-mt-2 font-mono text-[12px] leading-4 text-text-tertiary">
+            {t('inventory:recordStockMovementModal.currentStockHint', { count: currentStockQuantity })}
+          </p>
+        )}
         <FormField label={t('inventory:recordStockMovementModal.fieldType')} htmlFor="movement-type" required>
           <CustomFilterSelect
             value={type}

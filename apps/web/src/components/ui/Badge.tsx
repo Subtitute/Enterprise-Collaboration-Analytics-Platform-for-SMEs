@@ -1,4 +1,4 @@
-import type { HTMLAttributes } from 'react';
+import { memo, type HTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 
 export type BadgeVariant = 'default' | 'success' | 'warning' | 'danger' | 'info' | 'outline';
@@ -16,7 +16,7 @@ interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: BadgeVariant;
 }
 
-export function Badge({ className, variant = 'default', ...props }: BadgeProps) {
+export const Badge = memo(function Badge({ className, variant = 'default', ...props }: BadgeProps) {
   return (
     <span
       className={cn(
@@ -27,4 +27,5 @@ export function Badge({ className, variant = 'default', ...props }: BadgeProps) 
       {...props}
     />
   );
-}
+});
+

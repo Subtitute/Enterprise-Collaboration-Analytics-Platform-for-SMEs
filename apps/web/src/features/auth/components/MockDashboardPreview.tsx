@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -5,7 +6,7 @@ import { useTranslation } from 'react-i18next';
  * Tĩnh hoàn toàn, vẽ bằng CSS và SVG thuần.
  * Không dùng thư viện chart, không animation, không box-shadow, không gradient.
  */
-export function MockDashboardPreview() {
+export const MockDashboardPreview = memo(function MockDashboardPreview() {
   const { t } = useTranslation();
 
   return (
@@ -71,4 +72,4 @@ export function MockDashboardPreview() {
       </div>
     </div>
   );
-}
+});

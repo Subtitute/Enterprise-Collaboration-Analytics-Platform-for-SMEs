@@ -19,7 +19,7 @@ export function Spinner({ size = 'md', className }: SpinnerProps) {
       role="status"
       aria-label={t('common:loading')}
       className={cn(
-        'inline-block animate-spin rounded-full border-current border-t-transparent text-primary-600',
+        'inline-block animate-spin rounded-full border-current border-t-transparent text-accent',
         sizeClasses[size],
         className,
       )}
@@ -30,9 +30,9 @@ export function Spinner({ size = 'md', className }: SpinnerProps) {
 export function FullPageSpinner({ label }: { label?: string }) {
   const { t } = useTranslation();
   return (
-    <div className="flex h-full min-h-[40vh] w-full flex-col items-center justify-center gap-3 text-slate-400">
+    <div className="flex h-full min-h-[40vh] w-full flex-col items-center justify-center gap-3 text-text-tertiary animate-fade-in">
       <Spinner size="lg" />
-      <p className="text-sm">{label ?? t('common:loading')}</p>
+      <p className="text-sm text-text-secondary">{label ?? t('common:loading')}</p>
     </div>
   );
 }

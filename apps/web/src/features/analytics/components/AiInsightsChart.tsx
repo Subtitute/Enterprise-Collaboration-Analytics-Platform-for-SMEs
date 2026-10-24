@@ -1,3 +1,4 @@
+import React, { useMemo } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import { CHART_INK, STATUS } from '@/lib/chart-colors';
@@ -59,27 +60,34 @@ interface AiInsightsChartProps {
  * la xam trung tinh - giup nguoi xem THAY NGAY cac diem bat thuong noi bat len tren nen so sanh
  * day du, thay vi chi doc 1 con so rieng le.
  */
-export function AiInsightsChart({ candidates, insights, resolveLabel, onDrillDown }: AiInsightsChartProps) {
+export const AiInsightsChart = React.memo(function AiInsightsChart({
+  candidates,
+  insights,
+  resolveLabel,
+  onDrillDown,
+}: AiInsightsChartProps) {
   const { t } = useTranslation();
 
-  const rows: ChartRow[] = candidates
-    .map((c) => {
-      const matched = insights.find((i) => i.scope === c.scope && i.scopeId === c.scopeId);
-      return {
-        key: `${c.scope}-${c.scopeId ?? 'org'}`,
-        scope: c.scope,
-        scopeId: c.scopeId,
-        name: resolveLabel(c.scope, c.scopeId),
-        completionRate: c.completionRate,
-        severity: matched?.severity ?? null,
-        headline: matched?.headline,
-      };
-    })
-    .sort((a, b) => a.completionRate - b.completionRate);
+  const rows: ChartRow[] = useMemo(() => {
+    return candidates
+      .map((c) => {
+        const matched = insights.find((i) => i.scope === c.scope && i.scopeId === c.scopeId);
+        return {
+          key: `${c.scope}-${c.scopeId ?? 'org'}`,
+          scope: c.scope,
+          scopeId: c.scopeId,
+          name: resolveLabel(c.scope, c.scopeId),
+          completionRate: c.completionRate,
+          severity: matched?.severity ?? null,
+          headline: matched?.headline,
+        };
+      })
+      .sort((a, b) => a.completionRate - b.completionRate);
+  }, [candidates, insights, resolveLabel]);
+
+  const height = useMemo(() => Math.max(180, rows.length * 34), [rows.length]);
 
   if (rows.length === 0) return null;
-
-  const height = Math.max(180, rows.length * 34);
 
   return (
     <div>
@@ -145,4 +153,4 @@ export function AiInsightsChart({ candidates, insights, resolveLabel, onDrillDow
       </ResponsiveContainer>
     </div>
   );
-}
+});

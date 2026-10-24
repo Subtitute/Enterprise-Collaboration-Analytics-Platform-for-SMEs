@@ -180,6 +180,13 @@ export async function fetchPendingLeaveRequests(params: { page?: number; limit?:
   return data;
 }
 
+export async function fetchApprovedLeaveRequests(params: { page?: number; limit?: number } = {}): Promise<LeaveRequest[]> {
+  const { data } = await apiClient.get<PaginatedResponse<LeaveRequest>>('/leave-requests', {
+    params: { status: 'APPROVED' as LeaveRequestStatus, limit: 500, ...params },
+  });
+  return data.data;
+}
+
 /**
  * 03/10/2026: lich su nghi phep DAY DU (khong loc status) cua DUY NHAT 1 nhan vien - CHI
  * Manager/Org Admin (PERMISSIONS.LEAVE_REQUEST_VIEW) goi duoc, dung boi
@@ -201,6 +208,11 @@ export async function approveLeaveRequest(id: string, decisionNote?: string): Pr
 
 export async function rejectLeaveRequest(id: string, decisionNote?: string): Promise<LeaveRequest> {
   const { data } = await apiClient.patch<LeaveRequest>(`/leave-requests/${id}/reject`, { decisionNote });
+  return data;
+}
+
+export async function cancelLeaveRequest(id: string): Promise<LeaveRequest> {
+  const { data } = await apiClient.patch<LeaveRequest>(`/leave-requests/${id}/cancel`);
   return data;
 }
 

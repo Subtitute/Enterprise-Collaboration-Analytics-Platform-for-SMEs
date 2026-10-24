@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { memo, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 interface EmptyStateProps {
@@ -10,9 +10,7 @@ interface EmptyStateProps {
   plain?: boolean;
 }
 
-export function EmptyState({ icon, title, description, action, className, plain = false }: EmptyStateProps) {
-  const isPlain = plain || !icon;
-
+export const EmptyState = memo(function EmptyState({ icon, title, description, action, className }: EmptyStateProps) {
   return (
     <div
       className={cn(
@@ -31,4 +29,5 @@ export function EmptyState({ icon, title, description, action, className, plain 
       {action && <div className="mt-3">{action}</div>}
     </div>
   );
-}
+});
+

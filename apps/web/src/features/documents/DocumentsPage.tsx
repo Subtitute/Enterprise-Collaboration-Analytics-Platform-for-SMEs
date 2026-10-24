@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner } from '@/components/ui/Spinner';
-import { ChevronRightIcon, FileTextIcon, PlusIcon, UploadIcon, SearchIcon, GridIcon, ListIcon } from '@/components/ui/Icons';
+import { ChevronRightIcon, FileTextIcon, PlusIcon, UploadIcon } from '@/components/ui/Icons';
 import { useFilesQuery, useFoldersQuery, useDownloadFile } from './hooks';
 import { FolderGrid } from './components/FolderGrid';
 import { FileTable } from './components/FileTable';
+import { DocumentFilterToolbar } from './components/DocumentFilterToolbar';
 import { NewFolderModal } from './components/NewFolderModal';
 import { UploadModal } from './components/UploadModal';
 import { ShareModal } from './components/ShareModal';
@@ -50,7 +51,7 @@ export function DocumentsPage() {
   // tren (tinh nang kiem soat truy cap thu muc theo cap do).
   const [sharingFolder, setSharingFolder] = useState<Folder | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [isWindowDragging, setIsWindowDragging] = useState(false);
   const [droppedFile, setDroppedFile] = useState<File | null>(null);
   const dragCounterRef = useRef(0);
@@ -145,6 +146,10 @@ export function DocumentsPage() {
     };
   }, []);
 
+  const handleClearSearch = useCallback(() => setSearchTerm(''), []);
+  const handleOpenFolder = useCallback((folder: Folder) => setCurrentFolderId(folder.id), [setCurrentFolderId]);
+  const handleDownloadFile = useCallback((fileId: string) => download.openFile(fileId, 'attachment'), [download]);
+
   return (
     <div className="relative min-h-[calc(100vh-140px)] space-y-5">
       {/* Lớp phủ Dropzone Overlay mờ ảo toàn màn hình kèm viền đứt nét nổi bật khi kéo tệp vào */}
@@ -228,58 +233,13 @@ export function DocumentsPage() {
       </div>
 
       {/* Hàng 2: Toolbar 1 hàng ngang (§2.2: [Search flex-1] [Grid/List Segmented Control]) */}
-      <div className="flex items-center gap-2">
-        {/* Ô tìm kiếm tài liệu & thư mục flex-1 */}
-        <div className="relative flex-1">
-          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-tertiary stroke-1.5" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder={t('documents:documentsPage.searchPlaceholder')}
-            className="h-9 w-full rounded-radius-sm border border-border-strong bg-white pl-9 pr-8 text-[13px] text-text-primary placeholder:text-text-tertiary focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-          />
-          {searchTerm && (
-            <button
-              type="button"
-              onClick={() => setSearchTerm('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-text-tertiary hover:text-text-primary text-[12px]"
-            >
-              ✕
-            </button>
-          )}
-        </div>
-
-        {/* Cụm nút chuyển chế độ xem (Segmented Control căn phải) */}
-        <div className="flex h-9 items-center rounded-radius-md bg-bg-subtle p-0.5 gap-0.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => setViewMode('grid')}
-            className={`flex h-8 items-center gap-1.5 rounded-radius-sm px-3 text-[12px] transition-colors cursor-pointer select-none ${
-              viewMode === 'grid'
-                ? 'bg-white border border-border-subtle text-[#1C1B1A] font-semibold shadow-xs'
-                : 'text-text-secondary hover:text-text-primary hover:bg-bg-canvas font-medium'
-            }`}
-            title={t('documents:documentsPage.viewMode.gridTitle')}
-          >
-            <GridIcon className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{t('documents:documentsPage.viewMode.grid')}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setViewMode('list')}
-            className={`flex h-8 items-center gap-1.5 rounded-radius-sm px-3 text-[12px] transition-colors cursor-pointer select-none ${
-              viewMode === 'list'
-                ? 'bg-white border border-border-subtle text-[#1C1B1A] font-semibold shadow-xs'
-                : 'text-text-secondary hover:text-text-primary hover:bg-bg-canvas font-medium'
-            }`}
-            title={t('documents:documentsPage.viewMode.listTitle')}
-          >
-            <ListIcon className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{t('documents:documentsPage.viewMode.list')}</span>
-          </button>
-        </div>
-      </div>
+      <DocumentFilterToolbar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onClearSearch={handleClearSearch}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      />
 
       <QueryState
         isLoading={isLoading}
@@ -317,7 +277,7 @@ export function DocumentsPage() {
                 tung thu muc restricted (tinh nang kiem soat truy cap thu muc theo cap do). */}
             <FolderGrid
               folders={filteredFolders}
-              onOpen={(folder) => setCurrentFolderId(folder.id)}
+              onOpen={handleOpenFolder}
               onShare={setSharingFolder}
               viewMode={viewMode}
             />
@@ -353,7 +313,7 @@ export function DocumentsPage() {
         file={previewFile}
         open={Boolean(previewFile)}
         onClose={() => setPreviewFile(null)}
-        onDownload={(fileId) => download.openFile(fileId, 'attachment')}
+        onDownload={handleDownloadFile}
       />
     </div>
   );

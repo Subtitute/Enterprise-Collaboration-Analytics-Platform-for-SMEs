@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ClockIcon, CheckIcon } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
@@ -7,6 +7,20 @@ export interface TimePreset {
   label: string;
   value: string;
 }
+
+// Danh sách 24 giờ và các mốc phút (cách nhau 5 phút) - hằng số tĩnh tránh khởi tạo lại mỗi render
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5); // 0, 5, 10, ... 55
+
+// Default quick preset shortcuts
+const DEFAULT_PRESETS: TimePreset[] = [
+  { label: '08:00', value: '08:00' },
+  { label: '08:30', value: '08:30' },
+  { label: '12:00', value: '12:00' },
+  { label: '13:30', value: '13:30' },
+  { label: '17:30', value: '17:30' },
+  { label: '18:00', value: '18:00' },
+];
 
 interface TimePickerProps {
   id?: string;
@@ -32,9 +46,9 @@ export function TimePicker({
   presets,
 }: TimePickerProps) {
   const { t } = useTranslation();
-  const errorId = useId();
 
   const [isOpen, setIsOpen] = useState(false);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const hoursListRef = useRef<HTMLDivElement>(null);
   const minutesListRef = useRef<HTMLDivElement>(null);
@@ -119,21 +133,8 @@ export function TimePicker({
     onChange(val);
   };
 
-  // Tạo danh sách 24 giờ và các mốc phút (cách nhau 5 phút, hoặc chọn tự do)
-  const HOURS = Array.from({ length: 24 }, (_, i) => i);
-  const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5); // 0, 5, 10, ... 55
-
-  // Default quick preset shortcuts
-  const DEFAULT_PRESETS: TimePreset[] = [
-    { label: '08:00', value: '08:00' },
-    { label: '08:30', value: '08:30' },
-    { label: '12:00', value: '12:00' },
-    { label: '13:30', value: '13:30' },
-    { label: '17:30', value: '17:30' },
-    { label: '18:00', value: '18:00' },
-  ];
-
   const activePresets = presets && presets.length > 0 ? presets : DEFAULT_PRESETS;
+
 
   const popoverPositionClass = position === 'top' ? 'bottom-full mb-1.5' : 'top-full mt-1.5';
   const popoverAlignClass = align === 'right' ? 'right-0' : 'left-0';

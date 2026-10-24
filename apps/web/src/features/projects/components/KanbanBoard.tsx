@@ -1,19 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
-import { DragDropContext, Droppable } from '@hello-pangea/dnd';
+import React, { useState, useEffect, useRef } from 'react';
+import { DragDropContext } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
 import { useTranslation } from 'react-i18next';
-import { PlusIcon, ChevronLeftIcon, ChevronRightIcon } from '@/components/ui/Icons';
-import { cn } from '@/lib/utils';
+import { ChevronLeftIcon, ChevronRightIcon } from '@/components/ui/Icons';
 import { TASK_STATUSES } from '@/types';
 import type { Task, TaskStatus } from '@/types';
-import { TaskCard } from './TaskCard';
+import { KanbanColumn } from './KanbanColumn';
 import { useUpdateTaskStatus } from '../hooks';
-
-const COLUMN_ACCENT: Record<TaskStatus, string> = {
-  TODO: 'bg-slate-300',
-  DOING: 'bg-primary-500',
-  DONE: 'bg-emerald-500',
-};
 
 interface KanbanBoardProps {
   projectId: string;
@@ -23,7 +16,13 @@ interface KanbanBoardProps {
   highlightedTaskId?: string | null;
 }
 
-export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd, highlightedTaskId }: KanbanBoardProps) {
+export const KanbanBoard = React.memo(function KanbanBoard({
+  projectId,
+  tasks,
+  onTaskClick,
+  onQuickAdd,
+  highlightedTaskId,
+}: KanbanBoardProps) {
   const { t } = useTranslation();
   const updateStatus = useUpdateTaskStatus(projectId);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -186,7 +185,7 @@ export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd, highlig
           <button
             type="button"
             onClick={() => scrollByAmount(-300)}
-            className="lg:hidden absolute left-1 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-lg border border-slate-200 hover:bg-white hover:text-indigo-600 hover:scale-110 active:scale-95 transition-all cursor-pointer"
+            className="lg:hidden absolute left-1 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 border border-[#E5E4E0] hover:bg-[#E4EFEE] hover:text-[#0E5E5E] active:scale-95 transition-all cursor-pointer"
             aria-label={t('projects:kanban.scrollLeftAriaLabel')}
           >
             <ChevronLeftIcon className="h-5 w-5" />
@@ -198,7 +197,7 @@ export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd, highlig
           <button
             type="button"
             onClick={() => scrollByAmount(300)}
-            className="lg:hidden absolute right-1 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-slate-700 shadow-lg border border-slate-200 hover:bg-white hover:text-indigo-600 hover:scale-110 active:scale-95 transition-all cursor-pointer animate-pulse hover:animate-none"
+            className="lg:hidden absolute right-1 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-700 border border-[#E5E4E0] hover:bg-[#E4EFEE] hover:text-[#0E5E5E] active:scale-95 transition-all cursor-pointer animate-pulse hover:animate-none"
             aria-label={t('projects:kanban.scrollRightAriaLabel')}
           >
             <ChevronRightIcon className="h-5 w-5" />
@@ -214,71 +213,18 @@ export function KanbanBoard({ projectId, tasks, onTaskClick, onQuickAdd, highlig
           onMouseLeave={handleMouseUpOrLeave}
           className="flex w-full gap-4 overflow-x-auto pb-3 pt-1 cursor-grab active:cursor-grabbing select-none lg:grid lg:grid-cols-3 lg:gap-4 lg:overflow-visible lg:pb-0 scroll-smooth"
         >
-          {TASK_STATUSES.map((status) => {
-            const columnTasks = columns[status] ?? [];
-
-            const statusDotColor =
-              status === 'DONE'
-                ? 'bg-[#2F6F44]'
-                : status === 'DOING'
-                ? 'bg-[#1E5A8A]'
-                : 'bg-[#8A8781]';
-
-            return (
-              <div key={status} className="flex w-[82vw] min-w-[280px] max-w-[340px] shrink-0 flex-col rounded-radius-md bg-canvas border border-border-subtle p-3 lg:w-auto lg:max-w-none lg:shrink">
-                {/* Header cột — KHÔNG CÓ VIỀN TRÊN ĐỈNH */}
-                <div className="flex items-center gap-2 px-1 pb-3">
-                  <span className={cn('h-2 w-2 rounded-full shrink-0', statusDotColor)} />
-                  <p className="text-[13px] font-semibold text-text-primary leading-none">
-                    {t(`projects:enums.taskStatus.${status}`)}
-                  </p>
-                  <span className="ml-auto rounded-[4px] bg-white px-2 py-0.5 font-mono text-[11px] font-medium text-text-secondary border border-border-subtle shadow-none tabular-nums leading-none">
-                    {columnTasks.length}
-                  </span>
-                </div>
-
-                <Droppable droppableId={status}>
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className={cn(
-                        'flex-1 pt-1 pb-1 transition-colors min-h-[140px]',
-                        snapshot.isDraggingOver && 'bg-accent-soft/40 rounded-radius-sm'
-                      )}
-                    >
-                      {columnTasks.map((task, index) => (
-                        <TaskCard
-                          key={task.id}
-                          task={task}
-                          index={index}
-                          onClick={() => onTaskClick(task)}
-                          isHighlighted={task.id === highlightedTaskId}
-                        />
-                      ))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-
-                {/* Nút thêm nhanh công việc ở đáy cột (§3.4) — Ghost button, không nền, không viền dashed */}
-                {status !== 'DONE' && (
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      onClick={() => onQuickAdd?.(status)}
-                      className="flex w-full items-center justify-start gap-1.5 h-8 px-2 rounded-radius-sm text-[13px] font-medium text-text-secondary hover:text-text-primary hover:bg-white/80 transition-colors cursor-pointer"
-                    >
-                      <PlusIcon className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
-                      <span>{t('projects:detail.newTask')}</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {TASK_STATUSES.map((status) => (
+            <KanbanColumn
+              key={status}
+              status={status}
+              columnTasks={columns[status] ?? []}
+              onTaskClick={onTaskClick}
+              onQuickAdd={onQuickAdd}
+              highlightedTaskId={highlightedTaskId}
+            />
+          ))}
         </div>
       </div>
     </DragDropContext>
   );
-}
+});

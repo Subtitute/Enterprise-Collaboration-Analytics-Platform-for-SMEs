@@ -1,3 +1,4 @@
+import React, { useMemo } from 'react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import { CATEGORICAL, CHART_INK } from '@/lib/chart-colors';
@@ -33,9 +34,14 @@ interface ProjectProgressChartProps {
   onRetry?: () => void;
 }
 
-export function ProjectProgressChart({ data, isLoading, isError, onRetry }: ProjectProgressChartProps) {
+export const ProjectProgressChart = React.memo(function ProjectProgressChart({
+  data,
+  isLoading,
+  isError,
+  onRetry,
+}: ProjectProgressChartProps) {
   const { t } = useTranslation();
-  const height = Math.max(220, data.length * 40);
+  const height = useMemo(() => Math.max(220, data.length * 40), [data.length]);
 
   return (
     <QueryState
@@ -79,4 +85,4 @@ export function ProjectProgressChart({ data, isLoading, isError, onRetry }: Proj
       )}
     </QueryState>
   );
-}
+});

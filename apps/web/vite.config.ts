@@ -30,6 +30,19 @@ export default defineConfig({
       // include de bat ca duong dan that cua goi trong thu muc packages/ (khong chi node_modules/).
       include: [/node_modules/, /packages\//],
     },
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-query': ['@tanstack/react-query', 'zustand'],
+          'vendor-charts': ['recharts'],
+          'vendor-xlsx': ['xlsx'],
+          'vendor-pdf': ['jspdf', 'html2canvas'],
+          'vendor-icons': ['lucide-react'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 600,
   },
   server: {
     port: 5173,

@@ -91,6 +91,8 @@ export function useCreateDeal(customerId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deals', customerId] });
       queryClient.invalidateQueries({ queryKey: ['customer', customerId] });
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
       toast.success(t('crm:hooks.deal.createSuccess'));
     },
     onError: (error) => toast.error(t('crm:hooks.deal.createError'), extractErrorMessage(error)),
@@ -104,6 +106,8 @@ export function useUpdateDeal(customerId: string, dealId: string) {
     mutationFn: (payload: Partial<Omit<CreateDealPayload, 'customerId'>>) => updateDeal(dealId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deals', customerId] });
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
       toast.success(t('crm:hooks.deal.updateSuccess'));
     },
     onError: (error) => toast.error(t('crm:hooks.deal.updateError'), extractErrorMessage(error)),
@@ -118,6 +122,8 @@ export function useDeleteDeal(customerId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['deals', customerId] });
       queryClient.invalidateQueries({ queryKey: ['customer', customerId] });
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
       toast.success(t('crm:hooks.deal.deleteSuccess'));
     },
     onError: (error) => toast.error(t('crm:hooks.deal.deleteError'), extractErrorMessage(error)),
@@ -142,6 +148,10 @@ export function useUpdateDealStage(customerId: string) {
       if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
       toast.error(t('crm:hooks.deal.updateStageError'), extractErrorMessage(error));
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+    },
   });
 }

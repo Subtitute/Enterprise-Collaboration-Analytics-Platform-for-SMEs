@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, memo } from 'react';
 import type { DragEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
@@ -9,7 +9,7 @@ import { formatBytes, cn } from '@/lib/utils';
 import { useUploadFile } from '../hooks';
 import { MAX_UPLOAD_SIZE_BYTES, validateUploadFile } from '../api';
 
-export function UploadModal({
+export const UploadModal = memo(function UploadModal({
   folderId,
   open,
   onClose,
@@ -164,4 +164,6 @@ export function UploadModal({
       </div>
     </Modal>
   );
-}
+});
+
+export const DocumentUploadModal = UploadModal;

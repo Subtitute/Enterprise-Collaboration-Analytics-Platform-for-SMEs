@@ -43,6 +43,7 @@
     "imageSectionTitle": "Product image",
     "replaceImage": "Replace image",
     "uploadImage": "Upload image",
+    "dropzoneUploadHint": "Upload image (Max 5MB)",
     "imageHint": "JPEG, PNG or WebP, up to {{maxSize}}.",
     "removeImage": "Remove image",
     "noImageYetHint": "Save the product first, then come back to edit it to upload an image.",
@@ -127,10 +128,12 @@
     "directionIncrease": "Increase (+)",
     "directionDecrease": "Decrease (-)",
     "fieldQuantity": "Quantity",
-    "fieldNote": "Note"
+    "fieldNote": "Note",
+    "currentStockHint": "Current stock: {{count}} products"
   },
   "stockTable": {
     "emptyTitle": "No stock data yet",
+    "searchPlaceholder": "Search by name or SKU...",
     "columns": {
       "warehouse": "Warehouse",
       "product": "Product",

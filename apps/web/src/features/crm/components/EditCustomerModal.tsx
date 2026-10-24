@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
@@ -10,7 +10,7 @@ import type { Customer } from '@/types';
 
 const KNOWN_TYPE_KEYS = ['lead', 'vip', 'loyal', 'sme', 'enterprise', 'individual'] as const;
 
-export function EditCustomerModal({
+export const EditCustomerModal = React.memo(function EditCustomerModal({
   customer,
   open,
   onClose,
@@ -188,4 +188,5 @@ export function EditCustomerModal({
       </form>
     </Modal>
   );
-}
+});
+

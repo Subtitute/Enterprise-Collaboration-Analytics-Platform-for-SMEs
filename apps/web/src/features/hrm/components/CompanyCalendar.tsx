@@ -13,7 +13,7 @@
 // CALENDAR_MANAGE va cap bac (rank) cua CHINH MINH cao hon cap bac cua nguoi da tao (createdByRank)
 // - tinh rank theo permission (KHONG doan ten vai tro, du an nay da tung sua loi anti-pattern nay -
 // xem canReassignOwner tai CustomerDetailPage.tsx).
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { FullPageSpinner } from '@/components/ui/Spinner';
@@ -44,6 +44,87 @@ function computeOwnRank(permissions: string[]): number {
   if (permissions.includes(PERMISSIONS.CALENDAR_MANAGE)) return 2;
   return 1;
 }
+
+interface CalendarDayCellProps {
+  day: number;
+  dayStr: string;
+  isToday: boolean;
+  isPast?: boolean;
+  dayEvents: CalendarEvent[];
+  onOpenCreate: (dayStr: string) => void;
+  onEditEvent: (ev: CalendarEvent) => void;
+}
+
+const CalendarDayCell = React.memo(function CalendarDayCell({
+  day,
+  dayStr,
+  isToday,
+  isPast = false,
+  dayEvents,
+  onOpenCreate,
+  onEditEvent,
+}: CalendarDayCellProps) {
+  const visibleEvents = dayEvents.slice(0, 2);
+  const hiddenCount = dayEvents.length - visibleEvents.length;
+
+  return (
+    <div
+      onClick={isPast ? undefined : () => onOpenCreate(dayStr)}
+      role={isPast ? undefined : 'button'}
+      tabIndex={isPast ? undefined : 0}
+      onKeyDown={
+        isPast
+          ? undefined
+          : (e) => {
+              if (e.key === 'Enter') onOpenCreate(dayStr);
+            }
+      }
+      className={cn(
+        'group relative flex min-h-[72px] sm:min-h-[84px] flex-col justify-between border-b border-r border-border-subtle p-1.5 transition-colors',
+        isPast ? 'bg-bg-subtle/50' : 'cursor-pointer hover:bg-bg-subtle',
+      )}
+    >
+      <div className="flex items-center justify-between">
+        <span
+          className={cn(
+            'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-mono text-[11px] font-medium tabular-nums',
+            isToday ? 'bg-text-primary text-white font-bold' : 'text-text-primary',
+          )}
+        >
+          {day}
+        </span>
+      </div>
+
+      {/* Thẻ sự kiện / ngày lễ dạng pill rõ ràng */}
+      <div className="mt-1 space-y-1 w-full">
+        {visibleEvents.map((ev) => (
+          <button
+            key={ev.id}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEditEvent(ev);
+            }}
+            title={ev.title}
+            className={cn(
+              'block w-full truncate rounded px-1.5 py-0.5 text-left text-[10px] font-medium transition-opacity hover:opacity-80 cursor-pointer',
+              ev.type === 'HOLIDAY'
+                ? 'bg-[#F8E5E3] text-[#B3261E] border border-[#B3261E]/20'
+                : 'bg-[#E4EFEE] text-[#0E5E5E] border border-[#0E5E5E]/20',
+            )}
+          >
+            {ev.title}
+          </button>
+        ))}
+        {hiddenCount > 0 && (
+          <span className="block px-1 font-mono text-[9px] font-medium text-text-tertiary tabular-nums">
+            +{hiddenCount}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+});
 
 /** Component nhung, co the dat trong bat ky trang nao (hien dang dung trong LeaveRequestsPage.tsx) - tu fetch du lieu, khong nhan prop. */
 export function CompanyCalendar() {
@@ -110,15 +191,18 @@ export function CompanyCalendar() {
     }
   }
 
-  function eventsForDay(dayStr: string): CalendarEvent[] {
-    // Muc lich nhieu ngay (vd Tet) "chong lan" voi ngay nay neu startDate <= dayStr <= endDate.
-    return events.filter((e) => e.startDate <= dayStr && e.endDate >= dayStr);
-  }
+  const eventsForDay = useCallback(
+    (dayStr: string): CalendarEvent[] => {
+      // Muc lich nhieu ngay (vd Tet) "chong lan" voi ngay nay neu startDate <= dayStr <= endDate.
+      return events.filter((e) => e.startDate <= dayStr && e.endDate >= dayStr);
+    },
+    [events],
+  );
 
-  function openCreateForDay(dayStr: string) {
+  const openCreateForDay = useCallback((dayStr: string) => {
     setCreateDefaultDate(dayStr);
     setIsCreateOpen(true);
-  }
+  }, []);
 
   return (
     <div className="space-y-3">
@@ -218,73 +302,18 @@ export function CompanyCalendar() {
               const day = i + 1;
               const dayStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
               const isToday = dayStr === todayStr;
-              // 05/10/2026 (fix loi thuc te): ngay da qua khong con mo duoc form tao moi khi bam vao
-              // o ngay - truoc ban sua nay bam vao BAT KY o nao (ke ca qua khu) deu mo CalendarEventModal
-              // voi ngay do dien san, chi bi chan luc submit (bao loi bat ngo). Cac muc lich CO SAN
-              // trong ngay qua khu van xem/sua duoc binh thuong qua nut rieng cua tung muc (bubble
-              // stopPropagation, doc lap voi onClick cua o ngay o day).
               const isPast = dayStr < todayStr;
-              const dayEvents = eventsForDay(dayStr);
-              const visibleEvents = dayEvents.slice(0, 2);
-              const hiddenCount = dayEvents.length - visibleEvents.length;
-
               return (
-                <div
+                <CalendarDayCell
                   key={`cur-${day}`}
-                  onClick={isPast ? undefined : () => openCreateForDay(dayStr)}
-                  role={isPast ? undefined : 'button'}
-                  tabIndex={isPast ? undefined : 0}
-                  onKeyDown={
-                    isPast
-                      ? undefined
-                      : (e) => {
-                          if (e.key === 'Enter') openCreateForDay(dayStr);
-                        }
-                  }
-                  className={cn(
-                    'group relative flex min-h-[72px] sm:min-h-[84px] flex-col justify-between border-b border-r border-border-subtle p-1.5 transition-colors',
-                    isPast ? 'bg-bg-subtle/50' : 'cursor-pointer hover:bg-bg-subtle',
-                  )}
-                >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={cn(
-                        'inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full font-mono text-[11px] font-medium tabular-nums',
-                        isToday ? 'bg-text-primary text-white font-bold' : 'text-text-primary',
-                      )}
-                    >
-                      {day}
-                    </span>
-                  </div>
-
-                  {/* Thẻ sự kiện / ngày lễ dạng pill rõ ràng */}
-                  <div className="mt-1 space-y-1 w-full">
-                    {visibleEvents.map((ev) => (
-                      <button
-                        key={ev.id}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingEvent(ev);
-                        }}
-                        title={ev.title}
-                        className={cn(
-                          'block w-full truncate rounded px-1.5 py-0.5 text-left text-[10px] font-medium transition-opacity hover:opacity-80 cursor-pointer',
-                          ev.type === 'HOLIDAY'
-                            ? 'bg-[#F8E5E3] text-[#B3261E] border border-[#B3261E]/20'
-                            : 'bg-[#E4EFEE] text-[#0E5E5E] border border-[#0E5E5E]/20',
-                        )}
-                      >
-                        {ev.title}
-                      </button>
-                    ))}
-                    {hiddenCount > 0 && (
-                      <span className="block px-1 font-mono text-[9px] font-medium text-text-tertiary tabular-nums">
-                        +{hiddenCount}
-                      </span>
-                    )}
-                  </div>
-                </div>
+                  day={day}
+                  dayStr={dayStr}
+                  isToday={isToday}
+                  isPast={isPast}
+                  dayEvents={eventsForDay(dayStr)}
+                  onOpenCreate={openCreateForDay}
+                  onEditEvent={setEditingEvent}
+                />
               );
             })}
 

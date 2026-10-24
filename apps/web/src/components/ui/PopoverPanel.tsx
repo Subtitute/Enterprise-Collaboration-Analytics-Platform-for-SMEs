@@ -34,19 +34,21 @@ export function PopoverPanel({
   const { t } = useTranslation();
   const resolvedAriaLabel = ariaLabel ?? t('common:popover.defaultAriaLabel');
   const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        onCloseRef.current();
       }
     };
 
     const handleClickOutside = (e: MouseEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
-        onClose();
+        onCloseRef.current();
       }
     };
 
@@ -57,7 +59,8 @@ export function PopoverPanel({
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [open, onClose]);
+  }, [open]);
+
 
   if (!open) return null;
 

@@ -455,6 +455,7 @@ export function DashboardPage() {
           </h2>
           <TaskTrendChart
             data={dynamicTaskTrend}
+            range={range}
             isLoading={trendQuery.isLoading || allTasksQuery.isLoading}
             isError={trendQuery.isError && allTasksQuery.isError}
             onRetry={() => {

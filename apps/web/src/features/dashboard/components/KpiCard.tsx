@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertCircleIcon, RefreshIcon, ArrowUpIcon, ArrowDownIcon, MinusIcon, CheckIcon } from '@/components/ui/Icons';
@@ -20,7 +21,7 @@ interface KpiCardProps {
   ariaLabel?: string;
 }
 
-export function KpiCard({
+export const KpiCard = memo(function KpiCard({
   overline,
   value,
   unit,
@@ -108,5 +109,5 @@ export function KpiCard({
       )}
     </div>
   );
-}
+});
 

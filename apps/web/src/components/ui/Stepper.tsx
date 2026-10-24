@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { CheckIcon } from '@/components/ui/Icons';
@@ -12,6 +13,7 @@ interface StepperProps {
   currentStep: number;
   onStepClick?: (stepId: number) => void;
   className?: string;
+  'aria-label'?: string;
 }
 
 /**
@@ -20,13 +22,19 @@ interface StepperProps {
  * - < md: Text mode: "Bước {n} / {total} · {label}" + progress bar 4px.
  * - Tương tác: Chỉ step "Done" mới clickable. "Current" và "Upcoming" không clickable.
  */
-export function Stepper({ steps, currentStep, onStepClick, className }: StepperProps) {
+export const Stepper = memo(function Stepper({
+  steps,
+  currentStep,
+  onStepClick,
+  className,
+  'aria-label': ariaLabel,
+}: StepperProps) {
   const { t } = useTranslation();
   const currentStepItem = steps.find((s) => s.id === currentStep) || steps[0];
   const progressPercent = Math.min(100, Math.max(0, (currentStep / steps.length) * 100));
 
   return (
-    <div className={cn('w-full max-w-[420px] mx-auto mb-10', className)} aria-label={t('common:stepper.ariaLabel')}>
+    <div className={cn('w-full max-w-[420px] mx-auto mb-10', className)} aria-label={ariaLabel || t('common:stepper.ariaLabel')}>
       {/* =========================================================================
           MOBILE VIEW (< md): Text mode + progress bar 4px (§2.5)
           ========================================================================= */}
@@ -60,8 +68,7 @@ export function Stepper({ steps, currentStep, onStepClick, className }: StepperP
           return (
             <div
               key={step.id}
-              className="relative flex flex-col items-center flex-1"
-              style={{ maxWidth: 140 }}
+              className="relative flex flex-col items-center flex-1 max-w-[140px]"
             >
               {/* Đường nối sang step kế tiếp: nằm chính giữa các circle (top 14px) */}
               {!isLast && (
@@ -70,7 +77,6 @@ export function Stepper({ steps, currentStep, onStepClick, className }: StepperP
                     'absolute top-[14px] left-[50%] w-full h-[1px] -z-0 transition-colors duration-200',
                     isConnectingLineActive ? 'bg-[#0E5E5E]' : 'bg-[#E5E7EB]',
                   )}
-                  style={{ width: '100%' }}
                   aria-hidden="true"
                 />
               )}
@@ -125,4 +131,5 @@ export function Stepper({ steps, currentStep, onStepClick, className }: StepperP
       </div>
     </div>
   );
-}
+});
+

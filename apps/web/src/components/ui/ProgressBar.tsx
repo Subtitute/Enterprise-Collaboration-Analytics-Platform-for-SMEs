@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
@@ -9,7 +10,7 @@ interface ProgressBarProps {
   showLabel?: boolean;
 }
 
-export function ProgressBar({ value, className, trackClassName, barClassName, showLabel }: ProgressBarProps) {
+export const ProgressBar = memo(function ProgressBar({ value, className, trackClassName, barClassName, showLabel }: ProgressBarProps) {
   const { t } = useTranslation();
   const clamped = Math.max(0, Math.min(100, Math.round(value || 0)));
   return (
@@ -35,4 +36,5 @@ export function ProgressBar({ value, className, trackClassName, barClassName, sh
       {showLabel && <span className="w-9 shrink-0 text-right text-xs font-medium text-slate-500">{clamped}%</span>}
     </div>
   );
-}
+});
+

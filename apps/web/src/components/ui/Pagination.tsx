@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
 
@@ -8,7 +9,7 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
 }
 
-export function Pagination({ page, limit, total, onPageChange }: PaginationProps) {
+export const Pagination = memo(function Pagination({ page, limit, total, onPageChange }: PaginationProps) {
   const { t } = useTranslation();
   const totalPages = Math.max(1, Math.ceil(total / Math.max(limit, 1)));
   if (totalPages <= 1) return null;
@@ -32,4 +33,5 @@ export function Pagination({ page, limit, total, onPageChange }: PaginationProps
       </div>
     </div>
   );
-}
+});
+

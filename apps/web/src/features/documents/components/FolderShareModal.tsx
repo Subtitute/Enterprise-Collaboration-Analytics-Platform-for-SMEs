@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -12,7 +12,7 @@ import type { Folder } from '@/types';
 
 type ShareTargetType = 'user' | 'department';
 
-export function FolderShareModal({ folder, onClose }: { folder: Folder | null; onClose: () => void }) {
+export const FolderShareModal = memo(function FolderShareModal({ folder, onClose }: { folder: Folder | null; onClose: () => void }) {
   const { t } = useTranslation();
   const { data: users } = useOrgUsersQuery();
   const { data: departments } = useDepartmentsQuery();
@@ -309,4 +309,4 @@ export function FolderShareModal({ folder, onClose }: { folder: Folder | null; o
       </div>
     </Modal>
   );
-}
+});

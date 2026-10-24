@@ -1,6 +1,6 @@
+import React from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { useTranslation } from 'react-i18next';
-import { AvatarStack } from '@/components/ui/Avatar';
 import { CalendarIcon } from '@/components/ui/Icons';
 import { cn, formatDate } from '@/lib/utils';
 import { useUserNameMap } from '@/hooks/useOrgUsers';
@@ -14,7 +14,7 @@ interface TaskCardProps {
   isHighlighted?: boolean;
 }
 
-export function TaskCard({ task, index, onClick, isHighlighted = false }: TaskCardProps) {
+export const TaskCard = React.memo(function TaskCard({ task, index, onClick, isHighlighted = false }: TaskCardProps) {
   const { t } = useTranslation();
   const { map: userNames } = useUserNameMap();
   const isDone = task.status === 'DONE';
@@ -131,4 +131,4 @@ export function TaskCard({ task, index, onClick, isHighlighted = false }: TaskCa
       )}
     </Draggable>
   );
-}
+});

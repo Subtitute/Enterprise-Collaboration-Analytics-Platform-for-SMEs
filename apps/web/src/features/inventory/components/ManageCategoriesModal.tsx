@@ -25,34 +25,59 @@ export function ManageCategoriesModal({ open, onClose }: { open: boolean; onClos
 
   return (
     <>
-      <Modal open={open} onClose={onClose} title={t('inventory:manageCategoriesModal.title')} size="md">
-        <div className="space-y-3">
+      <Modal
+        open={open}
+        onClose={onClose}
+        title={
+          <div className="flex items-center justify-between gap-3 pr-2">
+            <h2 className="text-[16px] leading-[24px] font-semibold text-[#1C1B1A]">
+              {t('inventory:manageCategoriesModal.title')}
+            </h2>
+            <button
+              type="button"
+              onClick={() => setIsCreateOpen(true)}
+              className="inline-flex h-8 items-center justify-center gap-1.5 rounded-radius-sm bg-[#1C1B1A] px-3 text-[12px] font-medium text-white hover:bg-black transition-colors cursor-pointer"
+            >
+              <PlusIcon className="h-3.5 w-3.5" />
+              <span>{t('inventory:manageCategoriesModal.newCategory')}</span>
+            </button>
+          </div>
+        }
+        size="md"
+        footer={
           <div className="flex justify-end">
-            <Button type="button" size="sm" onClick={() => setIsCreateOpen(true)} className="rounded-radius-sm">
-              <PlusIcon className="h-3.5 w-3.5" /> {t('inventory:manageCategoriesModal.newCategory')}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="h-9 rounded-radius-sm border-[#E5E4E0] bg-white hover:bg-[#F4F4F5] text-[#1C1B1A] text-[13px] font-medium"
+            >
+              {t('common:actions.close')}
             </Button>
           </div>
-
+        }
+      >
+        <div className="space-y-3">
           <QueryState isLoading={categoriesQuery.isLoading} isError={categoriesQuery.isError} onRetry={() => categoriesQuery.refetch()}>
             {categories.length === 0 ? (
               <EmptyState icon={<FolderIcon className="h-8 w-8 text-text-tertiary" />} title={t('inventory:manageCategoriesModal.emptyTitle')} />
             ) : (
-              <div className="max-h-[50vh] divide-y divide-border-subtle overflow-y-auto rounded-radius-md border border-border-subtle popover-scrollbar">
+              <div className="divide-y divide-[#E5E4E0] border-t border-b border-[#E5E4E0]">
                 {categories.map((c) => (
-                  <div key={c.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                  <div key={c.id} className="flex items-center justify-between gap-3 px-4 py-3">
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-[13px] font-medium text-text-primary">{c.name}</p>
-                      {c.description && <p className="truncate text-[12px] text-text-tertiary">{c.description}</p>}
+                      <p className="truncate text-[14px] leading-5 font-semibold text-[#1C1B1A]">{c.name}</p>
+                      {c.description && <p className="truncate text-[12px] leading-4 text-text-tertiary">{c.description}</p>}
                     </div>
-                    <span className="shrink-0 rounded-radius-xs bg-bg-subtle px-2 py-0.5 text-[11px] font-mono tabular-nums text-text-secondary">
+                    <span className="shrink-0 rounded-[2px] bg-[#F4F4F5] px-2 py-0.5 font-mono text-[12px] font-medium tabular-nums text-[#1C1B1A]">
                       {t('inventory:manageCategoriesModal.productCount', { count: c.productCount ?? 0 })}
                     </span>
-                    <div className="flex shrink-0 items-center gap-0.5">
+                    <div className="flex shrink-0 items-center gap-1">
                       <button
                         type="button"
                         onClick={() => setEditingCategory(c)}
                         aria-label={t('inventory:manageCategoriesModal.editCategory')}
-                        className="flex h-7 w-7 items-center justify-center rounded-radius-sm text-text-tertiary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer"
+                        className="flex h-7 w-7 items-center justify-center rounded-radius-sm text-text-tertiary hover:bg-[#E4EFEE] hover:text-[#0E5E5E] transition-colors cursor-pointer"
                       >
                         <EditIcon className="h-4 w-4" />
                       </button>

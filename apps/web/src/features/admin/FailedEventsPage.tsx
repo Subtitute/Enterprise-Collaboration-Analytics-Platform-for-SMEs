@@ -4,8 +4,8 @@
 // de dong bo voi cac trang Quan tri khac.
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+
 import type { BadgeVariant } from '@/components/ui/Badge';
 import { Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow } from '@/components/ui/Table';
 import { Pagination } from '@/components/ui/Pagination';

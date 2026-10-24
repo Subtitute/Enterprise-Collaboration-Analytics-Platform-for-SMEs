@@ -1,27 +1,25 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { ProgressBar } from '@/components/ui/ProgressBar';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 // 22/07/2026: them QueryState de xu ly nhanh isError cho tasksQuery ben duoi (xem chu thich tai
 // vi tri dung).
 import { QueryState } from '@/components/ui/QueryState';
-import { ChevronLeftIcon, PlusIcon, CheckCircleIcon, CalendarIcon, RefreshIcon } from '@/components/ui/Icons';
-import { formatDate, cn, canManageProjects } from '@/lib/utils';
+import { ChevronLeftIcon, PlusIcon, CheckCircleIcon, RefreshIcon } from '@/components/ui/Icons';
+import { cn, canManageProjects } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth.store';
 import { useOrgUsersQuery } from '@/hooks/useOrgUsers';
-import { Avatar } from '@/components/ui/Avatar';
 import { useProjectQuery, useTasksQuery, useCompleteProject, useReopenProject, useProjectMembersQuery } from './hooks';
-import { projectStatusMeta, computeProgressFromTasks, projectPriorityMeta } from './utils';
+import { projectStatusMeta, computeProgressFromTasks } from './utils';
 import { KanbanBoard } from './components/KanbanBoard';
 import { NewTaskModal } from './components/NewTaskModal';
 import { TaskDetailModal } from './components/TaskDetailModal';
 import { ProjectMembersModal } from './components/ProjectMembersModal';
+import { ProjectSummaryCards } from './components/ProjectSummaryCards';
 import { toast } from '@/stores/toast.store';
-import type { TaskStatus } from '@/types';
+import type { Task, TaskStatus } from '@/types';
 
 export function ProjectDetailPage() {
   const { t } = useTranslation();
@@ -71,6 +69,19 @@ export function ProjectDetailPage() {
   const user = useAuthStore((s) => s.user);
   const canManage = canManageProjects(user?.roles);
 
+  const handleOpenMembersModal = useCallback(() => setIsMembersModalOpen(true), []);
+  const handleCloseMembersModal = useCallback(() => setIsMembersModalOpen(false), []);
+  const handleTaskClick = useCallback((task: Task) => setSelectedTaskId(task.id), []);
+  const handleQuickAdd = useCallback((status: TaskStatus) => {
+    setNewTaskColumn(status);
+    setIsNewTaskOpen(true);
+  }, []);
+  const handleCloseTaskDetail = useCallback(() => setSelectedTaskId(null), []);
+  const handleCloseNewTask = useCallback(() => {
+    setIsNewTaskOpen(false);
+    setNewTaskColumn(undefined);
+  }, []);
+
   if (projectQuery.isLoading) return <FullPageSpinner label={t('projects:detail.loading')} />;
   if (projectQuery.isError || !projectQuery.data) {
     return <EmptyState title={t('projects:detail.notFoundTitle')} description={t('projects:detail.notFoundDescription')} />;
@@ -97,13 +108,6 @@ export function ProjectDetailPage() {
   const status = projectStatusMeta(currentStatus);
   const tasks = tasksQuery.data ?? [];
   const progress = project.progress ?? computeProgressFromTasks(tasks);
-
-  const statusDotColor =
-    currentStatus === 'COMPLETED'
-      ? 'bg-emerald-500 ring-emerald-200'
-      : currentStatus === 'ACTIVE'
-        ? 'bg-primary-500 ring-primary-200'
-        : 'bg-slate-400 ring-slate-200';
 
   const priorityConfig = {
     LOW: { label: t('projects:newProjectModal.priorities.LOW'), className: 'bg-[#FAF9F6] text-[#8A8781]' },
@@ -172,7 +176,7 @@ export function ProjectDetailPage() {
                   type="button"
                   onClick={() => {
                     const isFullyDone = tasks.length > 0
-                      ? tasks.every((t) => t.status === 'DONE')
+                       ? tasks.every((t) => t.status === 'DONE')
                       : progress >= 100;
 
                     if (!isFullyDone) {
@@ -209,103 +213,16 @@ export function ProjectDetailPage() {
         </div>
 
         {/* Hàng 2: 3 Summary Cards (§3.1) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Card 1: Hạn hoàn thành */}
-          <div className="flex items-center gap-3 rounded-radius-md border border-border-subtle bg-white p-3 h-16 shadow-none">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-radius-sm bg-bg-subtle text-text-tertiary">
-              <CalendarIcon className="h-4 w-4 stroke-1.5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <span className="block text-[11px] font-semibold text-text-tertiary uppercase tracking-wider leading-none">
-                {t('projects:newProjectModal.dueDateLabel')}
-              </span>
-              <span className="block font-mono text-[13px] font-medium text-text-primary tabular-nums truncate mt-1">
-                {project.dueDate ? formatDate(project.dueDate) : t('common:none')}
-              </span>
-            </div>
-          </div>
-
-          {/* Card 2: Tiến độ */}
-          <div className="flex flex-col justify-center rounded-radius-md border border-border-subtle bg-white px-3.5 py-2.5 h-16 shadow-none">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider leading-none">
-                {t('projects:detail.projectProgress')}
-              </span>
-              <span className="font-mono text-[13px] font-medium text-text-primary tabular-nums leading-none">
-                {progress}%
-              </span>
-            </div>
-            <div className="h-1 w-full overflow-hidden rounded-full bg-bg-subtle">
-              <div
-                className={cn('h-full transition-all duration-300 rounded-full', progressFillColor)}
-                style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Card 3: Thành viên */}
-          {(() => {
-            const memberIdSet = new Set<string>();
-            if (project.leadUserId) memberIdSet.add(project.leadUserId);
-            for (const task of tasks) {
-              for (const assignee of task.assignees ?? []) {
-                if (assignee.userId) memberIdSet.add(assignee.userId);
-              }
-            }
-            for (const member of projectMembersQuery.data ?? []) memberIdSet.add(member.userId);
-
-            const allUsers = orgUsersQuery.data ?? [];
-            const userMap = new Map(allUsers.map((u) => [u.id, u]));
-            const projectMembers = Array.from(memberIdSet).map((id) => userMap.get(id)).filter(Boolean);
-            const previewMembers = projectMembers.slice(0, 3);
-            const remainingCount = Math.max(0, projectMembers.length - 3);
-
-            return (
-              <button
-                type="button"
-                onClick={() => setIsMembersModalOpen(true)}
-                className="group flex items-center justify-between gap-3 rounded-radius-md border border-border-subtle bg-white p-3 h-16 shadow-none hover:border-border-strong hover:bg-bg-subtle/50 transition-colors text-left cursor-pointer"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="text-[11px] font-semibold text-text-tertiary uppercase tracking-wider leading-none">
-                    {t('projects:detail.projectMembers')}
-                  </div>
-                  <span className="block text-[12px] font-normal text-text-secondary truncate mt-1">
-                    {t('projects:detail.membersCountLabel', { count: projectMembers.length })}
-                  </span>
-                </div>
-
-                <div className="flex items-center -space-x-2 overflow-hidden shrink-0">
-                  {previewMembers.map((m) => {
-                    const initials = (m!.fullName || m!.email || '?')
-                      .split(' ')
-                      .map((p: string) => p[0])
-                      .slice(0, 2)
-                      .join('')
-                      .toUpperCase();
-                    return (
-                      <div
-                        key={m!.id}
-                        className="flex h-6 w-6 items-center justify-center rounded-full bg-accent-soft text-accent text-[10px] font-semibold ring-2 ring-white"
-                        title={m!.fullName}
-                      >
-                        {initials}
-                      </div>
-                    );
-                  })}
-                  {remainingCount > 0 && (
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-bg-subtle text-[11px] font-medium font-mono text-text-secondary ring-2 ring-white">
-                      +{remainingCount}
-                    </span>
-                  )}
-                  {projectMembers.length === 0 && (
-                    <span className="text-[11px] text-text-tertiary italic">{t('projects:detail.noMembers')}</span>
-                  )}
-                </div>
-              </button>
-            );
-          })()}
-        </div>
+        <ProjectSummaryCards
+          dueDate={project.dueDate}
+          progress={progress}
+          progressFillColor={progressFillColor}
+          leadUserId={project.leadUserId}
+          tasks={tasks}
+          projectMembers={projectMembersQuery.data}
+          allUsers={orgUsersQuery.data}
+          onOpenMembersModal={handleOpenMembersModal}
+        />
       </div>
 
       {/* 22/07/2026: sua loi thuc te - nhanh render ben duoi truoc day chi kiem tra isLoading va
@@ -332,11 +249,8 @@ export function ProjectDetailPage() {
           <KanbanBoard
             projectId={projectId}
             tasks={tasks}
-            onTaskClick={(task) => setSelectedTaskId(task.id)}
-            onQuickAdd={(status) => {
-              setNewTaskColumn(status);
-              setIsNewTaskOpen(true);
-            }}
+            onTaskClick={handleTaskClick}
+            onQuickAdd={handleQuickAdd}
             highlightedTaskId={highlightedTaskId}
           />
         )}
@@ -346,19 +260,16 @@ export function ProjectDetailPage() {
         projectId={projectId}
         open={isNewTaskOpen}
         defaultColumn={newTaskColumn}
-        onClose={() => {
-          setIsNewTaskOpen(false);
-          setNewTaskColumn(undefined);
-        }}
+        onClose={handleCloseNewTask}
       />
       <TaskDetailModal
         projectId={projectId}
         taskId={selectedTaskId}
-        onClose={() => setSelectedTaskId(null)}
+        onClose={handleCloseTaskDetail}
       />
       <ProjectMembersModal
         open={isMembersModalOpen}
-        onClose={() => setIsMembersModalOpen(false)}
+        onClose={handleCloseMembersModal}
         project={project}
         tasks={tasks}
       />
