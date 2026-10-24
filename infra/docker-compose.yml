@@ -228,6 +228,11 @@ services:
     image: mongo:7
     container_name: mongodb
     restart: unless-stopped
+    # 24/10/2026 (giam tai RAM): WiredTiger mac dinh lay 50% (RAM - 1GB) ma container nhin thay -
+    # da do thuc te 3.3GB tren may dev, nguon tang RAM ngam lon nhat ca stack. Du lieu thong bao/DLQ
+    # cua do an rat nho, 0.25GB (muc toi thieu) la du.
+    command: ["--wiredTigerCacheSizeGB", "0.25"]
+    mem_limit: 640m
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
@@ -303,8 +308,12 @@ services:
     # can, va chi tu chinh may host. Gioi han ve 127.0.0.1 - van dung duoc tu may host, khong con lo
     # ra mang ngoai. Cong 9010 (S3 API) GIU NGUYEN mo toan mang vi trinh duyet/app di dong thuc su
     # can goi truc tiep de tai file qua presigned URL (xem MINIO_PUBLIC_ENDPOINT ben duoi).
+    # 24/10/2026: "0.0.0.0:" = chi nghe IPv4 (van mo toan mang LAN). Truoc day "9010:9000" nghe ca
+    # [::] - duong chuyen tiep IPv6 cua Docker Desktop bi treo sau khi container duoc tao lai, ma
+    # Windows phan giai "localhost" ra ::1 truoc => trinh duyet treo (timeout) thay vi chuyen sang
+    # 127.0.0.1. Bo IPv6 => ::1 bi tu choi ngay, trinh duyet tu dong dung 127.0.0.1.
     ports:
-      - "9010:9000"
+      - "0.0.0.0:9010:9000"
       - "127.0.0.1:9011:9001"
     command: server /data --console-address ":9001"
     networks: [internal-net]
@@ -356,14 +365,24 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+      # 24/10/2026 (giam tai RAM): image apache/kafka mac dinh -Xms1G -Xmx1G (da xac minh), qua lon
+      # cho luu luong event cua 1 SME (vai chuc event/phut).
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx384m"
+    mem_limit: 768m
     healthcheck:
       # KRaft mode (khong Zookeeper): dung CLI co san trong image apache/kafka de kiem tra
       # broker da san sang nhan request tren listener noi bo (localhost:9092 = PLAINTEXT_HOST).
       test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1 || exit 1"]
-      interval: 10s
+      # 24/10/2026 (giam tai CPU/RAM, phat hien qua ra soat cuoi): moi lan kiem tra khoi dong 1 JVM
+      # moi (CPU vot 140-220% trong vai giay) - truoc day lap lai MOI 10 giay suot vong doi container.
+      # Giu nguyen lenh kiem tra (dung nghia "broker san sang nhan request", khong ha xuong kiem tra
+      # TCP thuan), chi doi nhip: trong start_period kiem tra moi 5 giay (start_interval) de cac
+      # service phu thuoc khoi dong nhanh nhu cu; da healthy thi chi kiem tra moi 60 giay.
+      interval: 60s
       timeout: 10s
-      retries: 15
-      start_period: 20s
+      retries: 3
+      start_period: 120s
+      start_interval: 5s
 
   # ---------------------------------------------------------------
   # Core Platform - Microservices
@@ -469,8 +488,9 @@ services:
       ML_SERVICE_URL: http://ml-service:8000
       MESSAGING_SERVICE_URL: http://messaging-service:3009
       INVENTORY_SERVICE_URL: http://inventory-service:3010
+    # 24/10/2026: chi nghe IPv4 (van mo LAN cho app di dong) - ly do xem ghi chu cong 9010 cua minio.
     ports:
-      - "3000:3000"
+      - "0.0.0.0:3000:3000"
     networks: [internal-net]
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/v1/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
@@ -552,6 +572,11 @@ services:
       # truoc MinIO hoac bat TLS native cua MinIO, ngoai pham vi sua doi nay.
       MINIO_PUBLIC_USE_SSL: ${MINIO_PUBLIC_USE_SSL:-false}
       INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
+      # 24/10/2026: RAG tai lieu cho Chat bot noi bo (Technical_Spec.md muc 23) - nhung van ban qua
+      # Gemini API, dung chung key voi "Nhan xet AI" (analytics-service). De trong = tat RAG (service
+      # van chay binh thuong, POST /files/search-chunks tra ket qua rong kem ragEnabled: false).
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GEMINI_EMBEDDING_MODEL: ${GEMINI_EMBEDDING_MODEL:-gemini-embedding-001}
     # ports: ["3003:3003"]  # go bo 21/07/2026 - khong expose ra host, chi Gateway/noi bo moi
     # goi duoc qua internal-net, tranh bypass Gateway/JWT/rate-limit (xem Technical_Spec.md muc 8).
     networks: [internal-net]
@@ -649,6 +674,12 @@ services:
       # ngay) - de trong nghia la KHONG co du phong (van chay binh thuong, chi mat lop du phong).
       GROQ_API_KEY: ${GROQ_API_KEY}
       GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
+      # 24/10/2026: Chat bot noi bo (Technical_Spec.md muc 23) - tool cua bot goi lai Gateway CONG KHAI
+      # (khong goi thang service phia sau) bang chinh JWT cua nguoi hoi. Model rieng cho chat (mac
+      # dinh ban "lite" - xem chatbot trong apps/analytics-service/src/config/configuration.ts).
+      CHATBOT_GATEWAY_URL: http://gateway:3000
+      CHATBOT_GEMINI_MODEL: ${CHATBOT_GEMINI_MODEL:-gemini-flash-lite-latest}
+      CHATBOT_DAILY_QUESTION_LIMIT: ${CHATBOT_DAILY_QUESTION_LIMIT:-30}
     # ports: ["3005:3005"]  # go bo 21/07/2026 - khong expose ra host, chi Gateway/noi bo moi
     # goi duoc qua internal-net, tranh bypass Gateway/JWT/rate-limit (xem Technical_Spec.md muc 8).
     networks: [internal-net]
@@ -753,6 +784,9 @@ services:
       dockerfile: apps/ml-service/Dockerfile
     container_name: ml-service
     restart: unless-stopped
+    # 24/10/2026 (giam tai RAM): chan tran khi nap model ArcFace (~261MB, lazy-load o lan nhan dien
+    # khuon mat dau tien) - anh dau vao da duoc thu nho ve 640px (app/face.py) nen 1g la du rong.
+    mem_limit: 1g
     depends_on:
       postgres-ml: { condition: service_healthy }
       kafka: { condition: service_healthy }
@@ -868,8 +902,9 @@ services:
     restart: unless-stopped
     depends_on:
       gateway: { condition: service_healthy }
+    # 24/10/2026: chi nghe IPv4 - ly do xem ghi chu cong 9010 cua minio.
     ports:
-      - "80:80"
+      - "0.0.0.0:80:80"
     networks: [internal-net]
     healthcheck:
       # 21/07/2026: dung 127.0.0.1 thay vi "localhost" - nginx (custom nginx.conf) chi listen
@@ -887,11 +922,16 @@ services:
   # HA TANG/VAN HANH (latency, ty le loi HTTP, Kafka consumer lag), khong dung chung du lieu/
   # muc dich voi KPI nghiep vu. Khong service nao trong Core Platform phu thuoc (depends_on)
   # nhom nay - mat Prometheus/Grafana khong lam gian doan he thong nghiep vu.
+  #
+  # 24/10/2026 (giam tai RAM): ca 4 container nhom nay chuyen sang profile TUY CHON
+  # `observability` - `docker compose up -d` thong thuong KHONG con tu bat nhom nay. Bat khi can:
+  # `docker compose --profile observability up -d`.
   # ---------------------------------------------------------------
   prometheus:
     # 22/08/2026: pin theo digest - mirror ly do o timescaledb.
     image: prom/prometheus:latest@sha256:508729e0e2d18e11fd742a5a5ca70e557b940a93948c3c95fd0123a6fd538b69
     container_name: prometheus
+    profiles: ["observability"]
     restart: unless-stopped
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
@@ -916,6 +956,7 @@ services:
   alertmanager:
     image: prom/alertmanager:latest@sha256:690c7b525f4367aa91f73e2f91c632206d32e97c6384bdbf2fb7a861b420340d
     container_name: alertmanager
+    profiles: ["observability"]
     restart: unless-stopped
     volumes:
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
@@ -938,6 +979,7 @@ services:
     # 22/08/2026: pin theo digest - mirror ly do o timescaledb.
     image: danielqsj/kafka-exporter:latest@sha256:a51b280b55a763deaa1bc5024310bc2954995d9160014d7445055dac6a090868
     container_name: kafka-exporter
+    profiles: ["observability"]
     restart: unless-stopped
     command: ["--kafka.server=kafka:29092"]
     depends_on:
@@ -948,6 +990,7 @@ services:
     # 22/08/2026: pin theo digest - mirror ly do o timescaledb.
     image: grafana/grafana:latest@sha256:1c1bd67c54c5fcf6e759897852b5a584191bd6796e8d328a5ace457799801261
     container_name: grafana
+    profiles: ["observability"]
     restart: unless-stopped
     depends_on:
       prometheus: { condition: service_healthy }
