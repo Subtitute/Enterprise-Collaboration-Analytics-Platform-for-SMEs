@@ -1,8 +1,10 @@
 # Nâng cấp dự án — theo dõi hạng mục review toàn diện
 
-> Trạng thái: **HỖN HỢP — TIER 1–2 ĐÃ TRIỂN KHAI, TIER 3–4 CHƯA TRIỂN KHAI** — Tier 1 (chi phí thấp)
-> và Tier 2 (testing/hạ tầng) đã hoàn tất, xác minh sống từ 22/08/2026; Tier 3 và Tier 4 (Analytics
-> nâng cao) là các hạng mục cố ý để dành cho tương lai. Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
+> Trạng thái: **HỖN HỢP — TIER 1–2 VÀ TIER 5 ĐÃ TRIỂN KHAI, TIER 3–4 CHƯA TRIỂN KHAI** — Tier 1 (chi
+> phí thấp) và Tier 2 (testing/hạ tầng) đã hoàn tất, xác minh sống từ 22/08/2026; Tier 5 (Chatbot nội
+> bộ RAG + tool-calling) đã triển khai và xác minh sống 24/10/2026 (`Technical_Spec.md` §23); Tier 3,
+> Tier 4 (Analytics nâng cao) là các hạng mục cố ý để dành cho tương lai. Chi tiết lịch sử đầy đủ:
+> xem `RevisionHistory.md`.
 
 Nguồn gốc: 1 đợt review toàn dự án (vai trò giảng viên phản biện, theo `ClaudeRule.md` mục 6) thực hiện ngày 22/08/2026, chia thành 3 nhóm theo mức ưu tiên/chi phí. File này chỉ để **tra cứu nhanh trạng thái từng hạng mục** — chi tiết kỹ thuật đầy đủ (file:line, cách xác minh, số liệu trước/sau) nằm ở `Technical_Spec.md` → mục "Lịch sử thay đổi tài liệu", 2 đoạn ngày 22/08/2026.
 
@@ -58,9 +60,25 @@ Nguồn gốc: 1 đợt review toàn dự án (vai trò giảng viên phản bi�
 - [ ] **Layer 6 — What-if Simulation:** mô phỏng "nếu thay đổi X thì Y đổi thế nào" (vd thêm người vào phòng ban thì tỷ lệ hoàn thành đổi ra sao) — cần Layer 4 làm nền trước.
 - [ ] **Demo Data Scenario Generator:** tính năng cho Org Admin chọn 1 trong nhiều kịch bản demo dựng sẵn (vd "đội nhóm đang quá tải", "phòng ban hoạt động tốt") kèm 1 seed số để sinh dữ liệu tái lập được — hiện dữ liệu demo vẫn dựa vào `scripts/seed.js` cố định, không có giao diện chọn kịch bản.
 
+## Tier 5 — Chatbot nội bộ (RAG + tool-calling lai), kế hoạch 24/10/2026, triển khai 24/10/2026
+
+**✅ Đã triển khai, xác minh sống 24/10/2026** (xem `Technical_Spec.md` §23 — §23.2 ghi rõ các điểm
+khác kế hoạch ban đầu, §23.8 ghi kết quả kiểm thử chéo và giới hạn đã biết)
+
+- [x] Hội thoại + permission `chatbot:use` — **khác kế hoạch:** đặt trong module `chatbot/` của `analytics-service` (3 bảng mới trong TimescaleDB), KHÔNG tạo `apps/chatbot-service` riêng để tiết kiệm RAM
+- [x] RAG thật cho Tài liệu đặt trong `document-service` (giữ logic phân quyền tài liệu đúng 1 nơi), endpoint `POST /files/search-chunks` — **khác kế hoạch:** vector lưu dạng mảng số thực, so cosine trong bộ nhớ (không `pgvector`); lập chỉ mục bằng job quét định kỳ (không qua sự kiện Kafka)
+- [x] Tool-calling cho dữ liệu "sống" (5 tool: `search_documents`, `get_my_tasks`, `get_project_status`, `get_my_leave_balance`, `get_my_attendance_today`) — gọi API Gateway bằng JWT người hỏi
+- [x] Nhúng văn bản qua Gemini `gemini-embedding-001` (`text-embedding-004` đã bị Google ngừng), sinh câu trả lời qua `gemini-flash-lite-latest`, dự phòng Groq
+- [x] Frontend: nút chat nổi toàn app, không streaming
+- [x] Trần 30 câu hỏi/người/ngày (GMT+7)
+- [x] Giới hạn tần suất tìm kiếm tài liệu theo người dùng (40 lần/10 phút, bổ sung sau rà soát cuối 24/10/2026)
+- [ ] Còn để ngỏ: ngưỡng liên quan tốt hơn 0,6, phân trang danh sách tin nhắn, bộ lọc "giao cho tôi" phía `project-task-service` cho `get_my_tasks`
+
 ---
 
 ## Lịch sử thay đổi file này
 
 - **22/08/2026** — Khởi tạo file, ghi nhận trạng thái Tier 1 và Tier 2 (đã hoàn tất, xác minh sống) cùng Tier 3 (cố ý chưa làm, hướng phát triển) từ đợt review toàn dự án cùng ngày.
 - **24/09/2026** — Bổ sung Tier 4: phần cố ý chưa làm của đợt nâng cấp Analytics 24/09/2026 (Layer 4 Forecasting, Layer 6 What-if Simulation, Demo Data Scenario Generator) — xem `Technical_Spec.md` §19 cho phần đã triển khai cùng đợt.
+- **24/10/2026** — Bổ sung Tier 5: kế hoạch Chatbot nội bộ (RAG + tool-calling lai), chốt sau khi bàn bạc trực tiếp trước khi code — xem `Technical_Spec.md` §23 cho đặc tả kỹ thuật đầy đủ.
+- **24/10/2026 (tiếp)** — Tier 5 chuyển sang đã triển khai: đánh dấu hoàn thành từng hạng mục, ghi rõ các điểm khác kế hoạch (không service mới, không `pgvector`, job quét định kỳ) và các hạng mục còn để ngỏ.

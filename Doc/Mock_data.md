@@ -1,0 +1,232 @@
+# Dữ liệu kiểm thử (Mock data) — ECAP
+
+> Trạng thái: **ĐÃ TRIỂN KHAI** — bộ tài khoản, file mẫu và kịch bản kiểm thử sống (live) dưới đây đã
+> được dùng cho đợt nghiệm thu toàn hệ thống ngày 24/10/2026 (sau khi hoàn thành Chatbot RAG và đợt giảm
+> RAM). Mã nguồn kịch bản và file mẫu nằm ở `scripts/mock-data/`. Chi tiết lịch sử đầy đủ: xem
+> `RevisionHistory.md`.
+
+**Mục đích:** gom về một chỗ (1) các tài khoản dùng để kiểm thử theo từng vai trò, (2) các bộ dữ liệu
+và kịch bản tái sử dụng được cùng kết quả mong đợi, (3) cách dựng lại toàn bộ khi cần — để lần kiểm
+thử sau không phải tự tạo dữ liệu thủ công.
+
+**Nguyên tắc:** kịch bản **không sửa, không xoá dữ liệu demo có sẵn**. Mọi thứ kịch bản tạo ra đều mang
+nhãn duy nhất `MOCK-<mã thời gian>` và bị xoá ở cuối lần chạy (kể cả khi lỗi giữa chừng — phần dọn dẹp
+nằm trong khối `finally`).
+
+---
+
+## 1. Tài khoản kiểm thử theo vai trò
+
+Tổ chức demo: **Demo SME** (25 thành viên: 2 Org Admin, 3 Manager, 20 Employee; 4 phòng ban Kinh doanh,
+Kỹ thuật, Marketing, Nhân sự). Mật khẩu mặc định của mọi tài khoản demo là `Password123!`.
+
+| Vai trò | Email | Mật khẩu | Ghi chú |
+|---|---|---|---|
+| Org Admin | `admin@demo-sme.vn` | `Password123!` | Toàn quyền tổ chức (52 quyền), không thuộc phòng ban |
+| Manager | `an.nguyen+227860@demo-sme.vn` | `Password123!` | Nguyễn Văn An, phòng Kinh doanh (46 quyền) |
+| Employee | `duc.hoang+227860@demo-sme.vn` | `Password123!` | Hoàng Văn Đức, phòng Kinh doanh (23 quyền) |
+| Super Admin (nền tảng) | `superadmin@ecap-platform.local` | `SuperAdmin123!` | Không thuộc tổ chức nào, không có quyền nghiệp vụ |
+| Org Admin tổ chức E2E | `admin@e2e-test.local` | `Password123!` | Tổ chức riêng cho bộ Playwright `e2e/`, **không dùng để demo** |
+
+Lưu ý: tổ chức demo có 2 lô người dùng (hậu tố `+216140` và `+227860`) do seed chạy 2 lần; cùng họ tên
+nhưng **khác vai trò** (vd `an.nguyen+216140` là Employee). Kịch bản luôn dùng lô `+227860`.
+
+Hộp thư MailHog (email quên mật khẩu, lời mời thành viên): `http://127.0.0.1:8025`.
+
+## 2. Dữ liệu nền và cách dựng lại
+
+| Lệnh (chạy ở thư mục gốc repo) | Tạo ra |
+|---|---|
+| `docker compose -f infra/docker-compose.yml --env-file infra/.env up -d` | Toàn bộ stack (điều kiện tiên quyết cho mọi mục dưới) |
+| `npm run seed` | Tổ chức demo, người dùng, phòng ban, dự án/công việc, khách hàng, tài liệu mẫu (`scripts/seed.js`) |
+| `npm run seed:inventory` | Danh mục sản phẩm, sản phẩm, kho, tồn kho, giao dịch mua hàng (`scripts/seed-inventory.js`) |
+| `npm run seed:e2e` | Tổ chức E2E riêng cho bộ Playwright (`scripts/seed-e2e.js`) |
+| `node scripts/mock-data/mkfixtures.js` | Sinh lại bộ file mẫu ở `scripts/mock-data/fixtures/` (mục 3) |
+
+Kịch bản trong `scripts/mock-data/` **không cần** dữ liệu nào ngoài 3 lệnh seed trên — chúng tự tạo dữ
+liệu tạm của mình rồi tự xoá.
+
+## 3. Bộ file mẫu (`scripts/mock-data/fixtures/`)
+
+| File | Nội dung | Kết quả mong đợi khi tải lên |
+|---|---|---|
+| `t1-quy-dinh-bao-mat.pdf` (800 B) | PDF 1 trang hợp lệ, có văn bản (mã truy cập `LAB-7731`) | 201, được lập chỉ mục RAG, tải xuống đúng từng byte |
+| `t1-so-tay-phuc-loi.docx` (~1,7 KB) | DOCX hợp lệ (hỗ trợ gửi xe 2 triệu/quý) | 201, được lập chỉ mục RAG |
+| `t1-hong.pdf` (89 B) | Chuỗi rác có header `%PDF` | 201 (tệp vẫn được lưu); trình trích văn bản bỏ qua với cảnh báo `Invalid PDF structure`, service không sập |
+| `t1-hong.docx` (131 B) | ZIP hợp lệ nhưng thiếu `word/document.xml` | 201; bỏ qua với cảnh báo `Could not find main document part` |
+| `t1-zip-bomb.docx` (~68 KB) | ZIP chứa `word/document.xml` 70 MB | 201; bỏ qua vì vượt trần giải nén 30 MB (`DOCX giai nen ra ... vuot tran`) |
+
+File lớn (> 25 MB để thử giới hạn tải lên) được **sinh lúc chạy**, không lưu trong repo.
+
+## 4. Kịch bản kiểm thử và kết quả mong đợi
+
+Mỗi kịch bản in từng dòng `PASS`/`FAIL` và dòng tổng kết `x/y PASS` (mã thoát 1 nếu có FAIL).
+
+### 4.1. `01-auth-iam.js` — Xác thực và quản trị
+
+- Đăng nhập 4 vai trò → 200, JWT đúng vai trò; sai mật khẩu → 401; không token → 401.
+- Refresh token qua cookie HttpOnly `ecap_refresh_token` → access token mới; logout → refresh token cũ
+  bị từ chối (401). Access token là JWT stateless nên vẫn dùng được tới khi hết hạn (đúng thiết kế).
+- Quên mật khẩu → email trong MailHog (kịch bản **không** đặt lại mật khẩu để giữ mật khẩu demo; xoá
+  email sau khi kiểm tra).
+- Employee xem được danh bạ (`GET /users`) nhưng không xem được hồ sơ người khác (403); Manager không
+  vào được `/roles` (403); Org Admin không gọi được `/platform-admin` (403).
+- Org Admin tạo phòng ban, mời thành viên (đăng nhập được), đổi vai trò, vô hiệu hoá (không đăng nhập
+  được nữa). Super Admin xem danh sách tổ chức và thống kê.
+
+### 4.2. `02-hrm.js` — Chấm công, nghỉ phép, tăng ca, lịch
+
+- Check-in thiếu ảnh → 400; vĩ độ ngoài miền → 400; có ảnh + GPS + `faceMatchScore` thấp → **201** với
+  `checkInFaceMatched=false` (cờ mềm, không chặn chấm công); check-in lần 2 → 400
+  `ALREADY_CHECKED_IN_TODAY`; check-out với điểm cao → `checkOutFaceMatched=true`. `checkInIsOnSite`
+  là `null` khi chưa cấu hình `OFFICE_LATITUDE/LONGITUDE`.
+- Employee tạo đơn nghỉ phép (ngày ở tương lai xa) → PENDING; tự duyệt → 403; Manager thấy đơn và duyệt
+  → APPROVED; Employee nhận thông báo real-time (outbox → Kafka → notification-service) trong ≤ 15 giây.
+- Employee đăng ký tăng ca → Manager từ chối; Employee tạo ngày lễ → 403; Manager tạo được.
+- **Điều kiện:** nhân viên phải chưa chấm công hôm nay (nếu đã có, bước check-in được bỏ qua và không
+  xoá bản ghi có sẵn).
+
+### 4.3. `03-projects.js` — Dự án và công việc
+
+Manager tạo dự án, thêm Employee, giao việc; Employee kéo TODO → DOING → DONE, bình luận; trạng thái sai
+→ 400; Employee xoá việc/dự án → 403; lịch sử trạng thái có ≥ 2 bản ghi; xoá dự án → 404.
+
+### 4.4. `04-documents.js` — Tài liệu, thư mục RESTRICTED lồng nhau, RAG
+
+Cây dữ liệu Manager tạo:
+
+```
+R  "Kho mật"            RESTRICTED
+├─ C  "Con của kho mật"   (ORGANIZATION, kế thừa hạn chế)   fSalary, fDirect (chia sẻ file cho Employee)
+│  └─ G  "Cháu"                                           fGrand
+└─ SH "Con được chia sẻ"  (FolderShare cho Employee)       fShared
+O  "Công khai"           ORGANIZATION   PDF, DOCX, file hỏng, zip bomb, file của Employee
+```
+
+| Kiểm tra (Employee) | Mong đợi |
+|---|---|
+| `GET` fSalary (C), fGrand (G) | 403 — thư mục con/cháu kế thừa hạn chế của R |
+| `GET` fDirect (chia sẻ file trực tiếp), fShared (thư mục SH được chia sẻ) | 200 |
+| Liệt kê file trong C, G | 403; trong SH: 200 |
+| Danh sách thư mục gốc | không thấy R |
+| Đổi tên C, tải xuống fGrand | 403 |
+| Chia sẻ VIEW: tải phiên bản mới / tự nâng quyền EDIT | 403 (sửa lỗi 24/10/2026); sau khi Manager nâng lên EDIT: tải phiên bản mới được |
+| Xoá file (Employee không có `document:delete`) | 403 |
+| RAG `search-chunks` nội dung fSalary | không trả về fSalary; Manager tìm thấy |
+
+Manager/Org Admin đọc được mọi file trong R. Ngoài ra: tải lên > 25 MB → 413; PDF tải xuống qua URL tạm
+(presigned MinIO) khớp từng byte; phiên bản 2 có `currentVersion = 2`; document-service vẫn sống sau
+file hỏng/zip bomb.
+
+### 4.5. `05-crm-inventory.js` — CRM và Kho
+
+Employee tạo khách hàng → 403; Manager tạo khách hàng rồi giao cho Employee phụ trách; Employee tạo deal
+(NEW → PROPOSAL), giai đoạn sai → 400, xoá deal → 403; Manager chốt WON. Kho: SKU trùng → 409; nhập 20;
+xuất vượt tồn → 4xx; Employee ghi nhận giao dịch mua 3 → tồn còn 17; Employee xoá giao dịch → 403.
+
+### 4.6. `06-analytics-messaging.js` — Báo cáo, ML, thông báo, nhắn tin
+
+Org Admin/Manager xem 8 biểu đồ dashboard (200), Employee → 403; drill-down theo dự án; scope sai → 400;
+`GET /analytics/ai-insights` (dùng cache Redis 30 phút; cache trống thì gọi Gemini 1 lần, Gemini lỗi
+thì trả nhận xét dự phòng, vẫn 200). ML: Manager chạy phát hiện bất thường `range=30d` → 200,
+Employee → 403, `range=1y` → 422. DLQ: Org Admin 200, Manager 403. Nhắn tin 1:1 Manager ↔ Employee: mở lại
+trả về cùng cuộc trò chuyện, tin rỗng → 400, người ngoài cuộc → 403/404, xoá tin người khác → 403.
+
+### 4.7. `07-chatbot.js` và `08-chatbot-security.js` — Chatbot (tốn hạn ngạch Gemini)
+
+- 07 phần 1 (không tốn hạn ngạch): Manager đọc/hỏi/xoá cuộc trò chuyện của Employee → 404; Super Admin →
+  403; câu hỏi rỗng/chỉ khoảng trắng/1001 ký tự → 400; `limit=501` → 400.
+- 07 phần 2 (2 câu): "Tôi còn bao nhiêu ngày phép năm nay?" → gọi tool `get_my_leave_balance`, trả đúng
+  12 / đã dùng 2 / còn 10; "Tôi đang có những công việc nào chưa hoàn thành?" → `get_my_tasks`.
+- 08 (~4 câu): tài liệu chứa prompt injection → bot trả đúng 350.000 đồng/ngày, có trích dẫn nguồn, không
+  làm theo chỉ dẫn nhúng; biên bản mật trong thư mục RESTRICTED → không lộ cho Employee; xoá cuộc trò
+  chuyện khi đang trả lời → 404 (không 500); 2 câu đồng thời → 201 + 409 `CHATBOT_CONVERSATION_BUSY`, hạn
+  ngạch chỉ tăng 1.
+
+### 4.8. `09-ui-smoke.js` — Giao diện (Playwright)
+
+Mỗi vai trò mở các trang chính (26 lượt, nghỉ 2,5 giây giữa các trang): không lỗi JS, không phản hồi
+API 5xx. Org Admin mở ma trận phân
+quyền: có nhóm "Sản phẩm & Kho", "Nhắn tin & Trợ lý AI", không còn nhóm "Khác"; bật/tắt `chatbot:use`
+của Employee lưu vào IAM rồi trả về trạng thái ban đầu. Kịch bản đếm riêng số phản hồi 429 (rate-limit
+của Gateway) và chờ hết cửa sổ 60 giây trước khi kiểm tra ma trận phân quyền nếu có 429.
+
+## 5. Cách chạy
+
+Điều kiện: stack Docker đang chạy, Node ≥ 18 (dùng `fetch` có sẵn), Docker CLI trên máy chạy kịch bản
+(phần dọn dẹp dùng `docker exec`), đã `npm install` ở gốc repo và trong `e2e/` (cho kịch bản 09).
+
+```bash
+node scripts/mock-data/run-all.js              # 01 → 07 (phần 1), không tốn hạn ngạch Gemini
+node scripts/mock-data/run-all.js --with-llm   # thêm 07 phần 2 và 08 (~6 lượt Gemini)
+node scripts/mock-data/04-documents.js         # chạy riêng 1 kịch bản
+node scripts/mock-data/07-chatbot.js manager "Câu hỏi 1" "Câu hỏi 2"   # hỏi tuỳ ý (mỗi câu 1 lượt)
+node scripts/mock-data/09-ui-smoke.js          # giao diện, chạy riêng
+```
+
+Biến môi trường (mặc định là giá trị demo): `ECAP_API_BASE` (`http://127.0.0.1:3000/api/v1`),
+`ECAP_WEB_URL` (`http://localhost`), `ECAP_MAILHOG_URL` (`http://127.0.0.1:8025`), `ECAP_PASSWORD`,
+`ECAP_ADMIN_EMAIL`, `ECAP_MANAGER_EMAIL`, `ECAP_EMPLOYEE_EMAIL`, `ECAP_SUPERADMIN_EMAIL`,
+`ECAP_SUPERADMIN_PASSWORD`.
+
+## 6. Cơ chế dọn dẹp
+
+| Loại dữ liệu | Cách xoá |
+|---|---|
+| Phòng ban, thành viên, dự án, công việc, thư mục, tệp, khách hàng, deal, sản phẩm, danh mục, kho, giao dịch, ngày lễ, tin nhắn, cuộc trò chuyện chatbot | API (`DELETE`) |
+| Bản ghi chấm công, đơn nghỉ phép/tăng ca (không có API xoá, có chủ đích) | `postgres-hrm` + ảnh chấm công trong MinIO (`mc rm`) |
+| Sổ cái nhập/xuất kho, tồn kho của kho kiểm thử | `postgres-inventory` (trước khi xoá kho/sản phẩm) |
+| Cuộc trò chuyện nhắn tin do kịch bản tạo mới (API chỉ xoá mềm tin nhắn) | `postgres-messaging` |
+| Sự kiện phân tích (`fact_*` trong TimescaleDB), thông báo (MongoDB), email MailHog | `purgeTraces()` trong `lib.js`: xoá bản ghi chứa id do kịch bản tạo, kể từ lúc bắt đầu chạy |
+
+Ngoại lệ còn lại có chủ đích: bộ đếm hạn ngạch chatbot theo ngày (`chatbot_daily_usage`) và sự kiện
+đăng nhập trong `fact_user_activity` (hoạt động sử dụng bình thường).
+
+## 7. Nguồn gốc kịch bản
+
+Bộ kịch bản được gom từ 2 đợt kiểm thử Chatbot RAG trước đó và đợt nghiệm thu 24/10/2026, chuyển sang đọc
+URL/tài khoản từ biến môi trường, bỏ mọi đường dẫn tuyệt đối và bổ sung dọn dẹp:
+
+| File | Gom từ |
+|---|---|
+| `lib.js` | helper gọi API + tải tệp của 2 đợt kiểm thử, thêm bộ đếm PASS/FAIL và hàm dọn dẹp CSDL |
+| `mkfixtures.js` + `fixtures/` | trình sinh file mẫu PDF/DOCX hợp lệ và hỏng, thêm sinh zip bomb |
+| `04-documents.js` | kịch bản dựng thư mục RESTRICTED, kế thừa quyền thư mục cha, file hỏng |
+| `07-chatbot.js` | kịch bản phân quyền/validate chatbot + công cụ hỏi nhanh |
+| `08-chatbot-security.js` | kịch bản prompt injection/rò rỉ tài liệu hạn chế + kiểm tra đồng thời |
+| `01`–`03`, `05`, `06`, `09`, `run-all.js` | viết mới trong đợt nghiệm thu 24/10/2026 |
+
+## 8. Kết quả lần chạy 24/10/2026
+
+| Kịch bản | Kết quả |
+|---|---|
+| 01 Auth + IAM | 31/31 PASS (quên mật khẩu PASS sau khi sửa route công khai của Gateway) |
+| 02 HRM | 28/28 PASS |
+| 03 Dự án/công việc | 18/18 PASS |
+| 04 Tài liệu | 46/46 PASS (sau khi sửa lỗi chia sẻ VIEW được ghi đè/xoá/nâng quyền) |
+| 05 CRM + Kho | 27/27 PASS |
+| 06 Analytics + nhắn tin | 24/24 PASS |
+| 07 Chatbot | 16/16 PASS |
+| 08 Chatbot an toàn | 12/12 PASS |
+| 09 Giao diện | 32/32 PASS (lần đầu ghi nhận 50 phản hồi 429 khi duyệt 26 trang với giới hạn cũ 100 request/phút cho cả tổ chức + IP; Gateway đã chuyển sang giới hạn theo người dùng 300 request/phút, chạy lại: 0 phản hồi 429) |
+
+Bộ Playwright `e2e/` (tổ chức E2E, chạy `--retries=0`, bỏ test POST `ai-insights` vì tốn hạn ngạch Gemini):
+11/17 PASS. 6 test giao diện thất bại vì **selector cũ** so với giao diện hiện tại (vd nút "Dự án mới" đã
+đổi thành "Tạo dự án", trang Tài liệu mặc định ở chế độ Lưới thay vì bảng, thẻ chấm công ghi "Vào làm"
+thay vì "Đã vào làm lúc", tên dự án seed có dấu); ảnh chụp lúc lỗi cho thấy thao tác thực tế vẫn thành
+công (tệp đã tải lên, đã check-in). Cần cập nhật lại các spec này.
+
+Lỗi do bộ kịch bản phát hiện và đã sửa trong đợt (mỗi lỗi có unit test đi kèm):
+
+- Ma trận phân quyền (web) thiếu 20 quyền ra đời sau (chatbot, Kho, Nhắn tin, giải trình/tăng ca, lịch,
+  `ml:view`) — trước đây rơi vào nhóm "Khác" với nhãn là key kỹ thuật.
+- Chia sẻ tệp quyền VIEW vẫn tải được phiên bản mới, xoá tệp và tự nâng quyền lên EDIT (document-service).
+- Vai trò Org Admin của các tổ chức đăng ký trước khi có quyền mới không bao giờ nhận quyền đó (tổ chức
+  E2E thiếu 12 quyền, 10 tổ chức khác thiếu `chatbot:use`); iam-service nay bổ sung lúc khởi động.
+- Quên mật khẩu bị Gateway chặn 401 (thiếu route công khai) và rate-limit 100 request/phút dùng chung cả
+  tổ chức + IP (đã chuyển sang theo người dùng).
+
+## Lịch sử thay đổi file này
+
+- 24/10/2026: khởi tạo tài liệu — tài khoản theo vai trò, bộ file mẫu, 9 kịch bản kiểm thử sống kèm kết
+  quả mong đợi, cơ chế dọn dẹp và kết quả đợt nghiệm thu toàn hệ thống.

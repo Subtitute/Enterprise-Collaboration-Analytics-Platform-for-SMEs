@@ -1,7 +1,8 @@
 # Wireframe — Enterprise Collaboration & Analytics Platform for SMEs
 
 > Trạng thái: **ĐÃ TRIỂN KHAI** — mô tả wireframe khớp với giao diện đã lập trình và xác minh sống
-> cho toàn bộ màn hình MVP và các module mở rộng (CRM-lite, HRM-lite, i18n, Analytics nâng cao).
+> cho toàn bộ màn hình MVP và các module mở rộng (CRM-lite, HRM-lite, i18n, Analytics nâng cao,
+> Kho hàng, Nhận diện khuôn mặt, Chatbot nội bộ — 24/10/2026).
 > Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
 
 **Tài liệu liên quan:** [General_idea.md](General_idea.md) · [Technical_Spec.md](Technical_Spec.md)
@@ -262,6 +263,7 @@ Bản mô tả này thay thế khung sườn phác thảo trước đó (ghi tr�
 - 1 ngày chỉ check-in/check-out được 1 lần — nút tương ứng biến mất/đổi trạng thái sau khi đã thực hiện, không cho bấm lại (máy chủ cũng từ chối nếu cố gọi API trực tiếp).
 - **(Bổ sung 13/08/2026, Technical_Spec.md §17):** nhãn "Tại văn phòng"/"Ngoài văn phòng" là cờ mềm dựa trên GPS — CHỈ hiện khi có dữ liệu để đánh giá (thiếu quyền vị trí/toạ độ văn phòng chưa cấu hình thì không hiện gì, không phải lỗi), KHÔNG chặn check-in/out. Khối "Chấm công toàn tổ chức" là bảng MỚI, cho Manager/Org Admin đối chiếu cờ này của cả tổ chức (ẩn hoàn toàn với Employee thường, cùng cơ chế 403-tự-ẩn với mục "Chờ duyệt" ở 9.2).
 - **(Bổ sung 03/10/2026, Technical_Spec.md §21.3):** mỗi dòng trong "Chấm công toàn tổ chức" nay bấm được, mở trang chi tiết `/attendance/:userId` hiển thị toàn bộ lịch sử chấm công của đúng nhân viên đó (chỉ Manager/Org Admin — Employee thường vẫn chỉ thấy đúng 2 khối đầu, không xem được lịch sử người khác qua bất kỳ cách nào).
+- **(Bổ sung 24/10/2026, Technical_Spec.md §24 — đảo ngược có chủ đích quyết định ban đầu "không nhận diện khuôn mặt" của §17):** mọi nơi đã hiện badge "Tại văn phòng"/"Ngoài văn phòng" (today, lịch sử cá nhân, bảng toàn tổ chức, modal xem ảnh) nay thêm badge thứ 2 "Khớp khuôn mặt"/"Không khớp" kèm % độ khớp — cùng mức độ "cờ mềm" y hệt badge GPS: ẩn hoàn toàn nếu chưa đăng ký khuôn mặt (Hồ sơ cá nhân, §11) hoặc không phát hiện được mặt trong ảnh, không bao giờ chặn check-in/out.
 
 ### 9.2 Trang Nghỉ phép *(sửa lại 03/10/2026 — gộp Lịch công ty, xem Technical_Spec.md §21.3)*
 
@@ -337,6 +339,7 @@ Toàn bộ bảng dữ liệu (danh sách dự án, tài liệu, thành viên) c
 - Chỉ-đọc trong MVP: hiển thị dữ liệu thật của chính người dùng đang đăng nhập (`GET /users/:id` — IAM Service, mọi thành viên đã xác thực đều tự xem được chính mình, không cần quyền quản trị).
 - **Không** thêm field ngoài entity `User` hiện có (Technical_Spec.md §5: `fullName`, `email`, `departmentId`, `roles`, `isActive`, `createdAt`) — chưa có avatar ảnh thật/số điện thoại/tiểu sử trong phạm vi MVP.
 - Đổi phòng ban/vai trò vẫn thực hiện ở Quản trị > Thành viên (§8, yêu cầu quyền `user:manage`) — trang này không có form chỉnh sửa để tránh trùng lặp logic phân quyền.
+- **(Bổ sung 24/10/2026, Technical_Spec.md §24)** Thêm khối "Nhận diện khuôn mặt chấm công": checkbox đồng ý (opt-in bắt buộc tick trước khi đăng ký — dữ liệu sinh trắc học) + nút "Đăng ký khuôn mặt" mở modal camera (tái dùng chính component camera chấm công ở §9.1/§9.3). Sau khi đăng ký: hiện thời điểm đăng ký + nút "Đăng ký lại"/"Xoá đăng ký". Kết quả chỉ ảnh hưởng tới badge tham khảo ở §9.1, không có gì khác đổi trên trang này.
 
 ## 12. Khách hàng & Cơ hội bán hàng (CRM-lite) *(bổ sung 05/08/2026)*
 
@@ -521,6 +524,41 @@ tiết khách hàng (§12.2) là nơi gán 1 mặt hàng cho 1 khách hàng cụ
 số theo sản phẩm"**/**"Top sản phẩm bán nhiều nhất"** mới tại trang Báo cáo & Phân tích (§7) là
 nơi dữ liệu đó được tổng hợp lại thành xu hướng thị trường.
 
+## 15. Chatbot nội bộ *(kế hoạch chốt 24/10/2026, triển khai 24/10/2026, xem Technical_Spec.md §23)*
+
+> Trạng thái: **ĐÃ TRIỂN KHAI, ĐÃ XÁC MINH SỐNG** (24/10/2026) — bố cục dưới đây khớp giao diện thật
+> (`apps/web/src/features/chatbot`).
+
+```
+Nút tròn nổi góc dưới-phải, mọi trang đã đăng nhập (chỉ hiện khi có quyền chatbot:use):
+                                                ┌───────────────────────────────────┐
+                                                │ Trợ lý nội bộ  [Mới] [Lịch sử] [x] │
+                                                ├───────────────────────────────────┤
+                                                │  Bạn: Quy định làm việc từ xa?     │
+                                                │                                     │
+                                                │  Trợ lý: Nhân viên được làm việc   │
+                                                │  từ xa tối đa 2 ngày/tuần...        │
+                                                │  [📄 quy-dinh-lam-viec.pdf]  ← chip │
+                                                │  Đã tra cứu: tài liệu               │
+                                                ├───────────────────────────────────┤
+                                                │ [Nhập câu hỏi...]           [Gửi]  │
+                                                │ Hôm nay đã dùng 3/30 lượt           │
+                                                └───────────────────────────────────┘
+                                                                                [💬] ← nút nổi
+```
+
+- Bấm nút nổi mở panel hội thoại nhỏ (không phải trang riêng) — dùng được từ bất kỳ trang nào.
+  Esc đóng panel; đóng panel không mất hội thoại, kể cả khi đang chờ trả lời.
+- **Lịch sử:** danh sách hội thoại cũ, mở lại hoặc xoá (có hộp xác nhận).
+- Không streaming câu trả lời — hiện "Đang xử lý…" trong lúc chatbot gọi tool/LLM nhiều bước; nút
+  Gửi và ô nhập bị khoá cho tới khi có câu trả lời.
+- Câu trả lời dựa trên Tài liệu kèm chip nguồn bấm được để mở tệp; dòng "Đã tra cứu: …" cho biết bot
+  đã tra những nguồn nào (tài liệu, công việc, dự án, chấm công, nghỉ phép). Câu trả lời luôn phản ánh
+  đúng quyền xem thật của người hỏi (gọi lại đúng API đã có, không có "chế độ xem rộng hơn" nào).
+- Lỗi hiện ngay trong panel: hết lượt trong ngày, hội thoại đang bận, AI tạm thời không phản hồi.
+- Lớp hiển thị: panel nằm trên nội dung trang nhưng dưới Topbar, menu, modal và toast; toast tự dời
+  để không che panel; trên điện thoại (dưới 640px) toast chuyển lên đầu màn hình khi panel đang mở.
+
 ---
 
 ## Lịch sử thay đổi tài liệu
@@ -554,3 +592,6 @@ nơi dữ liệu đó được tổng hợp lại thành xu hướng thị trư�
 - **28/09/2026 (Nhắn tin nội bộ)** — §13 (mới): trang Nhắn tin 2 cột (danh sách hội thoại + khung chat), hỗ trợ cả 1:1 và nhóm, cập nhật tức thời qua WebSocket riêng. Mục còn treo lại từ 17/09/2026, lần đầu được đặc tả và lập trình. Cùng đợt: `ecap-mobile` có thêm tab thứ 7 cùng chức năng (trừ quản lý thành viên nhóm). Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §20.
 - **03/10/2026 (tái cấu trúc điều hướng + gộp Lịch công ty + phát hiện nghỉ phép qua chat)** — §2 viết lại hoàn toàn (sidebar chính đổi thành icon-rail mở rộng khi trỏ chuột vào, "Trang chủ" gộp Dự án/Tài liệu/Khách hàng qua 1 sidebar phụ); §6 viết lại (xoá trang Thông báo riêng, dropdown chuông trở thành giao diện duy nhất); §9.1/§9.2 cập nhật (Lịch công ty rời Quản trị, gộp vào Nghỉ phép theo tỷ lệ 60:40 kèm mô hình phân quyền theo cấp bậc mới; thêm trang xem lịch sử chấm công/nghỉ phép theo từng nhân viên cho Manager/Org Admin); §13 bổ sung chip "Hẹn lịch nghỉ" tự nhận diện cụm từ ngày/giờ trong tin nhắn của chính mình. Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §21.
 - **16/10/2026 (Danh mục sản phẩm & Kho hàng)** — §14 (mới): 2 trang `/products`/`/warehouse` cho tính năng mới hoàn toàn (danh mục sản phẩm cùng 1 chủ đề máy tính/linh kiện laptop-PC, kho hàng với ghi nhận nhập/xuất/điều chỉnh, số lượng không bao giờ âm). §12.2 (Chi tiết khách hàng) bổ sung khối "Lịch sử mua hàng" — cơ chế gán mặt hàng cho từng khách hàng phục vụ phân tích xu hướng thị trường. §7 (Báo cáo & Phân tích) bổ sung 2 biểu đồ mới ("Xu hướng doanh số theo sản phẩm", "Top sản phẩm bán nhiều nhất"). Cả 2 trang mới dùng đúng `AppShell`/sidebar có sẵn ở §2, không tự vẽ sidebar riêng — tránh tái diễn lỗi sidebar đè lên nhau đã sửa ngày 03/10/2026. Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §22.
+- **24/10/2026 (Chatbot nội bộ — kế hoạch)** — §15 (mới): phác thảo UI bubble chat nổi xuyên suốt app cho tính năng RAG + tool-calling lai đã bàn bạc và chốt kiến trúc trước khi code. **Chỉ là kế hoạch — chưa có màn hình/code nào thật.** Đặc tả kỹ thuật đầy đủ ở `Technical_Spec.md` §23, theo dõi trạng thái ở `Doc/Upgrade.md` Tier 5.
+- **24/10/2026 (Nhận diện khuôn mặt cho Chấm công)** — §9.1 bổ sung badge "Khớp khuôn mặt"/"Không khớp" (cờ mềm, cùng cơ chế với badge GPS đã có) ở mọi nơi hiển thị bằng chứng chấm công; §11 bổ sung khối đăng ký khuôn mặt (opt-in bắt buộc đồng ý) vào trang Hồ sơ cá nhân. Đảo ngược có chủ đích quyết định "không nhận diện khuôn mặt" ban đầu của §9 (05/08/2026), theo yêu cầu trực tiếp. Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §24.
+- **24/10/2026 (Chatbot nội bộ — triển khai)** — §15 viết lại từ phác thảo kế hoạch thành mô tả giao diện thật: nút nổi chỉ hiện khi có quyền `chatbot:use`, panel có Hội thoại mới/Lịch sử, chip nguồn tài liệu bấm mở được, dòng "Đã tra cứu", số lượt đã dùng trong ngày, lỗi hiển thị ngay trong panel, nút Gửi khoá khi đang chờ trả lời.

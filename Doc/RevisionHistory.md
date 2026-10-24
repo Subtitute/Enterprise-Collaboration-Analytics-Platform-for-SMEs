@@ -1906,3 +1906,158 @@ nhận biến động kho, tạo mua hàng có/không gắn kho, xác nhận bi�
 dữ liệu thật, xác nhận ma trận RBAC Employee/Manager đúng trên UI thật). Đây là hạn chế môi trường,
 không phải lỗi mã nguồn — cần hoàn tất ngay khi Docker Desktop chạy lại được. Chi tiết đầy đủ:
 `Doc/Technical_Spec.md` §22.
+
+## 24/10/2026 — Nhận diện khuôn mặt cho Chấm công (verify 1:1, cảnh báo mềm)
+
+Đảo ngược có chủ đích quyết định "KHÔNG nhận diện khuôn mặt" đã ghi nhận từ 05/08/2026 (§17) —
+theo yêu cầu trực tiếp, bàn bạc kỹ hướng đi (verify 1:1 thay vì identify 1:N, cảnh báo mềm thay vì
+chặn cứng) trước khi code. `apps/ml-service` bổ sung module nhận diện khuôn mặt dùng 2 model
+pretrained có sẵn (không tự train — chỉ "huấn luyện" duy nhất là bước đăng ký 1 ảnh mẫu/người
+dùng), bảng `face_enrollments` riêng, và 4 endpoint `/api/v1/ml/face/*` (dùng lại permission
+`attendance:checkin`, không thêm permission mới). `hrm-service` thêm 4 cột vào `Attendance`
+(điểm khớp + cờ `matched` thô/check-in và check-out), mirror đúng mô hình cờ mềm GPS on-site/
+off-site đã có — server tự tính lại cờ `matched` từ ngưỡng riêng, không tin thẳng giá trị từ
+client. Frontend: khối đăng ký khuôn mặt mới ở trang Hồ sơ cá nhân (bắt buộc tick đồng ý trước khi
+đăng ký — dữ liệu sinh trắc học), tái dùng component camera chấm công có sẵn cho bước chụp ảnh
+đăng ký, badge mới hiển thị % khớp ở mọi nơi trang Chấm công đã hiện cờ GPS.
+
+**Lỗi thật phát hiện khi tự kiểm thử sống qua Gateway:** điểm tự-so-khớp-với-chính-mình (trường hợp
+phổ biến nhất trong thực tế) trả về từ model lệch nhẹ ra ngoài khoảng `[-1, 1]` lý thuyết do sai số
+làm tròn số thực dấu phẩy động (float32) — hoàn toàn bình thường về mặt toán học, nhưng bị bước
+kiểm tra giá trị phía `hrm-service` từ chối thẳng bằng lỗi 400, **vô hiệu hoá hoàn toàn chức năng
+check-in thật** mỗi khi khuôn mặt khớp gần như hoàn hảo — đi ngược chính thiết kế "không bao giờ
+chặn chấm công" mà tính năng này đặt ra. Sửa bằng cách kẹp (clamp) giá trị lệch nhỏ về đúng biên
+`[-1, 1]` thay vì từ chối, chỉ còn từ chối giá trị lệch lớn thật sự vô lý (vd gửi nhầm 50).
+
+**Kiểm thử chéo bằng 2 agent độc lập (theo yêu cầu trực tiếp — sau khi code xong, 2 agent cùng
+kiểm thử và soi lỗi lẫn nhau, rồi tổng hợp và sửa):** 1 agent hướng backend/bảo mật, 1 agent hướng
+frontend/UX, chạy song song trên cùng tính năng, kết quả được đối chiếu chéo rồi tự xác minh lại
+từng phát hiện trước khi sửa. Phát hiện quan trọng nhất là **1 lỗi NGHIÊM TRỌNG mà toàn bộ gate tự
+động và kiểm thử sống trước đó đều KHÔNG bắt được**: `face.py` chuẩn hoá đầu vào `(x-127.5)/128`
+theo README công khai của model, nhưng tự kiểm tra lại graph của CHÍNH file ONNX đã tải (qua
+`onnx.load()`) cho thấy model đã TỰ chứa 2 node `Sub(127.5)` → `Mul(1/128)` ngay trước `conv0` —
+nghĩa là chuẩn hoá bị áp 2 LẦN liên tiếp, nén mọi pixel gần thành 1 hằng số bất kể ảnh là gì, khiến
+verify() báo "khớp" (~0.9+) với **BẤT KỲ ai** chứ không chỉ chủ nhân — tính năng mất hoàn toàn khả
+năng phân biệt. Lý do mọi test trước đó pass: chỉ tự so khớp 1 khuôn mặt với chính nó (2 phía cùng
+1 embedding, chuẩn hoá sai cỡ nào vẫn ra 1.0). Sửa bằng cách bỏ hẳn bước tự chuẩn hoá; xác minh
+lại bằng ảnh mẫu 92 khuôn mặt thật: 2 người khác nhau cho điểm 0.02–0.22 (dưới xa ngưỡng 0.35),
+tự-so-khớp vẫn ~1.0; thêm test hồi quy so 2 người khác nhau để lớp lỗi này không thể tái diễn âm
+thầm. Các phát hiện khác đã sửa cùng đợt: JPEG bị cắt cụt (upload lỗi giữa đường) có thể được
+`cv2.imdecode()` giải mã "thành công" trên vùng nhớ cũ còn sót (nguy cơ lẫn dữ liệu giữa các lượt
+gọi) → tự kiểm tra marker SOI/EOI trước khi giải mã; không giới hạn dung lượng ảnh và không thu nhỏ
+trước khi xử lý (ảnh 8000x4492 mất ~25s/lượt, RAM tăng hàng GB) → giới hạn 5MB + thu nhỏ về 640px,
+đồng thời đổi 2 endpoint từ `async def` sang `def` thường để không chiếm event loop khi xử lý
+ảnh/DB; frontend không có timeout riêng cho lượt verify (có thể chờ 120s theo timeout chung nhóm
+`/ml/*` nếu `ml-service` treo) → thêm timeout 5s mirror `getCurrentLocationSoft()`; xoá tài khoản
+vĩnh viễn không dọn `face_enrollments` (dữ liệu sinh trắc học) → bổ sung vào handler `USER_DELETED`
+sẵn có; `extractErrorMessage()` dùng chung toàn `apps/web` không nhận diện dạng lỗi `{detail}` của
+FastAPI nên mọi lỗi từ `ml-service` hiện chuỗi kỹ thuật tiếng Anh của axios → sửa tập trung 1 chỗ;
+cùng vài lỗi UI nhỏ (checkbox đồng ý không reset sau xoá, trạng thái lỗi tải bị hiểu nhầm thành
+"chưa đăng ký", alt text ảnh xem trước dùng nhầm chuỗi check-in). Ghim commit SHA + checksum SHA256
+cho 2 model tải lúc build Docker (trước đó dùng nhánh `main` trôi), đúng tinh thần ghim digest đã
+áp dụng 22/08/2026. **Cố ý không sửa, ghi nhận là giới hạn đã biết:** điểm khớp do client gửi lên
+không có cơ chế ký chống giả mạo — cùng mức tin cậy (và cùng mức giả mạo được) như toạ độ GPS của
+cờ on-site/off-site đã chấp nhận từ 13/08/2026; cân nhắc ký HMAC nhưng không làm vì không tương xứng
+với bản chất "cảnh báo mềm" của tính năng.
+
+**Xác minh cuối:** `pytest` `apps/ml-service` 36/36 pass (gồm pipeline thật với model/ảnh mẫu thật
+kết nối Postgres thật, không mock model; có test phân biệt 2 người khác nhau và test ảnh cắt cụt/
+trống); `jest` `apps/hrm-service` 115/115 pass (phát hiện thêm, sửa luôn 1 lỗi thật KHÔNG liên quan
+tính năng này: 2 test ở `calendar-events`/`leave-requests` tính "hôm nay" bằng giờ UTC thô trong khi
+logic nghiệp vụ so sánh theo giờ GMT+7, khiến test tự fail trong khung giờ 00:00–07:00 GMT+7 mỗi
+ngày — sửa bằng cách dùng lại đúng hàm quy đổi GMT+7 chuẩn đã có sẵn); `vitest` `apps/web` 38/38
+pass. `typecheck`/`lint`/`lint:i18n-strings`/`test`/`build` sạch toàn bộ workspace. Kiểm thử sống
+qua Gateway thật (tài khoản demo thật + các tổ chức thử nghiệm riêng, tạo mới để không ảnh hưởng dữ
+liệu chấm công thật của tổ chức demo trong ngày): đăng ký khuôn mặt → xem trạng thái → verify
+tự-so-khớp (score ~1.0, matched=true) → verify bằng ảnh NGƯỜI KHÁC (score 0.02, matched=false) →
+xoá đăng ký; ảnh cắt cụt/trống bị từ chối rõ ràng (400, không phải 500); check-in thật ghi đúng điểm
+khớp vào cả 2 trường mới và vẫn thành công bình thường khi không có dữ liệu khuôn mặt nào. Chi tiết
+kỹ thuật đầy đủ: `Doc/Technical_Spec.md` §24.
+
+## 24/10/2026 (tiếp) — Giảm tải RAM Docker + Chat bot nội bộ RAG + rà soát cuối toàn hệ thống
+
+Theo yêu cầu trực tiếp gồm 3 bước: (1) 2 agent đối chiếu trên vai trò người sử dụng và khách hàng để
+tìm tính năng có thể xoá/tinh gọn nhằm giảm RAM, vì Docker Desktop tự tắt nhiều lần; (2) 1 agent lập
+trình chatbot RAG, song song 2 agent kiểm thử và sửa lỗi; (3) 2 agent rà soát lần cuối toàn hệ thống,
+tạo mock data dùng lại được (`Mock_data.md`), vá lỗi ngay khi phát hiện.
+
+**Giảm tải RAM:** cả 2 agent cùng kết luận không xoá tính năng nghiệp vụ nào, chỉ tinh chỉnh hạ tầng.
+Nguyên nhân gốc là máy ảo WSL2 không giới hạn RAM (đo 6,4GB) và MongoDB dùng bộ đệm mặc định ~3,3GB.
+Đã áp dụng: `.wslconfig` giới hạn máy ảo 5GB, MongoDB `wiredTigerCacheSizeGB 0.25`, heap Kafka
+256–384MB, `mem_limit` cho MongoDB/Kafka/ml-service, đưa Prometheus/Alertmanager/kafka-exporter/
+Grafana vào profile `observability` (không chạy mặc định). Tổng RAM container còn ~1,8GB. Các phương
+án đã loại và lý do: `Technical_Spec.md` §25.
+
+**Chat bot RAG:** triển khai khác kế hoạch §23 ban đầu ở 3 điểm, đều để tiết kiệm RAM: không tạo
+service mới (đặt trong `analytics-service`), không dùng `pgvector` (vector lưu dạng mảng số thực trong
+`document-service`), lập chỉ mục bằng job quét định kỳ thay cho sự kiện Kafka. 5 tool tra dữ liệu
+sống qua Gateway bằng JWT người hỏi (tài liệu, việc của tôi, tiến độ dự án, chấm công hôm nay, số dư
+phép), giới hạn 30 câu/người/ngày theo GMT+7, nút chat nổi trên mọi trang web.
+
+**Kiểm thử song song trong lúc lập trình:** 2 agent (phía tài liệu/RAG và phía chatbot) tìm và vá 9
+lỗi, kèm unit test cho từng lỗi. Đáng chú ý nhất:
+- **Lỗ hổng phân quyền có từ 28/07/2026, RAG làm lộ ra:** thư mục con thường nằm trong thư mục
+  `restricted` mở cho mọi người vì mã chỉ xét thư mục trực tiếp chứa tệp — nhân viên tìm được đoạn
+  "Bảng lương thưởng quý 4" qua chatbot. Nay kiểm tra quyền đi ngược lên mọi thư mục cha.
+- Chia đoạn tệp 9MB chặn event loop ~38 giây (còn 0,7 giây); trích văn bản tốn +155MB RAM (còn +4MB).
+- Tệp hỏng và lỗi Gemini gây vòng thử lại vô hạn; DOCX "zip bomb" có thể làm cạn RAM rồi lặp sập sau
+  khởi động lại.
+- Xoá hội thoại khi bot đang trả lời gây 500; 2 câu hỏi cùng lúc làm hỏng lịch sử hội thoại.
+Bảng đầy đủ: `Technical_Spec.md` §23.8.
+
+**2 lỗi cũ của "Quên mật khẩu" (có từ 15/09/2026), phát hiện khi kiểm tra cấu hình:**
+`/api/v1/auth/forgot-password` và `/api/v1/auth/reset-password` chưa từng nằm trong danh sách route
+công khai của Gateway, nên người chưa đăng nhập bị 401 và không bao giờ nhận được email. Đợt 15/09 chỉ
+xác minh bằng unit test của iam-service và mở trang trên Vite dev server, chưa đi qua Gateway thật.
+Đồng thời `JWT_RESET_SECRET` không có trong `infra/.env` (compose không có giá trị mặc định) nên khoá
+ký token rỗng. Sửa cả 2, xác minh sống: yêu cầu → email trong MailHog → đặt lại → đăng nhập bằng mật
+khẩu mới; dùng lại cùng link lần 2 bị từ chối 400.
+
+**Sự cố vận hành:** máy treo và phải khởi động lại khi 3 agent cùng chạy build Docker và
+`typecheck`/`test`/`build` toàn workspace. Từ đây mọi lệnh nặng dùng chung 1 khoá, `jest
+--maxWorkers=2`. Ngoài ra đường chuyển tiếp IPv6 của Docker Desktop bị treo sau khi tạo lại container,
+khiến `http://localhost` treo trong khi `127.0.0.1` vẫn chạy — đổi cổng gateway/web/minio sang chỉ
+lắng nghe IPv4 (`0.0.0.0:<cổng>`, vẫn mở mạng LAN cho app di động).
+
+**Rà soát cuối bằng 2 agent:** 1 agent nghiệm thu toàn hệ thống theo từng vai trò (9 kịch bản kiểm
+thử sống phủ mọi module + giao diện, tạo bộ mock data), 1 agent rà soát mã nguồn mọi phần thay đổi
+trong đợt. Lỗi phát hiện và vá ngay, mỗi lỗi kèm unit test:
+- **Phân quyền tài liệu (3 lỗi mức Cao, 1 Trung bình):** nhân viên tải tệp được vào thư mục
+  `restricted` mình không mở được (tệp đó rồi được RAG đưa vào ngữ cảnh chatbot của người có quyền —
+  đường chèn lệnh độc hại); tạo được thư mục con trong thư mục `restricted`; xoá thư mục cha xoá luôn
+  thư mục con `restricted` của người khác; người chỉ có quyền XEM qua chia sẻ tệp vẫn tải phiên bản
+  mới, xoá tệp và tự nâng quyền lên SỬA.
+- **Rate limit Gateway dùng chung cả tổ chức:** khoá đếm là tổ chức + IP, 100 request/phút — văn phòng
+  thật đi chung 1 IP qua NAT nên cả tổ chức dùng chung 100 request, trong khi 1 trang SPA gọi 8–15
+  request (kiểm thử giao diện 3 người dùng nhận 50 lần 429). Nay đếm theo người dùng, 300 request/phút;
+  chưa đăng nhập vẫn theo IP, 100 request/phút. Xác minh sống: đúng request thứ 301 nhận 429.
+- **Org Admin của tổ chức cũ thiếu quyền mới:** tổ chức đăng ký trước khi có quyền mới không bao giờ
+  nhận quyền đó (tổ chức E2E có 40/52 quyền, 10 tổ chức thiếu `chatbot:use`) và không sửa được qua API
+  hay giao diện. iam-service nay bổ sung quyền còn thiếu cho mọi vai trò Org Admin lúc khởi động (không
+  đụng Manager/Employee).
+- **Ma trận phân quyền (web)** thiếu 20 quyền ra đời sau (chatbot, Kho, Nhắn tin, `ml:view`...), rơi vào
+  nhóm "Khác" với nhãn là key kỹ thuật — bổ sung nhóm và nhãn vi/en/ja.
+- **Tìm kiếm tài liệu không giới hạn tần suất:** gọi thẳng được `search-chunks`, đốt được hạn ngạch
+  Gemini dùng chung toàn nền tảng — giới hạn 40 lần/10 phút/người dùng.
+- **Healthcheck Kafka** khởi động 1 JVM mỗi 10 giây (CPU vọt 140–220%) — giữ lệnh kiểm tra, đổi nhịp
+  thành 5 giây lúc khởi động và 60 giây khi đã khoẻ.
+- Nhỏ: thanh tiến độ ở bảng Tiến độ dự án thiếu thuộc tính trợ năng (làm 1 test e2e luôn thất bại);
+  toast che panel chat trên điện thoại; câu trả lời chatbot lặp tên tệp.
+
+**Đã kiểm tra, không phải lỗi:** cảnh báo `client.query() while already executing` của
+document-service chỉ xuất hiện 1 lần lúc TypeORM khởi tạo kết nối (pg 8.22); cảnh báo
+`MaxListenersExceededWarning` của Gateway chỉ xuất hiện 1 lần, do số proxy route vừa vượt 10 (mỗi
+proxy gắn 1 listener ở lần dùng đầu), không tăng theo request. Gemini có lúc chậm (7–49 giây, có lúc
+503 quá tải) — đo trực tiếp cho thấy kết nối mạng nhanh, độ trễ nằm phía máy chủ Google; chatbot vẫn
+trả lời trong giới hạn 45 giây, Groq dự phòng truy cập được.
+
+**Mock data:** `Doc/Mock_data.md` (tài khoản theo vai trò, file mẫu, 9 kịch bản kèm kết quả mong đợi,
+cơ chế dọn dẹp) + `scripts/mock-data/` (kịch bản đọc URL/tài khoản từ biến môi trường, tự xoá mọi thứ
+đã tạo).
+
+**Còn tồn đọng:** 6/17 test Playwright `e2e/` thất bại do selector cũ so với giao diện hiện tại (vd nút
+"Dự án mới" đã đổi thành "Tạo dự án") — thao tác thực tế vẫn thành công, cần cập nhật spec.
+
+**Xác minh cuối:** bộ kịch bản `scripts/mock-data/run-all.js` chạy lại sau mọi lần rebuild: 186/186
+PASS (01–07); 08–09 PASS ở lần chạy của agent nghiệm thu. Gate toàn workspace sau lần sửa cuối cùng: `typecheck`/`lint` (0 lỗi)/`lint:i18n-strings` (sạch, 188 file)/`test` (1.072 test qua)/`build` đều thành công; 26 container chạy thường trực đều healthy.
+Chi tiết kỹ thuật: `Technical_Spec.md` §8, §23, §25.

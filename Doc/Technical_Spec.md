@@ -1,10 +1,12 @@
 # Technical Specification — Enterprise Collaboration & Analytics Platform for SMEs
 
-> Trạng thái: **ĐÃ TRIỂN KHAI** — mô tả kiến trúc/hệ thống đã lập trình cho §1–§22, đã xác minh sống
-> cho §1–§21; §22 (Inventory Service) đã xác minh tĩnh (`typecheck`/`lint`/`test` sạch toàn
-> workspace) nhưng CHƯA xác minh sống qua Gateway thật — xem §22.8. Phần cố ý chưa triển khai
-> (CDC/Debezium, forecasting ML, Layer 4/6 của §19) được đánh dấu rõ tại chỗ và theo dõi thêm ở
-> `Upgrade.md`. Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
+> Trạng thái: **ĐÃ TRIỂN KHAI** — mô tả kiến trúc/hệ thống đã lập trình cho §1–§25, đã xác minh sống
+> cho §1–§21 và §23–§25; §22 (Inventory Service) đã xác minh tĩnh (`typecheck`/`lint`/`test` sạch
+> toàn workspace) nhưng CHƯA xác minh sống qua Gateway thật — xem §22.8. §23 (Chat bot nội bộ RAG +
+> tool-calling, 24/10/2026) đã triển khai, khác kế hoạch ban đầu ở vài điểm ghi rõ tại §23.2; §25
+> (giảm tải RAM Docker, 24/10/2026). Dữ liệu kiểm thử tái sử dụng: `Mock_data.md`. Phần cố ý chưa triển khai (CDC/Debezium, forecasting
+> ML, Layer 4/6 của §19) được đánh dấu rõ tại chỗ và theo dõi thêm ở `Upgrade.md`. Chi tiết lịch sử
+> đầy đủ: xem `RevisionHistory.md`.
 
 **Tài liệu liên quan:** [General_idea.md](General_idea.md) · [Wireframe.md](Wireframe.md)
 **Ngày khởi tạo:** 18/07/2026
@@ -90,7 +92,7 @@ flowchart TB
 ## 3. Danh sách service chi tiết
 
 ### 3.1 API Gateway
-- **Trách nhiệm:** điểm vào duy nhất; xác thực JWT (verify chữ ký, không gọi lại IAM cho mỗi request); định tuyến REST tới service tương ứng; forward WebSocket handshake tới Notification/Analytics Service; áp rate limiting cơ bản (theo `organization_id` + IP); tổng hợp Swagger từ các service con.
+- **Trách nhiệm:** điểm vào duy nhất; xác thực JWT (verify chữ ký, không gọi lại IAM cho mỗi request); định tuyến REST tới service tương ứng; forward WebSocket handshake tới Notification/Analytics Service; áp rate limiting cơ bản (theo người dùng khi đã xác thực, theo IP khi chưa — đổi 24/10/2026, xem §8); tổng hợp Swagger từ các service con.
 - **Không có DB riêng** (stateless), chỉ dùng Redis để cache blacklist token.
 
 ### 3.2 IAM Service
@@ -111,7 +113,7 @@ flowchart TB
 - **Entity chính:** `Folder`, `FileMeta`, `FileVersion`, `FileShare`, `OutboxEvent`.
 - **Event phát ra:** `document.uploaded`, `document.shared`, `document.deleted`.
 - **Lưu trữ (điều chỉnh 21/07/2026):** bucket MinIO cấu hình **private** (không bật anonymous/public download); mọi truy cập tải file bắt buộc đi qua presigned URL có thời hạn ngắn (mặc định 15 phút) do Document Service cấp sau khi đã xác thực `organizationId` của người gọi.
-- **Phạm vi `FileShare`/access-control (điều chỉnh 21/07/2026, nâng cấp thành access-control thực sự 28/07/2026):** mặc định (`Folder.visibility = 'organization'`) vẫn giữ nguyên hành vi MVP — mọi thành viên tổ chức xem/tải được mọi tài liệu, **không đổi hành vi của dữ liệu đã có** (opt-in). Người tạo thư mục (hoặc Org Admin) có thể chuyển 1 thư mục cụ thể sang `visibility = 'restricted'`: khi đó chỉ người tạo, Org Admin, hoặc người/phòng ban được cấp quyền tường minh qua `FolderShare` (bảng mới) mới thấy được thư mục đó và các tệp bên trong. `FileShare` (tệp lẻ, không đổi tên) giờ cũng là 1 đường cấp quyền TRUY CẬP THỰC SỰ (không chỉ gắn nhãn hiển thị) cho MỘT tệp cụ thể — dùng cho trường hợp "có link trực tiếp tới 1 tệp trong thư mục hạn chế mà không cần thấy được cả thư mục". Cả `FolderShare` lẫn `FileShare` đều chấp nhận đích là 1 người dùng (`sharedWithUserId`) HOẶC 1 phòng ban (`sharedWithDepartmentId`, mới) — chi tiết đầy đủ xem §6 và §14.
+- **Phạm vi `FileShare`/access-control (điều chỉnh 21/07/2026, nâng cấp thành access-control thực sự 28/07/2026):** mặc định (`Folder.visibility = 'organization'`) vẫn giữ nguyên hành vi MVP — mọi thành viên tổ chức xem/tải được mọi tài liệu, **không đổi hành vi của dữ liệu đã có** (opt-in). Người tạo thư mục (hoặc Org Admin) có thể chuyển 1 thư mục cụ thể sang `visibility = 'restricted'`: khi đó chỉ người tạo, Org Admin, hoặc người/phòng ban được cấp quyền tường minh qua `FolderShare` (bảng mới) mới thấy được thư mục đó và các tệp bên trong. `FileShare` (tệp lẻ, không đổi tên) giờ cũng là 1 đường cấp quyền TRUY CẬP THỰC SỰ (không chỉ gắn nhãn hiển thị) cho MỘT tệp cụ thể — dùng cho trường hợp "có link trực tiếp tới 1 tệp trong thư mục hạn chế mà không cần thấy được cả thư mục". Cả `FolderShare` lẫn `FileShare` đều chấp nhận đích là 1 người dùng (`sharedWithUserId`) HOẶC 1 phòng ban (`sharedWithDepartmentId`, mới) — chi tiết đầy đủ xem §6 và §14. **Cập nhật 24/10/2026:** hạn chế nay kế thừa xuống mọi cấp thư mục con — thư mục con thường nằm trong thư mục `restricted` trước đây bị bỏ sót (mở cho mọi người); quy tắc mới đi ngược lên các thư mục cha, xem §23.3.
 
 ### 3.5 Notification Service
 - **Trách nhiệm:** tiêu thụ sự kiện từ Kafka (từ IAM, Project-Task, Document), sinh notification tương ứng, lưu MongoDB, đẩy real-time qua WebSocket tới user liên quan, đánh dấu đã đọc/chưa đọc.
@@ -291,7 +293,7 @@ Song song với luồng real-time, các **continuous aggregate của TimescaleDB
 
 - Mật khẩu hash bằng **bcrypt** (cost factor ≥ 10), không bao giờ log plaintext password.
 - Áp dụng **Helmet** (security headers) và **CORS** whitelist theo domain frontend.
-- **Rate limiting** tại Gateway (theo IP + `organizationId`) chống brute-force đăng nhập. **(Sửa 25/07/2026)** Khoá rate-limit trước đó tin tưởng byte đầu tiên của header `X-Forwarded-For` (client tự khai báo được, có thể giả mạo IP tuỳ ý để tạo vô số khoá rate-limit mới) — nay ưu tiên `X-Real-IP` (Nginx phía trước GHI ĐÈ vô điều kiện bằng `$remote_addr`, không thể giả mạo qua header client, khác với `X-Forwarded-For` chỉ được Nginx `$proxy_add_x_forwarded_for` NỐI THÊM vào giá trị client đã gửi), chỉ rơi về `X-Forwarded-For`/`socket.remoteAddress` khi không có `X-Real-IP` (vd môi trường dev không qua Nginx).
+- **Rate limiting** tại Gateway (theo IP + `organizationId`) chống brute-force đăng nhập. **(Sửa 25/07/2026)** Khoá rate-limit trước đó tin tưởng byte đầu tiên của header `X-Forwarded-For` (client tự khai báo được, có thể giả mạo IP tuỳ ý để tạo vô số khoá rate-limit mới) — nay ưu tiên `X-Real-IP` (Nginx phía trước GHI ĐÈ vô điều kiện bằng `$remote_addr`, không thể giả mạo qua header client, khác với `X-Forwarded-For` chỉ được Nginx `$proxy_add_x_forwarded_for` NỐI THÊM vào giá trị client đã gửi), chỉ rơi về `X-Forwarded-For`/`socket.remoteAddress` khi không có `X-Real-IP` (vd môi trường dev không qua Nginx). **(Đổi 24/10/2026)** Request đã xác thực nay đếm theo NGƯỜI DÙNG (`ratelimit:user:<organizationId>:<userId>`, mặc định 300 request/phút, `RATE_LIMIT_MAX`), không còn theo `organizationId` + IP: một văn phòng thật thường ra Internet qua cùng 1 IP (NAT), nên trước đây cả tổ chức dùng chung 100 request/phút trong khi 1 trang SPA đã gọi 8–15 request — kiểm thử Playwright 3 người dùng duyệt 26 trang nhận 50 lần `429`. Request chưa xác thực (đăng nhập, quên mật khẩu...) vẫn đếm theo IP, giữ 100 request/phút (`RATE_LIMIT_ANONYMOUS_MAX`) để không nới lỏng lớp chặn brute-force. Xác minh sống: 1 người dùng qua được đúng 300 request/phút, request thứ 301 nhận `429`.
 - Validate toàn bộ input qua DTO (`class-validator`) — chống injection và dữ liệu không hợp lệ.
 - Secret (JWT signing key, DB credential, MinIO key) quản lý qua `.env`, không commit vào Git (`.gitignore` áp dụng từ đầu).
 - File upload giới hạn kích thước và loại MIME hợp lệ ở Document Service. **(Bổ sung 22/07/2026)** Ngoài kiểm tra `Content-Type` client tự khai báo, còn đối chiếu magic-byte thực tế của nội dung file (PDF/PNG/JPEG/GIF/nhóm định dạng ZIP gồm docx-xlsx-pptx-zip, và định dạng OLE Compound File cũ .doc/.xls/.ppt ở mức xác nhận "đúng cấu trúc OLE CFB", chưa phân biệt được 3 phân loại con) trước khi lưu lên MinIO — chống giả mạo phần mở rộng/MIME. `text/csv`/`text/plain` không có magic-byte đáng tin cậy nên vẫn chỉ dựa vào `Content-Type`. **(Sửa 25/07/2026)** Chính khoảng trống đó là một rủi ro sniff-XSS thật: file khai `text/plain` nhưng chứa HTML/JS, khi tải với `?disposition=inline` được MinIO (origin riêng, ngoài `helmet()` của app) phục vụ mà không có `X-Content-Type-Options: nosniff` — trình duyệt có thể tự đoán và render như HTML. Sửa bằng cách ép `disposition=attachment` (bỏ qua giá trị client yêu cầu) cho MỌI mime-type không kiểm chứng được bằng magic-byte (`text/plain`, `text/csv`) — các định dạng đã kiểm chứng được (PDF, ảnh, Office/zip) vẫn cho `inline` bình thường. Tên file gốc do client cung cấp cũng được làm sạch (loại bỏ ký tự phân tách đường dẫn, chuỗi `..`, ký tự điều khiển, giới hạn độ dài) trước khi dùng để tạo object key MinIO hoặc đưa vào header `Content-Disposition`.
@@ -904,6 +906,307 @@ tất phần code; sẽ bổ sung kết quả xác minh sống ngay khi môi tr�
 
 ---
 
+## 23. Chat bot nội bộ (RAG + tool-calling lai) *(kế hoạch chốt 24/10/2026, triển khai + kiểm thử 24/10/2026)*
+
+> Trạng thái: **ĐÃ TRIỂN KHAI, ĐÃ XÁC MINH SỐNG** (24/10/2026). Mục này ban đầu là kế hoạch viết
+> trước khi code; nay đã viết lại đúng những gì thực sự lập trình. Các điểm **khác kế hoạch ban đầu**
+> được ghi rõ ở §23.2 (không có service mới, không có `pgvector`). Kết quả kiểm thử chéo và các lỗi đã
+> vá: §23.8. Dữ liệu kiểm thử tái sử dụng: `Mock_data.md`.
+
+Ý tưởng "hỏi-đáp trên tài liệu nội bộ" đã được nêu từ 28/07/2026 (`General_idea.md` §3, cùng lúc với
+"Nhận xét AI") như hạng mục AI còn treo. Sau khi bàn bạc trực tiếp, chốt mô hình **lai (hybrid)**:
+KHÔNG vector-hoá dữ liệu có cấu trúc (Dự án/Task/Chấm công/Nghỉ phép) vì dữ liệu này đổi liên tục và
+đã có sẵn API+RBAC đúng; CHỈ dùng RAG thật (tìm kiếm vector) cho Tài liệu (văn bản tĩnh), còn lại dùng
+**tool-calling** của LLM gọi lại đúng API Gateway công khai bằng JWT của chính người hỏi.
+
+### 23.1 Vì sao KHÔNG vector-hoá Dự án/Task/Chấm công/Nghỉ phép
+
+1. **Dữ liệu đổi liên tục** — trạng thái task đổi theo giờ, số dư phép đổi mỗi lần duyệt. Một vector
+   index đồng bộ lệch sẽ trả lời sai mà không ai biết (lỗi "trả lời sai nhưng trông có vẻ đúng" —
+   nguy hiểm hơn lỗi 500 rõ ràng).
+2. **Phân quyền đã có sẵn, không nên tái tạo** — mỗi service đã tự enforce `PERMISSIONS.*` cho từng
+   vai trò. Tự xây vector index riêng nghĩa là chép lại logic "ai được xem gì" ở nơi THỨ HAI — đúng
+   lớp rủi ro lệch dữ liệu/lệch quyền đã rút kinh nghiệm từ `messaging-service` (§20).
+
+Tool-calling giải quyết cả 2: mỗi lần gọi tool là 1 request HTTP thật qua Gateway bằng đúng JWT của
+người đang chat — dữ liệu luôn mới nhất, quyền hạn đi qua đúng guard đã có.
+
+### 23.2 Vị trí triển khai — khác kế hoạch ban đầu
+
+Kế hoạch ban đầu dự kiến 1 service mới `apps/chatbot-service` + Postgres riêng + `pgvector`. Khi
+triển khai đã **bỏ cả 3**, vì máy phát triển đang thiếu RAM (Docker Desktop tự tắt nhiều lần, xem §25):
+
+| Kế hoạch | Thực tế | Lý do |
+|---|---|---|
+| Service mới `chatbot-service` + `postgres-chatbot` | Module `chatbot/` trong `analytics-service`, 3 bảng mới trong TimescaleDB sẵn có | Không thêm 2 container (~150–250MB RAM); analytics-service đã có sẵn tích hợp Gemini/Groq của "Nhận xét AI" (§4.7) |
+| `pgvector` + cột `vector(768)` | Vector lưu dạng mảng số thực trong bảng `document_chunks` của `postgres-doc`, so cosine tuần tự trong bộ nhớ | Không cần đổi image Postgres; quy mô demo (vài chục–vài trăm tài liệu) đủ nhanh |
+| Đồng bộ qua sự kiện Kafka tải lên/xoá | 1 job quét định kỳ trong `document-service` | 1 cơ chế duy nhất phủ cả tệp mới, phiên bản mới lẫn ~29 tệp demo đã có từ trước (tự lập chỉ mục, không cần tải lại) |
+| `POST /documents/search-chunks` | `POST /api/v1/files/search-chunks` | Khớp tiền tố route `files` sẵn có của document-service |
+
+### 23.3 RAG cho Tài liệu — trong `document-service`
+
+Logic trích văn bản/chia đoạn/nhúng/tìm kiếm nằm NGAY TRONG `document-service` (`src/rag/`), vì đây
+là nơi DUY NHẤT biết đúng "ai được xem tài liệu này". Chatbot không bao giờ tự tính quyền xem tài liệu.
+
+- **Trích văn bản:** PDF (`unpdf`, đọc từng trang, dừng sớm), DOCX (`mammoth`), văn bản thuần. Giới
+  hạn: tệp ≤ 10MB, tối đa 120.000 ký tự, tối đa 100 đoạn/tệp. DOCX được đọc thư mục trung tâm ZIP
+  trước khi giải nén — từ chối nếu tổng dung lượng giải nén > 30MB (chống "zip bomb"). PDF quét ảnh
+  (không có lớp chữ) cho 0 đoạn — giới hạn đã biết.
+- **Chia đoạn:** ~800 ký tự, chồng lấn 100 ký tự, ưu tiên cắt ở ranh giới đoạn/câu/từ.
+- **Nhúng:** Gemini `gemini-embedding-001` (768 chiều), dùng chung `GEMINI_API_KEY` — `text-embedding-004`
+  trong kế hoạch đã bị Google ngừng (404). Thiếu API key là trạng thái HỢP LỆ: service vẫn chạy, chỉ tắt
+  RAG (tìm kiếm trả `ragEnabled: false`).
+- **Job lập chỉ mục:** chạy mỗi 10 giây, tối đa 3 tệp/lượt, tuần tự từng tệp, không bao giờ chặn luồng
+  tải lên. Tiến độ theo dõi bằng 2 cột ẩn trên `file_metas`: `rag_indexed_version` (phiên bản đã lập
+  chỉ mục) và `rag_extract_attempt_version` (đánh dấu TRƯỚC khi trích xuất — nếu service sập/OOM giữa
+  chừng, lần khởi động sau bỏ qua phiên bản đó thay vì lặp vô hạn). Tệp hỏng được đánh dấu "đã lập
+  chỉ mục, 0 đoạn" (không thử lại mãi). Lỗi Gemini (sai key/hết hạn ngạch) tạm dừng cả job, bắt đầu
+  60 giây và nhân đôi tới tối đa 30 phút.
+- **Tìm kiếm `POST /api/v1/files/search-chunks`** `{query, topK?}` (quyền `document:view`): nhúng câu
+  hỏi (hết hạn sau 8 giây), lọc tệp người gọi được mở rồi mới xếp hạng, bỏ kết quả có điểm < 0.6, trả
+  `{ragEnabled, results:[{fileId,fileName,content,score}]}`. Câu hỏi chỉ có khoảng trắng bị từ chối 400.
+- **Phân quyền thư mục lồng nhau (sửa cùng đợt):** kiểm thử phát hiện thư mục con thường nằm trong
+  thư mục `restricted` trước đây mở cho mọi người (mã chỉ xét thư mục trực tiếp chứa tệp) — RAG làm
+  lỗ hổng này lộ ra (nhân viên tìm được đoạn "Bảng lương thưởng quý 4"). Nay `FolderAccessService` đi
+  ngược lên các thư mục cha: Org Admin luôn được; tại mỗi nút, có quyền tường minh (người tạo,
+  `FolderShare` cho người hoặc phòng ban) → được (quyền này phủ cả cây con bên dưới); nút `restricted`
+  không có quyền → bị chặn; nút `organization` → xét tiếp nút cha; tới gốc → được. Dữ liệu bất thường
+  (vòng lặp, thiếu thư mục cha, sâu > 64) → chặn. `FileShare` trên 1 tệp lẻ vẫn mở được đúng tệp đó.
+  Mỗi request chỉ tốn 2 truy vấn (nạp cây thư mục + quyền chia sẻ của người gọi), kiểm tra trong bộ nhớ.
+
+### 23.4 Tool-calling cho dữ liệu "sống"
+
+| Tool | Gọi tới (qua Gateway, JWT người hỏi) | Ghi chú |
+|---|---|---|
+| `search_documents(query)` | `POST /files/search-chunks` | Đúng quyền xem tài liệu của người hỏi |
+| `get_my_tasks(status?)` | `GET /tasks?limit=500` rồi lọc việc của chính người hỏi | `TaskQueryDto` chưa có bộ lọc "giao cho tôi"; nếu người hỏi thấy > 500 task, kết quả kèm ghi chú "có thể chưa đủ" |
+| `get_project_status(name)` | `GET /projects?search=…` | Đúng dự án người hỏi xem được |
+| `get_my_leave_balance()` | API số dư phép + thâm niên | Chính người hỏi |
+| `get_my_attendance_today()` | API chấm công, ngày theo GMT+7 | Chính người hỏi |
+
+Không tool nào nhận `userId` do LLM chọn — danh tính luôn lấy từ JWT, nên nội dung tài liệu có chèn
+lệnh (prompt injection) cũng không thể khiến bot đọc dữ liệu của người khác. Nội dung tài liệu được
+đưa vào prompt như DỮ LIỆU, không phải chỉ dẫn. Tool chỉ hiện ra cho LLM khi người hỏi có đúng quyền
+tương ứng.
+
+### 23.5 Model AI và giới hạn vòng lặp
+
+- **Sinh câu trả lời:** mặc định Gemini `gemini-flash-lite-latest` (đo sống 1–2 giây/lượt; bản
+  `gemini-flash-latest` mất > 40 giây), dự phòng Groq. Không tự train gì — model có sẵn gọi qua API.
+- **Giới hạn:** tối đa 4 vòng gọi tool, 4 tool/vòng; mỗi lượt gọi LLM ≤ 15 giây, mỗi tool ≤ 10 giây,
+  tổng ≤ 45 giây/câu hỏi. Kết quả tool cắt còn 6.000 ký tự. Lịch sử đưa vào prompt: 10 tin gần nhất,
+  mỗi tin ≤ 2.000 ký tự.
+
+### 23.6 Dữ liệu hội thoại, hạn ngạch và API
+
+- **Bảng (TimescaleDB, tạo bởi `schema-bootstrap.ts` + `001-init.sql`):** `chatbot_conversations`
+  (cá nhân, theo `organization_id` + `user_id`, `title` tự sinh từ câu hỏi đầu), `chatbot_messages`
+  (`role`, `content`, `citations`, `tool_calls` — phục vụ truy vết), `chatbot_daily_usage`.
+- **Endpoint `/api/v1/chatbot`** (quyền `chatbot:use`, cấp cho cả 3 vai trò): `POST`/`GET
+  /conversations`, `GET`/`POST /conversations/:id/messages`, `DELETE /conversations/:id`. Hội thoại
+  của người khác luôn trả 404.
+- **Hạn ngạch:** 30 câu hỏi/người/ngày (ngày theo GMT+7, `CHATBOT_DAILY_QUESTION_LIMIT`), vượt trần
+  trả 429. Mọi câu hỏi đều bị tính, kể cả câu thất bại — giới hạn đã biết.
+- **Đồng thời:** gửi câu thứ 2 vào 1 hội thoại đang trả lời → 409 `CHATBOT_CONVERSATION_BUSY`, KHÔNG
+  trừ hạn ngạch (khoá trong bộ nhớ theo hội thoại, giả định 1 instance như mọi gateway WebSocket hiện
+  có). Lưu câu trả lời dùng `SELECT … FOR UPDATE` trên hội thoại — xoá hội thoại khi bot đang trả lời
+  nay trả 404 thay vì 500.
+- Tổ chức đã tồn tại từ trước phải cấp `chatbot:use` thủ công 1 lần — đúng tiền lệ `ml:view`/
+  `message:*`/8 permission Inventory (§22).
+
+### 23.7 Frontend (`apps/web/src/features/chatbot`)
+
+- Nút tròn nổi góc phải dưới, chỉ hiện với người có `chatbot:use`, có mặt ở mọi trang đã đăng nhập.
+  Mở ra panel nhỏ (không phải trang riêng): hội thoại mới, lịch sử (mở/xoá có xác nhận), trạng thái
+  "Đang xử lý…", lỗi hiển thị ngay trong panel (hết lượt trong ngày, hội thoại đang bận, AI không
+  phản hồi), chip nguồn bấm được để mở tệp, dòng "Đã tra cứu: …", số lượt đã dùng hôm nay.
+- Nút gửi khoá trong lúc chờ trả lời (bấm đúp nhanh vẫn chỉ gửi 1 lần). Esc đóng panel; đóng panel
+  không mất hội thoại, kể cả khi đang chờ trả lời. Không streaming token (tool-calling nhiều bước).
+- Lớp hiển thị: trên nội dung trang, dưới Topbar/menu/modal/toast; toast tự dời để không che panel.
+- i18n namespace mới `chatbot.json` (vi/en/ja) + 6 mã lỗi mới trong `errors.json`.
+
+### 23.8 Kiểm thử chéo và các lỗi đã vá (24/10/2026)
+
+1 agent lập trình, 2 agent kiểm thử song song (phía tài liệu/RAG và phía chatbot), sau đó 2 agent rà
+soát cuối toàn hệ thống. Lỗi đã phát hiện và vá, kèm unit test cho từng lỗi:
+
+| Mức | Lỗi | Cách vá |
+|---|---|---|
+| Cao | Thư mục con trong thư mục `restricted` mở cho mọi người, RAG làm lộ nội dung | Kiểm tra quyền đi ngược lên thư mục cha (§23.3) |
+| Cao | Chia đoạn tệp 9MB chặn event loop ~38 giây (tìm ranh giới quét lại từ đầu văn bản) | Chỉ tìm trong cửa sổ hiện tại: 0,7 giây |
+| Trung bình | Trích toàn bộ văn bản rồi mới cắt; PDF nạp mọi trang song song (+155MB RAM) | Giới hạn ký tự + đọc từng trang: +4MB |
+| Trung bình | PDF/DOCX hỏng bị thử lại mãi mãi | Lỗi trích xuất là vĩnh viễn: 0 đoạn |
+| Trung bình | Sai key/hết hạn ngạch Gemini → gọi API liên tục 3 tệp/10 giây | Tạm dừng toàn job, lùi dần 60 giây → 30 phút |
+| Trung bình | Tìm kiếm chờ tới 60 giây khi Gemini báo 429, trong khi chatbot bỏ cuộc sau 10 giây | Truy vấn hết hạn sau 8 giây |
+| Trung bình | Xoá hội thoại khi bot đang trả lời → 500 (vi phạm khoá ngoại) | `SELECT … FOR UPDATE` + kiểm tra lại → 404 |
+| Thấp–TB | 2 câu hỏi cùng lúc vào 1 hội thoại → lịch sử "hỏi, hỏi, đáp, đáp", trừ 2 lượt | 409 `CHATBOT_CONVERSATION_BUSY` |
+| Trung bình | DOCX "zip bomb" có thể làm cạn RAM; sập giữa chừng gây lặp vô hạn sau khởi động lại | Kiểm tra dung lượng giải nén + cột `rag_extract_attempt_version` |
+| Thấp | Câu hỏi/câu tìm kiếm chỉ có khoảng trắng vẫn tốn lượt; tệp nhị phân gán nhãn `text/plain` bị nhúng thành đoạn rác | Cắt khoảng trắng → 400; bỏ qua nội dung nhị phân |
+| Thấp | Esc không đóng panel sau khi mở Lịch sử | Sửa xử lý phím |
+| Cao | *(rà soát cuối)* Nhân viên tải tệp được vào thư mục `restricted` mà mình không mở được → RAG lập chỉ mục tệp đó và đưa vào ngữ cảnh chatbot của người CÓ quyền (đường chèn lệnh độc hại) | `upload()` kiểm tra quyền thư mục đích → 403 |
+| Trung bình | *(rà soát cuối)* Nhân viên tạo được thư mục con trong thư mục `restricted` — là người tạo nên tự có quyền tường minh ngay trong vùng bảo vệ | Kiểm tra quyền thư mục cha khi tạo |
+| Cao | *(rà soát cuối)* Xoá 1 thư mục `organization` xoá luôn thư mục con `restricted` (và tệp mật) của người khác | Kiểm tra quyền trên toàn bộ cây con trước khi xoá → 403 |
+| Cao | *(rà soát cuối)* Người chỉ được chia sẻ quyền XEM (`FileShare` VIEW) vẫn tải phiên bản mới, xoá tệp, và tự chia sẻ lại cho mình quyền SỬA | Tải phiên bản/chia sẻ/xoá yêu cầu quyền SỬA |
+| Trung bình | *(rà soát cuối)* `search-chunks` gọi trực tiếp được, không qua hạn ngạch 30 câu/ngày — 1 người có thể đốt hết hạn ngạch Gemini dùng chung toàn nền tảng | 40 lần/10 phút/người dùng → 429 `DOCUMENT_SEARCH_RATE_LIMITED` |
+| Thấp | *(rà soát cuối)* Trên điện thoại toast che panel chat; câu trả lời lặp tên tệp ở mọi gạch đầu dòng | Toast lên đầu màn hình khi panel mở; chỉnh quy tắc trong prompt |
+
+Đã xác minh không lỗi: IDOR trên mọi endpoint chatbot (người khác, tổ chức khác, id sai), thiếu quyền
+→ 403, thiếu/sai token → 401, prompt injection qua câu hỏi và qua tài liệu cài sẵn, tài liệu bị hạn chế
+không lộ, `get_my_tasks` khớp đúng dữ liệu DB, ranh giới hạn ngạch 29→30→429, ranh giới ngày GMT+7,
+tiếng Nhật/emoji, không lộ API key hay stack trace trong phản hồi/log.
+
+**Giới hạn đã biết (chưa xử lý):**
+- Lập chỉ mục và chatbot dùng chung hạn ngạch Gemini miễn phí; mỗi đoạn trong 1 lô nhúng tính là 1
+  request — 1 tệp lớn tốn tới 100 request. (Đã thêm 24/10/2026 sau rà soát cuối: tìm kiếm giới hạn 40 lần/10 phút/người dùng, vượt trần trả `429 DOCUMENT_SEARCH_RATE_LIMITED`, vì API key Gemini dùng chung cho toàn nền tảng.)
+- Ngưỡng liên quan 0,6 còn yếu: câu hỏi toàn emoji/chuỗi vô nghĩa vẫn đạt 0,60–0,64.
+- Sau khi tải phiên bản mới, tìm kiếm vẫn dùng văn bản cũ ~10 giây cho tới khi lập chỉ mục lại.
+- ~~Rate limit của Gateway tính các lệnh gọi tool theo IP container analytics + tổ chức~~ — **đã sửa
+  24/10/2026**: Gateway nay đếm theo người dùng (§8), mỗi lệnh gọi tool mang JWT của người hỏi.
+- `GET /conversations/:id/messages` chưa phân trang (hạn ngạch ngày giữ hội thoại ngắn).
+- `unpdf@1.8.1` khai báo Node ≥ 22 trong khi image chạy Node 20.20 — đã kiểm tra: thư viện tự polyfill
+  `Promise.withResolvers`, các API còn lại có sẵn trên Node 20.20; đọc PDF xác minh sống.
+
+---
+
+## 24. Nhận diện khuôn mặt cho Chấm công (verify 1:1, cảnh báo mềm) *(bổ sung 24/10/2026)*
+
+Đảo ngược có chủ đích quyết định "KHÔNG nhận diện khuôn mặt" ghi tại §17 — theo yêu cầu trực tiếp,
+bàn bạc trước khi code (xem thảo luận cùng ngày: chọn **verify 1:1** thay vì identify 1:N, và
+**cảnh báo mềm** thay vì chặn cứng check-in/out).
+
+- **Mô hình dùng pretrained có sẵn, KHÔNG tự train** — "huấn luyện" duy nhất là bước đăng ký
+  (enrollment): chụp 1 ảnh mẫu, trích vector đặc trưng, lưu lại. `apps/ml-service` (Python/
+  FastAPI, đã có từ Layer 3 Anomaly Detection) bổ sung module `app/face.py`: phát hiện + căn
+  chỉnh khuôn mặt, trích đặc trưng 512 chiều đã L2-normalize, so sánh cosine similarity. Cả 2
+  model được tải khi build Docker image (`Dockerfile`), không commit vào git.
+- **Bảng mới `face_enrollments`** (Postgres riêng của `ml-service`) — 1 bản ghi/người dùng
+  (`organizationId`, `userId`, `embedding`, `enrolledAt`), đăng ký lại ghi đè bản cũ.
+- **4 endpoint mới** (`/api/v1/ml/face/*`, dùng lại permission `attendance:checkin` có sẵn, không
+  thêm permission riêng): `POST /enroll`, `GET /enrollment`, `DELETE /enrollment`, `POST /verify`
+  (nhận 1 ảnh, trả về điểm tương đồng cosine + cờ `matched`, hoặc `enrolled:false` nếu chưa đăng
+  ký — không phải lỗi).
+- **`hrm-service`**: `Attendance` có 4 cột mới (`checkIn/checkOutFaceMatchScore`,
+  `checkIn/checkOutFaceMatched`) — mirror CHÍNH XÁC mô hình "cờ mềm" đã có của GPS on-site/
+  off-site (§17): `faceMatchScore` thô nhận từ client, nhưng **cờ `matched` do chính
+  `hrm-service` tự tính lại** từ ngưỡng riêng của nó (không tin thẳng 1 boolean có sẵn từ
+  client) — cùng mức độ tin cậy như cờ GPS đã chấp nhận trước đây. `null` (chưa đăng ký/không
+  phát hiện được mặt) khác `false` (đã đánh giá là không khớp) — không bao giờ chặn chấm công.
+- **Frontend**: `features/profile/ProfilePage.tsx` thêm khối "Nhận diện khuôn mặt chấm công" —
+  bắt buộc tick ô đồng ý (opt-in thật, vì đây là dữ liệu sinh trắc học) trước khi đăng ký; tái sử
+  dụng `CheckInCamera.tsx` (thêm `mode="enroll"`) cho bước chụp ảnh đăng ký, không viết lại
+  component camera riêng. `AttendancePage.tsx`/`AttendanceDetailPage.tsx` thêm `FaceMatchBadge`
+  (mirror `OnSiteBadge`) hiển thị kèm % độ khớp ở mọi nơi đã hiện cờ GPS. Luồng check-in/out: gọi
+  `POST /ml/face/verify` TRƯỚC (không bao giờ throw ra ngoài — lỗi/không có khuôn mặt chỉ làm mất
+  tín hiệu, không chặn), rồi gửi điểm kèm theo request check-in/out như bình thường.
+- **Quy trình kiểm thử chéo**: sau khi code+tự kiểm thử xong, triển khai 2 agent độc lập song
+  song (1 hướng backend/bảo mật, 1 hướng frontend/UX) để kiểm thử và soi lỗi lẫn nhau trước khi
+  coi là hoàn tất, theo yêu cầu trực tiếp. Phát hiện 1 lỗi NGHIÊM TRỌNG và nhiều lỗi thật khác —
+  tất cả đã sửa và xác minh lại:
+  - **[NGHIÊM TRỌNG] Chuẩn hoá đầu vào 2 LẦN, khiến verify() luôn báo "khớp" với MỌI người**:
+    README công khai của model ArcFace ghi preprocessing là `(x-127.5)/128`, nhưng đó là mô tả
+    cho 1 bản export KHÁC — tự kiểm tra lại graph của CHÍNH file model đã tải (qua `onnx.load()`)
+    xác nhận graph đã TỰ chứa 2 node `Sub(127.5)` rồi `Mul(1/128)` ngay từ đầu, TRƯỚC `conv0` —
+    nghĩa là model tự chuẩn hoá nội bộ, chỉ cần đưa pixel THÔ (0-255). Áp dụng lại công thức đó
+    trong `face.py` là chuẩn hoá 2 LẦN liên tiếp, nén mọi giá trị đầu vào gần thành 1 hằng số bất
+    kể ảnh là gì — verify() vì vậy báo "khớp" (cosine similarity ~0.9+) với BẤT KỲ ai, không chỉ
+    đúng chủ nhân. Phát hiện qua kiểm thử thống kê (so sánh hàng nghìn cặp khuôn mặt) VÀ qua kiểm
+    thử sống (đăng ký người A, verify người B hoàn toàn khác → vẫn báo khớp). Sửa bằng cách bỏ
+    hẳn bước tự chuẩn hoá, chỉ đưa pixel thô — xác minh lại: 2 người khác nhau trong cùng 1 ảnh
+    mẫu (92 khuôn mặt) cho điểm 0.02-0.22 (dưới xa ngưỡng 0.35), tự-so-khớp vẫn ~1.0. Thêm 1 test
+    hồi quy dùng 2 khuôn mặt THẬT khác nhau (test tự-so-khớp cũ KHÔNG thể bắt được lỗi này, vì cả
+    2 phía đều dùng cùng 1 embedding).
+  - **Ảnh bị cắt cụt (upload lỗi giữa đường) có thể giải mã "thành công" trên vùng nhớ cũ**:
+    `cv2.imdecode()` với JPEG thiếu marker kết thúc (EOI) không luôn trả `None` như kỳ vọng, có
+    thể âm thầm giải mã một phần, điền phần thiếu bằng nội dung còn sót trong vùng nhớ tái sử
+    dụng (nguy cơ lẫn dữ liệu giữa các lượt gọi/người dùng khác nhau trong cùng tiến trình). Sửa
+    bằng cách tự kiểm tra marker SOI/EOI trước khi giải mã, từ chối rõ ràng nếu thiếu.
+  - **Ảnh lớn có thể làm chậm/treo cả service, không giới hạn dung lượng**: ảnh ~8000x4492px mất
+    ~25s/lượt xử lý, vài lượt đồng thời làm RAM tăng hàng GB. Sửa 2 lớp: (1) giới hạn 5MB/lượt tải
+    lên (mirror `MAX_PHOTO_SIZE_BYTES` của `hrm-service`), (2) tự thu nhỏ ảnh về tối đa 640px
+    cạnh dài trước khi đưa vào pipeline. Đồng thời đổi 2 endpoint từ `async def` sang `def`
+    thường (mirror `post_anomalies` đã có) để FastAPI tự chạy trong threadpool riêng, không chiếm
+    dụng event loop chính khi xử lý ảnh/DB (trước đó 20 lượt gọi đồng thời bị xếp hàng tuần tự).
+  - **Không giới hạn thời gian chờ ở frontend**: nếu `ml-service` treo/chậm, bước verify (gọi
+    TRƯỚC check-in thật) có thể chờ tới 120s (timeout chung của nhóm route `/ml/*` ở Gateway) mới
+    tiếp tục — đi ngược tinh thần "không làm chậm chấm công". Thêm timeout riêng 5s cho lượt gọi
+    verify (mirror `getCurrentLocationSoft()` đã dùng 5s).
+  - **Dữ liệu khuôn mặt không bị xoá khi xoá tài khoản vĩnh viễn**: `DELETE /users/:id` (đã có từ
+    25/09/2026) chỉ dọn `dim_user`, không dọn `face_enrollments` — vi phạm nguyên tắc tối thiểu
+    hoá dữ liệu sinh trắc học. Bổ sung xoá `face_enrollments` vào đúng handler `USER_DELETED` sẵn
+    có.
+  - **Lỗi hiển thị**: thông báo lỗi từ `ml-service` (FastAPI, dạng `{detail: "..."}`) không được
+    `extractErrorMessage()` (dùng chung toàn `apps/web`) nhận diện — hiện chuỗi lỗi kỹ thuật tiếng
+    Anh của axios thay vì lý do thật, ở MỌI ngôn ngữ. Sửa tập trung tại `lib/api-client.ts` (áp
+    dụng cho mọi service gọi qua `ml-service`, không riêng tính năng này). Cộng vài lỗi nhỏ khác:
+    checkbox đồng ý không reset sau khi xoá đăng ký (có thể đăng ký lại không cần đồng ý lại),
+    thẻ trạng thái hiểu nhầm "lỗi tải dữ liệu" thành "chưa đăng ký" khi API lỗi tạm thời, alt text
+    ảnh xem trước dùng nhầm chuỗi của màn check-in.
+  - **Cố ý KHÔNG sửa (ghi nhận là giới hạn đã biết, đúng tinh thần cờ GPS đã chấp nhận từ trước)**:
+    điểm `faceMatchScore` do client gửi lên vẫn chỉ là 1 con số thô, không có cơ chế ký/xác thực
+    chống giả mạo — cùng mức độ tin cậy (và cùng mức độ có thể giả mạo được) như toạ độ GPS của
+    cờ on-site/off-site đã chấp nhận từ 13/08/2026; thêm 1 lớp ký HMAC được cân nhắc nhưng không
+    triển khai vì không tương xứng với việc đây CHỦ ĐÍCH chỉ là cảnh báo mềm, không phải cơ chế
+    bảo mật. Tương tự, chọn khuôn mặt theo độ tin cậy cao nhất (không phải khuôn mặt lớn nhất)
+    khi ảnh vô tình có nhiều người — chấp nhận được ở quy mô "camera tự chụp cận mặt" của tính
+    năng này.
+- **Xác minh**: `pytest` `ml-service` (36 test, gồm pipeline thật với model/ảnh mẫu thật — không
+  mock, có test phân biệt 2 người khác nhau), `jest` `hrm-service` (115 test), `vitest` `apps/web`
+  (38 test), `test`/`typecheck`/`lint`/`lint:i18n-strings` sạch toàn workspace, `build` production
+  thành công. Kiểm thử sống qua Gateway thật (nhiều tổ chức thử nghiệm riêng, không đụng dữ liệu
+  demo): đăng ký khuôn mặt → xem trạng thái → verify tự-so-khớp (score ~1.0, matched=true) → xoá
+  đăng ký; verify với ảnh của NGƯỜI KHÁC cho điểm thấp đúng như kỳ vọng (matched=false); ảnh cắt
+  cụt/trống bị từ chối rõ ràng (400, không phải 500); check-in thật có kèm điểm khớp đúng cả 2
+  trường `checkInFaceMatchScore`/`checkInFaceMatched`, và vẫn thành công bình thường khi không có
+  dữ liệu khuôn mặt nào (đúng thiết kế "không bao giờ chặn").
+
+---
+
+## 25. Giảm tải RAM cho môi trường Docker *(bổ sung 24/10/2026)*
+
+> Trạng thái: **ĐÃ TRIỂN KHAI, ĐÃ XÁC MINH SỐNG** (24/10/2026). Chỉ tinh chỉnh hạ tầng — không xoá
+> tính năng nghiệp vụ nào.
+
+**Bối cảnh:** Docker Desktop tự tắt nhiều lần trên máy phát triển (15,4GB RAM, chạy song song
+Chrome/VS Code/các ứng dụng khác). Nguyên nhân gốc: máy ảo WSL2 chứa toàn bộ container không có giới
+hạn RAM (đo thực tế 6,4GB), riêng MongoDB dùng bộ đệm WiredTiger mặc định ~3,3GB.
+
+**Rà soát tính năng:** 2 agent đối chiếu độc lập trên vai trò người sử dụng và khách hàng xem tính
+năng nào có thể xoá/tinh gọn. Cả 2 cùng kết luận: KHÔNG xoá tính năng nghiệp vụ nào (mọi module đều
+nằm trong luồng demo), chỉ tinh chỉnh hạ tầng. Các phương án đã cân nhắc và **loại bỏ**:
+- Gộp các Postgres riêng của từng service thành 1 instance — phá nguyên tắc database-per-service, rủi
+  ro cao.
+- Giới hạn heap Node.js — rủi ro OOM khi trích văn bản PDF cho RAG (§23).
+- `docker image prune -a` — xoá cả image của dự án khác trên máy.
+- Đưa `ml-service` vào profile tuỳ chọn — Gateway phụ thuộc service này.
+- Bỏ `mailhog` — chỉ tốn ~3MB, cần cho luồng "Quên mật khẩu".
+
+**Thay đổi đã áp dụng:**
+
+| Thành phần | Thay đổi | Nơi cấu hình |
+|---|---|---|
+| Máy ảo WSL2 | Giới hạn `memory=5GB`, `swap=4GB`, `autoMemoryReclaim=gradual` (trả page cache cho Windows khi rảnh) | `%USERPROFILE%\.wslconfig` (ngoài repo, áp dụng bằng `wsl --shutdown`) |
+| MongoDB | `--wiredTigerCacheSizeGB 0.25`, `mem_limit: 640m` | `infra/docker-compose.yml` |
+| Kafka | `KAFKA_HEAP_OPTS=-Xms256m -Xmx384m`, `mem_limit: 768m` | `infra/docker-compose.yml` |
+| ml-service | `mem_limit: 1g` | `infra/docker-compose.yml` |
+| Prometheus, Alertmanager, kafka-exporter, Grafana | Chuyển sang `profiles: ["observability"]` — không chạy mặc định, bật bằng `docker compose --profile observability up -d` | `infra/docker-compose.yml` |
+| Cổng `gateway` (3000), `web` (80), `minio` (9010) | Đổi sang `0.0.0.0:<cổng>` (chỉ IPv4, vẫn mở mạng LAN cho app di động) | `infra/docker-compose.yml` |
+
+**Về cổng IPv4:** đường chuyển tiếp IPv6 của Docker Desktop bị treo sau khi container được tạo lại,
+mà Windows phân giải `localhost` ra `::1` trước — trình duyệt treo (timeout) thay vì chuyển sang
+`127.0.0.1`. Bỏ lắng nghe IPv6 → `::1` bị từ chối ngay, trình duyệt tự dùng IPv4. Các cổng còn lại
+vốn đã chỉ mở `127.0.0.1`.
+
+**Kết quả:** stack mặc định còn 27 service — 26 container chạy thường trực (tất cả healthy) và
+`minio-init` chạy 1 lần rồi thoát; thêm 4 container nếu bật profile observability;
+tổng RAM container ~1,8GB; máy ảo bị chặn ở 5GB.
+
+**Healthcheck Kafka (bổ sung sau rà soát cuối):** mỗi lần kiểm tra khởi động 1 JVM mới (CPU vọt 140–220% trong vài giây) và trước đây lặp lại mỗi 10 giây suốt vòng đời container. Giữ nguyên lệnh kiểm tra, chỉ đổi nhịp: `start_interval: 5s` trong `start_period: 120s` (các service phụ thuộc vẫn khởi động nhanh như cũ), đã healthy thì `interval: 60s`.
+
+**Vận hành song song nhiều agent:** máy từng bị treo phải khởi động lại khi 3 agent cùng chạy build
+Docker và `npm run typecheck|lint|test|build` ở thư mục gốc. Quy ước từ 24/10/2026: mọi lệnh nặng
+dùng chung 1 khoá (thư mục khoá, tạo không kèm `-Force`, chờ nếu đã tồn tại, luôn xoá sau khi xong),
+`jest` chạy với `--maxWorkers=2`, build lại từng service một.
+
 ## Lịch sử thay đổi tài liệu
 
 - **18/07/2026** — Khởi tạo tài liệu `Technical_Spec.md`: xác định kiến trúc tổng thể, tech stack, chi tiết 6 service MVP, event-driven design (Outbox + Kafka), schema DB tổng quan, AuthN/AuthZ, quy ước API, hạ tầng Docker, bảo mật, kiểm thử, CI/CD, NFR, cấu trúc repo và giới hạn/hướng phát triển.
@@ -1070,3 +1373,7 @@ tất phần code; sẽ bổ sung kết quả xác minh sống ngay khi môi tr�
 - **28/09/2026 (§20 — Nhắn tin nội bộ)** — Tính năng mới hoàn toàn: nhắn tin 1:1 + nhóm/kênh giữa thành viên cùng tổ chức, mục từng được nêu 17/09/2026 nhưng chưa từng đặc tả/lập trình. Service mới `apps/messaging-service` (NestJS, Postgres riêng, mirror scaffold `crm-service`) — cố ý KHÔNG dùng Kafka/Outbox (không service nào khác cần tiêu thụ) và KHÔNG xây `dim_user` cục bộ (rút kinh nghiệm trực tiếp từ đợt dọn dữ liệu ma `USER_DELETED` §19.6). WebSocket riêng (`/ws/messaging`, mirror `notifications.gateway.ts`). 3 permission mới (`message:view`/`send`/`manage_group`). Frontend cả web lẫn `ecap-mobile` (tab thứ 7, lần đầu dùng real-time thay vì polling trên mobile). Xác minh sống qua Gateway thật: dedup 1:1, tạo nhóm 3 người, gửi tin, đếm/đánh dấu đã đọc, đúng luật uỷ quyền quản lý nhóm. 2 phát hiện thật khi xác minh: thiếu `createdBy` trong `GET /conversations` (đã sửa) và permission mới cần rebuild `iam-service` + cấp thủ công 1 lần cho tổ chức demo (đúng lớp giới hạn đã biết như `ml:view`). Chi tiết đầy đủ: `Doc/RevisionHistory.md` mục "28/09/2026 (tiếp — Nhắn tin nội bộ)".
 - **03/10/2026 (§21 — Tái cấu trúc điều hướng, Lịch công ty, phát hiện nghỉ phép qua chat, ERR_EMPTY_RESPONSE)** — 6 hạng mục theo yêu cầu trực tiếp, triển khai song song bằng 6 agent: (1) Sidebar chính đổi thành icon-rail cố định, mở rộng khi trỏ chuột vào; "Trang chủ" gộp Dự án/Tài liệu/Khách hàng qua 1 sidebar phụ, route giữ nguyên. (2) Trang Thông báo riêng bị xoá, dropdown chuông trở thành giao diện duy nhất (phân trang, đánh dấu đã đọc + điều hướng SPA, mở rộng tại chỗ nếu không có link). (3) Lịch công ty rời khỏi Quản trị, gộp vào Nghỉ phép (60:40) — đổi hẳn mô hình phân quyền: ai cũng xem/tạo được sự kiện thường, chỉ Org Admin/Manager tạo được ngày lễ chính thức, sửa/xoá dựa trên so sánh cấp bậc snapshot lúc tạo (không so tên vai trò); thêm 2 trang xem lịch sử theo từng nhân viên (`/attendance/:userId`, `/leave-requests/:userId`) dùng tham số `userId` đã có sẵn ở backend từ trước. (4) Phát hiện cụm từ ngày/giờ tiếng Việt trong tin nhắn (cả web lẫn `ecap-mobile`) bằng regex thuần, hiện chip "Hẹn lịch nghỉ" chỉ trên tin của chính người gửi, tạo đơn nghỉ thật qua API sẵn có. (5) Gateway tắt hẳn HTTP keep-alive (ép `Connection: close` mọi response) để chấm dứt lỗi `ERR_EMPTY_RESPONSE` sau khi hệ thống chạy rảnh rỗi. Gate cuối sạch toàn bộ 6 nhánh gộp lại (34 test mới ở web, 14 ở hrm-service, 14 ở ecap-mobile); kiểm thử sống xác nhận đúng ma trận phân quyền lịch + tra cứu lịch sử theo nhân viên. Chi tiết đầy đủ: `Doc/RevisionHistory.md` mục "03/10/2026".
 - **16/10/2026 (§22 — Danh mục sản phẩm + Kho hàng, gán mặt hàng cho khách hàng, xu hướng thị trường)** — Bổ sung theo yêu cầu trực tiếp: thiếu phần phân tích xu hướng thị trường nên xây mới toàn bộ chuỗi "sản phẩm → kho → mua hàng của khách → phân tích" chứ không chỉ 1 danh mục đơn lẻ. Service mới `apps/inventory-service` (NestJS, Postgres riêng `postgres-inventory`, mirror scaffold `crm-service`) với 6 entity: `ProductCategory`, `Product` (ảnh lưu MinIO bucket riêng `inventory-products`, presigned URL mirror `document-service`), `Warehouse`, `WarehouseStock`, `StockMovement` (`StockMovementType` mới: `IN`/`OUT`/`ADJUSTMENT`), `CustomerPurchase` (gán mặt hàng cho từng khách hàng CRM — `customerId` tham chiếu chéo service qua Kafka, không gọi HTTP nội bộ, đúng quy ước toàn dự án). Logic kho dùng đúng mẫu khoá bi quan + re-check trong transaction đã có tiền lệ ở `DealsService.updateStage()`/`TasksService.updateStatus()` (`StockService.recordMovementInTransaction()`): `INSERT ... ON CONFLICT DO NOTHING` để "upsert rồi khoá" 1 dòng tồn kho có thể chưa tồn tại, từ chối tạo `OUT`/giảm tồn khi số dư sẽ âm (`STOCK_INSUFFICIENT`), xoá Kho/Danh mục/Sản phẩm đều có guard chặn khi còn tồn kho hoặc còn lịch sử mua hàng tham chiếu. 8 permission mới (`product:view/manage`, `warehouse:view/manage`, `customer_purchase:view/create/update/delete`) gán cho Manager (đầy đủ) và Employee (xem + tạo/sửa mua hàng, không xoá), seed tự động qua `DEFAULT_ROLE_PERMISSIONS` có sẵn. Tích hợp Analytics: 2 event Kafka mới (`product.created/deleted`, `customer_purchase.created/deleted`, topic `inventory.events`) được `analytics-service` tiêu thụ ghi vào hypertable TimescaleDB mới `fact_product_sales` (tự khởi tạo qua `schema-bootstrap.ts`, cùng mẫu idempotent `ON CONFLICT (time, event_id) DO NOTHING` như các fact-table khác), 2 endpoint phân tích mới `GET /analytics/product-sales-trend` (7d/30d) và `GET /analytics/top-products`; frontend thêm 2 biểu đồ mới (`ProductSalesTrendChart`, `TopProductsChart`) vào `AnalyticsPage.tsx` và 1 khối lịch sử mua hàng (`CustomerPurchaseHistory.tsx`) vào `CustomerDetailPage.tsx`. Gateway: route proxy mới nhóm `inventory` (xác nhận không trùng tiền tố qua `matchesPrefix()`), healthcheck + Prometheus scrape job riêng. Frontend web: 2 trang mới `/products` (lưới sản phẩm, tìm kiếm debounce 300ms + lọc không dấu tiếng Việt phía client, lọc danh mục phía server, mirror `CustomersListPage.tsx`) và `/warehouse` (bảng tồn kho + lịch sử biến động, modal ghi nhận nhập/xuất/điều chỉnh tự tính dấu số lượng phía client trước khi gửi — backend vẫn là nơi thực thi quy tắc dấu thật sự), cả 2 không gặp lại lỗi sidebar đè nhau đã sửa ở §21.1 (xác nhận bằng cách tái dùng đúng layout `AppShell`/`nav-items.ts` có sẵn, không tự viết sidebar riêng). Dữ liệu demo: `scripts/seed-inventory.js` mới (19 sản phẩm máy tính/linh kiện PC-laptop cùng 1 chủ đề theo đúng yêu cầu, 5 danh mục, ảnh thật tải từ Wikimedia Commons chuyển sang WebP để giảm dung lượng — tổng 944 KB cho 19 ảnh, có bảng nguồn/giấy phép đầy đủ trong báo cáo agent — 26 lượt mua hàng trải 30 ngày để biểu đồ xu hướng có dữ liệu thật). Gate cuối: 41 test mới `inventory-service`, ~26 test mới/sửa `analytics-service` (151 tổng), `typecheck`/`lint`/`lint:i18n-strings` sạch toàn bộ 11 project TypeScript (kể cả service mới), `docker compose config` xác nhận cú pháp/biến môi trường đúng. **Giới hạn đã biết**: chưa xác minh SỐNG qua Gateway thật (Docker Desktop không chạy được trong môi trường làm việc lúc hoàn thành tính năng) — xem §22.8.
+- **24/10/2026 (§23 — Chat bot nội bộ RAG + tool-calling, KẾ HOẠCH)** — Theo yêu cầu bàn bạc trước khi code: chốt mô hình lai sau khi thảo luận trực tiếp — RAG thật (vector search qua `pgvector`) chỉ cho Tài liệu, còn Dự án/Task/Chấm công/Nghỉ phép dùng tool-calling của LLM gọi thẳng API Gateway công khai bằng JWT người hỏi (không vector-hoá dữ liệu đổi liên tục, không tái tạo RBAC ở nơi thứ hai). §23 viết chi tiết: service mới `apps/chatbot-service` (Conversation/Message, permission `chatbot:use`), endpoint `search-chunks` mới đặt trong `document-service` (giữ logic phân quyền tài liệu đúng 1 nơi), 5 tool MVP, dùng lại Gemini/Groq + `text-embedding-004` đã có. Chưa có dòng code nào — mục này thuần kế hoạch, theo dõi thêm ở `Upgrade.md` Tier 5.
+- **24/10/2026 (§24 — Nhận diện khuôn mặt cho Chấm công)** — Đảo ngược có chủ đích quyết định "KHÔNG nhận diện khuôn mặt" ở §17, theo yêu cầu trực tiếp, bàn bạc trước (verify 1:1 + cảnh báo mềm, không chặn check-in/out — không phải identify 1:N hay chặn cứng). `apps/ml-service` bổ sung `app/face.py` (model pretrained có sẵn, không tự train) + bảng `face_enrollments` + 4 endpoint `/api/v1/ml/face/*` (dùng lại permission `attendance:checkin`, không thêm permission mới). `hrm-service`: `Attendance` thêm 4 cột `checkIn/checkOutFaceMatchScore`/`checkIn/checkOutFaceMatched`, mirror chính xác mô hình cờ mềm GPS on-site/off-site đã có (client gửi điểm thô, server tự tính lại cờ `matched` từ ngưỡng riêng, không tin thẳng boolean từ client). Frontend: khối "Nhận diện khuôn mặt" mới ở `ProfilePage.tsx` (opt-in bắt buộc tick đồng ý), tái dùng `CheckInCamera.tsx` (`mode="enroll"`) cho bước chụp ảnh đăng ký, `FaceMatchBadge` mới mirror `OnSiteBadge` ở `AttendancePage.tsx`/`AttendanceDetailPage.tsx`. 1 lỗi thật phát hiện khi tự kiểm thử sống: điểm tự-so-khớp-với-chính-mình (ca phổ biến nhất) vượt nhẹ khoảng `[-1,1]` lý thuyết do sai số làm tròn float32, bị validate từ chối thẳng bằng lỗi 400 — vô hiệu hoá hoàn toàn check-in thật; sửa bằng cách kẹp (clamp) giá trị lệch nhỏ về đúng biên. Sau đó kiểm thử chéo bằng 2 agent độc lập (backend/bảo mật + frontend/UX) theo yêu cầu — phát hiện **1 lỗi NGHIÊM TRỌNG mà toàn bộ gate trước đó không bắt được**: chuẩn hoá đầu vào 2 LẦN (model ONNX đã tự chứa `Sub(127.5)→Mul(1/128)` trong graph, code lại áp thêm lần nữa) khiến verify() báo "khớp" với BẤT KỲ ai (~0.9+) — test tự-so-khớp không thể phát hiện vì 2 phía cùng 1 embedding; sửa + thêm test hồi quy so 2 người khác nhau (điểm 0.02–0.22 sau khi sửa). Cùng đợt sửa: từ chối JPEG cắt cụt (tránh giải mã trên vùng nhớ cũ), giới hạn 5MB + thu nhỏ 640px + đổi endpoint sang `def` thường (chống chậm/treo cả service), timeout 5s cho verify ở frontend, dọn `face_enrollments` khi xoá tài khoản, `extractErrorMessage()` nhận dạng lỗi `{detail}` của FastAPI, ghim commit SHA + checksum cho model lúc build. Cố ý không ký HMAC điểm khớp (cùng mức tin cậy như cờ GPS đã chấp nhận). Gate cuối: 36 test `ml-service` (pipeline thật với model/ảnh mẫu thật, không mock), 115 test `hrm-service`, 38 test `apps/web`, `typecheck`/`lint`/`lint:i18n-strings`/`build` sạch toàn workspace. Xác minh sống qua Gateway thật (tài khoản demo + 1 tổ chức thử nghiệm riêng): đăng ký → xem trạng thái → verify tự-so-khớp (score ~1.0, matched=true) → xoá đăng ký, và check-in thật có đúng điểm khớp trong cả 2 trường mới. Chi tiết đầy đủ: §24.
+- **24/10/2026 (§23 triển khai + §25 giảm tải RAM + 2 lỗi cũ phát hiện qua kiểm thử sống)** — §23 viết lại từ kế hoạch thành mô tả thực tế: chatbot đặt trong `analytics-service` (không tạo service mới), RAG trong `document-service` lưu vector dạng mảng số thực (không `pgvector`), job lập chỉ mục định kỳ thay cho sự kiện Kafka, bảng kiểm thử chéo + lỗi đã vá ở §23.8. Sửa lỗ hổng phân quyền thư mục con trong thư mục `restricted` (§23.3, cập nhật §3.4). §25 mới: giới hạn RAM máy ảo WSL2/MongoDB/Kafka/ml-service, profile `observability`, cổng chỉ IPv4. Sửa 2 lỗi có từ 15/09/2026 của "Quên mật khẩu": thiếu `/auth/forgot-password`/`/auth/reset-password` trong danh sách route công khai của Gateway (người chưa đăng nhập bị 401) và `JWT_RESET_SECRET` rỗng trong `infra/.env`. Chi tiết: `RevisionHistory.md` mục 24/10/2026.
+- **24/10/2026 (rà soát cuối toàn hệ thống)** — §8: rate limit Gateway chuyển sang đếm theo người dùng (300 request/phút; chưa đăng nhập vẫn theo IP, 100 request/phút). §23.8 bổ sung 6 lỗi phát hiện ở rà soát cuối (4 lỗi phân quyền tài liệu, giới hạn tần suất `search-chunks`, 2 lỗi giao diện chatbot). §25 bổ sung nhịp healthcheck Kafka. Dữ liệu kiểm thử tái sử dụng: `Mock_data.md`. Chi tiết: `RevisionHistory.md` mục 24/10/2026 (tiếp).
