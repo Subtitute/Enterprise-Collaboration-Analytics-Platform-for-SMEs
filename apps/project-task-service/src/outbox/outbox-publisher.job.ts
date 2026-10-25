@@ -7,6 +7,16 @@ import { KafkaProducerService } from '../kafka/kafka-producer.service';
 import { DomainEvent, EVENT_TYPE_TOPIC_MAP, EventType, KAFKA_TOPICS } from '@app/common-dto';
 
 /**
+ * 25/10/2026 (CDC Debezium, profile `cdc`): ENABLE_OUTBOX_POLLING=false tat polling khi Debezium doc
+ * WAL bang outbox_events va publish thay (scripts/cdc-on.ps1). Moi gia tri khac, ke ca khong dat, la
+ * BAT - mac dinh an toan: thua 1 nguon publish chi gay trung lap (consumer idempotent theo eventId),
+ * con thieu nguon publish se lam mat su kien.
+ */
+export function isOutboxPollingEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.ENABLE_OUTBOX_POLLING?.trim().toLowerCase() !== 'false';
+}
+
+/**
  * Poll bang outbox_events moi 2.5s va publish len Kafka - Technical_Spec.md muc 4.1.
  * Gioi han da biet: do tre vai giay (khong phai CDC that su); publish co the trung lap
  * neu job crash giua chung -> consumer PHAI idempotent theo eventId (xem Analytics/Notification Service).
@@ -16,14 +26,22 @@ import { DomainEvent, EVENT_TYPE_TOPIC_MAP, EventType, KAFKA_TOPICS } from '@app
 export class OutboxPublisherJob {
   private readonly logger = new Logger(OutboxPublisherJob.name);
   private isRunning = false;
+  // 25/10/2026: doc co 1 lan luc khoi tao - env cua container khong doi trong vong doi process,
+  // cdc-on.ps1/cdc-off.ps1 tao lai container de doi gia tri.
+  private readonly pollingEnabled = isOutboxPollingEnabled();
 
   constructor(
     @InjectRepository(OutboxEvent) private readonly outboxRepo: Repository<OutboxEvent>,
     private readonly kafkaProducer: KafkaProducerService,
-  ) {}
+  ) {
+    if (!this.pollingEnabled) {
+      this.logger.warn('Outbox polling dang TAT (ENABLE_OUTBOX_POLLING=false) - su kien do Debezium CDC publish');
+    }
+  }
 
   @Interval(2500)
   async publishPendingEvents(): Promise<void> {
+    if (!this.pollingEnabled) return;
     if (this.isRunning) return;
     this.isRunning = true;
     try {

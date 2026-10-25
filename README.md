@@ -169,8 +169,43 @@ biết chi tiết.
   chọn ngôn ngữ (🌐) ở màn đăng nhập hoặc Topbar sau khi đăng nhập. Chi tiết kỹ thuật:
   `Doc/Technical_Spec.md` mục 18.
 - MVP bắt buộc gồm 6 service đầu tiên ở bảng trên; `crm-service`/`hrm-service` là 2 hạng mục mở
-  rộng đã triển khai thêm (04-05/08/2026). Kubernetes, Debezium CDC, dự báo xu hướng ML/thống kê
-  vẫn là hướng mở rộng chưa triển khai (xem `Doc/General_idea.md` mục 3 và `Doc/Technical_Spec.md`
-  mục 14).
+  rộng đã triển khai thêm (04-05/08/2026). Kubernetes, dự báo xu hướng ML/thống kê vẫn là hướng
+  mở rộng chưa triển khai (xem `Doc/General_idea.md` mục 3 và `Doc/Technical_Spec.md` mục 14);
+  Debezium CDC đã có bản thử nghiệm tùy chọn (mục CDC bên dưới, 25/10/2026).
 - `synchronize: true` được dùng cho TypeORM thay vì migration thủ công - phù hợp phạm vi 1 học kỳ
   (xem giới hạn đã biết trong `Doc/Technical_Spec.md`).
+
+## CDC Debezium (thử nghiệm, tùy chọn - profile `cdc`)
+
+*(Bổ sung 25/10/2026)* Bản thử nghiệm thay Outbox polling (chu kỳ 2.5s) của `project-task-service`
+bằng Debezium đọc WAL của bảng `outbox_events` (Outbox Event Router → topic `project-task.events`,
+cùng key `organizationId` và cùng envelope `DomainEvent`, nên consumer không phải sửa). Container
+`debezium` nằm trong profile **tắt mặc định** `cdc` - `docker compose up -d` thường không bật nó; chỉ
+dùng cho demo ngắn (Kafka Connect giới hạn heap 384MB, `mem_limit` 768MB).
+
+Bật/tắt **chỉ** bằng 2 script (PowerShell, chạy từ thư mục gốc repo, stack đang chạy):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\cdc-on.ps1    # bật CDC, tắt polling
+powershell -ExecutionPolicy Bypass -File .\scripts\cdc-off.ps1   # tắt CDC, bật lại polling
+```
+
+- `cdc-on.ps1`: bật `debezium` (tạo lại `postgres-pt` nếu chưa có `wal_level=logical`), đăng ký
+  connector `pt-outbox-connector` (`snapshot.mode=no_data`: không gửi lại dòng outbox cũ), chờ
+  replication slot `pt_outbox_slot` hoạt động và polling gửi hết phần tồn, rồi mới tạo lại
+  `project-task-service` với `ENABLE_OUTBOX_POLLING=false`.
+- `cdc-off.ps1`: chờ Debezium xác nhận đã đẩy tới Kafka mọi thay đổi trước một mốc thời gian, đánh dấu
+  `published=true` cho các dòng outbox đó (để polling không gửi lại hàng loạt), bật lại polling, xóa
+  connector, dừng `debezium`, xóa replication slot và publication.
+- Thứ tự bước trong 2 script đảm bảo không mất sự kiện; có thể trùng lặp vài sự kiện lúc chuyển chế
+  độ - vô hại vì `analytics-service`/`notification-service` idempotent theo `eventId`. Chạy lại script
+  nhiều lần đều an toàn.
+- Không tắt CDC bằng cách chỉ `docker stop debezium` hay sửa `ENABLE_OUTBOX_POLLING` bằng tay: slot
+  còn lại khiến Postgres giữ WAL (đã chặn tối đa 512MB bằng `max_slot_wal_keep_size`), còn các dòng
+  outbox CDC đã gửi sẽ bị polling gửi lại.
+- Mật khẩu DB không nằm trong `infra/debezium/register-pt-connector.json`: connector tham chiếu
+  `${env:PT_DB_PASSWORD}` (EnvVarConfigProvider của Kafka Connect), giá trị lấy từ `infra/.env`.
+
+Kiểm chứng: đổi trạng thái một công việc trên Kanban rồi xem `docker logs --tail 30 debezium` và
+`docker logs --tail 30 analytics-service`; log `project-task-service` lúc khởi động có cảnh báo
+"Outbox polling dang TAT" khi CDC bật.

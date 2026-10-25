@@ -1,4 +1,4 @@
-import { OutboxPublisherJob } from './outbox-publisher.job';
+import { OutboxPublisherJob, isOutboxPollingEnabled } from './outbox-publisher.job';
 
 /**
  * 22/08/2026: unit test cho fix code review CRITICAL - publishPendingEvents() truoc day dung
@@ -81,6 +81,38 @@ describe('OutboxPublisherJob', () => {
 
       // Neu isRunning bi ket true, lan goi thu 2 se return som va khong goi find() lan nua.
       expect(outboxRepoMock.find).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  // 25/10/2026 (CDC Debezium): co ENABLE_OUTBOX_POLLING - chi dung 'false' moi tat polling, moi
+  // truong hop khac (ke ca khong dat) giu polling BAT de khong bao gio mat su kien.
+  describe('ENABLE_OUTBOX_POLLING', () => {
+    const original = process.env.ENABLE_OUTBOX_POLLING;
+    afterEach(() => {
+      if (original === undefined) delete process.env.ENABLE_OUTBOX_POLLING;
+      else process.env.ENABLE_OUTBOX_POLLING = original;
+    });
+
+    it('isOutboxPollingEnabled: chi "false" (khong phan biet hoa thuong/khoang trang) moi tat', () => {
+      expect(isOutboxPollingEnabled({})).toBe(true);
+      expect(isOutboxPollingEnabled({ ENABLE_OUTBOX_POLLING: 'true' })).toBe(true);
+      expect(isOutboxPollingEnabled({ ENABLE_OUTBOX_POLLING: '' })).toBe(true);
+      expect(isOutboxPollingEnabled({ ENABLE_OUTBOX_POLLING: 'false' })).toBe(false);
+      expect(isOutboxPollingEnabled({ ENABLE_OUTBOX_POLLING: ' FALSE ' })).toBe(false);
+    });
+
+    it.each([
+      ['false', 0],
+      [undefined, 1],
+    ])('ENABLE_OUTBOX_POLLING=%s -> goi find() %i lan', async (value, calls) => {
+      if (value === undefined) delete process.env.ENABLE_OUTBOX_POLLING;
+      else process.env.ENABLE_OUTBOX_POLLING = value;
+      const outboxRepoMock = { find: jest.fn().mockResolvedValue([]), save: jest.fn() };
+      const job = new OutboxPublisherJob(outboxRepoMock as any, { publish: jest.fn() } as any);
+
+      await job.publishPendingEvents();
+
+      expect(outboxRepoMock.find).toHaveBeenCalledTimes(calls);
     });
   });
 });

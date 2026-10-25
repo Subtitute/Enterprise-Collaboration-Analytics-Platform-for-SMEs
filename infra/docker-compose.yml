@@ -61,6 +61,11 @@ services:
     image: postgres:16-alpine
     container_name: postgres-pt
     restart: unless-stopped
+    # 25/10/2026 (CDC Debezium, profile `cdc`): wal_level=logical de Debezium doc WAL qua
+    # replication slot (pgoutput). max_slot_wal_keep_size=512MB la tran an toan: neu slot bi bo
+    # lai (Debezium dung ma chua chay scripts/cdc-off.ps1) thi Postgres chi giu toi da 512MB WAL
+    # roi vo hieu slot, khong giu WAL vo han lam day dia. Khong bat CDC thi chi ton them it WAL.
+    command: ["postgres", "-c", "wal_level=logical", "-c", "max_wal_senders=4", "-c", "max_replication_slots=4", "-c", "max_slot_wal_keep_size=512MB"]
     environment:
       POSTGRES_DB: ${POSTGRES_PT_DB}
       POSTGRES_USER: ${POSTGRES_PT_USER}
@@ -518,6 +523,11 @@ services:
       DB_PASSWORD: ${POSTGRES_PT_PASSWORD}
       KAFKA_BROKER: kafka:29092
       INTERNAL_SHARED_SECRET: ${INTERNAL_SHARED_SECRET}
+      # 25/10/2026 (CDC Debezium): mac dinh true = Outbox polling nhu cu. Chi scripts/cdc-on.ps1
+      # dat false (qua bien moi truong cua shell, khong sua .env) sau khi connector da chay; neu
+      # container bi tao lai bang `docker compose up -d` thuong thi tu quay ve true (chi trung lap
+      # su kien, khong mat).
+      ENABLE_OUTBOX_POLLING: ${ENABLE_OUTBOX_POLLING:-true}
     # ports: ["3002:3002"]  # go bo 21/07/2026 - khong expose ra host, chi Gateway/noi bo moi
     # goi duoc qua internal-net, tranh bypass Gateway/JWT/rate-limit (xem Technical_Spec.md muc 8).
     networks: [internal-net]
@@ -915,6 +925,58 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+
+  # ---------------------------------------------------------------
+  # 25/10/2026: CDC Debezium (Kafka Connect) cho bang outbox_events cua project-task-service -
+  # ban thu nghiem thay the Outbox polling bang doc WAL (do tre thap hon chu ky 2.5s). Profile
+  # TUY CHON `cdc`, chi dung cho demo ngan: `docker compose up -d` thong thuong KHONG bat. Bat/tat
+  # an toan (khong mat su kien) bang scripts/cdc-on.ps1 va scripts/cdc-off.ps1 - KHONG bat tay.
+  # ---------------------------------------------------------------
+  debezium:
+    image: debezium/connect:2.7.3.Final
+    container_name: debezium
+    profiles: ["cdc"]
+    restart: unless-stopped
+    depends_on:
+      kafka: { condition: service_healthy }
+      postgres-pt: { condition: service_healthy }
+    # REST API Kafka Connect chi mo cho may cuc bo (scripts dang ky/xoa connector).
+    ports:
+      - "127.0.0.1:8083:8083"
+    networks: [internal-net]
+    environment:
+      BOOTSTRAP_SERVERS: kafka:29092
+      GROUP_ID: debezium-cluster
+      CONFIG_STORAGE_TOPIC: debezium_configs
+      OFFSET_STORAGE_TOPIC: debezium_offsets
+      STATUS_STORAGE_TOPIC: debezium_statuses
+      CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      STATUS_STORAGE_REPLICATION_FACTOR: 1
+      # Converter dat ngay trong register-pt-connector.json (key = chuoi organizationId tran, value =
+      # JSON khong kem schema) cho trung dinh dang message ma Outbox polling gui - image nay KHONG doc
+      # bien *_CONVERTER_SCHEMAS_ENABLE nen dat o worker se van boc {"schema","payload"}.
+      # Commit offset (va xac nhan LSN cho replication slot) moi 5s thay vi 60s mac dinh - de
+      # cdc-off.ps1 biet nhanh moi su kien da toi Kafka truoc khi danh dau published.
+      OFFSET_FLUSH_INTERVAL_MS: 5000
+      # Mat khau DB khong ghi trong file connector: connector tham chieu ${env:PT_DB_PASSWORD}
+      # qua EnvVarConfigProvider cua Kafka Connect, gia tri lay tu infra/.env luc khoi dong.
+      CONNECT_CONFIG_PROVIDERS: env
+      CONNECT_CONFIG_PROVIDERS_ENV_CLASS: org.apache.kafka.common.config.provider.EnvVarConfigProvider
+      PT_DB_NAME: ${POSTGRES_PT_DB}
+      PT_DB_USER: ${POSTGRES_PT_USER}
+      PT_DB_PASSWORD: ${POSTGRES_PT_PASSWORD}
+      # Image mac dinh -Xmx2G - qua lon voi tran RAM 5GB cua Docker VM; 1 connector chi can it heap.
+      HEAP_OPTS: "-Xms128m -Xmx384m"
+    mem_limit: 768m
+    # Kafka Connect dong producer/consumer noi bo mat hon 10s mac dinh -> tranh bi SIGKILL (exit 137).
+    stop_grace_period: 30s
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8083/connectors"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   # ---------------------------------------------------------------
   # Observability (bo sung 04/08/2026, Technical_Spec.md muc 15) - hoan toan tach biet khoi
