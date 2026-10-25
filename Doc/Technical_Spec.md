@@ -4,9 +4,10 @@
 > cho §1–§21 và §23–§25; §22 (Inventory Service) đã xác minh tĩnh (`typecheck`/`lint`/`test` sạch
 > toàn workspace) nhưng CHƯA xác minh sống qua Gateway thật — xem §22.8. §23 (Chat bot nội bộ RAG +
 > tool-calling, 24/10/2026) đã triển khai, khác kế hoạch ban đầu ở vài điểm ghi rõ tại §23.2; §25
-> (giảm tải RAM Docker, 24/10/2026). Dữ liệu kiểm thử tái sử dụng: `Mock_data.md`. Phần cố ý chưa triển khai (CDC/Debezium, forecasting
-> ML, Layer 4/6 của §19) được đánh dấu rõ tại chỗ và theo dõi thêm ở `Upgrade.md`. Chi tiết lịch sử
-> đầy đủ: xem `RevisionHistory.md`.
+> (giảm tải RAM Docker, 24/10/2026). §26 (CDC Debezium, profile tuỳ chọn `cdc`, 25/10/2026) đã
+> triển khai và xác minh sống dưới tải. Dữ liệu kiểm thử tái sử dụng: `Mock_data.md`. Phần cố ý chưa
+> triển khai (forecasting ML, Layer 4/6 của §19) được đánh dấu rõ tại chỗ và theo dõi thêm ở
+> `Upgrade.md`. Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
 
 **Tài liệu liên quan:** [General_idea.md](General_idea.md) · [Wireframe.md](Wireframe.md)
 **Ngày khởi tạo:** 18/07/2026
@@ -135,7 +136,7 @@ Mỗi service nghiệp vụ (IAM, Project-Task, Document) ghi bản ghi sự ki�
 
 - **Ưu điểm:** đơn giản, không cần hạ tầng bổ sung, triển khai được trong thời gian 1 học kỳ.
 - **Giới hạn đã biết:** độ trễ vài giây (không phải true CDC); nếu worker crash giữa lúc publish có thể phát trùng sự kiện (chấp nhận được vì **mọi consumer** — cả Analytics Service lẫn Notification Service — xử lý theo kiểu idempotent bằng `eventId`; xem yêu cầu cụ thể ở §3.5/§3.6).
-- **Hướng nâng cấp (ngoài phạm vi MVP):** thay bằng Debezium đọc trực tiếp WAL của PostgreSQL (CDC thực thụ), loại bỏ độ trễ polling.
+- **Hướng nâng cấp (ngoài phạm vi MVP):** thay bằng Debezium đọc trực tiếp WAL của PostgreSQL (CDC thực thụ), loại bỏ độ trễ polling. *(Cập nhật 25/10/2026: đã có bản CDC cho `project-task-service` dưới dạng profile tuỳ chọn `cdc` — Outbox polling vẫn là chế độ mặc định, xem §26.)*
 
 ### 4.2 Chuẩn đặt tên Kafka topic
 Dùng ít topic (theo bounded context sinh sự kiện) kèm trường `eventType` để phân loại bên trong message, giảm chi phí vận hành cho 1 broker:
@@ -360,7 +361,7 @@ thủ công mỗi lần có tính năng mới.
 
 ## 14. Giới hạn đã biết & Hướng phát triển
 
-- **Outbox polling thay vì CDC thực thụ** — chấp nhận độ trễ vài giây trong MVP; nâng cấp Debezium là hướng phát triển rõ ràng.
+- **Outbox polling thay vì CDC thực thụ** — chấp nhận độ trễ vài giây trong MVP; nâng cấp Debezium là hướng phát triển rõ ràng. *(Cập nhật 25/10/2026: CDC Debezium đã triển khai cho `project-task-service` như chế độ tuỳ chọn, chỉ dùng cho demo ngắn — polling vẫn là mặc định, 5 service còn lại vẫn chỉ có polling; xem §26.)*
 - **Single Kafka broker** — không có replication/fault-tolerance thực sự; đủ cho mục đích minh họa kiến trúc trong đồ án.
 - ~~**Không có observability hạ tầng** (Prometheus/Grafana) trong MVP~~ — **đã triển khai 04/08/2026**, xem §15.
 - **Chưa có database-per-tenant** — mô hình shared-schema đơn giản hóa triển khai nhưng giới hạn khả năng cách ly dữ liệu ở mức doanh nghiệp lớn (chấp nhận được với quy mô SME).
@@ -1207,6 +1208,156 @@ Docker và `npm run typecheck|lint|test|build` ở thư mục gốc. Quy ước 
 dùng chung 1 khoá (thư mục khoá, tạo không kèm `-Force`, chờ nếu đã tồn tại, luôn xoá sau khi xong),
 `jest` chạy với `--maxWorkers=2`, build lại từng service một.
 
+**Kafka lưu dữ liệu bền vững (bổ sung 25/10/2026):** trước đây Kafka không hề ghi dữ liệu vào volume
+`kafka-data` — mỗi lần tạo lại container là mất toàn bộ topic và offset. Đã sửa bằng
+`KAFKA_LOG_DIRS`, xem §26.6.
+
+## 26. CDC (Change Data Capture) bằng Debezium — profile tuỳ chọn `cdc` *(bổ sung 25/10/2026)*
+
+> Trạng thái: **ĐÃ TRIỂN KHAI, ĐÃ XÁC MINH SỐNG DƯỚI TẢI** (25/10/2026). Chế độ tuỳ chọn, chỉ dùng
+> cho demo ngắn — mặc định hệ thống vẫn chạy Outbox polling (§4.1). Phạm vi: chỉ `project-task-service`.
+
+### 26.1 Nguồn gốc
+
+Thiều Quang Thành xây dựng bản thử nghiệm trên nhánh `test-cdc` (05/09 và 25/09/2026). Nhánh được
+merge vào `main` ngày 25/10/2026 (commit `51dcf6b`), sau đó sửa bổ sung theo kết quả rà soát chéo
+(commit `775c518`). Kiến trúc và cách ánh xạ cột của bản thử nghiệm là đúng; 2 chi tiết cấu hình sai
+khiến chưa sự kiện nào đi trọn luồng, đã sửa khi merge (§26.3). Gói việc tiếp theo của Thành:
+`Script.md` §3.4.
+
+### 26.2 Kiến trúc
+
+```
+project-task-service ── ghi outbox_events cùng transaction (không đổi, §4.1)
+        │
+        ▼
+postgres-pt (wal_level=logical) ── WAL ──► replication slot pt_outbox_slot
+                                             (pgoutput, publication pt_outbox_pub chỉ gồm outbox_events)
+        │
+        ▼
+debezium (Kafka Connect 2.7.3) ── connector pt-outbox-connector + SMT Outbox Event Router
+        │
+        ▼
+Kafka topic project-task.events ──► analytics-service, notification-service, ml-service (không sửa)
+```
+
+Message do CDC gửi giống message của polling: key là chuỗi `organizationId` (StringConverter), value
+là JSON không kèm schema với envelope `eventId`/`eventType`/`organizationId`/`producer`/`occurredAt`
+và `payload`. Khác biệt duy nhất: `occurredAt` có độ chính xác micro giây (ví dụ `...08.827000Z`), vẫn
+là ISO-8601 hợp lệ. Lệnh UPDATE trên `outbox_events` (polling đánh dấu `published`) bị SMT bỏ qua
+(`table.op.invalid.behavior=warn`), không sinh sự kiện.
+
+| Thành phần | Cấu hình | Lý do |
+|---|---|---|
+| `debezium` | `profiles: ["cdc"]`, `HEAP_OPTS=-Xms128m -Xmx384m`, `mem_limit: 768m`, cổng `127.0.0.1:8083`, `stop_grace_period: 30s`, `OFFSET_FLUSH_INTERVAL_MS=5000` | Tắt mặc định; image mặc định `-Xmx2G` quá lớn với máy ảo 5GB (§25); REST chỉ mở cục bộ; commit offset mỗi 5 giây để `cdc-off.ps1` sớm có xác nhận |
+| `postgres-pt` | `wal_level=logical`, `max_wal_senders=4`, `max_replication_slots=4`, `max_slot_wal_keep_size=512MB` | Bật logical decoding; 512MB là trần lượng WAL giữ lại **riêng cho slot** (không phải trần tổng `pg_wal`), chặn đầy đĩa khi slot bị bỏ lại |
+| Connector | `snapshot.mode=no_data`, `slot.name`/`publication.name` cố định, `publication.autocreate.mode=filtered`, `heartbeat.interval.ms=10000`, `table.json.payload.null.behavior=optional_bytes` | Không gửi lại dòng outbox cũ; publication chỉ chứa bảng cần đọc; slot vẫn tiến khi không có thay đổi; giữ các trường có giá trị `null` trong `payload` giống polling |
+| Mật khẩu DB | `${env:PT_DB_PASSWORD}` qua `EnvVarConfigProvider` của Kafka Connect, allowlist `PT_DB_.*` | Không ghi cứng trong `infra/debezium/register-pt-connector.json`, connector không đọc được biến môi trường khác |
+| `project-task-service` | `ENABLE_OUTBOX_POLLING` (mặc định `true`), đọc qua `configuration.ts`/`ConfigService` bằng `isOutboxPollingEnabled()` | Chỉ giá trị `false` (không phân biệt hoa thường/khoảng trắng) mới tắt polling — thiếu biến thì vẫn bật, an toàn |
+
+### 26.3 Lỗi của bản thử nghiệm, đã sửa khi merge
+
+1. `transforms.outbox.table.field.event.timestamp=occurred_at`: SMT đòi trường kiểu INT64, còn
+   `occurred_at` là `timestamptz` → task `FAILED` ngay ở sự kiện đầu tiên. Bỏ cấu hình này (timestamp
+   của message Kafka lấy theo thời điểm thay đổi ở nguồn).
+2. `KEY_/VALUE_CONVERTER_SCHEMAS_ENABLE` đặt ở worker không được image đọc → mọi message bị bọc
+   `{"schema", "payload"}` → consumer coi là sai định dạng, đẩy vào DLQ. Chuyển converter vào cấu hình
+   connector.
+3. README hướng dẫn biến `OUTBOX_POLLING_ENABLED` trong khi code đọc `ENABLE_OUTBOX_POLLING`;
+   `package-lock.json` của nhánh tạo bằng npm cũ làm mất 13 mục `"libc"` (giữ nguyên bản của `main`).
+4. Debezium luôn chạy, không giới hạn RAM; tắt polling khiến dòng outbox mãi ở `published=false` (bật
+   lại polling sẽ gửi lại hàng loạt); slot bỏ lại khiến Postgres giữ WAL vô hạn; snapshot mặc định đọc
+   lại các dòng cũ — xử lý bằng profile `cdc`, 2 script ở §26.4 và cấu hình ở §26.2.
+
+### 26.4 Bật/tắt — thứ tự bước và vì sao không mất sự kiện
+
+Chỉ bật/tắt bằng `scripts/cdc-on.ps1` và `scripts/cdc-off.ps1` (PowerShell, chạy từ thư mục gốc repo).
+Nguyên tắc chung: tại mọi thời điểm luôn có ít nhất 1 nguồn publish (polling hoặc CDC) cho mọi dòng
+outbox chưa chắc chắn đã tới Kafka, và một dòng chỉ được đánh dấu `published=true` khi đã có xác nhận
+nó tới Kafka. Cái giá là có thể trùng vài sự kiện quanh lúc chuyển chế độ — vô hại vì consumer
+idempotent (`analytics-service` `ON CONFLICT` theo `eventId`, `notification-service` unique
+`eventId + userId`).
+
+**`cdc-on.ps1`:**
+1. Bảo đảm polling đang bật (sửa trạng thái dở dang của lần chạy trước).
+2. Bật `debezium` (tạo lại `postgres-pt` nếu chưa có `wal_level=logical`), chờ healthy.
+3. Đăng ký connector bằng `PUT .../config` (tạo mới hoặc cập nhật, chạy lại an toàn).
+4. Chờ connector và task `RUNNING`, slot `active`: từ đây mọi dòng outbox commit sau đều được CDC gửi.
+5. Dòng commit **trước** khi có slot thì CDC không thấy, nên polling (vẫn đang chạy) phải gửi: lấy mốc
+   T0 rồi chờ tới khi không còn dòng `published=false` nào có `created_at < T0`.
+6. Lúc này mới tạo lại `project-task-service` với `ENABLE_OUTBOX_POLLING=false`.
+
+**`cdc-off.ps1`:**
+1. CDC vẫn chạy. Lấy mốc T1 = `now()`, chờ mọi transaction bắt đầu trước T1 kết thúc, rồi lấy L1 =
+   vị trí WAL hiện tại: mọi dòng có `created_at < T1` (`created_at` = `now()` của transaction ghi)
+   chắc chắn đã commit trước L1.
+2. Ghi 1 UPDATE không đổi dữ liệu vào `outbox_events` (SMT bỏ qua) để CDC có thay đổi mới sau L1, rồi
+   chờ `confirmed_flush_lsn` của slot vượt L1. Debezium chỉ xác nhận LSN sau khi Kafka Connect commit
+   offset, tức mọi bản ghi trước đó đã được Kafka xác nhận.
+3. Đánh dấu `published=true` cho các dòng `published=false` có `created_at < T1`. Dòng sinh sau T1 giữ
+   nguyên để polling gửi (trùng ít, vô hại). Hết thời gian chờ ở bước 1–2 thì **bỏ qua** bước này:
+   polling gửi lại hết (trùng nhiều hơn nhưng không mất).
+4. Bật lại polling **trước** khi xoá connector — không có khoảng nào vắng cả 2 nguồn publish.
+5. Dừng connector, xoá offset đã lưu, xoá connector, dừng `debezium`, xoá replication slot và
+   publication.
+
+Cả 2 script chạy lại nhiều lần đều an toàn: `cdc-on.ps1` khi CDC đã bật đầy đủ (connector `RUNNING`,
+slot `active`, polling tắt) chỉ cập nhật cấu hình connector; `cdc-off.ps1` bỏ qua các bước đã xong.
+
+### 26.5 Các lớp bảo vệ
+
+- **Healthcheck `debezium`** phản ánh trạng thái connector: chưa có connector thì healthy; đã có thì
+  connector và task 0 phải `RUNNING`. Connector chết trong lúc polling đang tắt (sự kiện dừng âm thầm)
+  sẽ hiện `unhealthy` trên `docker ps` → chạy `cdc-off.ps1` để quay về polling, các dòng chưa gửi được
+  polling gửi tiếp.
+- **Đường tắt của `cdc-on.ps1`** chỉ áp dụng khi slot đang `active` — REST báo `RUNNING` chưa đủ chứng
+  minh CDC đang đọc WAL.
+- **Slot mất** (`wal_status = 'lost'`, WAL giữ cho slot vượt 512MB): `cdc-on.ps1` báo ngay "chạy
+  cdc-off rồi cdc-on", polling vẫn bật.
+- **Connector lỗi lúc tắt:** `cdc-off.ps1` không đánh dấu dòng nào, polling gửi lại toàn bộ dòng
+  `published=false`.
+- **Cờ polling đặt qua biến môi trường của shell**, không sửa `infra/.env`: nếu ai đó chạy
+  `docker compose up -d` thường và container bị tạo lại, polling tự bật lại — chỉ có thể trùng sự kiện,
+  không mất.
+- `cdc-off.ps1` xoá offset của connector để lần bật sau bắt đầu sạch từ slot mới.
+
+### 26.6 Lỗi Kafka không lưu dữ liệu bền vững (có từ trước, phát hiện khi rà soát CDC)
+
+**Mức độ: CAO.** Volume `kafka-data` gắn vào `/var/lib/kafka/data`, nhưng `KAFKA_LOG_DIRS` chưa từng
+được đặt nên image `apache/kafka` ghi vào `/tmp/kafka-logs` — nằm ngoài volume. Hệ quả: mỗi lần tạo lại
+container Kafka là mất toàn bộ topic, offset của consumer group và metadata KRaft. `notification-service`
+subscribe với `fromBeginning: false`, nên sau một lần mất offset có thể bỏ qua các sự kiện sinh ra lúc
+nó chưa kết nối lại. Riêng với CDC, các topic `debezium_*` bị tạo lại với `cleanup.policy` sai khiến
+Debezium khởi động lỗi liên tục. Đã sửa: `KAFKA_LOG_DIRS=/var/lib/kafka/data`; sau
+`docker compose up -d --force-recreate kafka`, cả 12 topic và offset vẫn còn nguyên.
+
+### 26.7 Số đo (25/10/2026)
+
+| Chỉ số | Kết quả |
+|---|---|
+| Độ trễ tới Analytics (từ lúc `PATCH /tasks/:id/status` trả về tới khi có bản ghi trong `fact_task_events`) | Polling khoảng 2,0 giây; CDC 0,40–0,62 giây (6 mẫu) |
+| RAM container `debezium` khi bật | 410–577MiB trên giới hạn 768MiB |
+| Dung lượng image `debezium/connect:2.7.3.Final` | 2,2GB |
+| Kiểm thử khi merge | 2 vòng ON/OFF trong lúc đổi trạng thái công việc liên tục khoảng 2 sự kiện/giây: không mất sự kiện nào (sau khi sửa lỗi converter ở §26.3) |
+| Rà soát chéo — kiểm thử sống dưới tải (PowerShell 5.1) | 1.862 sự kiện, 0 mất, 0 trùng lặp lộ ra với người dùng; khởi động lại Postgres và Kafka trong lúc CDC chạy đều tự phục hồi |
+| Người xác minh độc lập (sau commit `775c518`) | 416/416 sự kiện qua ON, OFF và 3 vòng phục hồi |
+
+### 26.8 Giới hạn đã biết
+
+- Chỉ áp dụng cho `project-task-service`; 5 service còn lại có bảng outbox vẫn chỉ chạy polling.
+- Nếu `debezium` đã dừng sẵn, `cdc-off.ps1` không xoá được connector và offset (cấu hình còn trong topic
+  `debezium_configs`, connector tự chạy lại ở lần bật `debezium` sau); việc phục hồi vẫn đúng nhờ 2
+  script.
+- Mỗi lần bật/tắt đều tạo lại `project-task-service`, API công việc/dự án gián đoạn vài giây. Trên máy
+  phát triển (Docker Desktop/WSL), `wslrelay.exe` giữ `127.0.0.1` ở các cổng 3000, 80 và 9010, nên
+  `localhost` có thể treo khoảng 90 giây sau khi container được tạo lại, trong khi IP LAN trả lời ngay.
+  Vì vậy cần chuyển chế độ **trước** khi bắt đầu demo, không chuyển giữa chừng.
+- Các topic nội bộ của Debezium (`debezium_configs`, `debezium_offsets`, `debezium_statuses`,
+  `__debezium-heartbeat.pt_pg`) vẫn còn sau khi tắt CDC — dung lượng nhỏ.
+- `docker compose down` thường bỏ sót container `debezium` (profile `cdc` không bật): dừng cả stack bằng
+  `cdc-off.ps1` rồi `docker compose --profile cdc down`.
+- 1 connector, 1 task, không có dự phòng (HA) — đủ cho mục đích minh hoạ.
+
 ## Lịch sử thay đổi tài liệu
 
 - **18/07/2026** — Khởi tạo tài liệu `Technical_Spec.md`: xác định kiến trúc tổng thể, tech stack, chi tiết 6 service MVP, event-driven design (Outbox + Kafka), schema DB tổng quan, AuthN/AuthZ, quy ước API, hạ tầng Docker, bảo mật, kiểm thử, CI/CD, NFR, cấu trúc repo và giới hạn/hướng phát triển.
@@ -1378,3 +1529,4 @@ dùng chung 1 khoá (thư mục khoá, tạo không kèm `-Force`, chờ nếu �
 - **24/10/2026 (§23 triển khai + §25 giảm tải RAM + 2 lỗi cũ phát hiện qua kiểm thử sống)** — §23 viết lại từ kế hoạch thành mô tả thực tế: chatbot đặt trong `analytics-service` (không tạo service mới), RAG trong `document-service` lưu vector dạng mảng số thực (không `pgvector`), job lập chỉ mục định kỳ thay cho sự kiện Kafka, bảng kiểm thử chéo + lỗi đã vá ở §23.8. Sửa lỗ hổng phân quyền thư mục con trong thư mục `restricted` (§23.3, cập nhật §3.4). §25 mới: giới hạn RAM máy ảo WSL2/MongoDB/Kafka/ml-service, profile `observability`, cổng chỉ IPv4. Sửa 2 lỗi có từ 15/09/2026 của "Quên mật khẩu": thiếu `/auth/forgot-password`/`/auth/reset-password` trong danh sách route công khai của Gateway (người chưa đăng nhập bị 401) và `JWT_RESET_SECRET` rỗng trong `infra/.env`. Chi tiết: `RevisionHistory.md` mục 24/10/2026.
 - **24/10/2026 (rà soát cuối toàn hệ thống)** — §8: rate limit Gateway chuyển sang đếm theo người dùng (300 request/phút; chưa đăng nhập vẫn theo IP, 100 request/phút). §23.8 bổ sung 6 lỗi phát hiện ở rà soát cuối (4 lỗi phân quyền tài liệu, giới hạn tần suất `search-chunks`, 2 lỗi giao diện chatbot). §25 bổ sung nhịp healthcheck Kafka. Dữ liệu kiểm thử tái sử dụng: `Mock_data.md`. Chi tiết: `RevisionHistory.md` mục 24/10/2026 (tiếp).
 - **25/10/2026 (merge Frontend2 + khắc phục CI)** — Merge 6 commit nhánh Frontend2 (tách component frontend, endpoint mới `PATCH /leave-requests/:id/cancel` để nhân viên tự hủy đơn nghỉ phép đang chờ duyệt). CI đỏ từ 11/10/2026 do `inventory-service` chép ngưỡng coverage 45/55/45/45% của `crm-service` trong khi số đo thật 39/35/40/29% — đặt lại theo số đo thật (quy ước §10/§11). 102 chuỗi tiếng Việt viết thẳng sau merge đã chuyển sang i18n. Chi tiết: `RevisionHistory.md` mục 25/10/2026.
+- **25/10/2026 (§26 — CDC Debezium, merge `test-cdc` + rà soát chéo)** — Merge bản thử nghiệm CDC của Thiều Quang Thành (`51dcf6b`): Debezium đọc WAL bảng `outbox_events` của `project-task-service` qua Outbox Event Router, đóng gói thành profile tuỳ chọn `cdc` (tắt mặc định) với 2 script `scripts/cdc-on.ps1`/`cdc-off.ps1` có thứ tự bước bảo đảm không mất sự kiện. Sửa 2 lỗi cấu hình khiến bản thử nghiệm chưa đưa sự kiện nào tới consumer (trường timestamp đòi INT64; converter bọc schema làm message vào DLQ). Rà soát chéo xác nhận 9 vấn đề, sửa trong `775c518` — gồm lỗi có từ trước mức CAO: Kafka chưa từng ghi vào volume (`KAFKA_LOG_DIRS`), tạo lại container là mất hết topic/offset (§26.6). Cập nhật khối trạng thái, §4.1, §14, cuối §25; thêm §26. Số đo: độ trễ CDC 0,40–0,62 giây so với polling khoảng 2,0 giây; 1.862 và 416/416 sự kiện không mất. Chi tiết: `RevisionHistory.md` mục 25/10/2026 (tiếp).

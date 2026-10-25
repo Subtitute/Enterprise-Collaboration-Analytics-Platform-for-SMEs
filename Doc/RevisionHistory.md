@@ -2105,3 +2105,60 @@ phân tích tính đơn đó là bị từ chối. Lỗi `403` khi hủy đơn c
 workspace; `test:coverage` ở `TZ=UTC` qua mọi workspace; `package-lock.json` khớp manifest. Rebuild
 `hrm-service` + `web`: kịch bản `02-hrm` 28/28, `09-ui-smoke` 32/32 (3 vai trò × 26 trang, 0 lần 429);
 hủy đơn sống: người khác hủy → 403, chủ đơn hủy → 200, hủy lần 2 → 400.
+
+## 25/10/2026 (tiếp) — Merge nhánh test-cdc (Thành): CDC Debezium + rà soát chéo + lỗi Kafka không lưu dữ liệu
+
+**Phần Thiều Quang Thành xây dựng** (nhánh `test-cdc`, 3 commit ngày 05/09 và 25/09/2026): connector
+Debezium Postgres kèm Outbox Event Router đọc bảng `outbox_events` của `project-task-service`, định
+tuyến sang `project-task.events` với key và envelope đúng định dạng `DomainEvent`; service
+`debezium/connect:2.7.3.Final`, `wal_level=logical` cho `postgres-pt`, cờ `ENABLE_OUTBOX_POLLING`,
+script đăng ký connector và hướng dẫn trong README. Kiến trúc và cách ánh xạ cột đúng, nhưng chưa sự
+kiện nào đi trọn luồng tới consumer vì 2 chi tiết cấu hình: trường timestamp của SMT đòi INT64 trong
+khi `occurred_at` là `timestamptz` (task `FAILED` ngay sự kiện đầu), và biến tắt schema của converter
+không được image đọc nên mọi message bị bọc `{"schema", "payload"}` rồi bị consumer đẩy vào DLQ.
+
+**Merge (commit `51dcf6b`):** conflict duy nhất ở `infra/docker-compose.yml` (chủ yếu do nhánh định
+dạng lại) — giữ bản của `main`, thêm phần CDC bằng tay; `package-lock.json` giữ nguyên bản `main` (bản
+của nhánh tạo bằng npm cũ, âm thầm làm mất 13 mục `"libc"`). Sửa 2 lỗi cấu hình trên; `debezium` đưa
+vào profile tuỳ chọn `cdc` (tắt mặc định, giới hạn heap/RAM, cổng chỉ `127.0.0.1`);
+`snapshot.mode=no_data`, slot/publication đặt tên cố định, mật khẩu DB qua config provider; trần WAL
+cho slot `max_slot_wal_keep_size=512MB`; thay script đăng ký bằng `scripts/cdc-on.ps1`/`cdc-off.ps1`
+có thứ tự bước bảo đảm không mất sự kiện (OFF đánh dấu `published` các dòng đã được xác nhận tới Kafka
+qua `confirmed_flush_lsn` để polling không gửi lại hàng loạt); sửa README ghi sai tên biến
+(`OUTBOX_POLLING_ENABLED`); thêm unit test cho cờ polling.
+
+**Rà soát chéo:** 2 người rà soát độc lập — 1 kiểm thử sống dưới tải trên PowerShell 5.1, 1 rà soát
+tĩnh + CI. 9 vấn đề được xác nhận, sửa rồi được 1 người xác minh độc lập kiểm lại (đều PASS), commit
+`775c518`:
+- **CAO, có từ trước, không do CDC gây ra — Kafka chưa từng lưu dữ liệu:** volume gắn ở
+  `/var/lib/kafka/data` nhưng thiếu `KAFKA_LOG_DIRS` nên Kafka ghi vào `/tmp/kafka-logs`; mỗi lần tạo
+  lại container là mất hết topic và offset consumer group (`notification-service` dùng
+  `fromBeginning: false` nên có thể bỏ qua sự kiện); với CDC, topic `debezium_*` bị tạo lại sai
+  `cleanup.policy` làm Debezium khởi động lỗi liên tục. Nay `KAFKA_LOG_DIRS=/var/lib/kafka/data`, sau
+  `--force-recreate kafka` cả 12 topic và offset còn nguyên.
+- Đường tắt của `cdc-on.ps1` đòi thêm slot `active`; phát hiện slot mất (`wal_status = 'lost'`) và báo
+  "chạy cdc-off rồi cdc-on"; healthcheck `debezium` phản ánh trạng thái connector + task (connector
+  chết hiện `unhealthy`); config provider chỉ cho đọc biến `PT_DB_*`;
+  `null.behavior=optional_bytes` giữ trường `null` giống polling; cờ polling đọc qua
+  `configuration.ts`/`ConfigService`; script so khớp cờ không phân biệt hoa thường; README bổ sung cách
+  dừng cả stack (`cdc-off` rồi `docker compose --profile cdc down`) và nói rõ 512MB là trần WAL giữ cho
+  slot, không phải tổng `pg_wal`.
+
+**Số đo:** độ trễ tới Analytics qua CDC 0,40–0,62 giây (polling khoảng 2,0 giây); RAM `debezium`
+410–577MiB trên giới hạn 768MiB; image 2,2GB. Người rà soát sống: 1.862 sự kiện, 0 mất, 0 trùng lặp lộ
+ra với người dùng, khởi động lại Postgres/Kafka trong lúc CDC chạy đều tự phục hồi. Người xác minh:
+416/416 sự kiện qua ON, OFF và 3 vòng phục hồi.
+
+**Giới hạn đã biết:** `debezium` đã dừng sẵn thì `cdc-off.ps1` không xoá được connector/offset (phục
+hồi vẫn đúng); mỗi lần chuyển chế độ tạo lại `project-task-service`, và trên máy Docker Desktop/WSL
+`localhost` có thể treo khoảng 90 giây sau khi tạo lại container (`wslrelay.exe` giữ `127.0.0.1` ở cổng
+3000/80/9010) — chuyển chế độ trước khi demo; topic nội bộ của Debezium vẫn còn sau khi tắt (nhỏ).
+
+**Phân công cho Thành:** chốt vai trò và giao 5 gói việc — P1 phụ trách CDC (diễn tập, kịch bản demo,
+trình bày khi bảo vệ, tuỳ chọn mở rộng sang service thứ 2), P1 kiểm thử hiệu năng (polling so với CDC,
+độ trễ/thông lượng Gateway, đưa số đo vào phần NFR của báo cáo), P2 e2e Playwright (sửa 6/17 test lỗi
+selector, thêm e2e chatbot/chấm công khuôn mặt/Kho), P3 tuỳ chọn dự báo xu hướng (Upgrade Tier 4
+Layer 4) và việc backend nhỏ (trạng thái `CANCELLED` cho đơn nghỉ phép, bộ lọc "giao cho tôi" cho API
+công việc), kèm quy tắc làm việc (1 nhánh/gói việc, Pull Request, đồng bộ `main` hằng tuần).
+
+Chi tiết kỹ thuật: `Technical_Spec.md` §26 (và cuối §25); phân công: `Script.md` §3.3–§3.4.

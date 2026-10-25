@@ -215,6 +215,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\cdc-off.ps1   # tắt CDC, b�
 - Mỗi lần bật/tắt, script tạo lại container `project-task-service` nên API công việc/dự án gián đoạn
   khoảng 3-20 giây (502 hoặc request treo) - chuyển chế độ **trước** khi bắt đầu demo, không chuyển
   giữa chừng. *(Bổ sung 25/10/2026)*
+- Trên Docker Desktop/WSL, tiến trình `wslrelay.exe` giữ `127.0.0.1` ở các cổng 3000, 80 và 9010 nên
+  sau khi container được tạo lại, `localhost` có thể treo khoảng 90 giây trong khi IP LAN của máy trả
+  lời ngay - đây là thêm một lý do để chuyển chế độ trước khi demo. *(Bổ sung 25/10/2026)*
 - Mật khẩu DB không nằm trong `infra/debezium/register-pt-connector.json`: connector tham chiếu
   `${env:PT_DB_PASSWORD}` (EnvVarConfigProvider của Kafka Connect), giá trị lấy từ `infra/.env`.
   Provider chỉ cho phép đọc các biến `PT_DB_*` (allowlist, bổ sung 25/10/2026).

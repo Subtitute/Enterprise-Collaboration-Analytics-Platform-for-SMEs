@@ -56,7 +56,7 @@ Nguồn gốc: 1 đợt review toàn dự án (vai trò giảng viên phản bi�
 
 **⏳ Chưa triển khai — cố ý chưa làm, ghi nhận là phạm vi tương lai** (xem `Technical_Spec.md` §19 để biết phần ĐÃ triển khai cùng đợt: Diagnostic drill-down, Anomaly Detection, Recommendation Engine, nhập Excel hàng loạt)
 
-- [ ] **Layer 4 — Predictive/Forecasting:** dự báo xu hướng KPI (vd số công việc hoàn thành tuần tới) — không triển khai NeuralForecast/mô hình deep learning như định hướng ban đầu vì dữ liệu demo quá nhỏ để mô hình có ý nghĩa; nếu làm sau này nên bắt đầu bằng phương pháp thống kê nhẹ (vd trung bình trượt/hồi quy tuyến tính đơn giản) trước khi cân nhắc mô hình phức tạp hơn.
+- [ ] **Layer 4 — Predictive/Forecasting:** dự báo xu hướng KPI (vd số công việc hoàn thành tuần tới) — không triển khai NeuralForecast/mô hình deep learning như định hướng ban đầu vì dữ liệu demo quá nhỏ để mô hình có ý nghĩa; nếu làm sau này nên bắt đầu bằng phương pháp thống kê nhẹ (vd trung bình trượt/hồi quy tuyến tính đơn giản) trước khi cân nhắc mô hình phức tạp hơn. *(25/10/2026: giao tuỳ chọn cho Thiều Quang Thành, mức P3 — `Script.md` §3.4 Gói 4.)*
 - [ ] **Layer 6 — What-if Simulation:** mô phỏng "nếu thay đổi X thì Y đổi thế nào" (vd thêm người vào phòng ban thì tỷ lệ hoàn thành đổi ra sao) — cần Layer 4 làm nền trước.
 - [ ] **Demo Data Scenario Generator:** tính năng cho Org Admin chọn 1 trong nhiều kịch bản demo dựng sẵn (vd "đội nhóm đang quá tải", "phòng ban hoạt động tốt") kèm 1 seed số để sinh dữ liệu tái lập được — hiện dữ liệu demo vẫn dựa vào `scripts/seed.js` cố định, không có giao diện chọn kịch bản.
 
@@ -82,3 +82,4 @@ khác kế hoạch ban đầu, §23.8 ghi kết quả kiểm thử chéo và gi�
 - **24/09/2026** — Bổ sung Tier 4: phần cố ý chưa làm của đợt nâng cấp Analytics 24/09/2026 (Layer 4 Forecasting, Layer 6 What-if Simulation, Demo Data Scenario Generator) — xem `Technical_Spec.md` §19 cho phần đã triển khai cùng đợt.
 - **24/10/2026** — Bổ sung Tier 5: kế hoạch Chatbot nội bộ (RAG + tool-calling lai), chốt sau khi bàn bạc trực tiếp trước khi code — xem `Technical_Spec.md` §23 cho đặc tả kỹ thuật đầy đủ.
 - **24/10/2026 (tiếp)** — Tier 5 chuyển sang đã triển khai: đánh dấu hoàn thành từng hạng mục, ghi rõ các điểm khác kế hoạch (không service mới, không `pgvector`, job quét định kỳ) và các hạng mục còn để ngỏ.
+- **25/10/2026** — Tier 4 Layer 4 (Predictive/Forecasting) giao tuỳ chọn cho Thiều Quang Thành (P3, `Script.md` §3.4 Gói 4), trạng thái vẫn chưa triển khai. File này không liệt kê CDC Debezium nên không đổi phần khác; CDC đã triển khai dạng chế độ tuỳ chọn, xem `Technical_Spec.md` §26.
