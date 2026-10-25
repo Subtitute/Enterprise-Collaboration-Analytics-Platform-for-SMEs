@@ -1,20 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { OutboxEvent } from '../entities/outbox-event.entity';
 import { KafkaProducerService } from '../kafka/kafka-producer.service';
 import { DomainEvent, EVENT_TYPE_TOPIC_MAP, EventType, KAFKA_TOPICS } from '@app/common-dto';
-
-/**
- * 25/10/2026 (CDC Debezium, profile `cdc`): ENABLE_OUTBOX_POLLING=false tat polling khi Debezium doc
- * WAL bang outbox_events va publish thay (scripts/cdc-on.ps1). Moi gia tri khac, ke ca khong dat, la
- * BAT - mac dinh an toan: thua 1 nguon publish chi gay trung lap (consumer idempotent theo eventId),
- * con thieu nguon publish se lam mat su kien.
- */
-export function isOutboxPollingEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
-  return env.ENABLE_OUTBOX_POLLING?.trim().toLowerCase() !== 'false';
-}
 
 /**
  * Poll bang outbox_events moi 2.5s va publish len Kafka - Technical_Spec.md muc 4.1.
@@ -27,13 +18,16 @@ export class OutboxPublisherJob {
   private readonly logger = new Logger(OutboxPublisherJob.name);
   private isRunning = false;
   // 25/10/2026: doc co 1 lan luc khoi tao - env cua container khong doi trong vong doi process,
-  // cdc-on.ps1/cdc-off.ps1 tao lai container de doi gia tri.
-  private readonly pollingEnabled = isOutboxPollingEnabled();
+  // cdc-on.ps1/cdc-off.ps1 tao lai container de doi gia tri. Fix ra soat: lay qua ConfigService
+  // (config/configuration.ts - outbox.pollingEnabled) nhu cac cau hinh khac, khong doc process.env.
+  private readonly pollingEnabled: boolean;
 
   constructor(
     @InjectRepository(OutboxEvent) private readonly outboxRepo: Repository<OutboxEvent>,
     private readonly kafkaProducer: KafkaProducerService,
+    configService: ConfigService,
   ) {
+    this.pollingEnabled = configService.get<boolean>('outbox.pollingEnabled') ?? true;
     if (!this.pollingEnabled) {
       this.logger.warn('Outbox polling dang TAT (ENABLE_OUTBOX_POLLING=false) - su kien do Debezium CDC publish');
     }

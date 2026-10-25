@@ -29,6 +29,7 @@
     "transforms.outbox.table.field.event.type": "event_type",
     "transforms.outbox.table.field.event.payload": "payload",
     "transforms.outbox.table.expand.json.payload": "true",
+    "transforms.outbox.table.json.payload.null.behavior": "optional_bytes",
     "transforms.outbox.table.op.invalid.behavior": "warn",
     "transforms.outbox.table.fields.additional.placement": "event_id:envelope:eventId,event_type:envelope:eventType,organization_id:envelope:organizationId,producer:envelope:producer,occurred_at:envelope:occurredAt",
     "transforms.outbox.route.by.field": "producer",

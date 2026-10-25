@@ -201,10 +201,23 @@ powershell -ExecutionPolicy Bypass -File .\scripts\cdc-off.ps1   # tắt CDC, b�
   độ - vô hại vì `analytics-service`/`notification-service` idempotent theo `eventId`. Chạy lại script
   nhiều lần đều an toàn.
 - Không tắt CDC bằng cách chỉ `docker stop debezium` hay sửa `ENABLE_OUTBOX_POLLING` bằng tay: slot
-  còn lại khiến Postgres giữ WAL (đã chặn tối đa 512MB bằng `max_slot_wal_keep_size`), còn các dòng
-  outbox CDC đã gửi sẽ bị polling gửi lại.
+  còn lại khiến Postgres giữ WAL cho nó, còn các dòng outbox CDC đã gửi sẽ bị polling gửi lại.
+  `max_slot_wal_keep_size=512MB` chỉ giới hạn lượng WAL giữ lại **cho slot**, không phải tổng dung
+  lượng `pg_wal`; vượt ngưỡng thì slot chuyển `lost` và không dùng lại được - `cdc-on.ps1` sẽ báo
+  ngay, khi đó chạy `cdc-off.ps1` rồi `cdc-on.ps1`. *(Sửa 25/10/2026)*
+- Dừng cả stack: chạy `cdc-off.ps1` trước rồi `docker compose --profile cdc down`. Lệnh
+  `docker compose down` thường **bỏ sót** container `debezium` (profile `cdc` không bật) nên nó vẫn
+  chạy. *(Bổ sung 25/10/2026)*
+- Nếu `docker ps` báo `debezium` **unhealthy** (healthcheck kiểm tra connector và task đều
+  `RUNNING`) trong lúc CDC bật thì sự kiện đang dừng (polling đã tắt) - chạy ngay
+  `powershell -ExecutionPolicy Bypass -File .\scripts\cdc-off.ps1` để quay về polling, các dòng
+  outbox chưa gửi sẽ được polling gửi tiếp, không mất. *(Bổ sung 25/10/2026)*
+- Mỗi lần bật/tắt, script tạo lại container `project-task-service` nên API công việc/dự án gián đoạn
+  khoảng 3-20 giây (502 hoặc request treo) - chuyển chế độ **trước** khi bắt đầu demo, không chuyển
+  giữa chừng. *(Bổ sung 25/10/2026)*
 - Mật khẩu DB không nằm trong `infra/debezium/register-pt-connector.json`: connector tham chiếu
   `${env:PT_DB_PASSWORD}` (EnvVarConfigProvider của Kafka Connect), giá trị lấy từ `infra/.env`.
+  Provider chỉ cho phép đọc các biến `PT_DB_*` (allowlist, bổ sung 25/10/2026).
 
 Kiểm chứng: đổi trạng thái một công việc trên Kanban rồi xem `docker logs --tail 30 debezium` và
 `docker logs --tail 30 analytics-service`; log `project-task-service` lúc khởi động có cảnh báo

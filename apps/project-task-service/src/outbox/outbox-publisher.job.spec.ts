@@ -1,4 +1,8 @@
-import { OutboxPublisherJob, isOutboxPollingEnabled } from './outbox-publisher.job';
+import { OutboxPublisherJob } from './outbox-publisher.job';
+import configuration, { isOutboxPollingEnabled } from '../config/configuration';
+
+// 25/10/2026 (fix ra soat CDC): job doc co polling qua ConfigService - mock get('outbox.pollingEnabled').
+const configMock = (pollingEnabled?: boolean) => ({ get: jest.fn().mockReturnValue(pollingEnabled) }) as any;
 
 /**
  * 22/08/2026: unit test cho fix code review CRITICAL - publishPendingEvents() truoc day dung
@@ -41,7 +45,7 @@ describe('OutboxPublisherJob', () => {
           .mockResolvedValueOnce(undefined),
       };
 
-      const job = new OutboxPublisherJob(outboxRepoMock as any, kafkaProducerMock as any);
+      const job = new OutboxPublisherJob(outboxRepoMock as any, kafkaProducerMock as any, configMock(true));
 
       await job.publishPendingEvents();
 
@@ -74,7 +78,7 @@ describe('OutboxPublisherJob', () => {
         publish: jest.fn().mockRejectedValue(new Error('loi khong xac dinh')),
       };
 
-      const job = new OutboxPublisherJob(outboxRepoMock as any, kafkaProducerMock as any);
+      const job = new OutboxPublisherJob(outboxRepoMock as any, kafkaProducerMock as any, configMock(true));
 
       await job.publishPendingEvents();
       await job.publishPendingEvents();
@@ -85,14 +89,9 @@ describe('OutboxPublisherJob', () => {
   });
 
   // 25/10/2026 (CDC Debezium): co ENABLE_OUTBOX_POLLING - chi dung 'false' moi tat polling, moi
-  // truong hop khac (ke ca khong dat) giu polling BAT de khong bao gio mat su kien.
+  // truong hop khac (ke ca khong dat) giu polling BAT de khong bao gio mat su kien. Fix ra soat:
+  // ham parse chuyen sang config/configuration.ts, job nhan gia tri qua ConfigService.
   describe('ENABLE_OUTBOX_POLLING', () => {
-    const original = process.env.ENABLE_OUTBOX_POLLING;
-    afterEach(() => {
-      if (original === undefined) delete process.env.ENABLE_OUTBOX_POLLING;
-      else process.env.ENABLE_OUTBOX_POLLING = original;
-    });
-
     it('isOutboxPollingEnabled: chi "false" (khong phan biet hoa thuong/khoang trang) moi tat', () => {
       expect(isOutboxPollingEnabled({})).toBe(true);
       expect(isOutboxPollingEnabled({ ENABLE_OUTBOX_POLLING: 'true' })).toBe(true);
@@ -101,17 +100,31 @@ describe('OutboxPublisherJob', () => {
       expect(isOutboxPollingEnabled({ ENABLE_OUTBOX_POLLING: ' FALSE ' })).toBe(false);
     });
 
+    it('configuration(): outbox.pollingEnabled lay tu process.env.ENABLE_OUTBOX_POLLING', () => {
+      const original = process.env.ENABLE_OUTBOX_POLLING;
+      try {
+        process.env.ENABLE_OUTBOX_POLLING = 'False';
+        expect(configuration().outbox.pollingEnabled).toBe(false);
+        delete process.env.ENABLE_OUTBOX_POLLING;
+        expect(configuration().outbox.pollingEnabled).toBe(true);
+      } finally {
+        if (original === undefined) delete process.env.ENABLE_OUTBOX_POLLING;
+        else process.env.ENABLE_OUTBOX_POLLING = original;
+      }
+    });
+
     it.each([
-      ['false', 0],
+      [false, 0],
+      [true, 1],
       [undefined, 1],
-    ])('ENABLE_OUTBOX_POLLING=%s -> goi find() %i lan', async (value, calls) => {
-      if (value === undefined) delete process.env.ENABLE_OUTBOX_POLLING;
-      else process.env.ENABLE_OUTBOX_POLLING = value;
+    ])('outbox.pollingEnabled=%s -> goi find() %i lan', async (value, calls) => {
       const outboxRepoMock = { find: jest.fn().mockResolvedValue([]), save: jest.fn() };
-      const job = new OutboxPublisherJob(outboxRepoMock as any, { publish: jest.fn() } as any);
+      const config = configMock(value);
+      const job = new OutboxPublisherJob(outboxRepoMock as any, { publish: jest.fn() } as any, config);
 
       await job.publishPendingEvents();
 
+      expect(config.get).toHaveBeenCalledWith('outbox.pollingEnabled');
       expect(outboxRepoMock.find).toHaveBeenCalledTimes(calls);
     });
   });

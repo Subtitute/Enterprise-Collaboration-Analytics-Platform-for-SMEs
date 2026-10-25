@@ -65,6 +65,9 @@ services:
     # replication slot (pgoutput). max_slot_wal_keep_size=512MB la tran an toan: neu slot bi bo
     # lai (Debezium dung ma chua chay scripts/cdc-off.ps1) thi Postgres chi giu toi da 512MB WAL
     # roi vo hieu slot, khong giu WAL vo han lam day dia. Khong bat CDC thi chi ton them it WAL.
+    # 25/10/2026 (fix ra soat CDC): 512MB la tran WAL giu lai RIENG cho slot, khong phai tran tong
+    # dung luong pg_wal (van cong them max_wal_size...). Slot vuot tran -> wal_status='lost', khong
+    # dung lai duoc: cdc-on.ps1 bao loi ngay, phai chay cdc-off.ps1 roi cdc-on.ps1.
     command: ["postgres", "-c", "wal_level=logical", "-c", "max_wal_senders=4", "-c", "max_replication_slots=4", "-c", "max_slot_wal_keep_size=512MB"]
     environment:
       POSTGRES_DB: ${POSTGRES_PT_DB}
@@ -370,6 +373,12 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       CLUSTER_ID: ${KAFKA_CLUSTER_ID}
+      # 25/10/2026 (fix ra soat CDC): truoc day KHONG dat KAFKA_LOG_DIRS nen image apache/kafka ghi
+      # vao /tmp/kafka-logs (ngoai volume kafka-data) - moi lan tao lai container la mat het topic,
+      # offset consumer group, metadata KRaft (va de lai topic debezium_* hong lam debezium crash).
+      # notification-service subscribe fromBeginning:false nen sau 1 lan mat offset se BO QUA moi su
+      # kien sinh ra luc no chua ket noi lai. Ghi thang vao volume de du lieu song qua lan tao lai.
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
       # 24/10/2026 (giam tai RAM): image apache/kafka mac dinh -Xms1G -Xmx1G (da xac minh), qua lon
       # cho luu luong event cua 1 SME (vai chuc event/phut).
       KAFKA_HEAP_OPTS: "-Xms256m -Xmx384m"
@@ -963,6 +972,9 @@ services:
       # qua EnvVarConfigProvider cua Kafka Connect, gia tri lay tu infra/.env luc khoi dong.
       CONNECT_CONFIG_PROVIDERS: env
       CONNECT_CONFIG_PROVIDERS_ENV_CLASS: org.apache.kafka.common.config.provider.EnvVarConfigProvider
+      # 25/10/2026 (fix ra soat CDC): chi cho connector doc bien PT_DB_* (= worker property
+      # config.providers.env.param.allowlist.pattern) - khong lo bien moi truong khac cua container.
+      CONNECT_CONFIG_PROVIDERS_ENV_PARAM_ALLOWLIST_PATTERN: "PT_DB_.*"
       PT_DB_NAME: ${POSTGRES_PT_DB}
       PT_DB_USER: ${POSTGRES_PT_USER}
       PT_DB_PASSWORD: ${POSTGRES_PT_PASSWORD}
@@ -972,11 +984,22 @@ services:
     # Kafka Connect dong producer/consumer noi bo mat hon 10s mac dinh -> tranh bi SIGKILL (exit 137).
     stop_grace_period: 30s
     healthcheck:
-      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8083/connectors"]
+      # 25/10/2026 (fix ra soat CDC): truoc day chi kiem tra REST /connectors - connector/task
+      # FAILED (luc polling dang tat => su kien dung lai im lang) van bao healthy. Nay: chua co
+      # connector (404) thi healthy; da co thi connector VA task 0 phai RUNNING, khong thi
+      # `docker ps` hien unhealthy -> chay scripts/cdc-off.ps1 de quay ve polling.
+      test:
+        - CMD-SHELL
+        - >-
+          s=$$(curl -s -w ' %{http_code}' http://127.0.0.1:8083/connectors/pt-outbox-connector/status) || exit 1;
+          case "$$s" in *' 404') exit 0 ;; *' 200') ;; *) exit 1 ;; esac;
+          echo "$$s" | grep -q '"connector":{"state":"RUNNING"' &&
+          echo "$$s" | grep -q '"tasks":\[{"id":0,"state":"RUNNING"'
       interval: 10s
       timeout: 5s
-      retries: 10
-      start_period: 30s
+      retries: 3
+      start_period: 90s
+      start_interval: 5s
 
   # ---------------------------------------------------------------
   # Observability (bo sung 04/08/2026, Technical_Spec.md muc 15) - hoan toan tach biet khoi

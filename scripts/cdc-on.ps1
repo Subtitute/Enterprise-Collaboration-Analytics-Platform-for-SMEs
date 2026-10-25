@@ -16,7 +16,9 @@
 . (Join-Path $PSScriptRoot 'cdc-common.ps1')
 $config = (Get-Content $ConnectorFile -Raw | ConvertFrom-Json).config | ConvertTo-Json -Depth 5
 
-if ((Test-DebeziumRunning) -and (Test-ConnectorRunning) -and -not (Test-PollingEnabled)) {
+# 25/10/2026 (fix ra soat CDC): them dieu kien slot active - REST RUNNING khong du chung minh CDC dang
+# doc WAL; thieu slot thi di du 6 buoc ben duoi (bat polling truoc nen an toan).
+if ((Test-DebeziumRunning) -and (Test-ConnectorRunning) -and (Test-SlotActive) -and -not (Test-PollingEnabled)) {
     # Chay lai khi da BAT: chi cap nhat cau hinh connector (task khoi dong lai, doc tiep tu offset da
     # commit - toi da trung lap), khong dung toi polling.
     Invoke-RestMethod -Method Put "$ConnectUrl/connectors/$Connector/config" -Body $config -ContentType 'application/json' | Out-Null
@@ -26,17 +28,23 @@ if ((Test-DebeziumRunning) -and (Test-ConnectorRunning) -and -not (Test-PollingE
 
 Write-Host '[1/6] Dam bao Outbox polling dang bat...' -ForegroundColor Cyan
 Set-OutboxPolling $true
+# 25/10/2026 (fix ra soat CDC): slot 'lost' thi connector khong bao gio chay lai - bao ngay thay vi cho 90s.
+if (Test-SlotLost) { throw $SlotLostMessage }
 
 Write-Host '[2/6] Bat container debezium (profile cdc)...' -ForegroundColor Cyan
-Invoke-Compose --profile cdc up -d --wait debezium
+# 25/10/2026 (fix ra soat CDC): healthcheck debezium nay phan anh trang thai connector - container dang
+# chay voi connector loi se khong healthy, --wait that bai: huong dan cach phuc hoi ro rang.
+try { Invoke-Compose --profile cdc up -d --wait debezium }
+catch { throw "debezium khong healthy (connector loi?) - polling van bat, khong mat su kien. Chay .\scripts\cdc-off.ps1 roi .\scripts\cdc-on.ps1. Chi tiet: $_" }
 if ((Invoke-PtSql 'SHOW wal_level') -ne 'logical') { throw 'postgres-pt chua co wal_level=logical' }
 
 Write-Host "[3/6] Dang ky connector '$Connector'..." -ForegroundColor Cyan
 Invoke-RestMethod -Method Put "$ConnectUrl/connectors/$Connector/config" -Body $config -ContentType 'application/json' | Out-Null
 
 Write-Host '[4/6] Cho connector RUNNING va replication slot active...' -ForegroundColor Cyan
-$ready = Wait-Until { (Test-ConnectorRunning) -and (Invoke-PtSql "SELECT active FROM pg_replication_slots WHERE slot_name = '$Slot'") -eq 't' } 'connector RUNNING + slot active'
+$ready = Wait-Until { (Test-ConnectorRunning) -and (Test-SlotActive) } 'connector RUNNING + slot active'
 if (-not $ready) {
+    if (Test-SlotLost) { throw $SlotLostMessage }
     Get-ConnectorStatus | ConvertTo-Json -Depth 5 | Write-Host
     throw 'Connector chua chay - polling van bat, khong mat su kien. Xem: docker logs --tail 50 debezium'
 }

@@ -20,8 +20,8 @@
 . (Join-Path $PSScriptRoot 'cdc-common.ps1')
 
 $debeziumUp = Test-DebeziumRunning
-$cdcActive = $debeziumUp -and (Test-ConnectorRunning) -and
-    ((Invoke-PtSql "SELECT count(*) FROM pg_replication_slots WHERE slot_name = '$Slot' AND active") -eq '1')
+# 25/10/2026 (fix ra soat CDC): dung chung Test-SlotActive voi cdc-on.ps1 (cung 1 cau SQL).
+$cdcActive = $debeziumUp -and (Test-ConnectorRunning) -and (Test-SlotActive)
 
 if ($cdcActive -and -not (Test-PollingEnabled)) {
     Write-Host '[1/5] Cho cac transaction dang mo ket thuc, chot moc T1/L1...' -ForegroundColor Cyan
