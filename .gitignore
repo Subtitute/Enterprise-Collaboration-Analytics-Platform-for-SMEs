@@ -55,10 +55,13 @@ Doc/GraduationReport.*
 
 # 25/10/2026: danh sach viec giao rieng cho tung thanh vien (Thanh, Tien) - gui truc tiep cho tung
 # nguoi, khong day len GitHub. Ban chinh thuc cua phan cong van nam o Doc/Script.md (co commit).
+# 25/10/2026 (bo sung): ban .txt thay bang ban Excel (.xlsx) de theo doi trang thai tung viec; kem
+# file khoa tam "~$..." ma Excel tao ra khi dang mo file.
 Doc/Thanh-side.md
-Doc/Thanh-side.txt
+Doc/Thanh-side.xlsx
 Doc/Tien-side.md
-Doc/Tien-side.txt
+Doc/Tien-side.xlsx
+Doc/~$*-side.xlsx
 
 # Frontend
 apps/web/dist/
