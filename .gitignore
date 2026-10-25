@@ -53,6 +53,13 @@ Doc/DemoScript.md
 # (.aux/.out/.toc/.lot/.pdf/.synctex.gz/.log...) - khong day len GitHub theo yeu cau, chi giu cuc bo.
 Doc/GraduationReport.*
 
+# 25/10/2026: danh sach viec giao rieng cho tung thanh vien (Thanh, Tien) - gui truc tiep cho tung
+# nguoi, khong day len GitHub. Ban chinh thuc cua phan cong van nam o Doc/Script.md (co commit).
+Doc/Thanh-side.md
+Doc/Thanh-side.txt
+Doc/Tien-side.md
+Doc/Tien-side.txt
+
 # Frontend
 apps/web/dist/
 apps/web/.vite/
