@@ -548,6 +548,10 @@ async function main() {
   // Document Service can vai giay de read-model du an nhan su kien project.created qua Kafka.
   await sleep(5000);
   await require('./migrate-project-documents').migrate({ token: accessToken });
+  // 26/10/2026: 20 tai lieu mau (Word/PDF/Excel/PowerPoint) vao thu muc cua 5 du an (idempotent).
+  await require('./seed-project-docs').seedProjectDocs({ token: accessToken });
+  // 26/10/2026: giao 8 khach hang cho phong Kinh doanh - CRM cua Manager/nhan vien demo khong con trong.
+  await require('./migrate-demo-ownership').migrateDemoOwnership({ token: accessToken });
 
   console.log('\n=== Seed hoan tat (qua API cong khai) ===');
   console.log(`Dang nhap Org Admin: ${adminEmail} / ${adminPassword}`);
