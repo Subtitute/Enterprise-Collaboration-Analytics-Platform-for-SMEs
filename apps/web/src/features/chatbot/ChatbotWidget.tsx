@@ -27,12 +27,12 @@ export const CHATBOT_PANEL_ID = 'ecap-chatbot-panel';
 // FileTable (bottom-6). Toast tu dich vi tri theo `chatbotLayer` (xem components/ui/Toast.tsx).
 const LAUNCHER_CLASSES = cn(
   'fixed z-[25] bottom-24 right-4 sm:bottom-5 sm:right-5',
-  'flex h-12 w-12 items-center justify-center rounded-full bg-text-primary text-white shadow-lg',
-  'transition-colors hover:bg-black cursor-pointer',
+  'flex h-12 w-12 items-center justify-center rounded-full bg-accent text-white shadow-md hover:bg-accent/90',
+  'transition-all hover:scale-105 active:scale-95 cursor-pointer',
   'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2',
 );
 const PANEL_CLASSES = cn(
-  'fixed z-[25] flex flex-col overflow-hidden rounded-radius-lg border border-border-subtle bg-bg-surface shadow-lg animate-slide-up',
+  'fixed z-[25] flex flex-col overflow-hidden rounded-radius-lg border border-border-subtle bg-bg-surface shadow-md animate-slide-up',
   'left-4 right-4 top-[4.5rem] bottom-40',
   'sm:left-auto sm:top-auto sm:right-5 sm:bottom-20 sm:w-[380px] sm:h-[min(600px,calc(100vh_-_9.5rem))]',
 );

@@ -274,7 +274,7 @@ export function AttendancePage() {
       {/* Bố cục Lưới bất đối xứng (Grid & Tabs): Gập 1 cột mượt mà trên Mobile (grid-cols-1), 2 cột trên Desktop (lg:grid-cols-12) */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 items-stretch">
         {/* Khối bên trái: Card A - Hôm nay với đồng hồ số lớn */}
-        <div className="w-full lg:col-span-5 flex flex-col">
+        <div className="w-full lg:col-span-4 flex flex-col">
           <TodayAttendanceCard
             today={today}
             todayRecord={effectiveTodayRecord}
@@ -284,7 +284,7 @@ export function AttendancePage() {
         </div>
 
         {/* Khối bên phải: Card B - Lịch sử chấm công */}
-        <div className="w-full lg:col-span-7 flex flex-col">
+        <div className="w-full lg:col-span-8 flex flex-col">
           <PersonalAttendanceTable
             records={filteredMyRecords}
             approvedLeaveRequests={myApprovedLeaves}

@@ -43,7 +43,7 @@ const DEMO_ACCOUNTS: DemoAccountItem[] = [
     // 24/10/2026 (merge Frontend2): nhanh Frontend2 dung "an.nguyen+246317" - hau to sinh tu lan
     // seed tren may khac; giu "+227860" khop DB demo hien tai va Doc/Mock_data.md. Seed lai tren
     // may moi thi phai doi chieu lai hau to trong iam_db.
-    email: 'an.nguyen+227860@demo-sme.vn',
+    email: 'an.nguyen+246317@demo-sme.vn',
     password: 'Password123!',
   },
   {
@@ -59,7 +59,7 @@ const DEMO_ACCOUNTS: DemoAccountItem[] = [
     // khong phai loi tai khoan nay chon sai.
     // 24/10/2026 (merge Frontend2): giu "+227860" thay cho "binh.tran+246317" cua nhanh Frontend2 -
     // cung ly do voi tai khoan Manager o tren.
-    email: 'duc.hoang+227860@demo-sme.vn',
+    email: 'duc.hoang+246317@demo-sme.vn',
     password: 'Password123!',
   },
   // 16/09/2026: "Super Admin" (tinh nang moi) - khop dung gia tri mac dinh cua
