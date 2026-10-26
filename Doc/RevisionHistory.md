@@ -2162,3 +2162,51 @@ Layer 4) và việc backend nhỏ (trạng thái `CANCELLED` cho đơn nghỉ ph
 công việc), kèm quy tắc làm việc (1 nhánh/gói việc, Pull Request, đồng bộ `main` hằng tuần).
 
 Chi tiết kỹ thuật: `Technical_Spec.md` §26 (và cuối §25); phân công: `Script.md` §3.3–§3.4.
+
+## 26/10/2026 — Danh sách nhân viên & kho ảnh nhận diện (phân tích + kế hoạch, chưa code)
+
+Phân tích để chuẩn bị tính năng "Danh sách nhân viên": xem thông tin cá nhân, email, số điện thoại, ảnh
+nhận diện; Org Admin và Manager (trong phạm vi) cập nhật avatar + ảnh nhận diện, mọi người tự cập nhật
+của mình; nhân viên chỉ xem hồ sơ của chính mình; nhập danh sách kèm ảnh nhận diện qua Excel. Hai luồng
+phân tích độc lập: 1 luồng thiết kế, 1 luồng phản biện tìm lỗ hổng (42 mục), sau đó đối chiếu và chốt.
+Chỉ sửa tài liệu, không đổi mã nguồn.
+
+**3 câu hỏi hiện trạng (có bằng chứng file:line ở `Technical_Spec.md` §27.1):**
+1. Kho khuôn mặt nằm ở `ml-service` (`ml_db`, bảng `face_enrollments`: `user_id`, `organization_id`,
+   `embedding` 512 chiều, `enrolled_at`) — **chỉ lưu embedding, không lưu ảnh gốc**. Ảnh check-in/out ở
+   bucket `hrm-attendance`, lưu vô thời hạn (không lifecycle, hrm-service không xử lý `USER_DELETED`).
+2. Chỉ chính chủ sửa được (4 endpoint `/ml/face/*` luôn dùng `ctx.user_id`); không có đường nào cho Org
+   Admin/Manager; ô đồng ý chỉ là state phía client.
+3. Nhập Excel (§19.1) có cho nhân viên nhưng không có ảnh, không cập nhật được người đã có, mật khẩu mặc
+   định dùng chung `Password123!`.
+
+**Lỗ hổng chính tìm được:** hồ sơ cá nhân web còn giả lập (số điện thoại cố định `0912 345 678`, nút Lưu
+chỉ `setTimeout`, avatar chỉ xem trước); `users` không có số điện thoại/avatar/mã NV; `GET /users` mở cho
+mọi nhân viên nên không thể thêm trường riêng tư vào đó; truy vấn khuôn mặt ở ml-service chỉ lọc
+`user_id` — sẽ thành lỗ hổng xuyên tenant ngay khi thêm "đăng ký hộ"; model nạp lười không khoá (2
+request đầu có thể nạp 2 lần ArcFace 261 MB dưới giới hạn 1 GB) và detector dùng chung giữa các thread;
+vô hiệu hoá tài khoản không xoá embedding; ảnh đăng ký nhiều mặt bị chọn bừa mặt tin cậy nhất; không kiểm
+tra trùng khuôn mặt giữa các nhân viên (gian lận chấm công hộ); SheetJS bản cộng đồng không đọc được ảnh
+nhúng trong Excel; Nginx web mặc định 1 MB (đã sửa sẵn thành 26 MB).
+
+**Quyết định chốt:** lưu ảnh nhận diện gốc trong bucket private `ml-face-references` (mất EXIF/GPS), chỉ
+đọc qua proxy ml-service có kiểm tra phạm vi + `no-store` + nhật ký từng lượt xem, không presigned URL;
+avatar tách riêng ở `iam-avatars` (presigned TTL ngắn); đồng ý lưu phía server (`face_consents`), ảnh tải
+hộ/nhập ở trạng thái `PENDING_CONSENT` không dùng để so khớp cho tới khi nhân viên xác nhận, tự huỷ sau
+30 ngày; phạm vi Manager theo `departmentId` trong JWT, chỉ với Employee phòng mình; cho tự đăng ký lại
+có nhật ký + kiểm tra trùng 1:N (≥ 0,5 chặn, 0,35–0,5 cảnh báo); nhập Excel + ZIP có xem trước, kiểm tra
+phía server và báo cáo lỗi; cột mật khẩu tuỳ chọn + email kích hoạt; xoá dữ liệu khuôn mặt khi vô hiệu
+hoá; không có công tắc theo tổ chức; `ecap-mobile` để đợt sau. Giai đoạn 0 sửa trước 2 lỗi ml-service.
+Trong 42 mục phản biện: loại hẳn 4 mục (#7 công tắc mặc định tắt, #8 không lưu ảnh gốc, #26 phạm vi
+theo `managerId`, #30 permission mới), hoãn 1 mục (#36 mobile), nhận một phần 7 mục (#4, #10, #11, #15,
+#16, #22, #29 — vd bỏ quy trình duyệt khi tự đăng ký lại, chưa mã hoá embedding); còn lại nhận toàn bộ.
+Lý do ở `Technical_Spec.md` §27.14–§27.15.
+
+**Cập nhật pháp lý:** căn cứ hiện hành từ 01/01/2026 là Luật Bảo vệ dữ liệu cá nhân số 91/2025/QH15 và
+Nghị định 356/2025/NĐ-CP (thay Nghị định 13/2023/NĐ-CP); dữ liệu sinh trắc là dữ liệu cá nhân nhạy cảm.
+Bảng ánh xạ điều khoản → cơ chế lập theo bản tóm tắt, cần đối chiếu toàn văn trước khi trích vào báo cáo.
+
+**Kế hoạch:** 6 giai đoạn bắt buộc (0–5, ≈ 14 người-ngày) + 1 giai đoạn tuỳ chọn (xoá ảnh chấm công sau
+90 ngày, thông báo khi người khác đổi avatar, avatar trên mobile, mã hoá embedding).
+
+Chi tiết kỹ thuật: `Technical_Spec.md` §27 (và ghi chú cuối §24); giao diện: `Wireframe.md` §16.

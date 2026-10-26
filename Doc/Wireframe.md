@@ -2,7 +2,8 @@
 
 > Trạng thái: **ĐÃ TRIỂN KHAI** — mô tả wireframe khớp với giao diện đã lập trình và xác minh sống
 > cho toàn bộ màn hình MVP và các module mở rộng (CRM-lite, HRM-lite, i18n, Analytics nâng cao,
-> Kho hàng, Nhận diện khuôn mặt, Chatbot nội bộ — 24/10/2026).
+> Kho hàng, Nhận diện khuôn mặt, Chatbot nội bộ — 24/10/2026). §16 (Danh sách nhân viên & ảnh nhận
+> diện, 26/10/2026) là **KẾ HOẠCH, chưa triển khai**.
 > Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
 
 **Tài liệu liên quan:** [General_idea.md](General_idea.md) · [Technical_Spec.md](Technical_Spec.md)
@@ -561,6 +562,218 @@ Nút tròn nổi góc dưới-phải, mọi trang đã đăng nhập (chỉ hi�
 
 ---
 
+## 16. Danh sách nhân viên & ảnh nhận diện *(kế hoạch chốt 26/10/2026, xem Technical_Spec.md §27)*
+
+> Trạng thái: **KẾ HOẠCH — CHƯA TRIỂN KHAI.** Không tạo trang mới: mở rộng tab **Thành viên** của Quản
+> trị (§8) thành "Danh sách nhân viên" + drawer "Hồ sơ nhân viên"; nhân viên tự xem ở Hồ sơ cá nhân (§11).
+> `ecap-mobile` ngoài phạm vi đợt này.
+
+### 16.1 Danh sách nhân viên (`/admin/members`)
+
+**Org Admin** — cả tổ chức:
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────┐
+│ Quản trị > Danh sách nhân viên            [⇪ Nhập từ Excel]  [+ Mời thành viên]     │
+├────────────────────────────────────────────────────────────────────────────────────┤
+│ 🔍 Tên, email, mã NV, SĐT...  [Phòng ban: Tất cả ▾] [Ảnh nhận diện: Tất cả ▾] [Trạng thái ▾]│
+├────────────────────────────────────────────────────────────────────────────────────┤
+│ Ảnh │ Mã NV │ Họ và tên     │ Email               │ SĐT          │ Phòng ban  │ Vai trò  │ Ảnh nhận diện      │
+│ (A) │ NV001 │ Nguyễn Văn An │ an.nguyen@congty.vn │ 0912 345 678 │ Kinh doanh │ Employee │ ✅ Đang dùng        │
+│ (B) │ NV002 │ Trần Thị Bình │ binh.tran@congty.vn │ 028 3812 3456│ Kỹ thuật   │ Employee │ ⏳ Chờ NV xác nhận  │
+│ (C) │ NV003 │ Lê Văn Chí    │ chi.le@congty.vn    │ —            │ Kế toán    │ Manager  │ ✖ Chưa đăng ký      │
+│ (D) │ —     │ Phạm Thu Dung │ dung.pham@congty.vn │ —            │ Kinh doanh │ Employee │ ⊘ NV đã từ chối     │
+├────────────────────────────────────────────────────────────────────────────────────┤
+│ Hiển thị 1–20 / 57                                                   ‹ 1 2 3 ›      │
+└────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Manager** — chỉ Employee của phòng ban mình (bộ lọc Phòng ban khoá sẵn, không có cột Vai trò):
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────┐
+│ Quản trị > Danh sách nhân viên — Phòng Kinh doanh   [⇪ Nhập từ Excel] [+ Mời thành viên]│
+├────────────────────────────────────────────────────────────────────────────────────┤
+│ 🔍 Tên, email, mã NV...        [Phòng ban: Kinh doanh 🔒]  [Ảnh nhận diện: Tất cả ▾]  │
+│ Ảnh │ Mã NV │ Họ và tên     │ Email               │ SĐT          │ Ảnh nhận diện       │
+│ (A) │ NV001 │ Nguyễn Văn An │ an.nguyen@congty.vn │ 0912 345 678 │ ✅ Đang dùng         │
+│ (D) │ —     │ Phạm Thu Dung │ dung.pham@congty.vn │ —            │ ⊘ NV đã từ chối      │
+│ ⓘ Chỉ hiện nhân viên (Employee) thuộc phòng ban của bạn.                             │
+└────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+- **Employee** không vào được trang này (như hiện nay); hồ sơ của mình xem ở §16.5.
+- Bấm 1 dòng → mở drawer §16.2. Cột "Ảnh nhận diện" chỉ là trạng thái — **không bao giờ hiện ảnh nhận
+  diện trong danh sách**; cột "Ảnh" là avatar (fallback chữ viết tắt).
+- Mobile (< 768px): mỗi người 1 thẻ (avatar, tên, phòng ban, badge ảnh nhận diện), như `MemberCard` hiện có.
+
+### 16.2 Hồ sơ nhân viên — drawer chi tiết / chỉnh sửa
+
+```
+┌──────────────────────────────────────────────────┐
+│ Hồ sơ nhân viên                              [✕] │
+├──────────────────────────────────────────────────┤
+│        (Avatar 96px)    Nguyễn Văn An            │
+│        [Đổi avatar] [Xoá avatar]  [Đang hoạt động]│
+│ ──────────────────────────────────────────────── │
+│ Email           an.nguyen@congty.vn  (không sửa) │
+│ Mã nhân viên   [NV001            ]               │
+│ Họ và tên      [Nguyễn Văn An    ]               │
+│ Số điện thoại  [0912 345 678     ]               │
+│                 ⚠ Số điện thoại không hợp lệ     │
+│ Phòng ban       Kinh doanh   · Vai trò: Employee │
+│                                [Huỷ] [Lưu]       │
+│ ──────────────────────────────────────────────── │
+│ Ảnh nhận diện chấm công          (xem §16.3)     │
+└──────────────────────────────────────────────────┘
+```
+
+- **Org Admin:** sửa Mã NV, Họ tên, Số điện thoại; đổi phòng ban/vai trò vẫn ở menu `⋮` có sẵn (§8).
+- **Manager:** các ô thông tin chỉ đọc (không có nút Lưu); chỉ đổi/xoá avatar và ảnh nhận diện.
+- Lỗi kiểm tra hiện ngay dưới ô (số điện thoại, mã NV đã dùng); lưu thành công → toast.
+
+### 16.3 Panel ảnh nhận diện (trong drawer) — theo trạng thái đồng ý
+
+```
+(a) Đang dùng                                   (b) Chờ nhân viên xác nhận
+┌──────────────────────────────────────┐        ┌──────────────────────────────────────┐
+│ ┌────────┐ ✅ Đang dùng để đối chiếu   │        │ ┌────────┐ ⏳ Chờ nhân viên xác nhận   │
+│ │ (ảnh)  │ Nguồn: Tự chụp            │        │ │ (ảnh   │ Nguồn: Quản trị viên tải   │
+│ │        │ Cập nhật: 12/10/2026 08:40│        │ │  chờ)  │ Bởi: Trần Quản Lý          │
+│ └────────┘ [Xem ảnh lớn]              │        │ └────────┘ Hết hạn: 25/11/2026        │
+│ [Tải ảnh thay thế] [Xoá ảnh]          │        │ ⓘ Chưa dùng để đối chiếu cho tới khi │
+└──────────────────────────────────────┘        │   nhân viên xác nhận.                 │
+                                                │ [Tải ảnh khác] [Huỷ ảnh chờ]          │
+(c) Chưa đăng ký                                └──────────────────────────────────────┘
+┌──────────────────────────────────────┐        (d) Nhân viên đã từ chối / rút đồng ý
+│ ✖ Chưa có ảnh nhận diện               │        ┌──────────────────────────────────────┐
+│ [Tải ảnh lên]                         │        │ ⊘ Nhân viên đã từ chối nhận diện      │
+│ ⓘ Ảnh sẽ chờ nhân viên xác nhận trong │        │   khuôn mặt (20/10/2026).             │
+│   30 ngày.                            │        │ Không thể tải ảnh hộ. Chấm công vẫn   │
+└──────────────────────────────────────┘        │ hoạt động bình thường.                │
+                                                └──────────────────────────────────────┘
+Hộp "Tải ảnh thay thế" (chọn tệp → kiểm tra ngay):
+┌──────────────────────────────────────────────┐
+│ Tải ảnh nhận diện cho Nguyễn Văn An           │
+│ ┌────────┐  ✅ 1 khuôn mặt, cao 186px          │
+│ │(xem    │  ⚠ Ảnh hơi mờ                       │
+│ │ trước) │  ⚠ Có thể trùng với 1 nhân viên khác│
+│ └────────┘                                    │
+│ ⓘ Ảnh mới chờ nhân viên xác nhận; ảnh đang    │
+│   dùng giữ nguyên tới lúc đó.                 │
+│                          [Huỷ] [Gửi ảnh]       │
+└──────────────────────────────────────────────┘
+```
+
+- Ảnh chỉ tải khi mở drawer (qua API, không cache); "Xem ảnh lớn" mở modal, mỗi lượt xem được ghi nhật ký.
+- Lỗi chặn (không mặt, nhiều mặt, mặt quá nhỏ, trùng với người khác ≥ 0,5) → nút "Gửi ảnh" bị khoá kèm lý do.
+
+### 16.4 Trình nhập Excel + ZIP (4 bước)
+
+```
+Bước 1 — Tệp
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Nhập nhân viên từ Excel        ①Tệp ─ ②Xem trước ─ ③Đang nhập ─ ④Kết quả  │
+├──────────────────────────────────────────────────────────────────────────┤
+│ [⬇ Tải tệp mẫu .xlsx]                                                     │
+│ Tệp Excel (≤ 2 MB, ≤ 300 dòng):  [Chọn tệp…]  nhan-vien-t10.xlsx · 57 dòng│
+│ Ảnh nhận diện (ZIP, tuỳ chọn):   [Chọn tệp…]  anh-nhan-vien.zip · 55 ảnh  │
+│ ⓘ Ghép ảnh theo cột "Tệp ảnh"; để trống thì theo email (vd             │
+│   an.nguyen@congty.vn.jpg). Tệp chỉ xử lý trên trình duyệt, không tải    │
+│   lên máy chủ.                                                           │
+│                                                        [Tiếp tục →]      │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Bước 2 — Xem trước (kiểm tra từng dòng, trước khi ghi)
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Đang kiểm tra ảnh… ████████░░ 44/55                                       │
+│ Tổng 57 · Mời mới 40 · Cập nhật 9 · Cảnh báo 3 · Lỗi 5  [☐ Chỉ hiện lỗi]  │
+│ #  │ Ảnh │ Email               │ Thao tác  │ Ảnh nhận diện      │ Trạng thái│
+│ 2  │ [▣] │ an.nguyen@congty.vn │ Mời mới   │ ✅ 1 mặt            │ Hợp lệ    │
+│ 3  │ [▣] │ binh.tran@congty.vn │ Cập nhật  │ ⚠ Hơi mờ            │ Cảnh báo  │
+│ 4  │  —  │ chi.le@congty       │ —         │ —                   │ ✖ Email sai định dạng │
+│ 5  │ [▣] │ dung.pham@congty.vn │ Cập nhật  │ ✖ 2 khuôn mặt       │ ✖ Lỗi ảnh │
+│ 6  │  —  │ em.vo@congty.vn     │ Mời mới   │ ✖ Không thấy tệp "em.vo.jpg" │ ✖ │
+│ 7  │ [▣] │ gia.ho@congty.vn    │ Cập nhật  │ ⊘ NV đã từ chối — bỏ qua ảnh │ Cảnh báo│
+│ 8  │  —  │ x@congtykhac.vn     │ Mời mới   │ —                   │ (kiểm tra khi ghi)│
+│ ⓘ Dòng "Cập nhật" chỉ đổi SĐT, mã NV, ảnh — không đổi họ tên/phòng ban/vai trò.│
+│ ⓘ 2 ảnh trong ZIP không khớp dòng nào. Dòng lỗi sẽ bị bỏ qua.             │
+│                               [← Quay lại]  [Nhập 52 dòng hợp lệ →]       │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Bước 3 — Đang nhập
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Đang nhập… ██████░░░░ 31/52   Không đóng tab này.             [Tạm dừng] │
+│ Dòng 31: tạo tài khoản ✅ → chờ đồng bộ để gửi ảnh (thử lại 2/4)…          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+Bước 4 — Kết quả + báo cáo lỗi
+┌──────────────────────────────────────────────────────────────────────────┐
+│ Hoàn tất: 48 thành công · 2 thành công một phần · 2 lỗi                   │
+│ #  │ Email               │ Tài khoản │ Ảnh nhận diện       │ Lý do         │
+│ 12 │ k.ngo@congty.vn     │ ✅ Đã mời  │ ✖ Chưa đồng bộ      │ Đã thử 4 lần  │
+│ 8  │ x@congtykhac.vn     │ ✖          │ —                   │ Không thể dùng email này │
+│ ⓘ Ảnh đã gửi đang chờ từng nhân viên xác nhận trong 30 ngày. Nhân viên mới│
+│   nhận email kích hoạt tài khoản (không chứa mật khẩu).                   │
+│ ⚠ Hãy xoá tệp Excel/ZIP gốc sau khi nhập xong.                            │
+│ [⟳ Thử lại các bước lỗi]  [⬇ Tải báo cáo lỗi .xlsx]  [Đóng]               │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+- Manager: dòng ngoài phòng ban mình hoặc không phải Employee → lỗi "Ngoài phạm vi"; cột Vai trò, SĐT, mã
+  NV của người đã có bị bỏ qua, có ghi chú trên dòng.
+- Báo cáo lỗi `.xlsx` = cột gốc + "Kết quả tài khoản" + "Kết quả ảnh" + "Lý do"; sửa xong nhập lại ngay
+  (chạy lại không tạo trùng).
+
+### 16.5 Hồ sơ cá nhân của nhân viên + xác nhận đồng ý (`/profile`)
+
+```
+Banner trên Topbar/Hồ sơ khi có ảnh chờ xác nhận:
+┌────────────────────────────────────────────────────────────────────────┐
+│ ⏳ Quản trị viên đã tải ảnh nhận diện chấm công cho bạn. Hãy xem và xác  │
+│    nhận trước 25/11/2026.                               [Xem ngay]     │
+└────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────┐
+│ Hồ sơ cá nhân                                                 │
+├──────────────────────────────────────────────────────────────┤
+│ (Avatar) [Đổi avatar]  Nguyễn Văn An          [Đang hoạt động]│
+│          an.nguyen@congty.vn · NV001 · Kinh doanh · Employee  │
+│ ──────────────────────────────────────────────────────────── │
+│ Số điện thoại [0912 345 678 ]                       [Lưu]     │
+│ (Họ tên, mã NV, phòng ban do quản trị viên cập nhật)          │
+│ ──────────────────────────────────────────────────────────── │
+│ Ảnh nhận diện chấm công                                       │
+│ ┌────────┐ ┌────────┐                                         │
+│ │ đang   │ │ ảnh    │  Ảnh mới do Trần Quản Lý tải lên         │
+│ │ dùng   │ │ chờ    │  ngày 26/10/2026.                        │
+│ └────────┘ └────────┘  [Xác nhận dùng ảnh này] [Từ chối]       │
+│ [Chụp lại bằng camera] [Tải ảnh từ máy] [Xoá & rút lại đồng ý] │
+└──────────────────────────────────────────────────────────────┘
+
+Hộp xác nhận đồng ý (khi tự đăng ký hoặc bấm "Xác nhận dùng ảnh này"):
+┌──────────────────────────────────────────────────────────────┐
+│ Đồng ý xử lý dữ liệu khuôn mặt (phiên bản v1)                 │
+│ • Ảnh và đặc trưng khuôn mặt chỉ dùng để đối chiếu khi chấm   │
+│   công, kết quả chỉ là cảnh báo tham khảo.                    │
+│ • Ảnh được lưu; Org Admin và Manager phòng ban của bạn xem    │
+│   được, mỗi lượt xem đều được ghi lại.                        │
+│ • Từ chối hoặc rút lại không ảnh hưởng việc chấm công.        │
+│ • Dữ liệu bị xoá khi bạn rút lại, khi tài khoản bị vô hiệu    │
+│   hoá hoặc bị xoá.                                            │
+│ ☐ Tôi đã đọc và đồng ý                                        │
+│                                   [Huỷ] [Đồng ý]  (khoá tới khi tick) │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- Thay hoàn toàn phần giả lập hiện tại (số điện thoại cố định, nút Lưu giả, avatar chỉ xem trước):
+  mọi nút đều gọi API thật.
+- "Từ chối" → hộp xác nhận ngắn: "Bạn sẽ không dùng nhận diện khuôn mặt; quản trị viên không thể tải
+  ảnh hộ. Bạn có thể tự đăng ký lại bất kỳ lúc nào."
+- Mobile web (< 768px): 2 ảnh xếp dọc, nút xếp thành cột.
+
+---
+
 ## Lịch sử thay đổi tài liệu
 
 - **18/07/2026** — Khởi tạo tài liệu `Wireframe.md`: mô tả wireframe văn bản cho toàn bộ màn hình MVP (Đăng nhập/Đăng ký, App Shell, Dashboard, Dự án & Công việc, Tài liệu, Thông báo, Báo cáo & Phân tích, Quản trị), phác thảo trước màn hình Chấm công (Phase 2), và ghi chú responsive.
@@ -595,3 +808,4 @@ Nút tròn nổi góc dưới-phải, mọi trang đã đăng nhập (chỉ hi�
 - **24/10/2026 (Chatbot nội bộ — kế hoạch)** — §15 (mới): phác thảo UI bubble chat nổi xuyên suốt app cho tính năng RAG + tool-calling lai đã bàn bạc và chốt kiến trúc trước khi code. **Chỉ là kế hoạch — chưa có màn hình/code nào thật.** Đặc tả kỹ thuật đầy đủ ở `Technical_Spec.md` §23, theo dõi trạng thái ở `Doc/Upgrade.md` Tier 5.
 - **24/10/2026 (Nhận diện khuôn mặt cho Chấm công)** — §9.1 bổ sung badge "Khớp khuôn mặt"/"Không khớp" (cờ mềm, cùng cơ chế với badge GPS đã có) ở mọi nơi hiển thị bằng chứng chấm công; §11 bổ sung khối đăng ký khuôn mặt (opt-in bắt buộc đồng ý) vào trang Hồ sơ cá nhân. Đảo ngược có chủ đích quyết định "không nhận diện khuôn mặt" ban đầu của §9 (05/08/2026), theo yêu cầu trực tiếp. Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §24.
 - **24/10/2026 (Chatbot nội bộ — triển khai)** — §15 viết lại từ phác thảo kế hoạch thành mô tả giao diện thật: nút nổi chỉ hiện khi có quyền `chatbot:use`, panel có Hội thoại mới/Lịch sử, chip nguồn tài liệu bấm mở được, dòng "Đã tra cứu", số lượt đã dùng trong ngày, lỗi hiển thị ngay trong panel, nút Gửi khoá khi đang chờ trả lời.
+- **26/10/2026 (Danh sách nhân viên & ảnh nhận diện — kế hoạch)** — §16 (mới, **chỉ là kế hoạch**): mở rộng tab Thành viên (§8) thành "Danh sách nhân viên" có avatar/mã NV/số điện thoại/trạng thái ảnh nhận diện, khác nhau theo vai trò (Org Admin cả tổ chức; Manager chỉ Employee phòng mình; Employee không vào được); drawer "Hồ sơ nhân viên" để xem/sửa; panel ảnh nhận diện theo 4 trạng thái đồng ý (đang dùng, chờ nhân viên xác nhận, chưa đăng ký, nhân viên đã từ chối); trình nhập Excel + ZIP 4 bước (tệp, xem trước lỗi từng dòng, đang nhập, kết quả + báo cáo lỗi `.xlsx`); Hồ sơ cá nhân (§11) dùng API thật thay phần giả lập, kèm banner và hộp xác nhận đồng ý có phiên bản. Cập nhật khối trạng thái. Đặc tả kỹ thuật: `Technical_Spec.md` §27.

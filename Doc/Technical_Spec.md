@@ -5,7 +5,8 @@
 > toàn workspace) nhưng CHƯA xác minh sống qua Gateway thật — xem §22.8. §23 (Chat bot nội bộ RAG +
 > tool-calling, 24/10/2026) đã triển khai, khác kế hoạch ban đầu ở vài điểm ghi rõ tại §23.2; §25
 > (giảm tải RAM Docker, 24/10/2026). §26 (CDC Debezium, profile tuỳ chọn `cdc`, 25/10/2026) đã
-> triển khai và xác minh sống dưới tải. Dữ liệu kiểm thử tái sử dụng: `Mock_data.md`. Phần cố ý chưa
+> triển khai và xác minh sống dưới tải. §27 (Danh sách nhân viên & kho ảnh nhận diện, 26/10/2026) là
+> **KẾ HOẠCH, chưa triển khai**. Dữ liệu kiểm thử tái sử dụng: `Mock_data.md`. Phần cố ý chưa
 > triển khai (forecasting ML, Layer 4/6 của §19) được đánh dấu rõ tại chỗ và theo dõi thêm ở
 > `Upgrade.md`. Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
 
@@ -1159,6 +1160,10 @@ bàn bạc trước khi code (xem thảo luận cùng ngày: chọn **verify 1:1
   cụt/trống bị từ chối rõ ràng (400, không phải 500); check-in thật có kèm điểm khớp đúng cả 2
   trường `checkInFaceMatchScore`/`checkInFaceMatched`, và vẫn thành công bình thường khi không có
   dữ liệu khuôn mặt nào (đúng thiết kế "không bao giờ chặn").
+- **Cập nhật 26/10/2026:** căn cứ pháp lý hiện hành (Luật 91/2025/QH15 + Nghị định 356/2025/NĐ-CP, hiệu
+  lực 01/01/2026, thay Nghị định 13/2023), giới hạn mục đích của dữ liệu khuôn mặt, đồng ý lưu phía
+  server, kho ảnh nhận diện và 2 lỗi ml-service cần sửa trước (nạp model lười không khoá, truy vấn chưa
+  lọc `organization_id`) — xem kế hoạch §27.
 
 ---
 
@@ -1358,6 +1363,450 @@ Debezium khởi động lỗi liên tục. Đã sửa: `KAFKA_LOG_DIRS=/var/lib/
   `cdc-off.ps1` rồi `docker compose --profile cdc down`.
 - 1 connector, 1 task, không có dự phòng (HA) — đủ cho mục đích minh hoạ.
 
+---
+
+## 27. Danh sách nhân viên & kho ảnh nhận diện *(kế hoạch chốt 26/10/2026)*
+
+> Trạng thái: **KẾ HOẠCH — CHƯA TRIỂN KHAI.** Chưa có dòng code nào. Mục này gồm hiện trạng (có bằng
+> chứng file:line), các quyết định đã chốt, thiết kế và kế hoạch theo giai đoạn. Giao diện tương ứng:
+> `Wireframe.md` §16. Phạm vi xem của Manager ở các module khác do đợt "Phạm vi dữ liệu của Manager"
+> (26/10/2026, làm song song) xử lý — mục này chỉ dùng chung định nghĩa phạm vi, không lập kế hoạch lại.
+
+Mục tiêu: (1) xem hồ sơ nhân viên — thông tin cá nhân, email, số điện thoại, ảnh nhận diện;
+(2) Org Admin và Manager (trong phạm vi) cập nhật/thay avatar và ảnh nhận diện, mọi người tự cập nhật
+của chính mình; (3) nhân viên chỉ xem hồ sơ của chính mình; (4) nhập danh sách nhân viên kèm ảnh nhận
+diện qua Excel.
+
+### 27.1 Hiện trạng — 3 câu hỏi
+
+**Câu 1. Kho khuôn mặt nằm ở đâu, lưu gì?**
+
+| Hạng mục | Hiện trạng | Bằng chứng |
+|---|---|---|
+| Service / DB | `ml-service`, Postgres riêng `postgres-ml`/`ml_db` | `apps/ml-service/app/db.py:71-75`, §19.3 |
+| Bảng / cột | `face_enrollments(user_id UUID PK, organization_id UUID, embedding DOUBLE PRECISION[] (512 chiều, đã L2-normalize), enrolled_at)` | `db.py:77-84` |
+| Số bản ghi | 1/người, đăng ký lại ghi đè | `apps/ml-service/app/routes.py:153-157` |
+| Ảnh mẫu gốc | **Không lưu** — ảnh chỉ đi qua bộ nhớ, chỉ còn embedding; ml-service không có MinIO | `routes.py:127-165`, `face.py:157-170` |
+| Ảnh check-in/out | MinIO bucket private `hrm-attendance`, key `{orgId}/{userId}/{workDate}/checkin.{jpg,png}` (và `checkout.*`) | `infra/.env:63`, `infra/docker-compose.yml:350`, `apps/hrm-service/src/attendance/object-key.util.ts:6-15` |
+| Truy cập ảnh check-in | Presigned GET 900 giây; chủ bản ghi hoặc `attendance:view` | `apps/hrm-service/src/minio/minio.service.ts:82-83`, `attendance.service.ts:303-323` |
+| Thời gian lưu ảnh check-in | **Vô thời hạn** — không lifecycle, không `removeObject`, hrm-service không tiêu thụ `USER_DELETED` | grep `apps/hrm-service/src`, `infra` |
+| Xoá embedding | Chỉ khi xoá vĩnh viễn tài khoản (`iam.user.deleted`); vô hiệu hoá thì **vẫn giữ** | `apps/ml-service/app/kafka_consumer.py:71-95,179-180` |
+
+**Câu 2. Có chỉnh sửa được không, ai sửa?** Chỉ chính chủ. Cả 4 endpoint `/api/v1/ml/face/*` lấy
+`ctx.user_id` từ header Gateway, không nhận `userId` mục tiêu (`routes.py:159,175,192,208`), quyền
+`attendance:checkin` (`auth.py:73-75`). UI duy nhất là khối đăng ký bằng webcam ở Hồ sơ cá nhân
+(`ProfileFaceEnrollmentCard.tsx`, `CheckInCamera.tsx:107-111`) — không tải ảnh từ tệp được; ô đồng ý
+chỉ là state phía client, không gửi lên server (`ProfileFaceEnrollmentCard.tsx:25`). Org Admin/Manager
+không có cách nào xem/sửa. `ecap-mobile` chỉ hiện họ tên/email/vai trò ở tab Hồ sơ
+(`ecap-mobile/lib/features/home_shell.dart:85-115`) và không gọi verify khi chấm công.
+Hồ sơ cá nhân trên web phần lớn là giả lập: avatar chỉ xem trước bằng `URL.createObjectURL`
+(`ProfileIdentityCard.tsx:45-56`), số điện thoại cố định `'0912 345 678'` (`ProfileInfoCard.tsx:37`),
+nút Lưu chỉ `setTimeout` 400 ms (`ProfileInfoCard.tsx:52-69`). Entity `users` không có số điện thoại,
+avatar, mã nhân viên (`apps/iam-service/src/entities/user.entity.ts:7-56`); nhân viên không tự sửa được
+gì (`PATCH /users/:id` cần `user:manage`, `users.controller.ts:88-89`); Manager không xem được hồ sơ
+chi tiết người khác (`users.controller.ts:54-73`).
+
+**Câu 3. Đã nhập nhân viên + ảnh từ Excel được chưa?** Nhập nhân viên: có (§19.1, `ImportEmployeesModal.tsx`
+gọi tuần tự `POST /users/invite` từ trình duyệt, `ImportEmployeesModal.tsx:94-110`; cột cố định ở
+`import-employees.utils.ts:13`). Nhập ảnh: **không**. Thiếu: cột/tệp ảnh, endpoint ghi khuôn mặt hộ,
+chế độ cập nhật người đã có (email trùng → `EMAIL_ALREADY_USED`, `users.service.ts:92`), các trường
+mới, kiểm tra chất lượng ảnh, báo cáo lỗi tải về; mật khẩu mặc định dùng chung `Password123!`
+(`import-employees.utils.ts:17`).
+
+### 27.2 Quyết định đã chốt (26/10/2026)
+
+| # | Quyết định |
+|---|---|
+| Q1 | **Lưu ảnh nhận diện gốc** (để xem được) trong bucket private `ml-face-references`, mã hoá lại và xoá EXIF/GPS. Chỉ đọc qua API proxy của ml-service có kiểm tra phạm vi, `Cache-Control: no-store`, ghi nhật ký mỗi lượt xem. **Không bao giờ dùng presigned URL** cho ảnh này. Xoá khi tài khoản bị xoá, bị vô hiệu hoá, hoặc khi rút lại đồng ý. |
+| Q2 | **Avatar và ảnh nhận diện là 2 tệp riêng.** Avatar ở bucket `iam-avatars`, đọc qua presigned GET TTL ngắn. Avatar không bao giờ đi vào pipeline nhận diện. |
+| Q3 | **Đồng ý lưu phía server** (`face_consents`: thời điểm, phiên bản văn bản đồng ý, người thực hiện, nguồn). Tự đăng ký = ghi đồng ý. Ảnh do Org Admin/Manager tải hộ hoặc nhập Excel ở trạng thái **`PENDING_CONSENT`**, **không dùng để so khớp** cho tới khi nhân viên xác nhận trên Hồ sơ cá nhân; quá 30 ngày tự huỷ (xoá ảnh + embedding). |
+| Q4 | **Phạm vi Manager = `departmentId` trong JWT/AuthContext** (đúng định nghĩa dùng chung của đợt Phạm vi dữ liệu của Manager). Manager xem/sửa **Employee** của phòng ban mình, không bao giờ Manager khác hay Org Admin. Org Admin: cả tổ chức. Employee: chính mình. Super Admin: không có dữ liệu tenant. |
+| Q5 | **Cho phép tự đăng ký lại**, có ghi nhật ký. Kiểm tra trùng 1:N trong tổ chức: tương đồng ≥ 0,5 với người khác → chặn; 0,35–0,5 → cảnh báo. |
+| Q6 | **Nhập = Excel + ZIP ảnh.** Ghép ảnh theo cột "Tệp ảnh", để trống thì theo email. Trình duyệt điều phối như §19.1, cộng endpoint kiểm tra trước phía server, bước xem trước trước khi ghi, báo cáo lỗi tải về. Email đã có: cập nhật số điện thoại, mã nhân viên, ảnh; không đổi vai trò/phòng ban qua import. Email mới: mời. Ảnh chuẩn hoá phía client (canvas → JPEG, mất EXIF). |
+| Q7 | **Cột mật khẩu tuỳ chọn.** Để trống → sinh mật khẩu ngẫu nhiên (không ai biết) và gửi email kích hoạt. Bỏ mặc định `Password123!`. |
+| Q8 | **Trường hồ sơ mới:** số điện thoại (kiểm tra định dạng Việt Nam), mã nhân viên (duy nhất trong tổ chức), avatar. Tách DTO danh sách `GET /users` (tối giản) khỏi DTO hồ sơ (có kiểm tra phạm vi). |
+| Q9 | **Thời hạn lưu:** embedding + ảnh nhận diện bị xoá khi vô hiệu hoá. Job xoá ảnh chấm công sau 90 ngày là giai đoạn **tuỳ chọn** về sau. |
+| Q10 | Không có công tắc bật/tắt theo tổ chức — nhận diện khuôn mặt vẫn bật như hiện nay. |
+| Q11 | `ecap-mobile` ngoài phạm vi đợt này; việc tiếp theo: hiển thị avatar. |
+| Q12 | Nginx `client_max_body_size 26m` đã sửa (trước đây mặc định 1 MB) — `apps/web/nginx.conf:16`. |
+| Q13 | Manager xem ảnh chấm công toàn tổ chức: do đợt Phạm vi dữ liệu của Manager thu hẹp HRM về phòng ban — không lập kế hoạch lại ở đây. |
+| Q14 | **Giai đoạn 0 sửa 2 lỗi có sẵn của ml-service trước mọi tính năng mới:** nạp model lúc khởi động + semaphore đồng thời 2; lọc `organization_id` ở mọi truy vấn và upsert khuôn mặt. |
+| Q15 | Thay UI hồ sơ giả lập (số điện thoại cố định, nút Lưu giả, avatar chỉ xem trước) bằng API thật. |
+
+### 27.3 Căn cứ pháp lý và giới hạn mục đích
+
+Từ **01/01/2026**, khung pháp lý hiện hành là **Luật Bảo vệ dữ liệu cá nhân số 91/2025/QH15** (thông
+qua 26/06/2025) và **Nghị định 356/2025/NĐ-CP** hướng dẫn luật — thay thế Nghị định 13/2023/NĐ-CP.
+Dữ liệu sinh trắc học thuộc nhóm dữ liệu cá nhân nhạy cảm. Bảng dưới ánh xạ theo bản tóm tắt điều
+khoản đã tra cứu — **cần đối chiếu toàn văn trước khi trích nguyên văn vào báo cáo đồ án**; các điều
+cụ thể về sự đồng ý và rút lại đồng ý chưa được xác minh trực tiếp.
+
+| Yêu cầu | Điều (theo bản tóm tắt) | Cơ chế trong hệ thống |
+|---|---|---|
+| Xoá khi hết mục đích / chủ thể yêu cầu | Đ.14 | Xoá khi rút đồng ý, vô hiệu hoá, xoá tài khoản; tự huỷ bản chờ sau 30 ngày (§27.11) |
+| Dữ liệu người lao động, thông báo trước khi giám sát | Đ.25 | Văn bản đồng ý có phiên bản; banner + email báo khi có ảnh chờ xác nhận (§27.8) |
+| Xử lý bằng AI đúng mục đích, trong phạm vi cần thiết | Đ.30 | Giới hạn mục đích bên dưới |
+| Hạn chế truy cập + theo dõi truy cập dữ liệu sinh trắc | Đ.31.4(b) | Proxy có kiểm tra phạm vi, `no-store`, nhật ký `VIEW_REF` (§27.5) |
+| Bộ phận/nhân sự bảo vệ DLCN; miễn trừ cho doanh nghiệp nhỏ không áp dụng khi xử lý DLCN nhạy cảm | Đ.33.2, Đ.38 | Nghĩa vụ của tổ chức khách hàng — ghi ở giới hạn đã biết (§27.14) |
+| Mức phạt | Đ.8 | — |
+
+**Giới hạn mục đích (ràng buộc kỹ thuật):** ảnh nhận diện và embedding chỉ dùng cho verify 1:1 khi
+chấm công và kiểm tra trùng 1:N lúc đăng ký. Không đi vào event Kafka, outbox, CDC, chatbot (§23),
+analytics/anomaly (§19), DLQ, log. Không API nào trả embedding. Payload event hồ sơ chỉ chứa
+`userId` + tên trường đã đổi.
+
+### 27.4 Mô hình dữ liệu theo service
+
+**`iam-service` — bảng `users` (migration TypeORM mới):**
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| `phone_number` | `varchar(11) NULL` | Lưu dạng chuẩn `0xxxxxxxxx` |
+| `employee_code` | `varchar(32) NULL` | `UNIQUE (organization_id, lower(employee_code)) WHERE employee_code IS NOT NULL` |
+| `avatar_object_key` | `varchar NULL` | Key trong `iam-avatars` |
+| `avatar_updated_at` | `timestamptz NULL` | |
+
+- Bảng mới `user_profile_change_logs(id, organization_id, target_user_id, actor_id, changed_fields text[], created_at)` — chỉ tên trường, không lưu giá trị; giữ 1 năm.
+- `password_reset_tokens` thêm cột `purpose` (`RESET` | `INVITE`) — token `INVITE` hạn 72 giờ.
+- Event mới (outbox, topic `iam.events`):
+  - `iam.user.profile_updated` `{ userId, changedFields, actorId }` — không chứa số điện thoại/ảnh.
+  - `iam.user.roles_changed` `{ userId, roleLevel, actorId }` — phát trong `UsersService.update()` khi `roleIds` đổi (mirror `USER_DEPARTMENT_CHANGED`, `users.service.ts:276-277`).
+  - `UserRegisteredPayload` thêm trường tuỳ chọn `roleLevel` (`ORG_ADMIN` | `MANAGER` | `EMPLOYEE`, suy từ tên vai trò — hệ thống chỉ có đúng 3 vai trò mặc định và không có endpoint tạo vai trò, xem §19.5).
+  - Script 1 lần chèn outbox `iam.user.roles_changed` cho mọi user hiện có để ml-service có `roleLevel` ban đầu.
+
+**`ml-service` — bootstrap idempotent (mirror `db.py:20-95`):**
+
+```sql
+ALTER TABLE face_enrollments ADD COLUMN IF NOT EXISTS photo_object_key TEXT NULL;
+ALTER TABLE face_enrollments ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'SELF_CAMERA';
+  -- SELF_CAMERA | SELF_UPLOAD | ADMIN | MANAGER | IMPORT
+ALTER TABLE face_enrollments ADD COLUMN IF NOT EXISTS enrolled_by UUID NULL;
+ALTER TABLE face_enrollments ADD COLUMN IF NOT EXISTS model_version TEXT NOT NULL
+  DEFAULT 'yunet-2023mar+arcface-r100';
+UPDATE face_enrollments SET enrolled_by = user_id WHERE enrolled_by IS NULL;
+
+-- Bản chờ xác nhận tách bảng riêng: bản đang dùng (face_enrollments) vẫn được verify cho tới khi
+-- nhân viên xác nhận bản mới; verify KHÔNG BAO GIỜ đọc bảng này.
+CREATE TABLE IF NOT EXISTS face_pending_enrollments (
+  user_id UUID PRIMARY KEY, organization_id UUID NOT NULL,
+  embedding DOUBLE PRECISION[] NOT NULL, photo_object_key TEXT NOT NULL,
+  source TEXT NOT NULL, actor_id UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(), expires_at TIMESTAMPTZ NOT NULL
+);
+
+-- Đồng ý: chỉ ghi thêm (append-only); trạng thái hiện tại = bản ghi mới nhất của user.
+CREATE TABLE IF NOT EXISTS face_consents (
+  id UUID PRIMARY KEY, organization_id UUID NOT NULL, user_id UUID NOT NULL,
+  action TEXT NOT NULL,              -- CONSENT | CONFIRM | REJECT | WITHDRAW
+  consent_text_version TEXT NULL, source TEXT NOT NULL, actor_id UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Nhật ký: KHÔNG chứa embedding/ảnh; giữ 1 năm.
+CREATE TABLE IF NOT EXISTS face_enrollment_events (
+  id UUID PRIMARY KEY, organization_id UUID NOT NULL, actor_id UUID NOT NULL,
+  target_user_id UUID NOT NULL,
+  action TEXT NOT NULL,  -- ENROLL | RE_ENROLL | UPLOAD_PENDING | CONFIRM | REJECT | EXPIRE
+                         -- | DELETE | WITHDRAW | VIEW_REF | PURGE_DEACTIVATED | PURGE_DELETED
+  source TEXT NULL, correlation_id TEXT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE dim_user ADD COLUMN IF NOT EXISTS role_level TEXT NULL;  -- NULL = chưa biết → đóng (fail-closed)
+```
+
+- Mọi truy vấn/upsert khuôn mặt thêm `AND organization_id = :org`; upsert dùng
+  `ON CONFLICT (user_id) DO UPDATE ... WHERE face_enrollments.organization_id = EXCLUDED.organization_id`.
+- Consumer bổ sung `iam.user.deactivated` (xoá dữ liệu khuôn mặt) và `iam.user.roles_changed`
+  (cập nhật `dim_user.role_level`); `_handle_user_deleted()` xoá thêm bản chờ, đồng ý và object MinIO.
+
+**`hrm-service`:** không đổi trong các giai đoạn bắt buộc (xem giai đoạn tuỳ chọn ở §27.12).
+
+### 27.5 Lưu trữ tệp và cách truy cập
+
+| Tệp | Bucket (private) | Key | Ghi | Đọc |
+|---|---|---|---|---|
+| Avatar | `iam-avatars` (`MINIO_IAM_BUCKET`) | `{orgId}/{userId}/{uuid}.jpg` | Client cắt vuông 512 px, JPEG; server kiểm tra magic bytes JPEG/PNG/WebP, ≤ 2 MB | Presigned GET TTL ngắn (mặc định 1 giờ, `AVATAR_URL_TTL_SECONDS`), ký bằng public endpoint như `document-service`; client tải lại danh sách khi ảnh lỗi, fallback chữ viết tắt |
+| Ảnh nhận diện | `ml-face-references` (`MINIO_ML_BUCKET`) | `{orgId}/{userId}/{uuid}.jpg` | ml-service giải mã → thu về ≤ 640 px → mã hoá lại JPEG bằng `cv2.imencode` (mất EXIF/GPS) | **Chỉ qua proxy** `GET /ml/face/.../photo` trả bytes, `Cache-Control: no-store`, ghi `VIEW_REF`; frontend tải bằng axios → blob URL |
+
+- Key có UUID: ghi object mới → cập nhật DB → xoá object cũ.
+- `minio-init` (`infra/docker-compose.yml:348-351`) thêm 2 lệnh `mc mb`. iam-service thêm `MinioModule`
+  (chép từ hrm-service) + multer; ml-service thêm gói `minio`. Không thêm container nào (ngân sách RAM §25).
+- Tệp Excel/ZIP **không bao giờ lên server** — xử lý trong bộ nhớ trình duyệt; server chỉ nhận từng ảnh đã chuẩn hoá.
+
+### 27.6 API
+
+**iam-service (`/api/v1/users`)** — `directory` và `me` khai báo trước `:id` để không bị `uuidParamPipe` bắt nhầm:
+
+| Method & path | Ai | Mô tả |
+|---|---|---|
+| `GET /users` | Mọi người đã đăng nhập (giữ nguyên) | DTO `UserSummary` = các trường hiện có + `avatarUrl`; **không bao giờ** chứa `phoneNumber`/`employeeCode` (việc thu gọn thêm do đợt Phạm vi dữ liệu của Manager quyết định) |
+| `GET /users/directory?search=&departmentId=&page=&limit=` | Org Admin: cả tổ chức; Manager: Employee phòng mình; Employee: 403 | DTO `UserProfile` đầy đủ |
+| `GET /users/:id` | Chính chủ / Org Admin / Manager với Employee phòng mình | `UserProfile` |
+| `PATCH /users/me` | Chính chủ | `{ phoneNumber }` |
+| `PATCH /users/:id` | Org Admin (giữ `user:manage`) | DTO thêm `phoneNumber?`, `employeeCode?` |
+| `PUT /users/:id/avatar`, `DELETE /users/:id/avatar` (`:id` = uuid hoặc `me`) | Chính chủ / Org Admin / Manager với Employee phòng mình | multipart `avatar` |
+| `POST /users/invite` | Giữ nguyên quyền | `initialPassword` thành tuỳ chọn; thêm `phoneNumber?`, `employeeCode?`; email đã thuộc tổ chức khác → lỗi chung "Không thể dùng email này" |
+
+**ml-service (`/api/v1/ml/face`)** — mọi lỗi trả `{ detail, errorCode }`:
+
+| Method & path | Ai | Mô tả |
+|---|---|---|
+| `POST /enroll` (giữ) | Chính chủ, `attendance:checkin` | Nhận thêm `consentTextVersion` (thiếu/sai → `FACE_CONSENT_REQUIRED`); strict + 1:N; lưu ảnh; ghi `CONSENT` |
+| `GET /enrollment` (giữ) | Chính chủ | `{ status, enrolledAt, source, enrolledBy, pending?: {source, actorId, expiresAt} }` với `status` ∈ `NONE`/`ACTIVE`/`PENDING_CONSENT`/`WITHDRAWN`; giữ `enrolled` = `status==ACTIVE` để tương thích |
+| `GET /enrollment/photo`, `GET /enrollment/pending/photo` | Chính chủ | Proxy ảnh đang dùng / ảnh chờ |
+| `POST /enrollment/confirm` | Chính chủ | `{ consentTextVersion }` → bản chờ thành bản đang dùng |
+| `POST /enrollment/reject` | Chính chủ | Xoá bản chờ, ghi `REJECT` (chặn tải hộ cho tới khi tự đồng ý lại) |
+| `DELETE /enrollment` (giữ) | Chính chủ | Rút lại đồng ý: xoá bản dùng + bản chờ + ảnh, ghi `WITHDRAW` |
+| `POST /verify` (giữ) | Chính chủ | Chỉ đọc `face_enrollments`; bản chờ coi như `enrolled:false` |
+| `GET /enrollments?userIds=a,b,c` | Org Admin / Manager (lọc theo phạm vi) | Trạng thái hàng loạt, không ảnh |
+| `GET /enrollments/{userId}`, `GET /enrollments/{userId}/photo` | Org Admin / Manager trong phạm vi | Trạng thái / proxy ảnh (ghi `VIEW_REF`) |
+| `PUT /enrollments/{userId}?source=ADMIN` (hoặc `IMPORT`) | Org Admin / Manager trong phạm vi | Tạo/thay **bản chờ** (hạn 30 ngày); `409 FACE_CONSENT_WITHDRAWN` nếu đã từ chối/rút; `409 USER_NOT_SYNCED`; `409 FACE_DUPLICATE` |
+| `DELETE /enrollments/{userId}` | Org Admin / Manager trong phạm vi | Xoá bản dùng/bản chờ (ảnh sai) — không tính là rút đồng ý |
+| `POST /inspect` | Org Admin / Manager | Kiểm tra 1 ảnh, **không lưu gì**: số mặt, kích thước, điểm, độ nét, cờ trùng (chỉ nêu `userId` nếu người trùng nằm trong phạm vi người gọi) |
+
+Gateway: route `/api/v1/ml` đã có, multipart đi qua nguyên vẹn (`apps/gateway/src/main.ts:22-26`).
+
+### 27.7 Phân quyền
+
+Xác định vai trò khi kiểm tra (dùng hàm phạm vi chung của đợt Phạm vi dữ liệu của Manager khi có):
+- **Org Admin** = có `user:manage` (quy ước sẵn có, `auth.py:31-36`, `users.controller.ts:67`).
+- **Manager** = không có `user:manage`, `AuthContext.roles` có `Manager`, `AuthContext.departmentId` khác
+  null (null → không có phạm vi). ml-service bổ sung đọc header `x-roles`, `x-department-id`.
+- **Mục tiêu hợp lệ cho Manager** = cùng tổ chức, cùng phòng ban, mức vai trò `EMPLOYEE`, không phải
+  chính mình. iam-service đọc trực tiếp DB; ml-service đọc `dim_user` (`department_id`, `role_level`;
+  `role_level` null → từ chối).
+- **Super Admin**: không endpoint nào ở trên trả dữ liệu cho Super Admin; không mở rộng `platform-admin`.
+
+| Hành động | Org Admin | Manager → Employee phòng mình | Manager → ngoài phạm vi / Manager / Org Admin | Chính mình | Employee → người khác | Super Admin |
+|---|---|---|---|---|---|---|
+| Xem danh sách đầy đủ (SĐT, mã NV) | ✅ cả tổ chức | ✅ | ❌ | 👁 qua Hồ sơ | ❌ (chỉ tên + avatar qua `GET /users`) | ❌ |
+| Xem ảnh nhận diện | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
+| Sửa số điện thoại | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Sửa họ tên, mã NV, phòng ban, vai trò | ✅ (luồng có sẵn + `PATCH /users/:id`) | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Đổi/xoá avatar | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
+| Tải ảnh nhận diện | ✅ → chờ xác nhận | ✅ → chờ xác nhận | ❌ | ✅ có hiệu lực ngay | ❌ | ❌ |
+| Xoá ảnh nhận diện | ✅ | ✅ | ❌ | ✅ (= rút đồng ý) | ❌ | ❌ |
+| Nhập Excel | ✅ | ✅ chỉ Employee phòng mình, chỉ ảnh với người đã có | ❌ | — | ❌ | ❌ |
+| Đổi email | ❌ (không có luồng) | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+Org Admin sửa được Org Admin khác — có nhật ký. Mọi thao tác ghi đều kiểm tra lại phạm vi ở server.
+
+### 27.8 Luồng đồng ý và trạng thái
+
+```
+                    tự đăng ký (tick đồng ý v1)
+      ┌──────────────────────────────────────────────────┐
+      │                                                  ▼
+  [NONE] ──Admin/Manager/Import tải ảnh──▶ [PENDING_CONSENT] ──nhân viên xác nhận──▶ [ACTIVE]
+      ▲                                     │    │                                │
+      │                       quá 30 ngày ◀─┘    └─▶ nhân viên từ chối             │ nhân viên xoá
+      │                       (xoá ảnh+vector)       (xoá, ghi REJECT)             │ (rút đồng ý)
+      │                                                   │                        ▼
+      │   vô hiệu hoá / xoá tài khoản (từ mọi trạng thái)  └──────────────▶ [WITHDRAWN]
+      └─────────────────────────────────────────────────────────────────── (chặn tải hộ: 409;
+                                                                           chỉ chính chủ tự đăng ký lại)
+```
+
+- `ACTIVE` + có bản chờ: bản đang dùng vẫn được verify; xác nhận thì thay, từ chối thì giữ bản cũ.
+- Banner trên web (Topbar/Hồ sơ) khi `GET /ml/face/enrollment` trả bản chờ — không cần producer Kafka
+  mới ở ml-service. Người mới nhập còn nhận email kích hoạt có nhắc việc xác nhận (§27.9).
+- Văn bản đồng ý có phiên bản (`face-consent-v1`), nêu đúng mục đích (chỉ cảnh báo mềm khi chấm công),
+  nói rõ ảnh được lưu và Org Admin/Manager phòng ban xem được, và **từ chối không ảnh hưởng gì tới việc
+  chấm công** (vẫn giữ nguyên tắc "không bao giờ chặn" của §24 — đây là phương án không sinh trắc).
+- Vô hiệu hoá rồi kích hoạt lại → `NONE`, phải đăng ký và đồng ý lại.
+
+### 27.9 Nhập Excel + ZIP
+
+**Cột mẫu** (hợp đồng dữ liệu tiếng Việt cố định, `i18n-lint-ignore` như §19.1):
+
+| Họ và tên | Email | Số điện thoại | Mã nhân viên | Phòng ban | Vai trò | Mật khẩu | Tệp ảnh |
+|---|---|---|---|---|---|---|---|
+| Nguyễn Văn An | an.nguyen@congty.vn | 0912345678 | NV001 | Kinh doanh | Employee | *(trống)* | an.nguyen.jpg |
+| Trần Thị Bình | binh.tran@congty.vn | 0283 812 3456 | NV002 | Kỹ thuật | Employee | *(trống)* | *(trống → tìm `binh.tran@congty.vn.jpg`)* |
+
+**Bố cục ZIP:**
+
+```
+anh-nhan-vien.zip
+├── an.nguyen.jpg                 ← khớp cột "Tệp ảnh" dòng 2
+├── binh.tran@congty.vn.png       ← dòng 3 để trống "Tệp ảnh" → khớp theo email
+├── phong-ky-thuat/chi.le.jpg     ← chỉ lấy tên tệp (bỏ thư mục) → vẫn khớp "chi.le.jpg"
+└── __MACOSX/...                  ← bỏ qua (cùng tệp ẩn)
+```
+
+Ghép không phân biệt hoa thường; 2 tệp cùng tên ở 2 thư mục → lỗi "tên tệp ảnh trùng" cho dòng dùng tên đó.
+Giới hạn: Excel ≤ 2 MB và ≤ 300 dòng; ZIP ≤ 500 tệp, tổng giải nén ≤ 200 MB (kiểm tra kích thước khai báo
+trước khi giải nén — chống zip bomb), mỗi ảnh gốc ≤ 5 MB, chỉ `.jpg/.jpeg/.png`; HEIC → lỗi theo dòng.
+
+**Luồng 4 bước (trình duyệt điều phối, gửi tuần tự):**
+1. **Tệp:** SheetJS (bản CDN đã vá, §19.1) + JSZip. Ảnh chuẩn hoá: `createImageBitmap(file, { imageOrientation: 'from-image' })` → canvas, cạnh dài ≤ 1280 px → JPEG 0,9 (sửa xoay, mất EXIF, ≤ 1 MB).
+2. **Xem trước:** kiểm tra phía client (email, số điện thoại, trùng email/mã NV/tên tệp trong file, thiếu tệp, ảnh không khớp dòng nào); phân loại theo `GET /users/directory` (Mời mới / Cập nhật / Ngoài phạm vi); gọi `POST /ml/face/inspect` cho từng ảnh (≤ 2 request/giây) → số mặt, chất lượng, trùng với người đã có. Thumbnail là blob URL cục bộ.
+3. **Ghi:** mỗi dòng 2 bước độc lập — **Tài khoản** (mời mới; hoặc Org Admin `PATCH /users/:id` cập nhật số điện thoại/mã NV — Manager bỏ qua 2 cột này) rồi **Ảnh** (`PUT /ml/face/enrollments/{userId}?source=IMPORT`). `409 USER_NOT_SYNCED` → thử lại sau 2/4/8/16 giây (tối đa ~30 giây); `429` → chờ theo `Retry-After`. Tổng tốc độ ≤ 2–3 request/giây (giới hạn Gateway 300/phút/người, `apps/gateway/src/config/configuration.ts:34`).
+4. **Kết quả:** trạng thái riêng Tài khoản/Ảnh từng dòng; "Thử lại các bước lỗi" (chạy lại = upsert theo email, bỏ qua phần đã xong); tải `.xlsx` lỗi = cột gốc + `Kết quả tài khoản` + `Kết quả ảnh` + `Lý do` (không chứa mật khẩu); nhắc xoá tệp nguồn sau khi nhập.
+
+**Người đã có vs người mới:**
+- Email mới → `POST /users/invite`. Manager mời: phòng ban ép về phòng mình, cột Vai trò bị bỏ qua (giữ hành vi §19.1).
+- Email đã có trong tổ chức → chỉ cập nhật số điện thoại, mã NV (Org Admin), ảnh; Họ tên/Phòng ban/Vai trò/Mật khẩu bị bỏ qua, có ghi chú trên dòng. Ô trống = giữ nguyên.
+- Email thuộc tổ chức khác → lỗi chung "Không thể dùng email này" (không lộ là đã có ở tổ chức khác).
+- Người đã có ảnh đang dùng → ảnh mới thành bản chờ; ảnh cũ vẫn dùng tới khi nhân viên xác nhận.
+- Người đã từ chối/rút đồng ý → dòng ảnh bị bỏ qua với lý do rõ ràng.
+- Ảnh khuôn mặt **không** được dùng làm avatar; import không đổi avatar.
+
+**Email kích hoạt (Q7):** `initialPassword` trống → iam-service đặt mật khẩu ngẫu nhiên 32 byte (không
+hiển thị, không lưu ở đâu), tạo token `INVITE` hạn 72 giờ, gửi email có liên kết
+`/reset-password?token=...` (tái dùng trang và `EmailService` sẵn có, `auth.service.ts:414-417`). Email
+**không chứa mật khẩu**; nếu có ảnh nhận diện được tải kèm thì nhắc xác nhận trên Hồ sơ trong 30 ngày.
+
+### 27.10 Quy tắc kiểm tra hợp lệ
+
+| Đối tượng | Quy tắc | Mã lỗi / mức |
+|---|---|---|
+| Ảnh nhận diện — định dạng | JPEG đã chuẩn hoá (server giữ kiểm tra SOI/EOI, `face.py:140-145`), ≤ 5 MB (`routes.py:28`) | `FACE_INVALID_IMAGE` (lỗi) |
+| Ảnh nhận diện — số mặt (chế độ strict cho **mọi** luồng đăng ký; verify giữ hành vi mềm) | Đúng 1 mặt điểm YuNet ≥ 0,9; mặt khác điểm ≥ 0,7 và rộng ≥ 25% mặt chính → nhiều mặt | `FACE_NONE`, `FACE_MULTIPLE` (lỗi) |
+| Ảnh nhận diện — kích thước mặt | Cao ≥ 80 px sau khi thu về 640 px | `FACE_TOO_SMALL` (lỗi) |
+| Ảnh nhận diện — độ nét | Phương sai Laplacian dưới ngưỡng | `FACE_LOW_QUALITY` (**cảnh báo** — ngưỡng chưa tinh chỉnh) |
+| Trùng 1:N | So với bản dùng + bản chờ của cả tổ chức, trừ chính người đó: ≥ 0,5 | `FACE_DUPLICATE` (chặn) |
+| | 0,35–0,5 | `FACE_POSSIBLE_DUPLICATE` (cảnh báo) |
+| Avatar | JPEG/PNG/WebP (magic bytes), ≤ 2 MB, ≥ 128 px; không kiểm tra khuôn mặt | `AVATAR_INVALID` |
+| Số điện thoại | Bỏ khoảng trắng/dấu chấm/gạch, `+84` → `0`; di động `^0[35789]\d{8}$` hoặc cố định `^02\d{9}$` | `PHONE_INVALID` |
+| Mã nhân viên | `^[A-Za-z0-9._-]{1,32}$`, duy nhất trong tổ chức (không phân biệt hoa thường) | `EMPLOYEE_CODE_TAKEN` |
+| Email | Regex hiện có; trùng trong file → lỗi dòng | `EMAIL_INVALID`, `EMAIL_DUPLICATE_IN_FILE` |
+
+Kiểm tra trùng giữa 2 dòng trong cùng 1 file diễn ra ở bước Ghi (dòng sau so với bản chờ của dòng trước),
+vì `/inspect` không giữ và không trả embedding.
+
+### 27.11 Vòng đời dữ liệu
+
+| Sự kiện | iam-service | ml-service | hrm-service |
+|---|---|---|---|
+| Tự đăng ký / đăng ký lại | — | Bản dùng mới, ảnh cũ xoá, `CONSENT` + `ENROLL`/`RE_ENROLL` | — |
+| Tải hộ / nhập | — | Bản chờ, hạn 30 ngày, `UPLOAD_PENDING` | — |
+| Xác nhận / từ chối / quá hạn | — | Chuyển bản chờ thành bản dùng / xoá (`REJECT`) / job mỗi giờ trong `lifespan` xoá (`EXPIRE`) | — |
+| Rút đồng ý | — | Xoá bản dùng + bản chờ + ảnh, `WITHDRAW` | — |
+| Đổi phòng ban | `USER_DEPARTMENT_CHANGED` (có sẵn) | `dim_user` cập nhật; dữ liệu khuôn mặt giữ nguyên | — |
+| Đổi vai trò | `iam.user.roles_changed` | `dim_user.role_level` | — |
+| Vô hiệu hoá | Giữ avatar | Xoá bản dùng + bản chờ + ảnh (`PURGE_DEACTIVATED`) | — |
+| Xoá vĩnh viễn | Xoá object avatar trong `remove()` (`users.service.ts:396-425`) | Xoá mọi dữ liệu khuôn mặt + đồng ý (`PURGE_DELETED`) | Giai đoạn tuỳ chọn: xoá ảnh chấm công |
+| Nhật ký | `user_profile_change_logs` 1 năm | `face_enrollment_events` 1 năm | — |
+| Ảnh chấm công | — | — | Giai đoạn tuỳ chọn: hết hạn sau 90 ngày, giữ điểm/cờ |
+
+### 27.12 Kế hoạch triển khai theo giai đoạn
+
+| GĐ | Nội dung | Tiêu chí nghiệm thu | Ước lượng |
+|---|---|---|---|
+| **0** | Sửa lỗi có sẵn ở ml-service (Q14): nạp YuNet + ArcFace trong `lifespan` (hiện khởi tạo lười, không khoá, `face.py:60-71` — 2 request đầu có thể nạp 2 lần model 261 MB dưới giới hạn 1 GB, `docker-compose.yml:807`); bọc pipeline bằng `threading.Semaphore(2)` (detector dùng chung `setInputSize()` + `detect()` không nguyên tử, `face.py:78-80`); thêm `organization_id` vào mọi truy vấn/upsert (`routes.py:153-159,175,192,208`) | 10 lượt enroll đồng thời: không OOM, kết quả đúng; test xuyên tenant: user tổ chức A không đọc/ghi/xoá được bản của tổ chức B; `pytest` sạch | 1 |
+| **1** | iam-service hồ sơ thật + avatar: migration, `MinioModule`, endpoint §27.6, tách `UserSummary`/`UserProfile`, kiểm tra phạm vi Manager, nhật ký hồ sơ, 2 event + script `roleLevel` ban đầu, `invite` với mật khẩu tuỳ chọn + email kích hoạt. Web: Hồ sơ cá nhân dùng API thật (Q15), `Avatar` nhận `src` + fallback, i18n vi/en/ja | `GET /users` không có `phoneNumber`/`employeeCode`; ma trận §27.7 đúng ở iam (test); avatar hiện ở Topbar/danh sách; nút Lưu ghi DB thật | 3 |
+| **2** | ml-service kho ảnh nhận diện + đồng ý: bucket, bootstrap §27.4, strict + 1:N, endpoint §27.6, đọc `x-roles`/`x-department-id`, consumer `deactivated`/`roles_changed`, job quá hạn, `errorCode` | Đủ ma trận RBAC + trạng thái §27.8 bằng test; bản chờ không bao giờ được verify; ảnh chỉ đọc qua proxy (`no-store`, có `VIEW_REF`); vô hiệu hoá xoá cả object MinIO | 3,5 |
+| **3** | Web danh sách nhân viên (mở rộng Quản trị > Thành viên, không tạo trang mới), drawer Hồ sơ nhân viên, panel ảnh nhận diện, xác nhận đồng ý + banner trên Hồ sơ, tải ảnh từ tệp cho chính chủ | Manager chỉ thấy Employee phòng mình; Employee không vào được; luồng xác nhận/từ chối chạy thật qua Gateway | 2 |
+| **4** | Trình nhập Excel + ZIP (§27.9) | File mẫu 50 dòng + ZIP nhập thành công; chạy lại không tạo trùng; tệp lỗi tải về mở được và nhập lại được; zip bomb/zip-slip bị chặn | 3 |
+| **5** | Kiểm thử tổng hợp + tài liệu: job `pytest` cho ml-service trong CI (tải model theo SHA256 như `Dockerfile`, có cache — không làm được thì ghi giới hạn); kiểm thử sống qua Gateway trên tổ chức thử nghiệm riêng; cập nhật §5, §24, `Wireframe.md` §16 thành "đã triển khai"; đo `docker stats` trước/sau | Gate `typecheck`/`lint`/`lint:i18n-strings`/`test`/`build` sạch; số đo RAM ghi lại | 1,5 |
+| 6 *(tuỳ chọn)* | hrm-service: tiêu thụ `USER_DELETED` để xoá ảnh chấm công + MinIO ILM 90 ngày; thông báo cho chủ thể khi người khác đổi avatar (`iam.user.profile_updated` → notification-service); `ecap-mobile` hiện avatar (Q11); mã hoá embedding | Theo từng hạng mục | 2–3 |
+
+Tổng bắt buộc (GĐ 0–5): **≈ 14 người-ngày**. GĐ 1 và GĐ 2 làm song song được (khác service); GĐ 3 cần
+cả hai; GĐ 4 cần GĐ 3. Lệnh nặng chạy tuần tự qua 1 khoá dùng chung, `jest --maxWorkers=2` (§25).
+
+### 27.13 Chiến lược kiểm thử
+
+- **Ma trận RBAC** (jest ở iam, pytest ở ml): chính chủ; Manager → Employee phòng mình / phòng khác /
+  Manager cùng phòng / Org Admin; Manager không có `departmentId`; Org Admin cùng và khác tổ chức;
+  Super Admin → 403 ở mọi endpoint mới; `dim_user.role_level` null → từ chối.
+- **Xuyên tenant** ở ml-service (GĐ 0) — bắt buộc, chạy trên `postgres-ml` thật như test tích hợp §19.3.
+- **Trạng thái đồng ý:** bản chờ không được verify; xác nhận/từ chối/quá hạn; rút đồng ý rồi tải hộ → 409;
+  vô hiệu hoá/xoá tài khoản dọn sạch DB + object MinIO.
+- **Pipeline:** fixture sinh bằng script từ ảnh mẫu sẵn có (1 mặt, 2 mặt, 0 mặt sinh bằng code, PNG,
+  JPEG có dữ liệu sau EOI, JPEG có EXIF Orientation=6) — không commit ảnh người thật; trùng 1:N ở 2 ngưỡng;
+  10 lượt đồng thời. Xác minh lại giấy phép của ảnh mẫu trước khi đưa vào báo cáo.
+- **Import (vitest):** ghép tệp theo cột/email, chuẩn hoá số điện thoại, giới hạn ZIP, chạy lại idempotent;
+  `.xlsx`/`.zip` sinh trong test.
+- **Hợp đồng DTO:** `GET /users` không chứa `phoneNumber`; payload event không chứa giá trị nhạy cảm.
+- Giữ nguyên ngưỡng coverage hiện có, bù test thay vì hạ ngưỡng (quy ước §10/§11).
+
+### 27.14 Rủi ro, giới hạn đã biết và phương án đã loại
+
+**Rủi ro / giới hạn đã biết:**
+- Ảnh hồ sơ do quản trị tải (chính diện, có thể cũ) khác ảnh webcam lúc chấm công → điểm thấp hơn; ngưỡng
+  0,35 vốn chưa tinh chỉnh (`face.py:14-16,49`). Theo dõi tỉ lệ "không khớp" theo `source` khi demo.
+- `departmentId` trong JWT có thể cũ tới 15 phút sau khi đổi phòng ban; `dim_user` của ml-service trễ
+  theo Kafka. Chấp nhận, iam-service tra DB cho phía mục tiêu.
+- Embedding lưu dạng mảng số thực không mã hoá (nằm trong backup `ml_db`) — chỉ có biện pháp tối thiểu.
+- Người giống nhau/sinh đôi có thể bị chặn bởi ngưỡng 1:N 0,5 — không có cơ chế ghi đè; người đó không
+  dùng nhận diện (chấm công vẫn bình thường).
+- Nhân viên A tự đăng ký ảnh của B khi B **chưa** đăng ký → 1:N không phát hiện được; giảm thiểu bằng
+  việc Manager xem được ảnh nhận diện + nhật ký.
+- Điểm khớp của các lượt chấm công cũ không gắn với phiên bản mẫu đã dùng — đối chiếu qua thời điểm trong
+  `face_enrollment_events`.
+- Import phụ thuộc tab trình duyệt còn mở (mất tiến độ nếu đóng tab; chạy lại an toàn nhờ idempotent).
+- Nghĩa vụ chỉ định bộ phận/nhân sự bảo vệ DLCN (Đ.33.2/Đ.38) thuộc về tổ chức khách hàng, hệ thống
+  không kiểm soát.
+- Trong quan hệ lao động, sự đồng ý dễ bị coi là không tự nguyện — giảm thiểu bằng việc từ chối không có
+  hệ quả gì với chấm công.
+
+**Phương án đã loại:**
+
+| Phương án | Lý do loại |
+|---|---|
+| Excel nhúng ảnh | SheetJS bản cộng đồng không trích ảnh; ảnh "Place in Cell" nằm trong `richData`; Excel nén ảnh khi lưu |
+| Không lưu ảnh gốc, chỉ trạng thái | Mâu thuẫn yêu cầu "xem ảnh nhận diện" (Q1); thay bằng các biện pháp bảo vệ ở §27.5 |
+| Presigned URL (kể cả TTL 60 giây) cho ảnh nhận diện | URL còn hiệu lực ai cầm cũng xem được, không ghi được nhật ký từng lượt xem |
+| Công tắc bật/tắt theo tổ chức, mặc định tắt | Q10 |
+| Phạm vi Manager theo `departments.manager_id` | Q4 — thống nhất 1 định nghĩa toàn hệ thống |
+| Permission mới (vd `user:profile_manage`) | Phạm vi theo vai trò + phòng ban đã đủ; tránh việc phải cấp bù cho vai trò đã seed của tổ chức cũ (§19.5) |
+| Tự đăng ký lại phải khớp mẫu cũ, nếu không thì chờ duyệt; giới hạn 3 lần/30 ngày | Q5 — thêm 1 luồng duyệt cho Manager; 1:N + nhật ký + ảnh xem được là đủ cho phạm vi đồ án |
+| Job nhập phía server / endpoint gửi nhiều ảnh 1 lần | Tốn thêm thành phần, request dài dễ chạm timeout 120 giây của nhóm `/ml`; gửi tuần tự từng ảnh giữ lỗi theo dòng đơn giản |
+| Hiển thị mật khẩu sinh ngẫu nhiên 1 lần trong báo cáo | Thay bằng email kích hoạt (Q7) — mật khẩu không xuất hiện ở đâu |
+| Mặc định "bỏ qua" email đã có khi nhập | Q6 — cập nhật số điện thoại/mã NV/ảnh |
+| Dùng ảnh nhận diện làm avatar | Trộn mục đích; ảnh sinh trắc sẽ lộ ra mọi màn hình |
+| Mã hoá embedding AES-GCM trong đợt này | Quản lý khoá phức tạp so với phạm vi đồ án — ghi giới hạn, để giai đoạn tuỳ chọn |
+| Lưu phiên bản mẫu vào bản ghi chấm công (hrm) | Đổi schema hrm chỉ để truy vết; nhật ký thời điểm ở ml-service là đủ |
+| Đưa `ecap-mobile` vào đợt này | Q11 |
+
+### 27.15 Đối chiếu rà soát phản biện độc lập (42 mục, 26/10/2026)
+
+| Mục | Nội dung | Xử lý |
+|---|---|---|
+| 1 | Căn cứ pháp lý lỗi thời | Nhận — §27.3, ghi chú ở cuối §24 |
+| 2 | Không có đồng ý khi tải hộ | Nhận — Q3, §27.8 |
+| 3 | Giới hạn mục đích | Nhận — §27.3 |
+| 4 | Thời hạn lưu | Nhận một phần — vô hiệu hoá xoá (Q9); ảnh chấm công 90 ngày + hrm `USER_DELETED` → GĐ 6 |
+| 5 | Rút đồng ý bị vô hiệu bởi tải hộ | Nhận — `409 FACE_CONSENT_WITHDRAWN` |
+| 6 | Không có nhật ký | Nhận — 2 bảng nhật ký; báo cho chủ thể: ảnh qua banner (GĐ 3), avatar → GĐ 6 |
+| 7 | Công tắc theo tổ chức, mặc định tắt | **Loại** (Q10); nghĩa vụ SME ghi ở giới hạn |
+| 8 | Mặc định không lưu ảnh gốc | **Loại** (Q1); nhận các biện pháp bảo vệ, chặt hơn (proxy thay presigned) |
+| 9 | Presigned URL | Nhận cho avatar; ảnh nhận diện dùng proxy |
+| 10 | Embedding thô | Nhận phần tối thiểu; mã hoá **loại** khỏi đợt này |
+| 11 | File nhập nhạy cảm | Nhận; "hiện mật khẩu 1 lần" thay bằng email kích hoạt |
+| 12 | Excel nhúng ảnh | Nhận — Excel + ZIP |
+| 13 | Định dạng ảnh/EXIF | Nhận — chuẩn hoá client |
+| 14 | 0/2+ mặt, chất lượng | Nhận — strict cho mọi luồng đăng ký; độ nét chỉ cảnh báo |
+| 15 | Trùng 1:N | Nhận theo ngưỡng Q5; trùng trong file kiểm tra ở bước Ghi |
+| 16 | Email trùng xuyên tenant | Nhận thông báo chung; "mặc định bỏ qua" **loại** (Q6) |
+| 17 | Không idempotent | Nhận |
+| 18 | Race với `dim_user` | Nhận — `409 USER_NOT_SYNCED` + backoff |
+| 19 | Email mời | Nhận — không chứa mật khẩu |
+| 20 | Xem trước phía server | Nhận — `POST /ml/face/inspect` |
+| 21 | Đa luồng/OOM | Nhận — GĐ 0 |
+| 22 | Rate limit/timeout | Nhận giới hạn tốc độ + xử lý 429; endpoint gửi nhiều ảnh **loại**; import không đụng avatar |
+| 23 | Nginx 1 MB | Đã sửa (Q12); MinIO + multer cho iam ở GĐ 1 |
+| 24 | Ngân sách RAM | Nhận — không thêm container |
+| 25 | Xuyên tenant khi tải hộ | Nhận — GĐ 0 |
+| 26 | 3 nghĩa "phòng ban của Manager" | **Loại** khuyến nghị dùng `managerId` (Q4); độ trễ JWT ghi giới hạn |
+| 27 | Ai sửa ai | Nhận — §27.7 |
+| 28 | `GET /users` mở | Nhận — tách DTO |
+| 29 | Gian lận tự đăng ký lại | Nhận 1:N + nhật ký; khớp-mẫu-cũ/duyệt/giới hạn lần **loại** (Q5) |
+| 30 | Permission mới | **Loại** |
+| 31 | Manager xem ảnh chấm công toàn tổ chức | Chuyển đợt Phạm vi dữ liệu của Manager (Q13) |
+| 32 | Đổi phòng ban/người phụ trách | Nhận — giới hạn đã biết; dữ liệu khuôn mặt giữ khi chuyển phòng |
+| 33 | Super Admin | Nhận — test 403 |
+| 34 | Dọn dẹp xoá/vô hiệu hoá | Nhận; phần hrm → GĐ 6 |
+| 35 | Điểm cũ sau đăng ký lại | Nhận dạng giới hạn đã biết |
+| 36 | Mobile | **Hoãn** (Q11) |
+| 37 | Vị trí trên web | Nhận — mở rộng Thành viên + drawer; `Avatar` nhận `src` |
+| 38 | i18n | Nhận — kèm `errorCode` từ ml-service |
+| 39 | Trường hồ sơ | Nhận — ma trận sửa trường; nhận cả số cố định `02x` |
+| 40 | PII trong event/DLQ | Nhận |
+| 41 | CI không chạy ml-service | Nhận — GĐ 5 |
+| 42 | Ma trận test | Nhận — §27.13 |
+
 ## Lịch sử thay đổi tài liệu
 
 - **18/07/2026** — Khởi tạo tài liệu `Technical_Spec.md`: xác định kiến trúc tổng thể, tech stack, chi tiết 6 service MVP, event-driven design (Outbox + Kafka), schema DB tổng quan, AuthN/AuthZ, quy ước API, hạ tầng Docker, bảo mật, kiểm thử, CI/CD, NFR, cấu trúc repo và giới hạn/hướng phát triển.
@@ -1530,3 +1979,4 @@ Debezium khởi động lỗi liên tục. Đã sửa: `KAFKA_LOG_DIRS=/var/lib/
 - **24/10/2026 (rà soát cuối toàn hệ thống)** — §8: rate limit Gateway chuyển sang đếm theo người dùng (300 request/phút; chưa đăng nhập vẫn theo IP, 100 request/phút). §23.8 bổ sung 6 lỗi phát hiện ở rà soát cuối (4 lỗi phân quyền tài liệu, giới hạn tần suất `search-chunks`, 2 lỗi giao diện chatbot). §25 bổ sung nhịp healthcheck Kafka. Dữ liệu kiểm thử tái sử dụng: `Mock_data.md`. Chi tiết: `RevisionHistory.md` mục 24/10/2026 (tiếp).
 - **25/10/2026 (merge Frontend2 + khắc phục CI)** — Merge 6 commit nhánh Frontend2 (tách component frontend, endpoint mới `PATCH /leave-requests/:id/cancel` để nhân viên tự hủy đơn nghỉ phép đang chờ duyệt). CI đỏ từ 11/10/2026 do `inventory-service` chép ngưỡng coverage 45/55/45/45% của `crm-service` trong khi số đo thật 39/35/40/29% — đặt lại theo số đo thật (quy ước §10/§11). 102 chuỗi tiếng Việt viết thẳng sau merge đã chuyển sang i18n. Chi tiết: `RevisionHistory.md` mục 25/10/2026.
 - **25/10/2026 (§26 — CDC Debezium, merge `test-cdc` + rà soát chéo)** — Merge bản thử nghiệm CDC của Thiều Quang Thành (`51dcf6b`): Debezium đọc WAL bảng `outbox_events` của `project-task-service` qua Outbox Event Router, đóng gói thành profile tuỳ chọn `cdc` (tắt mặc định) với 2 script `scripts/cdc-on.ps1`/`cdc-off.ps1` có thứ tự bước bảo đảm không mất sự kiện. Sửa 2 lỗi cấu hình khiến bản thử nghiệm chưa đưa sự kiện nào tới consumer (trường timestamp đòi INT64; converter bọc schema làm message vào DLQ). Rà soát chéo xác nhận 9 vấn đề, sửa trong `775c518` — gồm lỗi có từ trước mức CAO: Kafka chưa từng ghi vào volume (`KAFKA_LOG_DIRS`), tạo lại container là mất hết topic/offset (§26.6). Cập nhật khối trạng thái, §4.1, §14, cuối §25; thêm §26. Số đo: độ trễ CDC 0,40–0,62 giây so với polling khoảng 2,0 giây; 1.862 và 416/416 sự kiện không mất. Chi tiết: `RevisionHistory.md` mục 25/10/2026 (tiếp).
+- **26/10/2026 (§27 — Danh sách nhân viên & kho ảnh nhận diện, KẾ HOẠCH)** — Thêm §27 (chưa có dòng code nào): trả lời có bằng chứng 3 câu hỏi hiện trạng (kho khuôn mặt chỉ lưu embedding ở `ml-service`/`face_enrollments`, không lưu ảnh gốc; ảnh chấm công ở bucket `hrm-attendance` lưu vô thời hạn; chỉ chính chủ sửa được; nhập Excel §19.1 chưa có ảnh, chưa cập nhật được người đã có; hồ sơ cá nhân web còn giả lập số điện thoại/nút Lưu/avatar). Chốt 15 quyết định: lưu ảnh nhận diện gốc trong bucket private `ml-face-references`, chỉ đọc qua proxy có nhật ký; avatar tách riêng (`iam-avatars`, presigned TTL ngắn); đồng ý lưu phía server, ảnh tải hộ/nhập ở trạng thái `PENDING_CONSENT` không dùng để so khớp, tự huỷ sau 30 ngày; phạm vi Manager theo `departmentId` trong JWT, chỉ với Employee phòng mình; kiểm tra trùng 1:N (≥ 0,5 chặn, 0,35–0,5 cảnh báo); nhập Excel + ZIP có bước xem trước và báo cáo lỗi; mật khẩu tuỳ chọn + email kích hoạt, bỏ `Password123!`; xoá dữ liệu khuôn mặt khi vô hiệu hoá. Cập nhật căn cứ pháp lý sang Luật 91/2025/QH15 + Nghị định 356/2025/NĐ-CP (cần đối chiếu toàn văn). Giai đoạn 0 sửa trước 2 lỗi có sẵn của `ml-service` (nạp model lười không khoá dưới giới hạn 1 GB; truy vấn khuôn mặt chưa lọc `organization_id`). Đối chiếu đủ 42 mục rà soát phản biện độc lập (§27.15). Thêm ghi chú cuối §24, cập nhật khối trạng thái. Chi tiết: `RevisionHistory.md` mục 26/10/2026.
