@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequirePermissions } from '@app/common-guard';
-import { PERMISSIONS } from '@app/common-dto';
+import { AuthContext, PERMISSIONS } from '@app/common-dto';
+// 26/10/2026: ngu canh nguoi goi cho pham vi xem/duyet theo phong ban (xem src/user-directory).
+import { toScopeCaller } from '../user-directory/user-directory';
 import { AttendanceAdjustmentsService } from './attendance-adjustments.service';
 import { CreateAttendanceAdjustmentDto } from './dto/create-attendance-adjustment.dto';
 import { DecideAttendanceAdjustmentDto } from './dto/decide-attendance-adjustment.dto';
@@ -36,8 +38,8 @@ export class AttendanceAdjustmentsController {
 
   @Get()
   @RequirePermissions(PERMISSIONS.ATTENDANCE_ADJUSTMENT_VIEW)
-  findAll(@CurrentUser('organizationId') organizationId: string, @Query() query: AttendanceAdjustmentQueryDto) {
-    return this.attendanceAdjustmentsService.findAll(organizationId, query);
+  findAll(@CurrentUser('organizationId') organizationId: string, @Query() query: AttendanceAdjustmentQueryDto, @CurrentUser() caller: AuthContext) {
+    return this.attendanceAdjustmentsService.findAll(organizationId, query, toScopeCaller(caller));
   }
 
   @Patch(':id/approve')
@@ -47,8 +49,9 @@ export class AttendanceAdjustmentsController {
     @CurrentUser('userId') approverId: string,
     @Param('id') id: string,
     @Body() dto: DecideAttendanceAdjustmentDto,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.attendanceAdjustmentsService.approve(organizationId, id, approverId, dto);
+    return this.attendanceAdjustmentsService.approve(organizationId, id, approverId, dto, toScopeCaller(caller));
   }
 
   @Patch(':id/reject')
@@ -58,7 +61,8 @@ export class AttendanceAdjustmentsController {
     @CurrentUser('userId') approverId: string,
     @Param('id') id: string,
     @Body() dto: DecideAttendanceAdjustmentDto,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.attendanceAdjustmentsService.reject(organizationId, id, approverId, dto);
+    return this.attendanceAdjustmentsService.reject(organizationId, id, approverId, dto, toScopeCaller(caller));
   }
 }

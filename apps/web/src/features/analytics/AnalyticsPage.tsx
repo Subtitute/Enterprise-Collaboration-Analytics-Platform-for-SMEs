@@ -18,6 +18,9 @@ import { useDepartmentsQuery } from '@/features/admin/hooks';
 import { useProductsQuery } from '@/features/inventory/hooks';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { unwrapList } from '@/lib/utils';
+// 26/10/2026: pham vi phong ban cua Manager (an bo loc phong ban) - xem isOrgScope ben duoi.
+import { usePermissions } from '@/stores/auth.store';
+import { PERMISSIONS } from '@/constants/permissions';
 import type { Product } from '@/types';
 import {
   useAiInsightsMutation,
@@ -47,6 +50,10 @@ export function AnalyticsPage() {
   // phong ban duoc.
   const [departmentId, setDepartmentId] = useState('');
   const departmentsQuery = useDepartmentsQuery();
+  // 26/10/2026: chi Org Admin (USER_MANAGE) chon duoc phong ban/toan to chuc - Manager luon bi
+  // backend gioi han trong phong ban cua minh (AnalyticsService.resolveDepartmentScope()), nen an bo
+  // loc va hien dong chu thich pham vi thay vi 1 dropdown "Tat ca phong ban" gay hieu nham.
+  const isOrgScope = usePermissions().includes(PERMISSIONS.USER_MANAGE);
 
   const progressQuery = useProjectProgressQuery(range, departmentId || undefined);
   const activityQuery = useDocumentActivityQuery(range);
@@ -295,19 +302,23 @@ export function AnalyticsPage() {
             }))}
             className="w-[180px] shrink-0"
           />
-          <CustomFilterSelect
-            value={departmentId}
-            onChange={(val) => setDepartmentId(val)}
-            ariaLabel={t('analytics:filters.departmentAriaLabel')}
-            options={[
-              { value: '', label: t('analytics:filters.allDepartments') },
-              ...(departmentsQuery.data ?? []).map((d) => ({
-                value: d.id,
-                label: d.name,
-              })),
-            ]}
-            className="w-[200px] shrink-0"
-          />
+          {isOrgScope ? (
+            <CustomFilterSelect
+              value={departmentId}
+              onChange={(val) => setDepartmentId(val)}
+              ariaLabel={t('analytics:filters.departmentAriaLabel')}
+              options={[
+                { value: '', label: t('analytics:filters.allDepartments') },
+                ...(departmentsQuery.data ?? []).map((d) => ({
+                  value: d.id,
+                  label: d.name,
+                })),
+              ]}
+              className="w-[200px] shrink-0"
+            />
+          ) : (
+            <span className="text-[13px] text-text-secondary">{t('analytics:filters.departmentScopeNotice')}</span>
+          )}
         </div>
       </div>
 

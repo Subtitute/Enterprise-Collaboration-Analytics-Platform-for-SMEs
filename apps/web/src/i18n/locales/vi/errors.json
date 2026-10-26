@@ -35,6 +35,7 @@
   "TASK_STATUS_TRANSITION_INVALID": "Không thể chuyển trạng thái công việc từ {{from}} sang {{to}}.",
   "TASK_NOT_FOUND": "Không tìm thấy công việc.",
   "PROJECT_NOT_FOUND": "Không tìm thấy dự án.",
+  "PROJECT_MEMBER_HAS_OPEN_TASKS": "Thành viên này còn {{count}} công việc chưa hoàn thành trong dự án. Hãy giao lại các công việc đó cho người khác trước khi gỡ khỏi dự án.",
   "PROJECT_ALREADY_COMPLETED": "Dự án này đã hoàn thành.",
   "PROJECT_ALREADY_ARCHIVED": "Dự án này đã được lưu trữ.",
 
@@ -79,6 +80,10 @@
 
   "AI_INSIGHT_NOT_CONFIGURED": "Tính năng AI Insights chưa được cấu hình (thiếu cả GEMINI_API_KEY và GROQ_API_KEY). Vui lòng liên hệ quản trị viên.",
   "AI_INSIGHT_GENERATION_FAILED": "Không thể tạo nhận định AI vào lúc này. Vui lòng thử lại sau.",
+  "DRILL_DOWN_SCOPE_FORBIDDEN": "Bạn chỉ xem được chi tiết trong phạm vi phòng ban của mình.",
+  "DEPARTMENT_SCOPE_FORBIDDEN": "Dữ liệu này nằm ngoài phạm vi phòng ban của bạn.",
+  "DEPARTMENT_SCOPE_MISSING": "Bạn chưa được gán phòng ban nên chưa có phạm vi dữ liệu để xem.",
+  "SELF_APPROVAL_FORBIDDEN": "Bạn không thể tự duyệt yêu cầu của chính mình.",
   "INVALID_RANGE_WITH_QUARTER": "Khoảng thời gian không hợp lệ: '{{range}}' (chỉ chấp nhận 7d, 30d hoặc quarter).",
   "INVALID_RANGE_NO_QUARTER": "Khoảng thời gian không hợp lệ: '{{range}}' (chỉ chấp nhận 7d hoặc 30d).",
 
@@ -115,5 +120,9 @@
   "CHATBOT_CONVERSATION_NOT_FOUND": "Không tìm thấy cuộc trò chuyện.",
   "CHATBOT_CONVERSATION_BUSY": "Cuộc trò chuyện này đang xử lý một câu hỏi khác, vui lòng đợi câu trả lời trước khi hỏi tiếp.",
   "DOCUMENT_SEARCH_UNAVAILABLE": "Tìm kiếm nội dung tài liệu tạm thời không khả dụng, vui lòng thử lại sau.",
-  "DOCUMENT_SEARCH_RATE_LIMITED": "Bạn đã tìm kiếm tài liệu quá nhiều lần trong thời gian ngắn, vui lòng thử lại sau ít phút."
+  "DOCUMENT_SEARCH_RATE_LIMITED": "Bạn đã tìm kiếm tài liệu quá nhiều lần trong thời gian ngắn, vui lòng thử lại sau ít phút.",
+  "COMPANY_WIDE_ADMIN_ONLY": "Chỉ Quản trị viên tổ chức mới được tạo hoặc chuyển tài liệu sang phạm vi toàn công ty. Hãy chọn một dự án.",
+  "COMPANY_WIDE_READ_ONLY": "Tài liệu toàn công ty chỉ Quản trị viên tổ chức mới được chỉnh sửa; bạn chỉ có quyền xem.",
+  "FORBIDDEN_PROJECT_DOCUMENTS": "Bạn không thuộc phạm vi dự án này nên không thể gắn thư mục vào dự án.",
+  "FOLDER_PROJECT_TOP_LEVEL_ONLY": "Chỉ thư mục cấp gốc mới gắn được với dự án; thư mục con kế thừa dự án của thư mục cha."
 }

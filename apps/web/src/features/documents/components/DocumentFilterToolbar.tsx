@@ -1,6 +1,10 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { SearchIcon, GridIcon, ListIcon } from '@/components/ui/Icons';
+import { Select } from '@/components/ui/Input';
+
+// 26/10/2026: gia tri bo loc du an dac biet - "chi thu muc toan cong ty" ('' = tat ca).
+export const COMPANY_WIDE_FILTER = '__company__';
 
 interface DocumentFilterToolbarProps {
   searchTerm: string;
@@ -8,6 +12,10 @@ interface DocumentFilterToolbarProps {
   onClearSearch: () => void;
   viewMode: 'grid' | 'list';
   onViewModeChange: (mode: 'grid' | 'list') => void;
+  // 26/10/2026: bo loc theo du an (chi hien o thu muc goc - noi thu muc gan du an).
+  projectFilter?: string;
+  onProjectFilterChange?: (value: string) => void;
+  projectOptions?: { id: string; name: string }[];
 }
 
 /**
@@ -19,6 +27,9 @@ export const DocumentFilterToolbar = React.memo(function DocumentFilterToolbar({
   onClearSearch,
   viewMode,
   onViewModeChange,
+  projectFilter = '',
+  onProjectFilterChange,
+  projectOptions = [],
 }: DocumentFilterToolbarProps) {
   const { t } = useTranslation();
 
@@ -44,6 +55,25 @@ export const DocumentFilterToolbar = React.memo(function DocumentFilterToolbar({
           </button>
         )}
       </div>
+
+      {onProjectFilterChange && (
+        <div className="w-40 shrink-0 sm:w-52">
+          <Select
+            aria-label={t('documents:projectScope.filterAria')}
+            value={projectFilter}
+            onChange={(e) => onProjectFilterChange(e.target.value)}
+            className="h-9 text-[13px]"
+          >
+            <option value="">{t('documents:projectScope.filterAll')}</option>
+            <option value={COMPANY_WIDE_FILTER}>{t('documents:projectScope.companyWide')}</option>
+            {projectOptions.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
+          </Select>
+        </div>
+      )}
 
       {/* Cụm nút chuyển chế độ xem (Segmented Control căn phải) */}
       <div className="flex h-9 items-center rounded-radius-md bg-bg-subtle p-0.5 gap-0.5 shrink-0">

@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequirePermissions } from '@app/common-guard';
 import { AuthContext, PERMISSIONS } from '@app/common-dto';
 import { DocumentSearchService } from './document-search.service';
+import { toAccessContext } from '../folders/folder-access.service';
 import { SearchChunksDto } from './dto/search-chunks.dto';
 
 /**
@@ -23,11 +24,12 @@ export class RagController {
   @HttpCode(200)
   @RequirePermissions(PERMISSIONS.DOCUMENT_VIEW)
   searchChunks(@CurrentUser() user: AuthContext, @Body() dto: SearchChunksDto) {
-    // Mirror FilesController.buildAccessContext() - Org Admin (ORG_MANAGE) xem duoc moi thu muc.
-    return this.documentSearchService.search(user.organizationId, dto, {
-      userId: user.userId,
-      departmentId: user.departmentId,
-      isOrgAdmin: (user.permissions ?? []).includes(PERMISSIONS.ORG_MANAGE),
-    });
+    // 26/10/2026: dung chung toAccessContext() voi Folders/Files controller - chat bot tim tai lieu
+    // theo DUNG pham vi du an nhu trang Tai lieu (khong co quy tac rieng cho RAG).
+    return this.documentSearchService.search(
+      user.organizationId,
+      dto,
+      toAccessContext(user.userId, user.departmentId, user.permissions),
+    );
   }
 }

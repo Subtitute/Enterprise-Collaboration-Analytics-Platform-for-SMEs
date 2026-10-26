@@ -1,5 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { DealStage, EVENT_TYPES } from '@app/common-dto';
+// 26/10/2026: them In/PERMISSIONS cho test pham vi xem deal (cuoi file).
+import { In } from 'typeorm';
+import { DealStage, EVENT_TYPES, PERMISSIONS } from '@app/common-dto';
 import { DealsService } from './deals.service';
 import { UpdateDealStageDto } from './dto/update-deal-stage.dto';
 
@@ -262,6 +264,62 @@ describe('DealsService', () => {
 
       expect(managerMock.remove).not.toHaveBeenCalled();
       expect(outboxServiceMock.record).not.toHaveBeenCalled();
+    });
+  });
+
+  // 26/10/2026: pham vi 3 cap cho deal - truoc ngay nay Employee doc duoc MOI deal cua to chuc.
+  describe('pham vi xem deal theo vai tro (caller)', () => {
+    const employee = { userId: actorId, permissions: [PERMISSIONS.DEAL_VIEW], departmentId: 'dept-1' };
+    const manager = { userId: actorId, permissions: [PERMISSIONS.DEAL_VIEW, PERMISSIONS.DEAL_DELETE, PERMISSIONS.CUSTOMER_CREATE], departmentId: 'dept-1' };
+
+    it('Org Admin (USER_MANAGE): chi loc theo to chuc', async () => {
+      const dealRepoMock = { findAndCount: jest.fn().mockResolvedValue([[], 0]) };
+      const service = new DealsService({} as any, dealRepoMock as any, {} as any, {} as any);
+
+      await service.findAll(organizationId, { page: 1, limit: 20 } as any, { ...employee, permissions: [PERMISSIONS.USER_MANAGE] });
+
+      expect(dealRepoMock.findAndCount).toHaveBeenCalledWith(expect.objectContaining({ where: { organizationId } }));
+    });
+
+    it('Employee: deal minh phu trach HOAC deal cua khach hang minh phu trach (2 menh de OR)', async () => {
+      const dealRepoMock = { findAndCount: jest.fn().mockResolvedValue([[], 0]) };
+      const service = new DealsService({} as any, dealRepoMock as any, {} as any, {} as any);
+
+      await service.findAll(organizationId, { page: 1, limit: 20, stage: DealStage.NEW } as any, employee);
+
+      expect(dealRepoMock.findAndCount).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: [
+            { organizationId, ownerUserId: In([actorId]), stage: DealStage.NEW },
+            { organizationId, customer: { ownerUserId: In([actorId]) }, stage: DealStage.NEW },
+          ],
+        }),
+      );
+    });
+
+    it('Manager: tap nguoi dai dien gom ca thanh vien phong ban (read-model dim_user)', async () => {
+      const dealRepoMock = { findOne: jest.fn().mockResolvedValue(null) };
+      const dataSourceMock = { getRepository: jest.fn().mockReturnValue({ find: jest.fn().mockResolvedValue([{ userId: 'member-1' }]) }) };
+      const service = new DealsService(dataSourceMock as any, dealRepoMock as any, {} as any, {} as any);
+
+      await expect(service.findById(organizationId, dealId, manager)).rejects.toThrow(NotFoundException);
+      expect(dealRepoMock.findOne).toHaveBeenCalledWith({
+        where: [
+          { organizationId, ownerUserId: In([actorId, 'member-1']), id: dealId },
+          { organizationId, customer: { ownerUserId: In([actorId, 'member-1']) }, id: dealId },
+        ],
+      });
+    });
+
+    it('create: khach hang phai thuoc pham vi xem khach hang cua nguoi goi', async () => {
+      const managerMock = { findOne: jest.fn().mockResolvedValue(null) };
+      const dataSourceMock = { transaction: jest.fn((cb: any) => cb(managerMock)) };
+      const service = new DealsService(dataSourceMock as any, {} as any, {} as any, {} as any);
+
+      await expect(service.create(organizationId, actorId, { customerId: 'cust-1', title: 'X' }, employee)).rejects.toThrow(NotFoundException);
+      expect(managerMock.findOne).toHaveBeenCalledWith(expect.anything(), {
+        where: { id: 'cust-1', organizationId, ownerUserId: In([actorId]) },
+      });
     });
   });
 });

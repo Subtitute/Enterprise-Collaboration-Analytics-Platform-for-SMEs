@@ -1,7 +1,9 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequirePermissions } from '@app/common-guard';
-import { PERMISSIONS } from '@app/common-dto';
+import { AuthContext, PERMISSIONS } from '@app/common-dto';
+// 26/10/2026: ngu canh nguoi goi cho pham vi xem 3 cap (xem DealsService.scopedWhere()).
+import { toScopeCaller } from '../user-directory/user-directory';
 import { DealsService } from './deals.service';
 import { CreateDealDto } from './dto/create-deal.dto';
 import { UpdateDealDto } from './dto/update-deal.dto';
@@ -15,16 +17,17 @@ import { DealQueryDto } from './dto/deal-query.dto';
 export class DealsController {
   constructor(private readonly dealsService: DealsService) {}
 
+  // 26/10/2026: moi endpoint nhan them `caller` (AuthContext) - truoc day deal chi loc theo to chuc.
   @Get()
   @RequirePermissions(PERMISSIONS.DEAL_VIEW)
-  findAll(@CurrentUser('organizationId') organizationId: string, @Query() query: DealQueryDto) {
-    return this.dealsService.findAll(organizationId, query);
+  findAll(@CurrentUser('organizationId') organizationId: string, @Query() query: DealQueryDto, @CurrentUser() caller: AuthContext) {
+    return this.dealsService.findAll(organizationId, query, toScopeCaller(caller));
   }
 
   @Get(':id')
   @RequirePermissions(PERMISSIONS.DEAL_VIEW)
-  findOne(@CurrentUser('organizationId') organizationId: string, @Param('id') id: string) {
-    return this.dealsService.findById(organizationId, id);
+  findOne(@CurrentUser('organizationId') organizationId: string, @Param('id') id: string, @CurrentUser() caller: AuthContext) {
+    return this.dealsService.findById(organizationId, id, toScopeCaller(caller));
   }
 
   @Post()
@@ -33,8 +36,9 @@ export class DealsController {
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') actorId: string,
     @Body() dto: CreateDealDto,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.dealsService.create(organizationId, actorId, dto);
+    return this.dealsService.create(organizationId, actorId, dto, toScopeCaller(caller));
   }
 
   @Patch(':id')
@@ -43,8 +47,9 @@ export class DealsController {
     @CurrentUser('organizationId') organizationId: string,
     @Param('id') id: string,
     @Body() dto: UpdateDealDto,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.dealsService.update(organizationId, id, dto);
+    return this.dealsService.update(organizationId, id, dto, toScopeCaller(caller));
   }
 
   /**
@@ -58,8 +63,9 @@ export class DealsController {
     @CurrentUser('userId') actorId: string,
     @Param('id') id: string,
     @Body() dto: UpdateDealStageDto,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.dealsService.updateStage(organizationId, id, actorId, dto);
+    return this.dealsService.updateStage(organizationId, id, actorId, dto, toScopeCaller(caller));
   }
 
   @Delete(':id')
@@ -68,7 +74,8 @@ export class DealsController {
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') actorId: string,
     @Param('id') id: string,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.dealsService.remove(organizationId, actorId, id);
+    return this.dealsService.remove(organizationId, actorId, id, toScopeCaller(caller));
   }
 }

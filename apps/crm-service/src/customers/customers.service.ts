@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, FindOptionsWhere, ILike, Repository } from 'typeorm';
+import { DataSource, FindOptionsWhere, ILike, In, Repository } from 'typeorm';
 import {
   CustomerCreatedPayload,
   CustomerDeletedPayload,
@@ -15,6 +15,8 @@ import {
 import { Customer } from '../entities/customer.entity';
 import { Deal } from '../entities/deal.entity';
 import { OutboxService } from '../outbox/outbox.service';
+// 26/10/2026: pham vi xem 3 cap (Org Admin/Manager theo phong ban/Employee) - xem resolveScopeUserIds().
+import { ScopeCaller, resolveScopeUserIds } from '../user-directory/user-directory';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { CustomerQueryDto } from './dto/customer-query.dto';
@@ -54,16 +56,20 @@ export class CustomersService {
    * truoc gio. Dung CUSTOMER_CREATE lam tin hieu ranh gioi "quan ly danh muc khach hang" (Manager)
    * vs "chi thao tac Deal cua minh tren khach hang co san" (Employee) da co san trong RBAC, tranh
    * phai them 1 permission constant rieng chi de phuc vu 1 dieu kien nay.
+   *
+   * 26/10/2026: Manager KHONG con thay toan bo khach hang nhu Org Admin - chi khach hang do chinh
+   * minh HOAC thanh vien phong ban minh phu trach (ownerUserId thuoc phong ban, tra tu read-model
+   * dim_user). Org Admin (USER_MANAGE) van thay tat ca; Employee giu nguyen "chi khach cua minh".
    */
   async findAll(
     organizationId: string,
     query: CustomerQueryDto,
     callerId: string,
     callerPermissions: string[],
+    departmentId: string | null = null,
   ): Promise<PaginatedResponse<CustomerListItem>> {
-    const where: FindOptionsWhere<Customer> = { organizationId };
+    const where = await this.scopedWhere(organizationId, { userId: callerId, permissions: callerPermissions, departmentId });
     if (query.search) where.name = ILike(`%${query.search}%`);
-    if (!callerPermissions.includes(PERMISSIONS.CUSTOMER_CREATE)) where.ownerUserId = callerId;
 
     const [data, total] = await this.customerRepo.findAndCount({
       where,
@@ -86,17 +92,15 @@ export class CustomersService {
   // no truc tiep (vd. tu URL chia se), du danh sach da loc dung. Tra ve CUNG 1 NotFoundException
   // nhu truong hop khach hang khong ton tai (khong dung ForbiddenException rieng) de khong lam lo
   // su ton tai cua ban ghi cho nguoi khong co quyen xem no.
+  // 26/10/2026: cung pham vi 3 cap voi findAll() (xem scopedWhere()).
   async findById(
     organizationId: string,
     id: string,
     callerId: string,
     callerPermissions: string[],
+    departmentId: string | null = null,
   ): Promise<CustomerListItem> {
-    const where: FindOptionsWhere<Customer> = { id, organizationId };
-    if (!callerPermissions.includes(PERMISSIONS.CUSTOMER_CREATE)) where.ownerUserId = callerId;
-
-    const customer = await this.customerRepo.findOne({ where });
-    if (!customer) throw new NotFoundException({ message: 'Khong tim thay khach hang', errorCode: ERROR_CODES.CUSTOMER_NOT_FOUND });
+    const customer = await this.findScopedOrFail(organizationId, id, { userId: callerId, permissions: callerPermissions, departmentId });
 
     const stats = await this.computeCustomerStats([id]);
     const stat = stats.get(id) ?? { openDealCount: 0, openDealValue: 0 };
@@ -129,9 +133,10 @@ export class CustomersService {
     });
   }
 
-  async update(organizationId: string, id: string, dto: UpdateCustomerDto): Promise<Customer> {
-    const customer = await this.customerRepo.findOne({ where: { id, organizationId } });
-    if (!customer) throw new NotFoundException({ message: 'Khong tim thay khach hang', errorCode: ERROR_CODES.CUSTOMER_NOT_FOUND });
+  // 26/10/2026: `caller` (tuy chon) - Manager chi sua duoc khach hang nam trong pham vi phong ban
+  // (truoc day sua duoc BAT KY khach hang nao cua to chuc neu biet UUID).
+  async update(organizationId: string, id: string, dto: UpdateCustomerDto, caller?: ScopeCaller): Promise<Customer> {
+    const customer = await this.findScopedOrFail(organizationId, id, caller);
 
     if (dto.name !== undefined) customer.name = dto.name;
     if (dto.email !== undefined) customer.email = dto.email;
@@ -152,9 +157,9 @@ export class CustomersService {
    * Khoa pessimistic_write + xoa idempotent + phat du event cho ca Customer lan tung Deal bi
    * cascade - mirror CHINH XAC ProjectsService.remove() (apps/project-task-service).
    */
-  async remove(organizationId: string, actorId: string, id: string): Promise<void> {
-    const existing = await this.customerRepo.findOne({ where: { id, organizationId } });
-    if (!existing) throw new NotFoundException({ message: 'Khong tim thay khach hang', errorCode: ERROR_CODES.CUSTOMER_NOT_FOUND });
+  // 26/10/2026: `caller` (tuy chon) - cung pham vi voi update() o tren.
+  async remove(organizationId: string, actorId: string, id: string, caller?: ScopeCaller): Promise<void> {
+    await this.findScopedOrFail(organizationId, id, caller);
 
     await this.dataSource.transaction(async (manager) => {
       const customer = await manager.findOne(Customer, {
@@ -188,6 +193,32 @@ export class CustomersService {
         });
       }
     });
+  }
+
+  /**
+   * 26/10/2026: dieu kien WHERE theo pham vi xem cua nguoi goi - khong co caller (goi noi bo/test cu)
+   * hoac Org Admin -> chi loc theo to chuc; nguoc lai ownerUserId phai thuoc tap nguoi dai dien
+   * (chinh minh, hoac chinh minh + thanh vien phong ban voi Manager).
+   */
+  async scopedWhere(organizationId: string, caller?: ScopeCaller): Promise<FindOptionsWhere<Customer>> {
+    if (!caller) return { organizationId };
+    const ownerIds = await resolveScopeUserIds(
+      this.dataSource,
+      organizationId,
+      caller.userId,
+      caller.permissions ?? [],
+      PERMISSIONS.CUSTOMER_CREATE,
+      caller.departmentId,
+    );
+    return ownerIds ? { organizationId, ownerUserId: In(ownerIds) } : { organizationId };
+  }
+
+  /** 26/10/2026: NotFoundException CUNG errorCode voi "khong ton tai" de khong lo su ton tai cua ban ghi ngoai pham vi. */
+  private async findScopedOrFail(organizationId: string, id: string, caller?: ScopeCaller): Promise<Customer> {
+    const where = await this.scopedWhere(organizationId, caller);
+    const customer = await this.customerRepo.findOne({ where: { ...where, id } });
+    if (!customer) throw new NotFoundException({ message: 'Khong tim thay khach hang', errorCode: ERROR_CODES.CUSTOMER_NOT_FOUND });
+    return customer;
   }
 
   /** Tinh openDealCount/openDealValue cho 1 tap customerId (trang hien tai) bang 1 query GROUP BY, tranh N+1. */

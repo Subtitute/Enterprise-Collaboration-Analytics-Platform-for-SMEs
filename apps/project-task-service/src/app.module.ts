@@ -16,6 +16,9 @@ import { TaskAssignee } from './entities/task-assignee.entity';
 import { TaskComment } from './entities/task-comment.entity';
 import { TaskStatusHistory } from './entities/task-status-history.entity';
 import { OutboxEvent } from './entities/outbox-event.entity';
+// 26/10/2026: read-model user -> phong ban cho pham vi xem cua Manager (xem src/user-directory).
+import { DimUser } from './entities/dim-user.entity';
+import { UserDirectoryModule } from './user-directory/user-directory.module';
 import { KafkaModule } from './kafka/kafka.module';
 import { OutboxModule } from './outbox/outbox.module';
 import { ProjectsModule } from './projects/projects.module';
@@ -34,7 +37,7 @@ import { HealthController } from './health/health.controller';
         username: config.get<string>('db.user'),
         password: config.get<string>('db.password'),
         database: config.get<string>('db.name'),
-        entities: [Project, ProjectMember, Task, TaskAssignee, TaskComment, TaskStatusHistory, OutboxEvent],
+        entities: [Project, ProjectMember, Task, TaskAssignee, TaskComment, TaskStatusHistory, OutboxEvent, DimUser],
         // MVP: dung synchronize thay vi migration thu cong - Technical_Spec.md muc 14 (gioi han da biet).
         synchronize: true,
       }),
@@ -47,6 +50,7 @@ import { HealthController } from './health/health.controller';
     OutboxModule,
     ProjectsModule,
     TasksModule,
+    UserDirectoryModule,
   ],
   controllers: [HealthController, MetricsController],
   providers: [

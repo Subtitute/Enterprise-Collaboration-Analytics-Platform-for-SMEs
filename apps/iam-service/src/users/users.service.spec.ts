@@ -349,4 +349,43 @@ describe('UsersService', () => {
       expect(redisService.blacklistUser).toHaveBeenCalledWith('user-2', expect.any(Number));
     });
   });
+
+  // 26/10/2026: danh ba 3 cap - ho so day du chi trong pham vi, ngoai pham vi la "the danh ba".
+  describe('findAll() / findByIdInDepartment() - danh ba theo pham vi', () => {
+    const users = [
+      { id: 'me', email: 'me@x.vn', fullName: 'Toi', organizationId: ORG_ID, departmentId: 'dept-a', isActive: true, roles: [{ id: 'r1', name: 'Manager' }], createdAt: new Date() },
+      { id: 'mate', email: 'mate@x.vn', fullName: 'Dong nghiep', organizationId: ORG_ID, departmentId: 'dept-a', isActive: true, roles: [], createdAt: new Date() },
+      { id: 'other', email: 'other@x.vn', fullName: 'Phong khac', organizationId: ORG_ID, departmentId: 'dept-b', isActive: true, roles: [], createdAt: new Date() },
+    ];
+    const isFull = (u: Record<string, unknown>) => 'roles' in u && 'createdAt' in u;
+
+    beforeEach(() => {
+      (userRepo as any).findAndCount = jest.fn().mockResolvedValue([users, users.length]);
+    });
+
+    it('Org Admin/khong co caller: ho so day du cho moi nguoi', async () => {
+      const res = await service.findAll(ORG_ID, { page: 1, limit: 50 } as any, { userId: 'me', permissions: [PERMISSIONS.USER_MANAGE], departmentId: null });
+      expect(res.data.every((u) => isFull(u as any))).toBe(true);
+      expect((await service.findAll(ORG_ID, { page: 1, limit: 50 } as any)).data.every((u) => isFull(u as any))).toBe(true);
+    });
+
+    it('Manager: day du chinh minh + cung phong ban; phong ban khac chi con ten/phong ban/email', async () => {
+      const res = await service.findAll(ORG_ID, { page: 1, limit: 50 } as any, { userId: 'me', permissions: [PERMISSIONS.USER_INVITE], departmentId: 'dept-a' });
+      const byId = Object.fromEntries(res.data.map((u) => [u.id, u as Record<string, unknown>]));
+      expect(isFull(byId.me)).toBe(true);
+      expect(isFull(byId.mate)).toBe(true);
+      expect(byId.other).toEqual({ id: 'other', email: 'other@x.vn', fullName: 'Phong khac', departmentId: 'dept-b', isActive: true });
+    });
+
+    it('Employee: chi ho so cua chinh minh la day du', async () => {
+      const res = await service.findAll(ORG_ID, { page: 1, limit: 50 } as any, { userId: 'me', permissions: [], departmentId: 'dept-a' });
+      expect(res.data.filter((u) => isFull(u as any)).map((u) => u.id)).toEqual(['me']);
+    });
+
+    it('findByIdInDepartment: cung phong ban -> ho so day du, khac phong ban -> 403', async () => {
+      userRepo.findOne.mockResolvedValueOnce(users[1]).mockResolvedValueOnce(users[2]);
+      await expect(service.findByIdInDepartment(ORG_ID, 'mate', 'dept-a')).resolves.toMatchObject({ id: 'mate', roles: [] });
+      await expect(service.findByIdInDepartment(ORG_ID, 'other', 'dept-a')).rejects.toThrow(ForbiddenException);
+    });
+  });
 });

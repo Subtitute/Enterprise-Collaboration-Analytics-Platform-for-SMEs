@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, FindOptionsWhere, IsNull, Repository } from 'typeorm';
+import { DataSource, FindOptionsWhere, In, IsNull, Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 import { FileMeta } from '../entities/file-meta.entity';
 import { FileVersion } from '../entities/file-version.entity';
@@ -92,17 +92,28 @@ export class FilesService {
    * len phien ban moi de ghi de noi dung, xoa file, hay tu chia se lai cho chinh minh quyen EDIT (da
    * tai hien song). Voi thao tac ghi (uploadNewVersion/share/remove), nhanh "duong link rieng" chi
    * con chap nhan FileShare co permission = EDIT; quyen qua thu muc (va file cap ROOT) giu nguyen.
+   *
+   * 26/10/2026: file cap ROOT = tai lieu toan cong ty - ai cung XEM duoc, nhung thao tac ghi (phien ban
+   * moi/chia se/xoa) chi Org Admin hoac nguoi duoc chia se EDIT truc tiep, cung quy tac "chi Org Admin
+   * tai len thu muc goc" o upload(). Truoc day Employee ghi de duoc noi dung tep toan cong ty.
    */
   async canAccessFile(organizationId: string, fileMeta: FileMeta, ctx: AccessContext, requireEdit = false): Promise<boolean> {
-    if (!fileMeta.folderId) return true;
+    if (!fileMeta.folderId) {
+      if (!requireEdit || ctx.isOrgAdmin) return true;
+    } else {
+      const folder = await this.folderRepo.findOne({ where: { id: fileMeta.folderId, organizationId } });
+      // Ve ly thuyet khong xay ra (FK folderId tro toi 1 Folder that su ton tai).
+      // 24/10/2026: doi fail-open -> fail-closed (tru Org Admin), dong bo voi quy tac "du lieu bat thuong
+      // -> tu choi" cua FolderAccessService (quyen thu muc gio ke thua tu thu muc cha).
+      if (!folder) return ctx.isOrgAdmin;
 
-    const folder = await this.folderRepo.findOne({ where: { id: fileMeta.folderId, organizationId } });
-    // Ve ly thuyet khong xay ra (FK folderId tro toi 1 Folder that su ton tai).
-    // 24/10/2026: doi fail-open -> fail-closed (tru Org Admin), dong bo voi quy tac "du lieu bat thuong
-    // -> tu choi" cua FolderAccessService (quyen thu muc gio ke thua tu thu muc cha).
-    if (!folder) return ctx.isOrgAdmin;
-
-    if (await this.folderAccessService.canAccessFolder(folder, ctx)) return true;
+      // 26/10/2026: thao tac ghi theo quyen GHI cua thu muc (cay toan cong ty chi Org Admin/duoc chia se thu muc).
+      if (requireEdit) {
+        if ((await this.folderAccessService.writeAccess(organizationId, folder.id, ctx)) === 'allowed') return true;
+      } else if (await this.folderAccessService.canAccessFolder(folder, ctx)) {
+        return true;
+      }
+    }
 
     const permissionFilter: FindOptionsWhere<FileShare> = requireEdit ? { permission: FileSharePermission.EDIT } : {};
     const conditions: FindOptionsWhere<FileShare>[] = [{ fileId: fileMeta.id, sharedWithUserId: ctx.userId, ...permissionFilter }];
@@ -117,6 +128,10 @@ export class FilesService {
    * 24/10/2026: ban "loc hang loat" cua canAccessFile() (CUNG quy tac) cho noi can kiem tra nhieu file
    * trong 1 request (DocumentSearchService - RAG): 1 checker thu muc (2 truy van) + 1 truy van FileShare
    * truc tiep cua nguoi goi, thay vi 2-3 truy van cho MOI file.
+   *
+   * 26/10/2026: checker thu muc gio gom ca pham vi du an (FolderAccessService - du an thuoc pham vi
+   * nap chung truy van voi FolderShare), nen RAG/chat bot loc dung quy tac moi ma van 3 truy van.
+   * Tep o thu muc goc van mo cho moi nguoi (tai lieu toan cong ty, chi Org Admin tai len duoc).
    */
   async createFileAccessFilter(
     organizationId: string,
@@ -148,12 +163,28 @@ export class FilesService {
   // cho truy cap 1 file DON LE, KHONG lam file do "xuat hien" trong 1 danh sach duyet thu muc ma
   // nguoi dung khong duoc xem). Neu thu muc khong ton tai (VD sai to chuc), giu nguyen hanh vi cu
   // - khong nem loi moi, chi de query ben duoi tra danh sach rong nhu truoc day.
+  // 26/10/2026: `projectId` (tuy chon) - tep cua moi thu muc ma nguoi goi xem duoc va co du an hieu
+  // luc = projectId (ke ca thu muc con). 1 lan nap cay thu muc + quyen (2 truy van) roi 1 truy van tep.
   async findAll(
     organizationId: string,
     folderId: string | undefined,
     query: PaginationQueryDto,
     ctx: AccessContext,
+    projectId?: string,
   ): Promise<PaginatedResponse<FileMeta>> {
+    if (projectId) {
+      const scope = await this.folderAccessService.createScope(organizationId, ctx);
+      const folderIds = scope.folderIds.filter((id) => scope.projectIdOf(id) === projectId && scope.canAccess(id));
+      if (folderIds.length === 0) return paginate([], 0, query.page, query.limit);
+      const [projectFiles, projectTotal] = await this.fileMetaRepo.findAndCount({
+        where: { organizationId, folderId: In(folderIds) },
+        order: { updatedAt: 'DESC' },
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+      });
+      const flagged = await this.withWriteFlags(projectFiles, ctx, (id) => scope.writeAccess(id) === 'allowed');
+      return paginate(flagged, projectTotal, query.page, query.limit);
+    }
     if (folderId) {
       const folder = await this.folderRepo.findOne({ where: { id: folderId, organizationId } });
       if (folder && !(await this.folderAccessService.canAccessFolder(folder, ctx))) {
@@ -169,7 +200,33 @@ export class FilesService {
       skip: (query.page - 1) * query.limit,
       take: query.limit,
     });
-    return paginate(data, total, query.page, query.limit);
+    // 26/10/2026: ca trang chung 1 thu muc -> quyen GHI cua thu muc tinh 1 lan (thu muc goc: chi FileShare EDIT).
+    const folderWritable =
+      !!folderId && !ctx.isOrgAdmin && data.length > 0
+        ? (await this.folderAccessService.writeAccess(organizationId, folderId, ctx)) === 'allowed'
+        : false;
+    return paginate(await this.withWriteFlags(data, ctx, () => folderWritable), total, query.page, query.limit);
+  }
+
+  /**
+   * 26/10/2026: kem `canWrite` cho tung tep cua 1 trang danh sach - CUNG quy tac canAccessFile(requireEdit):
+   * quyen GHI cua thu muc (cay toan cong ty chi Org Admin/duoc chia se thu muc) HOAC FileShare EDIT truc
+   * tiep (nguoi goi/phong ban). FE an/hien phien ban moi/chia se/xoa theo co nay - 1 truy van cho ca trang.
+   */
+  private async withWriteFlags(
+    files: FileMeta[],
+    ctx: AccessContext,
+    folderWritable: (folderId: string) => boolean,
+  ): Promise<Array<FileMeta & { canWrite: boolean }>> {
+    if (ctx.isOrgAdmin || files.length === 0) return files.map((file) => Object.assign(file, { canWrite: ctx.isOrgAdmin }));
+    const fileId = In(files.map((file) => file.id));
+    const conditions: FindOptionsWhere<FileShare>[] = [{ fileId, sharedWithUserId: ctx.userId, permission: FileSharePermission.EDIT }];
+    if (ctx.departmentId) conditions.push({ fileId, sharedWithDepartmentId: ctx.departmentId, permission: FileSharePermission.EDIT });
+    const shares = await this.fileShareRepo.find({ select: { fileId: true }, where: conditions });
+    const editable = new Set(shares.map((share) => share.fileId));
+    return files.map((file) =>
+      Object.assign(file, { canWrite: editable.has(file.id) || (!!file.folderId && folderWritable(file.folderId)) }),
+    );
   }
 
   // 28/07/2026: bo sung tham so `ctx` + assertFileAccess() - xem canAccessFile() o tren.
@@ -249,9 +306,15 @@ export class FilesService {
     if (folderId) {
       const folder = await this.folderRepo.findOne({ where: { id: folderId, organizationId } });
       if (!folder) throw new NotFoundException({ message: 'Khong tim thay thu muc', errorCode: ERROR_CODES.FOLDER_NOT_FOUND });
-      if (!(await this.folderAccessService.canAccessFolder(folder, ctx))) {
-        throw new ForbiddenException({ message: 'Ban khong co quyen truy cap thu muc nay', errorCode: ERROR_CODES.FORBIDDEN_FOLDER_ACCESS });
-      }
+      // 26/10/2026: tai len = GHI - cay toan cong ty chi Org Admin (xem FolderAccessService.resolveFolderWrite).
+      await this.folderAccessService.assertCanWrite(organizationId, folder.id, ctx);
+    } else if (!ctx.isOrgAdmin) {
+      // 26/10/2026: tep o thu muc goc ai cung xem duoc (= tai lieu toan cong ty) - cung quy tac voi
+      // thu muc toan cong ty: chi Org Admin, nguoi khac tai len thu muc cua 1 du an.
+      throw new ForbiddenException({
+        message: 'Chi Quan tri vien to chuc moi tai duoc tep len thu muc goc - hay chon thu muc cua 1 du an',
+        errorCode: ERROR_CODES.COMPANY_WIDE_ADMIN_ONLY,
+      });
     }
 
     const fileId = uuidv4();

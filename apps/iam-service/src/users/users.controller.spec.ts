@@ -54,5 +54,14 @@ describe('UsersController - RBAC (Fix 5, review 22/07/2026)', () => {
       expect(result).toEqual({ id: 'user-1', fullName: 'Nguyen Van A' });
       expect(serviceMock.findById).toHaveBeenCalledWith('org-1', 'user-2');
     });
+
+    // 26/10/2026: Manager (USER_INVITE + co phong ban) xem ho so thanh vien CUNG phong ban.
+    it('Manager co phong ban: chuyen sang findByIdInDepartment (service tu chan nguoi ngoai phong ban)', async () => {
+      const findByIdInDepartment = jest.fn().mockResolvedValue({ id: 'user-2' });
+      (serviceMock as any).findByIdInDepartment = findByIdInDepartment;
+      await controller.findOne('org-1', 'user-1', [PERMISSIONS.USER_INVITE], 'user-2', 'dept-1');
+      expect(findByIdInDepartment).toHaveBeenCalledWith('org-1', 'user-2', 'dept-1');
+      expect(serviceMock.findById).not.toHaveBeenCalled();
+    });
   });
 });

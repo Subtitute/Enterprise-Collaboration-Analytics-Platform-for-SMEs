@@ -5,16 +5,26 @@ import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { FormField, Input } from '@/components/ui/Input';
 import { useCreateFolder } from '../hooks';
+// 26/10/2026: bo chon du an cho thu muc cap goc (tai lieu theo pham vi du an).
+import { FolderProjectSelect, useIsOrgAdmin } from './FolderProjectSelect';
 
+/** Gia tri select = id du an, '' = toan cong ty (chi Org Admin). */
 export const NewFolderModal = memo(function NewFolderModal({ parentId, open, onClose }: { parentId: string | null; open: boolean; onClose: () => void }) {
   const { t } = useTranslation();
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [projectId, setProjectId] = useState('');
+  const [projectError, setProjectError] = useState('');
   const createFolder = useCreateFolder();
+  const isOrgAdmin = useIsOrgAdmin();
+  // 26/10/2026: chi thu muc cap goc chon du an; thu muc con ke thua du an cua thu muc cha.
+  const isTopLevel = parentId === null;
 
   function handleClose() {
     setName('');
     setError('');
+    setProjectId('');
+    setProjectError('');
     onClose();
   }
 
@@ -24,7 +34,14 @@ export const NewFolderModal = memo(function NewFolderModal({ parentId, open, onC
       setError(t('documents:newFolderModal.nameRequiredError'));
       return;
     }
-    createFolder.mutate({ name: name.trim(), parentId }, { onSuccess: handleClose });
+    if (isTopLevel && !isOrgAdmin && !projectId) {
+      setProjectError(t('documents:projectScope.requiredError'));
+      return;
+    }
+    createFolder.mutate(
+      { name: name.trim(), parentId, projectId: isTopLevel && projectId ? projectId : null },
+      { onSuccess: handleClose },
+    );
   }
 
   return (
@@ -49,6 +66,17 @@ export const NewFolderModal = memo(function NewFolderModal({ parentId, open, onC
             placeholder={t('documents:newFolderModal.namePlaceholder')}
           />
         </FormField>
+        {isTopLevel && (
+          <FolderProjectSelect
+            id="folder-project"
+            value={projectId}
+            onChange={(value) => {
+              setProjectId(value);
+              setProjectError('');
+            }}
+            error={projectError}
+          />
+        )}
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={handleClose} disabled={createFolder.isPending} className="h-9 rounded-radius-sm border-border-strong text-[13px]">
             {t('documents:newFolderModal.cancel')}

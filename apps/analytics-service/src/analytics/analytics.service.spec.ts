@@ -271,11 +271,14 @@ describe('AnalyticsService', () => {
       expect(taskSql).toContain('du.department_id = $3');
       expect(taskParams).toEqual(['org-1', '7 days', 'dept-1']);
 
-      // 2 truy van con lai (document/active-users) KHONG bi anh huong boi departmentId.
-      const [, docParams] = queryMock.mock.calls[1];
-      const [, activeParams] = queryMock.mock.calls[2];
-      expect(docParams).toEqual(['org-1', '7 days']);
-      expect(activeParams).toEqual(['org-1', '7 days']);
+      // 26/10/2026: doi chu dich - khi loc phong ban, 2 truy van con lai (document/active-users)
+      // cung chi dem nguoi thuc hien thuoc phong ban (truoc day luon la so toan to chuc).
+      const [docSql, docParams] = queryMock.mock.calls[1];
+      const [activeSql, activeParams] = queryMock.mock.calls[2];
+      expect(docSql).toContain('actor_id IN (SELECT user_id FROM dim_user WHERE department_id = $3)');
+      expect(activeSql).toContain('actor_id IN (SELECT user_id FROM dim_user WHERE department_id = $3)');
+      expect(docParams).toEqual(['org-1', '7 days', 'dept-1']);
+      expect(activeParams).toEqual(['org-1', '7 days', 'dept-1']);
     });
 
     it('KHONG co filter dim_user khi khong truyen departmentId', async () => {
@@ -754,6 +757,91 @@ describe('AnalyticsService', () => {
 
       const [, params] = queryMock.mock.calls[0];
       expect(params).toEqual(['org-1', '7 days', 1]);
+    });
+  });
+
+  // 26/10/2026: pham vi phong ban cua Manager cho moi KPI (resolveDepartmentScope()).
+  describe('resolveDepartmentScope - Manager chi xem so lieu phong ban cua minh', () => {
+    const manager = { userId: 'mgr-1', permissions: [PERMISSIONS.ANALYTICS_VIEW], departmentId: 'dept-own' };
+
+    it('Org Admin: khong truy van, tra dung bo loc tuy chon (undefined = toan to chuc)', async () => {
+      const admin = { ...manager, permissions: [PERMISSIONS.USER_MANAGE] };
+      await expect(service.resolveDepartmentScope('org-1', admin)).resolves.toBeUndefined();
+      await expect(service.resolveDepartmentScope('org-1', admin, 'dept-x')).resolves.toBe('dept-x');
+      expect(queryMock).not.toHaveBeenCalled();
+    });
+
+    it('Manager khong truyen departmentId -> mac dinh phong ban cua minh (JWT)', async () => {
+      queryMock.mockResolvedValueOnce([{ department_id: 'dept-managed' }]);
+      await expect(service.resolveDepartmentScope('org-1', manager)).resolves.toBe('dept-own');
+    });
+
+    it('Manager truyen phong ban minh phu trach -> cho phep; phong ban khac -> 403 DEPARTMENT_SCOPE_FORBIDDEN', async () => {
+      queryMock.mockResolvedValue([{ department_id: 'dept-managed' }]);
+      await expect(service.resolveDepartmentScope('org-1', manager, 'dept-managed')).resolves.toBe('dept-managed');
+      await expect(service.resolveDepartmentScope('org-1', manager, 'dept-other')).rejects.toMatchObject({
+        response: expect.objectContaining({ errorCode: 'DEPARTMENT_SCOPE_FORBIDDEN' }),
+      });
+    });
+
+    it('Manager khong thuoc/khong phu trach phong ban nao -> 403 DEPARTMENT_SCOPE_MISSING', async () => {
+      queryMock.mockResolvedValueOnce([]);
+      await expect(service.resolveDepartmentScope('org-1', { ...manager, departmentId: null })).rejects.toMatchObject({
+        response: expect.objectContaining({ errorCode: 'DEPARTMENT_SCOPE_MISSING' }),
+      });
+    });
+  });
+
+  describe('loc phong ban cho cac bieu do truoc day chi co so toan to chuc', () => {
+    it('getTaskTrend(departmentId): quet fact_task_events + loc assignee thuoc phong ban, bucket ngay/tuan', async () => {
+      queryMock.mockResolvedValue([{ bucket: '2026-10-01T00:00:00.000Z', tasks_created: '3', tasks_completed: '1' }]);
+
+      const result = await service.getTaskTrend('org-1', 'quarter', 'dept-1');
+
+      const [sql, params] = queryMock.mock.calls[0];
+      expect(sql).toContain('FROM fact_task_events t');
+      expect(sql).toContain('du.department_id = $4');
+      expect(params).toEqual(['org-1', '3 months', '1 week', 'dept-1']);
+      expect(result).toEqual([{ date: '2026-10-01T00:00:00.000Z', tasksCreated: 3, tasksCompleted: 1 }]);
+    });
+
+    it('getDocumentActivity/getProductSalesTrend/getTopProducts(departmentId): loc actor_id thuoc phong ban tren bang fact tho', async () => {
+      queryMock.mockResolvedValue([]);
+
+      await service.getDocumentActivity('org-1', '7d', 'dept-1');
+      await service.getProductSalesTrend('org-1', '30d', 'dept-1');
+      await service.getTopProducts('org-1', '7d', 5, 'dept-1');
+
+      const [docSql, docParams] = queryMock.mock.calls[0];
+      const [salesSql, salesParams] = queryMock.mock.calls[1];
+      const [topSql, topParams] = queryMock.mock.calls[2];
+      expect(docSql).toContain('FROM fact_document_events');
+      expect(docParams).toEqual(['org-1', '7 days', 'dept-1']);
+      expect(salesSql).toContain('FROM fact_product_sales');
+      expect(salesParams).toEqual(['org-1', '30 days', 'dept-1']);
+      expect(topSql).toContain('department_id = $4');
+      expect(topParams).toEqual(['org-1', '7 days', 5, 'dept-1']);
+    });
+
+    it('getDrillDown scope=project cho Manager: chi dem task giao cho phong ban cua Manager', async () => {
+      queryMock
+        .mockResolvedValueOnce([]) // listDepartmentIdsManagedBy
+        .mockResolvedValueOnce([{ total_tasks: '2', not_done_tasks: '1', overdue_tasks: '0' }])
+        .mockResolvedValueOnce([]);
+
+      const result = await service.getDrillDown('org-1', 'project', 'proj-1', '30d', 'mgr-1', [], 'dept-own');
+
+      const [sql, params] = queryMock.mock.calls[1];
+      expect(sql).toContain('du.department_id = ANY($4::uuid[])');
+      expect(params).toEqual(['org-1', '30 days', 'proj-1', ['dept-own']]);
+      expect(result.totalTasks).toBe(2);
+    });
+
+    it('getDrillDown scope=department ngoai pham vi -> 403 DRILL_DOWN_SCOPE_FORBIDDEN', async () => {
+      queryMock.mockResolvedValueOnce([]);
+      await expect(service.getDrillDown('org-1', 'department', 'dept-other', '30d', 'mgr-1', [], 'dept-own')).rejects.toMatchObject({
+        response: expect.objectContaining({ errorCode: 'DRILL_DOWN_SCOPE_FORBIDDEN' }),
+      });
     });
   });
 });

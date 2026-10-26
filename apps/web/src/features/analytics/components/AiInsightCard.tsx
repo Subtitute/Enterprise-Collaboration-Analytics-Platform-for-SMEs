@@ -61,7 +61,10 @@ export const AiInsightCard = React.memo(function AiInsightCard({ insight, scopeL
             {insight.evidence.value}%
           </span>
           <span className="text-slate-400">
-            {t('analytics:aiInsight.comparisonLabel', { value: insight.evidence.comparisonValue })}
+            {/* 26/10/2026: Manager - moc so sanh la phong ban cua minh, khong phai toan to chuc. */}
+            {insight.evidence.comparisonScope === 'department'
+              ? t('analytics:aiInsight.comparisonLabelDepartment', { value: insight.evidence.comparisonValue })
+              : t('analytics:aiInsight.comparisonLabel', { value: insight.evidence.comparisonValue })}
           </span>
         </div>
       )}

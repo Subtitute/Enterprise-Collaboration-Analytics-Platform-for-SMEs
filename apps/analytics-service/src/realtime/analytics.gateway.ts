@@ -8,6 +8,8 @@ import {
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { JwtAccessPayload, PERMISSIONS } from '@app/common-dto';
 import { RedisService } from '../redis/redis.service';
 
@@ -57,6 +59,8 @@ export class AnalyticsGateway implements OnGatewayConnection, OnGatewayDisconnec
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
+    // 26/10/2026: tra dim_user/dim_department_manager de chia phong WS theo pham vi (xem resolveRooms()).
+    @InjectDataSource() private readonly dataSource: DataSource,
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
@@ -105,9 +109,9 @@ export class AnalyticsGateway implements OnGatewayConnection, OnGatewayDisconnec
         return;
       }
 
-      const room = `org:${payload.organizationId}`;
-      await client.join(room);
-      this.logger.log(`Client ${client.id} da tham gia phong ${room}`);
+      const rooms = await this.resolveRooms(payload);
+      await client.join(rooms);
+      this.logger.log(`Client ${client.id} da tham gia phong ${rooms.join(', ')}`);
     } catch {
       this.logger.warn(`Tu choi ket noi (token khong hop le hoac het han): ${client.id}`);
       client.disconnect(true);
@@ -119,13 +123,58 @@ export class AnalyticsGateway implements OnGatewayConnection, OnGatewayDisconnec
   }
 
   /**
+   * 26/10/2026: phong WS theo pham vi xem (mirror AnalyticsService.getRecentActivity()) - truoc day
+   * MOI client co analytics:view (ke ca Manager) deu vao phong `org:<id>` va nhan push hoat dong cua
+   * CA to chuc (FE tu thua nhan khong loc duoc o pham vi 'department'). Org Admin (USER_MANAGE): phong
+   * to chuc; Manager: phong `user:<chinh minh>` + `dept:<phong ban minh thuoc ve/phu trach>`. Loi tra
+   * cuu phong ban phu trach -> chi con phong ban JWT (khong mo rong pham vi khi loi).
+   */
+  private async resolveRooms(payload: JwtAccessPayload): Promise<string[]> {
+    if (payload.permissions?.includes(PERMISSIONS.USER_MANAGE)) return [`org:${payload.organizationId}`];
+    let managed: string[] = [];
+    try {
+      const rows = await this.dataSource.query<{ department_id: string }[]>(
+        `SELECT department_id FROM dim_department_manager WHERE organization_id = $1 AND manager_id = $2`,
+        [payload.organizationId, payload.sub],
+      );
+      managed = rows.map((row) => row.department_id);
+    } catch (err) {
+      this.logger.warn(`Khong tra duoc phong ban phu trach cho WS: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    const departments = new Set([payload.departmentId, ...managed].filter((id): id is string => Boolean(id)));
+    return [`user:${payload.sub}`, ...Array.from(departments, (id) => `dept:${id}`)];
+  }
+
+  /**
    * Duoc goi boi KafkaConsumerService ngay sau khi ghi thanh cong vao fact table,
    * day su kien tho toi toan bo client dang xem Dashboard cua cung 1 to chuc.
+   *
+   * 26/10/2026: chi day toi Org Admin (phong to chuc), chinh nguoi thuc hien va Manager cua phong ban
+   * nguoi thuc hien (tra dim_user) - xem resolveRooms(). socket.io tu khu trung khi 1 client o nhieu phong.
    */
   emitActivity(
     organizationId: string,
     data: { eventId: string; eventType: string; occurredAt: string; actorId: string | null },
   ): void {
-    this.server?.to(`org:${organizationId}`).emit('analytics:activity', data);
+    if (!this.server) return;
+    void this.lookupActorDepartment(data.actorId).then((departmentId) => {
+      let target = this.server.to(`org:${organizationId}`);
+      if (data.actorId) target = target.to(`user:${data.actorId}`);
+      if (departmentId) target = target.to(`dept:${departmentId}`);
+      target.emit('analytics:activity', data);
+    });
+  }
+
+  private async lookupActorDepartment(actorId: string | null): Promise<string | null> {
+    if (!actorId) return null;
+    try {
+      const rows = await this.dataSource.query<{ department_id: string | null }[]>(
+        `SELECT department_id FROM dim_user WHERE user_id = $1`,
+        [actorId],
+      );
+      return rows[0]?.department_id ?? null;
+    } catch {
+      return null;
+    }
   }
 }

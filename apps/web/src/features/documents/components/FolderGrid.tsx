@@ -12,8 +12,12 @@ import { ConfirmDialog } from '@/components/ui/Modal';
 import { canAccessAdminArea } from '@/lib/utils';
 import { useAuthStore, usePermissions } from '@/stores/auth.store';
 import type { Folder } from '@/types';
-import { useDeleteFolder, useRenameFolder, useUpdateFolderVisibility } from '../hooks';
+import { useDeleteFolder, useDocumentProjects, useRenameFolder, useUpdateFolderVisibility } from '../hooks';
 import { DocumentFolderCard } from './DocumentFolderCard';
+// 26/10/2026: hop doi du an cua thu muc cap goc (tai lieu theo pham vi du an).
+import { FolderProjectModal, useIsOrgAdmin } from './FolderProjectSelect';
+// 26/10/2026: an menu thao tac cua thu muc nguoi goi chi xem (cay toan cong ty).
+import { canWriteFolder } from '../writeAccess';
 
 // 28/07/2026: them onShare - callback mo FolderShareModal (quan ly chia se) tu dropdown cua tung
 // thu muc, day len DocumentsPage.tsx dieu khien giong het pattern sharingFile/ShareModal hien co.
@@ -35,10 +39,14 @@ export const FolderGrid = memo(function FolderGrid({
   const renameFolder = useRenameFolder();
   const deleteFolder = useDeleteFolder();
   const updateVisibility = useUpdateFolderVisibility();
+  // 26/10/2026: ten du an cho nhan tren the thu muc + thu muc dang doi du an.
+  const { projectNames } = useDocumentProjects();
+  const [changingProject, setChangingProject] = useState<Folder | null>(null);
   // 28/07/2026: id + roles cua nguoi dang dang nhap - dung de so sanh voi folder.createdByUserId
   // (xem canManage() ben duoi).
   const currentUserId = useAuthStore((s) => s.user?.id);
   const permissions = usePermissions();
+  const isOrgAdmin = useIsOrgAdmin();
 
   // 28/07/2026: chi nguoi tao thu muc HOAC nguoi co quyen quan tri moi duoc doi visibility/quan ly
   // chia se - mirror dung cach kiem tra dung cho cac route /admin/* (canAccessAdminArea(permissions)),
@@ -76,9 +84,14 @@ export const FolderGrid = memo(function FolderGrid({
             onRenameClick={handleRenameClick}
             onDeleteClick={handleDeleteClick}
             updateVisibility={updateVisibility}
+            projectNames={projectNames}
+            onChangeProjectClick={setChangingProject}
+            canWrite={canWriteFolder(folder, isOrgAdmin)}
           />
         ))}
       </div>
+
+      <FolderProjectModal key={changingProject?.id ?? 'none'} folder={changingProject} onClose={() => setChangingProject(null)} />
 
       {renaming && (
         <ConfirmDialog

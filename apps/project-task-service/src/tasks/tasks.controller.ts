@@ -1,7 +1,9 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequirePermissions } from '@app/common-guard';
-import { PaginationQueryDto, PERMISSIONS } from '@app/common-dto';
+import { AuthContext, PaginationQueryDto, PERMISSIONS } from '@app/common-dto';
+// 26/10/2026: pham vi xem cho cac thao tac GHI (xem TasksService.findVisibleTaskOrFail()).
+import { toScopeCaller } from '../user-directory/user-directory';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -26,8 +28,10 @@ export class TasksController {
     // qua cho Employee (khong co TASK_DELETE) - xem chu thich chi tiet tai findAll().
     @CurrentUser('userId') userId: string,
     @CurrentUser('permissions') permissions: string[],
+    // 26/10/2026: phong ban cua nguoi goi (JWT) - Manager thay Task cua du an thuoc pham vi phong ban.
+    @CurrentUser('departmentId') departmentId: string | null,
   ) {
-    return this.tasksService.findAll(organizationId, query, userId, permissions ?? []);
+    return this.tasksService.findAll(organizationId, query, userId, permissions ?? [], departmentId ?? null);
   }
 
   @Get(':id')
@@ -39,8 +43,10 @@ export class TasksController {
     // Employee vuot rao bang cach doan/nhan UUID Task khong thuoc pham vi cua ho.
     @CurrentUser('userId') userId: string,
     @CurrentUser('permissions') permissions: string[],
+    // 26/10/2026: xem findAll() o tren.
+    @CurrentUser('departmentId') departmentId: string | null,
   ) {
-    return this.tasksService.findById(organizationId, id, userId, permissions ?? []);
+    return this.tasksService.findById(organizationId, id, userId, permissions ?? [], departmentId ?? null);
   }
 
   @Post()
@@ -49,8 +55,9 @@ export class TasksController {
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') actorId: string,
     @Body() dto: CreateTaskDto,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.tasksService.create(organizationId, actorId, dto);
+    return this.tasksService.create(organizationId, actorId, dto, toScopeCaller(caller));
   }
 
   @Patch(':id')
@@ -59,8 +66,9 @@ export class TasksController {
     @CurrentUser('organizationId') organizationId: string,
     @Param('id') id: string,
     @Body() dto: UpdateTaskDto,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.tasksService.update(organizationId, id, dto);
+    return this.tasksService.update(organizationId, id, dto, toScopeCaller(caller));
   }
 
   /**
@@ -74,8 +82,9 @@ export class TasksController {
     @CurrentUser('userId') actorId: string,
     @Param('id') id: string,
     @Body() dto: UpdateTaskStatusDto,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.tasksService.updateStatus(organizationId, id, actorId, dto);
+    return this.tasksService.updateStatus(organizationId, id, actorId, dto, toScopeCaller(caller));
   }
 
   @Delete(':id')
@@ -84,8 +93,9 @@ export class TasksController {
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') actorId: string,
     @Param('id') id: string,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.tasksService.remove(organizationId, actorId, id);
+    return this.tasksService.remove(organizationId, actorId, id, toScopeCaller(caller));
   }
 
   /** Lich su doi trang thai cua Task - Wireframe.md muc 4.2 (modal chi tiet Task). */
@@ -95,8 +105,12 @@ export class TasksController {
     @CurrentUser('organizationId') organizationId: string,
     @Param('id') id: string,
     @Query() query: PaginationQueryDto,
+    // 26/10/2026: chi doc lich su cua Task nam trong pham vi xem cua nguoi goi.
+    @CurrentUser('userId') userId: string,
+    @CurrentUser('permissions') permissions: string[],
+    @CurrentUser('departmentId') departmentId: string | null,
   ) {
-    return this.tasksService.findStatusHistory(organizationId, id, query);
+    return this.tasksService.findStatusHistory(organizationId, id, query, { userId, permissions: permissions ?? [], departmentId: departmentId ?? null });
   }
 
   @Post(':id/assignees')
@@ -106,8 +120,9 @@ export class TasksController {
     @CurrentUser('userId') actorId: string,
     @Param('id') id: string,
     @Body() dto: AssignTaskDto,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.tasksService.assign(organizationId, id, actorId, dto.userId);
+    return this.tasksService.assign(organizationId, id, actorId, dto.userId, toScopeCaller(caller));
   }
 
   @Delete(':id/assignees/:userId')
@@ -116,8 +131,9 @@ export class TasksController {
     @CurrentUser('organizationId') organizationId: string,
     @Param('id') id: string,
     @Param('userId') userId: string,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.tasksService.unassign(organizationId, id, userId);
+    return this.tasksService.unassign(organizationId, id, userId, toScopeCaller(caller));
   }
 
   /** Binh luan khong nam trong analytics pipeline nen khong yeu cau permission dac biet. */
@@ -127,8 +143,9 @@ export class TasksController {
     @CurrentUser('userId') authorUserId: string,
     @Param('id') id: string,
     @Body() dto: CreateCommentDto,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.tasksService.addComment(organizationId, id, authorUserId, dto);
+    return this.tasksService.addComment(organizationId, id, authorUserId, dto, toScopeCaller(caller));
   }
 
   @Get(':id/comments')
@@ -137,7 +154,11 @@ export class TasksController {
     @CurrentUser('organizationId') organizationId: string,
     @Param('id') id: string,
     @Query() query: PaginationQueryDto,
+    // 26/10/2026: chi doc binh luan cua Task nam trong pham vi xem cua nguoi goi.
+    @CurrentUser('userId') userId: string,
+    @CurrentUser('permissions') permissions: string[],
+    @CurrentUser('departmentId') departmentId: string | null,
   ) {
-    return this.tasksService.findComments(organizationId, id, query);
+    return this.tasksService.findComments(organizationId, id, query, { userId, permissions: permissions ?? [], departmentId: departmentId ?? null });
   }
 }

@@ -37,9 +37,15 @@ const usage = (userId) => Number(sql('timescaledb', `select coalesce(sum(questio
   try {
     const empId = decode(await login('employee')).sub;
     // A. Chuan bi tai lieu
-    const inj = await upload('employee', `Quy-dinh-cong-tac-phi-${TAG}.txt`, Buffer.from(INJECTION_DOC, 'utf8'), 'text/plain');
+    // 26/10/2026: tai lieu theo pham vi du an - Employee khong tai len thu muc goc, Manager khong tao thu
+    // muc toan cong ty: ca 2 thu muc gan 1 du an chung cua Manager va Employee.
+    const empProjects = new Set(((await api('employee', 'GET', '/folders/accessible-projects')).data || {}).projectIds || []);
+    const projectId = (((await api('manager', 'GET', '/folders/accessible-projects')).data || {}).projectIds || []).find((id) => empProjects.has(id));
+    const pub = await api('manager', 'POST', '/folders', { name: `${TAG} Công khai`, projectId });
+    created.folders.push(pub.data.id);
+    const inj = await upload('employee', `Quy-dinh-cong-tac-phi-${TAG}.txt`, Buffer.from(INJECTION_DOC, 'utf8'), 'text/plain', pub.data.id);
     created.files.push(['employee', inj.data.id]);
-    const folder = await api('manager', 'POST', '/folders', { name: `${TAG} Hạn chế` });
+    const folder = await api('manager', 'POST', '/folders', { name: `${TAG} Hạn chế`, projectId });
     created.folders.push(folder.data.id);
     await api('manager', 'PATCH', `/folders/${folder.data.id}`, { visibility: 'restricted' });
     const sec = await upload('manager', `Bien-ban-mat-${TAG}.txt`, Buffer.from(SECRET_DOC, 'utf8'), 'text/plain', folder.data.id);
@@ -84,9 +90,9 @@ const usage = (userId) => Number(sql('timescaledb', `select coalesce(sum(questio
   } finally {
     for (const id of created.convs) await api('employee', 'DELETE', `/chatbot/conversations/${id}`);
     for (const [who, id] of created.files) if (who === 'manager') await api('manager', 'DELETE', `/files/${id}`);
-    for (const id of created.folders) await api('manager', 'DELETE', `/folders/${id}`);
-    // Employee khong co document:delete -> Org Admin xoa tep injection
+    // Employee khong co document:delete -> Org Admin xoa tep injection (TRUOC khi xoa thu muc chua no)
     for (const [who, id] of created.files) if (who === 'employee') check('don dep: xoa tep injection', (await api('admin', 'DELETE', `/files/${id}`)).status < 300);
+    for (const id of created.folders) await api('manager', 'DELETE', `/folders/${id}`);
     console.log(`don dep su kien: ${JSON.stringify(await purgeTraces([...created.files.map((f) => f[1]), ...created.folders], since))}`);
     summary();
   }

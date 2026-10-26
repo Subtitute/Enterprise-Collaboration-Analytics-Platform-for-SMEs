@@ -6,10 +6,12 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { ChevronRightIcon, FileTextIcon, PlusIcon, UploadIcon } from '@/components/ui/Icons';
-import { useFilesQuery, useFoldersQuery, useDownloadFile } from './hooks';
+import { useFilesQuery, useFoldersQuery, useDownloadFile, useDocumentProjects } from './hooks';
 import { FolderGrid } from './components/FolderGrid';
 import { FileTable } from './components/FileTable';
-import { DocumentFilterToolbar } from './components/DocumentFilterToolbar';
+import { COMPANY_WIDE_FILTER, DocumentFilterToolbar } from './components/DocumentFilterToolbar';
+// 26/10/2026: tai lieu theo pham vi du an - bo loc du an o thu muc goc + chi Org Admin tai tep len goc.
+import { useIsOrgAdmin } from './components/FolderProjectSelect';
 import { NewFolderModal } from './components/NewFolderModal';
 import { UploadModal } from './components/UploadModal';
 import { ShareModal } from './components/ShareModal';
@@ -18,6 +20,8 @@ import { VersionHistoryModal } from './components/VersionHistoryModal';
 import { FilePreviewModal } from './components/FilePreviewModal';
 import { matchesVietnameseSearch } from '@/lib/utils';
 import { toast } from '@/stores/toast.store';
+// 26/10/2026: quyen ghi tai lieu (cay toan cong ty chi Org Admin) - cung quy tac backend.
+import { canWriteFile, canWriteFolder } from './writeAccess';
 import type { FileItem, Folder } from '@/types';
 
 export function DocumentsPage() {
@@ -61,6 +65,21 @@ export function DocumentsPage() {
   const allFolders = foldersQuery.data ?? [];
 
   const subFolders = useMemo(() => allFolders.filter((f) => (f.parentId ?? null) === currentFolderId), [allFolders, currentFolderId]);
+  // 26/10/2026: o thu muc goc, loc thu muc theo du an ('' = tat ca, COMPANY_WIDE_FILTER = toan cong
+  // ty); lua chon chi gom cac du an dang co thu muc. Tep o goc la tai lieu toan cong ty - chi Org
+  // Admin tai len duoc (backend tra 403 COMPANY_WIDE_ADMIN_ONLY), nen an nut/keo-tha o goc voi nguoi khac.
+  const [projectFilter, setProjectFilter] = useState('');
+  const { projectNames } = useDocumentProjects();
+  const isOrgAdmin = useIsOrgAdmin();
+  const isRoot = currentFolderId === null;
+  // 26/10/2026: cay toan cong ty (thu muc khong du an) chi Org Admin ghi - cung quy tac backend (writeAccess.ts).
+  const canUploadHere = canWriteFolder(isRoot ? null : allFolders.find((f) => f.id === currentFolderId), isOrgAdmin);
+  const folderProjectOptions = useMemo(() => {
+    const ids = [...new Set(subFolders.map((f) => f.projectId).filter((id): id is string => Boolean(id)))];
+    return ids
+      .map((id) => ({ id, name: projectNames.get(id) ?? t('documents:projectScope.unknownProject') }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [subFolders, projectNames, t]);
 
   const breadcrumb = useMemo(() => {
     const trail: Folder[] = [];
@@ -77,9 +96,13 @@ export function DocumentsPage() {
   const files = filesQuery.data ?? [];
 
   const filteredFolders = useMemo(() => {
-    if (!searchTerm.trim()) return subFolders;
-    return subFolders.filter((f) => matchesVietnameseSearch(f.name, searchTerm));
-  }, [subFolders, searchTerm]);
+    const byProject =
+      !isRoot || !projectFilter
+        ? subFolders
+        : subFolders.filter((f) => (projectFilter === COMPANY_WIDE_FILTER ? !f.projectId : f.projectId === projectFilter));
+    if (!searchTerm.trim()) return byProject;
+    return byProject.filter((f) => matchesVietnameseSearch(f.name, searchTerm));
+  }, [subFolders, searchTerm, isRoot, projectFilter]);
 
   const filteredFiles = useMemo(() => {
     if (!searchTerm.trim()) return files;
@@ -121,6 +144,11 @@ export function DocumentsPage() {
       dragCounterRef.current = 0;
       setIsWindowDragging(false);
       const droppedFiles = e.dataTransfer?.files;
+      // 26/10/2026: thu muc goc chi Org Admin tai len duoc - bao ro thay vi mo modal roi nhan 403.
+      if (droppedFiles && droppedFiles.length > 0 && !canUploadHere) {
+        toast.info(t(isRoot ? 'documents:projectScope.rootUploadAdminOnly' : 'documents:projectScope.companyWideReadOnly'));
+        return;
+      }
       if (droppedFiles && droppedFiles.length > 0) {
         // 15/09/2026: UploadModal chi nhan 1 file/lan (thiet ke co chu dich) - truoc ban sua nay,
         // keo nhieu file cung luc vao day se AM THAM chi lay file dau tien, cac file con lai mat
@@ -144,7 +172,8 @@ export function DocumentsPage() {
       window.removeEventListener('dragleave', handleWindowDragLeave);
       window.removeEventListener('drop', handleWindowDrop);
     };
-  }, []);
+    // 26/10/2026: gan lai khi doi thu muc - handleWindowDrop doc canUploadHere moi nhat.
+  }, [canUploadHere, isRoot, t]);
 
   const handleClearSearch = useCallback(() => setSearchTerm(''), []);
   const handleOpenFolder = useCallback((folder: Folder) => setCurrentFolderId(folder.id), [setCurrentFolderId]);
@@ -213,22 +242,27 @@ export function DocumentsPage() {
 
         {/* Nút phải: + Thư mục mới = Secondary; + Tải lên = Primary ink */}
         <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setIsNewFolderOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-md border border-border-strong bg-white text-[13px] font-medium text-text-primary hover:bg-bg-subtle transition-colors cursor-pointer"
-          >
-            <PlusIcon className="h-3.5 w-3.5" />
-            <span>{t('documents:documentsPage.newFolder')}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsUploadOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-md bg-[#1C1B1A] hover:bg-[#2E2C29] text-white text-[13px] font-medium transition-colors cursor-pointer"
-          >
-            <UploadIcon className="h-3.5 w-3.5" />
-            <span>{t('documents:documentsPage.upload')}</span>
-          </button>
+          {/* 26/10/2026: o goc ai cung tao duoc thu muc du an; trong cay toan cong ty chi khi ghi duoc. */}
+          {(isRoot || canUploadHere) && (
+            <button
+              type="button"
+              onClick={() => setIsNewFolderOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-md border border-border-strong bg-white text-[13px] font-medium text-text-primary hover:bg-bg-subtle transition-colors cursor-pointer"
+            >
+              <PlusIcon className="h-3.5 w-3.5" />
+              <span>{t('documents:documentsPage.newFolder')}</span>
+            </button>
+          )}
+          {canUploadHere && (
+            <button
+              type="button"
+              onClick={() => setIsUploadOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-md bg-[#1C1B1A] hover:bg-[#2E2C29] text-white text-[13px] font-medium transition-colors cursor-pointer"
+            >
+              <UploadIcon className="h-3.5 w-3.5" />
+              <span>{t('documents:documentsPage.upload')}</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -239,6 +273,10 @@ export function DocumentsPage() {
         onClearSearch={handleClearSearch}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
+        // 26/10/2026: bo loc du an chi o thu muc goc (noi thu muc gan du an).
+        projectFilter={projectFilter}
+        onProjectFilterChange={isRoot ? setProjectFilter : undefined}
+        projectOptions={folderProjectOptions}
       />
 
       <QueryState
@@ -259,10 +297,12 @@ export function DocumentsPage() {
             description={t('documents:documentsPage.emptyState.description')}
             action={
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setIsNewFolderOpen(true)}>
-                  {t('documents:documentsPage.emptyState.newFolder')}
-                </Button>
-                <Button onClick={() => setIsUploadOpen(true)}>{t('documents:documentsPage.emptyState.uploadFile')}</Button>
+                {(isRoot || canUploadHere) && (
+                  <Button variant="outline" onClick={() => setIsNewFolderOpen(true)}>
+                    {t('documents:documentsPage.emptyState.newFolder')}
+                  </Button>
+                )}
+                {canUploadHere && <Button onClick={() => setIsUploadOpen(true)}>{t('documents:documentsPage.emptyState.uploadFile')}</Button>}
               </div>
             }
           />
@@ -289,6 +329,7 @@ export function DocumentsPage() {
                 onVersionHistory={setHistoryFile}
                 onPreview={setPreviewFile}
                 viewMode={viewMode}
+                canWrite={canUploadHere}
               />
             )}
           </div>
@@ -308,7 +349,7 @@ export function DocumentsPage() {
       <ShareModal file={sharingFile} onClose={() => setSharingFile(null)} />
       {/* 28/07/2026: render FolderShareModal, mirror vi tri/pattern cua ShareModal (tep) ngay tren. */}
       <FolderShareModal folder={sharingFolder} onClose={() => setSharingFolder(null)} />
-      <VersionHistoryModal file={historyFile} folderId={currentFolderId} onClose={() => setHistoryFile(null)} />
+      <VersionHistoryModal file={historyFile} folderId={currentFolderId} onClose={() => setHistoryFile(null)} canWrite={canWriteFile(historyFile, canUploadHere)} />
       <FilePreviewModal
         file={previewFile}
         open={Boolean(previewFile)}

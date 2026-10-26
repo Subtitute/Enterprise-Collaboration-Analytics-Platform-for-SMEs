@@ -1,7 +1,9 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequirePermissions } from '@app/common-guard';
-import { PERMISSIONS } from '@app/common-dto';
+import { AuthContext, PERMISSIONS } from '@app/common-dto';
+// 26/10/2026: pham vi xem cho cac thao tac GHI theo id (xem ProjectsService.assertCallerScope()).
+import { toScopeCaller } from '../user-directory/user-directory';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -24,8 +26,10 @@ export class ProjectsController {
     // ket qua cho Employee (khong co PROJECT_CREATE) - xem chu thich chi tiet tai findAll().
     @CurrentUser('userId') userId: string,
     @CurrentUser('permissions') permissions: string[],
+    // 26/10/2026: phong ban cua nguoi goi (JWT) - Manager thay du an lien quan toi phong ban minh.
+    @CurrentUser('departmentId') departmentId: string | null,
   ) {
-    return this.projectsService.findAll(organizationId, query, userId, permissions ?? []);
+    return this.projectsService.findAll(organizationId, query, userId, permissions ?? [], departmentId ?? null);
   }
 
   @Get(':id')
@@ -37,8 +41,10 @@ export class ProjectsController {
     // Employee vuot rao bang cach doan/nhan UUID du an khong thuoc pham vi cua ho.
     @CurrentUser('userId') userId: string,
     @CurrentUser('permissions') permissions: string[],
+    // 26/10/2026: xem findAll() o tren.
+    @CurrentUser('departmentId') departmentId: string | null,
   ) {
-    return this.projectsService.findById(organizationId, id, userId, permissions ?? []);
+    return this.projectsService.findById(organizationId, id, userId, permissions ?? [], departmentId ?? null);
   }
 
   @Post()
@@ -57,8 +63,11 @@ export class ProjectsController {
     @CurrentUser('organizationId') organizationId: string,
     @Param('id') id: string,
     @Body() dto: UpdateProjectDto,
+    // 26/10/2026: actor cho su kien PROJECT_LEAD_CHANGED (tai lieu theo pham vi du an).
+    @CurrentUser('userId') actorId: string,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.projectsService.update(organizationId, id, dto);
+    return this.projectsService.update(organizationId, id, dto, actorId, toScopeCaller(caller));
   }
 
   @Post(':id/complete')
@@ -67,8 +76,9 @@ export class ProjectsController {
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') actorId: string,
     @Param('id') id: string,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.projectsService.complete(organizationId, id, actorId);
+    return this.projectsService.complete(organizationId, id, actorId, toScopeCaller(caller));
   }
 
   @Post(':id/reopen')
@@ -77,8 +87,9 @@ export class ProjectsController {
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') actorId: string,
     @Param('id') id: string,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.projectsService.reopen(organizationId, id, actorId);
+    return this.projectsService.reopen(organizationId, id, actorId, toScopeCaller(caller));
   }
 
   /** 22/07/2026 (fix code review, loi MINOR - Fix 7): bo sung endpoint luu tru du an - truoc do
@@ -89,8 +100,9 @@ export class ProjectsController {
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') actorId: string,
     @Param('id') id: string,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.projectsService.archive(organizationId, id, actorId);
+    return this.projectsService.archive(organizationId, id, actorId, toScopeCaller(caller));
   }
 
   @Delete(':id')
@@ -99,8 +111,9 @@ export class ProjectsController {
     @CurrentUser('organizationId') organizationId: string,
     @CurrentUser('userId') actorId: string,
     @Param('id') id: string,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.projectsService.remove(organizationId, actorId, id);
+    return this.projectsService.remove(organizationId, actorId, id, toScopeCaller(caller));
   }
 
   // 22/09/2026: thanh vien du an (ProjectMember) - thay the co che gia lap bang localStorage o
@@ -108,8 +121,15 @@ export class ProjectsController {
   // (PROJECT_UPDATE cho them/xoa, PROJECT_VIEW cho xem danh sach).
   @Get(':id/members')
   @RequirePermissions(PERMISSIONS.PROJECT_VIEW)
-  listMembers(@CurrentUser('organizationId') organizationId: string, @Param('id') id: string) {
-    return this.projectsService.listMembers(organizationId, id);
+  listMembers(
+    @CurrentUser('organizationId') organizationId: string,
+    @Param('id') id: string,
+    // 26/10/2026: chi doc thanh vien cua du an nam trong pham vi xem cua nguoi goi.
+    @CurrentUser('userId') userId: string,
+    @CurrentUser('permissions') permissions: string[],
+    @CurrentUser('departmentId') departmentId: string | null,
+  ) {
+    return this.projectsService.listMembers(organizationId, id, { userId, permissions: permissions ?? [], departmentId: departmentId ?? null });
   }
 
   @Post(':id/members')
@@ -119,8 +139,9 @@ export class ProjectsController {
     @CurrentUser('userId') actorId: string,
     @Param('id') id: string,
     @Body() dto: AddProjectMemberDto,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.projectsService.addMember(organizationId, id, actorId, dto.userId);
+    return this.projectsService.addMember(organizationId, id, actorId, dto.userId, toScopeCaller(caller));
   }
 
   @Delete(':id/members/:userId')
@@ -129,7 +150,10 @@ export class ProjectsController {
     @CurrentUser('organizationId') organizationId: string,
     @Param('id') id: string,
     @Param('userId') userId: string,
+    // 26/10/2026: actor cho su kien PROJECT_MEMBER_REMOVED (tai lieu theo pham vi du an).
+    @CurrentUser('userId') actorId: string,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.projectsService.removeMember(organizationId, id, userId);
+    return this.projectsService.removeMember(organizationId, id, userId, actorId, toScopeCaller(caller));
   }
 }

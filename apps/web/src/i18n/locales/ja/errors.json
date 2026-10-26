@@ -30,6 +30,7 @@
   "TASK_STATUS_TRANSITION_INVALID": "タスクのステータスを{{from}}から{{to}}に変更することはできません。",
   "TASK_NOT_FOUND": "タスクが見つかりませんでした。",
   "PROJECT_NOT_FOUND": "プロジェクトが見つかりませんでした。",
+  "PROJECT_MEMBER_HAS_OPEN_TASKS": "このメンバーにはプロジェクト内で未完了のタスクが{{count}}件あります。メンバーを削除する前に、それらのタスクを再割り当てしてください。",
   "PROJECT_ALREADY_COMPLETED": "このプロジェクトは既に完了しています。",
   "PROJECT_ALREADY_ARCHIVED": "このプロジェクトは既にアーカイブされています。",
   "MISSING_UPLOAD_FILE": "アップロードするファイルがありません。",
@@ -69,6 +70,10 @@
   "CUSTOMER_NOT_FOUND": "顧客が見つかりませんでした。",
   "AI_INSIGHT_NOT_CONFIGURED": "AIインサイト機能が設定されていません（GEMINI_API_KEYとGROQ_API_KEYのいずれも未設定です）。システム管理者にお問い合わせください。",
   "AI_INSIGHT_GENERATION_FAILED": "現在AIインサイトを生成できません。しばらくしてからもう一度お試しください。",
+  "DRILL_DOWN_SCOPE_FORBIDDEN": "自分の部署の範囲内の詳細のみ閲覧できます。",
+  "DEPARTMENT_SCOPE_FORBIDDEN": "このデータはあなたの部署の範囲外です。",
+  "DEPARTMENT_SCOPE_MISSING": "部署に所属していないため、閲覧できるデータ範囲がありません。",
+  "SELF_APPROVAL_FORBIDDEN": "自分自身の申請を承認することはできません。",
   "INVALID_RANGE_WITH_QUARTER": "無効な期間です:「{{range}}」（7d、30d、quarterのみ指定できます）。",
   "INVALID_RANGE_NO_QUARTER": "無効な期間です:「{{range}}」（7dまたは30dのみ指定できます）。",
   "NOTIFICATION_NOT_FOUND": "通知が見つかりませんでした。",
@@ -101,5 +106,9 @@
   "CHATBOT_CONVERSATION_NOT_FOUND": "チャットが見つかりません。",
   "DOCUMENT_SEARCH_UNAVAILABLE": "文書内容の検索は一時的に利用できません。しばらくしてから再度お試しください。",
   "DOCUMENT_SEARCH_RATE_LIMITED": "短時間に文書検索が多すぎます。数分後に再度お試しください。",
-  "CHATBOT_CONVERSATION_BUSY": "このチャットは別の質問に回答中です。回答が届いてから次の質問をしてください。"
+  "CHATBOT_CONVERSATION_BUSY": "このチャットは別の質問に回答中です。回答が届いてから次の質問をしてください。",
+  "COMPANY_WIDE_ADMIN_ONLY": "全社共通の文書を作成・移動できるのは組織管理者のみです。プロジェクトを選択してください。",
+  "COMPANY_WIDE_READ_ONLY": "全社共通の文書を編集できるのは組織管理者のみです。閲覧のみ可能です。",
+  "FORBIDDEN_PROJECT_DOCUMENTS": "このプロジェクトの範囲外のため、フォルダーをこのプロジェクトに紐付けできません。",
+  "FOLDER_PROJECT_TOP_LEVEL_ONLY": "プロジェクトに紐付けできるのは最上位フォルダーのみです。サブフォルダーは親フォルダーのプロジェクトを引き継ぎます。"
 }

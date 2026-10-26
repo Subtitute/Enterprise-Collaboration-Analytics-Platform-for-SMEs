@@ -8,6 +8,8 @@ import { FileVersion } from '../entities/file-version.entity';
 // tai folder-access.service.ts.
 import { FolderShare } from '../entities/folder-share.entity';
 import { AccessContext, FolderAccessService } from './folder-access.service';
+// 26/10/2026: read-model du an - xac minh du an duoc gan cho thu muc ton tai trong to chuc.
+import { ProjectRef } from '../entities/project-ref.entity';
 import { MinioService } from '../minio/minio.service';
 import { OutboxService } from '../outbox/outbox.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
@@ -33,7 +35,49 @@ export class FoldersService {
     private readonly outboxService: OutboxService,
     // 28/07/2026: dung chung logic canAccessFolder voi FilesService - xem folder-access.service.ts.
     private readonly folderAccessService: FolderAccessService,
+    // 26/10/2026: xem import ProjectRef o tren.
+    @InjectRepository(ProjectRef) private readonly projectRefRepo: Repository<ProjectRef>,
   ) {}
+
+  /** 26/10/2026: `GET /folders/accessible-projects` - du an nguoi goi gan/xem duoc tai lieu (bo chon du an o FE). */
+  async listAccessibleProjects(organizationId: string, ctx: AccessContext): Promise<{ projectIds: string[] }> {
+    return { projectIds: await this.folderAccessService.listAccessibleProjectIds(organizationId, ctx) };
+  }
+
+  /**
+   * 26/10/2026: quy tac gan du an cho thu muc CAP GOC (tai lieu theo pham vi du an):
+   *  - khong chon du an (thu muc toan cong ty) -> CHI Org Admin, nguoi khac phai chon 1 du an;
+   *  - du an phai ton tai trong to chuc (read-model ProjectRef) va, tru Org Admin, nguoi goi phai
+   *    thuoc pham vi du an do (thanh vien/lead, hoac Manager cung phong ban) - khong the "cai" tai
+   *    lieu vao du an minh khong xem duoc.
+   */
+  private async resolveTopLevelProjectId(organizationId: string, projectId: string | null, ctx: AccessContext): Promise<string | null> {
+    if (!projectId) {
+      if (ctx.isOrgAdmin) return null;
+      throw new ForbiddenException({
+        message: 'Chi Quan tri vien to chuc moi tao/chuyen duoc tai lieu toan cong ty - hay chon 1 du an',
+        errorCode: ERROR_CODES.COMPANY_WIDE_ADMIN_ONLY,
+      });
+    }
+    const project = await this.projectRefRepo.findOne({ select: { projectId: true }, where: { projectId, organizationId } });
+    if (!project) {
+      throw new NotFoundException({ message: 'Khong tim thay du an trong to chuc', errorCode: ERROR_CODES.PROJECT_NOT_FOUND_IN_ORG });
+    }
+    if (!ctx.isOrgAdmin && !(await this.folderAccessService.listAccessibleProjectIds(organizationId, ctx)).includes(projectId)) {
+      throw new ForbiddenException({
+        message: 'Ban khong thuoc pham vi du an nay',
+        errorCode: ERROR_CODES.FORBIDDEN_PROJECT_DOCUMENTS,
+      });
+    }
+    return projectId;
+  }
+
+  private rejectSubfolderProject(): never {
+    throw new BadRequestException({
+      message: 'Chi thu muc cap goc moi gan duoc du an - thu muc con ke thua du an cua thu muc cha',
+      errorCode: ERROR_CODES.FOLDER_PROJECT_TOP_LEVEL_ONLY,
+    });
+  }
 
   // 28/07/2026: bo sung tham so `ctx` (kiem soat truy cap thu muc, opt-in) - loc BO LANG (khong
   // nem loi) cac thu muc `ctx` khong xem duoc ra khoi danh sach tra ve, dung voi yeu cau nhiem vu
@@ -46,28 +90,38 @@ export class FoldersService {
     // 24/10/2026: 1 checker cho ca danh sach (quyen ke thua tu thu muc cha - xem FolderAccessService),
     // thay cho canAccessFolder() tung thu muc. Liet ke thu muc con cua 1 thu muc RESTRICTED khong xem
     // duoc gio tra ve rong (truoc day lo het cac thu muc con ORGANIZATION ben trong).
-    const check = await this.folderAccessService.createChecker(organizationId, ctx);
-    return folders.filter((folder) => check(folder.id));
+    // 26/10/2026: kem `canWrite` (FE an/hien thao tac ghi theo CUNG quy tac resolveFolderWrite) - van 2 truy van.
+    const scope = await this.folderAccessService.createScope(organizationId, ctx);
+    return folders
+      .filter((folder) => scope.canAccess(folder.id))
+      .map((folder) => Object.assign(folder, { canWrite: scope.writeAccess(folder.id) === 'allowed' }));
   }
 
   // 24/10/2026: bo sung `ctx` - nguoi goi PHAI xem duoc thu muc cha. Truoc day tao duoc thu muc con
   // ngay trong 1 thu muc RESTRICTED khong co quyen (do song: Employee POST /folders vao kho mat -> 201;
   // thu muc con do lai do chinh ho tao nen "co quyen tuong minh", thanh cho dat file vao kho mat).
+  // 26/10/2026: them projectId - xem resolveTopLevelProjectId(); thu muc con ke thua (khong luu).
   async create(organizationId: string, actorId: string, dto: CreateFolderDto, ctx: AccessContext): Promise<Folder> {
+    let projectId: string | null = null;
+    if (!dto.parentFolderId) {
+      projectId = await this.resolveTopLevelProjectId(organizationId, dto.projectId ?? null, ctx);
+    } else if (dto.projectId) {
+      this.rejectSubfolderProject();
+    }
     if (dto.parentFolderId) {
       const parent = await this.folderRepo.findOne({
         where: { id: dto.parentFolderId, organizationId },
       });
       if (!parent) throw new NotFoundException({ message: 'Khong tim thay thu muc cha', errorCode: ERROR_CODES.PARENT_FOLDER_NOT_FOUND });
-      if (!(await this.folderAccessService.canAccessFolder(parent, ctx))) {
-        throw new ForbiddenException({ message: 'Ban khong co quyen truy cap thu muc nay', errorCode: ERROR_CODES.FORBIDDEN_FOLDER_ACCESS });
-      }
+      // 26/10/2026: tao thu muc con = GHI vao thu muc cha - cay toan cong ty chi Org Admin (xem resolveFolderWrite).
+      await this.folderAccessService.assertCanWrite(organizationId, parent.id, ctx);
     }
     const folder = this.folderRepo.create({
       organizationId,
       parentFolderId: dto.parentFolderId ?? null,
       name: dto.name,
       createdByUserId: actorId,
+      projectId,
     });
     return this.folderRepo.save(folder);
   }
@@ -84,9 +138,8 @@ export class FoldersService {
     const folder = await this.folderRepo.findOne({ where: { id, organizationId } });
     if (!folder) throw new NotFoundException({ message: 'Khong tim thay thu muc', errorCode: ERROR_CODES.FOLDER_NOT_FOUND });
 
-    if (!(await this.folderAccessService.canAccessFolder(folder, ctx))) {
-      throw new ForbiddenException({ message: 'Ban khong co quyen truy cap thu muc nay', errorCode: ERROR_CODES.FORBIDDEN_FOLDER_ACCESS });
-    }
+    // 26/10/2026: doi ten/visibility/du an = GHI - cay toan cong ty chi Org Admin (xem resolveFolderWrite).
+    await this.folderAccessService.assertCanWrite(organizationId, folder.id, ctx);
 
     // 28/07/2026: chi gan lai `name` khi THUC SU duoc truyen - xem ghi chu tai UpdateFolderDto.name
     // (truoc day gan vo dieu kien `folder.name = dto.name`, luc `name` con la truong bat buoc duy
@@ -99,6 +152,14 @@ export class FoldersService {
     if (dto.visibility !== undefined) {
       this.assertFolderOwnerOrOrgAdmin(folder, ctx);
       folder.visibility = dto.visibility;
+    }
+
+    // 26/10/2026: doi du an cua thu muc cap goc - cung han che "nguoi tao/Org Admin" voi visibility,
+    // cong quy tac gan du an (chuyen sang toan cong ty chi Org Admin) - xem resolveTopLevelProjectId().
+    if (dto.projectId !== undefined) {
+      if (folder.parentFolderId) this.rejectSubfolderProject();
+      this.assertFolderOwnerOrOrgAdmin(folder, ctx);
+      folder.projectId = await this.resolveTopLevelProjectId(organizationId, dto.projectId, ctx);
     }
 
     return this.folderRepo.save(folder);
@@ -125,6 +186,8 @@ export class FoldersService {
     const folder = await this.folderRepo.findOne({ where: { id: folderId, organizationId } });
     if (!folder) throw new NotFoundException({ message: 'Khong tim thay thu muc', errorCode: ERROR_CODES.FOLDER_NOT_FOUND });
     this.assertFolderOwnerOrOrgAdmin(folder, ctx);
+    // 26/10/2026: chia se = GHI - nguoi tao cu cua 1 thu muc toan cong ty cung khong con chia se duoc.
+    await this.folderAccessService.assertCanWrite(organizationId, folder.id, ctx);
 
     const hasUser = !!dto.sharedWithUserId;
     const hasDepartment = !!dto.sharedWithDepartmentId;
@@ -174,6 +237,7 @@ export class FoldersService {
     const folder = await this.folderRepo.findOne({ where: { id: folderId, organizationId } });
     if (!folder) throw new NotFoundException({ message: 'Khong tim thay thu muc', errorCode: ERROR_CODES.FOLDER_NOT_FOUND });
     this.assertFolderOwnerOrOrgAdmin(folder, ctx);
+    await this.folderAccessService.assertCanWrite(organizationId, folder.id, ctx);
 
     const share = await this.folderShareRepo.findOne({ where: { id: shareId, folderId } });
     if (!share) throw new NotFoundException({ message: 'Khong tim thay chia se', errorCode: ERROR_CODES.SHARE_NOT_FOUND });
@@ -223,9 +287,8 @@ export class FoldersService {
   async remove(organizationId: string, actorId: string, id: string, ctx: AccessContext): Promise<void> {
     const folder = await this.folderRepo.findOne({ where: { id, organizationId } });
     if (!folder) throw new NotFoundException({ message: 'Khong tim thay thu muc', errorCode: ERROR_CODES.FOLDER_NOT_FOUND });
-    if (!(await this.folderAccessService.canAccessFolder(folder, ctx))) {
-      throw new ForbiddenException({ message: 'Ban khong co quyen truy cap thu muc nay', errorCode: ERROR_CODES.FORBIDDEN_FOLDER_ACCESS });
-    }
+    // 26/10/2026: xoa = GHI - cay toan cong ty chi Org Admin (xem resolveFolderWrite).
+    await this.folderAccessService.assertCanWrite(organizationId, folder.id, ctx);
 
     const folderIds = await this.collectFolderTreeIds(organizationId, id);
     // 24/10/2026: xoa thu muc = xoa CA cay con - nguoi goi phai xem duoc MOI thu muc trong cay. Do song:

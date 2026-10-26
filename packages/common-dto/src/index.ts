@@ -22,3 +22,5 @@ export * from './constants/internal-shared-secret.constant';
 export * from './constants/error-codes.constant';
 // 22/08/2026: ten header correlation ID dung chung Gateway <-> cac service (xem constants/correlation-id.constant.ts)
 export * from './constants/correlation-id.constant';
+// 26/10/2026: pham vi du lieu 3 cap Org Admin/Manager/Employee dung chung (xem constants/data-scope.ts)
+export * from './constants/data-scope';

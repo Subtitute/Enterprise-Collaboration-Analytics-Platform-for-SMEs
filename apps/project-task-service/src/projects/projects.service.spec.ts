@@ -1,6 +1,16 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { EVENT_TYPES, PERMISSIONS, ProjectStatus } from '@app/common-dto';
+import { ERROR_CODES, EVENT_TYPES, PERMISSIONS, ProjectStatus, TaskStatus } from '@app/common-dto';
 import { ProjectsService } from './projects.service';
+// 26/10/2026: read-model thanh vien phong ban (pham vi xem cua Manager).
+import { DimUser } from '../entities/dim-user.entity';
+
+// 26/10/2026: assigneeRepo gia cho dem Task chua xong cua thanh vien (removeMember()).
+function openTasksRepo(count: number) {
+  const qb: any = {};
+  for (const fn of ['innerJoin', 'where', 'andWhere']) qb[fn] = jest.fn().mockReturnValue(qb);
+  qb.getCount = jest.fn().mockResolvedValue(count);
+  return { qb, createQueryBuilder: jest.fn().mockReturnValue(qb) };
+}
 
 /**
  * 22/07/2026: Unit test cho cac loi race-condition MAJOR phat hien qua code review 22/07/2026
@@ -267,7 +277,9 @@ describe('ProjectsService', () => {
       // 17/09/2026: truyen permissions co PROJECT_CREATE (Manager/Org Admin) de bo qua scoping moi
       // them - test nay chi khoa lai shape enrich (completionRate/memberCount), khong lien quan
       // scoping (xem describe rieng "findAll/findById - scoping theo PROJECT_CREATE" ben duoi).
+      // 26/10/2026: chi Org Admin (USER_MANAGE) con bo qua scoping - Manager nay theo phong ban.
       const result = await service.findById(organizationId, projectId, 'caller-1', [
+        PERMISSIONS.USER_MANAGE,
         PERMISSIONS.PROJECT_CREATE,
       ]);
 
@@ -302,7 +314,9 @@ describe('ProjectsService', () => {
         {} as any,
       );
 
+      // 26/10/2026: Org Admin (USER_MANAGE) - xem ghi chu o test tren.
       const result = await service.findById(organizationId, projectId, 'caller-1', [
+        PERMISSIONS.USER_MANAGE,
         PERMISSIONS.PROJECT_CREATE,
       ]);
 
@@ -341,9 +355,10 @@ describe('ProjectsService', () => {
       return taskRepoMock;
     }
 
-    it('Employee: findAll() chi tra ve du an duoc giao viec (TaskAssignee) HOAC la nguoi phu trach/nguoi tao - loai bo du an khong lien quan', async () => {
+    // 26/10/2026: "thuoc du an" = lead/thanh vien/nguoi tao - TaskAssignee khong con la nguon rieng (giao Task tu them thanh vien).
+    it('Employee: findAll() chi tra ve du an minh la thanh vien HOAC phu trach/nguoi tao - loai bo du an khong lien quan', async () => {
       const allProjects = [
-        { id: 'project-1', organizationId, name: 'Duoc giao viec' },
+        { id: 'project-1', organizationId, name: 'Thanh vien' },
         { id: 'project-2', organizationId, name: 'Khong lien quan' },
         { id: 'project-3', organizationId, name: 'Tu tao' },
       ];
@@ -359,21 +374,13 @@ describe('ProjectsService', () => {
           return Promise.resolve([filtered, filtered.length]);
         }),
       };
-      const assigneeRepoMock = {
-        createQueryBuilder: jest
-          .fn()
-          // Lan 1: getVisibleProjectIds() - employee dang duoc giao Task thuoc 'project-1'.
-          .mockReturnValueOnce(makeQueryBuilder([{ projectId: 'project-1' }]))
-          // Lan 2: computeProjectStats() memberRows - khong quan tam ket qua o test nay.
-          .mockReturnValueOnce(makeQueryBuilder([])),
-      };
+      // computeProjectStats() memberRows - khong quan tam ket qua o test nay.
+      const assigneeRepoMock = { createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])) };
       const taskRepoMock = emptyStatsRepos();
 
-      // 22/09/2026: getVisibleProjectIds() gio truy van them ProjectMember qua
-      // `this.dataSource.getRepository(ProjectMember)` - can mock getRepository() tra ve 1
-      // queryBuilder rong (test nay khong lien quan ProjectMember, chi khoa lai TaskAssignee/lead/creator).
+      // getVisibleProjectIds(): employee la thanh vien (ProjectMember) cua 'project-1'.
       const dataSourceMock = {
-        getRepository: jest.fn().mockReturnValue({ createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])) }),
+        getRepository: jest.fn().mockReturnValue({ createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([{ projectId: 'project-1' }])) }),
       };
 
       const service = new ProjectsService(
@@ -391,8 +398,8 @@ describe('ProjectsService', () => {
         employeePermissions,
       );
 
-      // Chi con 'project-1' (duoc giao viec) va 'project-3' (tu tao) - 'project-2' bi loai vi
-      // employee khong co lien quan gi (khong duoc giao Task, khong phai lead/nguoi tao).
+      // Chi con 'project-1' (thanh vien) va 'project-3' (tu tao) - 'project-2' bi loai vi
+      // employee khong co lien quan gi (khong phai thanh vien/lead/nguoi tao).
       expect(result.data.map((p) => p.id).sort()).toEqual(['project-1', 'project-3']);
       expect(projectRepoMock.find).toHaveBeenCalledTimes(1);
     });
@@ -431,7 +438,8 @@ describe('ProjectsService', () => {
       expect(projectRepoMock.findAndCount).not.toHaveBeenCalled();
     });
 
-    it('Manager (co PROJECT_CREATE): findAll() van tra ve TOAN BO du an cua to chuc - khong doi hanh vi cu', async () => {
+    // 26/10/2026: chi Org Admin (USER_MANAGE) con thay TOAN BO du an - Manager theo phong ban (test cuoi describe).
+    it('Org Admin (co USER_MANAGE): findAll() van tra ve TOAN BO du an cua to chuc - khong doi hanh vi cu', async () => {
       const allProjects = [
         { id: 'project-1', organizationId },
         { id: 'project-2', organizationId },
@@ -454,13 +462,13 @@ describe('ProjectsService', () => {
       const result = await service.findAll(
         organizationId,
         { page: 1, limit: 20 } as any,
-        'manager-1',
-        managerPermissions,
+        'admin-1',
+        [PERMISSIONS.USER_MANAGE, ...managerPermissions],
       );
 
       expect(result.data.map((p) => p.id)).toEqual(['project-1', 'project-2']);
       // Khong goi getVisibleProjectIds() (khong co lenh doc "du an minh phu trach/tao" nao) -
-      // xac nhan hoan toan bo qua scoping cho Manager.
+      // xac nhan hoan toan bo qua scoping cho Org Admin.
       expect(projectRepoMock.find).not.toHaveBeenCalled();
       expect(projectRepoMock.findAndCount).toHaveBeenCalledWith(
         expect.objectContaining({ where: expect.not.objectContaining({ id: expect.anything() }) }),
@@ -531,6 +539,93 @@ describe('ProjectsService', () => {
 
       expect(result).toMatchObject({ id: 'project-3' });
     });
+
+    // 26/10/2026: pham vi phong ban cua Manager - du an co lead/thanh vien/nguoi duoc giao Task thuoc
+    // phong ban (thanh vien phong ban doc tu read-model dim_user) hien, du an khac bi loai.
+    it('Manager co phong ban: findAll() tra du an co lead/thanh vien thuoc phong ban, loai du an phong ban khac', async () => {
+      const allProjects = [
+        { id: 'project-dept-lead', organizationId },
+        { id: 'project-dept-member', organizationId },
+        { id: 'project-other', organizationId },
+      ];
+      const projectRepoMock = {
+        find: jest.fn().mockResolvedValue([{ id: 'project-dept-lead' }]),
+        findAndCount: jest.fn().mockImplementation((options: any) => {
+          const op = options.where.id;
+          const filtered = op ? allProjects.filter((p) => op.value.includes(p.id)) : allProjects;
+          return Promise.resolve([filtered, filtered.length]);
+        }),
+      };
+      const assigneeRepoMock = { createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])) };
+      const dimUserRepo = { find: jest.fn().mockResolvedValue([{ userId: 'dept-member-1' }]) };
+      const memberQb = makeQueryBuilder([{ projectId: 'project-dept-member' }]);
+      const memberRepo = { createQueryBuilder: jest.fn().mockReturnValue(memberQb) };
+      const dataSourceMock = { getRepository: jest.fn().mockImplementation((entity) => (entity === DimUser ? dimUserRepo : memberRepo)) };
+
+      const service = new ProjectsService(dataSourceMock as any, projectRepoMock as any, emptyStatsRepos() as any, assigneeRepoMock as any, {} as any);
+      const result = await service.findAll(organizationId, { page: 1, limit: 20 } as any, 'manager-1', managerPermissions, 'dept-1');
+
+      expect(result.data.map((p) => p.id).sort()).toEqual(['project-dept-lead', 'project-dept-member']);
+      expect(memberQb.where).toHaveBeenCalledWith('member.userId IN (:...userIds)', { userIds: ['manager-1', 'dept-member-1'] });
+      // 26/10/2026: lead/nguoi tao cung theo tap [minh + phong ban].
+      expect(projectRepoMock.find).toHaveBeenCalledWith(expect.objectContaining({ where: [
+        { organizationId, leadUserId: expect.objectContaining({ value: ['manager-1', 'dept-member-1'] }) },
+        { organizationId, createdByUserId: expect.objectContaining({ value: ['manager-1', 'dept-member-1'] }) },
+      ] }));
+    });
+
+    it('listMembers(): nem NotFoundException khi du an nam ngoai pham vi xem cua nguoi goi', async () => {
+      const projectRepoMock = { findOne: jest.fn().mockResolvedValue({ id: 'project-2', organizationId }), find: jest.fn().mockResolvedValue([]) };
+      const assigneeRepoMock = { createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])) };
+      const memberFind = jest.fn();
+      const dataSourceMock = {
+        getRepository: jest.fn().mockReturnValue({ createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])), find: memberFind }),
+      };
+
+      const service = new ProjectsService(dataSourceMock as any, projectRepoMock as any, {} as any, assigneeRepoMock as any, {} as any);
+
+      await expect(
+        service.listMembers(organizationId, 'project-2', { userId: employeeId, permissions: employeePermissions, departmentId: null }),
+      ).rejects.toThrow(NotFoundException);
+      expect(memberFind).not.toHaveBeenCalled();
+    });
+
+    // 26/10/2026: ghi theo id ngoai pham vi xem -> 404 va KHONG ghi gi. Truoc day Manager phong khac tu
+    // them minh lam thanh vien/lead cua du an minh khong thay duoc -> thay ngay du an + tai lieu du an.
+    it('addMember()/update()/removeMember(): Manager ngoai pham vi -> NotFoundException, khong ghi thanh vien/lead', async () => {
+      const projectRepoMock = {
+        findOne: jest.fn().mockResolvedValue({ id: 'project-x', organizationId, leadUserId: null }),
+        find: jest.fn().mockResolvedValue([]),
+        save: jest.fn(),
+      };
+      const assigneeRepoMock = { createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])) };
+      const memberRepo = { createQueryBuilder: jest.fn().mockReturnValue(makeQueryBuilder([])), findOne: jest.fn() };
+      const dimUserRepo = { find: jest.fn().mockResolvedValue([{ userId: 'dept-2-member' }]) };
+      const transaction = jest.fn();
+      const dataSourceMock = {
+        getRepository: jest.fn().mockImplementation((entity) => (entity === DimUser ? dimUserRepo : memberRepo)),
+        transaction,
+      };
+      const service = new ProjectsService(dataSourceMock as any, projectRepoMock as any, {} as any, assigneeRepoMock as any, {} as any);
+      const caller = { userId: 'manager-2', permissions: managerPermissions, departmentId: 'dept-2' };
+
+      await expect(service.addMember(organizationId, 'project-x', 'manager-2', 'manager-2', caller)).rejects.toThrow(NotFoundException);
+      await expect(service.update(organizationId, 'project-x', { leadUserId: 'manager-2' } as any, 'manager-2', caller)).rejects.toThrow(NotFoundException);
+      await expect(service.removeMember(organizationId, 'project-x', 'someone', 'manager-2', caller)).rejects.toThrow(NotFoundException);
+      expect(memberRepo.findOne).not.toHaveBeenCalled();
+      expect(projectRepoMock.save).not.toHaveBeenCalled();
+      expect(transaction).not.toHaveBeenCalled();
+    });
+
+    it('update(): Org Admin (USER_MANAGE) khong bi gioi han pham vi - ghi binh thuong, khong truy van pham vi', async () => {
+      const project = { id: 'project-x', organizationId, leadUserId: null, name: 'A' };
+      const projectRepoMock = { findOne: jest.fn().mockResolvedValue(project), save: jest.fn().mockImplementation((p) => Promise.resolve(p)) };
+      const service = new ProjectsService({} as any, projectRepoMock as any, {} as any, {} as any, {} as any);
+      const caller = { userId: 'admin-1', permissions: [PERMISSIONS.USER_MANAGE, PERMISSIONS.PROJECT_UPDATE], departmentId: null };
+
+      await service.update(organizationId, 'project-x', { name: 'B' } as any, 'admin-1', caller);
+      expect(projectRepoMock.save).toHaveBeenCalledWith(expect.objectContaining({ name: 'B' }));
+    });
   });
 
   /**
@@ -545,25 +640,37 @@ describe('ProjectsService', () => {
       const projectRepoMock = {
         findOne: jest.fn().mockResolvedValue({ id: projectId, organizationId, leadUserId: 'lead-1' }),
       };
-      const memberRepoMock = {
-        findOne: jest.fn().mockResolvedValue(undefined),
-        create: jest.fn().mockImplementation((data) => data),
+      const memberRepoMock = { findOne: jest.fn().mockResolvedValue(undefined) };
+      // 26/10/2026: them thanh vien gio chay trong transaction + ghi PROJECT_MEMBER_ADDED (Document
+      // Service dung su kien nay de mo tai lieu du an cho thanh vien moi).
+      const managerMock = {
+        create: jest.fn().mockImplementation((_entity, data) => data),
         save: jest.fn().mockImplementation((data) => Promise.resolve({ id: 'member-1', ...data })),
       };
-      const dataSourceMock = { getRepository: jest.fn().mockReturnValue(memberRepoMock) };
+      const dataSourceMock = {
+        getRepository: jest.fn().mockReturnValue(memberRepoMock),
+        transaction: jest.fn((cb: any) => cb(managerMock)),
+      };
+      const outboxServiceMock = { record: jest.fn().mockResolvedValue(undefined) };
 
       const service = new ProjectsService(
         dataSourceMock as any,
         projectRepoMock as any,
         {} as any,
         {} as any,
-        {} as any,
+        outboxServiceMock as any,
       );
 
       const result = await service.addMember(organizationId, projectId, actorId, userId);
 
       expect(result).toMatchObject({ projectId, userId, addedByUserId: actorId });
-      expect(memberRepoMock.save).toHaveBeenCalledTimes(1);
+      expect(managerMock.save).toHaveBeenCalledTimes(1);
+      expect(outboxServiceMock.record).toHaveBeenCalledWith(managerMock, {
+        eventType: EVENT_TYPES.PROJECT_MEMBER_ADDED,
+        organizationId,
+        producer: 'project-task-service',
+        payload: { projectId, userId, actorId },
+      });
     });
 
     it('addMember: idempotent - tra ve ban ghi da co san neu da la thanh vien, khong tao trung', async () => {
@@ -612,23 +719,46 @@ describe('ProjectsService', () => {
       const projectRepoMock = {
         findOne: jest.fn().mockResolvedValue({ id: projectId, organizationId, leadUserId: 'lead-1' }),
       };
-      const memberRepoMock = {
-        findOne: jest.fn().mockResolvedValue(existingMember),
-        remove: jest.fn().mockResolvedValue(undefined),
+      const memberRepoMock = { findOne: jest.fn().mockResolvedValue(existingMember) };
+      // 26/10/2026: go thanh vien chay trong transaction + ghi PROJECT_MEMBER_REMOVED.
+      const managerMock = { remove: jest.fn().mockResolvedValue(undefined) };
+      const dataSourceMock = {
+        getRepository: jest.fn().mockReturnValue(memberRepoMock),
+        transaction: jest.fn((cb: any) => cb(managerMock)),
       };
-      const dataSourceMock = { getRepository: jest.fn().mockReturnValue(memberRepoMock) };
+      const outboxServiceMock = { record: jest.fn().mockResolvedValue(undefined) };
 
       const service = new ProjectsService(
         dataSourceMock as any,
         projectRepoMock as any,
         {} as any,
-        {} as any,
-        {} as any,
+        openTasksRepo(0) as any,
+        outboxServiceMock as any,
       );
 
-      await service.removeMember(organizationId, projectId, userId);
+      await service.removeMember(organizationId, projectId, userId, actorId);
 
-      expect(memberRepoMock.remove).toHaveBeenCalledWith(existingMember);
+      expect(managerMock.remove).toHaveBeenCalledWith(existingMember);
+      expect(outboxServiceMock.record).toHaveBeenCalledWith(
+        managerMock,
+        expect.objectContaining({ eventType: EVENT_TYPES.PROJECT_MEMBER_REMOVED, payload: { projectId, userId, actorId } }),
+      );
+    });
+
+    // 26/10/2026: thanh vien con Task chua xong trong du an -> 409, khong xoa, khong ghi outbox.
+    it('removeMember: thanh vien con Task chua hoan thanh -> ConflictException PROJECT_MEMBER_HAS_OPEN_TASKS', async () => {
+      const projectRepoMock = { findOne: jest.fn().mockResolvedValue({ id: projectId, organizationId, leadUserId: 'lead-1' }) };
+      const memberRepoMock = { findOne: jest.fn().mockResolvedValue({ id: 'member-1', projectId, userId }) };
+      const dataSourceMock = { getRepository: jest.fn().mockReturnValue(memberRepoMock), transaction: jest.fn() };
+      const assigneeRepo = openTasksRepo(2);
+      const service = new ProjectsService(dataSourceMock as any, projectRepoMock as any, {} as any, assigneeRepo as any, {} as any);
+
+      await expect(service.removeMember(organizationId, projectId, userId, actorId)).rejects.toMatchObject({
+        status: 409,
+        response: expect.objectContaining({ errorCode: ERROR_CODES.PROJECT_MEMBER_HAS_OPEN_TASKS, errorParams: { count: 2 } }),
+      });
+      expect(assigneeRepo.qb.andWhere).toHaveBeenCalledWith('task.status != :done', { done: TaskStatus.DONE });
+      expect(dataSourceMock.transaction).not.toHaveBeenCalled();
     });
 
     it('removeMember: tu choi go nguoi dang la nguoi phu trach du an (leadUserId)', async () => {
@@ -646,7 +776,7 @@ describe('ProjectsService', () => {
         {} as any,
       );
 
-      await expect(service.removeMember(organizationId, projectId, userId)).rejects.toThrow(
+      await expect(service.removeMember(organizationId, projectId, userId, actorId)).rejects.toThrow(
         BadRequestException,
       );
       expect(memberRepoMock.remove).not.toHaveBeenCalled();

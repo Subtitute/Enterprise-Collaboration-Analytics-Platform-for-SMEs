@@ -57,6 +57,34 @@ export interface ProjectCreatedPayload {
   projectId: string;
   name: string;
   actorId: string;
+  // 26/10/2026: nguoi phu trach chon ngay luc tao du an - Document Service can de cap quyen tai
+  // lieu cua du an cho lead (read-model trong apps/document-service/src/project-scope). Optional de
+  // cac consumer cu va su kien da nam trong Kafka truoc ngay nay van hop le.
+  leadUserId?: string | null;
+  // 26/10/2026: nguoi tao du an ("thuoc du an" = lead/thanh vien/nguoi tao) - optional, su kien cu dung actorId.
+  createdByUserId?: string | null;
+}
+
+// 26/10/2026: 3 payload moi - tai lieu theo pham vi du an (xem EVENT_TYPES.PROJECT_MEMBER_ADDED).
+// Moi su kien la 1 thay doi don le, ap dung idempotent theo thu tu partition (key = organizationId).
+export interface ProjectMemberAddedPayload {
+  projectId: string;
+  userId: string;
+  actorId: string;
+}
+
+export interface ProjectMemberRemovedPayload {
+  projectId: string;
+  userId: string;
+  actorId: string;
+}
+
+/** `leadUserId: null` = du an vua bi go nguoi phu trach. */
+export interface ProjectLeadChangedPayload {
+  projectId: string;
+  leadUserId: string | null;
+  previousLeadUserId: string | null;
+  actorId: string;
 }
 
 export interface ProjectCompletedPayload {

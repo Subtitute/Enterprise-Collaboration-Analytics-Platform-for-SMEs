@@ -186,6 +186,10 @@ export interface Folder {
   parentId?: string | null;
   visibility: 'organization' | 'restricted';
   createdByUserId: string;
+  // 26/10/2026: du an cua thu muc cap goc (tai lieu theo pham vi du an) - null = toan cong ty.
+  projectId?: string | null;
+  // 26/10/2026: backend tinh san - nguoi goi GHI duoc vao thu muc (cay toan cong ty chi Org Admin).
+  canWrite?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -200,6 +204,8 @@ export interface FileItem {
   uploadedByName?: string;
   uploadedBy?: string;
   versions?: FileVersion[];
+  // 26/10/2026: backend tinh san - quyen GHI cua chinh tep (quyen ghi thu muc hoac FileShare EDIT truc tiep).
+  canWrite?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -334,6 +340,8 @@ export interface StructuredInsight {
   evidence: {
     value: number;
     comparisonValue: number | null;
+    /** 26/10/2026: moc so sanh - 'department' khi Manager chi quet phong ban minh (khong co so lieu toan to chuc). Tuy chon (cache cu chua co truong nay). */
+    comparisonScope?: InsightScope | null;
     unit: 'percent';
   };
 }

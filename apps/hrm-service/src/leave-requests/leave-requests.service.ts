@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, FindOperator, Repository } from 'typeorm';
 import {
   ERROR_CODES,
   EVENT_TYPES,
@@ -9,8 +9,11 @@ import {
   LeaveRequestRejectedPayload,
   LeaveRequestStatus,
   PaginatedResponse,
+  PERMISSIONS,
   paginate,
 } from '@app/common-dto';
+// 26/10/2026: pham vi xem/duyet theo phong ban cua Manager - xem src/user-directory.
+import { ScopeCaller, assertCanDecide, scopeUserFilter } from '../user-directory/user-directory';
 import { LeaveRequest } from '../entities/leave-request.entity';
 import { OutboxService } from '../outbox/outbox.service';
 import { toGmt7DateString } from '../attendance/attendance-date.util';
@@ -98,10 +101,15 @@ export class LeaveRequestsService {
    * Danh sach nghi phep TOAN TO CHUC (Manager/Org Admin, PERMISSIONS.LEAVE_REQUEST_VIEW) - loc
    * duoc theo userId/status. 03/10/2026: truyen userId ma KHONG truyen status = lich su nghi phep
    * DAY DU (moi trang thai) cua RIENG 1 nhan vien - xem chu thich tai LeaveRequestQueryDto.
+   *
+   * 26/10/2026: `caller` (tuy chon) - Manager chi xem don cua chinh minh + thanh vien phong ban
+   * (read-model dim_user), khong con toan to chuc; Org Admin (USER_MANAGE) giu nguyen.
    */
-  async findAll(organizationId: string, query: LeaveRequestQueryDto): Promise<PaginatedResponse<LeaveRequest>> {
-    const where: { organizationId: string; userId?: string; status?: LeaveRequestStatus } = { organizationId };
-    if (query.userId) where.userId = query.userId;
+  async findAll(organizationId: string, query: LeaveRequestQueryDto, caller?: ScopeCaller): Promise<PaginatedResponse<LeaveRequest>> {
+    const where: { organizationId: string; userId?: string | FindOperator<string>; status?: LeaveRequestStatus } = { organizationId };
+    const userFilter = await scopeUserFilter(this.dataSource, organizationId, caller, PERMISSIONS.LEAVE_REQUEST_VIEW, query.userId);
+    if (userFilter === false) return paginate([], 0, query.page, query.limit);
+    if (userFilter) where.userId = userFilter;
     if (query.status) where.status = query.status;
 
     const [data, total] = await this.leaveRequestRepo.findAndCount({
@@ -156,12 +164,13 @@ export class LeaveRequestsService {
     };
   }
 
-  async approve(organizationId: string, id: string, approverId: string, dto: DecideLeaveRequestDto): Promise<LeaveRequest> {
-    return this.decide(organizationId, id, approverId, LeaveRequestStatus.APPROVED, dto, EVENT_TYPES.LEAVE_REQUEST_APPROVED);
+  // 26/10/2026: `caller` (tuy chon) - Manager chi duyet don cua thanh vien phong ban, khong tu duyet (xem assertCanDecide()).
+  async approve(organizationId: string, id: string, approverId: string, dto: DecideLeaveRequestDto, caller?: ScopeCaller): Promise<LeaveRequest> {
+    return this.decide(organizationId, id, approverId, LeaveRequestStatus.APPROVED, dto, EVENT_TYPES.LEAVE_REQUEST_APPROVED, caller);
   }
 
-  async reject(organizationId: string, id: string, approverId: string, dto: DecideLeaveRequestDto): Promise<LeaveRequest> {
-    return this.decide(organizationId, id, approverId, LeaveRequestStatus.REJECTED, dto, EVENT_TYPES.LEAVE_REQUEST_REJECTED);
+  async reject(organizationId: string, id: string, approverId: string, dto: DecideLeaveRequestDto, caller?: ScopeCaller): Promise<LeaveRequest> {
+    return this.decide(organizationId, id, approverId, LeaveRequestStatus.REJECTED, dto, EVENT_TYPES.LEAVE_REQUEST_REJECTED, caller);
   }
 
   /**
@@ -176,9 +185,12 @@ export class LeaveRequestsService {
     toStatus: LeaveRequestStatus.APPROVED | LeaveRequestStatus.REJECTED,
     dto: DecideLeaveRequestDto,
     eventType: typeof EVENT_TYPES.LEAVE_REQUEST_APPROVED | typeof EVENT_TYPES.LEAVE_REQUEST_REJECTED,
+    caller?: ScopeCaller,
   ): Promise<LeaveRequest> {
     const existing = await this.leaveRequestRepo.findOne({ where: { id, organizationId } });
     if (!existing) throw new NotFoundException({ message: 'Không tìm thấy yêu cầu nghỉ phép', errorCode: ERROR_CODES.LEAVE_REQUEST_NOT_FOUND });
+    // 26/10/2026: chan Manager duyet don ngoai phong ban/don cua chinh minh (userId cua don khong doi nen kiem tra 1 lan o day la du).
+    await assertCanDecide(this.dataSource, organizationId, caller, PERMISSIONS.LEAVE_REQUEST_APPROVE, existing.userId);
     if (existing.status !== LeaveRequestStatus.PENDING) {
       throw new BadRequestException({
         message: 'Yêu cầu nghỉ phép này đã được xử lý trước đó',

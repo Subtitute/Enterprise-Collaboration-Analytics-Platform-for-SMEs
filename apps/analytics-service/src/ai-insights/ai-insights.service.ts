@@ -53,6 +53,8 @@ export interface StructuredInsight {
     value: number;
     /** null khi scope='organization' (khong co gi de so sanh) - nguoc lai la completionRate cua toan to chuc, TU BACKEND TINH (khong lay tu AI) de dam bao chinh xac. */
     comparisonValue: number | null;
+    /** 26/10/2026: moc so sanh cua comparisonValue - 'organization' (Org Admin) hoac 'department' (Manager chi quet phong ban minh, khong lo so lieu toan to chuc); null khi comparisonValue null. */
+    comparisonScope: InsightScope | null;
     unit: 'percent';
   };
 }
@@ -159,9 +161,19 @@ export class AiInsightsService {
    * la duong goi "lam giau" theo yeu cau ngay sau 1 lan quet Anomaly Detection moi, khong nen tra
    * ve/ghi de 1 ket qua da cache TU LAN GOI KHONG co boi canh bat thuong (hoac nguoc lai).
    */
-  async generateInsights(organizationId: string, range: string, anomalies: AnomalyInput[] = []): Promise<AiInsightsResult> {
+  // 26/10/2026: them `scopeDepartmentId` (tuy chon) - Manager chi duoc AI quet phong ban cua minh
+  // (+ du an, chi tinh task cua phong ban) thay vi toan to chuc + MOI phong ban nhu truoc; cache key
+  // tach rieng theo phong ban de Manager khong doc lai ban nhan xet toan to chuc da cache cua Org Admin.
+  async generateInsights(
+    organizationId: string,
+    range: string,
+    anomalies: AnomalyInput[] = [],
+    scopeDepartmentId?: string,
+  ): Promise<AiInsightsResult> {
     const useCache = anomalies.length === 0;
-    const cacheKey = `analytics:ai-insights:${organizationId}:${range}`;
+    const cacheKey = scopeDepartmentId
+      ? `analytics:ai-insights:${organizationId}:${range}:dept:${scopeDepartmentId}`
+      : `analytics:ai-insights:${organizationId}:${range}`;
 
     if (useCache) {
       try {
@@ -183,10 +195,11 @@ export class AiInsightsService {
       });
     }
 
-    const candidates = await this.buildCandidates(organizationId, range);
+    const candidates = await this.buildCandidates(organizationId, range, scopeDepartmentId);
     const prompt = buildStructuredPrompt(range, candidates, anomalies);
     const rawInsights = await this.generateStructuredInsights(prompt, geminiApiKey, groqApiKey);
 
+    // 26/10/2026: candidates[0] la MOC so sanh (toan to chuc voi Org Admin, phong ban voi Manager).
     const orgCandidate = candidates[0];
     const insights: StructuredInsight[] = [];
     for (const raw of rawInsights) {
@@ -206,7 +219,8 @@ export class AiInsightsService {
         actionPlan: raw.actionPlan ?? null,
         evidence: {
           value: candidate.completionRate,
-          comparisonValue: candidate.scope === 'organization' ? null : orgCandidate.completionRate,
+          comparisonValue: candidate === orgCandidate ? null : orgCandidate.completionRate,
+          comparisonScope: candidate === orgCandidate ? null : orgCandidate.scope,
           unit: 'percent',
         },
       });
@@ -246,7 +260,33 @@ export class AiInsightsService {
    * trong khoang thoi gian (bo qua phong ban rong - khong co gi de nhan xet), cuoi cung la top du
    * an theo so cong viec tao moi (du an "song dong" nhat, nhieu du lieu de danh gia nhat).
    */
-  private async buildCandidates(organizationId: string, range: string): Promise<Candidate[]> {
+  private async buildCandidates(organizationId: string, range: string, scopeDepartmentId?: string): Promise<Candidate[]> {
+    // 26/10/2026: pham vi phong ban (Manager) - [0] la chinh phong ban (moc so sanh), tiep theo la
+    // top du an chi tinh task cua phong ban; KHONG quet toan to chuc hay phong ban khac.
+    if (scopeDepartmentId) {
+      const deptSummary = await this.analyticsService.getSummary(organizationId, range, scopeDepartmentId);
+      const deptProjects = await this.analyticsService.getProjectProgress(organizationId, range, scopeDepartmentId);
+      return [
+        {
+          scope: 'department',
+          scopeId: scopeDepartmentId,
+          totalTasksCreated: deptSummary.totalTasksCreated,
+          totalTasksCompleted: deptSummary.totalTasksCompleted,
+          completionRate: deptSummary.completionRate,
+        },
+        ...[...deptProjects]
+          .sort((a, b) => b.tasksCreated - a.tasksCreated)
+          .slice(0, MAX_PROJECT_CANDIDATES)
+          .map((project) => ({
+            scope: 'project' as const,
+            scopeId: project.projectId,
+            totalTasksCreated: project.tasksCreated,
+            totalTasksCompleted: project.tasksCompleted,
+            completionRate: project.completionRate,
+          })),
+      ];
+    }
+
     const orgSummary = await this.analyticsService.getSummary(organizationId, range);
     const candidates: Candidate[] = [
       {

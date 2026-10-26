@@ -11,6 +11,9 @@
 // Don dep: xoa R va O (xoa kem toan bo ben trong, ke ca file Employee tai len - Employee khong co
 // quyen document:delete), kiem tra file da 404.
 // Can chay `node scripts/mock-data/mkfixtures.js` neu thu muc fixtures/ chua co.
+// 26/10/2026: tai lieu theo pham vi du an - thu muc cap goc cua Manager nay phai gan 1 du an (chi Org
+// Admin tao thu muc toan cong ty), nen R va O gan vao 1 du an ma CA Manager lan Employee deu thuoc pham
+// vi (GET /folders/accessible-projects); them kiem tra Manager tao thu muc toan cong ty -> 403.
 const fs = require('fs');
 const path = require('path');
 const { api, upload, decode, login, list, check, summary, purgeTraces, sleep, sql, q } = require('./lib');
@@ -24,8 +27,9 @@ const denied = (s) => s === 403 || s === 404;
   const since = Date.now();
   const S = {};
   const ids = [];
+  let projectId;
   const mkFolder = async (key, name, parentFolderId) => {
-    const r = await api('manager', 'POST', '/folders', { name: `${TAG} ${name}`, ...(parentFolderId ? { parentFolderId } : {}) });
+    const r = await api('manager', 'POST', '/folders', { name: `${TAG} ${name}`, ...(parentFolderId ? { parentFolderId } : { projectId }) });
     S[key] = r.data && r.data.id;
     ids.push(S[key]);
     return r.status;
@@ -38,6 +42,27 @@ const denied = (s) => s === 403 || s === 404;
   };
   try {
     const empId = decode(await login('employee')).sub;
+    // 0. Du an chung cua Manager va Employee (thu muc cap goc phai gan du an)
+    const empProjects = new Set(((await api('employee', 'GET', '/folders/accessible-projects')).data || {}).projectIds || []);
+    projectId = (((await api('manager', 'GET', '/folders/accessible-projects')).data || {}).projectIds || []).find((id) => empProjects.has(id));
+    check('co du an chung Manager/Employee', Boolean(projectId));
+    const cw = await api('manager', 'POST', '/folders', { name: `${TAG} Toàn công ty` });
+    if (cw.data && cw.data.id) ids.push(cw.data.id);
+    check('Manager tao thu muc toan cong ty -> 403', cw.status === 403 && cw.data && cw.data.errorCode === 'COMPANY_WIDE_ADMIN_ONLY', cw.status);
+    // 26/10/2026: cay toan cong ty chi Org Admin ghi - Employee chi xem; chia se thu muc tuong minh van cho ghi.
+    const cwf = await api('admin', 'POST', '/folders', { name: `${TAG} Toàn công ty` });
+    S.CW = cwf.data && cwf.data.id;
+    ids.push(S.CW);
+    check('Org Admin tao thu muc toan cong ty', cwf.status === 201, cwf.status);
+    const cwUp = await upload('employee', `${TAG}-cw.txt`, 'Ghi chú toàn công ty.', 'text/plain', S.CW);
+    if (cwUp.data && cwUp.data.id) ids.push(cwUp.data.id);
+    check('Employee tai len thu muc toan cong ty -> 403 COMPANY_WIDE_READ_ONLY', cwUp.status === 403 && cwUp.data && cwUp.data.errorCode === 'COMPANY_WIDE_READ_ONLY', cwUp.status);
+    check('Employee tao thu muc con trong thu muc toan cong ty -> 403', (await api('employee', 'POST', '/folders', { name: `${TAG} con`, parentFolderId: S.CW })).status === 403);
+    check('Employee van xem duoc thu muc toan cong ty', (await api('employee', 'GET', `/files?folderId=${S.CW}`)).status === 200);
+    check('Org Admin chia se thu muc toan cong ty cho Employee', (await api('admin', 'POST', `/folders/${S.CW}/shares`, { sharedWithUserId: empId })).status === 201);
+    const cwUp2 = await upload('employee', `${TAG}-cw2.txt`, 'Ghi chú toàn công ty.', 'text/plain', S.CW);
+    if (cwUp2.data && cwUp2.data.id) ids.push(cwUp2.data.id);
+    check('Employee duoc chia se thu muc -> tai len duoc', ok(cwUp2.status), cwUp2.status);
     // 1. Dung cay thu muc
     check('tao thu muc R', (await mkFolder('R', 'Kho mật')) === 201);
     check('dat R = RESTRICTED', (await api('manager', 'PATCH', `/folders/${S.R}`, { visibility: 'restricted' })).status === 200);
@@ -131,6 +156,7 @@ const denied = (s) => s === 403 || s === 404;
     check('ngoai le', false, e.stack);
   } finally {
     for (const k of ['R', 'O']) if (S[k]) check(`don dep: xoa thu muc ${k} (kem noi dung)`, (await api('manager', 'DELETE', `/folders/${S[k]}`)).status < 300);
+    if (S.CW) check('don dep: xoa thu muc toan cong ty', (await api('admin', 'DELETE', `/folders/${S.CW}`)).status < 300);
     if (S.fSalary) check('file trong thu muc da xoa -> 404', (await api('admin', 'GET', `/files/${S.fSalary}`)).status === 404);
     console.log(`don dep su kien: ${JSON.stringify(await purgeTraces(ids, since))}`);
     summary();

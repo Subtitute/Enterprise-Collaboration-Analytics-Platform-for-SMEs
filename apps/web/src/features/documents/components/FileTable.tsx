@@ -7,6 +7,8 @@ import type { FileItem } from '@/types';
 import { useDeleteFile, useDownloadFile } from '../hooks';
 import { DocumentCard } from './DocumentCard';
 import { DocumentTableRow } from './DocumentTableRow';
+// 26/10/2026: nut ghi theo quyen cua CHINH tep (FileShare EDIT trong cay toan cong ty van hien).
+import { canWriteFile } from '../writeAccess';
 
 interface FileTableProps {
   files: FileItem[];
@@ -15,6 +17,8 @@ interface FileTableProps {
   onVersionHistory: (file: FileItem) => void;
   onPreview?: (file: FileItem) => void;
   viewMode?: 'grid' | 'list';
+  // 26/10/2026: false = nguoi goi chi xem thu muc nay (cay toan cong ty) - an chia se/xoa (writeAccess.ts).
+  canWrite?: boolean;
 }
 
 export const FileTable = React.memo(function FileTable({
@@ -24,6 +28,7 @@ export const FileTable = React.memo(function FileTable({
   onVersionHistory,
   onPreview,
   viewMode = 'list',
+  canWrite = true,
 }: FileTableProps) {
   const { t } = useTranslation();
   const [deleting, setDeleting] = useState<FileItem | null>(null);
@@ -37,6 +42,8 @@ export const FileTable = React.memo(function FileTable({
   }, [folderId]);
 
   const isAllSelected = files.length > 0 && selectedFileIds.length === files.length;
+  // 26/10/2026: xoa hang loat chi hien khi MOI tep dang chon deu ghi duoc.
+  const canBatchDelete = selectedFileIds.every((id) => canWriteFile(files.find((f) => f.id === id), canWrite));
   const isSomeSelected = selectedFileIds.length > 0 && selectedFileIds.length < files.length;
 
   const toggleSelectAll = useCallback(() => {
@@ -92,6 +99,7 @@ export const FileTable = React.memo(function FileTable({
               onShare={onShare}
               onVersionHistory={onVersionHistory}
               onDelete={setDeleting}
+              canWrite={canWriteFile(file, canWrite)}
             />
           ))}
         </div>
@@ -130,6 +138,7 @@ export const FileTable = React.memo(function FileTable({
                 onShare={onShare}
                 onVersionHistory={onVersionHistory}
                 onDelete={setDeleting}
+                canWrite={canWriteFile(file, canWrite)}
               />
             ))}
           </TableBody>
@@ -156,14 +165,16 @@ export const FileTable = React.memo(function FileTable({
               <span>{t('documents:fileTable.batchDownload')}</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => setBatchDeleting(selectedFileIds)}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-radius-sm bg-[#F8E5E3] border border-[#B3261E]/20 text-[12px] font-medium text-[#B3261E] hover:bg-[#F8E5E3]/80 transition-colors cursor-pointer"
-            >
-              <TrashIcon className="h-3.5 w-3.5" />
-              <span>{t('documents:fileTable.batchDelete')}</span>
-            </button>
+            {canBatchDelete && (
+              <button
+                type="button"
+                onClick={() => setBatchDeleting(selectedFileIds)}
+                className="flex items-center gap-1.5 h-8 px-3 rounded-radius-sm bg-[#F8E5E3] border border-[#B3261E]/20 text-[12px] font-medium text-[#B3261E] hover:bg-[#F8E5E3]/80 transition-colors cursor-pointer"
+              >
+                <TrashIcon className="h-3.5 w-3.5" />
+                <span>{t('documents:fileTable.batchDelete')}</span>
+              </button>
+            )}
 
             <button
               type="button"

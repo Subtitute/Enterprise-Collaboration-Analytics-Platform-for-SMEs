@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequirePermissions } from '@app/common-guard';
-import { ERROR_CODES, PaginationQueryDto, PERMISSIONS } from '@app/common-dto';
+import { AuthContext, ERROR_CODES, PaginationQueryDto, PERMISSIONS, resolveDataScope } from '@app/common-dto';
 import { UsersService } from './users.service';
 import { InviteUserDto } from './dto/invite-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -35,9 +35,16 @@ export class UsersController {
   // hon chi tra id/fullName, thay vi toan bo PublicUser bao gom isActive/roles/departmentId).
   // findOne() (:id) ben duoi van duoc sua dung nhu yeu cau (tu-xem HOAC user:manage) - do moi la
   // hanh vi review thuc su lo ngai ("doc ho so DAY DU cua BAT KY dong nghiep nao qua ID").
+  // 26/10/2026: van mo cho moi thanh vien (ly do o tren) nhung ho so DAY DU chi tra trong pham vi
+  // nguoi goi (Org Admin: moi nguoi; Manager: phong ban minh; con lai: chinh minh) - xem
+  // UsersService.findAll().
   @Get()
-  findAll(@CurrentUser('organizationId') organizationId: string, @Query() query: PaginationQueryDto) {
-    return this.usersService.findAll(organizationId, query);
+  findAll(@CurrentUser('organizationId') organizationId: string, @Query() query: PaginationQueryDto, @CurrentUser() caller: AuthContext) {
+    return this.usersService.findAll(organizationId, query, {
+      userId: caller.userId,
+      permissions: caller.permissions ?? [],
+      departmentId: caller.departmentId ?? null,
+    });
   }
 
   // 22/07/2026: truoc day endpoint nay cung hoan toan khong co guard - bat ky nhan vien da xac
@@ -60,16 +67,21 @@ export class UsersController {
     // vi de QueryFailedError tho tu Postgres roi xuong 500 chung chung (loi MINOR, review
     // 25/07/2026) - xem chu thich chi tiet trong common/uuid-param.pipe.ts.
     @Param('id', uuidParamPipe()) id: string,
+    // 26/10/2026: phong ban cua nguoi goi (JWT) - Manager xem duoc ho so day du cua thanh vien phong ban minh.
+    @CurrentUser('departmentId') callerDepartmentId: string | null = null,
   ) {
     const isSelf = id === callerId;
     const canManageUsers = (callerPermissions ?? []).includes(PERMISSIONS.USER_MANAGE);
-    if (!isSelf && !canManageUsers) {
-      throw new ForbiddenException({
-        message: 'Ban chi co the xem ho so cua chinh minh',
-        errorCode: ERROR_CODES.FORBIDDEN_SELF_PROFILE_ONLY,
-      });
+    if (isSelf || canManageUsers) return this.usersService.findById(organizationId, id);
+    // 26/10/2026: Manager (USER_INVITE + co phong ban) - them nhanh "cung phong ban" (cao hon Employee,
+    // thap hon Org Admin); ngoai phong ban van 403 (kiem tra trong service vi can doc ban ghi dich).
+    if (callerDepartmentId && resolveDataScope(callerPermissions, PERMISSIONS.USER_INVITE, callerDepartmentId) === 'department') {
+      return this.usersService.findByIdInDepartment(organizationId, id, callerDepartmentId);
     }
-    return this.usersService.findById(organizationId, id);
+    throw new ForbiddenException({
+      message: 'Ban chi co the xem ho so cua chinh minh',
+      errorCode: ERROR_CODES.FORBIDDEN_SELF_PROFILE_ONLY,
+    });
   }
 
   @Post('invite')

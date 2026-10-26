@@ -28,6 +28,8 @@ import {
   UserDepartmentChangedPayload,
   UserRegisteredPayload,
   paginate,
+  // 26/10/2026: danh ba 3 cap (xem findAll()).
+  resolveDataScope,
 } from '@app/common-dto';
 import { InviteUserDto } from './dto/invite-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -42,6 +44,9 @@ export interface PublicUser {
   roles: { id: string; name: string }[];
   createdAt: Date;
 }
+
+/** 26/10/2026: "the danh ba" - ten/phong ban (+ email lien lac) cua nguoi ngoai pham vi xem ho so day du. */
+export type DirectoryCard = Pick<PublicUser, 'id' | 'email' | 'fullName' | 'departmentId' | 'isActive'>;
 
 @Injectable()
 export class UsersService {
@@ -60,23 +65,55 @@ export class UsersService {
     private readonly configService: ConfigService,
   ) {}
 
+  /**
+   * 26/10/2026: danh ba 3 cap - truoc day MOI nguoi da xac thuc nhan ho so DAY DU (vai tro, ngay vao
+   * lam...) cua toan to chuc. Nay: Org Admin (USER_MANAGE) - day du moi nguoi; Manager (USER_INVITE +
+   * co phong ban) - day du chinh minh + thanh vien phong ban minh; con lai - day du chinh minh. Nguoi
+   * ngoai pham vi chi con "the danh ba" (DirectoryCard) du de chon nguoi giao viec/chia se/nhan tin.
+   * GIU `email` trong the danh ba: la dinh danh lien lac cong viec dang duoc moi picker (giao viec,
+   * chia se tai lieu, nhan tin) dung de tim kiem/hien thi (nhieu noi goi thang u.email.toLowerCase()).
+   * `caller` tuy chon (goi noi bo/test cu khong truyen = day du nhu truoc).
+   */
   async findAll(
     organizationId: string,
     query: PaginationQueryDto,
-  ): Promise<PaginatedResponse<PublicUser>> {
+    caller?: { userId: string; permissions: string[]; departmentId: string | null },
+  ): Promise<PaginatedResponse<PublicUser | DirectoryCard>> {
     const [data, total] = await this.userRepo.findAndCount({
       where: { organizationId },
       order: { createdAt: 'DESC' },
       skip: (query.page - 1) * query.limit,
       take: query.limit,
     });
-    return paginate(data.map((u) => this.toPublicUser(u)), total, query.page, query.limit);
+    const scope = caller ? resolveDataScope(caller.permissions, PERMISSIONS.USER_INVITE, caller.departmentId) : 'organization';
+    const isFullProfile = (u: User) =>
+      scope === 'organization' ||
+      u.id === caller?.userId ||
+      (scope === 'department' && (u.departmentId ?? null) === caller?.departmentId);
+    return paginate(
+      data.map((u) => (isFullProfile(u) ? this.toPublicUser(u) : this.toDirectoryCard(u))),
+      total,
+      query.page,
+      query.limit,
+    );
   }
 
   async findById(organizationId: string, id: string): Promise<PublicUser> {
     const user = await this.userRepo.findOne({ where: { id, organizationId } });
     if (!user) throw new NotFoundException({ message: 'Khong tim thay nguoi dung', errorCode: ERROR_CODES.USER_NOT_FOUND });
     return this.toPublicUser(user);
+  }
+
+  /** 26/10/2026: Manager xem ho so day du cua thanh vien CUNG phong ban (GET /users/:id) - ngoai phong ban -> 403. */
+  async findByIdInDepartment(organizationId: string, id: string, departmentId: string): Promise<PublicUser> {
+    const user = await this.findById(organizationId, id);
+    if (user.departmentId !== departmentId) {
+      throw new ForbiddenException({
+        message: 'Ban chi xem duoc ho so day du cua thanh vien phong ban minh',
+        errorCode: ERROR_CODES.DEPARTMENT_SCOPE_FORBIDDEN,
+      });
+    }
+    return user;
   }
 
   async invite(
@@ -439,6 +476,17 @@ export class UsersService {
         }`,
       );
     }
+  }
+
+  // 26/10/2026: the danh ba rut gon cho nguoi ngoai pham vi - xem chu thich tai findAll().
+  private toDirectoryCard(user: User): DirectoryCard {
+    return {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      departmentId: user.departmentId ?? null,
+      isActive: user.isActive,
+    };
   }
 
   private toPublicUser(user: User): PublicUser {

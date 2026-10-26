@@ -192,5 +192,33 @@
     "fileTooLargeDesc": "Tệp vượt quá kích thước cho phép xem trực tiếp (> {{maxSize}}). Vui lòng tải xuống để xem nội dung đầy đủ.",
     "unsupportedDesc": "Định dạng này không hỗ trợ xem trực tiếp trên trình duyệt. Vui lòng tải xuống tệp để mở trên ứng dụng tương thích.",
     "emptyContent": "Tệp văn bản trống hoặc không có nội dung."
+  },
+  "projectScope": {
+    "label": "Dự án",
+    "placeholder": "Chọn dự án",
+    "companyWide": "Toàn công ty",
+    "companyWideOption": "Toàn công ty (không gắn dự án)",
+    "unknownProject": "Dự án khác",
+    "requiredError": "Vui lòng chọn dự án cho thư mục",
+    "hint": "Thư mục con và tệp bên trong chỉ hiển thị với người thuộc phạm vi dự án.",
+    "noProjects": "Bạn chưa thuộc dự án nào nên chưa thể tạo thư mục cấp gốc. Hãy tạo thư mục bên trong thư mục của dự án hoặc nhờ quản trị viên thêm bạn vào dự án.",
+    "filterAll": "Tất cả dự án",
+    "filterAria": "Lọc thư mục theo dự án",
+    "changeProject": "Đổi dự án",
+    "changeTitle": "Đổi dự án của thư mục",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "updated": "Đã cập nhật dự án của thư mục",
+    "updateError": "Không thể đổi dự án của thư mục",
+    "rootUploadAdminOnly": "Chỉ Quản trị viên tổ chức mới tải tệp lên thư mục gốc. Hãy mở thư mục của một dự án để tải lên.",
+    "companyWideReadOnly": "Thư mục toàn công ty chỉ Quản trị viên tổ chức mới được chỉnh sửa; bạn chỉ có quyền xem."
+  },
+  "projectDocuments": {
+    "title": "Tài liệu",
+    "subtitle": "Tài liệu trong các thư mục của dự án mà bạn được xem",
+    "loading": "Đang tải tài liệu…",
+    "error": "Không tải được tài liệu của dự án",
+    "empty": "Chưa có tài liệu nào của dự án này mà bạn được xem.",
+    "openFolder": "Mở thư mục chứa tệp"
   }
 }
