@@ -3,7 +3,8 @@
 > Trạng thái: **ĐÃ TRIỂN KHAI** — bộ tài khoản, file mẫu và kịch bản kiểm thử sống (live) dưới đây đã
 > được dùng cho đợt nghiệm thu toàn hệ thống ngày 24/10/2026 (sau khi hoàn thành Chatbot RAG và đợt giảm
 > RAM). Mã nguồn kịch bản và file mẫu nằm ở `scripts/mock-data/`. Chi tiết lịch sử đầy đủ: xem
-> `RevisionHistory.md`.
+> `RevisionHistory.md`. Cập nhật 26/10/2026: chính sách tài liệu theo dự án và phạm vi dữ liệu của Manager
+> (`Technical_Spec.md` §28) — kịch bản 04/08 đã sửa theo, kết quả chạy lại ở mục 9.
 
 **Mục đích:** gom về một chỗ (1) các tài khoản dùng để kiểm thử theo từng vai trò, (2) các bộ dữ liệu
 và kịch bản tái sử dụng được cùng kết quả mong đợi, (3) cách dựng lại toàn bộ khi cần — để lần kiểm
@@ -38,7 +39,10 @@ Hộp thư MailHog (email quên mật khẩu, lời mời thành viên): `http:/
 | Lệnh (chạy ở thư mục gốc repo) | Tạo ra |
 |---|---|
 | `docker compose -f infra/docker-compose.yml --env-file infra/.env up -d` | Toàn bộ stack (điều kiện tiên quyết cho mọi mục dưới) |
-| `npm run seed` | Tổ chức demo, người dùng, phòng ban, dự án/công việc, khách hàng, tài liệu mẫu (`scripts/seed.js`) |
+| `npm run seed` | Tổ chức demo, người dùng, phòng ban, dự án/công việc, khách hàng, tài liệu mẫu (`scripts/seed.js`); ở cuối gọi 3 script idempotent dưới đây (26/10/2026) |
+| `node scripts/migrate-project-documents.js` | Gắn thư mục "`<dự án>` - Tai lieu" vào dự án, người được giao việc thành thành viên dự án, 2 thư mục toàn công ty "Chính sách công ty"/"Sổ tay nhân viên" |
+| `node scripts/seed-project-docs.js` | 20 tài liệu mẫu Word/PDF/Excel/PowerPoint (`scripts/seed-assets/project-docs/`) vào thư mục của 5 dự án — bỏ qua tệp đã có cùng tên |
+| `node scripts/migrate-demo-ownership.js` | Giao 8 khách hàng cho phòng Kinh doanh (3 Manager, 3 nhân viên demo, 2 nhân viên khác) để CRM của Manager/nhân viên demo có dữ liệu |
 | `npm run seed:inventory` | Danh mục sản phẩm, sản phẩm, kho, tồn kho, giao dịch mua hàng (`scripts/seed-inventory.js`) |
 | `npm run seed:e2e` | Tổ chức E2E riêng cho bộ Playwright (`scripts/seed-e2e.js`) |
 | `node scripts/mock-data/mkfixtures.js` | Sinh lại bộ file mẫu ở `scripts/mock-data/fixtures/` (mục 3) |
@@ -101,7 +105,22 @@ R  "Kho mật"            RESTRICTED
 │  └─ G  "Cháu"                                           fGrand
 └─ SH "Con được chia sẻ"  (FolderShare cho Employee)       fShared
 O  "Công khai"           ORGANIZATION   PDF, DOCX, file hỏng, zip bomb, file của Employee
+CW "Toàn công ty"        (Org Admin tạo, không gắn dự án)
 ```
+
+**Cập nhật 26/10/2026 (tài liệu theo phạm vi dự án):** thư mục cấp gốc của Manager (R, O) phải gắn dự án,
+nên kịch bản lấy 1 dự án chung của Manager và Employee qua `GET /folders/accessible-projects` rồi gắn R và
+O vào đó; thư mục con kế thừa. Kiểm tra mới (tổng 55):
+
+| Kiểm tra | Mong đợi |
+|---|---|
+| Có dự án chung Manager/Employee | có |
+| Manager tạo thư mục toàn công ty (không gắn dự án) | 403 `COMPANY_WIDE_ADMIN_ONLY` |
+| Org Admin tạo thư mục toàn công ty CW | 201 |
+| Employee tải lên CW / tạo thư mục con trong CW | 403 `COMPANY_WIDE_READ_ONLY` / 403 |
+| Employee liệt kê tệp trong CW | 200 (vẫn xem được) |
+| Org Admin chia sẻ CW cho Employee, Employee tải lên lại | 201 (chia sẻ thư mục tường minh vẫn là quyền ghi) |
+
 
 | Kiểm tra (Employee) | Mong đợi |
 |---|---|
@@ -142,6 +161,9 @@ trả về cùng cuộc trò chuyện, tin rỗng → 400, người ngoài cuộ
   làm theo chỉ dẫn nhúng; biên bản mật trong thư mục RESTRICTED → không lộ cho Employee; xoá cuộc trò
   chuyện khi đang trả lời → 404 (không 500); 2 câu đồng thời → 201 + 409 `CHATBOT_CONVERSATION_BUSY`, hạn
   ngạch chỉ tăng 1.
+- **26/10/2026:** 08 tạo 2 thư mục ("Công khai", "Hạn chế") gắn 1 dự án chung của Manager và Employee thay
+  vì thư mục toàn công ty, và tải tài liệu injection vào thư mục đó (Employee không còn tải được lên thư mục
+  gốc); dọn dẹp xoá tệp của Employee **trước** khi xoá thư mục.
 
 ### 4.8. `09-ui-smoke.js` — Giao diện (Playwright)
 
@@ -226,7 +248,48 @@ Lỗi do bộ kịch bản phát hiện và đã sửa trong đợt (mỗi lỗi
 - Quên mật khẩu bị Gateway chặn 401 (thiếu route công khai) và rate-limit 100 request/phút dùng chung cả
   tổ chức + IP (đã chuyển sang theo người dùng).
 
+## 9. Kết quả lần chạy 26/10/2026 (tài liệu theo dự án + phạm vi Manager)
+
+| Kịch bản | Kết quả |
+|---|---|
+| 01 Auth + IAM | 31/31 PASS |
+| 02 HRM | 28/28 PASS |
+| 03 Dự án/công việc | 18/18 PASS |
+| 04 Tài liệu | 55/55 PASS (trước khi sửa kịch bản: 36/40 — do chính sách mới, không phải lỗi hệ thống) |
+| 05 CRM + Kho | 27/27 PASS (chạy lại sau khi giao 8 khách hàng cho phòng Kinh doanh: vẫn 27/27) |
+| 06 Analytics + nhắn tin | 24/24 PASS |
+| 07 Chatbot | 12/12 PASS (không gọi Gemini) |
+| 08 Chatbot an toàn | 12/12 PASS (bot trả đúng 350.000 đồng/ngày, không làm theo chỉ dẫn nhúng, không lộ biên bản mật) |
+
+Kiểm tra sống riêng của đợt (script tạm, dữ liệu đã dọn):
+
+- **Đường ghi/đọc theo id ngoài phạm vi** — Manager phòng Kỹ thuật (`bao.tran+167828`), Employee và Manager
+  phòng Kinh doanh trên dự án của Org Admin: dự án (xem, thành viên, sửa, đổi người phụ trách, hoàn thành, mở
+  lại, lưu trữ, xoá, thêm/gỡ thành viên), Task (xem, bình luận, lịch sử, sửa, đổi trạng thái, giao/bỏ giao,
+  tạo, xoá, lọc theo dự án), CRM (khách hàng/deal của Org Admin), Analytics phòng khác, HRM duyệt đơn phòng
+  khác và tự duyệt → **92/92** (404/403 đúng, dữ liệu không đổi).
+- **Gỡ thành viên còn Task chưa xong** → 409 `PROJECT_MEMBER_HAS_OPEN_TASKS` (`count = 1`), xong Task → gỡ
+  được, người bị gỡ mất quyền xem dự án; **cờ `canWrite` từng tệp** trong cây toàn công ty: tệp được chia sẻ
+  EDIT → `true` và tải phiên bản mới 201, tệp còn lại `false` và 403 → **17/17**.
+- **20 tài liệu mẫu** — số tài liệu Office/PDF thấy được theo dự án (4 mỗi dự án):
+
+| Dự án | Org Admin | Manager Kinh doanh | Employee `duc.hoang+227860` | Manager Kỹ thuật | Employee `an.nguyen+216140` (chưa thuộc dự án nào) |
+|---|---|---|---|---|---|
+| 5 dự án demo | 4 | 4 | 4 | 4 | 0 (không xem được dự án) |
+
+  Mọi ô đều thoả "thấy tài liệu dự án ⇔ thấy dự án". `search-chunks` "Cách tính tỷ lệ hoàn thành công việc
+  trong từ điển chỉ số KPI" trả 3 đoạn của "Từ điển chỉ số KPI và cách tính trên ECAP.docx" (điểm 0,79–0,83)
+  cho Employee/Manager thuộc dự án, 0 đoạn cho `an.nguyen+216140` → **28/28**. Dữ liệu demo hiện có mọi dự
+  án đều có người của cả phòng Kinh doanh lẫn Kỹ thuật, nên trường hợp "ngoài phạm vi" thể hiện qua tài khoản
+  chưa thuộc dự án nào.
+- **CRM sau khi giao khách hàng demo** (khách hàng/deal): Org Admin 24/48, Manager Kinh doanh 8/16, Employee
+  `duc.hoang+227860` 3/6, Employee `an.nguyen+216140` 2/4, Manager Kỹ thuật 0/0.
+
+
 ## Lịch sử thay đổi file này
 
 - 24/10/2026: khởi tạo tài liệu — tài khoản theo vai trò, bộ file mẫu, 9 kịch bản kiểm thử sống kèm kết
   quả mong đợi, cơ chế dọn dẹp và kết quả đợt nghiệm thu toàn hệ thống.
+- 26/10/2026: tài liệu theo phạm vi dự án + phạm vi dữ liệu của Manager — mục 2 thêm 3 script dữ liệu (migration,
+  20 tài liệu mẫu, giao khách hàng demo); mục 4.4 cây thư mục gắn dự án + 7 kiểm tra mới của 04; mục 4.7 thay
+  đổi của 08; mục 9 (mới) kết quả chạy lại và các kiểm tra sống của đợt.

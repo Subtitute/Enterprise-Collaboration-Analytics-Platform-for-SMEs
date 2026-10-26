@@ -6,7 +6,8 @@
 > tool-calling, 24/10/2026) đã triển khai, khác kế hoạch ban đầu ở vài điểm ghi rõ tại §23.2; §25
 > (giảm tải RAM Docker, 24/10/2026). §26 (CDC Debezium, profile tuỳ chọn `cdc`, 25/10/2026) đã
 > triển khai và xác minh sống dưới tải. §27 (Danh sách nhân viên & kho ảnh nhận diện, 26/10/2026) là
-> **KẾ HOẠCH, chưa triển khai**. Dữ liệu kiểm thử tái sử dụng: `Mock_data.md`. Phần cố ý chưa
+> **KẾ HOẠCH, chưa triển khai**. §28 (Tài liệu theo phạm vi dự án & phạm vi dữ liệu của Manager, 26/10/2026)
+> đã triển khai và xác minh sống. Dữ liệu kiểm thử tái sử dụng: `Mock_data.md`. Phần cố ý chưa
 > triển khai (forecasting ML, Layer 4/6 của §19) được đánh dấu rõ tại chỗ và theo dõi thêm ở
 > `Upgrade.md`. Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
 
@@ -109,6 +110,7 @@ flowchart TB
 - **Lưu ý (điều chỉnh 21/07/2026):** bổ sung sự kiện `task.deleted`/`project.deleted` để Analytics không đếm nhầm entity đã bị xóa cứng; `TaskStatusHistory` ghi lại mỗi lần đổi trạng thái (cùng transaction với `Task.status` và Outbox), phục vụ trực tiếp yêu cầu "lịch sử thay đổi trạng thái" trong Wireframe §4.2.
 - **Frontend — sắp xếp tuỳ chỉnh danh sách Dự án (bổ sung 25/08/2026, đóng góp của Nguyễn Lê Tiến, nhánh `frontend`):** `ProjectsListPage.tsx` cho phép kéo-thả đổi thứ tự thẻ dự án (thứ tự lưu trong `localStorage`, khoá `ec_projects_custom_order`), lọc theo độ ưu tiên (`priorityFilter`), và luôn gom nhóm dự án `COMPLETED` xuống cuối danh sách bất kể thứ tự tuỳ chỉnh. Hoàn toàn ở tầng client, không thêm field/endpoint backend nào.
 - **Điều chỉnh 26/08/2026 (rà soát lần 4):** `priority`/`leadUserId` — trước đó chỉ lưu `localStorage['ec_projects_metadata']` từng trình duyệt (vô hình với thành viên khác) — nay là cột thật trên entity `Project` (`priority: ProjectPriority` enum LOW/MEDIUM/HIGH/URGENT mặc định MEDIUM, `leadUserId` uuid nullable), có trong `CreateProjectDto`/`UpdateProjectDto`, trả về trong response như mọi field khác. Bộ lọc `priorityFilter` ở `ProjectsListPage.tsx` vẫn lọc phía client (giới hạn đã biết: chỉ lọc trong phạm vi 1 trang server-paginated, xem `Doc/RevisionHistory.md` mục "26/08/2026").
+- **Cập nhật 26/10/2026 (§28):** "thuộc dự án" = người phụ trách/thành viên/người tạo (bỏ nguồn `TaskAssignee`; giao Task tự thêm người được giao làm thành viên); Manager thấy thêm dự án liên quan tới phòng ban mình; mọi thao tác ghi theo id kiểm tra phạm vi (ngoài phạm vi → 404); thêm sự kiện `project.member_added`/`project.member_removed`/`project.lead_changed`, endpoint nội bộ `GET /api/v1/internal/project-memberships`; gỡ thành viên còn Task chưa xong → 409 `PROJECT_MEMBER_HAS_OPEN_TASKS`. Xem §28.2, §28.7, §28.8.
 
 ### 3.4 Document Service
 - **Trách nhiệm:** CRUD Folder/File (metadata trong PostgreSQL, nội dung nhị phân trong MinIO), chia sẻ nội bộ theo user/phòng ban, versioning đơn giản (giữ tối đa N bản gần nhất mỗi file).
@@ -116,6 +118,7 @@ flowchart TB
 - **Event phát ra:** `document.uploaded`, `document.shared`, `document.deleted`.
 - **Lưu trữ (điều chỉnh 21/07/2026):** bucket MinIO cấu hình **private** (không bật anonymous/public download); mọi truy cập tải file bắt buộc đi qua presigned URL có thời hạn ngắn (mặc định 15 phút) do Document Service cấp sau khi đã xác thực `organizationId` của người gọi.
 - **Phạm vi `FileShare`/access-control (điều chỉnh 21/07/2026, nâng cấp thành access-control thực sự 28/07/2026):** mặc định (`Folder.visibility = 'organization'`) vẫn giữ nguyên hành vi MVP — mọi thành viên tổ chức xem/tải được mọi tài liệu, **không đổi hành vi của dữ liệu đã có** (opt-in). Người tạo thư mục (hoặc Org Admin) có thể chuyển 1 thư mục cụ thể sang `visibility = 'restricted'`: khi đó chỉ người tạo, Org Admin, hoặc người/phòng ban được cấp quyền tường minh qua `FolderShare` (bảng mới) mới thấy được thư mục đó và các tệp bên trong. `FileShare` (tệp lẻ, không đổi tên) giờ cũng là 1 đường cấp quyền TRUY CẬP THỰC SỰ (không chỉ gắn nhãn hiển thị) cho MỘT tệp cụ thể — dùng cho trường hợp "có link trực tiếp tới 1 tệp trong thư mục hạn chế mà không cần thấy được cả thư mục". Cả `FolderShare` lẫn `FileShare` đều chấp nhận đích là 1 người dùng (`sharedWithUserId`) HOẶC 1 phòng ban (`sharedWithDepartmentId`, mới) — chi tiết đầy đủ xem §6 và §14. **Cập nhật 24/10/2026:** hạn chế nay kế thừa xuống mọi cấp thư mục con — thư mục con thường nằm trong thư mục `restricted` trước đây bị bỏ sót (mở cho mọi người); quy tắc mới đi ngược lên các thư mục cha, xem §23.3.
+- **Cập nhật 26/10/2026 (§28):** tài liệu đi theo dự án — thư mục cấp gốc gắn `projectId`, chỉ người thuộc dự án (Manager: thêm dự án liên quan tới phòng ban) xem được cây của dự án; cây toàn công ty ai cũng xem nhưng chỉ Org Admin ghi (trừ `FolderShare`/`FileShare EDIT`). Câu "mặc định mọi thành viên tổ chức xem/tải được mọi tài liệu" ở trên nay chỉ còn đúng với cây toàn công ty. Document Service lần đầu tiêu thụ Kafka (read-model `project_refs`/`project_member_refs`/`user_department_refs`, backfill lúc khởi động). Xem §28.3, §28.5, §28.6.
 
 ### 3.5 Notification Service
 - **Trách nhiệm:** tiêu thụ sự kiện từ Kafka (từ IAM, Project-Task, Document), sinh notification tương ứng, lưu MongoDB, đẩy real-time qua WebSocket tới user liên quan, đánh dấu đã đọc/chưa đọc.
@@ -190,6 +193,7 @@ Trước đây (xem §14, mục đã gỡ bỏ) một event xử lý thất bạ
 - **`dim_user`** (bảng thường, KHÔNG phải hypertable — không có chiều thời gian): `user_id (PK), organization_id, department_id, updated_at`.
 - **`fact_task_events.assignee_id`** (cột mới): trước đây bảng này chỉ lưu `actor_id` (người THỰC HIỆN hành động, vd người tạo/đổi trạng thái), không lưu người ĐƯỢC GIAO việc; cột mới lấy từ payload của sự kiện `task.assigned` (`TaskAssignedPayload.assigneeId`), NULL với các loại sự kiện khác.
 - **Lọc theo phòng ban:** `GET /analytics/summary`, `/task-status-breakdown`, `/project-progress` nhận thêm query param tùy chọn `departmentId` — khi có, chỉ tính các task có ÍT NHẤT 1 lần giao việc (`task.assigned`) cho user thuộc phòng ban đó (`JOIN dim_user`). **`GET /analytics/task-trend` KHÔNG hỗ trợ** `departmentId` — cùng lý do đã ghi nhận trước đó (continuous aggregate không còn giữ `task_id` sau khi tổng hợp).
+- **Cập nhật 26/10/2026 (§28.4):** với Manager, phòng ban không còn là bộ lọc tuỳ chọn — mọi KPI (kể cả task-trend, document-activity, product-sales-trend, top-products, quét bảng fact thô) bị ép về phòng ban của Manager, truyền phòng ban khác → 403 `DEPARTMENT_SCOPE_FORBIDDEN`; Org Admin giữ bộ lọc tuỳ chọn như trên.
 - **Ngữ nghĩa đa phòng ban (có chủ đích, không phải lỗi):** 1 công việc có nhiều người phụ trách thuộc nhiều phòng ban khác nhau sẽ được tính vào KPI của MỖI phòng ban liên quan khi lọc riêng — tổng các phòng ban cộng lại có thể VƯỢT tổng toàn tổ chức, đây là hành vi đúng thiết kế (công sức được ghi nhận cho đúng người thực hiện), không phải sai lệch dữ liệu.
 - **Lưu ý vận hành khi triển khai lên hệ thống ĐÃ CHẠY (áp dụng đúng 1 lần cho đồ án này lúc bổ sung tính năng):** cột `fact_task_events.assignee_id` chỉ có giá trị cho các sự kiện `task.assigned` xử lý SAU KHI cột này tồn tại — dữ liệu lịch sử trước đó có `assignee_id = NULL` do ràng buộc `ON CONFLICT (time, event_id) DO NOTHING` khiến message Kafka cũ (dù còn trong topic) không ghi đè được dòng đã tồn tại. Đã khắc phục 1 lần bằng lệnh `UPDATE` thủ công lấy lại `assigneeId` từ `fact_user_activity.payload` (bảng này lưu nguyên payload JSONB của MỌI sự kiện nên vẫn còn dữ liệu gốc) — không cần thiết cho các bản triển khai MỚI hoàn toàn (schema đã có `assignee_id` từ đầu nên không có giai đoạn "trước khi cột tồn tại").
 
@@ -200,6 +204,7 @@ Sau khi hoàn tất 4 hạng mục Frontend/DLQ/access-control tài liệu/KPI t
 - **Endpoint mới:** `GET /analytics/ai-insights?range=7d|30d|quarter&departmentId=&departmentName=` (Analytics Service, controller riêng `AiInsightsController` cùng prefix `analytics`, cùng quyền `analytics:view` như các endpoint KPI khác — đây chỉ là một lớp diễn giải bằng ngôn ngữ tự nhiên trên số liệu người dùng ĐÃ có quyền xem, không phải dữ liệu/quyền mới). `departmentName` là tham số RIÊNG chỉ để hiển thị trong đoạn văn AI sinh ra (Analytics Service không sở hữu tên phòng ban — database-per-service — nên frontend truyền kèm từ dữ liệu đã có sẵn cho dropdown lọc; KHÔNG dùng cho logic lọc/truy vấn, vẫn là `departmentId`).
 - **Cơ chế:** `AiInsightsService` tái sử dụng NGUYÊN 3 phương thức đã có của `AnalyticsService` (`getSummary`/`getTaskStatusBreakdown`/`getProjectProgress` — mỗi phương thức đã tự có cache Redis riêng), ghép số liệu vào một prompt tiếng Việt có đầy đủ dấu, gọi thẳng REST API của Gemini qua `fetch` có sẵn của Node 20 (không thêm SDK `@google/genai` cho một lệnh gọi POST/JSON đơn giản — đúng định hướng "tối giản", ClaudeRule.md mục 8), rồi trả về đoạn văn bản Gemini sinh ra.
 - **Cache riêng, TTL dài hơn cache KPI thường (30 phút thay vì 8 giây):** mục đích không phải giảm tải TimescaleDB (đã có cache cho từng truy vấn KPI) mà là giảm số lần gọi Gemini API thật để tiết kiệm hạn ngạch miễn phí — tính năng này chạy THEO YÊU CẦU (nút bấm), không polling tự động.
+- **Cập nhật 26/10/2026 (§28.4):** với Manager, nhận xét chỉ quét phòng ban của mình (+ top dự án tính theo Task của phòng ban), mốc so sánh là phòng ban (`evidence.comparisonScope = 'department'`), cache Redis tách theo phòng ban — trước đây Manager đọc lại đúng bản nhận xét toàn tổ chức.
 - **Chịu lỗi rõ ràng, không làm sập Analytics Service:** thiếu `GEMINI_API_KEY`, Gemini API lỗi/timeout (giới hạn 15 giây)/rate-limit, hoặc phản hồi không có nội dung (vd bị chặn bởi bộ lọc an toàn) đều trả về `503 ServiceUnavailableException` với thông báo tiếng Việt rõ ràng — các tính năng KPI khác trên cùng trang không bị ảnh hưởng.
 - **Cấu hình:** `GEMINI_API_KEY` (lấy miễn phí tại `aistudio.google.com/apikey`) + `GEMINI_MODEL` (mặc định `gemini-flash-latest`) trong `infra/.env`/`docker-compose.yml`. Để trống `GEMINI_API_KEY` là trạng thái HỢP LỆ (không lỗi khởi động service) — chỉ riêng endpoint này trả lỗi rõ ràng cho tới khi được cấu hình.
 - **Frontend:** trang Báo cáo & Phân tích có thêm thẻ "Nhận xét AI" với nút "Tạo nhận xét AI" (không tự động gọi khi vào trang/đổi bộ lọc — theo đúng lý do tiết kiệm hạn ngạch ở trên); đoạn nhận xét hiển thị kèm dòng chú thích phạm vi/khoảng thời gian ĐÃ DÙNG để tạo ra nó (tránh hiểu nhầm khi người dùng đổi bộ lọc sau khi đã tạo nhận xét).
@@ -252,6 +257,7 @@ Song song với luồng real-time, các **continuous aggregate của TimescaleDB
 - **Phân quyền (RBAC):** mỗi Role gắn danh sách Permission dạng `resource:action` (ví dụ `task:create`, `document:delete`). Mỗi service tự kiểm tra permission liên quan qua NestJS Guard, không phụ thuộc Gateway kiểm tra thay. Guard phải được gắn trên **mọi** endpoint (kể cả các endpoint chỉ đọc/GET) tương ứng với permission đã định nghĩa trong RBAC matrix, không chỉ các endpoint ghi/mutate. **Ngoại lệ có chủ đích, ghi nhận sau đợt review toàn dự án 22/07/2026:** `GET /departments` (IAM) và `GET /users` dạng danh sách (IAM) để mở cho MỌI thành viên đã xác thực trong tổ chức thay vì chỉ Org Admin — cả hai là nguồn dữ liệu nền tảng cho nhiều màn hình không-phải-quản-trị (Dashboard, picker chọn người phụ trách task, chia sẻ tài liệu, tìm kiếm tổng hợp, trang Hồ sơ cá nhân); gắn permission quản trị (`user:manage`) sẽ chặn phần lớn ứng dụng đối với vai trò Manager/Employee — một regression nghiêm trọng hơn chính lỗ hổng đang sửa. `GET /users/:id` (xem hồ sơ một người dùng cụ thể) vẫn được chặn đúng theo quy tắc: chỉ cho phép tự xem chính mình HOẶC người gọi có `user:manage`. Xem chi tiết tại mục Lịch sử thay đổi tài liệu, mục review 22/07/2026.
 - **(Bổ sung 25/07/2026) Gán vai trò (`roleIds`) khi mời/sửa người dùng yêu cầu riêng `user:manage`:** phát hiện qua đợt review vòng 2 — `POST /users/invite`/`PATCH /users/:id` trước đó chỉ yêu cầu `user:invite` (Manager cũng có quyền này) nhưng KHÔNG kiểm tra người gọi có được phép gán `roleIds` cụ thể trong request hay không, cho phép một Manager tự đọc UUID vai trò Org Admin qua `GET /users` (vốn cố ý mở cho mọi người, xem trên) rồi mời một tài khoản mới với vai trò đó — leo thang đặc quyền hoàn chỉnh mà không cần bất kỳ quyền quản trị nào ban đầu. Đây là lỗi mức **Nghiêm trọng (Critical)** duy nhất phát hiện ở IAM Service trong đợt review này. Sửa: `roleIds` non-empty trong 2 endpoint trên nay bị từ chối (`403 Forbidden`, thông báo tiếng Việt) trừ khi người gọi có `user:manage` — không âm thầm bỏ qua `roleIds` vì luồng UI hợp lệ (`InviteMemberModal.tsx`) chưa bao giờ cho vai trò thấp quyền gửi trường này, nên một request có `roleIds` từ Manager gần như chắc chắn là request thủ công/độc hại, cần lộ ra ngay bằng lỗi thay vì âm thầm thành công với vai trò rỗng.
 - **Cách ly tenant:** mọi Guard/Middleware bắt buộc lọc theo `organizationId` lấy từ JWT — không cho phép truy vấn chéo tổ chức dù có ID hợp lệ của tổ chức khác. Quy tắc này áp dụng cả cho **tham chiếu chéo entity trong cùng service** (ví dụ tạo `Task` phải xác minh `projectId` thuộc đúng `organizationId`, không chỉ định dạng UUID hợp lệ).
+- **(Bổ sung 26/10/2026) Phạm vi dữ liệu 3 cấp:** ngoài RBAC (được gọi endpoint nào) và cách ly tenant, mọi service còn lọc **bản ghi nào** người gọi được thấy theo `resolveDataScope()` (`packages/common-dto`) — Employee: của mình; Manager: của mình + thành viên phòng ban (`departmentId` trong JWT); Org Admin (`user:manage`): toàn tổ chức. Ngoại lệ `GET /users` ở trên nay chỉ trả hồ sơ đầy đủ cho chính mình (và thành viên phòng ban với Manager), người khác nhận "thẻ danh bạ". Xem §28.2, §28.4.
 
 ## 7. Quy ước thiết kế API
 
@@ -407,6 +413,7 @@ Khách hàng và cơ hội bán hàng (deal pipeline) — hạng mục mở rộ
   - `Deal` — cơ hội bán hàng (tiêu đề, giá trị, `stage`, `expectedCloseDate`, `closedAt`, `ownerUserId`), thuộc 1 `Customer` (`onDelete: CASCADE`).
 - **`DealStage` enum + `DEAL_STAGE_TRANSITIONS`** (`packages/common-dto`) — khác `TaskStatus` (3 trạng thái, tuyến tính): 6 giai đoạn `NEW/CONTACTED/PROPOSAL/NEGOTIATION/WON/LOST`, 4 giai đoạn đầu di chuyển tự do qua lại lẫn nhau (phản ánh đúng thực tế pipeline bán hàng — khách hàng có thể quay lại giai đoạn trước), `WON`/`LOST` là trạng thái **cuối** (terminal, không thể chuyển tiếp). `PATCH /deals/:id/stage` validate qua `DealsService.updateStage()` — mirror chính xác `TasksService.updateStatus()`: pre-check fail-fast, khoá `pessimistic_write` bên trong transaction, re-validate trước khi áp dụng (chống race condition khi 2 request đổi giai đoạn đồng thời).
 - **RBAC:** permission mới `customer:view/create/update/delete`, `deal:view/create/update/delete` (`packages/common-dto`). Manager được cấp đủ CRUD (mirror nhóm quyền Project); Employee chỉ xem được danh mục khách hàng (`customer:view`) nhưng tự tạo/cập nhật được Deal của mình (`deal:create/update/view`, mirror nhóm quyền Task — không có delete).
+- **Cập nhật 26/10/2026 (§28.4):** Employee chỉ thấy deal mình phụ trách hoặc thuộc khách hàng mình phụ trách (trước đây thấy mọi deal của tổ chức); Manager chỉ thấy khách hàng/deal của mình + thành viên phòng ban; sửa/xoá/chuyển giai đoạn/tạo deal theo id ngoài phạm vi → 404.
 - **Sự kiện Kafka mới** (topic `crm.events`): `customer.created`, `customer.deleted`, `deal.created`, `deal.stage_changed`, `deal.deleted`. Notification Service subscribe thêm topic này, chỉ sinh thông báo khi `deal.stage_changed` có `toStage = WON` (chúc mừng người thực hiện thao tác) — không tạo `DEAL_WON` như 1 event type riêng để tránh phình to danh sách event cho 1 trường hợp cụ thể của stage-change chung (xem `event-notification-builder.ts`).
 - **Gateway:** route `/api/v1/customers`, `/api/v1/deals` (`services.crm` → `crm-service:3007`).
 - **Frontend** (`apps/web/src/features/crm`): trang danh sách khách hàng (tìm kiếm, thẻ hiển thị số deal đang hoạt động + tổng giá trị), trang chi tiết khách hàng với bảng Kanban 6 cột (tái dùng `@hello-pangea/dnd`, cùng thư viện với Kanban Task), modal tạo/sửa deal. Nav item mới "Khách hàng" (`BriefcaseIcon` vẽ tay mới).
@@ -424,6 +431,7 @@ Chấm công (check-in/out kèm ảnh chụp làm bằng chứng) và nghỉ ph�
   - `LeaveRequest` — yêu cầu nghỉ phép (`startDate`/`endDate`/`reason`, `status: PENDING|APPROVED|REJECTED`, `approverId`, `decisionNote`, `decidedAt`). Duyệt/từ chối dùng `LeaveRequestsService.decide()` — mirror pattern khoá `pessimistic_write` + re-check của `ProjectsService.complete()`/`archive()` (chống 2 Manager cùng quyết định 1 yêu cầu đồng thời).
 - **Ảnh chấm công lưu trong bucket MinIO RIÊNG** (`hrm-attendance`, không gọi HTTP sang Document Service) — quyết định kiến trúc mirror đúng lý do đã ghi nhận cho CRM-lite (§16 không áp dụng ở đây, nhưng cùng nguyên tắc chung của dự án): giữ ghi nhận chấm công (ảnh + bản ghi + outbox event) là 1 transaction cục bộ duy nhất, và hiện KHÔNG có hạ tầng gọi HTTP nội bộ giữa các service trong repo. Object key `${organizationId}/${userId}/${workDate}/checkin|checkout.<ext>`. MIME allowlist thu gọn chỉ còn `image/jpeg`/`image/png` (ảnh xuất ra từ `<canvas>.toBlob()` trên trình duyệt) kèm kiểm tra magic-byte, sao chép-và-thu-gọn từ `apps/document-service/src/files/allowed-mime-types.ts`.
 - **RBAC:** permission mới `attendance:checkin`, `attendance:view`, `leave_request:create`, `leave_request:view`, `leave_request:approve`. Employee tự chấm công/tự xin nghỉ (`attendance:checkin`, `leave_request:create`); Manager có thêm quyền xem toàn tổ chức và duyệt nghỉ phép. **Giới hạn đã biết (chấp nhận được ở quy mô đồ án):** `attendance:view`/`leave_request:view` cho phép xem TOÀN TỔ CHỨC, không giới hạn theo phòng ban của Manager — vì `Attendance`/`LeaveRequest` không lưu `departmentId` (muốn lọc đúng theo phòng ban của Manager cần hạ tầng tra cứu xuyên service tương tự bảng chiều `dim_user` của Analytics Service, ngoài phạm vi đợt này).
+- **Cập nhật 26/10/2026 (§28.4):** giới hạn "`attendance:view` = xem toàn tổ chức" ở trên đã xử lý — Manager chỉ xem chấm công/ảnh/nghỉ phép/tăng ca/giải trình của thành viên phòng ban, chỉ duyệt đơn của thành viên phòng ban (`DEPARTMENT_SCOPE_FORBIDDEN`) và không tự duyệt (`SELF_APPROVAL_FORBIDDEN`); Org Admin giữ toàn tổ chức.
 - **Endpoint `GET /attendance/:id/photo`, `GET /attendance/me`, `GET /leave-requests/me`:** không gắn `@RequirePermissions` cố định — tự kiểm tra "chính chủ HOẶC có quyền xem toàn tổ chức" bên trong service, mirror endpoint bình luận của `TasksController` (không nằm trong nhóm quyền cố định).
 - **Sự kiện Kafka mới** (topic `hrm.events`): `attendance.checked_in`, `attendance.checked_out`, `leave_request.created`, `leave_request.approved`, `leave_request.rejected`. Notification Service subscribe thêm topic này nhưng CHỈ sinh thông báo cho 2 sự kiện có người nhận rõ ràng (`leave_request.approved`/`rejected` — nhắn cho chính người xin nghỉ), mirror đúng lý do bỏ qua `DEAL_CREATED` ở CRM-lite: `leave_request.created` không có "người duyệt" cụ thể ngay lúc tạo (bất kỳ Manager/Org Admin nào cũng duyệt được), Notification Service không có hạ tầng tra cứu "toàn bộ Manager của tổ chức này". Không sinh thông báo cho check-in/out (hành động tự thân).
 - **Gateway:** route `/api/v1/attendance`, `/api/v1/leave-requests` (`services.hrm` → `hrm-service:3006`).
@@ -486,6 +494,7 @@ Hai hạng mục độc lập triển khai cùng đợt: (1) nhập nhân viên 
 - **`fact_task_events`** (TimescaleDB) bổ sung cột `due_date TIMESTAMPTZ` — cả `infra/timescale-init/001-init.sql` (schema gốc) lẫn `schema-bootstrap.ts` (tự "chắp" schema cho database dev/staging đang chạy sẵn, mirror đúng cách cột `assignee_id` đã được thêm trước đó) đều cập nhật đồng bộ. `FactWriterService.recordTaskEvent()` ghi thêm cột này (chỉ có giá trị ở dòng `task.created`).
 - **`AnalyticsService.getDrillDown(scope, scopeId, range, callerId, callerPermissions)`** — tái dùng chính xác pattern CTE `created_tasks`/`latest_status` của `computeSummary()`, cộng thêm `overdueTasks` (task có `due_date < now()` và chưa DONE) và `topAssignee` (assignee HIỆN TẠI xuất hiện nhiều nhất trong các task chưa xong của phạm vi). Endpoint `GET /analytics/drill-down?scope=department|project&scopeId=&range=`.
   - **Phạm vi truy cập** (mirror `getRecentActivity()`): Org Admin (`user:manage`) xem mọi scope; `scope=department` chỉ Manager đang phụ trách ĐÚNG phòng ban đó mới xem được (qua `listDepartmentIdsManagedBy()`); `scope=project` **giới hạn có chủ đích** chỉ dành cho Org Admin — Analytics Service không có bảng thành viên dự án riêng (database-per-service, chỉ Project-Task Service biết ai thuộc dự án nào) nên không thể xác định "Manager này có thuộc dự án X không" mà không gọi HTTP xuyên service (vi phạm quy ước Kafka-only).
+  - **Cập nhật 26/10/2026 (§28.4):** `scope=project` nay mở cho Manager nhưng chỉ đếm Task giao cho người thuộc phòng ban của Manager; `scope=department` chỉ phòng ban của mình.
 - **Frontend:** các thanh trong `AiInsightsChart.tsx` (scope=department/project) trở thành clickable (`onDrillDown` prop, tô `cursor: pointer` qua `<Cell>`) — mở `DrillDownPanel.tsx` (Modal có sẵn) hiển thị phễu Tổng công việc → Chưa xong → Quá hạn → Tập trung ở 1 người.
 
 ### 19.3 Layer 3 Anomaly Detection — `apps/ml-service` (Python đầu tiên của dự án)
@@ -975,6 +984,7 @@ là nơi DUY NHẤT biết đúng "ai được xem tài liệu này". Chatbot kh
   không có quyền → bị chặn; nút `organization` → xét tiếp nút cha; tới gốc → được. Dữ liệu bất thường
   (vòng lặp, thiếu thư mục cha, sâu > 64) → chặn. `FileShare` trên 1 tệp lẻ vẫn mở được đúng tệp đó.
   Mỗi request chỉ tốn 2 truy vấn (nạp cây thư mục + quyền chia sẻ của người gọi), kiểm tra trong bộ nhớ.
+- **Cập nhật 26/10/2026 (§28.3):** quy tắc trên thêm phạm vi dự án (nút gắn dự án ngoài phạm vi → chặn; người tạo thư mục chỉ còn quyền khi vẫn thuộc dự án); `search-chunks` dùng chung bộ lọc nên chat bot chỉ trả đoạn của dự án người hỏi thuộc về — vẫn 2 truy vấn cho kiểm tra thư mục, 3 truy vấn cho lọc RAG.
 
 ### 23.4 Tool-calling cho dữ liệu "sống"
 
@@ -1807,6 +1817,237 @@ cả hai; GĐ 4 cần GĐ 3. Lệnh nặng chạy tuần tự qua 1 khoá dùng 
 | 41 | CI không chạy ml-service | Nhận — GĐ 5 |
 | 42 | Ma trận test | Nhận — §27.13 |
 
+---
+
+## 28. Tài liệu theo phạm vi dự án & phạm vi dữ liệu của Manager *(triển khai + kiểm thử 26/10/2026)*
+
+> Trạng thái: **ĐÃ TRIỂN KHAI, ĐÃ XÁC MINH SỐNG** (26/10/2026, commit `54ba030`). Mục này là nguồn chính
+> cho mô hình phân quyền dữ liệu hiện hành; các mục cũ (§3.3, §3.4, §4.6, §6, §16, §17, §19.2, §23.3) giữ
+> nguyên lịch sử và chỉ thêm dòng trỏ tới đây. Giao diện: `Wireframe.md` §5.1, §4.2. Dữ liệu kiểm thử:
+> `Mock_data.md` §4.4, §4.7, §9.
+
+Đợt này làm theo 4 vòng: 2 luồng triển khai song song (tài liệu theo dự án; phạm vi dữ liệu của Manager),
+1 vòng rà soát và sửa lỗi trên kết quả của cả hai, 1 vòng kiểm tra chéo cuối trước commit. Vòng rà soát
+tìm ra 1 lỗi mức **cao** (ghi theo id vượt phạm vi, §28.7) và 1 lỗi mức **trung bình** (ghi đè tệp toàn
+công ty, §28.7) — cả hai đều sinh ra do ghép 2 luồng, từng luồng riêng lẻ không có.
+
+### 28.1 Hiện trạng trước ngày 26/10/2026
+
+| Module | Employee | Manager | Lỗ hổng |
+|---|---|---|---|
+| Dự án/Công việc | dự án mình liên quan | **toàn tổ chức** (như Org Admin) | lịch sử trạng thái, bình luận, danh sách thành viên đọc được nếu biết UUID |
+| Tài liệu | mọi thư mục `organization` của tổ chức | như Employee + thư mục được chia sẻ | không có khái niệm "tài liệu của dự án" |
+| CRM | khách hàng mình phụ trách, nhưng **mọi deal** | toàn tổ chức | Employee sửa được deal của người khác nếu biết UUID |
+| HRM | chỉ `/me` | toàn tổ chức, **tự duyệt** đơn của mình | ảnh chấm công của bất kỳ ai |
+| Analytics | 403 | toàn tổ chức; truyền `departmentId` phòng khác vẫn trả số liệu | AI insights dùng chung cache toàn tổ chức; WebSocket đẩy hoạt động cả tổ chức |
+| Danh bạ IAM | hồ sơ đầy đủ của **mọi người** | như Employee, nhưng không xem được hồ sơ thành viên phòng mình | — |
+
+Mục tiêu: ở **mọi** module, Employee < Manager (phòng ban của mình) < Org Admin (toàn tổ chức); tài liệu
+đi theo dự án.
+
+### 28.2 Định nghĩa dùng chung
+
+- **Người thuộc dự án** = người phụ trách (`leadUserId`), thành viên (`ProjectMember`) hoặc người tạo dự án.
+  Định nghĩa này dùng **giống hệt** ở Project-Task Service (`getVisibleProjectIds()`) và Document Service
+  (`GRANTS_SQL`). Nguồn "người được giao Task" (`TaskAssignee`) đã bỏ: giao Task giờ tự thêm người được giao
+  làm thành viên dự án (`INSERT … ON CONFLICT DO NOTHING` trong cùng transaction, chỉ ghi outbox
+  `project.member_added` khi thật sự thêm mới), dữ liệu cũ do script migration chuyển (§28.10).
+- **Dự án liên quan tới phòng ban** = ít nhất 1 trong 3 vai trò trên thuộc phòng ban đó.
+- **Phòng ban của người gọi** lấy từ `departmentId` trong JWT; phòng ban của người khác lấy từ read-model
+  (§28.5).
+- **`resolveDataScope(permissions, quyềnCấpManager, departmentId)`** — 1 hàm thuần cho mọi service
+  (`packages/common-dto/src/constants/data-scope.ts`), không thêm permission mới, không đổi vai trò mặc định:
+
+| Phạm vi | Điều kiện | Ý nghĩa |
+|---|---|---|
+| `organization` | có `user:manage` (Org Admin) | toàn tổ chức — cùng tín hiệu đã dùng ở `getRecentActivity()`, ml-service, Notification Service |
+| `department` | có "quyền cấp Manager" của module **và** JWT có `departmentId` | bản thân + thành viên phòng ban |
+| `self` | còn lại (Employee, Manager chưa gán phòng ban) | chỉ dữ liệu của mình |
+
+"Quyền cấp Manager" là ranh giới Employee/Manager có sẵn trong `DEFAULT_ROLE_PERMISSIONS`: `project:create`
+(dự án, tài liệu), `task:delete` (công việc), `customer:create` (khách hàng), `deal:delete` (deal),
+`attendance:view`, `leave_request:view|approve`, `overtime_request:view|approve`,
+`attendance_adjustment:view|approve` (HRM), `user:invite` (danh bạ), `analytics:view` (Analytics). Riêng
+Document Service coi Org Admin là `organization:manage` (giữ nguyên từ 28/07/2026); vai trò mặc định có
+cả 2 quyền, vai trò tuỳ biến chỉ có 1 trong 2 sẽ bị thu hẹp chứ không mở rộng.
+
+### 28.3 Chính sách tài liệu
+
+| Vai trò | Xem được |
+|---|---|
+| Org Admin | mọi tài liệu của tổ chức |
+| Manager (đã gán phòng ban) | như Employee **+** tài liệu của mọi dự án liên quan tới phòng ban mình |
+| Employee | cây toàn công ty + tài liệu của dự án mình thuộc về |
+| Mọi người | `RESTRICTED` không có quyền tường minh → chặn (như cũ); `FolderShare`/`FileShare` vẫn mở đúng phần được chia sẻ |
+
+- **Thư mục gắn dự án:** cột mới `folders.project_id` (nullable). Chỉ thư mục **cấp gốc** gắn được dự án;
+  thư mục con và tệp kế thừa qua chuỗi thư mục cha (`FOLDER_PROJECT_TOP_LEVEL_ONLY` nếu gửi `projectId`
+  cho thư mục con). Gắn/đổi dự án: dự án phải có trong tổ chức (`PROJECT_NOT_FOUND_IN_ORG`) và, trừ Org
+  Admin, người gọi phải thuộc phạm vi dự án đó (`FORBIDDEN_PROJECT_DOCUMENTS`).
+- **Cây toàn công ty** (thư mục cấp gốc không gắn dự án, và tệp ở thư mục gốc): ai cũng **xem**; chỉ Org
+  Admin **ghi**. Tạo thư mục toàn công ty, chuyển thư mục về toàn công ty, tải tệp lên thư mục gốc → 403
+  `COMPANY_WIDE_ADMIN_ONLY`; mọi thao tác ghi khác bên trong cây (tạo thư mục con, đổi tên/visibility, xoá,
+  chia sẻ, tải lên, phiên bản mới, xoá tệp) → 403 `COMPANY_WIDE_READ_ONLY`. Ngoại lệ có chủ đích: người
+  được `FolderShare` trên thư mục (hoặc thư mục cha) ghi được như trước; người có `FileShare` quyền `EDIT`
+  ghi được đúng tệp đó. Cây của dự án giữ quy tắc cũ: ai xem được thì ghi được.
+- **Thuật toán xem** (`resolveFolderAccess`, đi từ thư mục lên gốc): (1) có `FolderShare` tại nút → cho
+  phép (mở cả cây con, kể cả người ngoài dự án); (2) là người tạo nút → cho phép **chỉ khi** mọi dự án từ
+  nút đó lên gốc vẫn thuộc phạm vi — bị gỡ khỏi dự án thì mất cả thư mục mình từng tạo trong đó; (3)
+  `RESTRICTED` → chặn; (4) nút gắn dự án ngoài phạm vi → chặn; (5) tới gốc → cho phép. Dữ liệu bất thường
+  (vòng lặp, thiếu thư mục cha, sâu > 64) → chặn.
+- **Thuật toán ghi** (`resolveFolderWrite`): Org Admin → được; không xem được → `no-access`; có dự án trên
+  chuỗi → được; cây toàn công ty → được chỉ khi có `FolderShare` trên chuỗi, còn lại `read-only`.
+- **Cờ cho giao diện:** `GET /folders` trả `canWrite` từng thư mục; `GET /files` trả `canWrite` từng tệp
+  (quyền ghi thư mục **hoặc** `FileShare EDIT` trực tiếp — cùng quy tắc với `canAccessFile(requireEdit)`,
+  1 truy vấn `FileShare` cho cả trang, Org Admin 0 truy vấn). Giao diện ẩn/hiện nút theo cờ, backend vẫn
+  chặn độc lập.
+- **RAG/chat bot:** `POST /files/search-chunks` lọc bằng `createFileAccessFilter()` — cùng quy tắc, không
+  có bản sao riêng (test nối chuỗi thật `rag/project-scope-search.spec.ts`).
+- **API mới:** `GET /folders/accessible-projects` → `{ projectIds }`; `POST /folders` và `PATCH /folders/:id`
+  nhận `projectId` (`null` = toàn công ty, chỉ Org Admin); `GET /files?projectId=` → tệp của mọi thư mục
+  (kể cả thư mục con) thuộc dự án mà người gọi xem được (mục "Tài liệu" ở trang chi tiết dự án).
+- **Chi phí truy vấn giữ nguyên:** kiểm tra 1 thư mục = 2 truy vấn (cây thư mục + 1 câu `GRANTS_SQL` gộp
+  `FolderShare` UNION dự án thuộc phạm vi), lọc RAG = 3 truy vấn, không truy vấn theo từng tệp.
+
+### 28.4 Phạm vi dữ liệu theo module
+
+| Module | Employee | Manager | Org Admin |
+|---|---|---|---|
+| Dự án/Công việc | dự án mình thuộc về (§28.2) và Task của chúng | **+** dự án liên quan tới phòng ban và Task của chúng; lịch sử trạng thái, bình luận, thành viên dự án cũng kiểm tra phạm vi (404) | toàn bộ |
+| Tài liệu | §28.3 | §28.3 | toàn bộ |
+| CRM | khách hàng mình phụ trách; deal mình phụ trách **hoặc** thuộc khách hàng mình phụ trách | khách hàng/deal do mình hoặc thành viên phòng ban phụ trách | toàn bộ |
+| HRM | chỉ `/me` | chấm công/nghỉ phép/tăng ca/giải trình của mình + thành viên phòng ban; **duyệt** chỉ đơn của thành viên phòng ban (`DEPARTMENT_SCOPE_FORBIDDEN`), không tự duyệt (`SELF_APPROVAL_FORBIDDEN`); ảnh chấm công chỉ của phòng mình | toàn bộ, kể cả tự duyệt (không có cấp cao hơn) |
+| Analytics | 403 (không có `analytics:view`) | mọi KPI ép về phòng ban mình; `departmentId` phòng khác → 403 `DEPARTMENT_SCOPE_FORBIDDEN`, chưa gán phòng ban → 403 `DEPARTMENT_SCOPE_MISSING`; drill-down `department` chỉ phòng mình, `project` mở nhưng chỉ đếm Task giao cho phòng mình; hoạt động gần đây + WebSocket chỉ của mình/phòng ban; AI insights quét phòng ban, mốc so sánh `comparisonScope='department'`, cache tách theo phòng ban | toàn tổ chức, lọc tuỳ chọn |
+| Danh bạ IAM | hồ sơ đầy đủ của mình; người khác chỉ "thẻ danh bạ" `{id, fullName, email, departmentId, isActive}` | **+** hồ sơ đầy đủ của thành viên phòng ban (`GET /users/:id` cùng phòng 200, khác phòng 403) | đầy đủ |
+| Kho | giữ nguyên | giữ nguyên (danh mục/kho đọc toàn tổ chức) | giữ nguyên |
+| ML anomalies | 403 | giữ nguyên (theo phòng ban phụ trách, từ 24/09/2026) | toàn tổ chức |
+
+### 28.5 Read-model và sự kiện
+
+Theo database-per-service, không service nào đọc DB của service khác:
+
+| Service | Bảng read-model | Nguồn |
+|---|---|---|
+| Document | `project_refs` (`project_id`, `organization_id`, `lead_user_id`, `created_by_user_id`) | ảnh chụp lúc khởi động (§28.6) + `project.created`, `project.lead_changed`, `project.deleted` |
+| Document | `project_member_refs` (`project_id`, `user_id`, `organization_id`) | ảnh chụp + `project.member_added`, `project.member_removed` |
+| Document | `user_department_refs` (`user_id`, `organization_id`, `department_id`) | `iam.user.registered`, `iam.user.department_changed`, `iam.user.deleted` |
+| Project-Task, CRM, HRM | `dim_user` (`user_id` → `department_id`) | consumer riêng `*-service-directory-group`, chỉ đọc `iam.events` (mirror `dim_user` của Analytics) |
+
+- **Sự kiện mới** (Project-Task Service, outbox cùng transaction): `project.member_added`,
+  `project.member_removed`, `project.lead_changed`. `ProjectCreatedPayload` thêm 2 trường **tuỳ chọn**
+  `leadUserId`, `createdByUserId` (sự kiện cũ thiếu trường thì dùng `actorId`; `COALESCE` giữ giá trị đã
+  biết). Trước ngày này thêm/gỡ thành viên và đổi lead không phát sự kiện nào.
+- **Tương thích consumer cũ:** Analytics ghi 3 loại sự kiện mới vào `fact_task_events` như mọi `project.*`
+  (Dashboard đã có nhãn "đã thêm thành viên vào một dự án"); Notification Service và ml-service bỏ qua loại
+  không biết. Không có envelope version; trường mới đều optional — đúng quy ước có sẵn.
+- **Mã lỗi mới** (`packages/common-dto` + i18n vi/en/ja): `COMPANY_WIDE_ADMIN_ONLY`, `COMPANY_WIDE_READ_ONLY`,
+  `FORBIDDEN_PROJECT_DOCUMENTS`, `FOLDER_PROJECT_TOP_LEVEL_ONLY`, `DEPARTMENT_SCOPE_FORBIDDEN`,
+  `DEPARTMENT_SCOPE_MISSING`, `SELF_APPROVAL_FORBIDDEN`, `PROJECT_MEMBER_HAS_OPEN_TASKS`.
+- **Độ trễ (đánh đổi có ý thức):** đổi thành viên/lead/phòng ban có hiệu lực sau vài giây (outbox poll
+  2,5 giây + consumer); đổi phòng ban của chính người gọi có hiệu lực ở lần refresh token kế tiếp (≤ 15
+  phút). Partition key = `organizationId` nên thứ tự sự kiện trong 1 tổ chức được giữ; mọi thao tác là
+  "đặt giá trị" nên đọc lại bao nhiêu lần cũng hội tụ. `dim_user` tự lành vì IAM phát lại phòng ban của
+  mọi user mỗi lần khởi động (§4.6).
+
+### 28.6 Backfill read-model dự án
+
+- **Endpoint nội bộ** `GET /api/v1/internal/project-memberships` (Project-Task Service): `@Public()` và tự
+  kiểm tra header `x-internal-secret` bằng so sánh thời gian hằng (`timingSafeEqual`). Gateway không định
+  tuyến tiền tố `/api/v1/internal` (đã thử `..`, `%2e%2e`, `..%2f` → 404), cổng 3002 không mở ra host.
+- **Mỗi lần Document Service khởi động:** lấy ảnh chụp, thử `INITIAL_BACKFILL_ATTEMPTS = 4` lần (chờ 5/10/15
+  giây) → thay toàn bộ 2 bảng dự án → chạy consumer Kafka (`document-service-group`). Vẫn lỗi thì **không
+  chặn consumer** (sự kiện phòng ban IAM vẫn được áp dụng): ghi log lỗi, chạy consumer, thử lại nền (tối
+  đa 60 giây/lần); trước khi thay ảnh chụp sẽ **tạm dừng topic project-task và chờ message đang xử lý**,
+  thay xong mới chạy tiếp, nên ảnh chụp không ghi đè sự kiện mới hơn.
+- **Đã thấy trên hệ thống thật:** sau khi Docker Desktop khởi động lại (26/10/2026), lần 1 `fetch failed`
+  (Project-Task chưa sẵn sàng), lần 2 nạp đủ 10 dự án, consumer chạy bình thường.
+- **Biến môi trường:** `PROJECT_TASK_SERVICE_URL` (mặc định `http://project-task-service:3002`),
+  `INTERNAL_SHARED_SECRET` (cùng biến với `InternalAuthGuard`) — đã thêm vào `.env.example` của
+  document-service và project-task-service.
+
+### 28.7 Phạm vi ở đường ghi — 2 lỗi tìm được khi rà soát
+
+- **Lỗi cao — ghi theo id ngoài phạm vi (IDOR).** Luồng phạm vi Manager ban đầu chỉ thu hẹp đường **đọc**;
+  mọi đường ghi theo id vẫn chỉ lọc `organizationId`. Tái hiện trước khi sửa: Manager phòng Kỹ thuật
+  `GET /projects/:id` → 404 nhưng `PATCH /projects/:id` → 200 và `POST /projects/:id/members {chính mình}` →
+  201, sau đó xem được dự án **và** toàn bộ tài liệu dự án (read-model nhận `project.member_added`);
+  Employee `PATCH /tasks/:id` → 200, tự giao Task → 201 ("mở" dự án). Trước đợt này Manager = toàn tổ
+  chức nên không lộ; ghép với "thành viên → quyền tài liệu" thì thành đường leo thang quyền.
+  **Sửa:** `ProjectsService.assertCallerScope()` cho sửa/hoàn thành/mở lại/lưu trữ/xoá dự án, thêm/gỡ/xem
+  thành viên; `TasksService.findVisibleTaskOrFail(caller)` cho sửa/đổi trạng thái/xoá/giao/bỏ giao/bình
+  luận; tạo Task trong dự án ngoài phạm vi → 404 `PROJECT_NOT_FOUND_IN_ORG`. Ngoài phạm vi trả **404 cùng
+  mã lỗi với "không tồn tại"** để không lộ sự tồn tại của bản ghi. CRM (khách hàng/deal, kể cả đổi người
+  phụ trách, tạo deal trên khách hàng ngoài phạm vi, chuyển giai đoạn) cũng 404. HRM duyệt đơn ngoài phòng
+  ban → 403 `DEPARTMENT_SCOPE_FORBIDDEN` (kèm lý do cho màn hình duyệt — xem §28.12).
+- **Lỗi trung bình — ghi đè tệp toàn công ty.** Luồng tài liệu chặn tải lên thư mục gốc nhưng
+  `canAccessFile()` trả `true` cho mọi tệp gốc kể cả thao tác ghi: Employee tải phiên bản mới ghi đè tệp
+  của Org Admin → 201, Manager xoá → 200. **Sửa:** tệp gốc ai cũng xem, ghi chỉ Org Admin hoặc `FileShare
+  EDIT`; sau đó mở rộng thành quy tắc "cây toàn công ty chỉ Org Admin ghi" ở §28.3.
+
+### 28.8 Gỡ thành viên còn Task chưa xong → 409
+
+Thành viên là nguồn sự thật của "thuộc dự án", nên gỡ 1 người còn Task chưa xong khiến họ mất quyền xem
+chính Task đó. Quy tắc chốt: `DELETE /projects/:id/members/:userId` khi người đó còn Task khác `DONE` trong
+dự án → **409** `PROJECT_MEMBER_HAS_OPEN_TASKS` kèm `errorParams.count`; giao lại các Task đó (hoặc hoàn
+thành) rồi mới gỡ được. Giao diện hiện thông báo dịch vi/en/ja qua toast lỗi có sẵn. Gỡ người phụ trách
+vẫn là 400 `PROJECT_MEMBER_IS_LEAD` như cũ; bỏ giao Task không tự gỡ thành viên.
+
+### 28.9 Giao diện web
+
+Chọn dự án khi tạo thư mục cấp gốc ("Toàn công ty" chỉ hiện với Org Admin), nhãn dự án/"Toàn công ty" trên
+thẻ thư mục, "Đổi dự án" trong menu thư mục, bộ lọc dự án ở thư mục gốc, mục "Tài liệu" cuối trang chi
+tiết dự án; nút ghi (tải lên, thư mục mới, đổi tên, chia sẻ, xoá, phiên bản mới, xoá hàng loạt) ẩn theo
+cờ `canWrite` của thư mục/tệp. Dashboard/Báo cáo ẩn bộ lọc phòng ban với người không có `user:manage`,
+hiện dòng "Số liệu trong phạm vi phòng ban của bạn"; thẻ Nhận xét AI ghi "so với trung bình phòng ban";
+Chấm công/Nghỉ phép chỉ liệt kê thành viên phòng ban, danh sách chờ duyệt bỏ đơn của chính Manager. Chi
+tiết: `Wireframe.md` §5.1, §4.2, §7, §9.
+
+### 28.10 Chuyển dữ liệu cũ và dữ liệu demo
+
+| Script | Việc làm | Idempotent |
+|---|---|---|
+| `scripts/migrate-project-documents.js` | (1) gắn 5 thư mục "`<dự án>` - Tai lieu" vào đúng dự án (thử lại 10 × 3 giây khi read-model chưa có dự án); (2) người đang được giao việc thành thành viên dự án (`--skip-members` để bỏ); (3) 2 thư mục toàn công ty "Chính sách công ty", "Sổ tay nhân viên", mỗi thư mục 1 tệp mẫu | 3 lần chạy liên tiếp → 0 thay đổi |
+| `scripts/seed-project-docs.js` | tải 20 tài liệu mẫu (`scripts/seed-assets/project-docs/<slug>/`, 4 tài liệu Word/PDF/Excel/PowerPoint mỗi dự án) vào thư mục của dự án, tên tệp = tiêu đề tiếng Việt; bỏ qua tệp cùng tên | lần 2 → 0 tải lên |
+| `scripts/migrate-demo-ownership.js` | giao 8 khách hàng cũ nhất cho phòng Kinh doanh (3 trưởng phòng, 3 nhân viên demo, 2 nhân viên khác) — seed tạo mọi khách hàng bằng Org Admin nên CRM của Manager demo trống; deal đi theo khách hàng | lần 2 → 0 thay đổi |
+
+`seed.js` gọi 3 script trên ở cuối, theo đúng thứ tự. Kết quả trên tổ chức demo: Org Admin 24 khách
+hàng/48 deal, Manager Kinh doanh 8/16, nhân viên demo 3/6, nhân viên Kinh doanh thứ 2 2/4, Manager Kỹ thuật
+0/0. RAG lập chỉ mục 10/20 tài liệu mẫu (5 PDF + 5 DOCX, 263 đoạn); Excel/PowerPoint được đánh dấu đã xử lý
+với 0 đoạn vì bộ trích văn bản chỉ đọc PDF/DOCX/văn bản (§23.3).
+
+### 28.11 Kiểm thử và kết quả
+
+- **Unit test:** test mới/sửa cho `resolveDataScope`, `resolveFolderAccess`/`resolveFolderWrite`, `GRANTS_SQL`
+  (kiểm trên Postgres thật trong transaction ROLLBACK), files/folders/project-scope/sync service, projects/
+  tasks (phạm vi đọc + ghi, giao Task thêm thành viên, 409), CRM/HRM/IAM/Analytics/WebSocket, web
+  (`writeAccess.test.ts`). Gate tương đương CI (`TZ=UTC`): `typecheck`, `lint` (0 lỗi), `lint:i18n-strings`,
+  `test:coverage` (13 workspace jest + web 77 test, mọi ngưỡng coverage đạt), `build` — tất cả exit 0; 9/9
+  image Docker của CI build thành công.
+- **Kiểm thử sống qua Gateway:** đường ghi theo id với Manager khác phòng, Employee và Manager cùng phòng
+  trên dự án của Org Admin (dự án, thành viên, Task, bình luận, giao việc, CRM, duyệt HRM, Analytics phòng
+  khác) **92/92**; 409 khi gỡ thành viên + cờ `canWrite` từng tệp **17/17**; 20 tài liệu mẫu — mọi tài
+  khoản thấy tài liệu dự án ⇔ thấy dự án, RAG trả đoạn "Từ điển chỉ số KPI" đúng người **28/28**; kịch bản
+  phạm vi Manager 38/38; lan truyền thành viên/phòng ban (gỡ thành viên → mất tài liệu sau ~1,6 giây).
+- **Bộ kịch bản `scripts/mock-data`:** 01 31/31, 02 28/28, 03 18/18, 04 55/55, 05 27/27, 06 24/24, 07
+  12/12, 08 12/12 (bot không làm theo chỉ dẫn nhúng, không lộ tài liệu `RESTRICTED`).
+
+### 28.12 Giới hạn đã biết
+
+- **Giả định 1 instance Document Service.** Nhiều instance: ảnh chụp lúc khởi động của instance mới có thể
+  ghi đè sự kiện instance khác vừa áp dụng (group dùng chung đã commit offset).
+- Kiểm tra 409 (§28.8) chạy trước transaction, không khoá: giao Task đồng thời với gỡ thành viên có thể lọt.
+- HRM duyệt đơn ngoài phòng ban trả 403 (không phải 404) — lộ sự tồn tại của id đơn, mức thấp.
+- Xoá dự án: thư mục giữ `project_id` cũ → chỉ Org Admin/người được chia sẻ xem được; Org Admin gắn lại dự
+  án khác nếu cần.
+- Thẻ danh bạ vẫn giữ `email` (các picker giao việc/chia sẻ/nhắn tin cần); giao dịch mua hàng (Kho) của
+  Manager vẫn bằng Org Admin; ML anomalies dùng "phòng ban phụ trách" (`dim_department_manager`), chưa cộng
+  phòng ban JWT; ranh giới "toàn tổ chức" = `user:manage` nên vai trò tuỳ biến kiểu "HR toàn công ty" bị
+  thu hẹp theo phòng ban.
+- Biểu đồ Analytics theo phòng ban quét bảng fact thô thay vì continuous aggregate (chấp nhận ở quy mô đồ án).
+- RAG chưa đọc Excel/PowerPoint.
+- Seed chạy lại trên tổ chức đã có tạo thêm 8 nhân viên (hậu tố mới) và 12 khách hàng/24 deal — hành vi
+  có từ trước của `seed.js`, không do đợt này.
+
 ## Lịch sử thay đổi tài liệu
 
 - **18/07/2026** — Khởi tạo tài liệu `Technical_Spec.md`: xác định kiến trúc tổng thể, tech stack, chi tiết 6 service MVP, event-driven design (Outbox + Kafka), schema DB tổng quan, AuthN/AuthZ, quy ước API, hạ tầng Docker, bảo mật, kiểm thử, CI/CD, NFR, cấu trúc repo và giới hạn/hướng phát triển.
@@ -1980,3 +2221,4 @@ cả hai; GĐ 4 cần GĐ 3. Lệnh nặng chạy tuần tự qua 1 khoá dùng 
 - **25/10/2026 (merge Frontend2 + khắc phục CI)** — Merge 6 commit nhánh Frontend2 (tách component frontend, endpoint mới `PATCH /leave-requests/:id/cancel` để nhân viên tự hủy đơn nghỉ phép đang chờ duyệt). CI đỏ từ 11/10/2026 do `inventory-service` chép ngưỡng coverage 45/55/45/45% của `crm-service` trong khi số đo thật 39/35/40/29% — đặt lại theo số đo thật (quy ước §10/§11). 102 chuỗi tiếng Việt viết thẳng sau merge đã chuyển sang i18n. Chi tiết: `RevisionHistory.md` mục 25/10/2026.
 - **25/10/2026 (§26 — CDC Debezium, merge `test-cdc` + rà soát chéo)** — Merge bản thử nghiệm CDC của Thiều Quang Thành (`51dcf6b`): Debezium đọc WAL bảng `outbox_events` của `project-task-service` qua Outbox Event Router, đóng gói thành profile tuỳ chọn `cdc` (tắt mặc định) với 2 script `scripts/cdc-on.ps1`/`cdc-off.ps1` có thứ tự bước bảo đảm không mất sự kiện. Sửa 2 lỗi cấu hình khiến bản thử nghiệm chưa đưa sự kiện nào tới consumer (trường timestamp đòi INT64; converter bọc schema làm message vào DLQ). Rà soát chéo xác nhận 9 vấn đề, sửa trong `775c518` — gồm lỗi có từ trước mức CAO: Kafka chưa từng ghi vào volume (`KAFKA_LOG_DIRS`), tạo lại container là mất hết topic/offset (§26.6). Cập nhật khối trạng thái, §4.1, §14, cuối §25; thêm §26. Số đo: độ trễ CDC 0,40–0,62 giây so với polling khoảng 2,0 giây; 1.862 và 416/416 sự kiện không mất. Chi tiết: `RevisionHistory.md` mục 25/10/2026 (tiếp).
 - **26/10/2026 (§27 — Danh sách nhân viên & kho ảnh nhận diện, KẾ HOẠCH)** — Thêm §27 (chưa có dòng code nào): trả lời có bằng chứng 3 câu hỏi hiện trạng (kho khuôn mặt chỉ lưu embedding ở `ml-service`/`face_enrollments`, không lưu ảnh gốc; ảnh chấm công ở bucket `hrm-attendance` lưu vô thời hạn; chỉ chính chủ sửa được; nhập Excel §19.1 chưa có ảnh, chưa cập nhật được người đã có; hồ sơ cá nhân web còn giả lập số điện thoại/nút Lưu/avatar). Chốt 15 quyết định: lưu ảnh nhận diện gốc trong bucket private `ml-face-references`, chỉ đọc qua proxy có nhật ký; avatar tách riêng (`iam-avatars`, presigned TTL ngắn); đồng ý lưu phía server, ảnh tải hộ/nhập ở trạng thái `PENDING_CONSENT` không dùng để so khớp, tự huỷ sau 30 ngày; phạm vi Manager theo `departmentId` trong JWT, chỉ với Employee phòng mình; kiểm tra trùng 1:N (≥ 0,5 chặn, 0,35–0,5 cảnh báo); nhập Excel + ZIP có bước xem trước và báo cáo lỗi; mật khẩu tuỳ chọn + email kích hoạt, bỏ `Password123!`; xoá dữ liệu khuôn mặt khi vô hiệu hoá. Cập nhật căn cứ pháp lý sang Luật 91/2025/QH15 + Nghị định 356/2025/NĐ-CP (cần đối chiếu toàn văn). Giai đoạn 0 sửa trước 2 lỗi có sẵn của `ml-service` (nạp model lười không khoá dưới giới hạn 1 GB; truy vấn khuôn mặt chưa lọc `organization_id`). Đối chiếu đủ 42 mục rà soát phản biện độc lập (§27.15). Thêm ghi chú cuối §24, cập nhật khối trạng thái. Chi tiết: `RevisionHistory.md` mục 26/10/2026.
+- **26/10/2026 (§28 — Tài liệu theo phạm vi dự án & phạm vi dữ liệu của Manager, ĐÃ TRIỂN KHAI)** — Thêm §28: định nghĩa chung "thuộc dự án" (người phụ trách/thành viên/người tạo, giao Task tự thêm thành viên) và `resolveDataScope()` 3 cấp Employee < Manager (phòng ban trong JWT) < Org Admin cho Dự án/Công việc, Tài liệu, CRM, HRM, Analytics, Danh bạ; chính sách tài liệu theo dự án (thư mục cấp gốc gắn dự án, cây toàn công ty ai cũng xem nhưng chỉ Org Admin ghi, cờ `canWrite` cho thư mục/tệp, RAG dùng chung bộ lọc); 3 read-model + 3 sự kiện mới của Document Service, backfill không chặn consumer; phạm vi ở đường ghi (lỗi cao IDOR ghi theo id, lỗi trung bình ghi đè tệp toàn công ty — tìm ra ở vòng rà soát); gỡ thành viên còn Task chưa xong → 409; 3 script dữ liệu (migration, 20 tài liệu mẫu, giao khách hàng demo cho phòng Kinh doanh); kết quả kiểm thử (92/92 đường ghi, 17/17, 28/28, mock-data 01–08) và giới hạn đã biết. Thêm dòng trỏ tới §28 ở §3.3, §3.4, §4.6, §4.7, §6, §16, §17, §19.2, §23.3 (giữ nguyên nội dung cũ).

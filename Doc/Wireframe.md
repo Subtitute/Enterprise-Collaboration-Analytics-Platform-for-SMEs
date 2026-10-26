@@ -3,7 +3,8 @@
 > Trạng thái: **ĐÃ TRIỂN KHAI** — mô tả wireframe khớp với giao diện đã lập trình và xác minh sống
 > cho toàn bộ màn hình MVP và các module mở rộng (CRM-lite, HRM-lite, i18n, Analytics nâng cao,
 > Kho hàng, Nhận diện khuôn mặt, Chatbot nội bộ — 24/10/2026). §16 (Danh sách nhân viên & ảnh nhận
-> diện, 26/10/2026) là **KẾ HOẠCH, chưa triển khai**.
+> diện, 26/10/2026) là **KẾ HOẠCH, chưa triển khai**. §5.1 (Tài liệu theo phạm vi dự án, 26/10/2026) đã triển
+> khai và xác minh sống.
 > Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
 
 **Tài liệu liên quan:** [General_idea.md](General_idea.md) · [Technical_Spec.md](Technical_Spec.md)
@@ -145,6 +146,8 @@
 
 - Kéo-thả (drag & drop) thẻ giữa các cột → gọi `PATCH /api/v1/tasks/:id/status` → phát sự kiện `task.status_changed` → phản ánh gần như tức thời trên Dashboard/Analytics.
 - Click vào thẻ mở **Modal chi tiết Task**: mô tả, danh sách người được giao, bình luận (comment thread), lịch sử thay đổi trạng thái.
+- **(Bổ sung 26/10/2026 — Technical_Spec.md §28)** Cuối trang chi tiết dự án có mục **"Tài liệu"** ("Tài liệu trong các thư mục của dự án mà bạn được xem"): liệt kê tệp của mọi thư mục thuộc dự án (kể cả thư mục con) mà người xem có quyền, bấm tên tệp để mở, nút "Mở thư mục chứa tệp" chuyển sang trang Tài liệu. Chỉ người thuộc dự án (Manager: thêm dự án liên quan tới phòng ban) mới vào được trang này.
+- **(Bổ sung 26/10/2026)** Gỡ một thành viên còn công việc chưa hoàn thành trong dự án (modal Thành viên) → toast lỗi "Thành viên này còn N công việc chưa hoàn thành trong dự án. Hãy giao lại các công việc đó cho người khác trước khi gỡ khỏi dự án." (409). Giao 1 công việc cho ai thì người đó tự trở thành thành viên dự án.
 
 ## 5. Module Tài liệu
 
@@ -163,6 +166,45 @@
 - **Modal Chia sẻ:** chọn user (hoặc **phòng ban**, bổ sung 28/07/2026) được gắn nhãn "đã chia sẻ" — ghi vào `FileShare`. **(Điều chỉnh 21/07/2026, nâng cấp 28/07/2026)** Trong MVP ban đầu, `FileShare` chỉ mang tính hiển thị, không giới hạn quyền truy cập thực tế. **Từ 28/07/2026, đã có access-control thực sự nhưng theo THƯ MỤC (opt-in):** mỗi thư mục có biểu tượng khoá 🔒 khi ở chế độ "Hạn chế truy cập" — chỉ người tạo thư mục, Org Admin, hoặc người/phòng ban được chia sẻ tường minh (qua modal "Quản lý chia sẻ" mới, menu `⋮` của thư mục) mới thấy được thư mục đó và tài liệu bên trong; mặc định MỌI thư mục vẫn mở cho cả tổ chức như trước (không đổi hành vi dữ liệu cũ). Chia sẻ 1 tệp lẻ (`FileShare`) vẫn hoạt động như "link trực tiếp" tới đúng tệp đó dù thư mục cha đang hạn chế.
 - Mỗi file hiển thị nhãn phiên bản (`v3`) kèm link "Xem lịch sử phiên bản" (danh sách `FileVersion`, tối đa N bản gần nhất).
 - **(Bổ sung 22/07/2026)** Click trực tiếp vào tên tệp (hoặc mục "Xem tệp" trong menu `⋮`) mở tệp ngay trong tab mới của trình duyệt (`Content-Disposition: inline` — PDF/ảnh/text được trình duyệt tự render, không cần tải về máy trước). Mục "Tải xuống" riêng biệt luôn ép hộp thoại Lưu tệp (`Content-Disposition: attachment`).
+
+### 5.1 Tài liệu theo phạm vi dự án *(bổ sung 26/10/2026, xem Technical_Spec.md §28)*
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│ Tài liệu            [Tất cả dự án ▾]   🔍 Tìm…     [Lưới|Bảng] [+ Thư mục mới] │
+├──────────────────────────────────────────────────────────────────────┤
+│ 📁 Chính sách công ty            [Toàn công ty]                        │
+│ 📁 Sổ tay nhân viên              [Toàn công ty]                        │
+│ 📁 Website bán hàng SME - Tai lieu  [Website bán hàng SME]   ⋮         │
+│ 📁 Hệ thống báo cáo KPI - Tai lieu  [Hệ thống báo cáo KPI]   ⋮         │
+└──────────────────────────────────────────────────────────────────────┘
+  ⋮ = Đổi tên · Hạn chế truy cập · Quản lý chia sẻ · Đổi dự án · Xoá   (chỉ khi có quyền ghi)
+
+Modal "Thư mục mới" (ở thư mục gốc):
+┌──────────────────────────────────────────┐
+│ Tên thư mục  [________________________]   │
+│ Dự án        [Chọn dự án            ▾]   │  ← bắt buộc; "Toàn công ty (không gắn dự án)"
+│ Thư mục con và tệp bên trong chỉ hiển thị │     chỉ hiện với Org Admin
+│ với người thuộc phạm vi dự án.            │
+│                         [Hủy]  [Tạo]      │
+└──────────────────────────────────────────┘
+```
+
+- **Ai thấy gì:** Org Admin thấy mọi thư mục; Employee thấy thư mục toàn công ty + thư mục của dự án mình
+  thuộc về (người phụ trách/thành viên/người tạo); Manager thấy thêm thư mục của dự án có người thuộc phòng
+  ban mình. Thư mục ngoài phạm vi không xuất hiện trong danh sách (không phải báo lỗi).
+- **Nhãn trên thẻ thư mục cấp gốc:** tên dự án, hoặc "Toàn công ty"; thư mục con không có nhãn (kế thừa
+  dự án của thư mục cha). Bộ lọc "Tất cả dự án ▾" chỉ hiện ở thư mục gốc.
+- **Tạo thư mục cấp gốc:** phải chọn 1 dự án mình thuộc phạm vi; người chưa thuộc dự án nào thấy gợi ý
+  "Bạn chưa thuộc dự án nào nên chưa thể tạo thư mục cấp gốc…". "Đổi dự án" trong menu `⋮` chỉ có ở thư
+  mục cấp gốc.
+- **Cây toàn công ty chỉ xem với người không phải Org Admin:** ẩn nút "Tải lên", "Thư mục mới" và menu
+  `⋮` của thư mục; kéo-thả tệp vào báo "Thư mục toàn công ty chỉ Quản trị viên tổ chức mới được chỉnh
+  sửa; bạn chỉ có quyền xem." Ở thư mục gốc, nút tải lên ẩn với mọi người trừ Org Admin.
+- **Nút trên từng tệp** (chia sẻ, xoá, tải phiên bản mới trong "Lịch sử phiên bản", xoá hàng loạt) theo
+  quyền ghi của **chính tệp** (`canWrite` do backend tính): tệp được chia sẻ quyền "Chỉnh sửa" trong cây
+  toàn công ty vẫn hiện nút; nút "Xoá" hàng loạt chỉ hiện khi mọi tệp đang chọn đều ghi được. Ẩn nút chỉ là
+  giao diện, backend luôn chặn độc lập.
 
 ## 6. Module Thông báo *(sửa lại 03/10/2026 — xoá trang riêng, xem Technical_Spec.md §21.2)*
 
@@ -207,6 +249,7 @@ Dropdown từ Topbar (🔔) — nay là giao diện thông báo DUY NHẤT:
 - Khác với Dashboard (§3 — tổng quan, real-time), trang này phục vụ **phân tích sâu, có bộ lọc thời gian tùy chỉnh**. **(Sửa 28/07/2026, chính xác lại mô tả)** "Tiến độ theo dự án"/bảng chi tiết đọc trực tiếp từ `fact_task_events` (không phải continuous aggregate như mô tả trước đây — đã cần chuyển sang đọc trực tiếp từ 22/07/2026 để loại trừ được task/dự án đã xóa cứng, xem Technical_Spec.md §4.6/§14); chỉ riêng "Xu hướng hoàn thành công việc theo tuần" ở Dashboard (§3) mới thực sự dùng continuous aggregate (`daily_task_summary`).
 - "Xuất báo cáo" xuất CSV/PDF từ bảng chi tiết (nếu còn thời gian triển khai — không thuộc tiêu chí bắt buộc của MVP).
 - **(Điều chỉnh 21/07/2026, bổ sung lại 28/07/2026)** Bộ lọc "Phòng ban" từng bị gỡ (cùng lý do ở §3) nay quay lại đúng cách — áp dụng cho cả "Tiến độ theo dự án" lẫn bảng chi tiết KPI. Bảng chi tiết vẫn giữ "theo dự án" (không đổi lại "theo phòng ban") vì 1 dự án có thể có người phụ trách từ nhiều phòng ban — bộ lọc phòng ban chỉ THU HẸP tập dự án/công việc được tính, không đổi chiều nhóm của bảng.
+- **(Bổ sung 26/10/2026 — Technical_Spec.md §28.4)** Manager không còn bộ lọc "Phòng ban": mọi biểu đồ tự giới hạn trong phòng ban của Manager, trang hiện dòng "Số liệu trong phạm vi phòng ban của bạn"; thẻ Nhận xét AI so sánh "so với trung bình phòng ban". Org Admin giữ bộ lọc như cũ.
 - **(Bổ sung 28/07/2026 — tính năng "Nhận xét AI", Technical_Spec.md §4.7)** Thẻ mới "Nhận xét AI" ngay dưới thanh bộ lọc, phía trên 2 biểu đồ: nút "Tạo nhận xét AI" (theo yêu cầu, không tự động gọi khi vào trang hay đổi bộ lọc — tránh tốn hạn ngạch miễn phí của Google Gemini API) sinh ra một đoạn văn bản tiếng Việt ngắn (3-5 câu) nhận xét về số liệu KPI đang hiển thị (dựa trên đúng bộ lọc "Khoảng thời gian"/"Phòng ban" tại thời điểm bấm nút), kèm dòng chú thích nhỏ ghi rõ phạm vi/khoảng thời gian đã dùng để tạo ra nhận xét đó.
 - **(Bổ sung 22/09/2026, thiết kế lại)** "Nhận xét AI" không còn là 1 đoạn văn tự do — nay là bộ thẻ insight CÓ CẤU TRÚC (severity/scope/số liệu riêng biệt, xem Technical_Spec.md §4.7 phiên bản mới) kèm 1 biểu đồ cột ngang so sánh TOÀN BỘ phạm vi đã quét (toàn tổ chức + từng phòng ban + top dự án), chỉ các mục được AI chọn mới tô màu theo mức độ (đỏ/cam/xanh), còn lại tô xám trung tính làm nền so sánh.
 - **(Bổ sung 24/09/2026 — Layer 2 Diagnostic drill-down, Technical_Spec.md §19.2)** Mỗi thanh trong biểu đồ so sánh ở trên (trừ thanh "Toàn tổ chức") có thể bấm vào — mở 1 panel chi tiết hiển thị phễu "Tổng công việc → Chưa xong → Quá hạn → Tập trung ở 1 người" cho đúng phòng ban/dự án đó, giúp trả lời "vì sao" thay vì chỉ dừng ở con số tổng hợp. Panel ghi rõ ghi chú giới hạn: "quá hạn" tính theo hạn hoàn thành tại thời điểm tạo công việc, có thể chưa cập nhật nếu hạn được đổi sau đó.
@@ -290,6 +333,7 @@ Bản mô tả này thay thế khung sườn phác thảo trước đó (ghi tr�
 - **40% bên phải** giữ nguyên 3 khối cũ (số dư phép / chờ duyệt — chỉ Manager/Org Admin / yêu cầu của tôi), nay xếp chồng dọc thay vì chiếm toàn bộ chiều ngang trang.
 - **Xem lịch sử theo nhân viên** (ô tìm-chọn mới, chỉ Manager/Org Admin): chọn 1 nhân viên → mở trang chi tiết lịch sử nghỉ phép đầy đủ của người đó (mọi trạng thái, không chỉ đang chờ duyệt). Tên nhân viên trong mục "Chờ duyệt" cũng bấm được để mở thẳng trang này.
 - Mục "Chờ duyệt" vẫn tự ẩn (không hiện banner lỗi) khi API trả `403` cho người không có quyền, giữ nguyên cơ chế cũ.
+- **(Bổ sung 26/10/2026 — Technical_Spec.md §28.4)** Với Manager, "Chờ duyệt", bảng chấm công và ô chọn nhân viên chỉ gồm thành viên phòng ban của mình; đơn của chính Manager không nằm trong "Chờ duyệt" (Org Admin duyệt). Duyệt đơn ngoài phòng ban/đơn của mình qua API → 403 kèm thông báo.
 - Duyệt/từ chối xong, yêu cầu biến mất khỏi "Chờ duyệt" và đổi trạng thái ở "Yêu cầu của tôi" (của người xin) gần như tức thời qua thông báo real-time.
 
 ### 9.3 Modal camera chấm công (`CheckInCamera.tsx`)
@@ -370,17 +414,17 @@ Toàn bộ bảng dữ liệu (danh sách dự án, tài liệu, thành viên) c
 ┌──────────────────────────────────────────────────────────────┐
 │ ← Công ty TNHH ABC          🏢 ABC Corp  ✉ contact@abc.vn      │
 │                                              [+ Deal mới]      │
-├─────────┬───────────┬──────────┬─────────────┬────────┬───────┤
-│  Mới (2) │ Đã liên hệ │ Đề xuất  │ Đàm phán (1) │ Thắng  │ Thua  │
-├─────────┼───────────┼──────────┼─────────────┼────────┼───────┤
-│ [Deal]   │ [Deal]     │           │ [Deal]       │        │        │
-│ Gói năm  │ Nâng cấp   │           │ Triển khai   │        │        │
-│ 30tr     │ 15tr       │           │ 50tr         │        │        │
-└─────────┴───────────┴──────────┴─────────────┴────────┴───────┘
+├─────────┬───────────┬──────────┬─────────────┬────────────┬──────────┤
+│  Mới (2) │ Đã liên hệ │ Đề xuất  │ Đàm phán (1) │ Hoàn thành │ Thất bại │
+├─────────┼───────────┼──────────┼─────────────┼────────────┼──────────┤
+│ [Deal]   │ [Deal]     │           │ [Deal]       │            │          │
+│ Gói năm  │ Nâng cấp   │           │ Triển khai   │            │          │
+│ 30tr     │ 15tr       │           │ 50tr         │            │          │
+└─────────┴───────────┴──────────┴─────────────┴────────────┴──────────┘
 ```
 
-- Kéo-thả (drag & drop) thẻ deal giữa các cột → gọi `PATCH /api/v1/deals/:id/stage` → phát sự kiện `deal.stage_changed`. **Khác với Kanban Công việc (§4.2, 3 cột tuyến tính):** 4 cột đầu (Mới/Đã liên hệ/Đề xuất/Đàm phán) di chuyển tự do qua lại lẫn nhau (đúng thực tế bán hàng — khách hàng có thể đổi ý, quay lại giai đoạn trước); "Thắng"/"Thua" là cột **cuối cùng** — deal đã vào 1 trong 2 cột này không kéo đi tiếp được nữa (máy chủ từ chối, trả lỗi rõ ràng nếu cố tình gọi API trực tiếp).
-- Deal chuyển sang "Thắng" tự động ghi nhận thời điểm chốt (`closedAt`) và gửi 1 thông báo real-time chúc mừng cho người thực hiện thao tác (Module Thông báo, §6).
+- Kéo-thả (drag & drop) thẻ deal giữa các cột → gọi `PATCH /api/v1/deals/:id/stage` → phát sự kiện `deal.stage_changed`. **Khác với Kanban Công việc (§4.2, 3 cột tuyến tính):** 4 cột đầu (Mới/Đã liên hệ/Đề xuất/Đàm phán) di chuyển tự do qua lại lẫn nhau (đúng thực tế bán hàng — khách hàng có thể đổi ý, quay lại giai đoạn trước); "Hoàn thành"/"Thất bại" (`WON`/`LOST`) là cột **cuối cùng** — deal đã vào 1 trong 2 cột này không kéo đi tiếp được nữa (máy chủ từ chối, trả lỗi rõ ràng nếu cố tình gọi API trực tiếp).
+- Deal chuyển sang "Hoàn thành" tự động ghi nhận thời điểm chốt (`closedAt`) và gửi 1 thông báo real-time chúc mừng cho người thực hiện thao tác (Module Thông báo, §6).
 - Click vào thẻ deal mở **Modal chi tiết Deal**: tiêu đề, giá trị, ngày dự kiến chốt, nút Xoá. **Không** có ô đổi giai đoạn trong modal này — đổi giai đoạn chỉ qua kéo-thả, tránh 2 nơi cùng sửa 1 giá trị theo 2 cơ chế khác nhau.
 - **(Bổ sung 16/10/2026, xem Technical_Spec.md §22)** Dưới khung Kanban, thêm khối **"Lịch sử mua hàng"**:
   ```
@@ -809,3 +853,4 @@ Hộp xác nhận đồng ý (khi tự đăng ký hoặc bấm "Xác nhận dùn
 - **24/10/2026 (Nhận diện khuôn mặt cho Chấm công)** — §9.1 bổ sung badge "Khớp khuôn mặt"/"Không khớp" (cờ mềm, cùng cơ chế với badge GPS đã có) ở mọi nơi hiển thị bằng chứng chấm công; §11 bổ sung khối đăng ký khuôn mặt (opt-in bắt buộc đồng ý) vào trang Hồ sơ cá nhân. Đảo ngược có chủ đích quyết định "không nhận diện khuôn mặt" ban đầu của §9 (05/08/2026), theo yêu cầu trực tiếp. Chi tiết kỹ thuật đầy đủ ở `Technical_Spec.md` §24.
 - **24/10/2026 (Chatbot nội bộ — triển khai)** — §15 viết lại từ phác thảo kế hoạch thành mô tả giao diện thật: nút nổi chỉ hiện khi có quyền `chatbot:use`, panel có Hội thoại mới/Lịch sử, chip nguồn tài liệu bấm mở được, dòng "Đã tra cứu", số lượt đã dùng trong ngày, lỗi hiển thị ngay trong panel, nút Gửi khoá khi đang chờ trả lời.
 - **26/10/2026 (Danh sách nhân viên & ảnh nhận diện — kế hoạch)** — §16 (mới, **chỉ là kế hoạch**): mở rộng tab Thành viên (§8) thành "Danh sách nhân viên" có avatar/mã NV/số điện thoại/trạng thái ảnh nhận diện, khác nhau theo vai trò (Org Admin cả tổ chức; Manager chỉ Employee phòng mình; Employee không vào được); drawer "Hồ sơ nhân viên" để xem/sửa; panel ảnh nhận diện theo 4 trạng thái đồng ý (đang dùng, chờ nhân viên xác nhận, chưa đăng ký, nhân viên đã từ chối); trình nhập Excel + ZIP 4 bước (tệp, xem trước lỗi từng dòng, đang nhập, kết quả + báo cáo lỗi `.xlsx`); Hồ sơ cá nhân (§11) dùng API thật thay phần giả lập, kèm banner và hộp xác nhận đồng ý có phiên bản. Cập nhật khối trạng thái. Đặc tả kỹ thuật: `Technical_Spec.md` §27.
+- **26/10/2026 (Tài liệu theo phạm vi dự án & phạm vi dữ liệu của Manager — đã triển khai, Technical_Spec.md §28)** — §5.1 (mới): bộ chọn dự án khi tạo thư mục cấp gốc, nhãn dự án/"Toàn công ty", bộ lọc dự án, "Đổi dự án", cây toàn công ty chỉ xem, nút trên từng tệp theo quyền ghi của chính tệp. §4.2: mục "Tài liệu" cuối trang chi tiết dự án, thông báo 409 khi gỡ thành viên còn công việc chưa xong. §7, §9.2: phạm vi phòng ban của Manager. §12.2: sửa nhãn 2 cột cuối pipeline thành "Hoàn thành"/"Thất bại" cho khớp giao diện thật (trước ghi "Thắng"/"Thua").

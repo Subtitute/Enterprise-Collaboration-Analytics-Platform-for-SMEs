@@ -2210,3 +2210,63 @@ Bảng ánh xạ điều khoản → cơ chế lập theo bản tóm tắt, cầ
 90 ngày, thông báo khi người khác đổi avatar, avatar trên mobile, mã hoá embedding).
 
 Chi tiết kỹ thuật: `Technical_Spec.md` §27 (và ghi chú cuối §24); giao diện: `Wireframe.md` §16.
+
+## 26/10/2026 (tiếp) — Tài liệu theo phạm vi dự án + phạm vi dữ liệu của Manager
+
+Hai yêu cầu làm cùng đợt vì chạm cùng một câu hỏi "ai được thấy gì": (1) tài liệu đi theo dự án thay vì
+mở cho cả tổ chức; (2) Manager phải cao hơn Employee nhưng thấp hơn Org Admin ở **mọi** module — trước đây
+Manager xem dự án, khách hàng, đơn nghỉ phép, số liệu Analytics của cả tổ chức giống Org Admin, tự duyệt
+được đơn của mình, còn Employee thấy mọi deal và hồ sơ đầy đủ của mọi người. Làm theo 4 vòng: 2 luồng
+triển khai song song, 1 vòng rà soát và sửa, 1 vòng kiểm tra chéo cuối trước commit (`54ba030`).
+
+**Chính sách chốt:** người thuộc dự án = người phụ trách/thành viên/người tạo (giao Task tự thêm thành
+viên); dự án liên quan tới phòng ban = 1 trong 3 vai trò đó thuộc phòng ban. `resolveDataScope()` dùng
+chung cho mọi service: Employee — của mình; Manager — của mình + phòng ban (`departmentId` trong JWT);
+Org Admin — toàn tổ chức. Tài liệu: thư mục cấp gốc gắn dự án, chỉ người thuộc dự án (Manager: thêm dự án
+liên quan phòng ban) xem được; cây toàn công ty ai cũng xem nhưng chỉ Org Admin ghi (trừ chia sẻ tường
+minh); RAG dùng chung bộ lọc. Document Service lần đầu tiêu thụ Kafka: 3 read-model (`project_refs`,
+`project_member_refs`, `user_department_refs`), 3 sự kiện mới (`project.member_added`,
+`project.member_removed`, `project.lead_changed`), backfill qua endpoint nội bộ lúc khởi động và không chặn
+consumer khi lỗi. Project-Task, CRM, HRM có bảng `dim_user` riêng để biết thành viên phòng ban.
+
+**Lỗi tìm ra ở vòng rà soát (cả hai chỉ xuất hiện khi ghép 2 luồng):**
+- **Cao — ghi theo id vượt phạm vi (IDOR):** phạm vi mới chỉ thu hẹp đường đọc. Manager phòng Kỹ thuật
+  `GET /projects/:id` → 404 nhưng `PATCH` → 200 và tự thêm mình làm thành viên → 201, sau đó thấy cả dự án
+  lẫn tài liệu dự án; Employee sửa Task, tự giao Task cho mình ở dự án không được xem. Sửa: mọi thao tác ghi
+  theo id ở dự án/Task/CRM kiểm tra phạm vi, ngoài phạm vi trả 404 cùng mã "không tồn tại".
+- **Trung bình — ghi đè tệp toàn công ty:** tệp ở thư mục gốc ai cũng ghi được (Employee tải phiên bản mới
+  đè tệp của Org Admin → 201, Manager xoá → 200). Sửa thành "cây toàn công ty chỉ Org Admin ghi".
+- Thấp: migration phụ thuộc 1 lần chờ 5 giây ở seed (thêm thử lại 10 × 3 giây).
+
+**Vòng kiểm tra chéo:** đồng ý toàn bộ bản sửa; xác minh lại sống 92/92 đường ghi/đọc theo id. Thêm 2
+quyết định của chủ dự án: gỡ thành viên còn Task chưa xong → 409 `PROJECT_MEMBER_HAS_OPEN_TASKS` (giao lại
+Task trước); nút thao tác trên từng tệp theo quyền ghi của chính tệp (`canWrite`, tệp được chia sẻ EDIT
+trong cây toàn công ty vẫn hiện nút). Bổ sung biến môi trường còn thiếu trong `.env.example`
+(`PROJECT_TASK_SERVICE_URL`, `INTERNAL_SHARED_SECRET`).
+
+**Nginx 1 MB:** container `web` dùng giới hạn mặc định 1 MB của Nginx nên tải tệp > 1 MB qua giao diện
+nhận 413 dù Document Service cho tới 25 MB — nâng `client_max_body_size` lên 26 MB (commit `652f3ce`), đã
+thử tải 5 MB qua `http://127.0.0.1/api/v1/files/upload` → 201.
+
+**Bộ 20 tài liệu mẫu:** 4 tài liệu Word/PDF/Excel/PowerPoint cho mỗi dự án demo (đặc tả website, catalogue
+sản phẩm, hướng dẫn CRM, mẫu báo giá, hướng dẫn Docker, đề xuất cấu hình máy chủ, hướng dẫn app di động,
+từ điển KPI, báo cáo KPI quý…), tiếng Việt có dấu, số liệu ghi rõ "minh hoạ". `scripts/seed-project-docs.js`
+tải vào thư mục của từng dự án (idempotent, tên tệp = tiêu đề); RAG lập chỉ mục 10 tài liệu PDF/DOCX (263
+đoạn), Excel/PowerPoint chỉ lưu trữ. Lỗi nhỏ lúc viết script: tiêu đề chứa dấu `/` bị phần tải lên cắt
+thành phần sau dấu `/` nên lần chạy thứ 2 tải trùng — đổi tiêu đề, xoá 2 bản trùng. Kiểm tra sống: mọi tài
+khoản thấy tài liệu dự án ⇔ thấy dự án, chat bot trả đoạn "Từ điển chỉ số KPI" đúng người (28/28).
+
+**Dữ liệu demo CRM:** seed tạo mọi khách hàng bằng Org Admin nên CRM của Manager demo trống sau đợt này —
+`scripts/migrate-demo-ownership.js` giao 8 khách hàng cho phòng Kinh doanh (Manager thấy 8 khách hàng/16
+deal, nhân viên demo 3/6).
+
+**Sao lưu:** `npm run backup` bỏ sót 3 CSDL ra đời sau (ml, messaging, inventory) và bucket ảnh sản phẩm —
+nay sao lưu 8 Postgres + TimescaleDB + MongoDB + mọi bucket MinIO đang có (11/11). Kiểm tra bằng cách phục
+hồi từng dump vào CSDL tạm: số dòng khớp hoàn toàn; không chạy `restore.js` đè lên hệ thống đang chạy vì
+dump dạng thường (không `--clean`) chỉ phục hồi đúng vào CSDL trống.
+
+**Kết quả:** gate tương đương CI (typecheck, lint 0 lỗi, kiểm tra chuỗi i18n, test có coverage, build) đều
+qua; 9/9 image Docker của CI build được; mock-data 01–08 PASS (04: 55/55, 08: 12/12).
+
+Chi tiết kỹ thuật: `Technical_Spec.md` §28; giao diện: `Wireframe.md` §5.1; kịch bản: `Mock_data.md` §4.4,
+§4.7, §9.
