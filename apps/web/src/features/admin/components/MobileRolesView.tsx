@@ -14,6 +14,7 @@ interface MobileRolesViewProps {
   onToggleModule: (role: RoleWithPermissions, modulePerms: Permission[]) => void;
 }
 
+// 26/10/2026 - Rà soát phân quyền Mobile: hiển thị đầy đủ 9 nhóm module chuẩn gồm 'Sản phẩm & Kho' và 'Nhắn tin & Trợ lý AI', loại bỏ nhóm 'Khác'
 export const MobileRolesView = memo(function MobileRolesView({
   roles,
   groupedModules,

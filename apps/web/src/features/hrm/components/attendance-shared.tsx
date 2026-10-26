@@ -15,12 +15,13 @@ import { getAttendancePhotoUrl } from '../api';
 // 03/10/2026: export - AttendanceDetailPage.tsx (trang chi tiet cham cong 1 nhan vien,
 // /attendance/:userId) tai su dung nguyen ham nay thay vi chep lai, mirror cach PhotoProofModal/
 // AttendanceStatusBadge/formatTotalHours/getTodayGmt7 duoi day cung duoc export cho cung muc dich.
+// 26/10/2026 - Rà soát responsive 390px/768px/1366px: thêm whitespace-nowrap và shrink-0 để badge không bị vỡ dòng
 export function OnSiteBadge({ isOnSite }: { isOnSite?: boolean | null }) {
   const { t } = useTranslation();
   if (isOnSite === undefined || isOnSite === null) return null;
   return (
     <span
-      className={`inline-flex items-center gap-1 text-[11px] font-semibold ${isOnSite ? 'text-emerald-600' : 'text-amber-600'}`}
+      className={`inline-flex items-center gap-1 text-[11px] font-semibold whitespace-nowrap shrink-0 ${isOnSite ? 'text-emerald-600' : 'text-amber-600'}`}
       title={isOnSite ? t('hrm:attendancePage.onSiteBadge.onSiteTitle') : t('hrm:attendancePage.onSiteBadge.offSiteTitle')}
     >
       <MapPinIcon className="h-3 w-3" />
@@ -35,13 +36,14 @@ export function OnSiteBadge({ isOnSite }: { isOnSite?: boolean | null }) {
  * anh), chi hien khi co ket qua ro rang. Hien kem % diem tuong dong de Manager tu doi chieu.
  * Merge nhanh Frontend2: chuyen tu AttendancePage.tsx sang day cung OnSiteBadge.
  */
+// 26/10/2026 - Rà soát responsive 390px/768px/1366px: thêm whitespace-nowrap và shrink-0 để badge không bị vỡ dòng trong bảng và card
 export function FaceMatchBadge({ matched, score }: { matched?: boolean | null; score?: number | null }) {
   const { t } = useTranslation();
   if (matched === undefined || matched === null) return null;
   const percent = score != null ? Math.round(Math.max(0, score) * 100) : null;
   return (
     <span
-      className={`inline-flex items-center gap-1 text-[11px] font-semibold ${matched ? 'text-emerald-600' : 'text-amber-600'}`}
+      className={`inline-flex items-center gap-1 text-[11px] font-semibold whitespace-nowrap shrink-0 ${matched ? 'text-emerald-600' : 'text-amber-600'}`}
       title={matched ? t('hrm:attendancePage.faceMatchBadge.matchedTitle') : t('hrm:attendancePage.faceMatchBadge.notMatchedTitle')}
     >
       <CameraIcon className="h-3 w-3" />

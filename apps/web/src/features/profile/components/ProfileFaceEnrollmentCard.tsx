@@ -44,6 +44,7 @@ export const ProfileFaceEnrollmentCard = memo(function ProfileFaceEnrollmentCard
 
   return (
     <>
+      {/* 26/10/2026 - Rà soát chuẩn phẳng Zero-shadow, viền 1px border-border-subtle, tông Teal #0E5E5E */}
       <Card className="border border-border-subtle bg-bg-surface rounded-radius-md shadow-none">
         <CardHeader className="pb-4 border-b border-border-subtle">
           <div className="flex items-center gap-2.5">
