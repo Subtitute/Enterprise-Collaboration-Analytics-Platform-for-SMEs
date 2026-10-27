@@ -1,6 +1,7 @@
 import type { ConfigService } from '@nestjs/config';
 import type { JwtService } from '@nestjs/jwt';
 import type { Socket } from 'socket.io';
+import type { DataSource } from 'typeorm';
 import { PERMISSIONS, type JwtAccessPayload } from '@app/common-dto';
 import type { RedisService } from '../redis/redis.service';
 import { AnalyticsGateway } from './analytics.gateway';
@@ -50,18 +51,50 @@ describe('AnalyticsGateway.handleConnection', () => {
         ? jest.fn().mockRejectedValue(options.blacklisted)
         : jest.fn().mockResolvedValue(options.blacklisted ?? false);
     const redisService = { isUserBlacklisted } as unknown as RedisService;
-    const gateway = new AnalyticsGateway(jwtService, configService, redisService);
+    // 26/10/2026: dataSource tra phong ban Manager dang phu trach (dim_department_manager) - xem resolveRooms().
+    const dataSource = { query: jest.fn().mockResolvedValue([{ department_id: 'dept-2' }]) } as unknown as DataSource;
+    const gateway = new AnalyticsGateway(jwtService, configService, redisService, dataSource);
     return { gateway };
   }
 
-  it('token hop le, co quyen analytics:view, khong blacklist: join dung room org:<id>, khong ngat ket noi', async () => {
-    const { gateway } = createGateway();
+  // 26/10/2026: chia phong theo pham vi - chi Org Admin con vao phong toan to chuc.
+  const ADMIN_PAYLOAD: JwtAccessPayload = { ...PAYLOAD, roles: ['Org Admin'], permissions: [PERMISSIONS.ANALYTICS_VIEW, PERMISSIONS.USER_MANAGE] };
+
+  it('Org Admin hop le, khong blacklist: join dung room org:<id>, khong ngat ket noi', async () => {
+    const { gateway } = createGateway({ payload: ADMIN_PAYLOAD });
     const socket = createSocket('valid.token');
 
     await gateway.handleConnection(socket);
 
-    expect(socket.join).toHaveBeenCalledWith('org:org-1');
+    expect(socket.join).toHaveBeenCalledWith(['org:org-1']);
     expect(socket.disconnect).not.toHaveBeenCalled();
+  });
+
+  it('Manager: KHONG vao phong toan to chuc - chi phong user:<minh> + dept:<phong ban JWT/phong ban phu trach>', async () => {
+    const { gateway } = createGateway({ payload: { ...PAYLOAD, departmentId: 'dept-1' } });
+    const socket = createSocket('valid.token');
+
+    await gateway.handleConnection(socket);
+
+    expect(socket.join).toHaveBeenCalledWith(['user:user-1', 'dept:dept-1', 'dept:dept-2']);
+  });
+
+  it('emitActivity: day toi phong to chuc + chinh nguoi thuc hien + phong ban cua nguoi thuc hien (tra dim_user)', async () => {
+    const { gateway } = createGateway();
+    const rooms: string[] = [];
+    const emit = jest.fn();
+    const operator: { to: jest.Mock; emit: jest.Mock } = { to: jest.fn(), emit };
+    operator.to.mockImplementation((room: string) => {
+      rooms.push(room);
+      return operator;
+    });
+    (gateway as unknown as { server: unknown }).server = operator;
+
+    gateway.emitActivity('org-1', { eventId: 'e1', eventType: 'task.created', occurredAt: 'x', actorId: 'actor-1' });
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(rooms).toEqual(['org:org-1', 'user:actor-1', 'dept:dept-2']);
+    expect(emit).toHaveBeenCalledWith('analytics:activity', expect.objectContaining({ eventId: 'e1' }));
   });
 
   it('ngat ket noi khi thieu token', async () => {
@@ -95,12 +128,12 @@ describe('AnalyticsGateway.handleConnection', () => {
   });
 
   it('fail-open (van join room) khi Redis loi luc kiem tra blacklist', async () => {
-    const { gateway } = createGateway({ blacklisted: new Error('Redis timeout') });
+    const { gateway } = createGateway({ blacklisted: new Error('Redis timeout'), payload: ADMIN_PAYLOAD });
     const socket = createSocket('valid.token');
 
     await gateway.handleConnection(socket);
 
-    expect(socket.join).toHaveBeenCalledWith('org:org-1');
+    expect(socket.join).toHaveBeenCalledWith(['org:org-1']);
     expect(socket.disconnect).not.toHaveBeenCalled();
   });
 

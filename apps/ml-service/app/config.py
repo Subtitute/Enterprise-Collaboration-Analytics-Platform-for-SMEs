@@ -42,3 +42,13 @@ elif IS_PRODUCTION:
     )
 else:
     INTERNAL_SHARED_SECRET = _DEV_FALLBACK_INTERNAL_SHARED_SECRET
+
+# 26/10/2026: kho anh nhan dien (Technical_Spec.md muc 27.5) - bucket PRIVATE rieng cua ml-service,
+# chi doc qua proxy co kiem tra pham vi (khong bao gio cap presigned URL cho anh nay). Mac dinh cho
+# dev cuc bo; trong Docker dat qua infra/docker-compose.yml (minio:9000 noi bo).
+MINIO_ENDPOINT = os.environ.get("MINIO_ENDPOINT", "localhost")
+MINIO_PORT = os.environ.get("MINIO_PORT", "9000")
+MINIO_USE_SSL = _bool_env("MINIO_USE_SSL", False)
+MINIO_ACCESS_KEY = os.environ.get("MINIO_ACCESS_KEY", "")
+MINIO_SECRET_KEY = os.environ.get("MINIO_SECRET_KEY", "")
+MINIO_ML_BUCKET = os.environ.get("MINIO_BUCKET", "ml-face-references")

@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequirePermissions } from '@app/common-guard';
-import { PERMISSIONS } from '@app/common-dto';
+import { AuthContext, PERMISSIONS } from '@app/common-dto';
+// 26/10/2026: ngu canh nguoi goi cho pham vi xem/duyet theo phong ban (xem src/user-directory).
+import { toScopeCaller } from '../user-directory/user-directory';
 import { LeaveRequestsService } from './leave-requests.service';
 import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
 import { DecideLeaveRequestDto } from './dto/decide-leave-request.dto';
@@ -45,8 +47,8 @@ export class LeaveRequestsController {
 
   @Get()
   @RequirePermissions(PERMISSIONS.LEAVE_REQUEST_VIEW)
-  findAll(@CurrentUser('organizationId') organizationId: string, @Query() query: LeaveRequestQueryDto) {
-    return this.leaveRequestsService.findAll(organizationId, query);
+  findAll(@CurrentUser('organizationId') organizationId: string, @Query() query: LeaveRequestQueryDto, @CurrentUser() caller: AuthContext) {
+    return this.leaveRequestsService.findAll(organizationId, query, toScopeCaller(caller));
   }
 
   @Patch(':id/approve')
@@ -56,8 +58,9 @@ export class LeaveRequestsController {
     @CurrentUser('userId') approverId: string,
     @Param('id') id: string,
     @Body() dto: DecideLeaveRequestDto,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.leaveRequestsService.approve(organizationId, id, approverId, dto);
+    return this.leaveRequestsService.approve(organizationId, id, approverId, dto, toScopeCaller(caller));
   }
 
   @Patch(':id/reject')
@@ -67,8 +70,9 @@ export class LeaveRequestsController {
     @CurrentUser('userId') approverId: string,
     @Param('id') id: string,
     @Body() dto: DecideLeaveRequestDto,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.leaveRequestsService.reject(organizationId, id, approverId, dto);
+    return this.leaveRequestsService.reject(organizationId, id, approverId, dto, toScopeCaller(caller));
   }
 
   /** Nguoi nop tu huy don nghi phep dang PENDING cua chinh minh - khong yeu cau quyen APPROVE. */

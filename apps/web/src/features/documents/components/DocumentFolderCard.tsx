@@ -5,6 +5,8 @@ import { FolderIcon, LockIcon, MoreVerticalIcon, EditIcon, ShareIcon, TrashIcon 
 import { formatRelativeTime } from '@/lib/utils';
 import type { Folder } from '@/types';
 import { useFilesQuery } from '../hooks';
+// 26/10/2026: nhan du an + doi du an cho thu muc cap goc (tai lieu theo pham vi du an).
+import { FolderProjectBadge } from './FolderProjectSelect';
 
 export interface DocumentFolderCardProps {
   folder: Folder;
@@ -15,6 +17,12 @@ export interface DocumentFolderCardProps {
   onRenameClick: (folder: Folder) => void;
   onDeleteClick: (folder: Folder) => void;
   updateVisibility: any;
+  // 26/10/2026: ten du an (nhan) va mo hop doi du an - chi ap dung cho thu muc cap goc.
+  projectNames: Map<string, string>;
+  onChangeProjectClick: (folder: Folder) => void;
+  // 26/10/2026: false = nguoi goi chi xem thu muc (cay toan cong ty) - an toan bo menu thao tac (doi ten,
+  // han che, chia se, doi du an, xoa deu la thao tac ghi) - xem writeAccess.ts.
+  canWrite: boolean;
 }
 
 export const DocumentFolderCard = memo(function DocumentFolderCard({
@@ -26,6 +34,9 @@ export const DocumentFolderCard = memo(function DocumentFolderCard({
   onRenameClick,
   onDeleteClick,
   updateVisibility,
+  projectNames,
+  onChangeProjectClick,
+  canWrite,
 }: DocumentFolderCardProps) {
   const { t } = useTranslation();
   const folderFilesQuery = useFilesQuery(folder.id);
@@ -55,6 +66,7 @@ export const DocumentFolderCard = memo(function DocumentFolderCard({
               <span className="truncate text-[13px] font-medium text-text-primary group-hover:text-accent transition-colors">
                 {folder.name}
               </span>
+              <FolderProjectBadge folder={folder} projectNames={projectNames} />
               {folder.visibility === 'restricted' && (
                 <span
                   title={t('documents:folderGrid.restrictedTooltip')}
@@ -76,80 +88,94 @@ export const DocumentFolderCard = memo(function DocumentFolderCard({
             </p>
           </div>
         </div>
-        <Dropdown
-          align="right"
-          trigger={({ toggle }) => (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggle();
-              }}
-              className="flex h-6 w-6 shrink-0 items-center justify-center -mr-1 rounded-radius-sm text-text-tertiary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer"
-              aria-label={t('documents:folderGrid.optionsAria')}
-            >
-              <MoreVerticalIcon className="h-4 w-4" />
-            </button>
-          )}
-        >
-          {({ close }) => (
-            <div
-              className="min-w-[200px] p-1 rounded-radius-md border border-border-subtle bg-white shadow-md"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <DropdownItem
-                className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
+        {canWrite && (
+          <Dropdown
+            align="right"
+            trigger={({ toggle }) => (
+              <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onRenameClick(folder);
-                  close();
+                  toggle();
                 }}
+                className="flex h-6 w-6 shrink-0 items-center justify-center -mr-1 rounded-radius-sm text-text-tertiary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer"
+                aria-label={t('documents:folderGrid.optionsAria')}
               >
-                <EditIcon className="h-4 w-4 text-text-secondary" /> {t('documents:folderGrid.rename')}
-              </DropdownItem>
-              {canManage(folder) && (
+                <MoreVerticalIcon className="h-4 w-4" />
+              </button>
+            )}
+          >
+            {({ close }) => (
+              <div
+                className="min-w-[200px] p-1 rounded-radius-md border border-border-subtle bg-white shadow-md"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <DropdownItem
                   className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
                   onClick={(e) => {
                     e.stopPropagation();
-                    updateVisibility.mutate({
-                      id: folder.id,
-                      visibility: folder.visibility === 'restricted' ? 'organization' : 'restricted',
-                    });
+                    onRenameClick(folder);
                     close();
                   }}
                 >
-                  <LockIcon className="h-4 w-4 text-text-secondary" />
-                  {folder.visibility === 'restricted'
-                    ? t('documents:folderGrid.openToOrganization')
-                    : t('documents:folderGrid.restrictAccess')}
+                  <EditIcon className="h-4 w-4 text-text-secondary" /> {t('documents:folderGrid.rename')}
                 </DropdownItem>
-              )}
-              {canManage(folder) && (
+                {canManage(folder) && (
+                  <DropdownItem
+                    className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateVisibility.mutate({
+                        id: folder.id,
+                        visibility: folder.visibility === 'restricted' ? 'organization' : 'restricted',
+                      });
+                      close();
+                    }}
+                  >
+                    <LockIcon className="h-4 w-4 text-text-secondary" />
+                    {folder.visibility === 'restricted'
+                      ? t('documents:folderGrid.openToOrganization')
+                      : t('documents:folderGrid.restrictAccess')}
+                  </DropdownItem>
+                )}
+                {canManage(folder) && (
+                  <DropdownItem
+                    className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onShare(folder);
+                      close();
+                    }}
+                  >
+                    <ShareIcon className="h-4 w-4 text-text-secondary" /> {t('documents:folderGrid.manageSharing')}
+                  </DropdownItem>
+                )}
+                {canManage(folder) && !folder.parentId && (
+                  <DropdownItem
+                    className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onChangeProjectClick(folder);
+                      close();
+                    }}
+                  >
+                    <FolderIcon className="h-4 w-4 text-text-secondary" /> {t('documents:projectScope.changeProject')}
+                  </DropdownItem>
+                )}
                 <DropdownItem
-                  className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
+                  className="h-9 px-2.5 rounded-radius-sm text-[13px] text-[#B3261E] hover:bg-[#F8E5E3]"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onShare(folder);
+                    onDeleteClick(folder);
                     close();
                   }}
                 >
-                  <ShareIcon className="h-4 w-4 text-text-secondary" /> {t('documents:folderGrid.manageSharing')}
+                  <TrashIcon className="h-4 w-4 text-[#B3261E]" /> {t('documents:folderGrid.delete')}
                 </DropdownItem>
-              )}
-              <DropdownItem
-                className="h-9 px-2.5 rounded-radius-sm text-[13px] text-[#B3261E] hover:bg-[#F8E5E3]"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteClick(folder);
-                  close();
-                }}
-              >
-                <TrashIcon className="h-4 w-4 text-[#B3261E]" /> {t('documents:folderGrid.delete')}
-              </DropdownItem>
-            </div>
-          )}
-        </Dropdown>
+              </div>
+            )}
+          </Dropdown>
+        )}
       </div>
     );
   }
@@ -172,80 +198,94 @@ export const DocumentFolderCard = memo(function DocumentFolderCard({
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-radius-md bg-accent-soft text-accent transition-colors">
           <FolderIcon className="h-5 w-5 stroke-1.5" />
         </span>
-        <Dropdown
-          align="right"
-          trigger={({ toggle }) => (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                toggle();
-              }}
-              className="flex h-6 w-6 shrink-0 items-center justify-center -mr-1 -mt-1 rounded-radius-sm text-text-tertiary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer"
-              aria-label={t('documents:folderGrid.optionsAria')}
-            >
-              <MoreVerticalIcon className="h-4 w-4" />
-            </button>
-          )}
-        >
-          {({ close }) => (
-            <div
-              className="min-w-[200px] p-1 rounded-radius-md border border-border-subtle bg-white shadow-md"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <DropdownItem
-                className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
+        {canWrite && (
+          <Dropdown
+            align="right"
+            trigger={({ toggle }) => (
+              <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onRenameClick(folder);
-                  close();
+                  toggle();
                 }}
+                className="flex h-6 w-6 shrink-0 items-center justify-center -mr-1 -mt-1 rounded-radius-sm text-text-tertiary hover:bg-bg-subtle hover:text-text-primary transition-colors cursor-pointer"
+                aria-label={t('documents:folderGrid.optionsAria')}
               >
-                <EditIcon className="h-4 w-4 text-text-secondary" /> {t('documents:folderGrid.rename')}
-              </DropdownItem>
-              {canManage(folder) && (
+                <MoreVerticalIcon className="h-4 w-4" />
+              </button>
+            )}
+          >
+            {({ close }) => (
+              <div
+                className="min-w-[200px] p-1 rounded-radius-md border border-border-subtle bg-white shadow-md"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <DropdownItem
                   className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
                   onClick={(e) => {
                     e.stopPropagation();
-                    updateVisibility.mutate({
-                      id: folder.id,
-                      visibility: folder.visibility === 'restricted' ? 'organization' : 'restricted',
-                    });
+                    onRenameClick(folder);
                     close();
                   }}
                 >
-                  <LockIcon className="h-4 w-4 text-text-secondary" />
-                  {folder.visibility === 'restricted'
-                    ? t('documents:folderGrid.openToOrganization')
-                    : t('documents:folderGrid.restrictAccess')}
+                  <EditIcon className="h-4 w-4 text-text-secondary" /> {t('documents:folderGrid.rename')}
                 </DropdownItem>
-              )}
-              {canManage(folder) && (
+                {canManage(folder) && (
+                  <DropdownItem
+                    className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updateVisibility.mutate({
+                        id: folder.id,
+                        visibility: folder.visibility === 'restricted' ? 'organization' : 'restricted',
+                      });
+                      close();
+                    }}
+                  >
+                    <LockIcon className="h-4 w-4 text-text-secondary" />
+                    {folder.visibility === 'restricted'
+                      ? t('documents:folderGrid.openToOrganization')
+                      : t('documents:folderGrid.restrictAccess')}
+                  </DropdownItem>
+                )}
+                {canManage(folder) && (
+                  <DropdownItem
+                    className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onShare(folder);
+                      close();
+                    }}
+                  >
+                    <ShareIcon className="h-4 w-4 text-text-secondary" /> {t('documents:folderGrid.manageSharing')}
+                  </DropdownItem>
+                )}
+                {canManage(folder) && !folder.parentId && (
+                  <DropdownItem
+                    className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onChangeProjectClick(folder);
+                      close();
+                    }}
+                  >
+                    <FolderIcon className="h-4 w-4 text-text-secondary" /> {t('documents:projectScope.changeProject')}
+                  </DropdownItem>
+                )}
                 <DropdownItem
-                  className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
+                  className="h-9 px-2.5 rounded-radius-sm text-[13px] text-[#B3261E] hover:bg-[#F8E5E3]"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onShare(folder);
+                    onDeleteClick(folder);
                     close();
                   }}
                 >
-                  <ShareIcon className="h-4 w-4 text-text-secondary" /> {t('documents:folderGrid.manageSharing')}
+                  <TrashIcon className="h-4 w-4 text-[#B3261E]" /> {t('documents:folderGrid.delete')}
                 </DropdownItem>
-              )}
-              <DropdownItem
-                className="h-9 px-2.5 rounded-radius-sm text-[13px] text-[#B3261E] hover:bg-[#F8E5E3]"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDeleteClick(folder);
-                  close();
-                }}
-              >
-                <TrashIcon className="h-4 w-4 text-[#B3261E]" /> {t('documents:folderGrid.delete')}
-              </DropdownItem>
-            </div>
-          )}
-        </Dropdown>
+              </div>
+            )}
+          </Dropdown>
+        )}
       </div>
 
       <div className="mt-3 block w-full text-left min-w-0">
@@ -262,6 +302,9 @@ export const DocumentFolderCard = memo(function DocumentFolderCard({
               <LockIcon className="h-3.5 w-3.5 stroke-1.5" aria-hidden="true" />
             </span>
           )}
+        </div>
+        <div className="mt-1.5 flex min-w-0">
+          <FolderProjectBadge folder={folder} projectNames={projectNames} />
         </div>
         <p className="mt-1 truncate text-[13px] leading-5 font-normal text-text-tertiary">
           {folderFilesQuery.isLoading ? (

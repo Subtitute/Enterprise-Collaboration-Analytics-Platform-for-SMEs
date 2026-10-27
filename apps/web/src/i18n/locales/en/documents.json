@@ -192,5 +192,33 @@
     "fileTooLargeDesc": "File size exceeds the limit for direct preview (> {{maxSize}}). Please download to view full content.",
     "unsupportedDesc": "This file format is not supported for inline browser preview. Please download to open in a compatible application.",
     "emptyContent": "The file is empty or has no content."
+  },
+  "projectScope": {
+    "label": "Project",
+    "placeholder": "Select a project",
+    "companyWide": "Company-wide",
+    "companyWideOption": "Company-wide (no project)",
+    "unknownProject": "Other project",
+    "requiredError": "Please choose a project for this folder",
+    "hint": "Subfolders and files inside are visible only to people within the project scope.",
+    "noProjects": "You are not in any project yet, so you cannot create a top-level folder. Create it inside a project folder or ask an admin to add you to a project.",
+    "filterAll": "All projects",
+    "filterAria": "Filter folders by project",
+    "changeProject": "Change project",
+    "changeTitle": "Change folder project",
+    "save": "Save",
+    "cancel": "Cancel",
+    "updated": "Folder project updated",
+    "updateError": "Could not change the folder project",
+    "rootUploadAdminOnly": "Only an Organization Admin can upload files to the root folder. Open a project folder to upload.",
+    "companyWideReadOnly": "Only an Organization Admin can modify company-wide folders; you have view access only."
+  },
+  "projectDocuments": {
+    "title": "Documents",
+    "subtitle": "Documents in this project's folders that you can view",
+    "loading": "Loading documents…",
+    "error": "Could not load project documents",
+    "empty": "There are no documents in this project that you can view yet.",
+    "openFolder": "Open containing folder"
   }
 }

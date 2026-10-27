@@ -24,6 +24,10 @@ interface RawFolder {
   // neu ban dau trien khai backend con thieu/lech ten truong; mapFolder() ben duoi co fallback.
   visibility?: 'organization' | 'restricted';
   createdByUserId?: string;
+  // 26/10/2026: tai lieu theo pham vi du an - du an cua thu muc cap goc (null = toan cong ty).
+  projectId?: string | null;
+  // 26/10/2026: quyen GHI cua nguoi goi (FolderAccessService.resolveFolderWrite) - xem writeAccess.ts.
+  canWrite?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -37,6 +41,8 @@ function mapFolder(raw: RawFolder): Folder {
     // RawFolder) - mac dinh coi la thu muc mo cho ca to chuc (hanh vi cu truoc tinh nang nay).
     visibility: raw.visibility ?? 'organization',
     createdByUserId: raw.createdByUserId ?? '',
+    projectId: raw.projectId ?? null,
+    canWrite: raw.canWrite,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
   };
@@ -67,6 +73,8 @@ interface RawFileMeta {
   currentVersion?: number;
   uploadedByUserId?: string;
   versions?: RawFileVersion[];
+  // 26/10/2026: quyen GHI cua nguoi goi tren tep (FilesService.withWriteFlags) - xem writeAccess.ts.
+  canWrite?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -81,6 +89,7 @@ function mapFile(raw: RawFileMeta): FileItem {
     version: raw.currentVersion,
     uploadedBy: raw.uploadedByUserId,
     versions: raw.versions?.map(mapFileVersion),
+    canWrite: raw.canWrite,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
   };
@@ -134,9 +143,34 @@ export async function fetchFolders(): Promise<Folder[]> {
   return unwrapList<RawFolder>(data).map(mapFolder);
 }
 
-export async function createFolder(payload: { name: string; parentId?: string | null }): Promise<Folder> {
-  const { data } = await apiClient.post<RawFolder>('/folders', { name: payload.name, parentFolderId: payload.parentId ?? undefined });
+// 26/10/2026: them projectId - bat buoc voi thu muc cap goc cua Employee/Manager, bo trong = toan
+// cong ty (chi Org Admin); thu muc con khong gui (ke thua thu muc cha).
+export async function createFolder(payload: { name: string; parentId?: string | null; projectId?: string | null }): Promise<Folder> {
+  const { data } = await apiClient.post<RawFolder>('/folders', {
+    name: payload.name,
+    parentFolderId: payload.parentId ?? undefined,
+    projectId: payload.projectId ?? undefined,
+  });
   return mapFolder(data);
+}
+
+// 26/10/2026: doi du an cua thu muc cap goc (null = chuyen thanh toan cong ty, chi Org Admin).
+export async function updateFolderProject(id: string, projectId: string | null): Promise<Folder> {
+  const { data } = await apiClient.patch<RawFolder>(`/folders/${id}`, { projectId });
+  return mapFolder(data);
+}
+
+// 26/10/2026: du an nguoi dung gan/xem duoc tai lieu - bo chon du an chi liet ke dung tap nay.
+export async function fetchAccessibleProjectIds(): Promise<string[]> {
+  const { data } = await apiClient.get<{ projectIds: string[] }>('/folders/accessible-projects');
+  return data.projectIds ?? [];
+}
+
+// 26/10/2026: tep cua 1 du an (moi thu muc thuoc du an ma nguoi dung xem duoc) - muc "Tai lieu" o
+// trang chi tiet du an.
+export async function fetchProjectFiles(projectId: string): Promise<FileItem[]> {
+  const { data } = await apiClient.get<PaginatedResponse<RawFileMeta>>('/files', { params: { projectId, limit: 50 } });
+  return data.data.map(mapFile);
 }
 
 export async function renameFolder(id: string, name: string): Promise<Folder> {

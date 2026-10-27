@@ -1,18 +1,49 @@
 import { apiClient } from '@/lib/api-client';
 import type { Department, FailedEvent, PaginatedResponse, Permission, RoleWithPermissions, User } from '@/types';
 
+// 26/10/2026: mat khau tuy chon (de trong -> email kich hoat), them so dien thoai/ma nhan vien
+// (Technical_Spec.md muc 27.6/27.9).
 export interface InviteUserPayload {
   email: string;
   fullName: string;
-  initialPassword: string;
+  initialPassword?: string;
   departmentId?: string;
   roleIds?: string[];
+  phoneNumber?: string;
+  employeeCode?: string;
 }
 
 export interface UpdateUserPayload {
   fullName?: string;
   departmentId?: string | null;
   roleIds?: string[];
+  phoneNumber?: string | null;
+  employeeCode?: string | null;
+}
+
+export interface DirectoryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  departmentId?: string;
+  status?: 'ACTIVE' | 'INACTIVE';
+}
+
+/** 26/10/2026: Danh sach nhan vien (ho so day du, theo pham vi Org Admin/Manager - muc 27.6). */
+export async function fetchDirectory(params: DirectoryParams): Promise<PaginatedResponse<User>> {
+  const { data } = await apiClient.get<PaginatedResponse<User>>('/users/directory', { params });
+  return data;
+}
+
+/** 26/10/2026: lay TOAN BO danh sach trong pham vi (trinh nhap Excel phan loai Moi/Cap nhat/Ngoai pham vi). */
+export async function fetchWholeDirectory(): Promise<User[]> {
+  const all: User[] = [];
+  for (let page = 1; page <= 20; page += 1) {
+    const res = await fetchDirectory({ page, limit: 500 });
+    all.push(...res.data);
+    if (all.length >= res.meta.total || res.data.length === 0) break;
+  }
+  return all;
 }
 
 export async function fetchUsers(params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<User>> {

@@ -11,9 +11,11 @@ import { FolderAccessService } from './folder-access.service';
 import { FoldersService } from './folders.service';
 import { FoldersController } from './folders.controller';
 import { OutboxModule } from '../outbox/outbox.module';
+// 26/10/2026: read-model du an cho tai lieu theo pham vi du an (FolderAccessService/FoldersService).
+import { ProjectRef } from '../entities/project-ref.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Folder, FileMeta, FileVersion, FolderShare]), OutboxModule],
+  imports: [TypeOrmModule.forFeature([Folder, FileMeta, FileVersion, FolderShare, ProjectRef]), OutboxModule],
   providers: [FoldersService, FolderAccessService],
   controllers: [FoldersController],
   exports: [FolderAccessService],

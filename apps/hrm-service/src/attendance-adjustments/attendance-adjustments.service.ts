@@ -1,14 +1,17 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, FindOperator, Repository } from 'typeorm';
 import {
   AttendanceAdjustmentApprovedPayload,
   AttendanceAdjustmentRejectedPayload,
   ERROR_CODES,
   EVENT_TYPES,
   PaginatedResponse,
+  PERMISSIONS,
   paginate,
 } from '@app/common-dto';
+// 26/10/2026: pham vi xem/duyet theo phong ban cua Manager - xem src/user-directory.
+import { ScopeCaller, assertCanDecide, scopeUserFilter } from '../user-directory/user-directory';
 import { AttendanceAdjustment, AttendanceAdjustmentStatus } from '../entities/attendance-adjustment.entity';
 import { Attendance } from '../entities/attendance.entity';
 import { OutboxService } from '../outbox/outbox.service';
@@ -102,9 +105,12 @@ export class AttendanceAdjustmentsService {
   }
 
   /** Danh sach giai trinh cham cong TOAN TO CHUC (Manager/Org Admin, PERMISSIONS.ATTENDANCE_ADJUSTMENT_VIEW). */
-  async findAll(organizationId: string, query: AttendanceAdjustmentQueryDto): Promise<PaginatedResponse<AttendanceAdjustment>> {
-    const where: { organizationId: string; userId?: string; status?: AttendanceAdjustmentStatus } = { organizationId };
-    if (query.userId) where.userId = query.userId;
+  // 26/10/2026: `caller` (tuy chon) - Manager chi xem cua chinh minh + thanh vien phong ban (xem scopeUserFilter()).
+  async findAll(organizationId: string, query: AttendanceAdjustmentQueryDto, caller?: ScopeCaller): Promise<PaginatedResponse<AttendanceAdjustment>> {
+    const where: { organizationId: string; userId?: string | FindOperator<string>; status?: AttendanceAdjustmentStatus } = { organizationId };
+    const userFilter = await scopeUserFilter(this.dataSource, organizationId, caller, PERMISSIONS.ATTENDANCE_ADJUSTMENT_VIEW, query.userId);
+    if (userFilter === false) return paginate([], 0, query.page, query.limit);
+    if (userFilter) where.userId = userFilter;
     if (query.status) where.status = query.status;
 
     const [data, total] = await this.adjustmentRepo.findAndCount({
@@ -116,11 +122,13 @@ export class AttendanceAdjustmentsService {
     return paginate(data, total, query.page, query.limit);
   }
 
+  // 26/10/2026: `caller` (tuy chon) - Manager chi duyet don cua thanh vien phong ban, khong tu duyet (xem assertCanDecide()).
   async approve(
     organizationId: string,
     id: string,
     approverId: string,
     dto: DecideAttendanceAdjustmentDto,
+    caller?: ScopeCaller,
   ): Promise<AttendanceAdjustment> {
     return this.decide(
       organizationId,
@@ -129,6 +137,7 @@ export class AttendanceAdjustmentsService {
       AttendanceAdjustmentStatus.APPROVED,
       dto,
       EVENT_TYPES.ATTENDANCE_ADJUSTMENT_APPROVED,
+      caller,
     );
   }
 
@@ -137,6 +146,7 @@ export class AttendanceAdjustmentsService {
     id: string,
     approverId: string,
     dto: DecideAttendanceAdjustmentDto,
+    caller?: ScopeCaller,
   ): Promise<AttendanceAdjustment> {
     return this.decide(
       organizationId,
@@ -145,6 +155,7 @@ export class AttendanceAdjustmentsService {
       AttendanceAdjustmentStatus.REJECTED,
       dto,
       EVENT_TYPES.ATTENDANCE_ADJUSTMENT_REJECTED,
+      caller,
     );
   }
 
@@ -161,11 +172,14 @@ export class AttendanceAdjustmentsService {
     toStatus: AttendanceAdjustmentStatus.APPROVED | AttendanceAdjustmentStatus.REJECTED,
     dto: DecideAttendanceAdjustmentDto,
     eventType: typeof EVENT_TYPES.ATTENDANCE_ADJUSTMENT_APPROVED | typeof EVENT_TYPES.ATTENDANCE_ADJUSTMENT_REJECTED,
+    caller?: ScopeCaller,
   ): Promise<AttendanceAdjustment> {
     const existing = await this.adjustmentRepo.findOne({ where: { id, organizationId } });
     if (!existing) {
       throw new NotFoundException({ message: 'Không tìm thấy yêu cầu giải trình chấm công', errorCode: ERROR_CODES.ATTENDANCE_ADJUSTMENT_NOT_FOUND });
     }
+    // 26/10/2026: chan Manager duyet giai trinh ngoai phong ban/cua chinh minh.
+    await assertCanDecide(this.dataSource, organizationId, caller, PERMISSIONS.ATTENDANCE_ADJUSTMENT_APPROVE, existing.userId);
     if (existing.status !== AttendanceAdjustmentStatus.PENDING) {
       throw new BadRequestException({
         message: 'Yêu cầu giải trình này đã được xử lý trước đó',

@@ -2,27 +2,23 @@ import { memo, useRef, ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
 import { Avatar } from '@/components/ui/Avatar';
-import { CalendarIcon, ShieldIcon, UploadIcon } from '@/components/ui/Icons';
+import { CalendarIcon, ShieldIcon, TrashIcon, UploadIcon } from '@/components/ui/Icons';
 import { formatDate } from '@/lib/utils';
-import { useToastStore } from '@/stores/toast.store';
 import type { User } from '@/types';
+import { useDeleteAvatar, useUploadAvatar } from '../hooks';
 
 interface ProfileIdentityCardProps {
   user: User;
-  fullName: string;
-  avatarPreview: string | null;
-  onAvatarChange: (previewUrl: string) => void;
 }
 
-export const ProfileIdentityCard = memo(function ProfileIdentityCard({
-  user,
-  fullName,
-  avatarPreview,
-  onAvatarChange,
-}: ProfileIdentityCardProps) {
+// 26/10/2026: avatar THAT (PUT/DELETE /users/me/avatar, Technical_Spec.md muc 27.6) thay cho ban xem
+// truoc bang URL.createObjectURL truoc day - anh cat vuong 512px JPEG o trinh duyet truoc khi gui.
+export const ProfileIdentityCard = memo(function ProfileIdentityCard({ user }: ProfileIdentityCardProps) {
   const { t } = useTranslation();
-  const toast = useToastStore((s) => s.push);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const uploadAvatar = useUploadAvatar();
+  const deleteAvatar = useDeleteAvatar();
+  const fullName = user.fullName;
 
   // Lấy vai trò chính hiển thị
   const primaryRole = user?.roles?.[0]?.name ?? '';
@@ -42,17 +38,10 @@ export const ProfileIdentityCard = memo(function ProfileIdentityCard({
     ? 'bg-info-soft text-info border border-info/20'
     : 'bg-bg-subtle text-text-secondary border border-border-subtle';
 
-  // Xử lý upload avatar (preview client-side)
   function handleAvatarChange(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      onAvatarChange(url);
-      toast({
-        variant: 'success',
-        title: t('profile:page.toasts.avatarSimulated'),
-      });
-    }
+    e.target.value = '';
+    if (file) uploadAvatar.mutate({ target: 'me', file });
   }
 
   return (
@@ -60,47 +49,58 @@ export const ProfileIdentityCard = memo(function ProfileIdentityCard({
       {/* Khối header nền accent-soft với avatar 96x96 căn giữa */}
       <div className="w-full bg-accent-soft pt-8 pb-6 flex justify-center items-center">
         <div className="relative group">
-          {avatarPreview ? (
-            <img
-              src={avatarPreview}
-              alt={fullName || user.fullName}
-              className="h-24 w-24 rounded-full object-cover ring-4 ring-white"
-            />
-          ) : (
-            <Avatar
-              name={fullName || user.fullName}
-              size="lg"
-              className="h-24 w-24 text-[32px] font-semibold bg-[#0E5E5E] text-white ring-4 ring-white"
-            />
-          )}
+          <Avatar
+            name={fullName}
+            src={user.avatarUrl}
+            size="lg"
+            className="h-24 w-24 text-[32px] font-semibold bg-[#0E5E5E] text-white ring-4 ring-white"
+          />
           {/* Nút upload tròn 32x32, nền accent #0E5E5E, icon upload 14px trắng, hover #0A4848 */}
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-[#0E5E5E] text-white hover:bg-[#0A4848] transition-colors focus:outline-none ring-2 ring-white cursor-pointer"
+            disabled={uploadAvatar.isPending}
+            className="absolute bottom-0 right-0 flex h-8 w-8 items-center justify-center rounded-full bg-[#0E5E5E] text-white hover:bg-[#0A4848] transition-colors focus:outline-none ring-2 ring-white cursor-pointer disabled:opacity-60"
             title={t('profile:page.buttons.uploadAvatar')}
+            aria-label={t('profile:page.buttons.uploadAvatar')}
           >
             <UploadIcon className="h-3.5 w-3.5 stroke-[2.2]" />
           </button>
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp"
             onChange={handleAvatarChange}
             className="hidden"
           />
         </div>
       </div>
+      {user.avatarUrl && (
+        <div className="flex justify-center bg-accent-soft pb-3">
+          <button
+            type="button"
+            onClick={() => deleteAvatar.mutate('me')}
+            disabled={deleteAvatar.isPending}
+            className="inline-flex items-center gap-1 text-[12px] font-medium text-text-secondary hover:text-error cursor-pointer disabled:opacity-60"
+          >
+            <TrashIcon className="h-3.5 w-3.5" />
+            {t('profile:page.buttons.removeAvatar')}
+          </button>
+        </div>
+      )}
 
       {/* Thông tin định danh */}
       <div className="px-6 py-6 text-center space-y-4">
         <div>
           <h2 className="text-[18px] leading-[26px] font-semibold text-text-primary tracking-tight">
-            {fullName || user.fullName}
+            {fullName}
           </h2>
           <p className="text-[13px] leading-[20px] text-text-tertiary truncate max-w-[240px] mx-auto mt-1">
             {user.email}
           </p>
+          {user.employeeCode && (
+            <p className="mt-0.5 font-mono text-[12px] text-text-tertiary">{user.employeeCode}</p>
+          )}
         </div>
 
         {/* Row badge: vai trò + trạng thái (gap 6) */}

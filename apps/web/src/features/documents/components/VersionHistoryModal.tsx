@@ -11,7 +11,18 @@ import { useFileQuery, useUploadNewVersion } from '../hooks';
 import { validateUploadFile } from '../api';
 import type { FileItem } from '@/types';
 
-export const VersionHistoryModal = memo(function VersionHistoryModal({ file, folderId, onClose }: { file: FileItem | null; folderId: string | null; onClose: () => void }) {
+// 26/10/2026: `canWrite` - an nut tai phien ban moi khi nguoi goi chi xem (cay toan cong ty, xem writeAccess.ts).
+export const VersionHistoryModal = memo(function VersionHistoryModal({
+  file,
+  folderId,
+  onClose,
+  canWrite = true,
+}: {
+  file: FileItem | null;
+  folderId: string | null;
+  onClose: () => void;
+  canWrite?: boolean;
+}) {
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const fileQuery = useFileQuery(file?.id);
@@ -24,9 +35,11 @@ export const VersionHistoryModal = memo(function VersionHistoryModal({ file, fol
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <p className="text-xs text-slate-500">{t('documents:versionHistoryModal.currentVersion', { version: detail?.version ?? 1 })}</p>
-          <Button size="sm" variant="outline" onClick={() => inputRef.current?.click()} isLoading={uploadVersion.isPending}>
-            <UploadIcon className="h-4 w-4" /> {t('documents:versionHistoryModal.uploadNewVersion')}
-          </Button>
+          {canWrite && (
+            <Button size="sm" variant="outline" onClick={() => inputRef.current?.click()} isLoading={uploadVersion.isPending}>
+              <UploadIcon className="h-4 w-4" /> {t('documents:versionHistoryModal.uploadNewVersion')}
+            </Button>
+          )}
           <input
             ref={inputRef}
             type="file"

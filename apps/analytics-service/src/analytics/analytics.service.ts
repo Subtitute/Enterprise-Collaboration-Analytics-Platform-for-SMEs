@@ -99,6 +99,33 @@ export interface DrillDownResult {
 
 const SUMMARY_CACHE_TTL_SECONDS = 8;
 
+/** 26/10/2026: ngu canh nguoi goi cho pham vi phong ban (userId/permissions/departmentId tu JWT). */
+export interface AnalyticsCaller {
+  userId: string;
+  permissions: string[];
+  departmentId: string | null;
+}
+
+/**
+ * 26/10/2026: menh de SQL "task co it nhat 1 lan giao viec (task.assigned) cho user thuoc phong ban"
+ * - dung chung cho moi KPI theo phong ban (truoc day lap lai nguyen van o 4 ham). `param` la vi tri
+ * tham so ($n) chua departmentId.
+ */
+function departmentTaskFilter(param: number): string {
+  return `
+          AND t.task_id IN (
+            SELECT DISTINCT fte.task_id
+            FROM fact_task_events fte
+            JOIN dim_user du ON du.user_id = fte.assignee_id
+            WHERE fte.event_type = 'task.assigned' AND du.department_id = $${param}
+          )`;
+}
+
+/** 26/10/2026: menh de SQL "actor_id thuoc phong ban" cho KPI tai lieu/nguoi hoat dong/ban hang theo phong ban. */
+function departmentActorFilter(param: number): string {
+  return `AND actor_id IN (SELECT user_id FROM dim_user WHERE department_id = $${param})`;
+}
+
 @Injectable()
 export class AnalyticsService {
   private readonly logger = new Logger(AnalyticsService.name);
@@ -107,6 +134,44 @@ export class AnalyticsService {
     @InjectDataSource() private readonly dataSource: DataSource,
     private readonly redisService: RedisService,
   ) {}
+
+  /**
+   * 26/10/2026: pham vi phong ban cua nguoi goi cho MOI endpoint KPI/dashboard - Manager KHONG con
+   * xem duoc so lieu toan to chuc hay cua phong ban khac (truoc day truyen departmentId bat ky cung
+   * duoc). Org Admin (USER_MANAGE): giu nguyen (tuy chon loc 1 phong ban bat ky, mac dinh toan to
+   * chuc). Nguoi khac (Manager): chi phong ban cua minh (JWT) hoac phong ban minh phu trach
+   * (dim_department_manager) - khong truyen departmentId thi mac dinh phong ban cua minh; truyen
+   * phong ban ngoai pham vi -> 403 DEPARTMENT_SCOPE_FORBIDDEN; khong co phong ban nao -> 403
+   * DEPARTMENT_SCOPE_MISSING. Tra ve departmentId de loc (undefined = toan to chuc).
+   */
+  async resolveDepartmentScope(
+    organizationId: string,
+    caller: AnalyticsCaller,
+    requestedDepartmentId?: string,
+  ): Promise<string | undefined> {
+    if ((caller.permissions ?? []).includes(PERMISSIONS.USER_MANAGE)) return requestedDepartmentId;
+    const allowed = await this.listScopeDepartmentIds(organizationId, caller);
+    if (allowed.length === 0) {
+      throw new ForbiddenException({
+        message: 'Ban chua duoc gan phong ban nen khong xem duoc so lieu phan tich',
+        errorCode: ERROR_CODES.DEPARTMENT_SCOPE_MISSING,
+      });
+    }
+    if (!requestedDepartmentId) return allowed[0];
+    if (!allowed.includes(requestedDepartmentId)) {
+      throw new ForbiddenException({
+        message: 'Ban chi xem duoc so lieu cua phong ban minh',
+        errorCode: ERROR_CODES.DEPARTMENT_SCOPE_FORBIDDEN,
+      });
+    }
+    return requestedDepartmentId;
+  }
+
+  /** 26/10/2026: phong ban cua chinh nguoi goi (JWT) + cac phong ban ho dang phu trach (dim_department_manager), JWT dung truoc. */
+  async listScopeDepartmentIds(organizationId: string, caller: AnalyticsCaller): Promise<string[]> {
+    const managed = await this.listDepartmentIdsManagedBy(organizationId, caller.userId);
+    return Array.from(new Set([caller.departmentId, ...managed].filter((id): id is string => Boolean(id))));
+  }
 
   /**
    * 25/08/2026: fix ra soat bao mat - kiem tra `departmentId` co THUC SU thuoc to chuc cua nguoi
@@ -261,6 +326,12 @@ export class AnalyticsService {
       taskParams,
     );
 
+    // 26/10/2026: khi loc phong ban, 2 KPI tai lieu moi/thanh vien hoat dong cung chi tinh nguoi
+    // thuc hien (actor_id) thuoc phong ban - truoc day 2 so nay LUON la cua toan to chuc ke ca khi
+    // loc phong ban, lam Manager (nay bi ep loc theo phong ban minh) thay so lieu cua phong ban khac.
+    const actorParams: unknown[] = departmentId ? [organizationId, sinceInterval, departmentId] : [organizationId, sinceInterval];
+    const actorFilter = departmentId ? departmentActorFilter(3) : '';
+
     const [docRow] = await this.dataSource.query(
       `
       SELECT count(*) AS new_documents
@@ -268,8 +339,9 @@ export class AnalyticsService {
       WHERE organization_id = $1
         AND event_type = 'document.uploaded'
         AND time >= now() - $2::interval
+        ${actorFilter}
       `,
-      [organizationId, sinceInterval],
+      actorParams,
     );
 
     const [activeUsersRow] = await this.dataSource.query(
@@ -279,8 +351,9 @@ export class AnalyticsService {
       WHERE organization_id = $1
         AND time >= now() - $2::interval
         AND actor_id IS NOT NULL
+        ${actorFilter}
       `,
-      [organizationId, sinceInterval],
+      actorParams,
     );
 
     const totalTasksCreated = toNumber(taskRow?.total_tasks_created);
@@ -332,8 +405,37 @@ export class AnalyticsService {
    * rieng cho tinh nang nay - xem huong fix dung (sua dinh nghia continuous aggregate) o ghi chu
    * 22/07/2026 phia tren.
    */
-  async getTaskTrend(organizationId: string, range: string): Promise<TaskTrendPoint[]> {
+  // 26/10/2026: them `departmentId` tuy chon - khac gioi han 28/07/2026 o tren, nay CO the loc theo
+  // phong ban bang cach quet THANG hypertable fact_task_events (co task_id/assignee_id o muc hang)
+  // thay vi continuous aggregate - cung bucket ngay/tuan GMT+7 nhu 2 aggregate. Chi nhanh nay (Manager
+  // bi ep loc theo phong ban minh, hoac Org Admin chu dong loc) tra chi phi quet bang tho; nhanh khong
+  // loc giu nguyen aggregate. Quy mo do an (vai nghin su kien) khong dang ke.
+  async getTaskTrend(organizationId: string, range: string, departmentId?: string): Promise<TaskTrendPoint[]> {
     const { table, sinceInterval } = resolveTaskTrendConfig(range);
+
+    if (departmentId) {
+      const bucketWidth = table === 'weekly_project_progress' ? '1 week' : '1 day';
+      const deptRows = await this.dataSource.query(
+        `
+        SELECT
+          time_bucket($3::interval, t.time, 'Asia/Ho_Chi_Minh')                                  AS bucket,
+          count(*) FILTER (WHERE t.event_type = 'task.created')                                   AS tasks_created,
+          count(*) FILTER (WHERE t.event_type = 'task.status_changed' AND t.to_status = 'DONE')   AS tasks_completed
+        FROM fact_task_events t
+        WHERE t.organization_id = $1
+          AND t.time >= now() - $2::interval
+          ${departmentTaskFilter(4)}
+        GROUP BY bucket
+        ORDER BY bucket ASC
+        `,
+        [organizationId, sinceInterval, bucketWidth, departmentId],
+      );
+      return deptRows.map((row: Record<string, unknown>) => ({
+        date: new Date(row.bucket as string).toISOString(),
+        tasksCreated: toNumber(row.tasks_created),
+        tasksCompleted: toNumber(row.tasks_completed),
+      }));
+    }
 
     const rows = await this.dataSource.query(
       `
@@ -450,8 +552,33 @@ export class AnalyticsService {
   }
 
   /** GET /analytics/document-activity?range=7d|30d - doc truc tiep continuous aggregate. */
-  async getDocumentActivity(organizationId: string, range: string): Promise<DocumentActivityPoint[]> {
+  // 26/10/2026: `departmentId` tuy chon - chi dem tai lieu do nguoi thuoc phong ban tai len/chia se,
+  // quet thang fact_document_events (aggregate khong giu actor_id), bucket ngay GMT+7 nhu aggregate.
+  async getDocumentActivity(organizationId: string, range: string, departmentId?: string): Promise<DocumentActivityPoint[]> {
     const sinceInterval = resolveDocumentActivityInterval(range);
+
+    if (departmentId) {
+      const deptRows = await this.dataSource.query(
+        `
+        SELECT
+          time_bucket('1 day', time, 'Asia/Ho_Chi_Minh')                          AS bucket,
+          count(*) FILTER (WHERE event_type = 'document.uploaded')                AS files_uploaded,
+          count(*) FILTER (WHERE event_type = 'document.shared')                  AS files_shared
+        FROM fact_document_events
+        WHERE organization_id = $1
+          AND time >= now() - $2::interval
+          ${departmentActorFilter(3)}
+        GROUP BY bucket
+        ORDER BY bucket ASC
+        `,
+        [organizationId, sinceInterval, departmentId],
+      );
+      return deptRows.map((row: Record<string, unknown>) => ({
+        date: new Date(row.bucket as string).toISOString(),
+        filesUploaded: toNumber(row.files_uploaded),
+        filesShared: toNumber(row.files_shared),
+      }));
+    }
 
     const rows = await this.dataSource.query(
       `
@@ -476,8 +603,34 @@ export class AnalyticsService {
    * gop TOAN BO danh muc/san pham (Inventory Service, Technical_Spec.md muc 22) - mirror CHINH
    * XAC getDocumentActivity() o tren, doc tu continuous aggregate daily_product_sales_summary.
    */
-  async getProductSalesTrend(organizationId: string, range: string): Promise<ProductSalesTrendPoint[]> {
+  // 26/10/2026: `departmentId` tuy chon - chi giao dich do nguoi thuoc phong ban ghi nhan (actor_id),
+  // quet thang fact_product_sales (aggregate khong giu actor_id).
+  async getProductSalesTrend(organizationId: string, range: string, departmentId?: string): Promise<ProductSalesTrendPoint[]> {
     const sinceInterval = resolveProductSalesTrendInterval(range);
+
+    if (departmentId) {
+      const deptRows = await this.dataSource.query(
+        `
+        SELECT
+          time_bucket('1 day', time, 'Asia/Ho_Chi_Minh')   AS bucket,
+          SUM(quantity)                                     AS units_sold,
+          SUM(quantity * unit_price)                        AS revenue
+        FROM fact_product_sales
+        WHERE organization_id = $1
+          AND event_type = 'customer_purchase.created'
+          AND time >= now() - $2::interval
+          ${departmentActorFilter(3)}
+        GROUP BY bucket
+        ORDER BY bucket ASC
+        `,
+        [organizationId, sinceInterval, departmentId],
+      );
+      return deptRows.map((row: Record<string, unknown>) => ({
+        date: new Date(row.bucket as string).toISOString(),
+        unitsSold: toNumber(row.units_sold),
+        revenue: toNumber(row.revenue),
+      }));
+    }
 
     const rows = await this.dataSource.query(
       `
@@ -509,12 +662,32 @@ export class AnalyticsService {
    * van - mirror tinh than @Max() cua PaginationQueryDto, khong can them 1 DTO rieng chi cho 1
    * tham so).
    */
-  async getTopProducts(organizationId: string, range: string, limit = 5): Promise<TopProduct[]> {
+  // 26/10/2026: `departmentId` tuy chon - cung cach loc voi getProductSalesTrend() o tren.
+  async getTopProducts(organizationId: string, range: string, limit = 5, departmentId?: string): Promise<TopProduct[]> {
     const sinceInterval = resolveProductSalesTrendInterval(range);
     const cappedLimit = Math.min(Math.max(1, limit), 20);
 
-    const rows = await this.dataSource.query(
-      `
+    const rows = departmentId
+      ? await this.dataSource.query(
+          `
+          SELECT
+            product_id,
+            category_id,
+            SUM(quantity)              AS units_sold,
+            SUM(quantity * unit_price) AS revenue
+          FROM fact_product_sales
+          WHERE organization_id = $1
+            AND event_type = 'customer_purchase.created'
+            AND time >= now() - $2::interval
+            ${departmentActorFilter(4)}
+          GROUP BY product_id, category_id
+          ORDER BY revenue DESC
+          LIMIT $3
+          `,
+          [organizationId, sinceInterval, cappedLimit, departmentId],
+        )
+      : await this.dataSource.query(
+          `
       SELECT
         product_id,
         category_id,
@@ -527,8 +700,8 @@ export class AnalyticsService {
       ORDER BY revenue DESC
       LIMIT $3
       `,
-      [organizationId, sinceInterval, cappedLimit],
-    );
+          [organizationId, sinceInterval, cappedLimit],
+        );
 
     return rows.map((row: Record<string, unknown>) => ({
       productId: row.product_id as string,
@@ -660,17 +833,24 @@ export class AnalyticsService {
    *  - Con lai (Employee, hoac Manager khong phu trach phong ban nao) -> CHI hoat dong cua chinh
    *    minh.
    */
+  // 26/10/2026: them `callerDepartmentId` (JWT) - "phong ban cua Manager" nay gom CA phong ban minh
+  // thuoc ve LAN phong ban minh phu trach (listScopeDepartmentIds()), thong nhat voi moi KPI khac.
   async getRecentActivity(
     organizationId: string,
     callerId: string,
     callerPermissions: string[],
+    callerDepartmentId: string | null = null,
   ): Promise<{ data: RecentActivityItem[]; scope: RecentActivityVisibilityScope }> {
     let actorFilterSql = '';
     const params: unknown[] = [organizationId];
     let scope: RecentActivityVisibilityScope = 'organization';
 
     if (!callerPermissions.includes(PERMISSIONS.USER_MANAGE)) {
-      const managedDepartmentIds = await this.listDepartmentIdsManagedBy(organizationId, callerId);
+      const managedDepartmentIds = await this.listScopeDepartmentIds(organizationId, {
+        userId: callerId,
+        permissions: callerPermissions,
+        departmentId: callerDepartmentId,
+      });
       if (managedDepartmentIds.length > 0) {
         params.push(callerId, managedDepartmentIds);
         actorFilterSql = `
@@ -736,6 +916,11 @@ export class AnalyticsService {
    *
    * GIOI HAN DA BIET (mirror ghi chu TaskCreatedPayload.dueDate): overdueTasks/due_date phan anh
    * han hoan thanh TAI THOI DIEM TAO task, chua dong bo neu doi han sau qua PATCH /tasks/:id.
+   *
+   * 26/10/2026: (1) "phong ban cua Manager" gom ca phong ban minh thuoc ve (JWT, `callerDepartmentId`)
+   * lan phong ban phu trach - thong nhat voi resolveDepartmentScope(); (2) scope=project NAY mo cho
+   * Manager nhung CHI dem task co nguoi duoc giao thuoc phong ban cua Manager (khong lo task cua phong
+   * ban khac trong cung du an) - van khong can bang thanh vien du an rieng. Org Admin khong doi.
    */
   async getDrillDown(
     organizationId: string,
@@ -744,18 +929,20 @@ export class AnalyticsService {
     range: string,
     callerId: string,
     callerPermissions: string[],
+    callerDepartmentId: string | null = null,
   ): Promise<DrillDownResult> {
+    let callerDepartmentIds: string[] | null = null;
     if (!callerPermissions.includes(PERMISSIONS.USER_MANAGE)) {
-      if (scope === 'project') {
+      callerDepartmentIds = await this.listScopeDepartmentIds(organizationId, {
+        userId: callerId,
+        permissions: callerPermissions,
+        departmentId: callerDepartmentId,
+      });
+      const forbidden =
+        scope === 'department' ? !callerDepartmentIds.includes(scopeId) : callerDepartmentIds.length === 0;
+      if (forbidden) {
         throw new ForbiddenException({
-          message: 'Chi Org Admin moi xem duoc chi tiet drill-down theo du an',
-          errorCode: ERROR_CODES.DRILL_DOWN_SCOPE_FORBIDDEN,
-        });
-      }
-      const managedDepartmentIds = await this.listDepartmentIdsManagedBy(organizationId, callerId);
-      if (!managedDepartmentIds.includes(scopeId)) {
-        throw new ForbiddenException({
-          message: 'Ban khong phu trach phong ban nay nen khong the xem chi tiet drill-down',
+          message: 'Ban chi xem duoc chi tiet drill-down trong pham vi phong ban cua minh',
           errorCode: ERROR_CODES.DRILL_DOWN_SCOPE_FORBIDDEN,
         });
       }
@@ -763,7 +950,7 @@ export class AnalyticsService {
 
     const { sinceInterval } = resolveTaskTrendConfig(range);
     const params: unknown[] = [organizationId, sinceInterval, scopeId];
-    const scopeFilter =
+    let scopeFilter =
       scope === 'department'
         ? `AND t.task_id IN (
              SELECT DISTINCT fte.task_id
@@ -772,6 +959,16 @@ export class AnalyticsService {
              WHERE fte.event_type = 'task.assigned' AND du.department_id = $3
            )`
         : `AND t.project_id = $3`;
+    if (scope === 'project' && callerDepartmentIds) {
+      params.push(callerDepartmentIds);
+      scopeFilter += `
+           AND t.task_id IN (
+             SELECT DISTINCT fte.task_id
+             FROM fact_task_events fte
+             JOIN dim_user du ON du.user_id = fte.assignee_id
+             WHERE fte.event_type = 'task.assigned' AND du.department_id = ANY($4::uuid[])
+           )`;
+    }
 
     const [countsRow] = await this.dataSource.query(
       `

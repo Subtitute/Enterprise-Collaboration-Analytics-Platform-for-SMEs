@@ -1,5 +1,5 @@
 // 22/07/2026: file moi - Fix 5 (code review).
-import { IsUUID, ValidateIf } from 'class-validator';
+import { IsOptional, IsUUID, ValidateIf } from 'class-validator';
 import { PaginationQueryDto } from '@app/common-dto';
 
 /**
@@ -22,4 +22,10 @@ export class FindFilesQueryDto extends PaginationQueryDto {
   @ValidateIf((_dto, value) => value !== undefined && value !== '')
   @IsUUID('4', { message: 'folderId phai la UUID hop le' })
   folderId?: string;
+
+  // 26/10/2026: liet ke tep cua 1 du an (moi thu muc co du an hieu luc nay, ke ca thu muc con) cho
+  // muc "Tai lieu" o trang chi tiet du an - co gia tri thi bo qua folderId. Xem FilesService.findAll().
+  @IsOptional()
+  @IsUUID('4', { message: 'projectId phai la UUID hop le' })
+  projectId?: string;
 }

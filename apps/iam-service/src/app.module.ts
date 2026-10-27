@@ -18,6 +18,9 @@ import { RefreshToken } from './entities/refresh-token.entity';
 import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { RolePermissionChangeLog } from './entities/role-permission-change-log.entity';
 import { OutboxEvent } from './entities/outbox-event.entity';
+// 26/10/2026: danh sach nhan vien & ho so that (Technical_Spec.md muc 27) - nhat ky sua ho so + avatar MinIO.
+import { UserProfileChangeLog } from './entities/user-profile-change-log.entity';
+import { MinioModule } from './minio/minio.module';
 import { KafkaModule } from './kafka/kafka.module';
 import { RedisModule } from './redis/redis.module';
 import { OutboxModule } from './outbox/outbox.module';
@@ -52,6 +55,7 @@ import { HealthController } from './health/health.controller';
           PasswordResetToken,
           RolePermissionChangeLog,
           OutboxEvent,
+          UserProfileChangeLog,
         ],
         // MVP: dung synchronize thay vi migration thu cong - Technical_Spec.md muc 14 (gioi han da biet).
         synchronize: true,
@@ -63,6 +67,7 @@ import { HealthController } from './health/health.controller';
     TerminusModule,
     KafkaModule,
     RedisModule,
+    MinioModule,
     OutboxModule,
     AuthModule,
     UsersModule,

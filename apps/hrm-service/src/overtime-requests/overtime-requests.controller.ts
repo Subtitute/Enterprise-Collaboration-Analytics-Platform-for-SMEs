@@ -1,7 +1,9 @@
 import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequirePermissions } from '@app/common-guard';
-import { PERMISSIONS } from '@app/common-dto';
+import { AuthContext, PERMISSIONS } from '@app/common-dto';
+// 26/10/2026: ngu canh nguoi goi cho pham vi xem/duyet theo phong ban (xem src/user-directory).
+import { toScopeCaller } from '../user-directory/user-directory';
 import { OvertimeRequestsService } from './overtime-requests.service';
 import { CreateOvertimeRequestDto } from './dto/create-overtime-request.dto';
 import { DecideOvertimeRequestDto } from './dto/decide-overtime-request.dto';
@@ -36,8 +38,8 @@ export class OvertimeRequestsController {
 
   @Get()
   @RequirePermissions(PERMISSIONS.OVERTIME_REQUEST_VIEW)
-  findAll(@CurrentUser('organizationId') organizationId: string, @Query() query: OvertimeRequestQueryDto) {
-    return this.overtimeRequestsService.findAll(organizationId, query);
+  findAll(@CurrentUser('organizationId') organizationId: string, @Query() query: OvertimeRequestQueryDto, @CurrentUser() caller: AuthContext) {
+    return this.overtimeRequestsService.findAll(organizationId, query, toScopeCaller(caller));
   }
 
   @Patch(':id/approve')
@@ -47,8 +49,9 @@ export class OvertimeRequestsController {
     @CurrentUser('userId') approverId: string,
     @Param('id') id: string,
     @Body() dto: DecideOvertimeRequestDto,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.overtimeRequestsService.approve(organizationId, id, approverId, dto);
+    return this.overtimeRequestsService.approve(organizationId, id, approverId, dto, toScopeCaller(caller));
   }
 
   @Patch(':id/reject')
@@ -58,7 +61,8 @@ export class OvertimeRequestsController {
     @CurrentUser('userId') approverId: string,
     @Param('id') id: string,
     @Body() dto: DecideOvertimeRequestDto,
+    @CurrentUser() caller: AuthContext,
   ) {
-    return this.overtimeRequestsService.reject(organizationId, id, approverId, dto);
+    return this.overtimeRequestsService.reject(organizationId, id, approverId, dto, toScopeCaller(caller));
   }
 }

@@ -1,5 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
-import { ILike } from 'typeorm';
+import { ILike, In } from 'typeorm';
 import { EVENT_TYPES, PERMISSIONS } from '@app/common-dto';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
@@ -22,6 +22,9 @@ describe('CustomersService', () => {
   // 17/09/2026: mo phong 2 nhom quyen theo DEFAULT_ROLE_PERMISSIONS (permission.enum.ts) - Manager/
   // Org Admin co ca CUSTOMER_VIEW lan CUSTOMER_CREATE (xem toan bo khach hang), Employee chi co
   // CUSTOMER_VIEW (chi xem khach hang minh phu trach) - xem chu thich tai CustomersService.findAll().
+  // 26/10/2026: chi Org Admin (USER_MANAGE) con xem toan bo; Manager (CUSTOMER_CREATE + phong ban)
+  // xem khach hang cua phong ban - xem describe "pham vi phong ban cua Manager" o cuoi file.
+  const orgAdminLikePermissions = [PERMISSIONS.USER_MANAGE, PERMISSIONS.CUSTOMER_VIEW, PERMISSIONS.CUSTOMER_CREATE];
   const managerLikePermissions = [PERMISSIONS.CUSTOMER_VIEW, PERMISSIONS.CUSTOMER_CREATE];
   const employeeLikePermissions = [PERMISSIONS.CUSTOMER_VIEW];
 
@@ -52,7 +55,7 @@ describe('CustomersService', () => {
         organizationId,
         { page: 2, limit: 10, search: 'Cong ty ABC' } as any,
         actorId,
-        managerLikePermissions,
+        orgAdminLikePermissions,
       );
 
       expect(customerRepoMock.findAndCount).toHaveBeenCalledWith({
@@ -73,7 +76,7 @@ describe('CustomersService', () => {
         {} as any,
       );
 
-      await service.findAll(organizationId, { page: 1, limit: 20 } as any, actorId, managerLikePermissions);
+      await service.findAll(organizationId, { page: 1, limit: 20 } as any, actorId, orgAdminLikePermissions);
 
       expect(customerRepoMock.findAndCount).toHaveBeenCalledWith(
         expect.objectContaining({ where: { organizationId } }),
@@ -93,7 +96,7 @@ describe('CustomersService', () => {
       await service.findAll(organizationId, { page: 1, limit: 20 } as any, actorId, employeeLikePermissions);
 
       expect(customerRepoMock.findAndCount).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { organizationId, ownerUserId: actorId } }),
+        expect.objectContaining({ where: { organizationId, ownerUserId: In([actorId]) } }),
       );
     });
 
@@ -119,7 +122,7 @@ describe('CustomersService', () => {
         organizationId,
         { page: 1, limit: 20 } as any,
         actorId,
-        managerLikePermissions,
+        orgAdminLikePermissions,
       );
 
       expect(result.data[0]).toMatchObject({ id: 'c1', openDealCount: 3, openDealValue: 150.5 });
@@ -141,7 +144,7 @@ describe('CustomersService', () => {
         organizationId,
         { page: 1, limit: 20 } as any,
         actorId,
-        managerLikePermissions,
+        orgAdminLikePermissions,
       );
 
       expect(result.data).toEqual([]);
@@ -155,7 +158,7 @@ describe('CustomersService', () => {
       const service = new CustomersService({} as any, customerRepoMock as any, {} as any, {} as any);
 
       await expect(
-        service.findById(organizationId, customerId, actorId, managerLikePermissions),
+        service.findById(organizationId, customerId, actorId, orgAdminLikePermissions),
       ).rejects.toThrow(NotFoundException);
       expect(customerRepoMock.findOne).toHaveBeenCalledWith({ where: { id: customerId, organizationId } });
     });
@@ -175,7 +178,7 @@ describe('CustomersService', () => {
         {} as any,
       );
 
-      const result = await service.findById(organizationId, customerId, actorId, managerLikePermissions);
+      const result = await service.findById(organizationId, customerId, actorId, orgAdminLikePermissions);
 
       expect(result).toMatchObject({ id: customerId, openDealCount: 2, openDealValue: 500 });
     });
@@ -188,7 +191,7 @@ describe('CustomersService', () => {
         service.findById(organizationId, customerId, actorId, employeeLikePermissions),
       ).rejects.toThrow(NotFoundException);
       expect(customerRepoMock.findOne).toHaveBeenCalledWith({
-        where: { id: customerId, organizationId, ownerUserId: actorId },
+        where: { organizationId, ownerUserId: In([actorId]), id: customerId },
       });
     });
 
@@ -208,7 +211,7 @@ describe('CustomersService', () => {
       const result = await service.findById(organizationId, customerId, actorId, employeeLikePermissions);
 
       expect(customerRepoMock.findOne).toHaveBeenCalledWith({
-        where: { id: customerId, organizationId, ownerUserId: actorId },
+        where: { organizationId, ownerUserId: In([actorId]), id: customerId },
       });
       expect(result).toMatchObject({ id: customerId, ownerUserId: actorId });
     });
@@ -430,6 +433,35 @@ describe('CustomersService', () => {
 
       expect(managerMock.remove).not.toHaveBeenCalled();
       expect(outboxServiceMock.record).not.toHaveBeenCalled();
+    });
+  });
+
+  // 26/10/2026: Manager chi thay/sua khach hang do chinh minh hoac thanh vien phong ban phu trach.
+  describe('pham vi phong ban cua Manager', () => {
+    const departmentId = 'dept-1';
+    const dimUserRepo = { find: jest.fn().mockResolvedValue([{ userId: 'member-1' }]) };
+    const dataSourceMock = { getRepository: jest.fn().mockReturnValue(dimUserRepo) };
+
+    it('findAll: ownerUserId thuoc {chinh minh + thanh vien phong ban}', async () => {
+      const customerRepoMock = { findAndCount: jest.fn().mockResolvedValue([[], 0]) };
+      const service = new CustomersService(dataSourceMock as any, customerRepoMock as any, {} as any, {} as any);
+
+      await service.findAll(organizationId, { page: 1, limit: 20 } as any, actorId, managerLikePermissions, departmentId);
+
+      expect(dimUserRepo.find).toHaveBeenCalledWith(expect.objectContaining({ where: { organizationId, departmentId } }));
+      expect(customerRepoMock.findAndCount).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { organizationId, ownerUserId: In([actorId, 'member-1']) } }),
+      );
+    });
+
+    it('update: khach hang ngoai pham vi phong ban -> NotFoundException, khong save', async () => {
+      const customerRepoMock = { findOne: jest.fn().mockResolvedValue(null), save: jest.fn() };
+      const service = new CustomersService(dataSourceMock as any, customerRepoMock as any, {} as any, {} as any);
+
+      await expect(
+        service.update(organizationId, customerId, { name: 'X' }, { userId: actorId, permissions: managerLikePermissions, departmentId }),
+      ).rejects.toThrow(NotFoundException);
+      expect(customerRepoMock.save).not.toHaveBeenCalled();
     });
   });
 });

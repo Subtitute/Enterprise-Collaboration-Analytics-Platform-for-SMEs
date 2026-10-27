@@ -275,8 +275,8 @@
     "deleteButton": "Delete enrollment",
     "enrolledAt": "Face enrolled at {{date}}",
     "softWarningNote": "This is only a reference signal for managers to cross-check against the attendance photo - it never blocks your check-in/out, even if the face doesn't match or hasn't been enrolled yet.",
-    "deleteConfirmTitle": "Delete face enrollment?",
-    "deleteConfirmDescription": "Your enrolled facial data will be permanently deleted. You can re-enroll at any time.",
+    "deleteConfirmTitle": "Delete photo & withdraw consent?",
+    "deleteConfirmDescription": "Your photo and face features (including any photo awaiting confirmation) will be permanently deleted; administrators cannot upload photos for you until you enroll again. Attendance keeps working normally.",
     "cameraModalTitle": "Capture face enrollment photo",
     "captureButton": "Capture",
     "confirmButton": "Confirm enrollment",
@@ -284,8 +284,22 @@
       "enrollSuccess": "Face enrolled successfully",
       "enrollError": "Couldn't enroll face",
       "deleteSuccess": "Face enrollment deleted",
-      "deleteError": "Couldn't delete face enrollment"
-    }
+      "deleteError": "Couldn't delete face enrollment",
+      "confirmSuccess": "New face photo confirmed",
+      "rejectSuccess": "Face photo declined",
+      "actionError": "Could not complete the action"
+    },
+    "pendingFrom": "New photo uploaded by {{name}} on {{date}}.",
+    "pendingNotUsed": "This photo is not used for matching until you confirm it (expires {{date}}).",
+    "confirmPending": "Use this photo",
+    "rejectPending": "Decline",
+    "rejectConfirmTitle": "Decline the face photo?",
+    "rejectConfirmDescription": "You will not use face recognition and administrators cannot upload photos for you. You can enroll yourself again at any time.",
+    "cameraButton": "Use camera",
+    "uploadButton": "Upload a photo",
+    "withdrawButton": "Delete & withdraw consent",
+    "withdrawnNote": "You declined/withdrew consent ({{date}}). Administrators cannot upload photos for you; you can enroll yourself again.",
+    "noneNote": "You have no face reference photo. Attendance works normally without it."
   },
   "toasts": {
     "checkInSuccess": "Checked in",
@@ -406,5 +420,36 @@
         "overtime": "Overtime (OT)"
       }
     }
+  },
+  "face": {
+    "status": {
+      "NONE": "Not enrolled",
+      "ACTIVE": "In use",
+      "PENDING_CONSENT": "Awaiting employee",
+      "WITHDRAWN": "Employee declined"
+    },
+    "sources": {
+      "SELF_CAMERA": "Self (camera)",
+      "SELF_UPLOAD": "Self (upload)",
+      "ADMIN": "Uploaded by administrator",
+      "MANAGER": "Uploaded by manager",
+      "IMPORT": "Excel import"
+    },
+    "consent": {
+      "title": "Consent to face data processing (version v1)",
+      "purpose": "Your photo and face features are only used to compare at attendance check-in; the result is only an advisory warning.",
+      "stored": "The photo is stored; your Org Admin and department Manager can view it, and every view is logged.",
+      "noImpact": "Declining or withdrawing does not affect attendance.",
+      "deletion": "The data is deleted when you withdraw, or when your account is deactivated or deleted.",
+      "checkbox": "I have read and agree",
+      "agree": "Agree",
+      "cancel": "Cancel"
+    },
+    "photoAlt": "Face reference photo",
+    "pendingPhotoAlt": "Face photo awaiting confirmation",
+    "noStoredPhoto": "No stored photo (enrolled before photos were kept)",
+    "photoLoadError": "Could not load photo",
+    "activeInfo": "Source: {{source}} · Updated: {{date}}",
+    "unknownActor": "An administrator"
   }
 }

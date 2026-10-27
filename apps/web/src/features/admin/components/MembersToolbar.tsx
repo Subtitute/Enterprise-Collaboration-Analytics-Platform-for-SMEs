@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { SearchIcon } from '@/components/ui/Icons';
+import { LockIcon, SearchIcon } from '@/components/ui/Icons';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import type { Department } from '@/types';
 
@@ -14,6 +14,11 @@ interface MembersToolbarProps {
   departments: Department[];
   isFiltering: boolean;
   onClearFilters: () => void;
+  // 26/10/2026: Danh sach nhan vien (Wireframe muc 16.1) - Manager: phong ban khoa san (ten phong),
+  // khong co bo loc trang thai tai khoan; ca 2 vai tro co bo loc trang thai anh nhan dien.
+  lockedDepartmentName?: string;
+  selectedFace: string;
+  onFaceChange: (val: string) => void;
 }
 
 export const MembersToolbar = memo(function MembersToolbar({
@@ -26,6 +31,9 @@ export const MembersToolbar = memo(function MembersToolbar({
   departments,
   isFiltering,
   onClearFilters,
+  lockedDepartmentName,
+  selectedFace,
+  onFaceChange,
 }: MembersToolbarProps) {
   const { t } = useTranslation();
 
@@ -44,6 +52,12 @@ export const MembersToolbar = memo(function MembersToolbar({
       </div>
 
       {/* Dropdown lọc theo Phòng ban */}
+      {lockedDepartmentName !== undefined ? (
+        <div className="flex h-9 w-full items-center gap-1.5 rounded-radius-sm border border-border-strong bg-bg-muted px-3 text-[13px] text-text-secondary sm:w-[200px]">
+          <LockIcon className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">{lockedDepartmentName || '—'}</span>
+        </div>
+      ) : (
       <div className="w-full sm:w-[180px]">
         <CustomFilterSelect
           value={selectedDept}
@@ -59,7 +73,22 @@ export const MembersToolbar = memo(function MembersToolbar({
         />
       </div>
 
+      )}
+
+      <div className="w-full sm:w-[190px]">
+        <CustomFilterSelect
+          value={selectedFace}
+          onChange={onFaceChange}
+          ariaLabel={t('admin:membersPage.filterFaceAria')}
+          options={[
+            { value: '', label: t('admin:membersPage.allFaceStatuses') },
+            ...(['ACTIVE', 'PENDING_CONSENT', 'NONE', 'WITHDRAWN'] as const).map((s) => ({ value: s, label: t(`hrm:face.status.${s}`) })),
+          ]}
+        />
+      </div>
+
       {/* Dropdown lọc theo Trạng thái hoạt động */}
+      {lockedDepartmentName === undefined && (
       <div className="w-full sm:w-[170px]">
         <CustomFilterSelect
           value={selectedStatus}
@@ -72,6 +101,7 @@ export const MembersToolbar = memo(function MembersToolbar({
           ]}
         />
       </div>
+      )}
 
       {isFiltering && (
         <button

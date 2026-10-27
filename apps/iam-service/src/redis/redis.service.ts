@@ -71,6 +71,15 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * 26/10/2026: kich hoat lai tai khoan -> go khoa thu hoi. Truoc day khoa con song toi het TTL (bang
+   * thoi han access token) nen nguoi vua duoc kich hoat lai dang nhap duoc nhung MOI API deu bi Gateway
+   * tra 401 GATEWAY_ACCOUNT_DISABLED.
+   */
+  async unblacklistUser(userId: string): Promise<void> {
+    await this.client.del(`blacklist:user:${userId}`);
+  }
+
+  /**
    * Dem so lan dang nhap THAT BAI lien tiep theo email (da chuan hoa chu thuong o phia goi,
    * xem AuthService.login()) - bo sung 22/08/2026 de chan brute-force dang nhap THEO TAI KHOAN
    * CU THE, bo sung cho rate-limit theo IP da co san o Gateway. Fixed-window bang INCR + EXPIRE

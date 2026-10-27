@@ -2162,3 +2162,158 @@ Layer 4) và việc backend nhỏ (trạng thái `CANCELLED` cho đơn nghỉ ph
 công việc), kèm quy tắc làm việc (1 nhánh/gói việc, Pull Request, đồng bộ `main` hằng tuần).
 
 Chi tiết kỹ thuật: `Technical_Spec.md` §26 (và cuối §25); phân công: `Script.md` §3.3–§3.4.
+
+## 26/10/2026 — Danh sách nhân viên & kho ảnh nhận diện (phân tích + kế hoạch, chưa code)
+
+Phân tích để chuẩn bị tính năng "Danh sách nhân viên": xem thông tin cá nhân, email, số điện thoại, ảnh
+nhận diện; Org Admin và Manager (trong phạm vi) cập nhật avatar + ảnh nhận diện, mọi người tự cập nhật
+của mình; nhân viên chỉ xem hồ sơ của chính mình; nhập danh sách kèm ảnh nhận diện qua Excel. Hai luồng
+phân tích độc lập: 1 luồng thiết kế, 1 luồng phản biện tìm lỗ hổng (42 mục), sau đó đối chiếu và chốt.
+Chỉ sửa tài liệu, không đổi mã nguồn.
+
+**3 câu hỏi hiện trạng (có bằng chứng file:line ở `Technical_Spec.md` §27.1):**
+1. Kho khuôn mặt nằm ở `ml-service` (`ml_db`, bảng `face_enrollments`: `user_id`, `organization_id`,
+   `embedding` 512 chiều, `enrolled_at`) — **chỉ lưu embedding, không lưu ảnh gốc**. Ảnh check-in/out ở
+   bucket `hrm-attendance`, lưu vô thời hạn (không lifecycle, hrm-service không xử lý `USER_DELETED`).
+2. Chỉ chính chủ sửa được (4 endpoint `/ml/face/*` luôn dùng `ctx.user_id`); không có đường nào cho Org
+   Admin/Manager; ô đồng ý chỉ là state phía client.
+3. Nhập Excel (§19.1) có cho nhân viên nhưng không có ảnh, không cập nhật được người đã có, mật khẩu mặc
+   định dùng chung `Password123!`.
+
+**Lỗ hổng chính tìm được:** hồ sơ cá nhân web còn giả lập (số điện thoại cố định `0912 345 678`, nút Lưu
+chỉ `setTimeout`, avatar chỉ xem trước); `users` không có số điện thoại/avatar/mã NV; `GET /users` mở cho
+mọi nhân viên nên không thể thêm trường riêng tư vào đó; truy vấn khuôn mặt ở ml-service chỉ lọc
+`user_id` — sẽ thành lỗ hổng xuyên tenant ngay khi thêm "đăng ký hộ"; model nạp lười không khoá (2
+request đầu có thể nạp 2 lần ArcFace 261 MB dưới giới hạn 1 GB) và detector dùng chung giữa các thread;
+vô hiệu hoá tài khoản không xoá embedding; ảnh đăng ký nhiều mặt bị chọn bừa mặt tin cậy nhất; không kiểm
+tra trùng khuôn mặt giữa các nhân viên (gian lận chấm công hộ); SheetJS bản cộng đồng không đọc được ảnh
+nhúng trong Excel; Nginx web mặc định 1 MB (đã sửa sẵn thành 26 MB).
+
+**Quyết định chốt:** lưu ảnh nhận diện gốc trong bucket private `ml-face-references` (mất EXIF/GPS), chỉ
+đọc qua proxy ml-service có kiểm tra phạm vi + `no-store` + nhật ký từng lượt xem, không presigned URL;
+avatar tách riêng ở `iam-avatars` (presigned TTL ngắn); đồng ý lưu phía server (`face_consents`), ảnh tải
+hộ/nhập ở trạng thái `PENDING_CONSENT` không dùng để so khớp cho tới khi nhân viên xác nhận, tự huỷ sau
+30 ngày; phạm vi Manager theo `departmentId` trong JWT, chỉ với Employee phòng mình; cho tự đăng ký lại
+có nhật ký + kiểm tra trùng 1:N (≥ 0,5 chặn, 0,35–0,5 cảnh báo); nhập Excel + ZIP có xem trước, kiểm tra
+phía server và báo cáo lỗi; cột mật khẩu tuỳ chọn + email kích hoạt; xoá dữ liệu khuôn mặt khi vô hiệu
+hoá; không có công tắc theo tổ chức; `ecap-mobile` để đợt sau. Giai đoạn 0 sửa trước 2 lỗi ml-service.
+Trong 42 mục phản biện: loại hẳn 4 mục (#7 công tắc mặc định tắt, #8 không lưu ảnh gốc, #26 phạm vi
+theo `managerId`, #30 permission mới), hoãn 1 mục (#36 mobile), nhận một phần 7 mục (#4, #10, #11, #15,
+#16, #22, #29 — vd bỏ quy trình duyệt khi tự đăng ký lại, chưa mã hoá embedding); còn lại nhận toàn bộ.
+Lý do ở `Technical_Spec.md` §27.14–§27.15.
+
+**Cập nhật pháp lý:** căn cứ hiện hành từ 01/01/2026 là Luật Bảo vệ dữ liệu cá nhân số 91/2025/QH15 và
+Nghị định 356/2025/NĐ-CP (thay Nghị định 13/2023/NĐ-CP); dữ liệu sinh trắc là dữ liệu cá nhân nhạy cảm.
+Bảng ánh xạ điều khoản → cơ chế lập theo bản tóm tắt, cần đối chiếu toàn văn trước khi trích vào báo cáo.
+
+**Kế hoạch:** 6 giai đoạn bắt buộc (0–5, ≈ 14 người-ngày) + 1 giai đoạn tuỳ chọn (xoá ảnh chấm công sau
+90 ngày, thông báo khi người khác đổi avatar, avatar trên mobile, mã hoá embedding).
+
+Chi tiết kỹ thuật: `Technical_Spec.md` §27 (và ghi chú cuối §24); giao diện: `Wireframe.md` §16.
+
+## 26/10/2026 (tiếp) — Tài liệu theo phạm vi dự án + phạm vi dữ liệu của Manager
+
+Hai yêu cầu làm cùng đợt vì chạm cùng một câu hỏi "ai được thấy gì": (1) tài liệu đi theo dự án thay vì
+mở cho cả tổ chức; (2) Manager phải cao hơn Employee nhưng thấp hơn Org Admin ở **mọi** module — trước đây
+Manager xem dự án, khách hàng, đơn nghỉ phép, số liệu Analytics của cả tổ chức giống Org Admin, tự duyệt
+được đơn của mình, còn Employee thấy mọi deal và hồ sơ đầy đủ của mọi người. Làm theo 4 vòng: 2 luồng
+triển khai song song, 1 vòng rà soát và sửa, 1 vòng kiểm tra chéo cuối trước commit (`54ba030`).
+
+**Chính sách chốt:** người thuộc dự án = người phụ trách/thành viên/người tạo (giao Task tự thêm thành
+viên); dự án liên quan tới phòng ban = 1 trong 3 vai trò đó thuộc phòng ban. `resolveDataScope()` dùng
+chung cho mọi service: Employee — của mình; Manager — của mình + phòng ban (`departmentId` trong JWT);
+Org Admin — toàn tổ chức. Tài liệu: thư mục cấp gốc gắn dự án, chỉ người thuộc dự án (Manager: thêm dự án
+liên quan phòng ban) xem được; cây toàn công ty ai cũng xem nhưng chỉ Org Admin ghi (trừ chia sẻ tường
+minh); RAG dùng chung bộ lọc. Document Service lần đầu tiêu thụ Kafka: 3 read-model (`project_refs`,
+`project_member_refs`, `user_department_refs`), 3 sự kiện mới (`project.member_added`,
+`project.member_removed`, `project.lead_changed`), backfill qua endpoint nội bộ lúc khởi động và không chặn
+consumer khi lỗi. Project-Task, CRM, HRM có bảng `dim_user` riêng để biết thành viên phòng ban.
+
+**Lỗi tìm ra ở vòng rà soát (cả hai chỉ xuất hiện khi ghép 2 luồng):**
+- **Cao — ghi theo id vượt phạm vi (IDOR):** phạm vi mới chỉ thu hẹp đường đọc. Manager phòng Kỹ thuật
+  `GET /projects/:id` → 404 nhưng `PATCH` → 200 và tự thêm mình làm thành viên → 201, sau đó thấy cả dự án
+  lẫn tài liệu dự án; Employee sửa Task, tự giao Task cho mình ở dự án không được xem. Sửa: mọi thao tác ghi
+  theo id ở dự án/Task/CRM kiểm tra phạm vi, ngoài phạm vi trả 404 cùng mã "không tồn tại".
+- **Trung bình — ghi đè tệp toàn công ty:** tệp ở thư mục gốc ai cũng ghi được (Employee tải phiên bản mới
+  đè tệp của Org Admin → 201, Manager xoá → 200). Sửa thành "cây toàn công ty chỉ Org Admin ghi".
+- Thấp: migration phụ thuộc 1 lần chờ 5 giây ở seed (thêm thử lại 10 × 3 giây).
+
+**Vòng kiểm tra chéo:** đồng ý toàn bộ bản sửa; xác minh lại sống 92/92 đường ghi/đọc theo id. Thêm 2
+quyết định của chủ dự án: gỡ thành viên còn Task chưa xong → 409 `PROJECT_MEMBER_HAS_OPEN_TASKS` (giao lại
+Task trước); nút thao tác trên từng tệp theo quyền ghi của chính tệp (`canWrite`, tệp được chia sẻ EDIT
+trong cây toàn công ty vẫn hiện nút). Bổ sung biến môi trường còn thiếu trong `.env.example`
+(`PROJECT_TASK_SERVICE_URL`, `INTERNAL_SHARED_SECRET`).
+
+**Nginx 1 MB:** container `web` dùng giới hạn mặc định 1 MB của Nginx nên tải tệp > 1 MB qua giao diện
+nhận 413 dù Document Service cho tới 25 MB — nâng `client_max_body_size` lên 26 MB (commit `652f3ce`), đã
+thử tải 5 MB qua `http://127.0.0.1/api/v1/files/upload` → 201.
+
+**Bộ 20 tài liệu mẫu:** 4 tài liệu Word/PDF/Excel/PowerPoint cho mỗi dự án demo (đặc tả website, catalogue
+sản phẩm, hướng dẫn CRM, mẫu báo giá, hướng dẫn Docker, đề xuất cấu hình máy chủ, hướng dẫn app di động,
+từ điển KPI, báo cáo KPI quý…), tiếng Việt có dấu, số liệu ghi rõ "minh hoạ". `scripts/seed-project-docs.js`
+tải vào thư mục của từng dự án (idempotent, tên tệp = tiêu đề); RAG lập chỉ mục 10 tài liệu PDF/DOCX (263
+đoạn), Excel/PowerPoint chỉ lưu trữ. Lỗi nhỏ lúc viết script: tiêu đề chứa dấu `/` bị phần tải lên cắt
+thành phần sau dấu `/` nên lần chạy thứ 2 tải trùng — đổi tiêu đề, xoá 2 bản trùng. Kiểm tra sống: mọi tài
+khoản thấy tài liệu dự án ⇔ thấy dự án, chat bot trả đoạn "Từ điển chỉ số KPI" đúng người (28/28).
+
+**Dữ liệu demo CRM:** seed tạo mọi khách hàng bằng Org Admin nên CRM của Manager demo trống sau đợt này —
+`scripts/migrate-demo-ownership.js` giao 8 khách hàng cho phòng Kinh doanh (Manager thấy 8 khách hàng/16
+deal, nhân viên demo 3/6).
+
+**Sao lưu:** `npm run backup` bỏ sót 3 CSDL ra đời sau (ml, messaging, inventory) và bucket ảnh sản phẩm —
+nay sao lưu 8 Postgres + TimescaleDB + MongoDB + mọi bucket MinIO đang có (11/11). Kiểm tra bằng cách phục
+hồi từng dump vào CSDL tạm: số dòng khớp hoàn toàn; không chạy `restore.js` đè lên hệ thống đang chạy vì
+dump dạng thường (không `--clean`) chỉ phục hồi đúng vào CSDL trống.
+
+**Kết quả:** gate tương đương CI (typecheck, lint 0 lỗi, kiểm tra chuỗi i18n, test có coverage, build) đều
+qua; 9/9 image Docker của CI build được; mock-data 01–08 PASS (04: 55/55, 08: 12/12).
+
+Chi tiết kỹ thuật: `Technical_Spec.md` §28; giao diện: `Wireframe.md` §5.1; kịch bản: `Mock_data.md` §4.4,
+§4.7, §9.
+
+---
+
+## 26/10/2026 (tiếp 2) — Danh sách nhân viên & kho ảnh nhận diện: triển khai giai đoạn 0–5
+
+Triển khai kế hoạch `Technical_Spec.md` §27 (mục 26/10/2026 ở trên) theo 2 luồng: 1 luồng lập trình, 1 luồng
+kiểm thử độc lập; lỗi do luồng kiểm thử tìm ra được sửa rồi xác minh lại trước commit. Giai đoạn 6 (tuỳ
+chọn) chưa làm.
+
+**Đã làm:**
+- **ml-service:** nạp model 1 lần lúc khởi động, giới hạn 2 lượt phân tích đồng thời + khoá riêng cho
+  detector, mọi truy vấn khuôn mặt lọc `organization_id`. Kho ảnh nhận diện trong bucket private
+  `ml-face-references`, chỉ đọc qua proxy `no-store` có nhật ký `VIEW_REF`. Đồng ý lưu phía server; ảnh tải
+  hộ/nhập ở trạng thái chờ, không dùng để so khớp tới khi nhân viên xác nhận, tự huỷ sau 30 ngày. Kiểm tra
+  trùng 1:N trong tổ chức (≥ 0,5 chặn, 0,35–0,5 cảnh báo). Vô hiệu hoá/xoá tài khoản xoá sạch dữ liệu khuôn
+  mặt và object MinIO.
+- **iam-service:** số điện thoại, mã nhân viên, avatar thật (bucket `iam-avatars`, presigned); danh sách nhân
+  viên theo phạm vi (Org Admin cả tổ chức, Manager chỉ Employee phòng mình, Employee không vào được);
+  `GET /users` không bao giờ trả SĐT/mã NV; mời không cần mật khẩu, gửi email kích hoạt.
+- **web:** tab "Danh sách nhân viên", cửa sổ Hồ sơ nhân viên, panel ảnh nhận diện 4 trạng thái, hộp đồng ý
+  + banner chờ xác nhận, trình nhập Excel + ZIP 4 bước có báo cáo lỗi. Hồ sơ cá nhân bỏ hết phần giả lập.
+- **CI:** job mới `ml-service-test` chạy pytest cho ml-service.
+
+**Lỗi tìm ra ở vòng kiểm thử độc lập (8, đã sửa hết):**
+- **Cao, toàn hệ thống — giả mạo header nội bộ qua Gateway:** Gateway chỉ ghi đè header nó đặt; khi JWT
+  không có phòng ban, `x-department-id` do client tự gửi lọt xuống service, nên Manager chưa có phòng ban đọc
+  được danh sách nhân viên/ảnh chờ của phòng khác. Lỗi có từ trước, lộ ra khi đợt này dựa vào header phòng
+  ban. Sửa: Gateway xoá mọi header tin cậy do client gửi trước khi đặt lại từ JWT, cả với WebSocket.
+- Tải ảnh hộ được cho tài khoản đã vô hiệu hoá → nay 409 `USER_INACTIVE` (event mới `iam.user.reactivated`).
+- Avatar gửi thẳng API còn giữ EXIF/GPS → iam bỏ khối metadata của JPEG/PNG/WebP.
+- Người do Manager mời không có vai trò nào → gán vai trò "Employee"; user cũ được gán bù lúc iam khởi động.
+- Đổi mật khẩu ở Hồ sơ là giả lập → endpoint thật `PATCH /users/me/password`, thu hồi mọi refresh token.
+- Kích hoạt lại tài khoản vẫn bị 401 → xoá khoá blacklist trong Redis khi kích hoạt lại.
+- UX trình nhập: dòng trùng chỉ đánh lỗi từ dòng thứ 2, ô ảnh của dòng lỗi không treo "Đang kiểm tra…".
+- Ảnh mẫu CI (opencv_zoo) là ảnh đã vẽ khung phát hiện → đổi sang ảnh tổ bay STS-130 của NASA (phạm vi công
+  cộng), tải theo URL + SHA256 ghim.
+
+**Kết quả:** pytest ml-service 64 test, jest Gateway 42 test; kịch bản sống `10-employee-directory.js`
+45/45, hồi quy mock-data 01–07 195/195, 10/10 kiểu giả mạo header bị chặn; RAM ml-service 579–645 MiB
+(giới hạn 1 GB). Gate tương đương CI: xem `Technical_Spec.md` §27.16.
+
+**Giới hạn đã biết:** giai đoạn 6 chưa làm (ảnh chấm công vẫn lưu vô thời hạn); lọc trạng thái ảnh chỉ trên
+trang đang xem; ngưỡng độ nét/1:N chưa tinh chỉnh bằng dữ liệu thật; rate limit route công khai tin
+`X-Real-IP` khi gọi thẳng cổng 3000 (có từ trước); ml-service chưa nằm trong ma trận build Docker của CI.
+
+Chi tiết kỹ thuật: `Technical_Spec.md` §27.16, §6; giao diện: `Wireframe.md` §16; kịch bản: `Mock_data.md`
+§4.9, §10.

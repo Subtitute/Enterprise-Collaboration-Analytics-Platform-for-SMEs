@@ -12,7 +12,8 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequirePermissions } from '@app/common-guard';
-import { ERROR_CODES, PERMISSIONS } from '@app/common-dto';
+import { AuthContext, ERROR_CODES, PERMISSIONS } from '@app/common-dto';
+import { toScopeCaller } from '../user-directory/user-directory';
 import { AttendanceService } from './attendance.service';
 import { AttendanceQueryDto } from './dto/attendance-query.dto';
 import { photoMimeTypeFileFilter } from './allowed-photo-mime-types';
@@ -79,10 +80,11 @@ export class AttendanceController {
     return this.attendanceService.findMine(organizationId, userId, query);
   }
 
+  // 26/10/2026: `caller` - Manager chi xem cham cong cua phong ban minh (xem AttendanceService.findAll()).
   @Get()
   @RequirePermissions(PERMISSIONS.ATTENDANCE_VIEW)
-  findAll(@CurrentUser('organizationId') organizationId: string, @Query() query: AttendanceQueryDto) {
-    return this.attendanceService.findAll(organizationId, query);
+  findAll(@CurrentUser('organizationId') organizationId: string, @Query() query: AttendanceQueryDto, @CurrentUser() caller: AuthContext) {
+    return this.attendanceService.findAll(organizationId, query, toScopeCaller(caller));
   }
 
   /**
@@ -96,11 +98,13 @@ export class AttendanceController {
     @CurrentUser('permissions') requesterPermissions: string[],
     @CurrentUser('organizationId') organizationId: string,
     @Param('id') id: string,
+    // 26/10/2026: phong ban cua nguoi xem - Manager chi xem anh cua thanh vien phong ban minh.
+    @CurrentUser('departmentId') requesterDepartmentId: string | null,
     @Query('kind') kind?: string,
   ) {
     if (kind !== 'checkin' && kind !== 'checkout') {
       throw new BadRequestException({ message: 'kind phải là "checkin" hoặc "checkout"', errorCode: ERROR_CODES.INVALID_PHOTO_KIND });
     }
-    return this.attendanceService.getPhotoUrl(organizationId, id, kind, requesterUserId, requesterPermissions);
+    return this.attendanceService.getPhotoUrl(organizationId, id, kind, requesterUserId, requesterPermissions, requesterDepartmentId ?? null);
   }
 }

@@ -152,8 +152,8 @@ web app) - xem `Doc/Technical_Spec.md` mục 15.
 
 ## Sao lưu / phục hồi dữ liệu
 
-**(Bổ sung 22/08/2026)** Sao lưu thủ công (chưa có lịch cron tự động) cho toàn bộ 8 nguồn dữ liệu
-(5 Postgres + TimescaleDB + MongoDB + MinIO):
+**(Bổ sung 22/08/2026, cập nhật 26/10/2026)** Sao lưu thủ công (chưa có lịch cron tự động) cho toàn bộ
+11 nguồn dữ liệu (8 Postgres + TimescaleDB + MongoDB + MinIO — mọi bucket đang có, kể cả bucket thêm về sau):
 
 ```powershell
 npm run backup                                    # tạo backups/<timestamp>/ (đã .gitignore)

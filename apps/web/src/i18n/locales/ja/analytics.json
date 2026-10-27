@@ -7,7 +7,8 @@
   "filters": {
     "dateRangeAriaLabel": "期間",
     "departmentAriaLabel": "部署",
-    "allDepartments": "すべての部署"
+    "allDepartments": "すべての部署",
+    "departmentScopeNotice": "あなたの部署の範囲内の数値です"
   },
   "kpiCards": {
     "activeProjects": "進行中のプロジェクト",
@@ -46,6 +47,7 @@
     "scopeDepartment": "部署",
     "scopeProject": "プロジェクト",
     "comparisonLabel": "組織平均 {{value}}% との比較",
+    "comparisonLabelDepartment": "部署平均 {{value}}% との比較",
     "chart": {
       "completionRateLabel": "完了率:",
       "otherLabel": "その他",

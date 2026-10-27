@@ -18,6 +18,8 @@ import { NewTaskModal } from './components/NewTaskModal';
 import { TaskDetailModal } from './components/TaskDetailModal';
 import { ProjectMembersModal } from './components/ProjectMembersModal';
 import { ProjectSummaryCards } from './components/ProjectSummaryCards';
+// 26/10/2026: muc "Tai lieu" cua du an (tai lieu theo pham vi du an) - xem ProjectDocumentsSection.tsx.
+import { ProjectDocumentsSection } from '@/features/documents/components/ProjectDocumentsSection';
 import { toast } from '@/stores/toast.store';
 import type { Task, TaskStatus } from '@/types';
 
@@ -255,6 +257,8 @@ export function ProjectDetailPage() {
           />
         )}
       </QueryState>
+
+      <ProjectDocumentsSection projectId={projectId} />
 
       <NewTaskModal
         projectId={projectId}

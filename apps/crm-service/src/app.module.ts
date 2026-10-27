@@ -10,6 +10,9 @@ import configuration from './config/configuration';
 import { Customer } from './entities/customer.entity';
 import { Deal } from './entities/deal.entity';
 import { OutboxEvent } from './entities/outbox-event.entity';
+// 26/10/2026: read-model user -> phong ban cho pham vi xem cua Manager (xem src/user-directory).
+import { DimUser } from './entities/dim-user.entity';
+import { UserDirectoryModule } from './user-directory/user-directory.module';
 import { KafkaModule } from './kafka/kafka.module';
 import { OutboxModule } from './outbox/outbox.module';
 import { CustomersModule } from './customers/customers.module';
@@ -28,7 +31,7 @@ import { HealthController } from './health/health.controller';
         username: config.get<string>('db.user'),
         password: config.get<string>('db.password'),
         database: config.get<string>('db.name'),
-        entities: [Customer, Deal, OutboxEvent],
+        entities: [Customer, Deal, OutboxEvent, DimUser],
         // MVP: dung synchronize thay vi migration thu cong - Technical_Spec.md muc 14 (gioi han da biet).
         synchronize: true,
       }),
@@ -39,6 +42,7 @@ import { HealthController } from './health/health.controller';
     OutboxModule,
     CustomersModule,
     DealsModule,
+    UserDirectoryModule,
   ],
   controllers: [HealthController, MetricsController],
   providers: [

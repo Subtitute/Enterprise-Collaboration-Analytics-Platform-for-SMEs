@@ -9,6 +9,8 @@ import {
   PaginatedResponse,
   PaginationQueryDto,
   PERMISSIONS,
+  // 26/10/2026: giao Task -> tu them thanh vien du an (xem assign()).
+  ProjectMemberAddedPayload,
   TaskAssignedPayload,
   TaskCreatedPayload,
   TaskDeletedPayload,
@@ -23,6 +25,8 @@ import { TaskComment } from '../entities/task-comment.entity';
 import { TaskStatusHistory } from '../entities/task-status-history.entity';
 import { Project } from '../entities/project.entity';
 import { OutboxService } from '../outbox/outbox.service';
+// 26/10/2026: pham vi xem 3 cap - xem resolveScopeUserIds() (src/user-directory).
+import { ScopeCaller, resolveScopeUserIds } from '../user-directory/user-directory';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { UpdateTaskStatusDto } from './dto/update-task-status.dto';
@@ -95,19 +99,23 @@ export class TasksService {
    * ProjectsService.findAll() (PROJECT_CREATE) - khong them permission moi. Task "co lien quan"
    * = Task thuoc 1 du an nam trong getVisibleProjectIds() (xem ben duoi, mirror
    * ProjectsService.getVisibleProjectIds()).
+   *
+   * 26/10/2026: Manager (TASK_DELETE + co phong ban) KHONG con thay moi Task nhu Org Admin - chi
+   * Task cua cac du an nam trong pham vi phong ban (cung tap du an voi ProjectsService.findAll()).
    */
   async findAll(
     organizationId: string,
     query: TaskQueryDto,
     userId: string,
     permissions: string[],
+    departmentId: string | null = null,
   ): Promise<PaginatedResponse<TaskWithAssignees>> {
     const where: FindOptionsWhere<Task> = { organizationId };
     if (query.projectId) where.projectId = query.projectId;
     if (query.status) where.status = query.status;
 
-    if (!(permissions ?? []).includes(PERMISSIONS.TASK_DELETE)) {
-      const visibleProjectIds = await this.getVisibleProjectIds(organizationId, userId);
+    const visibleProjectIds = await this.resolveVisibleProjectIds(organizationId, userId, permissions, departmentId);
+    if (visibleProjectIds) {
       if (query.projectId) {
         // Client da tu loc theo 1 projectId cu the - neu du an do KHONG nam trong pham vi duoc
         // phep thay, tra rong thay vi am tham bo qua bo loc scoping (tranh Employee "vuot rao"
@@ -142,21 +150,17 @@ export class TasksService {
    * danh sach van co the "vuot rao" bang cach doan/nhan mot UUID Task cu the roi goi thang
    * GET /tasks/:id. Nem NotFoundException CUNG errorCode voi truong hop "khong ton tai" (khong
    * phai ForbiddenException) de khong lo lieu 1 Task co that su ton tai trong to chuc hay khong.
+   *
+   * 26/10/2026: cung pham vi 3 cap voi findAll() (xem findVisibleTaskOrFail()).
    */
   async findById(
     organizationId: string,
     id: string,
     userId: string,
     permissions: string[],
+    departmentId: string | null = null,
   ): Promise<TaskDetail> {
-    const task = await this.findTaskOrFail(organizationId, id);
-
-    if (!(permissions ?? []).includes(PERMISSIONS.TASK_DELETE)) {
-      const visibleProjectIds = await this.getVisibleProjectIds(organizationId, userId);
-      if (!visibleProjectIds.includes(task.projectId)) {
-        throw new NotFoundException({ message: 'Khong tim thay cong viec', errorCode: ERROR_CODES.TASK_NOT_FOUND });
-      }
-    }
+    const task = await this.findVisibleTaskOrFail(organizationId, id, { userId, permissions, departmentId });
 
     const [assignees, commentCount] = await Promise.all([
       this.assigneeRepo.find({ where: { taskId: id } }),
@@ -181,39 +185,76 @@ export class TasksService {
    * 22/09/2026: them nguon thu 3 - thanh vien du an "that" (ProjectMember), dung `this.dataSource.
    * getRepository(ProjectMember)` cung ly do (khong doi chu ky constructor) - mirror CHINH XAC
    * nhanh tuong ung vua them tai ProjectsService.getVisibleProjectIds() (xem chu thich tai do).
+   *
+   * 26/10/2026: nhan 1 TAP userIds (Manager: chinh minh + thanh vien phong ban) - mirror dung
+   * ProjectsService.getVisibleProjectIds() cung ngay.
+   *
+   * 26/10/2026: "thuoc du an" = lead/thanh vien/nguoi tao (bo nguon TaskAssignee) - mirror
+   * ProjectsService.getVisibleProjectIds(); nguoi duoc giao Task gio luon thanh thanh vien (assign()).
    */
-  private async getVisibleProjectIds(organizationId: string, userId: string): Promise<string[]> {
-    const assignedRows = await this.assigneeRepo
-      .createQueryBuilder('assignee')
-      .innerJoin(Task, 'task', 'task.id = assignee.taskId')
-      .select('DISTINCT task.projectId', 'projectId')
-      .where('assignee.userId = :userId', { userId })
-      .andWhere('task.organizationId = :organizationId', { organizationId })
-      .getRawMany<{ projectId: string }>();
-
+  private async getVisibleProjectIds(organizationId: string, userIds: string[]): Promise<string[]> {
     const memberRows = await this.dataSource
       .getRepository(ProjectMember)
       .createQueryBuilder('member')
       .innerJoin(Project, 'project', 'project.id = member.projectId')
       .select('DISTINCT member.projectId', 'projectId')
-      .where('member.userId = :userId', { userId })
+      .where('member.userId IN (:...userIds)', { userIds })
       .andWhere('project.organizationId = :organizationId', { organizationId })
       .getRawMany<{ projectId: string }>();
 
     const projectRepo = this.dataSource.getRepository(Project);
     const ownedProjects = await projectRepo.find({
       where: [
-        { organizationId, leadUserId: userId },
-        { organizationId, createdByUserId: userId },
+        { organizationId, leadUserId: In(userIds) },
+        { organizationId, createdByUserId: In(userIds) },
       ],
       select: ['id'],
     });
 
     const ids = new Set<string>();
-    for (const row of assignedRows) ids.add(row.projectId);
     for (const row of memberRows) ids.add(row.projectId);
     for (const project of ownedProjects) ids.add(project.id);
     return Array.from(ids);
+  }
+
+  /**
+   * 26/10/2026: null = khong gioi han (Org Admin); nguoc lai la tap du an duoc thay Task (Employee:
+   * du an cua minh, Manager: du an lien quan toi phong ban) - xem resolveScopeUserIds().
+   */
+  private async resolveVisibleProjectIds(
+    organizationId: string,
+    userId: string,
+    permissions: string[],
+    departmentId: string | null,
+  ): Promise<string[] | null> {
+    const scopeUserIds = await resolveScopeUserIds(
+      this.dataSource,
+      organizationId,
+      userId,
+      permissions ?? [],
+      PERMISSIONS.TASK_DELETE,
+      departmentId,
+    );
+    return scopeUserIds ? this.getVisibleProjectIds(organizationId, scopeUserIds) : null;
+  }
+
+  /**
+   * 26/10/2026: tra Task neu nam trong pham vi xem cua nguoi goi, nguoc lai NotFoundException (cung
+   * errorCode voi "khong ton tai"). Dung cho findById() va 2 endpoint doc lich su trang thai/binh
+   * luan - truoc day 2 endpoint nay doc duoc Task bat ky trong to chuc neu biet UUID.
+   */
+  private async findVisibleTaskOrFail(
+    organizationId: string,
+    id: string,
+    caller?: ScopeCaller,
+  ): Promise<Task> {
+    const task = await this.findTaskOrFail(organizationId, id);
+    if (!caller) return task;
+    const visibleProjectIds = await this.resolveVisibleProjectIds(organizationId, caller.userId, caller.permissions, caller.departmentId);
+    if (visibleProjectIds && !visibleProjectIds.includes(task.projectId)) {
+      throw new NotFoundException({ message: 'Khong tim thay cong viec', errorCode: ERROR_CODES.TASK_NOT_FOUND });
+    }
+    return task;
   }
 
   /** 22/07/2026: truy van gop assignees cho 1 tap taskId (trang hien tai), tranh N+1 - dung boi findAll(). */
@@ -236,7 +277,15 @@ export class TasksService {
    * neu khong 1 to chuc co the tao Task gan vao Project cua to chuc KHAC chi bang cach doan UUID.
    * Kiem tra nay chay BEN TRONG cung transaction voi viec tao Task + ghi Outbox.
    */
-  async create(organizationId: string, actorId: string, dto: CreateTaskDto): Promise<Task> {
+  // 26/10/2026: `caller` - chi tao Task trong du an nam trong pham vi xem (truoc day tao duoc trong du
+  // an bat ky cua to chuc roi tu giao cho minh de "mo" du an do). 404 cung errorCode voi du an khong ton tai.
+  async create(organizationId: string, actorId: string, dto: CreateTaskDto, caller?: ScopeCaller): Promise<Task> {
+    const visibleProjectIds = caller
+      ? await this.resolveVisibleProjectIds(organizationId, caller.userId, caller.permissions, caller.departmentId)
+      : null;
+    if (visibleProjectIds && !visibleProjectIds.includes(dto.projectId)) {
+      throw new NotFoundException({ message: 'Khong tim thay du an trong to chuc cua ban', errorCode: ERROR_CODES.PROJECT_NOT_FOUND_IN_ORG });
+    }
     return this.dataSource.transaction(async (manager) => {
       const project = await manager.findOne(Project, {
         where: { id: dto.projectId, organizationId },
@@ -278,8 +327,10 @@ export class TasksService {
     });
   }
 
-  async update(organizationId: string, id: string, dto: UpdateTaskDto): Promise<Task> {
-    const task = await this.findTaskOrFail(organizationId, id);
+  // 26/10/2026: `caller` cho moi thao tac GHI theo id (update/updateStatus/remove/assign/unassign/
+  // addComment) - Task ngoai pham vi xem -> 404 nhu findById(), truoc day sua/giao duoc neu biet UUID.
+  async update(organizationId: string, id: string, dto: UpdateTaskDto, caller?: ScopeCaller): Promise<Task> {
+    const task = await this.findVisibleTaskOrFail(organizationId, id, caller);
 
     if (dto.title !== undefined) task.title = dto.title;
     if (dto.description !== undefined) task.description = dto.description;
@@ -302,8 +353,9 @@ export class TasksService {
     id: string,
     actorId: string,
     dto: UpdateTaskStatusDto,
+    caller?: ScopeCaller,
   ): Promise<Task> {
-    const existing = await this.findTaskOrFail(organizationId, id);
+    const existing = await this.findVisibleTaskOrFail(organizationId, id, caller);
     const toStatus = dto.status;
 
     if (!isValidTaskStatusTransition(existing.status, toStatus)) {
@@ -370,12 +422,14 @@ export class TasksService {
   }
 
   /** Lich su doi trang thai cua 1 Task (Wireframe.md muc 4.2 - modal chi tiet Task), sap xep tang dan theo thoi gian. */
+  // 26/10/2026: `caller` (tuy chon) - ap dung pham vi xem cua findById() (xem findVisibleTaskOrFail()).
   async findStatusHistory(
     organizationId: string,
     id: string,
     query: PaginationQueryDto,
+    caller?: ScopeCaller,
   ): Promise<PaginatedResponse<TaskStatusHistory>> {
-    await this.findTaskOrFail(organizationId, id);
+    await this.findVisibleTaskOrFail(organizationId, id, caller);
 
     const [data, total] = await this.statusHistoryRepo.findAndCount({
       where: { taskId: id, organizationId },
@@ -400,8 +454,8 @@ export class TasksService {
    * va KHONG ghi outbox lai - dung la ngu nghia DELETE idempotent chuan REST. Van giu pre-check
    * khong khoa o dau ham (findTaskOrFail) de tra 404 nhanh cho id chua tung ton tai/sai to chuc.
    */
-  async remove(organizationId: string, actorId: string, id: string): Promise<void> {
-    await this.findTaskOrFail(organizationId, id);
+  async remove(organizationId: string, actorId: string, id: string, caller?: ScopeCaller): Promise<void> {
+    await this.findVisibleTaskOrFail(organizationId, id, caller);
 
     await this.dataSource.transaction(async (manager) => {
       const task = await manager.findOne(Task, {
@@ -451,8 +505,9 @@ export class TasksService {
     id: string,
     actorId: string,
     userId: string,
+    caller?: ScopeCaller,
   ): Promise<TaskAssignee> {
-    const task = await this.findTaskOrFail(organizationId, id);
+    const task = await this.findVisibleTaskOrFail(organizationId, id, caller);
 
     const existing = await this.assigneeRepo.findOne({ where: { taskId: id, userId } });
     if (existing) return existing;
@@ -474,6 +529,26 @@ export class TasksService {
           payload: payload as unknown as Record<string, unknown>,
         });
 
+        // 26/10/2026: nguoi duoc giao Task thanh thanh vien du an neu chua la ("thuoc du an" = lead/thanh
+        // vien/nguoi tao) - luon xem duoc du an + tai lieu du an (Document Service qua project.member_added).
+        // ON CONFLICT DO NOTHING (an toan voi addMember() dong thoi); chi phat su kien khi THAT SU them moi.
+        const inserted = await manager
+          .createQueryBuilder()
+          .insert()
+          .into(ProjectMember)
+          .values({ projectId: task.projectId, userId, addedByUserId: actorId })
+          .orIgnore()
+          .execute();
+        if (Array.isArray(inserted.raw) && inserted.raw.length > 0) {
+          const memberPayload: ProjectMemberAddedPayload = { projectId: task.projectId, userId, actorId };
+          await this.outboxService.record(manager, {
+            eventType: EVENT_TYPES.PROJECT_MEMBER_ADDED,
+            organizationId,
+            producer: PRODUCER,
+            payload: memberPayload as unknown as Record<string, unknown>,
+          });
+        }
+
         return assignee;
       });
     } catch (error) {
@@ -491,8 +566,8 @@ export class TasksService {
     }
   }
 
-  async unassign(organizationId: string, id: string, userId: string): Promise<void> {
-    await this.findTaskOrFail(organizationId, id);
+  async unassign(organizationId: string, id: string, userId: string, caller?: ScopeCaller): Promise<void> {
+    await this.findVisibleTaskOrFail(organizationId, id, caller);
     const assignee = await this.assigneeRepo.findOne({ where: { taskId: id, userId } });
     if (assignee) await this.assigneeRepo.remove(assignee);
   }
@@ -503,8 +578,9 @@ export class TasksService {
     id: string,
     authorUserId: string,
     dto: CreateCommentDto,
+    caller?: ScopeCaller,
   ): Promise<TaskCommentWithAuthorId> {
-    await this.findTaskOrFail(organizationId, id);
+    await this.findVisibleTaskOrFail(organizationId, id, caller);
     const saved = await this.commentRepo.save(
       this.commentRepo.create({ taskId: id, authorUserId, content: dto.content }),
     );
@@ -512,12 +588,14 @@ export class TasksService {
   }
 
   /** 22/07/2026: response them alias `authorId` (xem TaskCommentWithAuthorId) - fix loi CRITICAL "khong hien ten nguoi viet binh luan". */
+  // 26/10/2026: `caller` (tuy chon) - ap dung pham vi xem cua findById() (xem findVisibleTaskOrFail()).
   async findComments(
     organizationId: string,
     id: string,
     query: PaginationQueryDto,
+    caller?: ScopeCaller,
   ): Promise<PaginatedResponse<TaskCommentWithAuthorId>> {
-    await this.findTaskOrFail(organizationId, id);
+    await this.findVisibleTaskOrFail(organizationId, id, caller);
 
     const [data, total] = await this.commentRepo.findAndCount({
       where: { taskId: id },

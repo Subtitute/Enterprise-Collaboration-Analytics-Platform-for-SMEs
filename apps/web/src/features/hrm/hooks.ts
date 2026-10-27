@@ -14,8 +14,6 @@ import {
   createLeaveRequest,
   createOvertimeRequest,
   deleteCalendarEvent,
-  deleteFaceEnrollment,
-  enrollFace,
   fetchAllAttendance,
   fetchApprovedAttendanceAdjustments,
   fetchApprovedLeaveRequests,
@@ -31,7 +29,6 @@ import {
   fetchPendingAttendanceAdjustments,
   fetchPendingLeaveRequests,
   fetchPendingOvertimeRequests,
-  getFaceEnrollmentStatus,
   rejectAttendanceAdjustment,
   rejectLeaveRequest,
   rejectOvertimeRequest,
@@ -125,36 +122,8 @@ export function useCheckOut() {
   });
 }
 
-/** 24/10/2026: Face recognition - trang thai dang ky khuon mat CUA CHINH nguoi dang xem (ProfilePage.tsx). */
-export function useFaceEnrollmentStatusQuery() {
-  return useQuery({ queryKey: ['face-enrollment', 'me'], queryFn: getFaceEnrollmentStatus });
-}
-
-export function useEnrollFace() {
-  const queryClient = useQueryClient();
-  const { t } = useTranslation();
-  return useMutation({
-    mutationFn: (photo: Blob) => enrollFace(photo),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['face-enrollment'] });
-      toast.success(t('hrm:faceEnroll.toasts.enrollSuccess'));
-    },
-    onError: (error) => toast.error(t('hrm:faceEnroll.toasts.enrollError'), extractErrorMessage(error)),
-  });
-}
-
-export function useDeleteFaceEnrollment() {
-  const queryClient = useQueryClient();
-  const { t } = useTranslation();
-  return useMutation({
-    mutationFn: deleteFaceEnrollment,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['face-enrollment'] });
-      toast.success(t('hrm:faceEnroll.toasts.deleteSuccess'));
-    },
-    onError: (error) => toast.error(t('hrm:faceEnroll.toasts.deleteError'), extractErrorMessage(error)),
-  });
-}
+// 26/10/2026: 3 hook dang ky/xoa khuon mat (24/10/2026) chuyen sang features/face/hooks.ts - kho anh
+// nhan dien + dong y (Technical_Spec.md muc 27).
 
 export function useMyLeaveRequestsQuery(params: { page?: number; limit?: number } = {}) {
   return useQuery({ queryKey: ['leave-requests', 'me', params], queryFn: () => fetchMyLeaveRequests(params) });

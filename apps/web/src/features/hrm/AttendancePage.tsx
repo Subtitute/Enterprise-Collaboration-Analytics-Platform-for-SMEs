@@ -109,6 +109,14 @@ export function AttendancePage() {
   const permissions = usePermissions();
   const canManageAdjustments = permissions.includes(PERMISSIONS.ATTENDANCE_ADJUSTMENT_VIEW);
   const canViewOrgLeaves = permissions.includes(PERMISSIONS.LEAVE_REQUEST_VIEW);
+  // 26/10/2026: Manager chi xem/duyet trong phong ban cua minh (backend HRM ep pham vi nay) - bang cong
+  // chi liet ke thanh vien phong ban (khong hien ca to chuc voi toan "vang"), danh sach cho duyet bo don
+  // cua chinh minh (khong tu duyet - backend tra 403 SELF_APPROVAL_FORBIDDEN). Org Admin giu nguyen.
+  const isOrgScope = permissions.includes(PERMISSIONS.USER_MANAGE);
+  const scopedOrgUsers = useMemo(
+    () => (isOrgScope ? orgUsers : orgUsers.filter((u) => u.departmentId && u.departmentId === currentUser?.departmentId)),
+    [isOrgScope, orgUsers, currentUser?.departmentId],
+  );
 
   // 16/10/2026: Lien thong Cham cong - Nghi phep - Lich cong ty:
   // Query lich cong ty de lay cac ngay le (HOLIDAY)
@@ -186,13 +194,16 @@ export function AttendancePage() {
   // DUNG, khong con can tu vá (patch) client-side nhu truoc (applyApprovedAdjustment() da bi xoa).
   // Danh dau "da sua cong" (badge) van giu lai, chi doi nguon: quet PENDING/APPROVED tu ca 2 danh
   // sach cho duyet lan cua toi thay vi 1 bien trang thai cuc bo.
+  // 26/10/2026: Manager khong thay don cua chinh minh trong danh sach cho duyet (xem isOrgScope o tren).
   const pendingAdjustments = useMemo(
-    () => pendingAdjustmentsQuery.data?.data.filter((a) => a.status === 'PENDING') ?? [],
-    [pendingAdjustmentsQuery.data],
+    () =>
+      pendingAdjustmentsQuery.data?.data.filter((a) => a.status === 'PENDING' && (isOrgScope || a.userId !== currentUser?.id)) ?? [],
+    [pendingAdjustmentsQuery.data, isOrgScope, currentUser?.id],
   );
   const pendingOvertimeRequests = useMemo(
-    () => pendingOvertimeQuery.data?.data.filter((ot) => ot.status === 'PENDING') ?? [],
-    [pendingOvertimeQuery.data],
+    () =>
+      pendingOvertimeQuery.data?.data.filter((ot) => ot.status === 'PENDING' && (isOrgScope || ot.userId !== currentUser?.id)) ?? [],
+    [pendingOvertimeQuery.data, isOrgScope, currentUser?.id],
   );
   const pendingAdjustmentsCount = pendingAdjustments.length;
   const pendingOtCount = pendingOvertimeRequests.length;
@@ -328,7 +339,7 @@ export function AttendancePage() {
           isDepartmentsLoading={departmentsQuery.isLoading}
           onRetryAllAttendance={handleRetryAllAttendance}
           filteredAllRecords={filteredAllRecords}
-          orgUsers={orgUsers}
+          orgUsers={scopedOrgUsers}
           departments={departmentsQuery.data ?? []}
           today={today}
           approvedOvertime={approvedOvertimeQuery.data ?? []}

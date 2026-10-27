@@ -17,6 +17,8 @@ export interface DocumentTableRowProps {
   onShare: (file: FileItem) => void;
   onVersionHistory: (file: FileItem) => void;
   onDelete: (file: FileItem) => void;
+  // 26/10/2026: an chia se/xoa khi nguoi goi chi xem (cay toan cong ty) - xem writeAccess.ts.
+  canWrite?: boolean;
 }
 
 export const DocumentTableRow = React.memo(function DocumentTableRow({
@@ -28,6 +30,7 @@ export const DocumentTableRow = React.memo(function DocumentTableRow({
   onShare,
   onVersionHistory,
   onDelete,
+  canWrite = true,
 }: DocumentTableRowProps) {
   const { t } = useTranslation();
   const theme = getFileTypeTheme(file.name);
@@ -116,15 +119,17 @@ export const DocumentTableRow = React.memo(function DocumentTableRow({
                 >
                   <DownloadIcon className="h-4 w-4 text-text-secondary" /> {t('documents:fileTable.download')}
                 </DropdownItem>
-                <DropdownItem
-                  className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
-                  onClick={() => {
-                    onShare(file);
-                    close();
-                  }}
-                >
-                  <ShareIcon className="h-4 w-4 text-text-secondary" /> {t('documents:fileTable.share')}
-                </DropdownItem>
+                {canWrite && (
+                  <DropdownItem
+                    className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
+                    onClick={() => {
+                      onShare(file);
+                      close();
+                    }}
+                  >
+                    <ShareIcon className="h-4 w-4 text-text-secondary" /> {t('documents:fileTable.share')}
+                  </DropdownItem>
+                )}
                 <DropdownItem
                   className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
                   onClick={() => {
@@ -134,15 +139,17 @@ export const DocumentTableRow = React.memo(function DocumentTableRow({
                 >
                   <ClockIcon className="h-4 w-4 text-text-secondary" /> {t('documents:fileTable.versionHistory')}
                 </DropdownItem>
-                <DropdownItem
-                  className="h-9 px-2.5 rounded-radius-sm text-[13px] text-[#B3261E] hover:bg-[#F8E5E3]"
-                  onClick={() => {
-                    onDelete(file);
-                    close();
-                  }}
-                >
-                  <TrashIcon className="h-4 w-4 text-[#B3261E]" /> {t('documents:fileTable.delete')}
-                </DropdownItem>
+                {canWrite && (
+                  <DropdownItem
+                    className="h-9 px-2.5 rounded-radius-sm text-[13px] text-[#B3261E] hover:bg-[#F8E5E3]"
+                    onClick={() => {
+                      onDelete(file);
+                      close();
+                    }}
+                  >
+                    <TrashIcon className="h-4 w-4 text-[#B3261E]" /> {t('documents:fileTable.delete')}
+                  </DropdownItem>
+                )}
               </div>
             )}
           </Dropdown>

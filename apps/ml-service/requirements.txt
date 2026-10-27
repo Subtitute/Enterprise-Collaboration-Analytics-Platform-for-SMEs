@@ -13,3 +13,6 @@ python-multipart==0.0.12
 # opencv-python-headless (doc anh/phat hien/can chinh khuon mat), KHONG can PyTorch/TensorFlow.
 onnxruntime==1.19.2
 opencv-python-headless==4.10.0.84
+# 26/10/2026: kho anh nhan dien goc (bucket private ml-face-references, Technical_Spec.md muc 27.5) -
+# SDK MinIO chinh thuc (S3-compatible), chi dung put/get/remove; KHONG ky presigned URL cho anh nay.
+minio==7.2.15

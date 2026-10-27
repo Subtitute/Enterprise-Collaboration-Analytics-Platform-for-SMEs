@@ -43,4 +43,12 @@ export class Folder extends AppBaseEntity {
   // khong co thu muc cu nao bi "am tham" chuyen sang han che truy cap.
   @Column({ type: 'enum', enum: FolderVisibility, default: FolderVisibility.ORGANIZATION })
   visibility: FolderVisibility;
+
+  // 26/10/2026: tai lieu theo pham vi du an - CHI thu muc cap goc gan duoc du an, thu muc con/tep
+  // ke thua qua chuoi thu muc cha (resolveFolderAccess). NULL + ORGANIZATION = thu muc toan cong ty
+  // (chinh sach, so tay...). Cot moi nullable nen moi thu muc cu tu dong la NULL khi synchronize -
+  // gan du an cho du lieu demo cu bang scripts/migrate-project-documents.js.
+  @Index()
+  @Column({ name: 'project_id', type: 'uuid', nullable: true })
+  projectId?: string | null;
 }

@@ -7,8 +7,11 @@ import {
   OvertimeRequestApprovedPayload,
   OvertimeRequestRejectedPayload,
   PaginatedResponse,
+  PERMISSIONS,
   paginate,
 } from '@app/common-dto';
+// 26/10/2026: pham vi xem/duyet theo phong ban cua Manager - xem src/user-directory.
+import { ScopeCaller, assertCanDecide, scopeUserFilter } from '../user-directory/user-directory';
 import { OvertimeMultiplierType, OvertimeRequest, OvertimeRequestStatus } from '../entities/overtime-request.entity';
 import { OutboxService } from '../outbox/outbox.service';
 import { CreateOvertimeRequestDto } from './dto/create-overtime-request.dto';
@@ -119,9 +122,12 @@ export class OvertimeRequestsService {
   }
 
   /** Danh sach dang ky tang ca TOAN TO CHUC (Manager/Org Admin, PERMISSIONS.OVERTIME_REQUEST_VIEW). */
-  async findAll(organizationId: string, query: OvertimeRequestQueryDto): Promise<PaginatedResponse<OvertimeRequest>> {
+  // 26/10/2026: `caller` (tuy chon) - Manager chi xem cua chinh minh + thanh vien phong ban (xem scopeUserFilter()).
+  async findAll(organizationId: string, query: OvertimeRequestQueryDto, caller?: ScopeCaller): Promise<PaginatedResponse<OvertimeRequest>> {
     const where: FindOptionsWhere<OvertimeRequest> = { organizationId };
-    if (query.userId) where.userId = query.userId;
+    const userFilter = await scopeUserFilter(this.dataSource, organizationId, caller, PERMISSIONS.OVERTIME_REQUEST_VIEW, query.userId);
+    if (userFilter === false) return paginate([], 0, query.page, query.limit);
+    if (userFilter) where.userId = userFilter;
     if (query.status) where.status = query.status;
     if (query.month) where.workDate = Between(...monthDateRange(query.month));
 
@@ -134,12 +140,13 @@ export class OvertimeRequestsService {
     return paginate(data, total, query.page, query.limit);
   }
 
-  async approve(organizationId: string, id: string, approverId: string, dto: DecideOvertimeRequestDto): Promise<OvertimeRequest> {
-    return this.decide(organizationId, id, approverId, OvertimeRequestStatus.APPROVED, dto, EVENT_TYPES.OVERTIME_REQUEST_APPROVED);
+  // 26/10/2026: `caller` (tuy chon) - Manager chi duyet don cua thanh vien phong ban, khong tu duyet (xem assertCanDecide()).
+  async approve(organizationId: string, id: string, approverId: string, dto: DecideOvertimeRequestDto, caller?: ScopeCaller): Promise<OvertimeRequest> {
+    return this.decide(organizationId, id, approverId, OvertimeRequestStatus.APPROVED, dto, EVENT_TYPES.OVERTIME_REQUEST_APPROVED, caller);
   }
 
-  async reject(organizationId: string, id: string, approverId: string, dto: DecideOvertimeRequestDto): Promise<OvertimeRequest> {
-    return this.decide(organizationId, id, approverId, OvertimeRequestStatus.REJECTED, dto, EVENT_TYPES.OVERTIME_REQUEST_REJECTED);
+  async reject(organizationId: string, id: string, approverId: string, dto: DecideOvertimeRequestDto, caller?: ScopeCaller): Promise<OvertimeRequest> {
+    return this.decide(organizationId, id, approverId, OvertimeRequestStatus.REJECTED, dto, EVENT_TYPES.OVERTIME_REQUEST_REJECTED, caller);
   }
 
   /** Duyet/tu choi 1 yeu cau OT - mirror pattern khoa pessimistic_write + re-check cua LeaveRequestsService.decide(). */
@@ -150,11 +157,14 @@ export class OvertimeRequestsService {
     toStatus: OvertimeRequestStatus.APPROVED | OvertimeRequestStatus.REJECTED,
     dto: DecideOvertimeRequestDto,
     eventType: typeof EVENT_TYPES.OVERTIME_REQUEST_APPROVED | typeof EVENT_TYPES.OVERTIME_REQUEST_REJECTED,
+    caller?: ScopeCaller,
   ): Promise<OvertimeRequest> {
     const existing = await this.overtimeRepo.findOne({ where: { id, organizationId } });
     if (!existing) {
       throw new NotFoundException({ message: 'Không tìm thấy yêu cầu tăng ca', errorCode: ERROR_CODES.OVERTIME_REQUEST_NOT_FOUND });
     }
+    // 26/10/2026: chan Manager duyet don ngoai phong ban/don cua chinh minh.
+    await assertCanDecide(this.dataSource, organizationId, caller, PERMISSIONS.OVERTIME_REQUEST_APPROVE, existing.userId);
     if (existing.status !== OvertimeRequestStatus.PENDING) {
       throw new BadRequestException({
         message: 'Yêu cầu tăng ca này đã được xử lý trước đó',

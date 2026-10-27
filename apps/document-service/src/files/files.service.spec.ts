@@ -22,6 +22,22 @@ afterEach(() => {
 // file duoc dung trong nhung test do deu o cap ROOT (khong co `folderId`) nen LUON duoc phep bat
 // ke noi dung CTX nay la gi.
 const CTX: AccessContext = { userId: 'actor-1', departmentId: null, isOrgAdmin: false };
+// 26/10/2026: ghi (phien ban moi/chia se/xoa) tep cap ROOT gio chi Org Admin (xem canAccessFile()) - cac
+// test khoa/race ben duoi dung tep ROOT de bo qua kiem tra thu muc nen chay bang Org Admin.
+const ROOT_WRITER_CTX: AccessContext = { ...CTX, isOrgAdmin: true };
+
+// 26/10/2026: FolderAccessService gia lap - writeAccess()/assertCanWrite() (quyen GHI, cay toan cong ty chi
+// Org Admin) suy tu canAccessFolder cho cac test cu (cay du an: xem duoc = ghi duoc); quy tac that o
+// folder-access.service.spec.ts va test "cay toan cong ty" cuoi file nay.
+function folderAccessMock(canAccess = true) {
+  const canAccessFolder = jest.fn().mockResolvedValue(canAccess);
+  const allowed = async () => Boolean(await canAccessFolder.getMockImplementation()?.());
+  const writeAccess = jest.fn(async () => ((await allowed()) ? 'allowed' : 'no-access'));
+  const assertCanWrite = jest.fn(async () => {
+    if (!(await allowed())) throw new ForbiddenException('khong co quyen');
+  });
+  return { canAccessFolder, writeAccess, assertCanWrite };
+}
 
 function buildMulterFile(overrides: Partial<Express.Multer.File> = {}): Express.Multer.File {
   return {
@@ -49,7 +65,7 @@ describe('FilesService.upload - fix code review 22/07/2026 (Fix 1 sanitizeFileNa
     // 28/07/2026: repo/service moi cho kiem soat truy cap thu muc (opt-in) - constructor can du 8 tham so.
     // 24/10/2026: upload() nay kiem tra canAccessFolder cua thu muc dich (test o cuoi describe).
     const fileShareRepoMock = {} as never;
-    const folderAccessServiceMock = { canAccessFolder: jest.fn().mockResolvedValue(true) };
+    const folderAccessServiceMock = folderAccessMock(true);
 
     const service = new FilesService(
       dataSourceMock as never,
@@ -71,7 +87,8 @@ describe('FilesService.upload - fix code review 22/07/2026 (Fix 1 sanitizeFileNa
     const { service, minioServiceMock } = buildService();
     const file = buildMulterFile();
 
-    await service.upload(organizationId, actorId, null, file, uploaderCtx);
+    // 26/10/2026: thu muc goc gio chi Org Admin tai len duoc (tai lieu toan cong ty) - xem test cuoi describe.
+    await service.upload(organizationId, actorId, null, file, { ...uploaderCtx, isOrgAdmin: true });
 
     expect(sanitizeSpy).toHaveBeenCalledWith(file.originalname);
     expect(verifySpy).toHaveBeenCalledWith(file);
@@ -99,7 +116,18 @@ describe('FilesService.upload - fix code review 22/07/2026 (Fix 1 sanitizeFileNa
     folderAccessServiceMock.canAccessFolder.mockResolvedValue(false);
 
     await expect(service.upload(organizationId, actorId, 'folder-secret', buildMulterFile(), uploaderCtx)).rejects.toThrow(ForbiddenException);
-    expect(folderAccessServiceMock.canAccessFolder).toHaveBeenCalledWith(expect.objectContaining({ id: 'folder-secret' }), uploaderCtx);
+    // 26/10/2026: tai len = GHI -> assertCanWrite (cay toan cong ty chi Org Admin).
+    expect(folderAccessServiceMock.assertCanWrite).toHaveBeenCalledWith(organizationId, 'folder-secret', uploaderCtx);
+    expect(minioServiceMock.putObject).not.toHaveBeenCalled();
+    expect(managerMock.save).not.toHaveBeenCalled();
+  });
+
+  // 26/10/2026: tep o thu muc goc = tai lieu toan cong ty -> chi Org Admin; nguoi khac 403, khong ghi MinIO.
+  it('tu choi (ForbiddenException COMPANY_WIDE_ADMIN_ONLY) Employee/Manager tai len thu muc goc', async () => {
+    const { service, minioServiceMock, managerMock } = buildService();
+    await expect(service.upload(organizationId, actorId, null, buildMulterFile(), uploaderCtx)).rejects.toMatchObject({
+      response: { errorCode: 'COMPANY_WIDE_ADMIN_ONLY' },
+    });
     expect(minioServiceMock.putObject).not.toHaveBeenCalled();
     expect(managerMock.save).not.toHaveBeenCalled();
   });
@@ -129,7 +157,7 @@ describe('FilesService.uploadNewVersion - fix code review 22/07/2026 (Fix 1/Fix 
     // CUNG `existingFileMeta` (khong co `folderId` -> cap ROOT -> luon duoc phep, khong can goi
     // toi folderRepo/folderAccessService).
     const fileMetaRepoMock = { findOne: jest.fn().mockResolvedValue(existingFileMeta) };
-    const folderAccessServiceMock = { canAccessFolder: jest.fn().mockResolvedValue(true) };
+    const folderAccessServiceMock = folderAccessMock(true);
 
     const service = new FilesService(
       dataSourceMock as never,
@@ -157,7 +185,7 @@ describe('FilesService.uploadNewVersion - fix code review 22/07/2026 (Fix 1/Fix 
     const { service, managerMock, minioServiceMock } = buildService(existingFileMeta);
     const file = buildMulterFile({ originalname: 'bao-cao-v2.pdf' });
 
-    const result = await service.uploadNewVersion(organizationId, actorId, fileId, file, CTX);
+    const result = await service.uploadNewVersion(organizationId, actorId, fileId, file, ROOT_WRITER_CTX);
 
     expect(sanitizeSpy).toHaveBeenCalledWith(file.originalname);
     expect(verifySpy).toHaveBeenCalledWith(file);
@@ -191,7 +219,7 @@ describe('FilesService.uploadNewVersion - fix code review 22/07/2026 (Fix 1/Fix 
     const { service, managerMock, minioServiceMock } = buildService(existingFileMeta);
     const file = buildMulterFile({ buffer: Buffer.from('gia mao') });
 
-    await expect(service.uploadNewVersion(organizationId, actorId, fileId, file, CTX)).rejects.toThrow(
+    await expect(service.uploadNewVersion(organizationId, actorId, fileId, file, ROOT_WRITER_CTX)).rejects.toThrow(
       BadRequestException,
     );
     expect(minioServiceMock.putObject).not.toHaveBeenCalled();
@@ -218,7 +246,7 @@ describe('FilesService.getDownloadUrl - MAJOR fix 1 (audit round 25/07/2026): ep
       {} as never,
       {} as never,
       minioServiceMock as never,
-      { canAccessFolder: jest.fn().mockResolvedValue(true) } as never,
+      folderAccessMock(true) as never,
     );
     return { service, minioServiceMock };
   }
@@ -317,7 +345,7 @@ describe('FilesService - kiem soat truy cap file/thu muc (opt-in, 28/07/2026)', 
     const fileVersionRepoMock = { find: jest.fn().mockResolvedValue([]) };
     const fileShareRepoMock = { findOne: jest.fn().mockResolvedValue(overrides.fileShare ?? null) };
     const folderRepoMock = { findOne: jest.fn().mockResolvedValue(overrides.folder ?? null) };
-    const folderAccessServiceMock = { canAccessFolder: jest.fn().mockResolvedValue(overrides.canAccessFolder ?? true) };
+    const folderAccessServiceMock = folderAccessMock(overrides.canAccessFolder ?? true);
 
     const service = new FilesService(
       {} as never,
@@ -454,13 +482,115 @@ describe('FilesService.createFileAccessFilter', () => {
   });
 });
 
+// 26/10/2026: GET /files?projectId= (muc "Tai lieu" o trang chi tiet du an) - chi tep trong thu muc
+// nguoi goi xem duoc VA co du an hieu luc dung projectId (ke ca thu muc con).
+describe('FilesService.findAll - loc theo du an', () => {
+  const ctx: AccessContext = { userId: 'emp-1', departmentId: 'dept-1', isOrgAdmin: false };
+  const query = { page: 1, limit: 20 } as never;
+
+  function buildService(scope: { folderIds: string[]; projectOf: Record<string, string | null>; denied?: string[] }) {
+    const fileMetaRepo = { findAndCount: jest.fn().mockResolvedValue([[{ id: 'f1', folderId: 'p1' }], 1]) };
+    const folderAccessServiceMock = {
+      createScope: jest.fn().mockResolvedValue({
+        folderIds: scope.folderIds,
+        canAccess: (id: string) => !(scope.denied ?? []).includes(id),
+        projectIdOf: (id: string) => scope.projectOf[id] ?? null,
+        // 26/10/2026: co canWrite tung tep (withWriteFlags) - cay du an ghi duoc.
+        writeAccess: () => 'allowed',
+      }),
+    };
+    const fileShareRepo = { find: jest.fn().mockResolvedValue([]) };
+    const service = new FilesService(
+      {} as never,
+      fileMetaRepo as never,
+      {} as never,
+      fileShareRepo as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      folderAccessServiceMock as never,
+    );
+    return { service, fileMetaRepo };
+  }
+
+  it('chi lay tep cua thu muc thuoc du an va xem duoc', async () => {
+    const { service, fileMetaRepo } = buildService({
+      folderIds: ['p1', 'p1-sub', 'p1-secret', 'p2', 'policy'],
+      projectOf: { p1: 'project-1', 'p1-sub': 'project-1', 'p1-secret': 'project-1', p2: 'project-2', policy: null },
+      denied: ['p1-secret'],
+    });
+    const result = await service.findAll('org-1', undefined, query, ctx, 'project-1');
+
+    const where = fileMetaRepo.findAndCount.mock.calls[0][0].where;
+    expect(where.organizationId).toBe('org-1');
+    expect(where.folderId.value).toEqual(['p1', 'p1-sub']);
+    expect(result.data).toEqual([{ id: 'f1', folderId: 'p1', canWrite: true }]);
+  });
+
+  it('khong co thu muc nao hop le -> trang rong, khong truy van tep', async () => {
+    const { service, fileMetaRepo } = buildService({ folderIds: ['p2'], projectOf: { p2: 'project-2' } });
+    const result = await service.findAll('org-1', undefined, query, ctx, 'project-1');
+    expect(result.data).toEqual([]);
+    expect(fileMetaRepo.findAndCount).not.toHaveBeenCalled();
+  });
+});
+
+// 26/10/2026: co canWrite tung tep - FileShare EDIT tren 1 tep trong cay toan cong ty (thu muc chi xem) van ghi duoc.
+describe('FilesService.findAll - canWrite theo quyen GHI cua chinh tep (26/10/2026)', () => {
+  const query = { page: 1, limit: 20 } as never;
+  const files = () => [{ id: 'f-edit', folderId: 'policy' }, { id: 'f-view', folderId: 'policy' }];
+
+  function build(ctx: AccessContext, folderWrite: 'allowed' | 'read-only') {
+    const fileMetaRepo = { findAndCount: jest.fn().mockResolvedValue([files(), 2]) };
+    const fileShareRepo = { find: jest.fn().mockResolvedValue([{ fileId: 'f-edit' }]) };
+    const folderRepo = { findOne: jest.fn().mockResolvedValue({ id: 'policy', organizationId: 'org-1' }) };
+    const folderAccess = { canAccessFolder: jest.fn().mockResolvedValue(true), writeAccess: jest.fn().mockResolvedValue(folderWrite) };
+    const service = new FilesService(
+      {} as never,
+      fileMetaRepo as never,
+      {} as never,
+      fileShareRepo as never,
+      folderRepo as never,
+      {} as never,
+      {} as never,
+      folderAccess as never,
+    );
+    return { service, fileShareRepo };
+  }
+
+  it('cay toan cong ty: chi tep co FileShare EDIT duoc ghi (1 truy van FileShare cho ca trang)', async () => {
+    const ctx: AccessContext = { userId: 'emp-1', departmentId: 'dept-1', isOrgAdmin: false };
+    const { service, fileShareRepo } = build(ctx, 'read-only');
+    const result = await service.findAll('org-1', 'policy', query, ctx);
+    expect(result.data.map((f) => [f.id, (f as { canWrite?: boolean }).canWrite])).toEqual([['f-edit', true], ['f-view', false]]);
+    expect(fileShareRepo.find).toHaveBeenCalledTimes(1);
+    const where = fileShareRepo.find.mock.calls[0][0].where as Array<Record<string, unknown>>;
+    expect(where).toEqual([
+      expect.objectContaining({ sharedWithUserId: 'emp-1', permission: 'EDIT' }),
+      expect.objectContaining({ sharedWithDepartmentId: 'dept-1', permission: 'EDIT' }),
+    ]);
+  });
+
+  it('thu muc ghi duoc -> moi tep canWrite; Org Admin khong truy van FileShare', async () => {
+    const ctx: AccessContext = { userId: 'emp-1', departmentId: null, isOrgAdmin: false };
+    const writable = build(ctx, 'allowed');
+    expect((await writable.service.findAll('org-1', 'policy', query, ctx)).data.every((f) => (f as { canWrite?: boolean }).canWrite)).toBe(true);
+
+    const admin = build({ ...ctx, isOrgAdmin: true }, 'read-only');
+    const adminResult = await admin.service.findAll('org-1', 'policy', query, { ...ctx, isOrgAdmin: true });
+    expect(adminResult.data.every((f) => (f as { canWrite?: boolean }).canWrite)).toBe(true);
+    expect(admin.fileShareRepo.find).not.toHaveBeenCalled();
+  });
+});
+
 // 28/07/2026: describe block moi - FilesService.share() sau khi bo sung chia se theo PHONG BAN
 // (`sharedWithDepartmentId`) va kiem tra quyen truy cap file truoc khi cho chia se.
 describe('FilesService.share - chia se theo phong ban + kiem soat truy cap (28/07/2026)', () => {
   const organizationId = 'org-1';
   const actorId = 'actor-1';
   const fileId = 'file-1';
-  const ctx: AccessContext = { userId: actorId, departmentId: null, isOrgAdmin: false };
+  // 26/10/2026: tep cap ROOT - chia se (thao tac ghi) chi Org Admin, xem ROOT_WRITER_CTX.
+  const ctx: AccessContext = { userId: actorId, departmentId: null, isOrgAdmin: true };
 
   function buildService(existingShare: Record<string, unknown> | null = null) {
     const fileMetaRepoMock = {
@@ -473,7 +603,7 @@ describe('FilesService.share - chia se theo phong ban + kiem soat truy cap (28/0
     };
     const dataSourceMock = { transaction: jest.fn((cb: (m: typeof managerMock) => unknown) => cb(managerMock)) };
     const outboxServiceMock = { record: jest.fn().mockResolvedValue(undefined) };
-    const folderAccessServiceMock = { canAccessFolder: jest.fn().mockResolvedValue(true) };
+    const folderAccessServiceMock = folderAccessMock(true);
 
     const service = new FilesService(
       dataSourceMock as never,
@@ -541,7 +671,7 @@ describe('FilesService.share - chia se theo phong ban + kiem soat truy cap (28/0
     };
     const folderRepoMock = { findOne: jest.fn().mockResolvedValue({ id: 'folder-1', visibility: FolderVisibility.RESTRICTED, createdByUserId: 'owner-1' }) };
     const fileShareRepoMock = { findOne: jest.fn().mockResolvedValue(null) };
-    const folderAccessServiceMock = { canAccessFolder: jest.fn().mockResolvedValue(false) };
+    const folderAccessServiceMock = folderAccessMock(false);
     const service = new FilesService(
       {} as never,
       fileMetaRepoMock as never,
@@ -570,7 +700,7 @@ describe('FilesService.remove - kiem soat truy cap (28/07/2026)', () => {
     const folderRepoMock = {
       findOne: jest.fn().mockResolvedValue({ id: 'folder-1', visibility: FolderVisibility.RESTRICTED, createdByUserId: 'owner-1' }),
     };
-    const folderAccessServiceMock = { canAccessFolder: jest.fn().mockResolvedValue(false) };
+    const folderAccessServiceMock = folderAccessMock(false);
     const service = new FilesService(
       {} as never,
       fileMetaRepoMock as never,
@@ -594,7 +724,8 @@ describe('FilesService.remove - khoa pessimistic_write dong bo voi uploadNewVers
   const organizationId = 'org-1';
   const actorId = 'actor-1';
   const fileId = 'file-1';
-  const ctx: AccessContext = { userId: actorId, departmentId: null, isOrgAdmin: false };
+  // 26/10/2026: tep cap ROOT - xoa (thao tac ghi) chi Org Admin, xem ROOT_WRITER_CTX.
+  const ctx: AccessContext = { userId: actorId, departmentId: null, isOrgAdmin: true };
   const rootFileMeta = { id: fileId, organizationId, folderId: null, fileName: 'a.pdf' };
 
   function buildService(lockedFileMeta: Record<string, unknown> | null, versions: Record<string, unknown>[]) {
@@ -689,6 +820,8 @@ describe('FilesController.upload - MAJOR fix 2 (audit round 25/07/2026): validat
       userId: actorId,
       departmentId: null,
       isOrgAdmin: false,
+      // 26/10/2026: toAccessContext() them co Manager theo phong ban (tai lieu theo pham vi du an).
+      isDepartmentManager: false,
     });
   });
 
@@ -727,7 +860,7 @@ describe('FilesService - FileShare VIEW chi cho xem, EDIT moi duoc ghi (24/10/20
       { findOne: jest.fn().mockResolvedValue({ id: 'folder-1', visibility: FolderVisibility.RESTRICTED, createdByUserId: 'owner-1' }) } as never,
       {} as never,
       { putObject: jest.fn() } as never,
-      { canAccessFolder: jest.fn().mockResolvedValue(false) } as never,
+      folderAccessMock(false) as never,
     );
     return { service, fileShareRepoMock };
   }
@@ -762,5 +895,90 @@ describe('FilesService - FileShare VIEW chi cho xem, EDIT moi duoc ghi (24/10/20
   it('EDIT: vuot qua kiem tra quyen ghi (canAccessFile requireEdit = true)', async () => {
     const { service } = buildService('EDIT');
     await expect(service.canAccessFile(organizationId, fileInRestrictedFolder as never, viewerCtx, true)).resolves.toBe(true);
+  });
+});
+
+// 26/10/2026: tep cap ROOT = tai lieu toan cong ty - ai cung xem, nhung ghi (phien ban moi/chia se/xoa)
+// chi Org Admin hoac nguoi duoc chia se EDIT truc tiep. Truoc day Employee tai phien ban moi ghi de
+// noi dung tep toan cong ty, Manager xoa duoc tep toan cong ty (da tai hien song).
+describe('FilesService.canAccessFile - tep cap ROOT chi Org Admin ghi (26/10/2026)', () => {
+  const rootFile = { id: 'file-root', organizationId: 'org-1', folderId: null } as never;
+  const employee: AccessContext = { userId: 'emp-1', departmentId: 'dept-1', isOrgAdmin: false };
+
+  function build(share: Record<string, unknown> | null) {
+    const fileShareRepoMock = { findOne: jest.fn().mockResolvedValue(share) };
+    const folderRepoMock = { findOne: jest.fn() };
+    const service = new FilesService(
+      { transaction: jest.fn().mockRejectedValue(new Error('khong duoc toi transaction')) } as never,
+      { findOne: jest.fn().mockResolvedValue(rootFile) } as never,
+      {} as never,
+      fileShareRepoMock as never,
+      folderRepoMock as never,
+      {} as never,
+      {} as never,
+      { canAccessFolder: jest.fn() } as never,
+    );
+    return { service, fileShareRepoMock, folderRepoMock };
+  }
+
+  it('Employee: xem duoc (khong truy van), ghi -> false; Org Admin ghi duoc', async () => {
+    const { service, fileShareRepoMock, folderRepoMock } = build(null);
+    await expect(service.canAccessFile('org-1', rootFile, employee)).resolves.toBe(true);
+    expect(fileShareRepoMock.findOne).not.toHaveBeenCalled();
+    await expect(service.canAccessFile('org-1', rootFile, employee, true)).resolves.toBe(false);
+    await expect(service.canAccessFile('org-1', rootFile, { ...employee, isOrgAdmin: true }, true)).resolves.toBe(true);
+    expect(folderRepoMock.findOne).not.toHaveBeenCalled();
+  });
+
+  it('Employee duoc chia se EDIT truc tiep tren tep ROOT -> ghi duoc (chi chap nhan FileShare EDIT)', async () => {
+    const { service, fileShareRepoMock } = build({ id: 'share-1' });
+    await expect(service.canAccessFile('org-1', rootFile, employee, true)).resolves.toBe(true);
+    expect(fileShareRepoMock.findOne).toHaveBeenCalledWith({
+      where: expect.arrayContaining([expect.objectContaining({ fileId: 'file-root', sharedWithUserId: 'emp-1', permission: 'EDIT' })]),
+    });
+  });
+
+  it('remove(): Employee/Manager tren tep ROOT -> ForbiddenException, khong mo transaction', async () => {
+    const { service } = build(null);
+    await expect(service.remove('org-1', 'emp-1', 'file-root', employee)).rejects.toThrow(ForbiddenException);
+  });
+});
+
+// 26/10/2026: tep trong cay toan cong ty (thu muc khong du an) - ai cung xem, ghi chi Org Admin, nguoi duoc
+// chia se thu muc (FolderAccessService.writeAccess = 'allowed') hoac FileShare EDIT truc tiep.
+describe('FilesService - cay toan cong ty chi Org Admin ghi (26/10/2026)', () => {
+  const file = { id: 'file-cw', organizationId: 'org-1', folderId: 'folder-cw' } as never;
+  const employee: AccessContext = { userId: 'emp-1', departmentId: 'dept-1', isOrgAdmin: false };
+
+  function build(writeAccess: 'allowed' | 'read-only', share: Record<string, unknown> | null) {
+    const folderAccessService = {
+      canAccessFolder: jest.fn().mockResolvedValue(true),
+      writeAccess: jest.fn().mockResolvedValue(writeAccess),
+      assertCanWrite: jest.fn(),
+    };
+    const service = new FilesService(
+      { transaction: jest.fn().mockRejectedValue(new Error('khong duoc toi transaction')) } as never,
+      { findOne: jest.fn().mockResolvedValue(file) } as never,
+      {} as never,
+      { findOne: jest.fn().mockResolvedValue(share) } as never,
+      { findOne: jest.fn().mockResolvedValue({ id: 'folder-cw', organizationId: 'org-1', parentFolderId: null, projectId: null }) } as never,
+      {} as never,
+      {} as never,
+      folderAccessService as never,
+    );
+    return { service, folderAccessService };
+  }
+
+  it('Employee: xem duoc, ghi -> false; quyen ghi lay tu writeAccess cua thu muc chua tep', async () => {
+    const { service, folderAccessService } = build('read-only', null);
+    await expect(service.canAccessFile('org-1', file, employee)).resolves.toBe(true);
+    await expect(service.canAccessFile('org-1', file, employee, true)).resolves.toBe(false);
+    expect(folderAccessService.writeAccess).toHaveBeenCalledWith('org-1', 'folder-cw', employee);
+    await expect(service.remove('org-1', 'emp-1', 'file-cw', employee)).rejects.toThrow(ForbiddenException);
+  });
+
+  it('FileShare EDIT truc tiep hoac duoc chia se thu muc (writeAccess allowed) -> ghi duoc', async () => {
+    await expect(build('read-only', { id: 'share-1' }).service.canAccessFile('org-1', file, employee, true)).resolves.toBe(true);
+    await expect(build('allowed', null).service.canAccessFile('org-1', file, employee, true)).resolves.toBe(true);
   });
 });

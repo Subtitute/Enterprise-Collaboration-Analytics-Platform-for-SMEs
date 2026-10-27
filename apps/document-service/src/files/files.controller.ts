@@ -24,7 +24,7 @@ import { mimeTypeFileFilter } from './allowed-mime-types';
 // 22/07/2026: Fix 5 (code review) - DTO validate UUID cho query `folderId`.
 import { FindFilesQueryDto } from './dto/find-files-query.dto';
 // 28/07/2026: kieu ngu canh dung chung (kiem soat truy cap thu muc, opt-in) - xem folder-access.service.ts.
-import { AccessContext } from '../folders/folder-access.service';
+import { AccessContext, toAccessContext } from '../folders/folder-access.service';
 
 const MAX_UPLOAD_SIZE_BYTES = 25 * 1024 * 1024;
 
@@ -37,8 +37,9 @@ export class FilesController {
 
   // 28/07/2026: dung chung, mirror pattern `canManageUsers` cua UsersController (iam-service) -
   // xem chu thich tuong tu o folders.controller.ts.
+  // 26/10/2026: dung chung toAccessContext() (them co Manager theo phong ban - tai lieu theo du an).
   private buildAccessContext(userId: string, departmentId: string | null, permissions: string[]): AccessContext {
-    return { userId, departmentId, isOrgAdmin: (permissions ?? []).includes(PERMISSIONS.ORG_MANAGE) };
+    return toAccessContext(userId, departmentId, permissions);
   }
 
   @Get()
@@ -60,6 +61,8 @@ export class FilesController {
       query.folderId,
       query,
       this.buildAccessContext(userId, departmentId, permissions),
+      // 26/10/2026: loc theo du an (muc "Tai lieu" o trang chi tiet du an).
+      query.projectId,
     );
   }
 

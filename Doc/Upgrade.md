@@ -51,6 +51,7 @@ Nguồn gốc: 1 đợt review toàn dự án (vai trò giảng viên phản bi�
 - [ ] Mobile (`ecap-mobile`): chưa có push notification (chỉ polling), chưa có offline cache, chỉ build Android (không có thư mục `ios/`), coverage gần như 0 (2 test), chưa từng chạy trên thiết bị thật
 - [ ] Nâng cấp TypeORM 0.3 → 1.0 — là 1 dự án migration thật sự (breaking change), **không làm trước khi bảo vệ đồ án**
 - [ ] Nâng cấp React 18→19, Vite 5→8, ESLint 8→10 — mỗi thư viện lệch 1-3 major, chấp nhận được ở quy mô đồ án, chỉ đáng quan tâm nếu dự án còn tiếp tục sau khi tốt nghiệp
+- [ ] **(Bổ sung 26/10/2026, phần còn lại của đợt Tài liệu theo dự án + phạm vi Manager — `Technical_Spec.md` §28.12)** RAG đọc thêm Excel/PowerPoint (hiện 10/20 tài liệu mẫu được lập chỉ mục); read-model dự án của Document Service an toàn khi chạy nhiều instance; khoá dòng khi kiểm tra "gỡ thành viên còn Task chưa xong" (409); thu hẹp giao dịch mua hàng (Kho) và ML anomalies theo phòng ban trong JWT; `npm run restore` phục hồi đè lên hệ thống đang chạy (dump hiện không có `--clean`, TimescaleDB cần quy trình riêng).
 
 ## Tier 4 — Analytics nâng cao, phần chưa triển khai của đợt 24/09/2026
 
@@ -83,3 +84,4 @@ khác kế hoạch ban đầu, §23.8 ghi kết quả kiểm thử chéo và gi�
 - **24/10/2026** — Bổ sung Tier 5: kế hoạch Chatbot nội bộ (RAG + tool-calling lai), chốt sau khi bàn bạc trực tiếp trước khi code — xem `Technical_Spec.md` §23 cho đặc tả kỹ thuật đầy đủ.
 - **24/10/2026 (tiếp)** — Tier 5 chuyển sang đã triển khai: đánh dấu hoàn thành từng hạng mục, ghi rõ các điểm khác kế hoạch (không service mới, không `pgvector`, job quét định kỳ) và các hạng mục còn để ngỏ.
 - **25/10/2026** — Tier 4 Layer 4 (Predictive/Forecasting) giao tuỳ chọn cho Thiều Quang Thành (P3, `Script.md` §3.4 Gói 4), trạng thái vẫn chưa triển khai. File này không liệt kê CDC Debezium nên không đổi phần khác; CDC đã triển khai dạng chế độ tuỳ chọn, xem `Technical_Spec.md` §26.
+- **26/10/2026** — Tier 3 thêm 1 dòng gom các giới hạn còn lại của đợt Tài liệu theo phạm vi dự án + phạm vi dữ liệu của Manager (`Technical_Spec.md` §28, đã triển khai) để theo dõi tiếp; không đổi trạng thái các Tier khác.

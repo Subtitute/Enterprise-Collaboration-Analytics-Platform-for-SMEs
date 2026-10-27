@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 // 17/09/2026: them `In` - can cho truy van "du an nam trong danh sach id duoc phep thay" khi loc
 // theo pham vi cho Employee (xem findAll()/findById()/getVisibleProjectIds() ben duoi).
@@ -11,6 +11,10 @@ import {
   ProjectCompletedPayload,
   ProjectCreatedPayload,
   ProjectDeletedPayload,
+  // 26/10/2026: su kien thanh vien/nguoi phu trach - tai lieu theo pham vi du an (Document Service).
+  ProjectLeadChangedPayload,
+  ProjectMemberAddedPayload,
+  ProjectMemberRemovedPayload,
   ProjectStatus,
   TaskDeletedPayload,
   TaskStatus,
@@ -21,6 +25,8 @@ import { ProjectMember } from '../entities/project-member.entity';
 import { Task } from '../entities/task.entity';
 import { TaskAssignee } from '../entities/task-assignee.entity';
 import { OutboxService } from '../outbox/outbox.service';
+// 26/10/2026: pham vi xem 3 cap (Org Admin/Manager theo phong ban/Employee) - xem resolveScopeUserIds().
+import { ScopeCaller, resolveScopeUserIds } from '../user-directory/user-directory';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectQueryDto } from './dto/project-query.dto';
@@ -66,19 +72,33 @@ export class ProjectsService {
    * gioi "thay tat ca" vs "chi thay du an co lien quan" thay vi them permission moi (khong can thiet
    * - ranh gioi nay TRUNG KHOP hoan toan voi ranh gioi PROJECT_CREATE da co san). "Co lien quan" suy
    * tu TaskAssignee (chua co bang thanh vien du an rieng) - xem getVisibleProjectIds().
+   *
+   * 26/10/2026: Manager KHONG con thay toan bo du an nhu Org Admin - chi du an minh lien quan CONG
+   * du an co it nhat 1 thanh vien/nguoi duoc giao Task/lead/nguoi tao thuoc phong ban cua Manager
+   * (departmentId tu JWT, thanh vien phong ban tu read-model dim_user). Org Admin (USER_MANAGE) van
+   * thay tat ca; Employee giu nguyen quy tac cu. Quyen ghi (PROJECT_UPDATE...) khong doi.
    */
   async findAll(
     organizationId: string,
     query: ProjectQueryDto,
     userId: string,
     permissions: string[],
+    departmentId: string | null = null,
   ): Promise<PaginatedResponse<ProjectListItem>> {
     const where: FindOptionsWhere<Project> = { organizationId };
     if (query.status) where.status = query.status;
     if (query.search) where.name = ILike(`%${query.search}%`);
 
-    if (!(permissions ?? []).includes(PERMISSIONS.PROJECT_CREATE)) {
-      const visibleIds = await this.getVisibleProjectIds(organizationId, userId);
+    const scopeUserIds = await resolveScopeUserIds(
+      this.dataSource,
+      organizationId,
+      userId,
+      permissions ?? [],
+      PERMISSIONS.PROJECT_CREATE,
+      departmentId,
+    );
+    if (scopeUserIds) {
+      const visibleIds = await this.getVisibleProjectIds(organizationId, scopeUserIds);
       if (visibleIds.length === 0) return paginate([], 0, query.page, query.limit);
       where.id = In(visibleIds);
     }
@@ -111,22 +131,20 @@ export class ProjectsService {
    * khoi danh sach van co the "vuot rao" bang cach doan/nhan mot UUID du an cu the roi goi thang
    * GET /projects/:id. Nem NotFoundException CUNG errorCode voi truong hop "khong ton tai" (khong
    * phai ForbiddenException) de khong lo lieu 1 du an co that su ton tai trong to chuc hay khong.
+   *
+   * 26/10/2026: cung pham vi 3 cap voi findAll() o tren (xem assertProjectVisible()).
    */
   async findById(
     organizationId: string,
     id: string,
     userId: string,
     permissions: string[],
+    departmentId: string | null = null,
   ): Promise<ProjectListItem> {
     const project = await this.projectRepo.findOne({ where: { id, organizationId } });
     if (!project) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
 
-    if (!(permissions ?? []).includes(PERMISSIONS.PROJECT_CREATE)) {
-      const visibleIds = await this.getVisibleProjectIds(organizationId, userId, [id]);
-      if (!visibleIds.includes(id)) {
-        throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
-      }
-    }
+    await this.assertProjectVisible(organizationId, id, userId, permissions, departmentId);
 
     const stats = await this.computeProjectStats([id]);
     const stat = stats.get(id) ?? { completionRate: 0, memberCount: 0 };
@@ -165,6 +183,10 @@ export class ProjectsService {
         projectId: project.id,
         name: project.name,
         actorId,
+        // 26/10/2026: Document Service cap quyen tai lieu du an cho lead ngay tu luc tao.
+        leadUserId: project.leadUserId ?? null,
+        // 26/10/2026: nguoi tao cung "thuoc du an" - Document Service cap quyen tai lieu cho nguoi tao.
+        createdByUserId: project.createdByUserId,
       };
       await this.outboxService.record(manager, {
         eventType: EVENT_TYPES.PROJECT_CREATED,
@@ -177,9 +199,12 @@ export class ProjectsService {
     });
   }
 
-  async update(organizationId: string, id: string, dto: UpdateProjectDto): Promise<Project> {
+  // 26/10/2026: them `actorId` - doi nguoi phu trach gio phat PROJECT_LEAD_CHANGED (xem cuoi ham).
+  async update(organizationId: string, id: string, dto: UpdateProjectDto, actorId: string, caller?: ScopeCaller): Promise<Project> {
     const project = await this.projectRepo.findOne({ where: { id, organizationId } });
     if (!project) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
+    await this.assertCallerScope(organizationId, id, caller);
+    const previousLeadUserId = project.leadUserId ?? null;
 
     if (dto.name !== undefined) project.name = dto.name;
     if (dto.description !== undefined) project.description = dto.description;
@@ -196,7 +221,21 @@ export class ProjectsService {
     // state-machine, khong ghi Outbox event nao ca, nen tuyet doi khong duoc phep dung de doi
     // status - viec do phai di qua complete()/reopen()/archive() ben duoi (co day du 3 dieu kien
     // tren).
-    return this.projectRepo.save(project);
+    // 26/10/2026: lead quyet dinh quyen xem tai lieu du an (Document Service) - doi lead thi ghi
+    // PROJECT_LEAD_CHANGED trong CUNG transaction voi thay doi, cac truong khac giu nguyen duong cu.
+    const nextLeadUserId = project.leadUserId ?? null;
+    if (nextLeadUserId === previousLeadUserId) return this.projectRepo.save(project);
+    return this.dataSource.transaction(async (manager) => {
+      const saved = await manager.save(project);
+      const payload: ProjectLeadChangedPayload = { projectId: id, leadUserId: nextLeadUserId, previousLeadUserId, actorId };
+      await this.outboxService.record(manager, {
+        eventType: EVENT_TYPES.PROJECT_LEAD_CHANGED,
+        organizationId,
+        producer: PRODUCER,
+        payload: payload as unknown as Record<string, unknown>,
+      });
+      return saved;
+    });
   }
 
   /**
@@ -210,9 +249,10 @@ export class ProjectsService {
    * cuoc (row da bi request thang cuoc doi thanh COMPLETED giua luc pre-check va luc khoa) nhan
    * lai dung loi "da hoan thanh" (400) thay vi am tham ghi de/double-emit.
    */
-  async complete(organizationId: string, id: string, actorId: string): Promise<Project> {
+  async complete(organizationId: string, id: string, actorId: string, caller?: ScopeCaller): Promise<Project> {
     const existing = await this.projectRepo.findOne({ where: { id, organizationId } });
     if (!existing) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
+    await this.assertCallerScope(organizationId, id, caller);
     // 26/08/2026 (fix code review lan 4): truoc ban sua nay, ca pre-check nay LAN re-check ben
     // trong transaction o duoi deu "return existing/project" am tham thay vi nem loi - le ra phai
     // nem BadRequestException(PROJECT_ALREADY_COMPLETED) giong het pattern archive() (ma error code
@@ -249,9 +289,10 @@ export class ProjectsService {
     });
   }
 
-  async reopen(organizationId: string, id: string, actorId: string): Promise<Project> {
+  async reopen(organizationId: string, id: string, actorId: string, caller?: ScopeCaller): Promise<Project> {
     const existing = await this.projectRepo.findOne({ where: { id, organizationId } });
     if (!existing) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
+    await this.assertCallerScope(organizationId, id, caller);
     if (existing.status === ProjectStatus.ACTIVE) {
       return existing;
     }
@@ -283,9 +324,10 @@ export class ProjectsService {
   // 22/07/2026: actorId hien khong dung ben trong ham (khong co outbox event de ghi actor, xem
   // ghi chu tren) - giu tham so de dong bo chu ky voi complete()/remove() va san sang cho audit
   // log/outbox trong tuong lai neu EVENT_TYPES bo sung PROJECT_ARCHIVED.
-  async archive(organizationId: string, id: string, actorId: string): Promise<Project> {
+  async archive(organizationId: string, id: string, actorId: string, caller?: ScopeCaller): Promise<Project> {
     const existing = await this.projectRepo.findOne({ where: { id, organizationId } });
     if (!existing) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
+    await this.assertCallerScope(organizationId, id, caller);
     if (existing.status === ProjectStatus.ARCHIVED) {
       throw new BadRequestException({ message: 'Du an nay da duoc luu tru', errorCode: ERROR_CODES.PROJECT_ALREADY_ARCHIVED });
     }
@@ -326,9 +368,10 @@ export class ProjectsService {
    * Document Service da dung cho truong hop cascade tuong tu (xoa thu muc cascade xoa file con, ghi
    * 1 DOCUMENT_DELETED / file).
    */
-  async remove(organizationId: string, actorId: string, id: string): Promise<void> {
+  async remove(organizationId: string, actorId: string, id: string, caller?: ScopeCaller): Promise<void> {
     const existing = await this.projectRepo.findOne({ where: { id, organizationId } });
     if (!existing) throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
+    await this.assertCallerScope(organizationId, id, caller);
 
     await this.dataSource.transaction(async (manager) => {
       const project = await manager.findOne(Project, {
@@ -380,31 +423,28 @@ export class ProjectsService {
    * nao). Cung phai cap nhat GIONG HET logic nay tai TasksService.getVisibleProjectIds() (nhan ban
    * co y, xem chu thich tai do) de mot thanh vien du an (chua co Task nao) cung thay duoc du an cua
    * ho trong danh sach, dung tinh than "thanh vien du an -> thay duoc ca Task cua du an do".
+   *
+   * 26/10/2026: nhan 1 TAP userIds thay vi 1 userId - Manager truyen [chinh minh + thanh vien phong
+   * ban] (xem resolveScopeUserIds()), Employee truyen [chinh minh]; 4 nguon lien quan giu nguyen.
+   *
+   * 26/10/2026: DINH NGHIA DUY NHAT "thuoc du an" = lead/thanh vien/nguoi tao ("du an lien quan phong ban"
+   * = 1 trong 3 vai tro do thuoc phong ban) - CUNG quy tac voi tai lieu du an (Document Service, GRANTS_SQL).
+   * Bo nguon TaskAssignee: giao Task gio tu them nguoi duoc giao lam thanh vien (TasksService.assign()),
+   * du lieu cu da duoc scripts/migrate-project-documents.js chuyen nguoi duoc giao thanh thanh vien.
    */
   private async getVisibleProjectIds(
     organizationId: string,
-    userId: string,
+    userIds: string[],
     restrictToIds?: string[],
   ): Promise<string[]> {
     if (restrictToIds && restrictToIds.length === 0) return [];
-
-    const assigneeQuery = this.assigneeRepo
-      .createQueryBuilder('assignee')
-      .innerJoin(Task, 'task', 'task.id = assignee.taskId')
-      .select('DISTINCT task.projectId', 'projectId')
-      .where('assignee.userId = :userId', { userId })
-      .andWhere('task.organizationId = :organizationId', { organizationId });
-    if (restrictToIds) {
-      assigneeQuery.andWhere('task.projectId IN (:...restrictToIds)', { restrictToIds });
-    }
-    const assignedRows = await assigneeQuery.getRawMany<{ projectId: string }>();
 
     const memberQuery = this.dataSource
       .getRepository(ProjectMember)
       .createQueryBuilder('member')
       .innerJoin(Project, 'project', 'project.id = member.projectId')
       .select('DISTINCT member.projectId', 'projectId')
-      .where('member.userId = :userId', { userId })
+      .where('member.userId IN (:...userIds)', { userIds })
       .andWhere('project.organizationId = :organizationId', { organizationId });
     if (restrictToIds) {
       memberQuery.andWhere('member.projectId IN (:...restrictToIds)', { restrictToIds });
@@ -412,8 +452,8 @@ export class ProjectsService {
     const memberRows = await memberQuery.getRawMany<{ projectId: string }>();
 
     const ownedWhere: FindOptionsWhere<Project>[] = [
-      { organizationId, leadUserId: userId },
-      { organizationId, createdByUserId: userId },
+      { organizationId, leadUserId: In(userIds) },
+      { organizationId, createdByUserId: In(userIds) },
     ];
     if (restrictToIds) {
       for (const clause of ownedWhere) clause.id = In(restrictToIds);
@@ -421,10 +461,45 @@ export class ProjectsService {
     const ownedProjects = await this.projectRepo.find({ where: ownedWhere, select: ['id'] });
 
     const ids = new Set<string>();
-    for (const row of assignedRows) ids.add(row.projectId);
     for (const row of memberRows) ids.add(row.projectId);
     for (const project of ownedProjects) ids.add(project.id);
     return Array.from(ids);
+  }
+
+  /**
+   * 26/10/2026: chan doc 1 du an ngoai pham vi (findById()/listMembers()) - NotFoundException CUNG
+   * errorCode voi "khong ton tai" de khong lo su ton tai cua du an (cung ly do 17/09/2026 o findById()).
+   */
+  private async assertProjectVisible(
+    organizationId: string,
+    projectId: string,
+    userId: string,
+    permissions: string[],
+    departmentId: string | null,
+  ): Promise<void> {
+    const scopeUserIds = await resolveScopeUserIds(
+      this.dataSource,
+      organizationId,
+      userId,
+      permissions ?? [],
+      PERMISSIONS.PROJECT_CREATE,
+      departmentId,
+    );
+    if (!scopeUserIds) return;
+    const visibleIds = await this.getVisibleProjectIds(organizationId, scopeUserIds, [projectId]);
+    if (!visibleIds.includes(projectId)) {
+      throw new NotFoundException({ message: 'Khong tim thay du an', errorCode: ERROR_CODES.PROJECT_NOT_FOUND });
+    }
+  }
+
+  /**
+   * 26/10/2026: moi thao tac GHI theo id (sua/hoan thanh/mo lai/luu tru/xoa du an, them/go thanh vien)
+   * cung phai nam trong pham vi xem. Truoc day Manager bi thu hep pham vi DOC nhung van ghi duoc vao
+   * du an ngoai pham vi neu biet UUID - tu them minh lam thanh vien/lead la thay ngay du an va ca tai
+   * lieu du an ben Document Service. `caller` undefined = goi noi bo, khong kiem tra.
+   */
+  private async assertCallerScope(organizationId: string, projectId: string, caller?: ScopeCaller): Promise<void> {
+    if (caller) await this.assertProjectVisible(organizationId, projectId, caller.userId, caller.permissions, caller.departmentId);
   }
 
   /**
@@ -433,8 +508,15 @@ export class ProjectsService {
    * khong dong bo giua cac trinh duyet/thiet bi. Mirror dung pattern TasksService.assign()/unassign()
    * (bat QueryFailedError 23505 cho truong hop 2 request them dong thoi CUNG 1 nguoi).
    */
-  async listMembers(organizationId: string, projectId: string): Promise<ProjectMember[]> {
+  // 26/10/2026: `caller` (tuy chon) - truoc day ai co PROJECT_VIEW cung doc duoc danh sach thanh vien
+  // cua BAT KY du an nao neu biet UUID; nay ap dung cung pham vi xem voi findById().
+  async listMembers(
+    organizationId: string,
+    projectId: string,
+    caller?: ScopeCaller,
+  ): Promise<ProjectMember[]> {
     await this.findProjectOrFail(organizationId, projectId);
+    await this.assertCallerScope(organizationId, projectId, caller);
     return this.dataSource.getRepository(ProjectMember).find({ where: { projectId } });
   }
 
@@ -443,15 +525,30 @@ export class ProjectsService {
     projectId: string,
     actorId: string,
     userId: string,
+    caller?: ScopeCaller,
   ): Promise<ProjectMember> {
     await this.findProjectOrFail(organizationId, projectId);
+    await this.assertCallerScope(organizationId, projectId, caller);
 
     const memberRepo = this.dataSource.getRepository(ProjectMember);
     const existing = await memberRepo.findOne({ where: { projectId, userId } });
     if (existing) return existing;
 
     try {
-      return await memberRepo.save(memberRepo.create({ projectId, userId, addedByUserId: actorId }));
+      // 26/10/2026: ghi PROJECT_MEMBER_ADDED cung transaction - Document Service mo tai lieu du an
+      // cho thanh vien moi qua read-model rieng (khong doc DB nay). Nhanh "da la thanh vien" o tren
+      // va nhanh race 23505 ben duoi KHONG phat lai (khong co thay doi that).
+      return await this.dataSource.transaction(async (manager) => {
+        const saved = await manager.save(manager.create(ProjectMember, { projectId, userId, addedByUserId: actorId }));
+        const payload: ProjectMemberAddedPayload = { projectId, userId, actorId };
+        await this.outboxService.record(manager, {
+          eventType: EVENT_TYPES.PROJECT_MEMBER_ADDED,
+          organizationId,
+          producer: PRODUCER,
+          payload: payload as unknown as Record<string, unknown>,
+        });
+        return saved;
+      });
     } catch (error) {
       const pgErrorCode =
         error instanceof QueryFailedError
@@ -465,8 +562,10 @@ export class ProjectsService {
     }
   }
 
-  async removeMember(organizationId: string, projectId: string, userId: string): Promise<void> {
+  // 26/10/2026: them `actorId` cho su kien PROJECT_MEMBER_REMOVED (xem cuoi ham).
+  async removeMember(organizationId: string, projectId: string, userId: string, actorId: string, caller?: ScopeCaller): Promise<void> {
     const project = await this.findProjectOrFail(organizationId, projectId);
+    await this.assertCallerScope(organizationId, projectId, caller);
     if (project.leadUserId === userId) {
       throw new BadRequestException({
         message: 'Khong the go nguoi phu trach du an khoi danh sach thanh vien',
@@ -476,7 +575,35 @@ export class ProjectsService {
 
     const memberRepo = this.dataSource.getRepository(ProjectMember);
     const member = await memberRepo.findOne({ where: { projectId, userId } });
-    if (member) await memberRepo.remove(member);
+    if (!member) return;
+    // 26/10/2026: thanh vien la nguon su that "thuoc du an" - go nguoi con Task chua xong (khac DONE) thi
+    // ho mat quyen xem chinh Task do. Bat buoc giao lai Task truoc (409).
+    const openTaskCount = await this.assigneeRepo
+      .createQueryBuilder('assignee')
+      .innerJoin(Task, 'task', 'task.id = assignee.taskId')
+      .where('assignee.userId = :userId', { userId })
+      .andWhere('task.projectId = :projectId', { projectId })
+      .andWhere('task.status != :done', { done: TaskStatus.DONE })
+      .getCount();
+    if (openTaskCount > 0) {
+      throw new ConflictException({
+        message: 'Thanh vien con Task chua hoan thanh trong du an - hay giao lai cac Task do truoc khi go',
+        errorCode: ERROR_CODES.PROJECT_MEMBER_HAS_OPEN_TASKS,
+        errorParams: { count: openTaskCount },
+      });
+    }
+    // 26/10/2026: go thanh vien = thu hoi quyen xem tai lieu du an ben Document Service - ghi
+    // PROJECT_MEMBER_REMOVED cung transaction voi thao tac xoa.
+    await this.dataSource.transaction(async (manager) => {
+      await manager.remove(member);
+      const payload: ProjectMemberRemovedPayload = { projectId, userId, actorId };
+      await this.outboxService.record(manager, {
+        eventType: EVENT_TYPES.PROJECT_MEMBER_REMOVED,
+        organizationId,
+        producer: PRODUCER,
+        payload: payload as unknown as Record<string, unknown>,
+      });
+    });
   }
 
   private async findProjectOrFail(organizationId: string, id: string): Promise<Project> {

@@ -14,6 +14,8 @@ import { Spinner } from '@/components/ui/Spinner';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { ConfirmDialog } from '@/components/ui/Modal';
 import { QuickCreateTaskModal } from '@/features/projects/components/QuickCreateTaskModal';
+// 26/10/2026: avatar that cua nguoi dang dang nhap (presigned URL tu GET /users/:id, Technical_Spec.md muc 27.5).
+import { useMyProfileQuery } from '@/features/profile/hooks';
 import { cn } from '@/lib/utils';
 import {
   MenuIcon,
@@ -255,6 +257,7 @@ function GlobalSearchBox() {
 export function Topbar() {
   const { t, i18n } = useTranslation();
   const user = useAuthStore((s) => s.user);
+  const avatarUrl = useMyProfileQuery().data?.avatarUrl;
   const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen);
   const toggleSidebarCollapsed = useUIStore((s) => s.toggleSidebarCollapsed);
   const logout = useLogout();
@@ -505,7 +508,7 @@ export function Topbar() {
                 open && 'bg-bg-subtle text-text-primary',
               )}
             >
-              <Avatar name={user?.fullName} size="sm" className="h-6 w-6 text-[10px] bg-[#0E5E5E] text-white" />
+              <Avatar name={user?.fullName} src={avatarUrl} size="sm" className="h-6 w-6 text-[10px] bg-[#0E5E5E] text-white" />
               <span className="hidden max-w-[140px] truncate text-[13px] font-medium text-text-primary lg:inline">
                 {user?.fullName}
               </span>
@@ -519,7 +522,7 @@ export function Topbar() {
             <div className="py-1">
               {/* Header User Menu (§7.1) */}
               <div className="flex items-center gap-3 px-3 py-2.5 border-b border-border-subtle">
-                <Avatar name={user?.fullName} size="md" className="h-10 w-10 text-xs shrink-0 bg-[#0E5E5E] text-white font-semibold" />
+                <Avatar name={user?.fullName} src={avatarUrl} size="md" className="h-10 w-10 text-xs shrink-0 bg-[#0E5E5E] text-white font-semibold" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-medium text-text-primary">
                     {user?.fullName}

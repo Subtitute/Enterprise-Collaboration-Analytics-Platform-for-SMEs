@@ -14,6 +14,15 @@ import { AccessContext } from './folder-access.service';
 
 const CTX: AccessContext = { userId: 'user-1', departmentId: null, isOrgAdmin: false };
 
+// 26/10/2026: cac thao tac GHI goi FolderAccessService.assertCanWrite() (cay toan cong ty chi Org Admin) -
+// gia lap theo "xem duoc thu muc" cho cac test cu (quy tac ghi that test o folder-access.service.spec.ts).
+function writeGuard(canAccess: boolean | jest.Mock = true) {
+  return jest.fn(async () => {
+    const ok = typeof canAccess === 'boolean' ? canAccess : await canAccess();
+    if (!ok) throw new ForbiddenException('khong co quyen');
+  });
+}
+
 describe('FoldersService.findAll', () => {
   // 24/10/2026: findAll() dung 1 checker cho ca danh sach (FolderAccessService.createChecker).
   function buildService(findMock: jest.Mock, checkerMock: jest.Mock = jest.fn().mockReturnValue(true)) {
@@ -24,7 +33,7 @@ describe('FoldersService.findAll', () => {
     const folderShareRepo = {} as never;
     const minioService = {} as never;
     const outboxService = {} as never;
-    const folderAccessService = { createChecker: jest.fn().mockResolvedValue(checkerMock) } as never;
+    const folderAccessService = { createScope: jest.fn().mockResolvedValue({ canAccess: checkerMock, writeAccess: () => 'allowed' }) } as never;
     return new FoldersService(
       dataSource,
       folderRepo as never,
@@ -34,6 +43,7 @@ describe('FoldersService.findAll', () => {
       minioService,
       outboxService,
       folderAccessService,
+      {} as never,
     );
   }
 
@@ -71,7 +81,8 @@ describe('FoldersService.findAll', () => {
         where: { organizationId: 'org-1', parentFolderId: 'parent-uuid' },
       }),
     );
-    expect(result).toEqual([{ id: 'f1' }]);
+    // 26/10/2026: moi thu muc kem `canWrite` (FE an/hien thao tac ghi) - xem FolderAccessService.resolveFolderWrite.
+    expect(result).toEqual([{ id: 'f1', canWrite: true }]);
   });
 
   // 28/07/2026: test moi - kiem soat truy cap thu muc (opt-in): findAll() phai loc BO LANG (khong
@@ -85,7 +96,7 @@ describe('FoldersService.findAll', () => {
 
     const result = await service.findAll('org-1', undefined, CTX);
 
-    expect(result).toEqual([{ id: 'f1' }, { id: 'f3' }]);
+    expect(result).toEqual([{ id: 'f1', canWrite: true }, { id: 'f3', canWrite: true }]);
     expect(checkerMock).toHaveBeenCalledTimes(3);
   });
 });
@@ -110,7 +121,7 @@ describe('FoldersService.update - kiem soat truy cap thu muc (opt-in, 28/07/2026
     const saveMock = overrides.save ?? jest.fn().mockImplementation((f) => Promise.resolve(f));
     const folderRepo = { findOne: jest.fn().mockResolvedValue(folder), save: saveMock };
     const canAccessFolderMock = jest.fn().mockResolvedValue(overrides.canAccessFolder ?? true);
-    const folderAccessService = { canAccessFolder: canAccessFolderMock } as never;
+    const folderAccessService = { canAccessFolder: canAccessFolderMock, assertCanWrite: writeGuard(canAccessFolderMock) } as never;
     const service = new FoldersService(
       {} as never,
       folderRepo as never,
@@ -120,6 +131,7 @@ describe('FoldersService.update - kiem soat truy cap thu muc (opt-in, 28/07/2026
       {} as never,
       {} as never,
       folderAccessService,
+      {} as never,
     );
     return { service, folderRepo, saveMock, canAccessFolderMock };
   }
@@ -193,6 +205,7 @@ describe('FoldersService - endpoint chia se thu muc (POST/GET/DELETE /folders/:i
       folderShareRepo as never,
       {} as never,
       {} as never,
+      { assertCanWrite: writeGuard() } as never,
       {} as never,
     );
     return { service, folderRepo, folderShareRepo };
@@ -299,6 +312,7 @@ describe('FoldersService.create/remove - quyen truy cap thu muc cha va cay con (
     const denied = new Set(options.deniedFolderIds ?? []);
     const folderAccessService = {
       canAccessFolder: jest.fn().mockResolvedValue(options.canAccessFolder ?? true),
+      assertCanWrite: writeGuard(options.canAccessFolder ?? true),
       createChecker: jest.fn().mockResolvedValue((folderId: string) => !denied.has(folderId)),
     };
     const dataSource = { transaction: jest.fn() };
@@ -311,6 +325,7 @@ describe('FoldersService.create/remove - quyen truy cap thu muc cha va cay con (
       {} as never,
       {} as never,
       folderAccessService as never,
+      {} as never,
     );
     return { service, folderRepo, dataSource, folderAccessService };
   }
@@ -331,5 +346,93 @@ describe('FoldersService.create/remove - quyen truy cap thu muc cha va cay con (
     const { service, dataSource } = buildService({ children: [{ id: 'secret-child' }], deniedFolderIds: ['secret-child'] });
     await expect(service.remove('org-1', 'user-1', 'parent-1', CTX)).rejects.toThrow(ForbiddenException);
     expect(dataSource.transaction).not.toHaveBeenCalled();
+  });
+});
+
+// 26/10/2026: tai lieu theo pham vi du an - chi thu muc cap goc gan du an; thu muc toan cong ty chi
+// Org Admin tao/chuyen duoc; nguoi khac chi gan duoc du an minh thuoc pham vi.
+describe('FoldersService - gan du an cho thu muc cap goc (26/10/2026)', () => {
+  const ADMIN: AccessContext = { ...CTX, isOrgAdmin: true };
+  function buildService(options: { folder?: Partial<Folder>; projectExists?: boolean; accessible?: string[] } = {}) {
+    const folder = { id: 'folder-1', organizationId: 'org-1', createdByUserId: 'user-1', visibility: FolderVisibility.ORGANIZATION, parentFolderId: null, ...options.folder };
+    const folderRepo = {
+      findOne: jest.fn().mockResolvedValue(folder),
+      create: jest.fn().mockImplementation((data) => data),
+      save: jest.fn().mockImplementation((f) => Promise.resolve(f)),
+    };
+    const projectRefRepo = { findOne: jest.fn().mockResolvedValue(options.projectExists === false ? null : { projectId: 'project-1' }) };
+    const folderAccessService = {
+      canAccessFolder: jest.fn().mockResolvedValue(true),
+      assertCanWrite: writeGuard(),
+      listAccessibleProjectIds: jest.fn().mockResolvedValue(options.accessible ?? ['project-1']),
+    };
+    const service = new FoldersService(
+      {} as never,
+      folderRepo as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      {} as never,
+      folderAccessService as never,
+      projectRefRepo as never,
+    );
+    return { service, folderRepo, projectRefRepo, folderAccessService };
+  }
+
+  it('create cap goc khong chon du an: Employee/Manager bi tu choi, Org Admin tao duoc thu muc toan cong ty', async () => {
+    const { service, folderRepo } = buildService();
+    await expect(service.create('org-1', 'user-1', { name: 'Chinh sach' }, CTX)).rejects.toMatchObject({
+      response: { errorCode: 'COMPANY_WIDE_ADMIN_ONLY' },
+    });
+    expect(folderRepo.save).not.toHaveBeenCalled();
+    await service.create('org-1', 'admin-1', { name: 'Chinh sach' }, ADMIN);
+    expect(folderRepo.save).toHaveBeenCalledWith(expect.objectContaining({ projectId: null, parentFolderId: null }));
+  });
+
+  it('create cap goc chon du an minh thuoc pham vi -> luu projectId; du an ngoai pham vi -> 403; du an khong ton tai -> 404', async () => {
+    const ok = buildService({ accessible: ['project-1'] });
+    await ok.service.create('org-1', 'user-1', { name: 'Hop dong', projectId: 'project-1' }, CTX);
+    expect(ok.folderRepo.save).toHaveBeenCalledWith(expect.objectContaining({ projectId: 'project-1' }));
+    expect(ok.projectRefRepo.findOne).toHaveBeenCalledWith(expect.objectContaining({ where: { projectId: 'project-1', organizationId: 'org-1' } }));
+
+    const outside = buildService({ accessible: ['project-2'] });
+    await expect(outside.service.create('org-1', 'user-1', { name: 'X', projectId: 'project-1' }, CTX)).rejects.toThrow(ForbiddenException);
+
+    const missing = buildService({ projectExists: false });
+    await expect(missing.service.create('org-1', 'admin-1', { name: 'X', projectId: 'project-1' }, ADMIN)).rejects.toThrow(NotFoundException);
+  });
+
+  it('create thu muc con kem projectId -> 400 (thu muc con ke thua du an cua thu muc cha)', async () => {
+    const { service } = buildService();
+    await expect(
+      service.create('org-1', 'user-1', { name: 'Con', parentFolderId: 'parent-1', projectId: 'project-1' }, CTX),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('update projectId: chuyen sang toan cong ty chi Org Admin; nguoi tao doi sang du an minh thuoc pham vi duoc', async () => {
+    const owner = buildService({ folder: { projectId: 'project-2' } });
+    await expect(owner.service.update('org-1', 'folder-1', { projectId: null }, CTX)).rejects.toMatchObject({
+      response: { errorCode: 'COMPANY_WIDE_ADMIN_ONLY' },
+    });
+    await owner.service.update('org-1', 'folder-1', { projectId: 'project-1' }, CTX);
+    expect(owner.folderRepo.save).toHaveBeenLastCalledWith(expect.objectContaining({ projectId: 'project-1' }));
+
+    const admin = buildService({ folder: { projectId: 'project-2', createdByUserId: 'someone' } });
+    await admin.service.update('org-1', 'folder-1', { projectId: null }, ADMIN);
+    expect(admin.folderRepo.save).toHaveBeenLastCalledWith(expect.objectContaining({ projectId: null }));
+  });
+
+  it('update projectId: khong phai nguoi tao/Org Admin -> 403; thu muc con -> 400', async () => {
+    const notOwner = buildService({ folder: { createdByUserId: 'someone' } });
+    await expect(notOwner.service.update('org-1', 'folder-1', { projectId: 'project-1' }, CTX)).rejects.toThrow(ForbiddenException);
+    const sub = buildService({ folder: { parentFolderId: 'parent-1' } });
+    await expect(sub.service.update('org-1', 'folder-1', { projectId: 'project-1' }, CTX)).rejects.toThrow(BadRequestException);
+  });
+
+  it('listAccessibleProjects tra ve du an tu FolderAccessService', async () => {
+    const { service, folderAccessService } = buildService({ accessible: ['project-1', 'project-3'] });
+    await expect(service.listAccessibleProjects('org-1', CTX)).resolves.toEqual({ projectIds: ['project-1', 'project-3'] });
+    expect(folderAccessService.listAccessibleProjectIds).toHaveBeenCalledWith('org-1', CTX);
   });
 });

@@ -139,6 +139,9 @@
       "project_updated": "プロジェクトを更新しました",
       "project_completed": "プロジェクトを完了しました",
       "project_deleted": "プロジェクトを削除しました",
+      "project_member_added": "プロジェクトにメンバーを追加しました",
+      "project_member_removed": "プロジェクトからメンバーを外しました",
+      "project_lead_changed": "プロジェクトの担当者を変更しました",
       "document_uploaded": "ドキュメントをアップロードしました",
       "document_shared": "ドキュメントを共有しました",
       "document_deleted": "ドキュメントを削除しました",
@@ -153,7 +156,10 @@
       "attendance_checked_out": "退勤を打刻しました",
       "leave_request_created": "休暇申請を提出しました",
       "leave_request_approved": "休暇申請を承認しました",
-      "leave_request_rejected": "休暇申請を却下しました"
+      "leave_request_rejected": "休暇申請を却下しました",
+      "iam_user_profile_updated": "従業員プロフィールを更新しました",
+      "iam_user_roles_changed": "従業員の役割を更新しました",
+      "iam_user_reactivated": "アカウントを再有効化しました"
     }
   },
   "status": {

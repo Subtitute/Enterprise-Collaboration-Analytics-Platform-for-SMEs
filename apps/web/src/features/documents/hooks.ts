@@ -1,5 +1,8 @@
+import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/stores/toast.store';
+// 26/10/2026: ten du an cho bo chon/nhan du an cua thu muc (tai lieu theo pham vi du an).
+import { useProjectsQuery } from '@/features/projects/hooks';
 import { extractErrorMessage } from '@/lib/api-client';
 import { t } from '@/i18n';
 import {
@@ -10,13 +13,16 @@ import {
   deleteFile,
   deleteFolder,
   deleteFolderShare,
+  fetchAccessibleProjectIds,
   fetchFile,
   fetchFiles,
   fetchFolders,
   fetchFolderShares,
+  fetchProjectFiles,
   getDownloadUrl,
   renameFolder,
   shareFile,
+  updateFolderProject,
   updateFolderVisibility,
   uploadFile,
   uploadNewVersion,
@@ -37,10 +43,54 @@ export function useFileQuery(fileId: string | undefined) {
   return useQuery({ queryKey: ['file', fileId], queryFn: () => fetchFile(fileId as string), enabled: Boolean(fileId) });
 }
 
+// 26/10/2026: tai lieu theo pham vi du an - danh sach du an nguoi dung gan/xem duoc tai lieu (giao
+// cua GET /folders/accessible-projects voi ten du an tu GET /projects) va ban do id -> ten cho nhan
+// du an tren the thu muc. Du an khong co trong GET /projects (vd chi duoc chia se 1 thu muc) van hien
+// nhan chung "Du an khac" thay vi id tho.
+export function useDocumentProjects() {
+  const accessibleQuery = useQuery({ queryKey: ['folders', 'accessible-projects'], queryFn: fetchAccessibleProjectIds, staleTime: 60_000 });
+  const projectsQuery = useProjectsQuery({ limit: 100 });
+  const projectNames = useMemo(
+    () => new Map((projectsQuery.data?.data ?? []).map((project) => [project.id, project.name])),
+    [projectsQuery.data],
+  );
+  const options = useMemo(
+    () =>
+      (accessibleQuery.data ?? [])
+        .map((id) => ({ id, name: projectNames.get(id) ?? t('documents:projectScope.unknownProject') }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [accessibleQuery.data, projectNames],
+  );
+  return { options, projectNames, isLoading: accessibleQuery.isLoading || projectsQuery.isLoading };
+}
+
+export function useUpdateFolderProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, projectId }: { id: string; projectId: string | null }) => updateFolderProject(id, projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+      queryClient.invalidateQueries({ queryKey: ['files'] });
+      queryClient.invalidateQueries({ queryKey: ['project-files'] });
+      toast.success(t('documents:projectScope.updated'));
+    },
+    onError: (error) => toast.error(t('documents:projectScope.updateError'), extractErrorMessage(error)),
+  });
+}
+
+export function useProjectFilesQuery(projectId: string | undefined) {
+  return useQuery({
+    queryKey: ['project-files', projectId],
+    queryFn: () => fetchProjectFiles(projectId as string),
+    enabled: Boolean(projectId),
+  });
+}
+
 export function useCreateFolder() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { name: string; parentId?: string | null }) => createFolder(payload),
+    // 26/10/2026: them projectId (thu muc cap goc theo du an).
+    mutationFn: (payload: { name: string; parentId?: string | null; projectId?: string | null }) => createFolder(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['folders'] });
       toast.success(t('documents:hooks.folderCreated'));

@@ -4,7 +4,7 @@
     "subtitle": "Quản lý thành viên, phòng ban và phân quyền truy cập hệ thống.",
     "description": "Quản lý thành viên, phòng ban và phân quyền truy cập hệ thống.",
     "tabs": {
-      "members": "Thành viên",
+      "members": "Danh sách nhân viên",
       "departments": "Phòng ban",
       "roles": "Vai trò & Quyền",
       "calendar": "Lịch công ty",
@@ -41,7 +41,7 @@
     "description": "Quản lý thành viên, phòng ban và phân quyền truy cập trong tổ chức.",
     "inviteMember": "Mời thành viên",
     "importExcel": "Nhập từ Excel",
-    "searchPlaceholder": "Tìm theo tên hoặc email…",
+    "searchPlaceholder": "Tên, email, mã NV, SĐT…",
     "allDepartments": "Tất cả phòng ban",
     "allStatuses": "Tất cả trạng thái",
     "filterDepartmentAria": "Lọc theo phòng ban",
@@ -58,7 +58,10 @@
       "department": "Phòng ban",
       "role": "Vai trò",
       "status": "Trạng thái",
-      "actions": "Hành động"
+      "actions": "Hành động",
+      "employeeCode": "Mã NV",
+      "phone": "SĐT",
+      "face": "Ảnh nhận diện"
     },
     "status": {
       "active": "Đang hoạt động",
@@ -79,7 +82,11 @@
       "title": "Xoá vĩnh viễn tài khoản này?",
       "description": "\"{{fullName}}\" sẽ bị xoá HOÀN TOÀN khỏi tổ chức - không thể hoàn tác, khác với vô hiệu hoá.",
       "confirmLabel": "Xoá vĩnh viễn"
-    }
+    },
+    "managerDescription": "Danh sách nhân viên — Phòng {{department}}",
+    "managerScopeNote": "Chỉ hiện nhân viên (Employee) thuộc phòng ban của bạn.",
+    "filterFaceAria": "Lọc theo ảnh nhận diện",
+    "allFaceStatuses": "Ảnh nhận diện: Tất cả"
   },
   "rolesPermissionsPage": {
     "otherGroup": "Khác",
@@ -233,7 +240,10 @@
       "emailRequired": "Vui lòng nhập email",
       "fullNameRequired": "Vui lòng nhập họ tên",
       "passwordMinLength": "Mật khẩu tối thiểu 8 ký tự"
-    }
+    },
+    "passwordOptionalHint": "Để trống: hệ thống gửi email kích hoạt (không chứa mật khẩu), liên kết hết hạn sau 72 giờ.",
+    "phoneLabel": "Số điện thoại",
+    "employeeCodeLabel": "Mã nhân viên"
   },
   "importEmployeesModal": {
     "title": "Nhập nhân viên từ Excel",
@@ -300,5 +310,154 @@
   },
   "failedEvents": {
     "title": "Sự kiện lỗi hệ thống"
+  },
+  "employeeDrawer": {
+    "title": "Hồ sơ nhân viên",
+    "loadError": "Không thể tải hồ sơ nhân viên",
+    "changeAvatar": "Đổi avatar",
+    "removeAvatar": "Xoá avatar",
+    "email": "Email",
+    "emailReadOnly": "Không sửa được",
+    "employeeCode": "Mã nhân viên",
+    "fullName": "Họ và tên",
+    "phone": "Số điện thoại",
+    "departmentRole": "Phòng ban: {{department}} · Vai trò: {{role}}",
+    "fullNameRequired": "Vui lòng nhập họ và tên"
+  },
+  "facePanel": {
+    "title": "Ảnh nhận diện chấm công",
+    "uploadTitle": "Tải ảnh nhận diện cho {{name}}",
+    "chooseFile": "Chọn ảnh",
+    "chooseFileHint": "Chọn ảnh chân dung rõ mặt (JPEG/PNG). Ảnh được kiểm tra ngay, chưa lưu gì.",
+    "inspecting": "Đang kiểm tra ảnh…",
+    "oneFace": "1 khuôn mặt, cao {{height}}px",
+    "duplicateWith": "Trùng với khuôn mặt của {{name}}",
+    "possibleDuplicateWith": "Có thể trùng với {{name}}",
+    "pendingNote": "Ảnh mới chờ nhân viên xác nhận trong 30 ngày; ảnh đang dùng giữ nguyên tới lúc đó.",
+    "send": "Gửi ảnh",
+    "activeTitle": "Đang dùng để đối chiếu",
+    "source": "Nguồn: {{source}}",
+    "updatedAt": "Cập nhật: {{date}}",
+    "by": "Bởi: {{name}}",
+    "expiresAt": "Hết hạn: {{date}}",
+    "pendingNotUsed": "Chưa dùng để đối chiếu cho tới khi nhân viên xác nhận.",
+    "noneTitle": "Chưa có ảnh nhận diện",
+    "noneNote": "Ảnh sẽ chờ nhân viên xác nhận trong 30 ngày.",
+    "withdrawnTitle": "Nhân viên đã từ chối nhận diện khuôn mặt ({{date}}).",
+    "withdrawnNote": "Không thể tải ảnh hộ. Chấm công vẫn hoạt động bình thường.",
+    "upload": "Tải ảnh lên",
+    "uploadOther": "Tải ảnh khác",
+    "uploadReplace": "Tải ảnh thay thế",
+    "cancelPending": "Huỷ ảnh chờ",
+    "delete": "Xoá ảnh",
+    "deleteConfirmTitle": "Xoá ảnh nhận diện?",
+    "deleteConfirmDescription": "Ảnh đang dùng và ảnh chờ (nếu có) sẽ bị xoá. Đây không phải là rút đồng ý - có thể tải ảnh khác sau.",
+    "cancelPendingConfirmTitle": "Huỷ ảnh chờ xác nhận?",
+    "cancelPendingConfirmDescription": "Ảnh chờ sẽ bị xoá; ảnh đang dùng (nếu có) giữ nguyên.",
+    "toasts": {
+      "uploaded": "Đã gửi ảnh - chờ nhân viên xác nhận",
+      "uploadFailed": "Không thể tải ảnh nhận diện",
+      "deleted": "Đã xoá ảnh nhận diện",
+      "deleteFailed": "Không thể xoá ảnh nhận diện"
+    }
+  },
+  "importWizard": {
+    "steps": {
+      "1": "Tệp",
+      "2": "Xem trước",
+      "3": "Đang nhập",
+      "4": "Kết quả"
+    },
+    "file": {
+      "instructions": "Tải tệp mẫu, điền thông tin nhân viên theo đúng cột (mật khẩu có thể để trống - hệ thống gửi email kích hoạt). Ảnh nhận diện đặt trong 1 tệp ZIP.",
+      "excelLabel": "Tệp Excel (≤ 2 MB, ≤ 300 dòng)",
+      "zipLabel": "Ảnh nhận diện (ZIP, tuỳ chọn)",
+      "selectZip": "Chọn tệp ZIP…",
+      "matchingNote": "Ghép ảnh theo cột \"{{column}}\"; để trống thì theo email (vd an.nguyen@congty.vn.jpg). Tệp chỉ xử lý trên trình duyệt, không tải lên máy chủ.",
+      "managerNote": "Bạn chỉ nhập được nhân viên của phòng ban mình: cột Vai trò, Phòng ban, Số điện thoại, Mã nhân viên bị bỏ qua; ảnh chỉ gửi cho nhân viên đã có.",
+      "continue": "Tiếp tục"
+    },
+    "errors": {
+      "excelTooLarge": "Tệp Excel vượt quá 2 MB.",
+      "excelEmpty": "Tệp Excel không có dòng dữ liệu nào.",
+      "tooManyRows": "Tệp Excel vượt quá {{max}} dòng.",
+      "zipTooLarge": "Tệp ZIP quá lớn (tối đa 200 MB, tổng dung lượng giải nén tối đa 200 MB).",
+      "zipTooManyFiles": "Tệp ZIP có quá 500 tệp.",
+      "zipUnreadable": "Không đọc được tệp ZIP."
+    },
+    "preview": {
+      "inspecting": "Đang kiểm tra ảnh… {{done}}/{{total}}",
+      "summary": "Tổng {{total}} · Mời mới {{invite}} · Cập nhật {{update}} · Cảnh báo {{warning}} · Lỗi {{error}}",
+      "onlyErrors": "Chỉ hiện lỗi",
+      "photoChecking": "Đang kiểm tra…",
+      "oneFace": "1 mặt",
+      "photoError": "✖ Lỗi ảnh",
+      "warning": "Cảnh báo",
+      "valid": "Hợp lệ",
+      "updateNote": "Dòng \"Cập nhật\" chỉ đổi SĐT, mã NV, ảnh - không đổi họ tên/phòng ban/vai trò. Dòng lỗi sẽ bị bỏ qua.",
+      "unmatched": "{{count}} ảnh trong ZIP không khớp dòng nào.",
+      "back": "← Quay lại",
+      "submit": "Nhập {{count}} dòng hợp lệ →",
+      "photoNotChecked": "Không kiểm tra (dòng lỗi) {{file}}"
+    },
+    "columns": {
+      "photo": "Ảnh",
+      "action": "Thao tác",
+      "face": "Ảnh nhận diện",
+      "account": "Tài khoản",
+      "reason": "Lý do"
+    },
+    "actions": {
+      "invite": "Mời mới",
+      "update": "Cập nhật",
+      "outOfScope": "Ngoài phạm vi"
+    },
+    "running": {
+      "progress": "Đang nhập… {{done}}/{{total}} - Không đóng tab này.",
+      "account": "Dòng {{row}}: tài khoản…",
+      "photo": "Dòng {{row}}: gửi ảnh (tự thử lại khi chưa đồng bộ)…",
+      "pause": "Tạm dừng",
+      "resume": "Tiếp tục"
+    },
+    "result": {
+      "summary": "Hoàn tất: {{success}} thành công · {{partial}} thành công một phần · {{failed}} lỗi",
+      "pendingNote": "Ảnh đã gửi đang chờ từng nhân viên xác nhận trong 30 ngày. Nhân viên mới nhận email kích hoạt tài khoản (không chứa mật khẩu).",
+      "deleteSourceNote": "Hãy xoá tệp Excel/ZIP gốc sau khi nhập xong.",
+      "retry": "Thử lại các bước lỗi",
+      "downloadReport": "Tải báo cáo lỗi .xlsx"
+    },
+    "reasons": {
+      "invalidEmail": "Email sai định dạng",
+      "invalidPhone": "Số điện thoại không hợp lệ",
+      "invalidEmployeeCode": "Mã nhân viên không hợp lệ",
+      "passwordTooShort": "Mật khẩu tối thiểu 8 ký tự",
+      "duplicateEmailInFile": "Email trùng trong tệp",
+      "duplicateEmployeeCodeInFile": "Mã nhân viên trùng trong tệp",
+      "outOfScope": "Ngoài phạm vi",
+      "missingFullName": "Thiếu họ và tên",
+      "departmentNotFound": "Không tìm thấy phòng ban",
+      "roleNotFound": "Không tìm thấy vai trò",
+      "photoNoZip": "Chưa chọn tệp ZIP ảnh",
+      "photoTooLarge": "Ảnh vượt quá 5 MB",
+      "photoUnsupported": "Chỉ nhận ảnh .jpg/.jpeg/.png",
+      "photoDuplicateName": "Tên tệp ảnh trùng trong ZIP",
+      "photoNotFound": "Không thấy tệp ảnh trong ZIP",
+      "photoUnreadable": "Không đọc được ảnh (HEIC/tệp hỏng)",
+      "photoWithdrawn": "NV đã từ chối - bỏ qua ảnh",
+      "managerPhotoExistingOnly": "Chỉ gửi ảnh cho nhân viên đã có",
+      "managerContactIgnored": "SĐT/mã NV bị bỏ qua (cần quyền quản trị)",
+      "updateIgnoresFields": "Email đã có: họ tên/phòng ban/vai trò/mật khẩu bị bỏ qua",
+      "managerRoleDepartmentIgnored": "Vai trò/phòng ban bị bỏ qua (về phòng của bạn)",
+      "nothingToUpdate": "Không có gì để cập nhật",
+      "invited": "Đã mời",
+      "invitedEmail": "Đã mời (gửi email kích hoạt)",
+      "updated": "Đã cập nhật",
+      "step": {
+        "pending": "Chưa chạy",
+        "ok": "Thành công",
+        "skipped": "Bỏ qua",
+        "error": "Lỗi"
+      }
+    }
   }
 }

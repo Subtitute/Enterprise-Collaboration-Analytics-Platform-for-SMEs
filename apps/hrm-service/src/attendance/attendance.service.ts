@@ -20,6 +20,8 @@ import { toGmt7DateString } from './attendance-date.util';
 import { buildAttendancePhotoObjectKey } from './object-key.util';
 import { verifyPhotoContentMatchesMimeType } from './allowed-photo-mime-types';
 import { haversineDistanceMeters } from './geo-distance.util';
+// 26/10/2026: pham vi xem 3 cap (Org Admin/Manager theo phong ban/Employee) - xem scopeUserFilter().
+import { ScopeCaller, scopeUserFilter } from '../user-directory/user-directory';
 
 const PRODUCER = 'hrm-service';
 /** Ma loi Postgres cho vi pham rang buoc unique (@Unique(['organizationId','userId','workDate'])). */
@@ -278,10 +280,15 @@ export class AttendanceService {
    * de bo loc thang tren AttendancePage.tsx loc dung tai server thay vi tu cat client-side tren 1
    * trang limit co dinh, von co the "mat" du lieu thang cu mot khi to chuc vuot qua `limit` dong
    * cham cong tong).
+   *
+   * 26/10/2026: `caller` (tuy chon) - Manager KHONG con xem cham cong toan to chuc nhu Org Admin, chi
+   * cua chinh minh + thanh vien phong ban (read-model dim_user); Org Admin (USER_MANAGE) giu nguyen.
    */
-  async findAll(organizationId: string, query: AttendanceQueryDto): Promise<PaginatedResponse<Attendance>> {
-    const where: { organizationId: string; userId?: string; workDate?: string | FindOperator<string> } = { organizationId };
-    if (query.userId) where.userId = query.userId;
+  async findAll(organizationId: string, query: AttendanceQueryDto, caller?: ScopeCaller): Promise<PaginatedResponse<Attendance>> {
+    const where: { organizationId: string; userId?: string | FindOperator<string>; workDate?: string | FindOperator<string> } = { organizationId };
+    const userFilter = await scopeUserFilter(this.dataSource, organizationId, caller, PERMISSIONS.ATTENDANCE_VIEW, query.userId);
+    if (userFilter === false) return paginate([], 0, query.page, query.limit);
+    if (userFilter) where.userId = userFilter;
     if (query.startDate && query.endDate) where.workDate = Between(query.startDate, query.endDate);
     else if (query.startDate) where.workDate = MoreThanOrEqual(query.startDate);
     else if (query.endDate) where.workDate = LessThanOrEqual(query.endDate);
@@ -306,13 +313,21 @@ export class AttendanceService {
     kind: 'checkin' | 'checkout',
     requesterUserId: string,
     requesterPermissions: string[],
+    // 26/10/2026: phong ban cua nguoi xem (JWT) - xem chu thich canViewInScope ben duoi.
+    requesterDepartmentId: string | null = null,
   ): Promise<{ url: string }> {
     const attendance = await this.attendanceRepo.findOne({ where: { id, organizationId } });
     if (!attendance) throw new NotFoundException({ message: 'Không tìm thấy bản ghi chấm công', errorCode: ERROR_CODES.ATTENDANCE_NOT_FOUND });
 
     const isOwner = attendance.userId === requesterUserId;
-    const canViewAll = requesterPermissions.includes(PERMISSIONS.ATTENDANCE_VIEW);
-    if (!isOwner && !canViewAll) {
+    // 26/10/2026: ATTENDANCE_VIEW chi con nghia "xem anh cua nguoi trong pham vi" - Org Admin moi
+    // nguoi, Manager thanh vien phong ban minh (truoc day: anh cua BAT KY ai trong to chuc).
+    let canViewInScope = false;
+    if (!isOwner && requesterPermissions.includes(PERMISSIONS.ATTENDANCE_VIEW)) {
+      const caller = { userId: requesterUserId, permissions: requesterPermissions, departmentId: requesterDepartmentId };
+      canViewInScope = (await scopeUserFilter(this.dataSource, organizationId, caller, PERMISSIONS.ATTENDANCE_VIEW, attendance.userId)) !== false;
+    }
+    if (!isOwner && !canViewInScope) {
       throw new ForbiddenException({ message: 'Bạn không có quyền xem ảnh chấm công này', errorCode: ERROR_CODES.FORBIDDEN_ATTENDANCE_PHOTO });
     }
 

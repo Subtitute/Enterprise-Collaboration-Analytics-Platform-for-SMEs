@@ -7,7 +7,8 @@
   "filters": {
     "dateRangeAriaLabel": "Khoảng thời gian",
     "departmentAriaLabel": "Phòng ban",
-    "allDepartments": "Tất cả phòng ban"
+    "allDepartments": "Tất cả phòng ban",
+    "departmentScopeNotice": "Số liệu trong phạm vi phòng ban của bạn"
   },
   "kpiCards": {
     "activeProjects": "Dự án đang chạy",
@@ -46,6 +47,7 @@
     "scopeDepartment": "Phòng ban",
     "scopeProject": "Dự án",
     "comparisonLabel": "so với trung bình tổ chức {{value}}%",
+    "comparisonLabelDepartment": "so với trung bình phòng ban {{value}}%",
     "chart": {
       "completionRateLabel": "Tỷ lệ hoàn thành:",
       "otherLabel": "Khác",

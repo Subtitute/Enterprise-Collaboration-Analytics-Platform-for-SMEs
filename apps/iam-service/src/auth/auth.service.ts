@@ -183,6 +183,8 @@ export class AuthService {
           email: user.email,
           departmentId: null,
           actorId: user.id,
+          // 26/10/2026: nguoi dang ky to chuc luon la Org Admin (muc vai tro cho ml-service, muc 27.4).
+          roleLevel: 'ORG_ADMIN',
         };
         await this.outboxService.record(manager, {
           eventType: EVENT_TYPES.USER_REGISTERED,

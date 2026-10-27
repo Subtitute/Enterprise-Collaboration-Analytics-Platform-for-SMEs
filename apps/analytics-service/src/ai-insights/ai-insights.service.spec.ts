@@ -228,4 +228,21 @@ describe('AiInsightsService', () => {
     expect(result.insights).toHaveLength(1);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  // 26/10/2026: Manager - AI chi quet phong ban cua minh (+ du an tinh theo phong ban), khong
+  // lo so lieu toan to chuc/phong ban khac, cache tach rieng theo phong ban.
+  it('pham vi phong ban: [0] la phong ban, du an loc theo phong ban, khong quet toan to chuc; so sanh voi phong ban', async () => {
+    const result = await service.generateInsights('org-1', '7d', [], 'dept-1');
+
+    const prompt = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string).contents[0].parts[0].text as string;
+    expect(prompt).toContain('[0] Phạm vi: phòng ban');
+    expect(prompt).toContain('[1] Phạm vi: dự án');
+    expect(prompt).not.toContain('toàn tổ chức |');
+    expect(analyticsServiceMock.getSummary).toHaveBeenCalledWith('org-1', '7d', 'dept-1');
+    expect(analyticsServiceMock.getSummary).not.toHaveBeenCalledWith('org-1', '7d');
+    expect(analyticsServiceMock.listActiveDepartmentIds).not.toHaveBeenCalled();
+    expect(analyticsServiceMock.getProjectProgress).toHaveBeenCalledWith('org-1', '7d', 'dept-1');
+    expect(result.insights[0]).toMatchObject({ scope: 'project', evidence: { value: 75, comparisonValue: 20, comparisonScope: 'department' } });
+    expect(redisServiceMock.setJson).toHaveBeenCalledWith('analytics:ai-insights:org-1:7d:dept:dept-1', expect.anything(), 1800);
+  });
 });

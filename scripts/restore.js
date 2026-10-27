@@ -13,7 +13,18 @@ const INFRA_DIR = path.join(__dirname, '..', 'infra');
 const NETWORK = 'ecap-sme_internal-net';
 const MC_IMAGE = 'minio/mc:latest@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727';
 
-const POSTGRES_CONTAINERS = ['postgres-iam', 'postgres-pt', 'postgres-doc', 'postgres-crm', 'postgres-hrm', 'timescaledb'];
+// 26/10/2026: them 3 CSDL bi bo sot tu khi co ml-service (24/09), messaging-service (28/09), inventory-service (16/10).
+const POSTGRES_CONTAINERS = [
+  'postgres-iam',
+  'postgres-pt',
+  'postgres-doc',
+  'postgres-crm',
+  'postgres-hrm',
+  'postgres-ml',
+  'postgres-messaging',
+  'postgres-inventory',
+  'timescaledb',
+];
 
 const backupName = process.argv[2];
 if (!backupName) {

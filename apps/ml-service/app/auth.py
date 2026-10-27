@@ -20,6 +20,10 @@ USER_MANAGE_PERMISSION = "user:manage"
 # tu dang ky khuon mat duoc" - khong can tach quyen rieng, dung tinh than toi gian ClaudeRule.md
 # muc 8).
 ATTENDANCE_CHECKIN_PERMISSION = "attendance:checkin"
+# 26/10/2026: kho anh nhan dien (Technical_Spec.md muc 27.7) - "quyen cap Manager" cua nhom IAM,
+# dung DUNG tham so resolveDataScope(permissions, PERMISSIONS.USER_INVITE, departmentId) ma
+# iam-service dang dung cho danh ba (packages/common-dto/src/constants/data-scope.ts).
+USER_INVITE_PERMISSION = "user:invite"
 
 
 @dataclass
@@ -27,6 +31,11 @@ class AuthContext:
     user_id: str
     organization_id: str
     permissions: list[str] = field(default_factory=list)
+    # 26/10/2026: doc them x-roles/x-department-id/x-is-super-admin (Gateway da forward san tu JWT)
+    # de xac dinh pham vi Manager theo phong ban va chan Super Admin khoi du lieu tenant.
+    roles: list[str] = field(default_factory=list)
+    department_id: str | None = None
+    is_super_admin: bool = False
 
     @property
     def is_org_admin(self) -> bool:
@@ -34,6 +43,15 @@ class AuthContext:
         # phia Node - "Org Admin" o day nghia la co quyen USER_MANAGE (khong phai 1 role rieng),
         # khong dinh nghia lai khai niem moi.
         return USER_MANAGE_PERMISSION in self.permissions
+
+    @property
+    def data_scope(self) -> str:
+        """26/10/2026: ban Python cua resolveDataScope() - 'organization' | 'department' | 'self'."""
+        if self.is_org_admin:
+            return "organization"
+        if USER_INVITE_PERMISSION in self.permissions and self.department_id:
+            return "department"
+        return "self"
 
 
 def _parse_list_header(value: str | None) -> list[str]:
@@ -47,6 +65,9 @@ async def get_auth_context(
     x_user_id: str | None = Header(default=None),
     x_org_id: str | None = Header(default=None),
     x_permissions: str | None = Header(default=None),
+    x_roles: str | None = Header(default=None),
+    x_department_id: str | None = Header(default=None),
+    x_is_super_admin: str | None = Header(default=None),
 ) -> AuthContext:
     if not x_internal_secret or x_internal_secret != INTERNAL_SHARED_SECRET:
         raise HTTPException(
@@ -62,6 +83,9 @@ async def get_auth_context(
         user_id=x_user_id,
         organization_id=x_org_id,
         permissions=_parse_list_header(x_permissions),
+        roles=_parse_list_header(x_roles),
+        department_id=(x_department_id or "").strip() or None,
+        is_super_admin=(x_is_super_admin or "").strip().lower() == "true",
     )
 
 

@@ -11,6 +11,9 @@ import { useMessagingSocket } from '@/features/messaging/hooks';
 // 24/10/2026: Chat bot noi bo - nut chat noi + panel co mat tren MOI trang da dang nhap (tu an voi
 // nguoi khong co quyen chatbot:use), xem features/chatbot/ChatbotWidget.tsx.
 import { ChatbotWidget } from '@/features/chatbot/ChatbotWidget';
+// 26/10/2026: banner "co anh nhan dien cho ban xac nhan" tren moi trang (Wireframe muc 16.5) - trang
+// Ho so tu hien banner rieng nen bo qua o do.
+import { FacePendingBanner } from '@/features/profile/components/FacePendingBanner';
 
 export function AppShell() {
   const { t } = useTranslation();
@@ -64,6 +67,7 @@ export function AppShell() {
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <Topbar />
         <main id="main-content" ref={mainRef} tabIndex={-1} className="min-w-0 flex-1 p-4 sm:p-6 focus:outline-none">
+          {!location.pathname.startsWith('/profile') && <FacePendingBanner className="mb-4" />}
           {/* 28/07/2026: Suspense rieng cho Outlet (khac voi Suspense goc o App.tsx) - de Sidebar/
               Topbar (component o TREN, ngoai boundary nay) khong bi thay bang fallback moi lan
               chuyen trang, chi vung noi dung chinh hien spinner trong luc tai chunk cua trang moi. */}

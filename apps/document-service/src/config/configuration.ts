@@ -1,3 +1,5 @@
+import { DEV_FALLBACK_INTERNAL_SHARED_SECRET } from '@app/common-dto';
+
 export default () => ({
   port: parseInt(process.env.PORT ?? '3003', 10),
   db: {
@@ -36,4 +38,12 @@ export default () => ({
     apiKey: process.env.GEMINI_API_KEY,
     embeddingModel: process.env.GEMINI_EMBEDDING_MODEL ?? 'gemini-embedding-001',
   },
+  // 26/10/2026: tai lieu theo pham vi du an - backfill read-model thanh vien du an tu Project-Task
+  // Service luc khoi dong (project-scope/project-scope-sync.service.ts). Mac dinh la hostname noi bo
+  // cua docker-compose (cung internal-net); chay local ngoai Docker thi dat PROJECT_TASK_SERVICE_URL.
+  // Bi mat noi bo: cung bien INTERNAL_SHARED_SECRET voi InternalAuthGuard (fallback dev giong guard).
+  projectTask: {
+    url: process.env.PROJECT_TASK_SERVICE_URL ?? 'http://project-task-service:3002',
+  },
+  internalSecret: process.env.INTERNAL_SHARED_SECRET || DEV_FALLBACK_INTERNAL_SHARED_SECRET,
 });

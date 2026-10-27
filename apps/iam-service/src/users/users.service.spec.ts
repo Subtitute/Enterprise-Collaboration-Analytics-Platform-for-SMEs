@@ -23,7 +23,7 @@ describe('UsersService', () => {
   let roleRepo: { find: jest.Mock };
   let departmentRepo: { findOne: jest.Mock };
   let outboxService: { record: jest.Mock };
-  let redisService: { blacklistUser: jest.Mock };
+  let redisService: { blacklistUser: jest.Mock; unblacklistUser: jest.Mock };
   let configService: { get: jest.Mock };
   let managerMock: { find: jest.Mock; save: jest.Mock; create: jest.Mock; findOneOrFail: jest.Mock; delete: jest.Mock };
   let dataSource: { transaction: jest.Mock };
@@ -34,7 +34,7 @@ describe('UsersService', () => {
     roleRepo = { find: jest.fn() };
     departmentRepo = { findOne: jest.fn() };
     outboxService = { record: jest.fn().mockResolvedValue(undefined) };
-    redisService = { blacklistUser: jest.fn().mockResolvedValue(undefined) };
+    redisService = { blacklistUser: jest.fn().mockResolvedValue(undefined), unblacklistUser: jest.fn().mockResolvedValue(undefined) };
     configService = { get: jest.fn().mockReturnValue('15m') };
 
     managerMock = {
@@ -190,7 +190,14 @@ describe('UsersService', () => {
       expect(result.roles).toEqual([{ id: 'role-manager', name: 'Manager' }]);
       // 28/07/2026: request nay khong dong truong departmentId -> khong duoc phat
       // USER_DEPARTMENT_CHANGED (xem 3 test rieng ben duoi cho hanh vi phat/khong phat event nay).
-      expect(outboxService.record).not.toHaveBeenCalled();
+      // 26/10/2026: doi vai tro -> CHI phat iam.user.roles_changed (muc vai tro cho ml-service, muc 27.4).
+      expect(outboxService.record).toHaveBeenCalledTimes(1);
+      expect(outboxService.record).toHaveBeenCalledWith(managerMock, {
+        eventType: EVENT_TYPES.USER_ROLES_CHANGED,
+        organizationId: ORG_ID,
+        producer: 'iam-service',
+        payload: { userId: 'user-1', roleLevel: 'MANAGER', actorId: ACTOR_ID },
+      });
     });
 
     // 28/07/2026: nhom test moi - update() gio phat outbox event USER_DEPARTMENT_CHANGED khi va chi
@@ -261,7 +268,15 @@ describe('UsersService', () => {
 
       await service.update(ORG_ID, 'user-1', { fullName: 'Ten Moi' } as any, [], ACTOR_ID);
 
-      expect(outboxService.record).not.toHaveBeenCalled();
+      // 26/10/2026: doi ho ten -> CHI phat iam.user.profile_updated (ten truong, khong gia tri), khong
+      // phat USER_DEPARTMENT_CHANGED.
+      expect(outboxService.record).toHaveBeenCalledTimes(1);
+      expect(outboxService.record).toHaveBeenCalledWith(managerMock, {
+        eventType: EVENT_TYPES.USER_PROFILE_UPDATED,
+        organizationId: ORG_ID,
+        producer: 'iam-service',
+        payload: { userId: 'user-1', changedFields: ['fullName'], actorId: ACTOR_ID },
+      });
     });
   });
 
@@ -305,13 +320,29 @@ describe('UsersService', () => {
     it('kich hoat lai thanh cong 1 user da bi deactivate', async () => {
       const existing = { id: 'user-2', organizationId: ORG_ID, isActive: false, roles: [] };
       userRepo.findOne.mockResolvedValue(existing);
-      const saveSpy = jest.fn().mockImplementation(async (u: any) => u);
-      (service as any).userRepo.save = saveSpy;
+      // 26/10/2026: reactivate() gio luu trong transaction (cung outbox iam.user.reactivated).
+      managerMock.save.mockImplementation(async (u: any) => u);
 
-      const result = await service.reactivate(ORG_ID, 'user-2');
+      const result = await service.reactivate(ORG_ID, 'user-2', ACTOR_ID);
 
       expect(result.isActive).toBe(true);
-      expect(saveSpy).toHaveBeenCalledWith(expect.objectContaining({ isActive: true }));
+      expect(managerMock.save).toHaveBeenCalledWith(expect.objectContaining({ isActive: true }));
+      // 26/10/2026: phat event cho ml-service + go khoa blacklist Redis do deactivate() dat (truoc day
+      // nguoi vua kich hoat lai dang nhap duoc nhung moi API deu 401 GATEWAY_ACCOUNT_DISABLED).
+      expect(outboxService.record).toHaveBeenCalledWith(managerMock, {
+        eventType: EVENT_TYPES.USER_REACTIVATED,
+        organizationId: ORG_ID,
+        producer: 'iam-service',
+        payload: { userId: 'user-2', actorId: ACTOR_ID },
+      });
+      expect(redisService.unblacklistUser).toHaveBeenCalledWith('user-2');
+    });
+
+    it('loi Redis khi go blacklist khong lam that bai viec kich hoat lai', async () => {
+      userRepo.findOne.mockResolvedValue({ id: 'user-2', organizationId: ORG_ID, isActive: false, roles: [] });
+      managerMock.save.mockImplementation(async (u: any) => u);
+      redisService.unblacklistUser.mockRejectedValueOnce(new Error('redis down'));
+      await expect(service.reactivate(ORG_ID, 'user-2', ACTOR_ID)).resolves.toMatchObject({ isActive: true });
     });
   });
 
@@ -347,6 +378,45 @@ describe('UsersService', () => {
         }),
       );
       expect(redisService.blacklistUser).toHaveBeenCalledWith('user-2', expect.any(Number));
+    });
+  });
+
+  // 26/10/2026: danh ba 3 cap - ho so day du chi trong pham vi, ngoai pham vi la "the danh ba".
+  describe('findAll() / findByIdInDepartment() - danh ba theo pham vi', () => {
+    const users = [
+      { id: 'me', email: 'me@x.vn', fullName: 'Toi', organizationId: ORG_ID, departmentId: 'dept-a', isActive: true, roles: [{ id: 'r1', name: 'Manager' }], createdAt: new Date() },
+      { id: 'mate', email: 'mate@x.vn', fullName: 'Dong nghiep', organizationId: ORG_ID, departmentId: 'dept-a', isActive: true, roles: [], createdAt: new Date() },
+      { id: 'other', email: 'other@x.vn', fullName: 'Phong khac', organizationId: ORG_ID, departmentId: 'dept-b', isActive: true, roles: [], createdAt: new Date() },
+    ];
+    const isFull = (u: Record<string, unknown>) => 'roles' in u && 'createdAt' in u;
+
+    beforeEach(() => {
+      (userRepo as any).findAndCount = jest.fn().mockResolvedValue([users, users.length]);
+    });
+
+    it('Org Admin/khong co caller: ho so day du cho moi nguoi', async () => {
+      const res = await service.findAll(ORG_ID, { page: 1, limit: 50 } as any, { userId: 'me', permissions: [PERMISSIONS.USER_MANAGE], departmentId: null });
+      expect(res.data.every((u) => isFull(u as any))).toBe(true);
+      expect((await service.findAll(ORG_ID, { page: 1, limit: 50 } as any)).data.every((u) => isFull(u as any))).toBe(true);
+    });
+
+    it('Manager: day du chinh minh + cung phong ban; phong ban khac chi con ten/phong ban/email', async () => {
+      const res = await service.findAll(ORG_ID, { page: 1, limit: 50 } as any, { userId: 'me', permissions: [PERMISSIONS.USER_INVITE], departmentId: 'dept-a' });
+      const byId = Object.fromEntries(res.data.map((u) => [u.id, u as Record<string, unknown>]));
+      expect(isFull(byId.me)).toBe(true);
+      expect(isFull(byId.mate)).toBe(true);
+      expect(byId.other).toEqual({ id: 'other', email: 'other@x.vn', fullName: 'Phong khac', departmentId: 'dept-b', isActive: true, avatarUrl: null });
+    });
+
+    it('Employee: chi ho so cua chinh minh la day du', async () => {
+      const res = await service.findAll(ORG_ID, { page: 1, limit: 50 } as any, { userId: 'me', permissions: [], departmentId: 'dept-a' });
+      expect(res.data.filter((u) => isFull(u as any)).map((u) => u.id)).toEqual(['me']);
+    });
+
+    it('findByIdInDepartment: cung phong ban -> ho so day du, khac phong ban -> 403', async () => {
+      userRepo.findOne.mockResolvedValueOnce(users[1]).mockResolvedValueOnce(users[2]);
+      await expect(service.findByIdInDepartment(ORG_ID, 'mate', 'dept-a')).resolves.toMatchObject({ id: 'mate', roles: [] });
+      await expect(service.findByIdInDepartment(ORG_ID, 'other', 'dept-a')).rejects.toThrow(ForbiddenException);
     });
   });
 });

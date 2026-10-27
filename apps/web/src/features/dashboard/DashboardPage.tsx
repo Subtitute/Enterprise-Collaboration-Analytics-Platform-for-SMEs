@@ -34,7 +34,13 @@ export function DashboardPage() {
   // TASK_DELETE/CUSTOMER_CREATE da duoc dung lam tin hieu gioi han xem o Project/Task/Customer).
   const canViewAnalytics = permissions.includes(PERMISSIONS.ANALYTICS_VIEW);
   const [range, setRange] = useState<DateRangeOption>('7d');
-  const [departmentId, setDepartmentId] = useState('');
+  const [selectedDepartmentId, setDepartmentId] = useState('');
+  // 26/10/2026: pham vi phong ban cua Manager - chi Org Admin (USER_MANAGE) chon duoc "Tat ca phong
+  // ban"/phong ban bat ky; Manager luon xem phong ban cua minh (backend Analytics cung ep nhu vay,
+  // xem AnalyticsService.resolveDepartmentScope()) nen an bo loc thay vi hien 1 lua chon vo nghia.
+  const isOrgScope = permissions.includes(PERMISSIONS.USER_MANAGE);
+  const ownDepartmentId = useAuthStore((s) => s.user?.departmentId) ?? '';
+  const departmentId = isOrgScope ? selectedDepartmentId : ownDepartmentId;
   // 23/09/2026: tham chieu vung noi dung can xuat PDF (khong bao gom header/aside cua layout) -
   // xem exportElementToPdf() trong lib/pdf-export.ts.
   const printableRef = useRef<HTMLDivElement>(null);
@@ -248,7 +254,7 @@ export function DashboardPage() {
             }))}
           />
         </div>
-        {canViewAnalytics && (
+        {canViewAnalytics && isOrgScope && (
           <div className="w-[180px]">
             <CustomFilterSelect
               value={departmentId}
@@ -354,9 +360,10 @@ export function DashboardPage() {
                 onRetry={() => allTasksQuery.refetch()}
               />
               {/* KPI 4: THÀNH VIÊN HOẠT ĐỘNG */}
+              {/* 26/10/2026: mau so = so thanh vien trong pham vi dang xem (phong ban khi co loc phong ban) - khop tu so da loc theo phong ban o backend. */}
               <KpiCard
                 overline={t('dashboard:kpi.activeUsers.label')}
-                value={`${summary?.activeUsersLast7Days ?? (allUsersQuery.data?.length || 0)}/${allUsersQuery.data?.length || summary?.activeUsersLast7Days || 0}`}
+                value={`${summary?.activeUsersLast7Days ?? (deptUserIds?.size ?? (allUsersQuery.data?.length || 0))}/${deptUserIds?.size ?? (allUsersQuery.data?.length || summary?.activeUsersLast7Days || 0)}`}
                 delta={{
                   type: 'neutral',
                   text: t('dashboard:kpi.activeUsers.delta'),

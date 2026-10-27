@@ -4,7 +4,8 @@ import { CurrentUser, RequirePermissions } from '@app/common-guard';
 import { PERMISSIONS } from '@app/common-dto';
 import { FoldersService } from './folders.service';
 // 28/07/2026: kieu ngu canh dung chung (kiem soat truy cap thu muc, opt-in) - xem folder-access.service.ts.
-import { AccessContext } from './folder-access.service';
+// 26/10/2026: toAccessContext() - dung chung voi Files/Rag controller (them co Manager theo phong ban).
+import { AccessContext, toAccessContext } from './folder-access.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
 import { CreateFolderShareDto } from './dto/create-folder-share.dto';
@@ -23,7 +24,20 @@ export class FoldersController {
   // `permissions` cua AuthContext, KHONG goi service nao khac. Org Admin (PERMISSIONS.ORG_MANAGE)
   // luon "thay duoc moi thu" trong cac quy tac kiem soat truy cap thu muc RESTRICTED ben duoi.
   private buildAccessContext(userId: string, departmentId: string | null, permissions: string[]): AccessContext {
-    return { userId, departmentId, isOrgAdmin: (permissions ?? []).includes(PERMISSIONS.ORG_MANAGE) };
+    return toAccessContext(userId, departmentId, permissions);
+  }
+
+  // 26/10/2026: du an nguoi goi gan/xem duoc tai lieu - bo chon du an khi tao/doi thu muc o FE.
+  // Khai bao TRUOC cac route ':id/...' de khong bi hieu nham la 1 id thu muc.
+  @Get('accessible-projects')
+  @RequirePermissions(PERMISSIONS.DOCUMENT_VIEW)
+  listAccessibleProjects(
+    @CurrentUser('organizationId') organizationId: string,
+    @CurrentUser('userId') userId: string,
+    @CurrentUser('departmentId') departmentId: string | null,
+    @CurrentUser('permissions') permissions: string[],
+  ) {
+    return this.foldersService.listAccessibleProjects(organizationId, this.buildAccessContext(userId, departmentId, permissions));
   }
 
   // 22/07/2026: Fix 3 (code review) - bo sung @RequirePermissions con thieu. Day la endpoint DOC

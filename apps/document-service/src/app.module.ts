@@ -19,6 +19,11 @@ import { OutboxEvent } from './entities/outbox-event.entity';
 // 24/10/2026: RAG tai lieu cho Chat bot noi bo - xem rag/rag.module.ts.
 import { DocumentChunk } from './entities/document-chunk.entity';
 import { RagModule } from './rag/rag.module';
+// 26/10/2026: tai lieu theo pham vi du an - 3 bang read-model + module dong bo (backfill + Kafka).
+import { ProjectRef } from './entities/project-ref.entity';
+import { ProjectMemberRef } from './entities/project-member-ref.entity';
+import { UserDepartmentRef } from './entities/user-department-ref.entity';
+import { ProjectScopeModule } from './project-scope/project-scope.module';
 import { KafkaModule } from './kafka/kafka.module';
 import { MinioModule } from './minio/minio.module';
 import { OutboxModule } from './outbox/outbox.module';
@@ -42,7 +47,19 @@ import { HealthController } from './health/health.controller';
         // `folder_shares` (va cot `visibility` moi tren `folders`) khi service khoi dong.
         // 24/10/2026: bo sung DocumentChunk - synchronize tu tao bang `document_chunks` (va cot
         // `rag_indexed_version` moi tren `file_metas`).
-        entities: [Folder, FileMeta, FileVersion, FileShare, FolderShare, OutboxEvent, DocumentChunk],
+        // 26/10/2026: them 3 bang read-model du an/thanh vien/phong ban (va cot folders.project_id).
+        entities: [
+          Folder,
+          FileMeta,
+          FileVersion,
+          FileShare,
+          FolderShare,
+          OutboxEvent,
+          DocumentChunk,
+          ProjectRef,
+          ProjectMemberRef,
+          UserDepartmentRef,
+        ],
         // MVP: dung synchronize thay vi migration thu cong - Technical_Spec.md muc 14 (gioi han da biet).
         synchronize: true,
       }),
@@ -55,6 +72,7 @@ import { HealthController } from './health/health.controller';
     FoldersModule,
     FilesModule,
     RagModule,
+    ProjectScopeModule,
   ],
   controllers: [HealthController, MetricsController],
   providers: [

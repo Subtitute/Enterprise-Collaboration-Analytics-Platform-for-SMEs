@@ -77,6 +77,18 @@ export function LeaveRequestsPage() {
   const [pendingActions, setPendingActions] = useState<Record<string, 'approve' | 'reject'>>({});
   const canApprove = !pendingQuery.isError && pendingQuery.isSuccess;
 
+  // 26/10/2026: Manager chi tra cuu/duyet trong phong ban cua minh va khong tu duyet don cua chinh
+  // minh (backend HRM ep pham vi nay) - loc picker nhan vien + bo don cua minh khoi danh sach cho duyet.
+  const isOrgScope = permissions.includes(PERMISSIONS.USER_MANAGE);
+  const scopedOrgUsers = useMemo(
+    () => (isOrgScope ? orgUsers : orgUsers.filter((u) => u.departmentId && u.departmentId === currentUser?.departmentId)),
+    [isOrgScope, orgUsers, currentUser?.departmentId],
+  );
+  const pendingRequests = useMemo(
+    () => (pendingQuery.data?.data ?? []).filter((r) => isOrgScope || r.userId !== currentUser?.id),
+    [pendingQuery.data?.data, isOrgScope, currentUser?.id],
+  );
+
   function clearPendingAction(id: string) {
     setPendingActions((prev) => {
       if (!(id in prev)) return prev;
@@ -148,9 +160,9 @@ export function LeaveRequestsPage() {
           <PendingLeaveRequestsList
             canViewEmployeeHistory={canViewEmployeeHistory}
             canApprove={canApprove}
-            orgUsers={orgUsers}
+            orgUsers={scopedOrgUsers}
             onSelectEmployee={handleSelectEmployee}
-            pendingRequests={pendingQuery.data?.data ?? []}
+            pendingRequests={pendingRequests}
             userNameMap={userNameMap}
             pendingActions={pendingActions}
             onApprove={handleApprove}

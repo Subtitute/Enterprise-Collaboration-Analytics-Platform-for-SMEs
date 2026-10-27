@@ -4,6 +4,10 @@ import { Organization } from './organization.entity';
 import { Department } from './department.entity';
 import { Role } from './role.entity';
 
+// 26/10/2026: ma nhan vien duy nhat trong to chuc (Technical_Spec.md muc 27.4). Ma duoc LUU dang chu
+// HOA (chuan hoa trong UsersService) nen unique index thuong tuong duong UNIQUE(org, lower(code)) ma
+// van khai bao duoc bang decorator (synchronize khong quan ly duoc index bieu thuc). NULL khong trung nhau.
+@Index('uq_users_org_employee_code', ['organizationId', 'employeeCode'], { unique: true })
 @Entity('users')
 export class User extends AppBaseEntity {
   @Column({ name: 'organization_id' })
@@ -45,6 +49,21 @@ export class User extends AppBaseEntity {
   // chuc "an cu" nay khong quan trong.
   @Column({ name: 'is_super_admin', default: false })
   isSuperAdmin: boolean;
+
+  // 26/10/2026: ho so that (Technical_Spec.md muc 27.4) - thay so dien thoai/ma nhan vien gia lap tren
+  // web. So dien thoai luu dang chuan 0xxxxxxxxx (normalizeVietnamesePhone, @app/common-dto).
+  @Column({ name: 'phone_number', type: 'varchar', length: 11, nullable: true })
+  phoneNumber?: string | null;
+
+  @Column({ name: 'employee_code', type: 'varchar', length: 32, nullable: true })
+  employeeCode?: string | null;
+
+  // Key trong bucket iam-avatars ({orgId}/{userId}/{uuid}.jpg) - doc qua presigned GET TTL ngan.
+  @Column({ name: 'avatar_object_key', type: 'varchar', nullable: true })
+  avatarObjectKey?: string | null;
+
+  @Column({ name: 'avatar_updated_at', type: 'timestamptz', nullable: true })
+  avatarUpdatedAt?: Date | null;
 
   /** Eager tren 1 chieu duy nhat (User -> Role) de tranh xung dot eager 2 chieu cua TypeORM. */
   @ManyToMany(() => Role, (role) => role.users, { eager: true })

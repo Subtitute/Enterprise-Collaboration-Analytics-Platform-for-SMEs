@@ -19,11 +19,6 @@ function appendLocation(form: FormData, location?: CheckInLocation) {
   form.append('longitude', String(location.longitude));
 }
 
-export interface FaceEnrollmentStatus {
-  enrolled: boolean;
-  enrolledAt?: string | null;
-}
-
 export interface FaceVerifyResult {
   enrolled: boolean;
   score?: number | null;
@@ -36,23 +31,8 @@ export interface FaceVerifyResult {
  * cua hrm-service, 2 service HOAN TOAN doc lap, khong goi HTTP noi bo lan nhau (mirror quy uoc
  * toan du an).
  */
-export async function getFaceEnrollmentStatus(): Promise<FaceEnrollmentStatus> {
-  const { data } = await apiClient.get<FaceEnrollmentStatus>('/ml/face/enrollment');
-  return data;
-}
-
-export async function enrollFace(photo: Blob): Promise<FaceEnrollmentStatus> {
-  const form = new FormData();
-  form.append('photo', photo, 'enroll.jpg');
-  const { data } = await apiClient.post<FaceEnrollmentStatus>('/ml/face/enroll', form, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return data;
-}
-
-export async function deleteFaceEnrollment(): Promise<void> {
-  await apiClient.delete('/ml/face/enrollment');
-}
+// 26/10/2026: dang ky/xoa khuon mat chuyen sang features/face/api.ts (kho anh nhan dien + dong y,
+// Technical_Spec.md muc 27) - o day chi con verify khi cham cong.
 
 // 24/10/2026 (fix phat hien qua QA doc lap): Gateway dat timeout rieng 120s cho nhom route
 // `/api/v1/ml/*` (proxy-routes.config.ts, EXTENDED_PROXY_TIMEOUT_MS - vi /ml/anomalies co the

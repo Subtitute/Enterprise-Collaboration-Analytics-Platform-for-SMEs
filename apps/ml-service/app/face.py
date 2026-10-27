@@ -17,7 +17,10 @@ sai/sai sot thuc te luc demo."""
 
 from __future__ import annotations
 
+import ctypes
 import logging
+import threading
+from dataclasses import dataclass
 from pathlib import Path
 
 import cv2
@@ -51,33 +54,84 @@ MATCH_THRESHOLD = 0.35
 _detector: "cv2.FaceDetectorYN | None" = None
 _embedder: ort.InferenceSession | None = None
 
+# 26/10/2026: sua 2 loi co san (Technical_Spec.md muc 27.12 GD 0). (1) Khoi tao luoi KHONG khoa:
+# 2 request dau tien den gan nhu dong thoi co the cung thay `_embedder is None` va nap 2 lan model
+# ArcFace 261MB duoi mem_limit 1g -> OOM; nay nap 1 lan luc khoi dong (preload_models() trong
+# lifespan) va van giu double-checked lock cho truong hop goi truc tiep (test). (2) Detector YuNet
+# dung chung: setInputSize() + detect() khong nguyen tu - 2 luong xen ke se detect voi kich thuoc
+# cua anh kia -> khoa rieng quanh cap lenh nay; toan pipeline gioi han 2 luot dong thoi (semaphore)
+# de RAM/CPU khong tang theo so request.
+_init_lock = threading.Lock()
+_detector_lock = threading.Lock()
+_INFERENCE_SLOTS = threading.Semaphore(2)
+
 
 class NoFaceDetectedError(Exception):
     """Khong phat hien duoc khuon mat nao hop le trong anh - LOI NGHIEP VU (anh mo/qua toi/khong
-    co mat), khac loi he thong, can tra ve thong bao ro rang cho nguoi dung thay vi 500 chung."""
+    co mat), khac loi he thong, can tra ve thong bao ro rang cho nguoi dung thay vi 500 chung.
+
+    26/10/2026: them `error_code` (FACE_INVALID_IMAGE/FACE_NONE/FACE_MULTIPLE/FACE_TOO_SMALL) de
+    route tra ve `{ detail, errorCode }` cho web dich qua i18n."""
+
+    def __init__(self, message: str, error_code: str = "FACE_NONE"):
+        super().__init__(message)
+        self.error_code = error_code
 
 
 def _get_detector() -> "cv2.FaceDetectorYN":
     global _detector
     if _detector is None:
-        _detector = cv2.FaceDetectorYN.create(_DETECTOR_PATH, "", (320, 320), score_threshold=0.7)
+        with _init_lock:
+            if _detector is None:
+                _detector = cv2.FaceDetectorYN.create(_DETECTOR_PATH, "", (320, 320), score_threshold=0.7)
     return _detector
 
 
 def _get_embedder() -> ort.InferenceSession:
     global _embedder
     if _embedder is None:
-        _embedder = ort.InferenceSession(_EMBEDDER_PATH, providers=["CPUExecutionProvider"])
+        with _init_lock:
+            if _embedder is None:
+                _embedder = ort.InferenceSession(_EMBEDDER_PATH, providers=["CPUExecutionProvider"])
     return _embedder
+
+
+def preload_models() -> bool:
+    """26/10/2026: nap ca 2 model 1 lan luc khoi dong (goi tu lifespan, app/main.py). Thieu file
+    (dev cuc bo chua tai model) -> chi canh bao, khong chan service (Anomaly Detection van chay)."""
+    if not (Path(_DETECTOR_PATH).exists() and Path(_EMBEDDER_PATH).exists()):
+        logger.warning("Thieu model ONNX trong %s - bo qua nap truoc, tinh nang khuon mat se loi khi goi.", _MODELS_DIR)
+        return False
+    _get_detector()
+    _get_embedder()
+    _release_freed_memory()
+    logger.info("Da nap san model YuNet + ArcFace.")
+    return True
+
+
+def _release_freed_memory() -> None:
+    """26/10/2026: glibc GIU LAI vung nho da free sau khi onnxruntime phan tich model 261MB - do trong
+    image that: RSS 642MB -> ~380MB sau malloc_trim(0), suy luan khong cham di. Quan trong voi
+    mem_limit 1g + 2 luot suy luan dong thoi. Khong phai glibc (Windows/macOS khi dev) -> bo qua."""
+    try:
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+    except (OSError, AttributeError):
+        pass
+
+
+def _detect_faces(image: np.ndarray) -> np.ndarray | None:
+    detector = _get_detector()
+    with _detector_lock:
+        detector.setInputSize((image.shape[1], image.shape[0]))
+        _, faces = detector.detect(image)
+    return faces
 
 
 def _detect_best_face(image: np.ndarray) -> np.ndarray:
     """Tra ve 1 hang ket qua YuNet (15 gia tri: x,y,w,h,score,10 toa do 5 diem moc) co do tin cay
     cao nhat. Neu anh vo tinh chup nhieu nguoi, GIA DINH nguoi dang check-in la khuon mat ro
     net/tin cay nhat trong khung hinh (dung cho camera chup can, khong dung cho anh dong nguoi)."""
-    detector = _get_detector()
-    detector.setInputSize((image.shape[1], image.shape[0]))
-    _, faces = detector.detect(image)
+    faces = _detect_faces(image)
     if faces is None or len(faces) == 0:
         raise NoFaceDetectedError("Khong phat hien duoc khuon mat nao trong anh")
     return faces[np.argmax(faces[:, -1])]
@@ -139,9 +193,9 @@ _JPEG_EOI = b"\xff\xd9"
 
 def _assert_image_bytes_complete(image_bytes: bytes) -> None:
     if len(image_bytes) < 4:
-        raise NoFaceDetectedError("Du lieu anh qua ngan hoac trong")
+        raise NoFaceDetectedError("Du lieu anh qua ngan hoac trong", "FACE_INVALID_IMAGE")
     if image_bytes[:2] != _JPEG_SOI or image_bytes[-2:] != _JPEG_EOI:
-        raise NoFaceDetectedError("Du lieu anh khong day du hoac bi hong (thieu marker JPEG)")
+        raise NoFaceDetectedError("Du lieu anh khong day du hoac bi hong (thieu marker JPEG)", "FACE_INVALID_IMAGE")
 
 
 def _downscale_if_needed(image: np.ndarray) -> np.ndarray:
@@ -157,17 +211,105 @@ def _downscale_if_needed(image: np.ndarray) -> np.ndarray:
 def extract_face_embedding(image_bytes: bytes) -> list[float]:
     """Pipeline day du: giai ma anh -> phat hien+can chinh khuon mat (YuNet) -> nhung dac trung
     512 chieu DA L2-normalize (ArcFace). Nem NoFaceDetectedError (loi nghiep vu ro rang) neu bat
-    ky buoc nao khong thuc hien duoc - KHONG bao gio de loi mo ho bubble len thanh 500 chung."""
-    _assert_image_bytes_complete(image_bytes)
+    ky buoc nao khong thuc hien duoc - KHONG bao gio de loi mo ho bubble len thanh 500 chung.
 
+    26/10/2026: chi con dung cho VERIFY (che do mem - lay mat ro nhat); moi luong DANG KY dung
+    analyze_enrollment_photo() (che do strict) ben duoi."""
+    with _INFERENCE_SLOTS:
+        image = _decode_and_downscale(image_bytes)
+        best_face = _detect_best_face(image)
+        aligned = _align_face(image, best_face)
+        return _run_embedder(aligned)
+
+
+def _decode_and_downscale(image_bytes: bytes) -> np.ndarray:
+    _assert_image_bytes_complete(image_bytes)
     image = cv2.imdecode(np.frombuffer(image_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
     if image is None:
-        raise NoFaceDetectedError("Khong doc duoc du lieu anh")
-    image = _downscale_if_needed(image)
+        raise NoFaceDetectedError("Khong doc duoc du lieu anh", "FACE_INVALID_IMAGE")
+    return _downscale_if_needed(image)
 
-    best_face = _detect_best_face(image)
-    aligned = _align_face(image, best_face)
-    return _run_embedder(aligned)
+
+# 26/10/2026: che do STRICT cho moi luong dang ky (tu dang ky, tai ho, nhap Excel) - Technical_Spec.md
+# muc 27.10. Verify van giu hanh vi mem cu (extract_face_embedding). Nguong do net la gia tri THAM
+# KHAO (chua tinh chinh bang du lieu that) nen chi la CANH BAO, khong chan.
+STRICT_PRIMARY_SCORE = 0.9
+STRICT_SECONDARY_SCORE = 0.7
+STRICT_SECONDARY_WIDTH_RATIO = 0.25
+MIN_FACE_HEIGHT_PX = 80
+# Phuong sai Laplacian tren mat DA CAN CHINH 112x112: anh mau ro net do duoc ~750-920, cung anh lam
+# mo Gaussian sigma 3 ~65 -> nguong 100.
+LOW_SHARPNESS_THRESHOLD = 100.0
+# Trung 1:N trong to chuc (Q5): >= 0,5 chan; 0,35-0,5 canh bao.
+DUPLICATE_BLOCK_THRESHOLD = 0.5
+DUPLICATE_WARN_THRESHOLD = MATCH_THRESHOLD
+
+
+@dataclass
+class FaceAnalysis:
+    """Ket qua kiem tra 1 anh dang ky. `error_code` khac None = anh bi chan (khong co embedding)."""
+
+    face_count: int = 0
+    face_height: int = 0
+    score: float = 0.0
+    sharpness: float = 0.0
+    low_quality: bool = False
+    error_code: str | None = None
+    error_detail: str | None = None
+    embedding: list[float] | None = None
+    # Anh da thu ve <= 640px va MA HOA LAI JPEG bang cv2.imencode -> mat toan bo EXIF/GPS (Q1).
+    normalized_jpeg: bytes | None = None
+
+
+def analyze_enrollment_photo(image_bytes: bytes) -> FaceAnalysis:
+    with _INFERENCE_SLOTS:
+        try:
+            image = _decode_and_downscale(image_bytes)
+        except NoFaceDetectedError as err:
+            return FaceAnalysis(error_code=err.error_code, error_detail=str(err))
+
+        faces = _detect_faces(image)
+        if faces is None or len(faces) == 0:
+            return FaceAnalysis(error_code="FACE_NONE", error_detail="Khong phat hien duoc khuon mat nao trong anh")
+        faces = faces[np.argsort(-faces[:, -1])]
+        primary = faces[0]
+        result = FaceAnalysis(face_count=len(faces), face_height=int(round(primary[3])), score=float(primary[-1]))
+        if primary[-1] < STRICT_PRIMARY_SCORE:
+            result.error_code, result.error_detail = "FACE_NONE", "Khong co khuon mat du ro trong anh"
+            return result
+        others = [f for f in faces[1:] if f[-1] >= STRICT_SECONDARY_SCORE and f[2] >= STRICT_SECONDARY_WIDTH_RATIO * primary[2]]
+        result.face_count = 1 + len(others)
+        if others:
+            result.error_code, result.error_detail = "FACE_MULTIPLE", "Anh co nhieu hon 1 khuon mat"
+            return result
+        if primary[3] < MIN_FACE_HEIGHT_PX:
+            result.error_code, result.error_detail = "FACE_TOO_SMALL", "Khuon mat qua nho trong anh"
+            return result
+
+        try:
+            aligned = _align_face(image, primary)
+            result.embedding = _run_embedder(aligned)
+        except NoFaceDetectedError as err:
+            result.error_code, result.error_detail = err.error_code, str(err)
+            return result
+        result.sharpness = float(cv2.Laplacian(cv2.cvtColor(aligned, cv2.COLOR_BGR2GRAY), cv2.CV_64F).var())
+        result.low_quality = result.sharpness < LOW_SHARPNESS_THRESHOLD
+        ok, buf = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, 90])
+        if not ok:
+            result.error_code, result.error_detail = "FACE_INVALID_IMAGE", "Khong ma hoa lai duoc anh"
+            result.embedding = None
+            return result
+        result.normalized_jpeg = buf.tobytes()
+        return result
+
+
+def classify_duplicate(score: float) -> str | None:
+    """'block' (>= 0,5) | 'warn' (0,35-0,5) | None - ham thuan de test 2 nguong doc lap."""
+    if score >= DUPLICATE_BLOCK_THRESHOLD:
+        return "block"
+    if score >= DUPLICATE_WARN_THRESHOLD:
+        return "warn"
+    return None
 
 
 def cosine_similarity(a: list[float], b: list[float]) -> float:

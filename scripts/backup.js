@@ -20,7 +20,18 @@ const INFRA_DIR = path.join(__dirname, '..', 'infra');
 const NETWORK = 'ecap-sme_internal-net';
 const MC_IMAGE = 'minio/mc:latest@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727';
 
-const POSTGRES_CONTAINERS = ['postgres-iam', 'postgres-pt', 'postgres-doc', 'postgres-crm', 'postgres-hrm', 'timescaledb'];
+// 26/10/2026: them 3 CSDL bi bo sot tu khi co ml-service (24/09), messaging-service (28/09), inventory-service (16/10).
+const POSTGRES_CONTAINERS = [
+  'postgres-iam',
+  'postgres-pt',
+  'postgres-doc',
+  'postgres-crm',
+  'postgres-hrm',
+  'postgres-ml',
+  'postgres-messaging',
+  'postgres-inventory',
+  'timescaledb',
+];
 
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 const backupDir = path.join(__dirname, '..', 'backups', timestamp);
@@ -64,6 +75,34 @@ function backupMongo() {
   console.log(`  -> ${path.relative(process.cwd(), file)} (${(output.length / 1024).toFixed(1)} KB)`);
 }
 
+/** 26/10/2026: ten moi bucket tren MinIO (`mc ls --json`, 1 dong JSON/bucket, key dang "ten/"). */
+function listBuckets(rootUser, rootPassword) {
+  const output = execFileSync(
+    'docker',
+    [
+      'run',
+      '--rm',
+      '--network',
+      NETWORK,
+      '-e',
+      `MC_USER=${rootUser}`,
+      '-e',
+      `MC_PASSWORD=${rootPassword}`,
+      '--entrypoint',
+      '/bin/sh',
+      MC_IMAGE,
+      '-c',
+      'mc alias set local http://minio:9000 "$MC_USER" "$MC_PASSWORD" >/dev/null && mc ls --json local',
+    ],
+    { maxBuffer: 16 * 1024 * 1024 },
+  ).toString();
+  return output
+    .split('\n')
+    .filter((line) => line.trim().startsWith('{'))
+    .map((line) => JSON.parse(line).key.replace(/\/$/, ''))
+    .filter(Boolean);
+}
+
 function backupMinio() {
   console.log('\n=== MinIO ===');
   const minioDir = path.join(backupDir, 'minio');
@@ -76,16 +115,15 @@ function backupMinio() {
   // `docker compose exec`) TRUOC khi vao vong lap mirror: 1 trong 2 container (document-service/
   // hrm-service) dung/loi se nem loi dong bo va lam hong CA HAI bucket - ke ca bucket cua container
   // van khoe - pha vo nguyen tac cach ly loi tung nguon ma vong lap `steps` o main() da chu y lam.
-  const sources = [
-    { service: 'document-service', label: 'document-service' },
-    { service: 'hrm-service', label: 'hrm-service' },
-  ];
+  // 26/10/2026: liet ke MOI bucket dang co tren MinIO thay vi doc MINIO_BUCKET cua tung service - danh sach
+  // cu chi co document-service + hrm-service nen bo sot bucket anh san pham (inventory-products, 16/10/2026);
+  // bucket them ve sau cung tu dong duoc sao luu. Moi bucket van 1 try/catch rieng nhu tren.
+  const buckets = listBuckets(rootUser, rootPassword);
 
   const failedBuckets = [];
-  for (const { service, label } of sources) {
+  for (const bucket of buckets) {
     try {
-      const bucket = getContainerEnvVar(service, 'MINIO_BUCKET');
-      console.log(`  mirroring bucket "${bucket}" (${label})...`);
+      console.log(`  mirroring bucket "${bucket}"...`);
       // Container mc TAM THOI (--rm), noi vao CUNG mang Docker voi minio (khong qua cong host de
       // tranh phu thuoc port da doi 9010/9011 - xem README.md) va mount thang thu muc sao luu cuc bo.
       // --entrypoint /bin/sh: image minio/mc dat san ENTRYPOINT la "mc" (khong phai shell) - mirror
@@ -119,8 +157,8 @@ function backupMinio() {
         { stdio: 'inherit' },
       );
     } catch (err) {
-      failedBuckets.push(label);
-      console.error(`  LOI khi sao luu bucket cua ${label}: ${err.message}`);
+      failedBuckets.push(bucket);
+      console.error(`  LOI khi sao luu bucket "${bucket}": ${err.message}`);
     }
   }
 
@@ -157,7 +195,7 @@ function main() {
     console.log('(Cac phan da sao luu thanh cong van giu nguyen trong thu muc tren - khong bi xoa vi 1 phan khac loi.)');
     process.exitCode = 1;
   } else {
-    console.log(`Toan bo 8 nguon du lieu da sao luu xong vao ${path.relative(process.cwd(), backupDir)}/`);
+    console.log(`Toan bo ${steps.length} nguon du lieu da sao luu xong vao ${path.relative(process.cwd(), backupDir)}/`);
     console.log(`Phuc hoi bang: npm run restore -- ${timestamp}`);
   }
 }

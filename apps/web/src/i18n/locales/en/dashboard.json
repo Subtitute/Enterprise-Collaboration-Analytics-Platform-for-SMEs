@@ -139,6 +139,9 @@
       "project_updated": "updated a project",
       "project_completed": "completed a project",
       "project_deleted": "deleted a project",
+      "project_member_added": "added a member to a project",
+      "project_member_removed": "removed a member from a project",
+      "project_lead_changed": "changed the lead of a project",
       "document_uploaded": "uploaded a document",
       "document_shared": "shared a document",
       "document_deleted": "deleted a document",
@@ -153,7 +156,10 @@
       "attendance_checked_out": "checked out from shift",
       "leave_request_created": "submitted a leave request",
       "leave_request_approved": "approved a leave request",
-      "leave_request_rejected": "rejected a leave request"
+      "leave_request_rejected": "rejected a leave request",
+      "iam_user_profile_updated": "updated an employee profile",
+      "iam_user_roles_changed": "updated an employee's role",
+      "iam_user_reactivated": "reactivated an account"
     }
   },
   "status": {

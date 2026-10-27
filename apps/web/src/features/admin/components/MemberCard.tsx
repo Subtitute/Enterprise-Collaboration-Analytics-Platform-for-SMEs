@@ -4,7 +4,8 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { EditIcon, MoreVerticalIcon, RefreshIcon, TrashIcon, UserIcon } from '@/components/ui/Icons';
 import { getRoleBadgeConfig } from './MemberTableRow';
-import type { User } from '@/types';
+import { FaceStatusBadge } from '@/features/face/components/FaceStatusBadge';
+import type { FaceStatus, User } from '@/types';
 
 interface MemberCardProps {
   user: User;
@@ -14,6 +15,9 @@ interface MemberCardProps {
   onDeactivate: (user: User) => void;
   onReactivate: (userId: string) => void;
   onDelete: (user: User) => void;
+  // 26/10/2026: Danh sach nhan vien (Wireframe muc 16.1, mobile) - the bam mo Ho so nhan vien.
+  faceStatus?: FaceStatus;
+  onOpen: (user: User) => void;
 }
 
 export const MemberCard = memo(function MemberCard({
@@ -24,14 +28,19 @@ export const MemberCard = memo(function MemberCard({
   onDeactivate,
   onReactivate,
   onDelete,
+  faceStatus,
+  onOpen,
 }: MemberCardProps) {
   const { t } = useTranslation();
 
   return (
-    <div className="rounded-radius-md border border-border-subtle bg-white p-4 transition-colors hover:border-border-strong">
+    <div
+      onClick={() => onOpen(u)}
+      className="rounded-radius-md border border-border-subtle bg-white p-4 transition-colors hover:border-border-strong cursor-pointer"
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <Avatar name={u.fullName} size="sm" className="h-9 w-9 text-xs shrink-0 bg-accent-soft text-accent font-medium" />
+          <Avatar name={u.fullName} src={u.avatarUrl} size="sm" className="h-9 w-9 text-xs shrink-0 bg-accent-soft text-accent font-medium" />
           <div className="min-w-0">
             <p className="truncate font-medium text-[14px] text-text-primary">{u.fullName}</p>
             <p className="truncate text-[12px] text-text-tertiary">{u.email}</p>
@@ -39,6 +48,7 @@ export const MemberCard = memo(function MemberCard({
         </div>
 
         {canManageUsers && (
+          <div onClick={(e) => e.stopPropagation()}>
           <Dropdown
             align="right"
             trigger={({ toggle }) => (
@@ -94,6 +104,7 @@ export const MemberCard = memo(function MemberCard({
               </div>
             )}
           </Dropdown>
+          </div>
         )}
       </div>
 
@@ -103,7 +114,8 @@ export const MemberCard = memo(function MemberCard({
           <span className="font-medium text-text-primary">{departmentName}</span>
         </div>
 
-        <div>
+        <div className="flex items-center gap-1.5">
+          <FaceStatusBadge status={faceStatus} className="text-[11px]" />
           {u.isActive === false ? (
             <span className="inline-flex items-center rounded-radius-sm px-2 py-0.5 text-[11px] font-medium bg-bg-muted text-text-secondary border border-border-subtle">
               {t('admin:membersPage.status.inactive')}

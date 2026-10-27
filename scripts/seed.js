@@ -462,6 +462,9 @@ async function main() {
     projectIds.push(project.id);
 
     // --- Thu muc + tai lieu mau cho du an (Document Activity analytics + MinIO khong con trong) ---
+    // 26/10/2026: tao truoc nhu thu muc toan cong ty (Org Admin) roi migrate-project-documents.js o
+    // cuoi main() moi gan vao du an - du an vua tao chua kip toi read-model cua Document Service
+    // (outbox + Kafka mat vai giay), gan ngay luc nay se bi 404 PROJECT_NOT_FOUND_IN_ORG.
     const folder = await apiCall('/folders', {
       method: 'POST',
       headers: authHeaders,
@@ -539,6 +542,16 @@ async function main() {
       `Du an "${project.name}": da tao ${taskCount} task (co giao nguoi), 1 thu muc + ${sampleDocs.length} tai lieu`,
     );
   }
+
+  // 26/10/2026: tai lieu theo pham vi du an - nguoi duoc giao viec thanh thanh vien du an, them 2
+  // thu muc chinh sach toan cong ty (dung chung script migrate cho DB da co, idempotent).
+  // Document Service can vai giay de read-model du an nhan su kien project.created qua Kafka.
+  await sleep(5000);
+  await require('./migrate-project-documents').migrate({ token: accessToken });
+  // 26/10/2026: 20 tai lieu mau (Word/PDF/Excel/PowerPoint) vao thu muc cua 5 du an (idempotent).
+  await require('./seed-project-docs').seedProjectDocs({ token: accessToken });
+  // 26/10/2026: giao 8 khach hang cho phong Kinh doanh - CRM cua Manager/nhan vien demo khong con trong.
+  await require('./migrate-demo-ownership').migrateDemoOwnership({ token: accessToken });
 
   console.log('\n=== Seed hoan tat (qua API cong khai) ===');
   console.log(`Dang nhap Org Admin: ${adminEmail} / ${adminPassword}`);

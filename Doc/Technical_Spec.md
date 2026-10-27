@@ -5,7 +5,9 @@
 > toàn workspace) nhưng CHƯA xác minh sống qua Gateway thật — xem §22.8. §23 (Chat bot nội bộ RAG +
 > tool-calling, 24/10/2026) đã triển khai, khác kế hoạch ban đầu ở vài điểm ghi rõ tại §23.2; §25
 > (giảm tải RAM Docker, 24/10/2026). §26 (CDC Debezium, profile tuỳ chọn `cdc`, 25/10/2026) đã
-> triển khai và xác minh sống dưới tải. Dữ liệu kiểm thử tái sử dụng: `Mock_data.md`. Phần cố ý chưa
+> triển khai và xác minh sống dưới tải. §27 (Danh sách nhân viên & kho ảnh nhận diện, 26/10/2026) đã
+> triển khai giai đoạn 0–5 và xác minh sống (§27.16); giai đoạn 6 chưa làm. §28 (Tài liệu theo phạm vi dự án & phạm vi dữ liệu của Manager, 26/10/2026)
+> đã triển khai và xác minh sống. Dữ liệu kiểm thử tái sử dụng: `Mock_data.md`. Phần cố ý chưa
 > triển khai (forecasting ML, Layer 4/6 của §19) được đánh dấu rõ tại chỗ và theo dõi thêm ở
 > `Upgrade.md`. Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
 
@@ -108,6 +110,7 @@ flowchart TB
 - **Lưu ý (điều chỉnh 21/07/2026):** bổ sung sự kiện `task.deleted`/`project.deleted` để Analytics không đếm nhầm entity đã bị xóa cứng; `TaskStatusHistory` ghi lại mỗi lần đổi trạng thái (cùng transaction với `Task.status` và Outbox), phục vụ trực tiếp yêu cầu "lịch sử thay đổi trạng thái" trong Wireframe §4.2.
 - **Frontend — sắp xếp tuỳ chỉnh danh sách Dự án (bổ sung 25/08/2026, đóng góp của Nguyễn Lê Tiến, nhánh `frontend`):** `ProjectsListPage.tsx` cho phép kéo-thả đổi thứ tự thẻ dự án (thứ tự lưu trong `localStorage`, khoá `ec_projects_custom_order`), lọc theo độ ưu tiên (`priorityFilter`), và luôn gom nhóm dự án `COMPLETED` xuống cuối danh sách bất kể thứ tự tuỳ chỉnh. Hoàn toàn ở tầng client, không thêm field/endpoint backend nào.
 - **Điều chỉnh 26/08/2026 (rà soát lần 4):** `priority`/`leadUserId` — trước đó chỉ lưu `localStorage['ec_projects_metadata']` từng trình duyệt (vô hình với thành viên khác) — nay là cột thật trên entity `Project` (`priority: ProjectPriority` enum LOW/MEDIUM/HIGH/URGENT mặc định MEDIUM, `leadUserId` uuid nullable), có trong `CreateProjectDto`/`UpdateProjectDto`, trả về trong response như mọi field khác. Bộ lọc `priorityFilter` ở `ProjectsListPage.tsx` vẫn lọc phía client (giới hạn đã biết: chỉ lọc trong phạm vi 1 trang server-paginated, xem `Doc/RevisionHistory.md` mục "26/08/2026").
+- **Cập nhật 26/10/2026 (§28):** "thuộc dự án" = người phụ trách/thành viên/người tạo (bỏ nguồn `TaskAssignee`; giao Task tự thêm người được giao làm thành viên); Manager thấy thêm dự án liên quan tới phòng ban mình; mọi thao tác ghi theo id kiểm tra phạm vi (ngoài phạm vi → 404); thêm sự kiện `project.member_added`/`project.member_removed`/`project.lead_changed`, endpoint nội bộ `GET /api/v1/internal/project-memberships`; gỡ thành viên còn Task chưa xong → 409 `PROJECT_MEMBER_HAS_OPEN_TASKS`. Xem §28.2, §28.7, §28.8.
 
 ### 3.4 Document Service
 - **Trách nhiệm:** CRUD Folder/File (metadata trong PostgreSQL, nội dung nhị phân trong MinIO), chia sẻ nội bộ theo user/phòng ban, versioning đơn giản (giữ tối đa N bản gần nhất mỗi file).
@@ -115,6 +118,7 @@ flowchart TB
 - **Event phát ra:** `document.uploaded`, `document.shared`, `document.deleted`.
 - **Lưu trữ (điều chỉnh 21/07/2026):** bucket MinIO cấu hình **private** (không bật anonymous/public download); mọi truy cập tải file bắt buộc đi qua presigned URL có thời hạn ngắn (mặc định 15 phút) do Document Service cấp sau khi đã xác thực `organizationId` của người gọi.
 - **Phạm vi `FileShare`/access-control (điều chỉnh 21/07/2026, nâng cấp thành access-control thực sự 28/07/2026):** mặc định (`Folder.visibility = 'organization'`) vẫn giữ nguyên hành vi MVP — mọi thành viên tổ chức xem/tải được mọi tài liệu, **không đổi hành vi của dữ liệu đã có** (opt-in). Người tạo thư mục (hoặc Org Admin) có thể chuyển 1 thư mục cụ thể sang `visibility = 'restricted'`: khi đó chỉ người tạo, Org Admin, hoặc người/phòng ban được cấp quyền tường minh qua `FolderShare` (bảng mới) mới thấy được thư mục đó và các tệp bên trong. `FileShare` (tệp lẻ, không đổi tên) giờ cũng là 1 đường cấp quyền TRUY CẬP THỰC SỰ (không chỉ gắn nhãn hiển thị) cho MỘT tệp cụ thể — dùng cho trường hợp "có link trực tiếp tới 1 tệp trong thư mục hạn chế mà không cần thấy được cả thư mục". Cả `FolderShare` lẫn `FileShare` đều chấp nhận đích là 1 người dùng (`sharedWithUserId`) HOẶC 1 phòng ban (`sharedWithDepartmentId`, mới) — chi tiết đầy đủ xem §6 và §14. **Cập nhật 24/10/2026:** hạn chế nay kế thừa xuống mọi cấp thư mục con — thư mục con thường nằm trong thư mục `restricted` trước đây bị bỏ sót (mở cho mọi người); quy tắc mới đi ngược lên các thư mục cha, xem §23.3.
+- **Cập nhật 26/10/2026 (§28):** tài liệu đi theo dự án — thư mục cấp gốc gắn `projectId`, chỉ người thuộc dự án (Manager: thêm dự án liên quan tới phòng ban) xem được cây của dự án; cây toàn công ty ai cũng xem nhưng chỉ Org Admin ghi (trừ `FolderShare`/`FileShare EDIT`). Câu "mặc định mọi thành viên tổ chức xem/tải được mọi tài liệu" ở trên nay chỉ còn đúng với cây toàn công ty. Document Service lần đầu tiêu thụ Kafka (read-model `project_refs`/`project_member_refs`/`user_department_refs`, backfill lúc khởi động). Xem §28.3, §28.5, §28.6.
 
 ### 3.5 Notification Service
 - **Trách nhiệm:** tiêu thụ sự kiện từ Kafka (từ IAM, Project-Task, Document), sinh notification tương ứng, lưu MongoDB, đẩy real-time qua WebSocket tới user liên quan, đánh dấu đã đọc/chưa đọc.
@@ -189,6 +193,7 @@ Trước đây (xem §14, mục đã gỡ bỏ) một event xử lý thất bạ
 - **`dim_user`** (bảng thường, KHÔNG phải hypertable — không có chiều thời gian): `user_id (PK), organization_id, department_id, updated_at`.
 - **`fact_task_events.assignee_id`** (cột mới): trước đây bảng này chỉ lưu `actor_id` (người THỰC HIỆN hành động, vd người tạo/đổi trạng thái), không lưu người ĐƯỢC GIAO việc; cột mới lấy từ payload của sự kiện `task.assigned` (`TaskAssignedPayload.assigneeId`), NULL với các loại sự kiện khác.
 - **Lọc theo phòng ban:** `GET /analytics/summary`, `/task-status-breakdown`, `/project-progress` nhận thêm query param tùy chọn `departmentId` — khi có, chỉ tính các task có ÍT NHẤT 1 lần giao việc (`task.assigned`) cho user thuộc phòng ban đó (`JOIN dim_user`). **`GET /analytics/task-trend` KHÔNG hỗ trợ** `departmentId` — cùng lý do đã ghi nhận trước đó (continuous aggregate không còn giữ `task_id` sau khi tổng hợp).
+- **Cập nhật 26/10/2026 (§28.4):** với Manager, phòng ban không còn là bộ lọc tuỳ chọn — mọi KPI (kể cả task-trend, document-activity, product-sales-trend, top-products, quét bảng fact thô) bị ép về phòng ban của Manager, truyền phòng ban khác → 403 `DEPARTMENT_SCOPE_FORBIDDEN`; Org Admin giữ bộ lọc tuỳ chọn như trên.
 - **Ngữ nghĩa đa phòng ban (có chủ đích, không phải lỗi):** 1 công việc có nhiều người phụ trách thuộc nhiều phòng ban khác nhau sẽ được tính vào KPI của MỖI phòng ban liên quan khi lọc riêng — tổng các phòng ban cộng lại có thể VƯỢT tổng toàn tổ chức, đây là hành vi đúng thiết kế (công sức được ghi nhận cho đúng người thực hiện), không phải sai lệch dữ liệu.
 - **Lưu ý vận hành khi triển khai lên hệ thống ĐÃ CHẠY (áp dụng đúng 1 lần cho đồ án này lúc bổ sung tính năng):** cột `fact_task_events.assignee_id` chỉ có giá trị cho các sự kiện `task.assigned` xử lý SAU KHI cột này tồn tại — dữ liệu lịch sử trước đó có `assignee_id = NULL` do ràng buộc `ON CONFLICT (time, event_id) DO NOTHING` khiến message Kafka cũ (dù còn trong topic) không ghi đè được dòng đã tồn tại. Đã khắc phục 1 lần bằng lệnh `UPDATE` thủ công lấy lại `assigneeId` từ `fact_user_activity.payload` (bảng này lưu nguyên payload JSONB của MỌI sự kiện nên vẫn còn dữ liệu gốc) — không cần thiết cho các bản triển khai MỚI hoàn toàn (schema đã có `assignee_id` từ đầu nên không có giai đoạn "trước khi cột tồn tại").
 
@@ -199,6 +204,7 @@ Sau khi hoàn tất 4 hạng mục Frontend/DLQ/access-control tài liệu/KPI t
 - **Endpoint mới:** `GET /analytics/ai-insights?range=7d|30d|quarter&departmentId=&departmentName=` (Analytics Service, controller riêng `AiInsightsController` cùng prefix `analytics`, cùng quyền `analytics:view` như các endpoint KPI khác — đây chỉ là một lớp diễn giải bằng ngôn ngữ tự nhiên trên số liệu người dùng ĐÃ có quyền xem, không phải dữ liệu/quyền mới). `departmentName` là tham số RIÊNG chỉ để hiển thị trong đoạn văn AI sinh ra (Analytics Service không sở hữu tên phòng ban — database-per-service — nên frontend truyền kèm từ dữ liệu đã có sẵn cho dropdown lọc; KHÔNG dùng cho logic lọc/truy vấn, vẫn là `departmentId`).
 - **Cơ chế:** `AiInsightsService` tái sử dụng NGUYÊN 3 phương thức đã có của `AnalyticsService` (`getSummary`/`getTaskStatusBreakdown`/`getProjectProgress` — mỗi phương thức đã tự có cache Redis riêng), ghép số liệu vào một prompt tiếng Việt có đầy đủ dấu, gọi thẳng REST API của Gemini qua `fetch` có sẵn của Node 20 (không thêm SDK `@google/genai` cho một lệnh gọi POST/JSON đơn giản — đúng định hướng "tối giản", ClaudeRule.md mục 8), rồi trả về đoạn văn bản Gemini sinh ra.
 - **Cache riêng, TTL dài hơn cache KPI thường (30 phút thay vì 8 giây):** mục đích không phải giảm tải TimescaleDB (đã có cache cho từng truy vấn KPI) mà là giảm số lần gọi Gemini API thật để tiết kiệm hạn ngạch miễn phí — tính năng này chạy THEO YÊU CẦU (nút bấm), không polling tự động.
+- **Cập nhật 26/10/2026 (§28.4):** với Manager, nhận xét chỉ quét phòng ban của mình (+ top dự án tính theo Task của phòng ban), mốc so sánh là phòng ban (`evidence.comparisonScope = 'department'`), cache Redis tách theo phòng ban — trước đây Manager đọc lại đúng bản nhận xét toàn tổ chức.
 - **Chịu lỗi rõ ràng, không làm sập Analytics Service:** thiếu `GEMINI_API_KEY`, Gemini API lỗi/timeout (giới hạn 15 giây)/rate-limit, hoặc phản hồi không có nội dung (vd bị chặn bởi bộ lọc an toàn) đều trả về `503 ServiceUnavailableException` với thông báo tiếng Việt rõ ràng — các tính năng KPI khác trên cùng trang không bị ảnh hưởng.
 - **Cấu hình:** `GEMINI_API_KEY` (lấy miễn phí tại `aistudio.google.com/apikey`) + `GEMINI_MODEL` (mặc định `gemini-flash-latest`) trong `infra/.env`/`docker-compose.yml`. Để trống `GEMINI_API_KEY` là trạng thái HỢP LỆ (không lỗi khởi động service) — chỉ riêng endpoint này trả lỗi rõ ràng cho tới khi được cấu hình.
 - **Frontend:** trang Báo cáo & Phân tích có thêm thẻ "Nhận xét AI" với nút "Tạo nhận xét AI" (không tự động gọi khi vào trang/đổi bộ lọc — theo đúng lý do tiết kiệm hạn ngạch ở trên); đoạn nhận xét hiển thị kèm dòng chú thích phạm vi/khoảng thời gian ĐÃ DÙNG để tạo ra nó (tránh hiểu nhầm khi người dùng đổi bộ lọc sau khi đã tạo nhận xét).
@@ -251,6 +257,11 @@ Song song với luồng real-time, các **continuous aggregate của TimescaleDB
 - **Phân quyền (RBAC):** mỗi Role gắn danh sách Permission dạng `resource:action` (ví dụ `task:create`, `document:delete`). Mỗi service tự kiểm tra permission liên quan qua NestJS Guard, không phụ thuộc Gateway kiểm tra thay. Guard phải được gắn trên **mọi** endpoint (kể cả các endpoint chỉ đọc/GET) tương ứng với permission đã định nghĩa trong RBAC matrix, không chỉ các endpoint ghi/mutate. **Ngoại lệ có chủ đích, ghi nhận sau đợt review toàn dự án 22/07/2026:** `GET /departments` (IAM) và `GET /users` dạng danh sách (IAM) để mở cho MỌI thành viên đã xác thực trong tổ chức thay vì chỉ Org Admin — cả hai là nguồn dữ liệu nền tảng cho nhiều màn hình không-phải-quản-trị (Dashboard, picker chọn người phụ trách task, chia sẻ tài liệu, tìm kiếm tổng hợp, trang Hồ sơ cá nhân); gắn permission quản trị (`user:manage`) sẽ chặn phần lớn ứng dụng đối với vai trò Manager/Employee — một regression nghiêm trọng hơn chính lỗ hổng đang sửa. `GET /users/:id` (xem hồ sơ một người dùng cụ thể) vẫn được chặn đúng theo quy tắc: chỉ cho phép tự xem chính mình HOẶC người gọi có `user:manage`. Xem chi tiết tại mục Lịch sử thay đổi tài liệu, mục review 22/07/2026.
 - **(Bổ sung 25/07/2026) Gán vai trò (`roleIds`) khi mời/sửa người dùng yêu cầu riêng `user:manage`:** phát hiện qua đợt review vòng 2 — `POST /users/invite`/`PATCH /users/:id` trước đó chỉ yêu cầu `user:invite` (Manager cũng có quyền này) nhưng KHÔNG kiểm tra người gọi có được phép gán `roleIds` cụ thể trong request hay không, cho phép một Manager tự đọc UUID vai trò Org Admin qua `GET /users` (vốn cố ý mở cho mọi người, xem trên) rồi mời một tài khoản mới với vai trò đó — leo thang đặc quyền hoàn chỉnh mà không cần bất kỳ quyền quản trị nào ban đầu. Đây là lỗi mức **Nghiêm trọng (Critical)** duy nhất phát hiện ở IAM Service trong đợt review này. Sửa: `roleIds` non-empty trong 2 endpoint trên nay bị từ chối (`403 Forbidden`, thông báo tiếng Việt) trừ khi người gọi có `user:manage` — không âm thầm bỏ qua `roleIds` vì luồng UI hợp lệ (`InviteMemberModal.tsx`) chưa bao giờ cho vai trò thấp quyền gửi trường này, nên một request có `roleIds` từ Manager gần như chắc chắn là request thủ công/độc hại, cần lộ ra ngay bằng lỗi thay vì âm thầm thành công với vai trò rỗng.
 - **Cách ly tenant:** mọi Guard/Middleware bắt buộc lọc theo `organizationId` lấy từ JWT — không cho phép truy vấn chéo tổ chức dù có ID hợp lệ của tổ chức khác. Quy tắc này áp dụng cả cho **tham chiếu chéo entity trong cùng service** (ví dụ tạo `Task` phải xác minh `projectId` thuộc đúng `organizationId`, không chỉ định dạng UUID hợp lệ).
+- **(Bổ sung 26/10/2026) Phạm vi dữ liệu 3 cấp:** ngoài RBAC (được gọi endpoint nào) và cách ly tenant, mọi service còn lọc **bản ghi nào** người gọi được thấy theo `resolveDataScope()` (`packages/common-dto`) — Employee: của mình; Manager: của mình + thành viên phòng ban (`departmentId` trong JWT); Org Admin (`user:manage`): toàn tổ chức. Ngoại lệ `GET /users` ở trên nay chỉ trả hồ sơ đầy đủ cho chính mình (và thành viên phòng ban với Manager), người khác nhận "thẻ danh bạ". Xem §28.2, §28.4.
+- **(Bổ sung 26/10/2026, tiếp) Gateway xoá header tin cậy do client gửi:** trước khi đặt header nội bộ từ
+  JWT, Gateway xoá mọi header tin cậy client tự gửi (danh sách header nội bộ, `x-internal-secret`, mọi header
+  tiền tố `x-internal-*`, `x-user-*`, `x-org-*`, `x-organization-*`), cả với WebSocket. Trước đó header Gateway
+  không đặt (vd `x-department-id` khi JWT không có phòng ban) lọt xuống service. Xem §27.16.
 
 ## 7. Quy ước thiết kế API
 
@@ -406,6 +417,7 @@ Khách hàng và cơ hội bán hàng (deal pipeline) — hạng mục mở rộ
   - `Deal` — cơ hội bán hàng (tiêu đề, giá trị, `stage`, `expectedCloseDate`, `closedAt`, `ownerUserId`), thuộc 1 `Customer` (`onDelete: CASCADE`).
 - **`DealStage` enum + `DEAL_STAGE_TRANSITIONS`** (`packages/common-dto`) — khác `TaskStatus` (3 trạng thái, tuyến tính): 6 giai đoạn `NEW/CONTACTED/PROPOSAL/NEGOTIATION/WON/LOST`, 4 giai đoạn đầu di chuyển tự do qua lại lẫn nhau (phản ánh đúng thực tế pipeline bán hàng — khách hàng có thể quay lại giai đoạn trước), `WON`/`LOST` là trạng thái **cuối** (terminal, không thể chuyển tiếp). `PATCH /deals/:id/stage` validate qua `DealsService.updateStage()` — mirror chính xác `TasksService.updateStatus()`: pre-check fail-fast, khoá `pessimistic_write` bên trong transaction, re-validate trước khi áp dụng (chống race condition khi 2 request đổi giai đoạn đồng thời).
 - **RBAC:** permission mới `customer:view/create/update/delete`, `deal:view/create/update/delete` (`packages/common-dto`). Manager được cấp đủ CRUD (mirror nhóm quyền Project); Employee chỉ xem được danh mục khách hàng (`customer:view`) nhưng tự tạo/cập nhật được Deal của mình (`deal:create/update/view`, mirror nhóm quyền Task — không có delete).
+- **Cập nhật 26/10/2026 (§28.4):** Employee chỉ thấy deal mình phụ trách hoặc thuộc khách hàng mình phụ trách (trước đây thấy mọi deal của tổ chức); Manager chỉ thấy khách hàng/deal của mình + thành viên phòng ban; sửa/xoá/chuyển giai đoạn/tạo deal theo id ngoài phạm vi → 404.
 - **Sự kiện Kafka mới** (topic `crm.events`): `customer.created`, `customer.deleted`, `deal.created`, `deal.stage_changed`, `deal.deleted`. Notification Service subscribe thêm topic này, chỉ sinh thông báo khi `deal.stage_changed` có `toStage = WON` (chúc mừng người thực hiện thao tác) — không tạo `DEAL_WON` như 1 event type riêng để tránh phình to danh sách event cho 1 trường hợp cụ thể của stage-change chung (xem `event-notification-builder.ts`).
 - **Gateway:** route `/api/v1/customers`, `/api/v1/deals` (`services.crm` → `crm-service:3007`).
 - **Frontend** (`apps/web/src/features/crm`): trang danh sách khách hàng (tìm kiếm, thẻ hiển thị số deal đang hoạt động + tổng giá trị), trang chi tiết khách hàng với bảng Kanban 6 cột (tái dùng `@hello-pangea/dnd`, cùng thư viện với Kanban Task), modal tạo/sửa deal. Nav item mới "Khách hàng" (`BriefcaseIcon` vẽ tay mới).
@@ -423,6 +435,7 @@ Chấm công (check-in/out kèm ảnh chụp làm bằng chứng) và nghỉ ph�
   - `LeaveRequest` — yêu cầu nghỉ phép (`startDate`/`endDate`/`reason`, `status: PENDING|APPROVED|REJECTED`, `approverId`, `decisionNote`, `decidedAt`). Duyệt/từ chối dùng `LeaveRequestsService.decide()` — mirror pattern khoá `pessimistic_write` + re-check của `ProjectsService.complete()`/`archive()` (chống 2 Manager cùng quyết định 1 yêu cầu đồng thời).
 - **Ảnh chấm công lưu trong bucket MinIO RIÊNG** (`hrm-attendance`, không gọi HTTP sang Document Service) — quyết định kiến trúc mirror đúng lý do đã ghi nhận cho CRM-lite (§16 không áp dụng ở đây, nhưng cùng nguyên tắc chung của dự án): giữ ghi nhận chấm công (ảnh + bản ghi + outbox event) là 1 transaction cục bộ duy nhất, và hiện KHÔNG có hạ tầng gọi HTTP nội bộ giữa các service trong repo. Object key `${organizationId}/${userId}/${workDate}/checkin|checkout.<ext>`. MIME allowlist thu gọn chỉ còn `image/jpeg`/`image/png` (ảnh xuất ra từ `<canvas>.toBlob()` trên trình duyệt) kèm kiểm tra magic-byte, sao chép-và-thu-gọn từ `apps/document-service/src/files/allowed-mime-types.ts`.
 - **RBAC:** permission mới `attendance:checkin`, `attendance:view`, `leave_request:create`, `leave_request:view`, `leave_request:approve`. Employee tự chấm công/tự xin nghỉ (`attendance:checkin`, `leave_request:create`); Manager có thêm quyền xem toàn tổ chức và duyệt nghỉ phép. **Giới hạn đã biết (chấp nhận được ở quy mô đồ án):** `attendance:view`/`leave_request:view` cho phép xem TOÀN TỔ CHỨC, không giới hạn theo phòng ban của Manager — vì `Attendance`/`LeaveRequest` không lưu `departmentId` (muốn lọc đúng theo phòng ban của Manager cần hạ tầng tra cứu xuyên service tương tự bảng chiều `dim_user` của Analytics Service, ngoài phạm vi đợt này).
+- **Cập nhật 26/10/2026 (§28.4):** giới hạn "`attendance:view` = xem toàn tổ chức" ở trên đã xử lý — Manager chỉ xem chấm công/ảnh/nghỉ phép/tăng ca/giải trình của thành viên phòng ban, chỉ duyệt đơn của thành viên phòng ban (`DEPARTMENT_SCOPE_FORBIDDEN`) và không tự duyệt (`SELF_APPROVAL_FORBIDDEN`); Org Admin giữ toàn tổ chức.
 - **Endpoint `GET /attendance/:id/photo`, `GET /attendance/me`, `GET /leave-requests/me`:** không gắn `@RequirePermissions` cố định — tự kiểm tra "chính chủ HOẶC có quyền xem toàn tổ chức" bên trong service, mirror endpoint bình luận của `TasksController` (không nằm trong nhóm quyền cố định).
 - **Sự kiện Kafka mới** (topic `hrm.events`): `attendance.checked_in`, `attendance.checked_out`, `leave_request.created`, `leave_request.approved`, `leave_request.rejected`. Notification Service subscribe thêm topic này nhưng CHỈ sinh thông báo cho 2 sự kiện có người nhận rõ ràng (`leave_request.approved`/`rejected` — nhắn cho chính người xin nghỉ), mirror đúng lý do bỏ qua `DEAL_CREATED` ở CRM-lite: `leave_request.created` không có "người duyệt" cụ thể ngay lúc tạo (bất kỳ Manager/Org Admin nào cũng duyệt được), Notification Service không có hạ tầng tra cứu "toàn bộ Manager của tổ chức này". Không sinh thông báo cho check-in/out (hành động tự thân).
 - **Gateway:** route `/api/v1/attendance`, `/api/v1/leave-requests` (`services.hrm` → `hrm-service:3006`).
@@ -485,6 +498,7 @@ Hai hạng mục độc lập triển khai cùng đợt: (1) nhập nhân viên 
 - **`fact_task_events`** (TimescaleDB) bổ sung cột `due_date TIMESTAMPTZ` — cả `infra/timescale-init/001-init.sql` (schema gốc) lẫn `schema-bootstrap.ts` (tự "chắp" schema cho database dev/staging đang chạy sẵn, mirror đúng cách cột `assignee_id` đã được thêm trước đó) đều cập nhật đồng bộ. `FactWriterService.recordTaskEvent()` ghi thêm cột này (chỉ có giá trị ở dòng `task.created`).
 - **`AnalyticsService.getDrillDown(scope, scopeId, range, callerId, callerPermissions)`** — tái dùng chính xác pattern CTE `created_tasks`/`latest_status` của `computeSummary()`, cộng thêm `overdueTasks` (task có `due_date < now()` và chưa DONE) và `topAssignee` (assignee HIỆN TẠI xuất hiện nhiều nhất trong các task chưa xong của phạm vi). Endpoint `GET /analytics/drill-down?scope=department|project&scopeId=&range=`.
   - **Phạm vi truy cập** (mirror `getRecentActivity()`): Org Admin (`user:manage`) xem mọi scope; `scope=department` chỉ Manager đang phụ trách ĐÚNG phòng ban đó mới xem được (qua `listDepartmentIdsManagedBy()`); `scope=project` **giới hạn có chủ đích** chỉ dành cho Org Admin — Analytics Service không có bảng thành viên dự án riêng (database-per-service, chỉ Project-Task Service biết ai thuộc dự án nào) nên không thể xác định "Manager này có thuộc dự án X không" mà không gọi HTTP xuyên service (vi phạm quy ước Kafka-only).
+  - **Cập nhật 26/10/2026 (§28.4):** `scope=project` nay mở cho Manager nhưng chỉ đếm Task giao cho người thuộc phòng ban của Manager; `scope=department` chỉ phòng ban của mình.
 - **Frontend:** các thanh trong `AiInsightsChart.tsx` (scope=department/project) trở thành clickable (`onDrillDown` prop, tô `cursor: pointer` qua `<Cell>`) — mở `DrillDownPanel.tsx` (Modal có sẵn) hiển thị phễu Tổng công việc → Chưa xong → Quá hạn → Tập trung ở 1 người.
 
 ### 19.3 Layer 3 Anomaly Detection — `apps/ml-service` (Python đầu tiên của dự án)
@@ -974,6 +988,7 @@ là nơi DUY NHẤT biết đúng "ai được xem tài liệu này". Chatbot kh
   không có quyền → bị chặn; nút `organization` → xét tiếp nút cha; tới gốc → được. Dữ liệu bất thường
   (vòng lặp, thiếu thư mục cha, sâu > 64) → chặn. `FileShare` trên 1 tệp lẻ vẫn mở được đúng tệp đó.
   Mỗi request chỉ tốn 2 truy vấn (nạp cây thư mục + quyền chia sẻ của người gọi), kiểm tra trong bộ nhớ.
+- **Cập nhật 26/10/2026 (§28.3):** quy tắc trên thêm phạm vi dự án (nút gắn dự án ngoài phạm vi → chặn; người tạo thư mục chỉ còn quyền khi vẫn thuộc dự án); `search-chunks` dùng chung bộ lọc nên chat bot chỉ trả đoạn của dự án người hỏi thuộc về — vẫn 2 truy vấn cho kiểm tra thư mục, 3 truy vấn cho lọc RAG.
 
 ### 23.4 Tool-calling cho dữ liệu "sống"
 
@@ -1159,6 +1174,12 @@ bàn bạc trước khi code (xem thảo luận cùng ngày: chọn **verify 1:1
   cụt/trống bị từ chối rõ ràng (400, không phải 500); check-in thật có kèm điểm khớp đúng cả 2
   trường `checkInFaceMatchScore`/`checkInFaceMatched`, và vẫn thành công bình thường khi không có
   dữ liệu khuôn mặt nào (đúng thiết kế "không bao giờ chặn").
+- **Cập nhật 26/10/2026:** căn cứ pháp lý hiện hành (Luật 91/2025/QH15 + Nghị định 356/2025/NĐ-CP, hiệu
+  lực 01/01/2026, thay Nghị định 13/2023), giới hạn mục đích của dữ liệu khuôn mặt, đồng ý lưu phía
+  server, kho ảnh nhận diện và 2 lỗi ml-service cần sửa trước (nạp model lười không khoá, truy vấn chưa
+  lọc `organization_id`) — xem kế hoạch §27.
+- **Cập nhật 26/10/2026 (tiếp):** 2 lỗi trên đã sửa; kho ảnh nhận diện, đồng ý phía server và tải ảnh hộ
+  đã triển khai — xem §27.16.
 
 ---
 
@@ -1358,6 +1379,774 @@ Debezium khởi động lỗi liên tục. Đã sửa: `KAFKA_LOG_DIRS=/var/lib/
   `cdc-off.ps1` rồi `docker compose --profile cdc down`.
 - 1 connector, 1 task, không có dự phòng (HA) — đủ cho mục đích minh hoạ.
 
+---
+
+## 27. Danh sách nhân viên & kho ảnh nhận diện *(kế hoạch chốt 26/10/2026, triển khai + kiểm thử 26/10/2026)*
+
+> Trạng thái: **ĐÃ TRIỂN KHAI GIAI ĐOẠN 0–5, ĐÃ XÁC MINH SỐNG** (26/10/2026). Giai đoạn 6 (tuỳ chọn) chưa
+> làm. §27.1–§27.15 giữ nguyên bản kế hoạch (hiện trạng §27.1 là trước khi triển khai); cách làm thực tế, chỗ
+> khác kế hoạch, kết quả kiểm thử và giới hạn đã biết ở §27.16. Mục này gồm hiện trạng (có bằng
+> chứng file:line), các quyết định đã chốt, thiết kế và kế hoạch theo giai đoạn. Giao diện tương ứng:
+> `Wireframe.md` §16. Phạm vi xem của Manager ở các module khác do đợt "Phạm vi dữ liệu của Manager"
+> (26/10/2026, làm song song) xử lý — mục này chỉ dùng chung định nghĩa phạm vi, không lập kế hoạch lại.
+
+Mục tiêu: (1) xem hồ sơ nhân viên — thông tin cá nhân, email, số điện thoại, ảnh nhận diện;
+(2) Org Admin và Manager (trong phạm vi) cập nhật/thay avatar và ảnh nhận diện, mọi người tự cập nhật
+của chính mình; (3) nhân viên chỉ xem hồ sơ của chính mình; (4) nhập danh sách nhân viên kèm ảnh nhận
+diện qua Excel.
+
+### 27.1 Hiện trạng — 3 câu hỏi
+
+**Câu 1. Kho khuôn mặt nằm ở đâu, lưu gì?**
+
+| Hạng mục | Hiện trạng | Bằng chứng |
+|---|---|---|
+| Service / DB | `ml-service`, Postgres riêng `postgres-ml`/`ml_db` | `apps/ml-service/app/db.py:71-75`, §19.3 |
+| Bảng / cột | `face_enrollments(user_id UUID PK, organization_id UUID, embedding DOUBLE PRECISION[] (512 chiều, đã L2-normalize), enrolled_at)` | `db.py:77-84` |
+| Số bản ghi | 1/người, đăng ký lại ghi đè | `apps/ml-service/app/routes.py:153-157` |
+| Ảnh mẫu gốc | **Không lưu** — ảnh chỉ đi qua bộ nhớ, chỉ còn embedding; ml-service không có MinIO | `routes.py:127-165`, `face.py:157-170` |
+| Ảnh check-in/out | MinIO bucket private `hrm-attendance`, key `{orgId}/{userId}/{workDate}/checkin.{jpg,png}` (và `checkout.*`) | `infra/.env:63`, `infra/docker-compose.yml:350`, `apps/hrm-service/src/attendance/object-key.util.ts:6-15` |
+| Truy cập ảnh check-in | Presigned GET 900 giây; chủ bản ghi hoặc `attendance:view` | `apps/hrm-service/src/minio/minio.service.ts:82-83`, `attendance.service.ts:303-323` |
+| Thời gian lưu ảnh check-in | **Vô thời hạn** — không lifecycle, không `removeObject`, hrm-service không tiêu thụ `USER_DELETED` | grep `apps/hrm-service/src`, `infra` |
+| Xoá embedding | Chỉ khi xoá vĩnh viễn tài khoản (`iam.user.deleted`); vô hiệu hoá thì **vẫn giữ** | `apps/ml-service/app/kafka_consumer.py:71-95,179-180` |
+
+**Câu 2. Có chỉnh sửa được không, ai sửa?** Chỉ chính chủ. Cả 4 endpoint `/api/v1/ml/face/*` lấy
+`ctx.user_id` từ header Gateway, không nhận `userId` mục tiêu (`routes.py:159,175,192,208`), quyền
+`attendance:checkin` (`auth.py:73-75`). UI duy nhất là khối đăng ký bằng webcam ở Hồ sơ cá nhân
+(`ProfileFaceEnrollmentCard.tsx`, `CheckInCamera.tsx:107-111`) — không tải ảnh từ tệp được; ô đồng ý
+chỉ là state phía client, không gửi lên server (`ProfileFaceEnrollmentCard.tsx:25`). Org Admin/Manager
+không có cách nào xem/sửa. `ecap-mobile` chỉ hiện họ tên/email/vai trò ở tab Hồ sơ
+(`ecap-mobile/lib/features/home_shell.dart:85-115`) và không gọi verify khi chấm công.
+Hồ sơ cá nhân trên web phần lớn là giả lập: avatar chỉ xem trước bằng `URL.createObjectURL`
+(`ProfileIdentityCard.tsx:45-56`), số điện thoại cố định `'0912 345 678'` (`ProfileInfoCard.tsx:37`),
+nút Lưu chỉ `setTimeout` 400 ms (`ProfileInfoCard.tsx:52-69`). Entity `users` không có số điện thoại,
+avatar, mã nhân viên (`apps/iam-service/src/entities/user.entity.ts:7-56`); nhân viên không tự sửa được
+gì (`PATCH /users/:id` cần `user:manage`, `users.controller.ts:88-89`); Manager không xem được hồ sơ
+chi tiết người khác (`users.controller.ts:54-73`).
+
+**Câu 3. Đã nhập nhân viên + ảnh từ Excel được chưa?** Nhập nhân viên: có (§19.1, `ImportEmployeesModal.tsx`
+gọi tuần tự `POST /users/invite` từ trình duyệt, `ImportEmployeesModal.tsx:94-110`; cột cố định ở
+`import-employees.utils.ts:13`). Nhập ảnh: **không**. Thiếu: cột/tệp ảnh, endpoint ghi khuôn mặt hộ,
+chế độ cập nhật người đã có (email trùng → `EMAIL_ALREADY_USED`, `users.service.ts:92`), các trường
+mới, kiểm tra chất lượng ảnh, báo cáo lỗi tải về; mật khẩu mặc định dùng chung `Password123!`
+(`import-employees.utils.ts:17`).
+
+### 27.2 Quyết định đã chốt (26/10/2026)
+
+| # | Quyết định |
+|---|---|
+| Q1 | **Lưu ảnh nhận diện gốc** (để xem được) trong bucket private `ml-face-references`, mã hoá lại và xoá EXIF/GPS. Chỉ đọc qua API proxy của ml-service có kiểm tra phạm vi, `Cache-Control: no-store`, ghi nhật ký mỗi lượt xem. **Không bao giờ dùng presigned URL** cho ảnh này. Xoá khi tài khoản bị xoá, bị vô hiệu hoá, hoặc khi rút lại đồng ý. |
+| Q2 | **Avatar và ảnh nhận diện là 2 tệp riêng.** Avatar ở bucket `iam-avatars`, đọc qua presigned GET TTL ngắn. Avatar không bao giờ đi vào pipeline nhận diện. |
+| Q3 | **Đồng ý lưu phía server** (`face_consents`: thời điểm, phiên bản văn bản đồng ý, người thực hiện, nguồn). Tự đăng ký = ghi đồng ý. Ảnh do Org Admin/Manager tải hộ hoặc nhập Excel ở trạng thái **`PENDING_CONSENT`**, **không dùng để so khớp** cho tới khi nhân viên xác nhận trên Hồ sơ cá nhân; quá 30 ngày tự huỷ (xoá ảnh + embedding). |
+| Q4 | **Phạm vi Manager = `departmentId` trong JWT/AuthContext** (đúng định nghĩa dùng chung của đợt Phạm vi dữ liệu của Manager). Manager xem/sửa **Employee** của phòng ban mình, không bao giờ Manager khác hay Org Admin. Org Admin: cả tổ chức. Employee: chính mình. Super Admin: không có dữ liệu tenant. |
+| Q5 | **Cho phép tự đăng ký lại**, có ghi nhật ký. Kiểm tra trùng 1:N trong tổ chức: tương đồng ≥ 0,5 với người khác → chặn; 0,35–0,5 → cảnh báo. |
+| Q6 | **Nhập = Excel + ZIP ảnh.** Ghép ảnh theo cột "Tệp ảnh", để trống thì theo email. Trình duyệt điều phối như §19.1, cộng endpoint kiểm tra trước phía server, bước xem trước trước khi ghi, báo cáo lỗi tải về. Email đã có: cập nhật số điện thoại, mã nhân viên, ảnh; không đổi vai trò/phòng ban qua import. Email mới: mời. Ảnh chuẩn hoá phía client (canvas → JPEG, mất EXIF). |
+| Q7 | **Cột mật khẩu tuỳ chọn.** Để trống → sinh mật khẩu ngẫu nhiên (không ai biết) và gửi email kích hoạt. Bỏ mặc định `Password123!`. |
+| Q8 | **Trường hồ sơ mới:** số điện thoại (kiểm tra định dạng Việt Nam), mã nhân viên (duy nhất trong tổ chức), avatar. Tách DTO danh sách `GET /users` (tối giản) khỏi DTO hồ sơ (có kiểm tra phạm vi). |
+| Q9 | **Thời hạn lưu:** embedding + ảnh nhận diện bị xoá khi vô hiệu hoá. Job xoá ảnh chấm công sau 90 ngày là giai đoạn **tuỳ chọn** về sau. |
+| Q10 | Không có công tắc bật/tắt theo tổ chức — nhận diện khuôn mặt vẫn bật như hiện nay. |
+| Q11 | `ecap-mobile` ngoài phạm vi đợt này; việc tiếp theo: hiển thị avatar. |
+| Q12 | Nginx `client_max_body_size 26m` đã sửa (trước đây mặc định 1 MB) — `apps/web/nginx.conf:16`. |
+| Q13 | Manager xem ảnh chấm công toàn tổ chức: do đợt Phạm vi dữ liệu của Manager thu hẹp HRM về phòng ban — không lập kế hoạch lại ở đây. |
+| Q14 | **Giai đoạn 0 sửa 2 lỗi có sẵn của ml-service trước mọi tính năng mới:** nạp model lúc khởi động + semaphore đồng thời 2; lọc `organization_id` ở mọi truy vấn và upsert khuôn mặt. |
+| Q15 | Thay UI hồ sơ giả lập (số điện thoại cố định, nút Lưu giả, avatar chỉ xem trước) bằng API thật. |
+
+### 27.3 Căn cứ pháp lý và giới hạn mục đích
+
+Từ **01/01/2026**, khung pháp lý hiện hành là **Luật Bảo vệ dữ liệu cá nhân số 91/2025/QH15** (thông
+qua 26/06/2025) và **Nghị định 356/2025/NĐ-CP** hướng dẫn luật — thay thế Nghị định 13/2023/NĐ-CP.
+Dữ liệu sinh trắc học thuộc nhóm dữ liệu cá nhân nhạy cảm. Bảng dưới ánh xạ theo bản tóm tắt điều
+khoản đã tra cứu — **cần đối chiếu toàn văn trước khi trích nguyên văn vào báo cáo đồ án**; các điều
+cụ thể về sự đồng ý và rút lại đồng ý chưa được xác minh trực tiếp.
+
+| Yêu cầu | Điều (theo bản tóm tắt) | Cơ chế trong hệ thống |
+|---|---|---|
+| Xoá khi hết mục đích / chủ thể yêu cầu | Đ.14 | Xoá khi rút đồng ý, vô hiệu hoá, xoá tài khoản; tự huỷ bản chờ sau 30 ngày (§27.11) |
+| Dữ liệu người lao động, thông báo trước khi giám sát | Đ.25 | Văn bản đồng ý có phiên bản; banner + email báo khi có ảnh chờ xác nhận (§27.8) |
+| Xử lý bằng AI đúng mục đích, trong phạm vi cần thiết | Đ.30 | Giới hạn mục đích bên dưới |
+| Hạn chế truy cập + theo dõi truy cập dữ liệu sinh trắc | Đ.31.4(b) | Proxy có kiểm tra phạm vi, `no-store`, nhật ký `VIEW_REF` (§27.5) |
+| Bộ phận/nhân sự bảo vệ DLCN; miễn trừ cho doanh nghiệp nhỏ không áp dụng khi xử lý DLCN nhạy cảm | Đ.33.2, Đ.38 | Nghĩa vụ của tổ chức khách hàng — ghi ở giới hạn đã biết (§27.14) |
+| Mức phạt | Đ.8 | — |
+
+**Giới hạn mục đích (ràng buộc kỹ thuật):** ảnh nhận diện và embedding chỉ dùng cho verify 1:1 khi
+chấm công và kiểm tra trùng 1:N lúc đăng ký. Không đi vào event Kafka, outbox, CDC, chatbot (§23),
+analytics/anomaly (§19), DLQ, log. Không API nào trả embedding. Payload event hồ sơ chỉ chứa
+`userId` + tên trường đã đổi.
+
+### 27.4 Mô hình dữ liệu theo service
+
+**`iam-service` — bảng `users` (migration TypeORM mới):**
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| `phone_number` | `varchar(11) NULL` | Lưu dạng chuẩn `0xxxxxxxxx` |
+| `employee_code` | `varchar(32) NULL` | `UNIQUE (organization_id, lower(employee_code)) WHERE employee_code IS NOT NULL` |
+| `avatar_object_key` | `varchar NULL` | Key trong `iam-avatars` |
+| `avatar_updated_at` | `timestamptz NULL` | |
+
+- Bảng mới `user_profile_change_logs(id, organization_id, target_user_id, actor_id, changed_fields text[], created_at)` — chỉ tên trường, không lưu giá trị; giữ 1 năm.
+- `password_reset_tokens` thêm cột `purpose` (`RESET` | `INVITE`) — token `INVITE` hạn 72 giờ.
+- Event mới (outbox, topic `iam.events`):
+  - `iam.user.profile_updated` `{ userId, changedFields, actorId }` — không chứa số điện thoại/ảnh.
+  - `iam.user.roles_changed` `{ userId, roleLevel, actorId }` — phát trong `UsersService.update()` khi `roleIds` đổi (mirror `USER_DEPARTMENT_CHANGED`, `users.service.ts:276-277`).
+  - `UserRegisteredPayload` thêm trường tuỳ chọn `roleLevel` (`ORG_ADMIN` | `MANAGER` | `EMPLOYEE`, suy từ tên vai trò — hệ thống chỉ có đúng 3 vai trò mặc định và không có endpoint tạo vai trò, xem §19.5).
+  - Script 1 lần chèn outbox `iam.user.roles_changed` cho mọi user hiện có để ml-service có `roleLevel` ban đầu.
+
+**`ml-service` — bootstrap idempotent (mirror `db.py:20-95`):**
+
+```sql
+ALTER TABLE face_enrollments ADD COLUMN IF NOT EXISTS photo_object_key TEXT NULL;
+ALTER TABLE face_enrollments ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'SELF_CAMERA';
+  -- SELF_CAMERA | SELF_UPLOAD | ADMIN | MANAGER | IMPORT
+ALTER TABLE face_enrollments ADD COLUMN IF NOT EXISTS enrolled_by UUID NULL;
+ALTER TABLE face_enrollments ADD COLUMN IF NOT EXISTS model_version TEXT NOT NULL
+  DEFAULT 'yunet-2023mar+arcface-r100';
+UPDATE face_enrollments SET enrolled_by = user_id WHERE enrolled_by IS NULL;
+
+-- Bản chờ xác nhận tách bảng riêng: bản đang dùng (face_enrollments) vẫn được verify cho tới khi
+-- nhân viên xác nhận bản mới; verify KHÔNG BAO GIỜ đọc bảng này.
+CREATE TABLE IF NOT EXISTS face_pending_enrollments (
+  user_id UUID PRIMARY KEY, organization_id UUID NOT NULL,
+  embedding DOUBLE PRECISION[] NOT NULL, photo_object_key TEXT NOT NULL,
+  source TEXT NOT NULL, actor_id UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(), expires_at TIMESTAMPTZ NOT NULL
+);
+
+-- Đồng ý: chỉ ghi thêm (append-only); trạng thái hiện tại = bản ghi mới nhất của user.
+CREATE TABLE IF NOT EXISTS face_consents (
+  id UUID PRIMARY KEY, organization_id UUID NOT NULL, user_id UUID NOT NULL,
+  action TEXT NOT NULL,              -- CONSENT | CONFIRM | REJECT | WITHDRAW
+  consent_text_version TEXT NULL, source TEXT NOT NULL, actor_id UUID NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Nhật ký: KHÔNG chứa embedding/ảnh; giữ 1 năm.
+CREATE TABLE IF NOT EXISTS face_enrollment_events (
+  id UUID PRIMARY KEY, organization_id UUID NOT NULL, actor_id UUID NOT NULL,
+  target_user_id UUID NOT NULL,
+  action TEXT NOT NULL,  -- ENROLL | RE_ENROLL | UPLOAD_PENDING | CONFIRM | REJECT | EXPIRE
+                         -- | DELETE | WITHDRAW | VIEW_REF | PURGE_DEACTIVATED | PURGE_DELETED
+  source TEXT NULL, correlation_id TEXT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE dim_user ADD COLUMN IF NOT EXISTS role_level TEXT NULL;  -- NULL = chưa biết → đóng (fail-closed)
+```
+
+- Mọi truy vấn/upsert khuôn mặt thêm `AND organization_id = :org`; upsert dùng
+  `ON CONFLICT (user_id) DO UPDATE ... WHERE face_enrollments.organization_id = EXCLUDED.organization_id`.
+- Consumer bổ sung `iam.user.deactivated` (xoá dữ liệu khuôn mặt) và `iam.user.roles_changed`
+  (cập nhật `dim_user.role_level`); `_handle_user_deleted()` xoá thêm bản chờ, đồng ý và object MinIO.
+
+**`hrm-service`:** không đổi trong các giai đoạn bắt buộc (xem giai đoạn tuỳ chọn ở §27.12).
+
+### 27.5 Lưu trữ tệp và cách truy cập
+
+| Tệp | Bucket (private) | Key | Ghi | Đọc |
+|---|---|---|---|---|
+| Avatar | `iam-avatars` (`MINIO_IAM_BUCKET`) | `{orgId}/{userId}/{uuid}.jpg` | Client cắt vuông 512 px, JPEG; server kiểm tra magic bytes JPEG/PNG/WebP, ≤ 2 MB | Presigned GET TTL ngắn (mặc định 1 giờ, `AVATAR_URL_TTL_SECONDS`), ký bằng public endpoint như `document-service`; client tải lại danh sách khi ảnh lỗi, fallback chữ viết tắt |
+| Ảnh nhận diện | `ml-face-references` (`MINIO_ML_BUCKET`) | `{orgId}/{userId}/{uuid}.jpg` | ml-service giải mã → thu về ≤ 640 px → mã hoá lại JPEG bằng `cv2.imencode` (mất EXIF/GPS) | **Chỉ qua proxy** `GET /ml/face/.../photo` trả bytes, `Cache-Control: no-store`, ghi `VIEW_REF`; frontend tải bằng axios → blob URL |
+
+- Key có UUID: ghi object mới → cập nhật DB → xoá object cũ.
+- `minio-init` (`infra/docker-compose.yml:348-351`) thêm 2 lệnh `mc mb`. iam-service thêm `MinioModule`
+  (chép từ hrm-service) + multer; ml-service thêm gói `minio`. Không thêm container nào (ngân sách RAM §25).
+- Tệp Excel/ZIP **không bao giờ lên server** — xử lý trong bộ nhớ trình duyệt; server chỉ nhận từng ảnh đã chuẩn hoá.
+
+### 27.6 API
+
+**iam-service (`/api/v1/users`)** — `directory` và `me` khai báo trước `:id` để không bị `uuidParamPipe` bắt nhầm:
+
+| Method & path | Ai | Mô tả |
+|---|---|---|
+| `GET /users` | Mọi người đã đăng nhập (giữ nguyên) | DTO `UserSummary` = các trường hiện có + `avatarUrl`; **không bao giờ** chứa `phoneNumber`/`employeeCode` (việc thu gọn thêm do đợt Phạm vi dữ liệu của Manager quyết định) |
+| `GET /users/directory?search=&departmentId=&page=&limit=` | Org Admin: cả tổ chức; Manager: Employee phòng mình; Employee: 403 | DTO `UserProfile` đầy đủ |
+| `GET /users/:id` | Chính chủ / Org Admin / Manager với Employee phòng mình | `UserProfile` |
+| `PATCH /users/me` | Chính chủ | `{ phoneNumber }` |
+| `PATCH /users/:id` | Org Admin (giữ `user:manage`) | DTO thêm `phoneNumber?`, `employeeCode?` |
+| `PUT /users/:id/avatar`, `DELETE /users/:id/avatar` (`:id` = uuid hoặc `me`) | Chính chủ / Org Admin / Manager với Employee phòng mình | multipart `avatar` |
+| `POST /users/invite` | Giữ nguyên quyền | `initialPassword` thành tuỳ chọn; thêm `phoneNumber?`, `employeeCode?`; email đã thuộc tổ chức khác → lỗi chung "Không thể dùng email này" |
+
+**ml-service (`/api/v1/ml/face`)** — mọi lỗi trả `{ detail, errorCode }`:
+
+| Method & path | Ai | Mô tả |
+|---|---|---|
+| `POST /enroll` (giữ) | Chính chủ, `attendance:checkin` | Nhận thêm `consentTextVersion` (thiếu/sai → `FACE_CONSENT_REQUIRED`); strict + 1:N; lưu ảnh; ghi `CONSENT` |
+| `GET /enrollment` (giữ) | Chính chủ | `{ status, enrolledAt, source, enrolledBy, pending?: {source, actorId, expiresAt} }` với `status` ∈ `NONE`/`ACTIVE`/`PENDING_CONSENT`/`WITHDRAWN`; giữ `enrolled` = `status==ACTIVE` để tương thích |
+| `GET /enrollment/photo`, `GET /enrollment/pending/photo` | Chính chủ | Proxy ảnh đang dùng / ảnh chờ |
+| `POST /enrollment/confirm` | Chính chủ | `{ consentTextVersion }` → bản chờ thành bản đang dùng |
+| `POST /enrollment/reject` | Chính chủ | Xoá bản chờ, ghi `REJECT` (chặn tải hộ cho tới khi tự đồng ý lại) |
+| `DELETE /enrollment` (giữ) | Chính chủ | Rút lại đồng ý: xoá bản dùng + bản chờ + ảnh, ghi `WITHDRAW` |
+| `POST /verify` (giữ) | Chính chủ | Chỉ đọc `face_enrollments`; bản chờ coi như `enrolled:false` |
+| `GET /enrollments?userIds=a,b,c` | Org Admin / Manager (lọc theo phạm vi) | Trạng thái hàng loạt, không ảnh |
+| `GET /enrollments/{userId}`, `GET /enrollments/{userId}/photo` | Org Admin / Manager trong phạm vi | Trạng thái / proxy ảnh (ghi `VIEW_REF`) |
+| `PUT /enrollments/{userId}?source=ADMIN` (hoặc `IMPORT`) | Org Admin / Manager trong phạm vi | Tạo/thay **bản chờ** (hạn 30 ngày); `409 FACE_CONSENT_WITHDRAWN` nếu đã từ chối/rút; `409 USER_NOT_SYNCED`; `409 FACE_DUPLICATE` |
+| `DELETE /enrollments/{userId}` | Org Admin / Manager trong phạm vi | Xoá bản dùng/bản chờ (ảnh sai) — không tính là rút đồng ý |
+| `POST /inspect` | Org Admin / Manager | Kiểm tra 1 ảnh, **không lưu gì**: số mặt, kích thước, điểm, độ nét, cờ trùng (chỉ nêu `userId` nếu người trùng nằm trong phạm vi người gọi) |
+
+Gateway: route `/api/v1/ml` đã có, multipart đi qua nguyên vẹn (`apps/gateway/src/main.ts:22-26`).
+
+### 27.7 Phân quyền
+
+Xác định vai trò khi kiểm tra (dùng hàm phạm vi chung của đợt Phạm vi dữ liệu của Manager khi có):
+- **Org Admin** = có `user:manage` (quy ước sẵn có, `auth.py:31-36`, `users.controller.ts:67`).
+- **Manager** = không có `user:manage`, `AuthContext.roles` có `Manager`, `AuthContext.departmentId` khác
+  null (null → không có phạm vi). ml-service bổ sung đọc header `x-roles`, `x-department-id`.
+- **Mục tiêu hợp lệ cho Manager** = cùng tổ chức, cùng phòng ban, mức vai trò `EMPLOYEE`, không phải
+  chính mình. iam-service đọc trực tiếp DB; ml-service đọc `dim_user` (`department_id`, `role_level`;
+  `role_level` null → từ chối).
+- **Super Admin**: không endpoint nào ở trên trả dữ liệu cho Super Admin; không mở rộng `platform-admin`.
+
+| Hành động | Org Admin | Manager → Employee phòng mình | Manager → ngoài phạm vi / Manager / Org Admin | Chính mình | Employee → người khác | Super Admin |
+|---|---|---|---|---|---|---|
+| Xem danh sách đầy đủ (SĐT, mã NV) | ✅ cả tổ chức | ✅ | ❌ | 👁 qua Hồ sơ | ❌ (chỉ tên + avatar qua `GET /users`) | ❌ |
+| Xem ảnh nhận diện | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
+| Sửa số điện thoại | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Sửa họ tên, mã NV, phòng ban, vai trò | ✅ (luồng có sẵn + `PATCH /users/:id`) | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Đổi/xoá avatar | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
+| Tải ảnh nhận diện | ✅ → chờ xác nhận | ✅ → chờ xác nhận | ❌ | ✅ có hiệu lực ngay | ❌ | ❌ |
+| Xoá ảnh nhận diện | ✅ | ✅ | ❌ | ✅ (= rút đồng ý) | ❌ | ❌ |
+| Nhập Excel | ✅ | ✅ chỉ Employee phòng mình, chỉ ảnh với người đã có | ❌ | — | ❌ | ❌ |
+| Đổi email | ❌ (không có luồng) | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+Org Admin sửa được Org Admin khác — có nhật ký. Mọi thao tác ghi đều kiểm tra lại phạm vi ở server.
+
+### 27.8 Luồng đồng ý và trạng thái
+
+```
+                    tự đăng ký (tick đồng ý v1)
+      ┌──────────────────────────────────────────────────┐
+      │                                                  ▼
+  [NONE] ──Admin/Manager/Import tải ảnh──▶ [PENDING_CONSENT] ──nhân viên xác nhận──▶ [ACTIVE]
+      ▲                                     │    │                                │
+      │                       quá 30 ngày ◀─┘    └─▶ nhân viên từ chối             │ nhân viên xoá
+      │                       (xoá ảnh+vector)       (xoá, ghi REJECT)             │ (rút đồng ý)
+      │                                                   │                        ▼
+      │   vô hiệu hoá / xoá tài khoản (từ mọi trạng thái)  └──────────────▶ [WITHDRAWN]
+      └─────────────────────────────────────────────────────────────────── (chặn tải hộ: 409;
+                                                                           chỉ chính chủ tự đăng ký lại)
+```
+
+- `ACTIVE` + có bản chờ: bản đang dùng vẫn được verify; xác nhận thì thay, từ chối thì giữ bản cũ.
+- Banner trên web (Topbar/Hồ sơ) khi `GET /ml/face/enrollment` trả bản chờ — không cần producer Kafka
+  mới ở ml-service. Người mới nhập còn nhận email kích hoạt có nhắc việc xác nhận (§27.9).
+- Văn bản đồng ý có phiên bản (`face-consent-v1`), nêu đúng mục đích (chỉ cảnh báo mềm khi chấm công),
+  nói rõ ảnh được lưu và Org Admin/Manager phòng ban xem được, và **từ chối không ảnh hưởng gì tới việc
+  chấm công** (vẫn giữ nguyên tắc "không bao giờ chặn" của §24 — đây là phương án không sinh trắc).
+- Vô hiệu hoá rồi kích hoạt lại → `NONE`, phải đăng ký và đồng ý lại.
+
+### 27.9 Nhập Excel + ZIP
+
+**Cột mẫu** (hợp đồng dữ liệu tiếng Việt cố định, `i18n-lint-ignore` như §19.1):
+
+| Họ và tên | Email | Số điện thoại | Mã nhân viên | Phòng ban | Vai trò | Mật khẩu | Tệp ảnh |
+|---|---|---|---|---|---|---|---|
+| Nguyễn Văn An | an.nguyen@congty.vn | 0912345678 | NV001 | Kinh doanh | Employee | *(trống)* | an.nguyen.jpg |
+| Trần Thị Bình | binh.tran@congty.vn | 0283 812 3456 | NV002 | Kỹ thuật | Employee | *(trống)* | *(trống → tìm `binh.tran@congty.vn.jpg`)* |
+
+**Bố cục ZIP:**
+
+```
+anh-nhan-vien.zip
+├── an.nguyen.jpg                 ← khớp cột "Tệp ảnh" dòng 2
+├── binh.tran@congty.vn.png       ← dòng 3 để trống "Tệp ảnh" → khớp theo email
+├── phong-ky-thuat/chi.le.jpg     ← chỉ lấy tên tệp (bỏ thư mục) → vẫn khớp "chi.le.jpg"
+└── __MACOSX/...                  ← bỏ qua (cùng tệp ẩn)
+```
+
+Ghép không phân biệt hoa thường; 2 tệp cùng tên ở 2 thư mục → lỗi "tên tệp ảnh trùng" cho dòng dùng tên đó.
+Giới hạn: Excel ≤ 2 MB và ≤ 300 dòng; ZIP ≤ 500 tệp, tổng giải nén ≤ 200 MB (kiểm tra kích thước khai báo
+trước khi giải nén — chống zip bomb), mỗi ảnh gốc ≤ 5 MB, chỉ `.jpg/.jpeg/.png`; HEIC → lỗi theo dòng.
+
+**Luồng 4 bước (trình duyệt điều phối, gửi tuần tự):**
+1. **Tệp:** SheetJS (bản CDN đã vá, §19.1) + JSZip. Ảnh chuẩn hoá: `createImageBitmap(file, { imageOrientation: 'from-image' })` → canvas, cạnh dài ≤ 1280 px → JPEG 0,9 (sửa xoay, mất EXIF, ≤ 1 MB).
+2. **Xem trước:** kiểm tra phía client (email, số điện thoại, trùng email/mã NV/tên tệp trong file, thiếu tệp, ảnh không khớp dòng nào); phân loại theo `GET /users/directory` (Mời mới / Cập nhật / Ngoài phạm vi); gọi `POST /ml/face/inspect` cho từng ảnh (≤ 2 request/giây) → số mặt, chất lượng, trùng với người đã có. Thumbnail là blob URL cục bộ.
+3. **Ghi:** mỗi dòng 2 bước độc lập — **Tài khoản** (mời mới; hoặc Org Admin `PATCH /users/:id` cập nhật số điện thoại/mã NV — Manager bỏ qua 2 cột này) rồi **Ảnh** (`PUT /ml/face/enrollments/{userId}?source=IMPORT`). `409 USER_NOT_SYNCED` → thử lại sau 2/4/8/16 giây (tối đa ~30 giây); `429` → chờ theo `Retry-After`. Tổng tốc độ ≤ 2–3 request/giây (giới hạn Gateway 300/phút/người, `apps/gateway/src/config/configuration.ts:34`).
+4. **Kết quả:** trạng thái riêng Tài khoản/Ảnh từng dòng; "Thử lại các bước lỗi" (chạy lại = upsert theo email, bỏ qua phần đã xong); tải `.xlsx` lỗi = cột gốc + `Kết quả tài khoản` + `Kết quả ảnh` + `Lý do` (không chứa mật khẩu); nhắc xoá tệp nguồn sau khi nhập.
+
+**Người đã có vs người mới:**
+- Email mới → `POST /users/invite`. Manager mời: phòng ban ép về phòng mình, cột Vai trò bị bỏ qua (giữ hành vi §19.1).
+- Email đã có trong tổ chức → chỉ cập nhật số điện thoại, mã NV (Org Admin), ảnh; Họ tên/Phòng ban/Vai trò/Mật khẩu bị bỏ qua, có ghi chú trên dòng. Ô trống = giữ nguyên.
+- Email thuộc tổ chức khác → lỗi chung "Không thể dùng email này" (không lộ là đã có ở tổ chức khác).
+- Người đã có ảnh đang dùng → ảnh mới thành bản chờ; ảnh cũ vẫn dùng tới khi nhân viên xác nhận.
+- Người đã từ chối/rút đồng ý → dòng ảnh bị bỏ qua với lý do rõ ràng.
+- Ảnh khuôn mặt **không** được dùng làm avatar; import không đổi avatar.
+
+**Email kích hoạt (Q7):** `initialPassword` trống → iam-service đặt mật khẩu ngẫu nhiên 32 byte (không
+hiển thị, không lưu ở đâu), tạo token `INVITE` hạn 72 giờ, gửi email có liên kết
+`/reset-password?token=...` (tái dùng trang và `EmailService` sẵn có, `auth.service.ts:414-417`). Email
+**không chứa mật khẩu**; nếu có ảnh nhận diện được tải kèm thì nhắc xác nhận trên Hồ sơ trong 30 ngày.
+
+### 27.10 Quy tắc kiểm tra hợp lệ
+
+| Đối tượng | Quy tắc | Mã lỗi / mức |
+|---|---|---|
+| Ảnh nhận diện — định dạng | JPEG đã chuẩn hoá (server giữ kiểm tra SOI/EOI, `face.py:140-145`), ≤ 5 MB (`routes.py:28`) | `FACE_INVALID_IMAGE` (lỗi) |
+| Ảnh nhận diện — số mặt (chế độ strict cho **mọi** luồng đăng ký; verify giữ hành vi mềm) | Đúng 1 mặt điểm YuNet ≥ 0,9; mặt khác điểm ≥ 0,7 và rộng ≥ 25% mặt chính → nhiều mặt | `FACE_NONE`, `FACE_MULTIPLE` (lỗi) |
+| Ảnh nhận diện — kích thước mặt | Cao ≥ 80 px sau khi thu về 640 px | `FACE_TOO_SMALL` (lỗi) |
+| Ảnh nhận diện — độ nét | Phương sai Laplacian dưới ngưỡng | `FACE_LOW_QUALITY` (**cảnh báo** — ngưỡng chưa tinh chỉnh) |
+| Trùng 1:N | So với bản dùng + bản chờ của cả tổ chức, trừ chính người đó: ≥ 0,5 | `FACE_DUPLICATE` (chặn) |
+| | 0,35–0,5 | `FACE_POSSIBLE_DUPLICATE` (cảnh báo) |
+| Avatar | JPEG/PNG/WebP (magic bytes), ≤ 2 MB, ≥ 128 px; không kiểm tra khuôn mặt | `AVATAR_INVALID` |
+| Số điện thoại | Bỏ khoảng trắng/dấu chấm/gạch, `+84` → `0`; di động `^0[35789]\d{8}$` hoặc cố định `^02\d{9}$` | `PHONE_INVALID` |
+| Mã nhân viên | `^[A-Za-z0-9._-]{1,32}$`, duy nhất trong tổ chức (không phân biệt hoa thường) | `EMPLOYEE_CODE_TAKEN` |
+| Email | Regex hiện có; trùng trong file → lỗi dòng | `EMAIL_INVALID`, `EMAIL_DUPLICATE_IN_FILE` |
+
+Kiểm tra trùng giữa 2 dòng trong cùng 1 file diễn ra ở bước Ghi (dòng sau so với bản chờ của dòng trước),
+vì `/inspect` không giữ và không trả embedding.
+
+### 27.11 Vòng đời dữ liệu
+
+| Sự kiện | iam-service | ml-service | hrm-service |
+|---|---|---|---|
+| Tự đăng ký / đăng ký lại | — | Bản dùng mới, ảnh cũ xoá, `CONSENT` + `ENROLL`/`RE_ENROLL` | — |
+| Tải hộ / nhập | — | Bản chờ, hạn 30 ngày, `UPLOAD_PENDING` | — |
+| Xác nhận / từ chối / quá hạn | — | Chuyển bản chờ thành bản dùng / xoá (`REJECT`) / job mỗi giờ trong `lifespan` xoá (`EXPIRE`) | — |
+| Rút đồng ý | — | Xoá bản dùng + bản chờ + ảnh, `WITHDRAW` | — |
+| Đổi phòng ban | `USER_DEPARTMENT_CHANGED` (có sẵn) | `dim_user` cập nhật; dữ liệu khuôn mặt giữ nguyên | — |
+| Đổi vai trò | `iam.user.roles_changed` | `dim_user.role_level` | — |
+| Vô hiệu hoá | Giữ avatar | Xoá bản dùng + bản chờ + ảnh (`PURGE_DEACTIVATED`) | — |
+| Xoá vĩnh viễn | Xoá object avatar trong `remove()` (`users.service.ts:396-425`) | Xoá mọi dữ liệu khuôn mặt + đồng ý (`PURGE_DELETED`) | Giai đoạn tuỳ chọn: xoá ảnh chấm công |
+| Nhật ký | `user_profile_change_logs` 1 năm | `face_enrollment_events` 1 năm | — |
+| Ảnh chấm công | — | — | Giai đoạn tuỳ chọn: hết hạn sau 90 ngày, giữ điểm/cờ |
+
+### 27.12 Kế hoạch triển khai theo giai đoạn
+
+| GĐ | Nội dung | Tiêu chí nghiệm thu | Ước lượng |
+|---|---|---|---|
+| **0** | Sửa lỗi có sẵn ở ml-service (Q14): nạp YuNet + ArcFace trong `lifespan` (hiện khởi tạo lười, không khoá, `face.py:60-71` — 2 request đầu có thể nạp 2 lần model 261 MB dưới giới hạn 1 GB, `docker-compose.yml:807`); bọc pipeline bằng `threading.Semaphore(2)` (detector dùng chung `setInputSize()` + `detect()` không nguyên tử, `face.py:78-80`); thêm `organization_id` vào mọi truy vấn/upsert (`routes.py:153-159,175,192,208`) | 10 lượt enroll đồng thời: không OOM, kết quả đúng; test xuyên tenant: user tổ chức A không đọc/ghi/xoá được bản của tổ chức B; `pytest` sạch | 1 |
+| **1** | iam-service hồ sơ thật + avatar: migration, `MinioModule`, endpoint §27.6, tách `UserSummary`/`UserProfile`, kiểm tra phạm vi Manager, nhật ký hồ sơ, 2 event + script `roleLevel` ban đầu, `invite` với mật khẩu tuỳ chọn + email kích hoạt. Web: Hồ sơ cá nhân dùng API thật (Q15), `Avatar` nhận `src` + fallback, i18n vi/en/ja | `GET /users` không có `phoneNumber`/`employeeCode`; ma trận §27.7 đúng ở iam (test); avatar hiện ở Topbar/danh sách; nút Lưu ghi DB thật | 3 |
+| **2** | ml-service kho ảnh nhận diện + đồng ý: bucket, bootstrap §27.4, strict + 1:N, endpoint §27.6, đọc `x-roles`/`x-department-id`, consumer `deactivated`/`roles_changed`, job quá hạn, `errorCode` | Đủ ma trận RBAC + trạng thái §27.8 bằng test; bản chờ không bao giờ được verify; ảnh chỉ đọc qua proxy (`no-store`, có `VIEW_REF`); vô hiệu hoá xoá cả object MinIO | 3,5 |
+| **3** | Web danh sách nhân viên (mở rộng Quản trị > Thành viên, không tạo trang mới), drawer Hồ sơ nhân viên, panel ảnh nhận diện, xác nhận đồng ý + banner trên Hồ sơ, tải ảnh từ tệp cho chính chủ | Manager chỉ thấy Employee phòng mình; Employee không vào được; luồng xác nhận/từ chối chạy thật qua Gateway | 2 |
+| **4** | Trình nhập Excel + ZIP (§27.9) | File mẫu 50 dòng + ZIP nhập thành công; chạy lại không tạo trùng; tệp lỗi tải về mở được và nhập lại được; zip bomb/zip-slip bị chặn | 3 |
+| **5** | Kiểm thử tổng hợp + tài liệu: job `pytest` cho ml-service trong CI (tải model theo SHA256 như `Dockerfile`, có cache — không làm được thì ghi giới hạn); kiểm thử sống qua Gateway trên tổ chức thử nghiệm riêng; cập nhật §5, §24, `Wireframe.md` §16 thành "đã triển khai"; đo `docker stats` trước/sau | Gate `typecheck`/`lint`/`lint:i18n-strings`/`test`/`build` sạch; số đo RAM ghi lại | 1,5 |
+| 6 *(tuỳ chọn)* | hrm-service: tiêu thụ `USER_DELETED` để xoá ảnh chấm công + MinIO ILM 90 ngày; thông báo cho chủ thể khi người khác đổi avatar (`iam.user.profile_updated` → notification-service); `ecap-mobile` hiện avatar (Q11); mã hoá embedding | Theo từng hạng mục | 2–3 |
+
+Tổng bắt buộc (GĐ 0–5): **≈ 14 người-ngày**. GĐ 1 và GĐ 2 làm song song được (khác service); GĐ 3 cần
+cả hai; GĐ 4 cần GĐ 3. Lệnh nặng chạy tuần tự qua 1 khoá dùng chung, `jest --maxWorkers=2` (§25).
+
+### 27.13 Chiến lược kiểm thử
+
+- **Ma trận RBAC** (jest ở iam, pytest ở ml): chính chủ; Manager → Employee phòng mình / phòng khác /
+  Manager cùng phòng / Org Admin; Manager không có `departmentId`; Org Admin cùng và khác tổ chức;
+  Super Admin → 403 ở mọi endpoint mới; `dim_user.role_level` null → từ chối.
+- **Xuyên tenant** ở ml-service (GĐ 0) — bắt buộc, chạy trên `postgres-ml` thật như test tích hợp §19.3.
+- **Trạng thái đồng ý:** bản chờ không được verify; xác nhận/từ chối/quá hạn; rút đồng ý rồi tải hộ → 409;
+  vô hiệu hoá/xoá tài khoản dọn sạch DB + object MinIO.
+- **Pipeline:** fixture sinh bằng script từ ảnh mẫu sẵn có (1 mặt, 2 mặt, 0 mặt sinh bằng code, PNG,
+  JPEG có dữ liệu sau EOI, JPEG có EXIF Orientation=6) — không commit ảnh người thật; trùng 1:N ở 2 ngưỡng;
+  10 lượt đồng thời. Xác minh lại giấy phép của ảnh mẫu trước khi đưa vào báo cáo.
+- **Import (vitest):** ghép tệp theo cột/email, chuẩn hoá số điện thoại, giới hạn ZIP, chạy lại idempotent;
+  `.xlsx`/`.zip` sinh trong test.
+- **Hợp đồng DTO:** `GET /users` không chứa `phoneNumber`; payload event không chứa giá trị nhạy cảm.
+- Giữ nguyên ngưỡng coverage hiện có, bù test thay vì hạ ngưỡng (quy ước §10/§11).
+
+### 27.14 Rủi ro, giới hạn đã biết và phương án đã loại
+
+**Rủi ro / giới hạn đã biết:**
+- Ảnh hồ sơ do quản trị tải (chính diện, có thể cũ) khác ảnh webcam lúc chấm công → điểm thấp hơn; ngưỡng
+  0,35 vốn chưa tinh chỉnh (`face.py:14-16,49`). Theo dõi tỉ lệ "không khớp" theo `source` khi demo.
+- `departmentId` trong JWT có thể cũ tới 15 phút sau khi đổi phòng ban; `dim_user` của ml-service trễ
+  theo Kafka. Chấp nhận, iam-service tra DB cho phía mục tiêu.
+- Embedding lưu dạng mảng số thực không mã hoá (nằm trong backup `ml_db`) — chỉ có biện pháp tối thiểu.
+- Người giống nhau/sinh đôi có thể bị chặn bởi ngưỡng 1:N 0,5 — không có cơ chế ghi đè; người đó không
+  dùng nhận diện (chấm công vẫn bình thường).
+- Nhân viên A tự đăng ký ảnh của B khi B **chưa** đăng ký → 1:N không phát hiện được; giảm thiểu bằng
+  việc Manager xem được ảnh nhận diện + nhật ký.
+- Điểm khớp của các lượt chấm công cũ không gắn với phiên bản mẫu đã dùng — đối chiếu qua thời điểm trong
+  `face_enrollment_events`.
+- Import phụ thuộc tab trình duyệt còn mở (mất tiến độ nếu đóng tab; chạy lại an toàn nhờ idempotent).
+- Nghĩa vụ chỉ định bộ phận/nhân sự bảo vệ DLCN (Đ.33.2/Đ.38) thuộc về tổ chức khách hàng, hệ thống
+  không kiểm soát.
+- Trong quan hệ lao động, sự đồng ý dễ bị coi là không tự nguyện — giảm thiểu bằng việc từ chối không có
+  hệ quả gì với chấm công.
+
+**Phương án đã loại:**
+
+| Phương án | Lý do loại |
+|---|---|
+| Excel nhúng ảnh | SheetJS bản cộng đồng không trích ảnh; ảnh "Place in Cell" nằm trong `richData`; Excel nén ảnh khi lưu |
+| Không lưu ảnh gốc, chỉ trạng thái | Mâu thuẫn yêu cầu "xem ảnh nhận diện" (Q1); thay bằng các biện pháp bảo vệ ở §27.5 |
+| Presigned URL (kể cả TTL 60 giây) cho ảnh nhận diện | URL còn hiệu lực ai cầm cũng xem được, không ghi được nhật ký từng lượt xem |
+| Công tắc bật/tắt theo tổ chức, mặc định tắt | Q10 |
+| Phạm vi Manager theo `departments.manager_id` | Q4 — thống nhất 1 định nghĩa toàn hệ thống |
+| Permission mới (vd `user:profile_manage`) | Phạm vi theo vai trò + phòng ban đã đủ; tránh việc phải cấp bù cho vai trò đã seed của tổ chức cũ (§19.5) |
+| Tự đăng ký lại phải khớp mẫu cũ, nếu không thì chờ duyệt; giới hạn 3 lần/30 ngày | Q5 — thêm 1 luồng duyệt cho Manager; 1:N + nhật ký + ảnh xem được là đủ cho phạm vi đồ án |
+| Job nhập phía server / endpoint gửi nhiều ảnh 1 lần | Tốn thêm thành phần, request dài dễ chạm timeout 120 giây của nhóm `/ml`; gửi tuần tự từng ảnh giữ lỗi theo dòng đơn giản |
+| Hiển thị mật khẩu sinh ngẫu nhiên 1 lần trong báo cáo | Thay bằng email kích hoạt (Q7) — mật khẩu không xuất hiện ở đâu |
+| Mặc định "bỏ qua" email đã có khi nhập | Q6 — cập nhật số điện thoại/mã NV/ảnh |
+| Dùng ảnh nhận diện làm avatar | Trộn mục đích; ảnh sinh trắc sẽ lộ ra mọi màn hình |
+| Mã hoá embedding AES-GCM trong đợt này | Quản lý khoá phức tạp so với phạm vi đồ án — ghi giới hạn, để giai đoạn tuỳ chọn |
+| Lưu phiên bản mẫu vào bản ghi chấm công (hrm) | Đổi schema hrm chỉ để truy vết; nhật ký thời điểm ở ml-service là đủ |
+| Đưa `ecap-mobile` vào đợt này | Q11 |
+
+### 27.15 Đối chiếu rà soát phản biện độc lập (42 mục, 26/10/2026)
+
+| Mục | Nội dung | Xử lý |
+|---|---|---|
+| 1 | Căn cứ pháp lý lỗi thời | Nhận — §27.3, ghi chú ở cuối §24 |
+| 2 | Không có đồng ý khi tải hộ | Nhận — Q3, §27.8 |
+| 3 | Giới hạn mục đích | Nhận — §27.3 |
+| 4 | Thời hạn lưu | Nhận một phần — vô hiệu hoá xoá (Q9); ảnh chấm công 90 ngày + hrm `USER_DELETED` → GĐ 6 |
+| 5 | Rút đồng ý bị vô hiệu bởi tải hộ | Nhận — `409 FACE_CONSENT_WITHDRAWN` |
+| 6 | Không có nhật ký | Nhận — 2 bảng nhật ký; báo cho chủ thể: ảnh qua banner (GĐ 3), avatar → GĐ 6 |
+| 7 | Công tắc theo tổ chức, mặc định tắt | **Loại** (Q10); nghĩa vụ SME ghi ở giới hạn |
+| 8 | Mặc định không lưu ảnh gốc | **Loại** (Q1); nhận các biện pháp bảo vệ, chặt hơn (proxy thay presigned) |
+| 9 | Presigned URL | Nhận cho avatar; ảnh nhận diện dùng proxy |
+| 10 | Embedding thô | Nhận phần tối thiểu; mã hoá **loại** khỏi đợt này |
+| 11 | File nhập nhạy cảm | Nhận; "hiện mật khẩu 1 lần" thay bằng email kích hoạt |
+| 12 | Excel nhúng ảnh | Nhận — Excel + ZIP |
+| 13 | Định dạng ảnh/EXIF | Nhận — chuẩn hoá client |
+| 14 | 0/2+ mặt, chất lượng | Nhận — strict cho mọi luồng đăng ký; độ nét chỉ cảnh báo |
+| 15 | Trùng 1:N | Nhận theo ngưỡng Q5; trùng trong file kiểm tra ở bước Ghi |
+| 16 | Email trùng xuyên tenant | Nhận thông báo chung; "mặc định bỏ qua" **loại** (Q6) |
+| 17 | Không idempotent | Nhận |
+| 18 | Race với `dim_user` | Nhận — `409 USER_NOT_SYNCED` + backoff |
+| 19 | Email mời | Nhận — không chứa mật khẩu |
+| 20 | Xem trước phía server | Nhận — `POST /ml/face/inspect` |
+| 21 | Đa luồng/OOM | Nhận — GĐ 0 |
+| 22 | Rate limit/timeout | Nhận giới hạn tốc độ + xử lý 429; endpoint gửi nhiều ảnh **loại**; import không đụng avatar |
+| 23 | Nginx 1 MB | Đã sửa (Q12); MinIO + multer cho iam ở GĐ 1 |
+| 24 | Ngân sách RAM | Nhận — không thêm container |
+| 25 | Xuyên tenant khi tải hộ | Nhận — GĐ 0 |
+| 26 | 3 nghĩa "phòng ban của Manager" | **Loại** khuyến nghị dùng `managerId` (Q4); độ trễ JWT ghi giới hạn |
+| 27 | Ai sửa ai | Nhận — §27.7 |
+| 28 | `GET /users` mở | Nhận — tách DTO |
+| 29 | Gian lận tự đăng ký lại | Nhận 1:N + nhật ký; khớp-mẫu-cũ/duyệt/giới hạn lần **loại** (Q5) |
+| 30 | Permission mới | **Loại** |
+| 31 | Manager xem ảnh chấm công toàn tổ chức | Chuyển đợt Phạm vi dữ liệu của Manager (Q13) |
+| 32 | Đổi phòng ban/người phụ trách | Nhận — giới hạn đã biết; dữ liệu khuôn mặt giữ khi chuyển phòng |
+| 33 | Super Admin | Nhận — test 403 |
+| 34 | Dọn dẹp xoá/vô hiệu hoá | Nhận; phần hrm → GĐ 6 |
+| 35 | Điểm cũ sau đăng ký lại | Nhận dạng giới hạn đã biết |
+| 36 | Mobile | **Hoãn** (Q11) |
+| 37 | Vị trí trên web | Nhận — mở rộng Thành viên + drawer; `Avatar` nhận `src` |
+| 38 | i18n | Nhận — kèm `errorCode` từ ml-service |
+| 39 | Trường hồ sơ | Nhận — ma trận sửa trường; nhận cả số cố định `02x` |
+| 40 | PII trong event/DLQ | Nhận |
+| 41 | CI không chạy ml-service | Nhận — GĐ 5 |
+| 42 | Ma trận test | Nhận — §27.13 |
+
+### 27.16 Kết quả triển khai (26/10/2026)
+
+**Đã làm theo kế hoạch (GĐ 0–5):**
+
+- **GĐ 0 — ml-service:** nạp YuNet + ArcFace 1 lần trong `lifespan` (`preload_models()`), giữ khởi tạo lười
+  có khoá kiểm tra 2 lần; `threading.Semaphore(2)` bọc pipeline. Mọi truy vấn/upsert khuôn mặt có
+  `organization_id`; upsert khác tổ chức trả `409 FACE_ORG_MISMATCH`.
+- **GĐ 1 — iam-service:** cột `phone_number`, `employee_code` (lưu chữ hoa), `avatar_object_key`,
+  `avatar_updated_at`; bảng `user_profile_change_logs` (chỉ tên trường, xoá sau 1 năm). API
+  `GET /users/directory`, `PATCH /users/me`, `PUT|DELETE /users/:id/avatar` (`:id` = uuid hoặc `me`),
+  `PATCH /users/:id` thêm SĐT/mã NV, `POST /users/invite` mật khẩu tuỳ chọn + email kích hoạt (token
+  `INVITE` 72 giờ). `GET /users` không bao giờ có `phoneNumber`/`employeeCode`. 2 event mới
+  `iam.user.profile_updated`, `iam.user.roles_changed`.
+- **GĐ 2 — ml-service:** bucket private `ml-face-references` (ảnh thu về ≤ 640px, mã hoá lại bằng OpenCV nên
+  mất EXIF/GPS), chỉ đọc qua proxy `no-store` có nhật ký `VIEW_REF`; `face_consents`,
+  `face_pending_enrollments` (tự huỷ sau 30 ngày, job mỗi giờ), `face_enrollment_events`. Kiểm tra strict cho
+  mọi luồng đăng ký, trùng 1:N (≥ 0,5 chặn, 0,35–0,5 cảnh báo). Vô hiệu hoá/xoá tài khoản xoá bản dùng, bản
+  chờ, đồng ý và object MinIO.
+- **GĐ 3 — web:** tab Quản trị > "Danh sách nhân viên", cửa sổ Hồ sơ nhân viên, panel ảnh nhận diện 4 trạng
+  thái, hộp đồng ý + banner chờ xác nhận. Hồ sơ cá nhân dùng API thật (bỏ SĐT cố định, nút Lưu giả, mã NV
+  bịa từ id).
+- **GĐ 4 — trình nhập Excel + ZIP** 4 bước: xem trước có phân loại, `/inspect` từng ảnh, ghi Tài khoản rồi
+  Ảnh, thử lại khi `USER_NOT_SYNCED`/429, tạm dừng/tiếp tục, báo cáo lỗi `.xlsx` không chứa mật khẩu. Bỏ mặc
+  định `Password123!`.
+- **GĐ 5:** job CI mới `ml-service-test` (pytest, Postgres service, tải model và ảnh mẫu theo SHA256 ghim,
+  có cache); kịch bản sống `scripts/mock-data/10-employee-directory.js` (xem `Mock_data.md`).
+
+**Khác kế hoạch:**
+
+| Kế hoạch | Thực tế | Lý do |
+|---|---|---|
+| Chỉ `Semaphore(2)` | Thêm khoá riêng quanh `setInputSize()` + `detect()` | Semaphore 2 vẫn cho 2 luồng dùng chung 1 detector |
+| Unique `(org, lower(code))` | Lưu mã NV chữ hoa + unique index thường `uq_users_org_employee_code` | `synchronize: true` không quản lý index biểu thức |
+| Script 1 lần gán `roleLevel` | Resync lúc iam khởi động phát `roles_changed` cho mọi user | Tự lành, idempotent, không cần chạy tay |
+| Drawer Hồ sơ nhân viên | Dùng `Modal` có sẵn | Tối giản, không viết thành phần trượt mới |
+| JSZip | `fflate` (đã có trong lock qua jspdf) | Biết kích thước khai báo trước khi giải nén → chặn zip bomb đơn giản |
+| — | Thêm `DELETE /enrollments/{id}?pending=true` | Huỷ riêng ảnh chờ, không xoá ảnh đang dùng |
+| — | `malloc_trim(0)` sau khi nạp model | glibc giữ ~290 MB đã free sau khi onnxruntime phân tích model |
+| Ảnh mẫu `largest_selfie.jpg` (opencv_zoo) | Ảnh tổ bay STS-130 của NASA (phạm vi công cộng), URL + SHA256 ghim | Ảnh opencv_zoo là ảnh đầu ra đã vẽ khung/điểm mốc |
+
+**Lỗi tìm được ở vòng kiểm thử độc lập, đã sửa:**
+
+1. **(CAO, toàn hệ thống) Giả mạo header nội bộ qua Gateway.** http-proxy chép nguyên header của client;
+   Gateway chỉ ghi đè header nó đặt, nên khi JWT không có phòng ban, `x-department-id` do client tự khai lọt
+   xuống service. Manager chưa có phòng ban đọc được danh sách nhân viên/ảnh chờ của phòng khác. Sửa:
+   `stripTrustedHeaders()` (`apps/gateway/src/proxy/inject-auth-headers.ts`) xoá mọi header tin cậy
+   (`INTERNAL_AUTH_HEADERS`, `x-internal-secret` và mọi header tiền tố `x-internal-*`, `x-user-*`, `x-org-*`,
+   `x-organization-*`) trước khi đặt lại từ JWT, áp dụng cả proxy WebSocket. Xem thêm §6.
+2. Tải ảnh hộ cho tài khoản đã vô hiệu hoá → nay `409 USER_INACTIVE` (`dim_user.is_active`, event mới
+   `iam.user.reactivated`).
+3. Avatar gửi thẳng API giữ EXIF/GPS → `stripImageMetadata()` ở iam bỏ khối metadata JPEG/PNG/WebP.
+4. Người do Manager mời có 0 vai trò → `invite()` gán vai trò "Employee"; user cũ được gán bù lúc iam khởi
+   động (`backfillDefaultRoles()`, idempotent).
+5. Đổi mật khẩu ở Hồ sơ là giả lập → `PATCH /users/me/password` thật (kiểm tra mật khẩu hiện tại, thu hồi mọi
+   refresh token).
+6. Kích hoạt lại tài khoản vẫn 401 → `reactivate()` xoá khoá `blacklist:user:<id>` trong Redis.
+7. UX trình nhập: dòng trùng chỉ đánh lỗi từ dòng thứ 2, ô ảnh dòng lỗi không treo "Đang kiểm tra…", nút
+   báo cáo lỗi chỉ hiện khi có lỗi.
+8. Ảnh mẫu CI là ảnh đã vẽ khung → đổi ảnh (bảng trên).
+
+**Kết quả kiểm thử (26/10/2026):**
+
+- pytest ml-service 64 test (strict, 2 ngưỡng 1:N, 10 lượt đồng thời cho kết quả giống chạy tuần tự, RBAC,
+  đồng ý/bản chờ, xuyên tenant trên `postgres-ml` thật, job quá hạn, purge qua Kafka). Ảnh test sinh bằng code
+  từ ảnh mẫu, không commit ảnh người thật.
+- jest Gateway 42 test (gồm các ca giả mạo header); jest iam thêm ma trận avatar/danh sách/DTO/SĐT/mã NV/mời;
+  vitest web thêm test trình nhập (ghép tệp, giới hạn ZIP, zip bomb, báo cáo lỗi).
+- Kiểm thử sống qua Gateway `127.0.0.1:3000`: `10-employee-directory.js` **45/45**; hồi quy `01`–`07`
+  **195/195**; 10 kiểu giả mạo header (hoa thường lẫn lộn, header trùng, `x-roles`, `x-department-id`,
+  `x-organization-id`, `x-user-id`, `x-internal-secret`, Manager giả phòng ban, Analytics phòng khác)
+  **10/10** bị chặn.
+- RAM ml-service (`mem_limit` 1 GB): 579 MiB sau khởi động, 645 MiB khi 10 request `/inspect` đồng thời qua
+  Gateway (1,8 giây cho cả 10), khoảng 700 MiB sau cả kịch bản sống; không OOM, không khởi động lại. Một lượt
+  `/inspect`: 100–160 ms.
+- Gate tương đương CI (TZ=UTC, 27/10/2026): `typecheck`, `lint` (0 lỗi), `lint:i18n-strings`,
+  `test:coverage` (1.276 test jest/vitest ở 15 workspace, đạt ngưỡng), `build` — đều qua. Chạy lại kịch bản 10
+  với ảnh sinh từ ảnh mẫu NASA: 45/45.
+
+**Giới hạn đã biết:**
+
+- Giai đoạn 6 chưa làm: ảnh chấm công vẫn lưu vô thời hạn, hrm chưa tiêu thụ `USER_DELETED`, chưa báo cho
+  chủ thể khi người khác đổi avatar, `ecap-mobile` chưa hiện avatar, embedding chưa mã hoá.
+- Lọc "Ảnh nhận diện" trong danh sách chỉ áp trên trang hiện tại (iam không biết trạng thái ảnh).
+- URL avatar presigned đổi mỗi lần tải danh sách nên trình duyệt không cache được.
+- Ngưỡng độ nét 100 và 2 ngưỡng 1:N chưa tinh chỉnh bằng dữ liệu thật.
+- Theo §27.7, Manager chỉ gửi ảnh cho người đã có: người mới do Manager mời qua import không được gửi ảnh
+  trong cùng lượt.
+- Có từ trước, không sửa đợt này: rate limit theo IP của route công khai tin `X-Real-IP`. Nginx ghi đè
+  header này, nhưng gọi thẳng cổng 3000 thì client tự đặt được (đăng nhập vẫn có giới hạn riêng theo email).
+- ml-service chưa nằm trong ma trận build Docker của CI (chỉ có job pytest).
+
+---
+
+## 28. Tài liệu theo phạm vi dự án & phạm vi dữ liệu của Manager *(triển khai + kiểm thử 26/10/2026)*
+
+> Trạng thái: **ĐÃ TRIỂN KHAI, ĐÃ XÁC MINH SỐNG** (26/10/2026, commit `54ba030`). Mục này là nguồn chính
+> cho mô hình phân quyền dữ liệu hiện hành; các mục cũ (§3.3, §3.4, §4.6, §6, §16, §17, §19.2, §23.3) giữ
+> nguyên lịch sử và chỉ thêm dòng trỏ tới đây. Giao diện: `Wireframe.md` §5.1, §4.2. Dữ liệu kiểm thử:
+> `Mock_data.md` §4.4, §4.7, §9.
+
+Đợt này làm theo 4 vòng: 2 luồng triển khai song song (tài liệu theo dự án; phạm vi dữ liệu của Manager),
+1 vòng rà soát và sửa lỗi trên kết quả của cả hai, 1 vòng kiểm tra chéo cuối trước commit. Vòng rà soát
+tìm ra 1 lỗi mức **cao** (ghi theo id vượt phạm vi, §28.7) và 1 lỗi mức **trung bình** (ghi đè tệp toàn
+công ty, §28.7) — cả hai đều sinh ra do ghép 2 luồng, từng luồng riêng lẻ không có.
+
+### 28.1 Hiện trạng trước ngày 26/10/2026
+
+| Module | Employee | Manager | Lỗ hổng |
+|---|---|---|---|
+| Dự án/Công việc | dự án mình liên quan | **toàn tổ chức** (như Org Admin) | lịch sử trạng thái, bình luận, danh sách thành viên đọc được nếu biết UUID |
+| Tài liệu | mọi thư mục `organization` của tổ chức | như Employee + thư mục được chia sẻ | không có khái niệm "tài liệu của dự án" |
+| CRM | khách hàng mình phụ trách, nhưng **mọi deal** | toàn tổ chức | Employee sửa được deal của người khác nếu biết UUID |
+| HRM | chỉ `/me` | toàn tổ chức, **tự duyệt** đơn của mình | ảnh chấm công của bất kỳ ai |
+| Analytics | 403 | toàn tổ chức; truyền `departmentId` phòng khác vẫn trả số liệu | AI insights dùng chung cache toàn tổ chức; WebSocket đẩy hoạt động cả tổ chức |
+| Danh bạ IAM | hồ sơ đầy đủ của **mọi người** | như Employee, nhưng không xem được hồ sơ thành viên phòng mình | — |
+
+Mục tiêu: ở **mọi** module, Employee < Manager (phòng ban của mình) < Org Admin (toàn tổ chức); tài liệu
+đi theo dự án.
+
+### 28.2 Định nghĩa dùng chung
+
+- **Người thuộc dự án** = người phụ trách (`leadUserId`), thành viên (`ProjectMember`) hoặc người tạo dự án.
+  Định nghĩa này dùng **giống hệt** ở Project-Task Service (`getVisibleProjectIds()`) và Document Service
+  (`GRANTS_SQL`). Nguồn "người được giao Task" (`TaskAssignee`) đã bỏ: giao Task giờ tự thêm người được giao
+  làm thành viên dự án (`INSERT … ON CONFLICT DO NOTHING` trong cùng transaction, chỉ ghi outbox
+  `project.member_added` khi thật sự thêm mới), dữ liệu cũ do script migration chuyển (§28.10).
+- **Dự án liên quan tới phòng ban** = ít nhất 1 trong 3 vai trò trên thuộc phòng ban đó.
+- **Phòng ban của người gọi** lấy từ `departmentId` trong JWT; phòng ban của người khác lấy từ read-model
+  (§28.5).
+- **`resolveDataScope(permissions, quyềnCấpManager, departmentId)`** — 1 hàm thuần cho mọi service
+  (`packages/common-dto/src/constants/data-scope.ts`), không thêm permission mới, không đổi vai trò mặc định:
+
+| Phạm vi | Điều kiện | Ý nghĩa |
+|---|---|---|
+| `organization` | có `user:manage` (Org Admin) | toàn tổ chức — cùng tín hiệu đã dùng ở `getRecentActivity()`, ml-service, Notification Service |
+| `department` | có "quyền cấp Manager" của module **và** JWT có `departmentId` | bản thân + thành viên phòng ban |
+| `self` | còn lại (Employee, Manager chưa gán phòng ban) | chỉ dữ liệu của mình |
+
+"Quyền cấp Manager" là ranh giới Employee/Manager có sẵn trong `DEFAULT_ROLE_PERMISSIONS`: `project:create`
+(dự án, tài liệu), `task:delete` (công việc), `customer:create` (khách hàng), `deal:delete` (deal),
+`attendance:view`, `leave_request:view|approve`, `overtime_request:view|approve`,
+`attendance_adjustment:view|approve` (HRM), `user:invite` (danh bạ), `analytics:view` (Analytics). Riêng
+Document Service coi Org Admin là `organization:manage` (giữ nguyên từ 28/07/2026); vai trò mặc định có
+cả 2 quyền, vai trò tuỳ biến chỉ có 1 trong 2 sẽ bị thu hẹp chứ không mở rộng.
+
+### 28.3 Chính sách tài liệu
+
+| Vai trò | Xem được |
+|---|---|
+| Org Admin | mọi tài liệu của tổ chức |
+| Manager (đã gán phòng ban) | như Employee **+** tài liệu của mọi dự án liên quan tới phòng ban mình |
+| Employee | cây toàn công ty + tài liệu của dự án mình thuộc về |
+| Mọi người | `RESTRICTED` không có quyền tường minh → chặn (như cũ); `FolderShare`/`FileShare` vẫn mở đúng phần được chia sẻ |
+
+- **Thư mục gắn dự án:** cột mới `folders.project_id` (nullable). Chỉ thư mục **cấp gốc** gắn được dự án;
+  thư mục con và tệp kế thừa qua chuỗi thư mục cha (`FOLDER_PROJECT_TOP_LEVEL_ONLY` nếu gửi `projectId`
+  cho thư mục con). Gắn/đổi dự án: dự án phải có trong tổ chức (`PROJECT_NOT_FOUND_IN_ORG`) và, trừ Org
+  Admin, người gọi phải thuộc phạm vi dự án đó (`FORBIDDEN_PROJECT_DOCUMENTS`).
+- **Cây toàn công ty** (thư mục cấp gốc không gắn dự án, và tệp ở thư mục gốc): ai cũng **xem**; chỉ Org
+  Admin **ghi**. Tạo thư mục toàn công ty, chuyển thư mục về toàn công ty, tải tệp lên thư mục gốc → 403
+  `COMPANY_WIDE_ADMIN_ONLY`; mọi thao tác ghi khác bên trong cây (tạo thư mục con, đổi tên/visibility, xoá,
+  chia sẻ, tải lên, phiên bản mới, xoá tệp) → 403 `COMPANY_WIDE_READ_ONLY`. Ngoại lệ có chủ đích: người
+  được `FolderShare` trên thư mục (hoặc thư mục cha) ghi được như trước; người có `FileShare` quyền `EDIT`
+  ghi được đúng tệp đó. Cây của dự án giữ quy tắc cũ: ai xem được thì ghi được.
+- **Thuật toán xem** (`resolveFolderAccess`, đi từ thư mục lên gốc): (1) có `FolderShare` tại nút → cho
+  phép (mở cả cây con, kể cả người ngoài dự án); (2) là người tạo nút → cho phép **chỉ khi** mọi dự án từ
+  nút đó lên gốc vẫn thuộc phạm vi — bị gỡ khỏi dự án thì mất cả thư mục mình từng tạo trong đó; (3)
+  `RESTRICTED` → chặn; (4) nút gắn dự án ngoài phạm vi → chặn; (5) tới gốc → cho phép. Dữ liệu bất thường
+  (vòng lặp, thiếu thư mục cha, sâu > 64) → chặn.
+- **Thuật toán ghi** (`resolveFolderWrite`): Org Admin → được; không xem được → `no-access`; có dự án trên
+  chuỗi → được; cây toàn công ty → được chỉ khi có `FolderShare` trên chuỗi, còn lại `read-only`.
+- **Cờ cho giao diện:** `GET /folders` trả `canWrite` từng thư mục; `GET /files` trả `canWrite` từng tệp
+  (quyền ghi thư mục **hoặc** `FileShare EDIT` trực tiếp — cùng quy tắc với `canAccessFile(requireEdit)`,
+  1 truy vấn `FileShare` cho cả trang, Org Admin 0 truy vấn). Giao diện ẩn/hiện nút theo cờ, backend vẫn
+  chặn độc lập.
+- **RAG/chat bot:** `POST /files/search-chunks` lọc bằng `createFileAccessFilter()` — cùng quy tắc, không
+  có bản sao riêng (test nối chuỗi thật `rag/project-scope-search.spec.ts`).
+- **API mới:** `GET /folders/accessible-projects` → `{ projectIds }`; `POST /folders` và `PATCH /folders/:id`
+  nhận `projectId` (`null` = toàn công ty, chỉ Org Admin); `GET /files?projectId=` → tệp của mọi thư mục
+  (kể cả thư mục con) thuộc dự án mà người gọi xem được (mục "Tài liệu" ở trang chi tiết dự án).
+- **Chi phí truy vấn giữ nguyên:** kiểm tra 1 thư mục = 2 truy vấn (cây thư mục + 1 câu `GRANTS_SQL` gộp
+  `FolderShare` UNION dự án thuộc phạm vi), lọc RAG = 3 truy vấn, không truy vấn theo từng tệp.
+
+### 28.4 Phạm vi dữ liệu theo module
+
+| Module | Employee | Manager | Org Admin |
+|---|---|---|---|
+| Dự án/Công việc | dự án mình thuộc về (§28.2) và Task của chúng | **+** dự án liên quan tới phòng ban và Task của chúng; lịch sử trạng thái, bình luận, thành viên dự án cũng kiểm tra phạm vi (404) | toàn bộ |
+| Tài liệu | §28.3 | §28.3 | toàn bộ |
+| CRM | khách hàng mình phụ trách; deal mình phụ trách **hoặc** thuộc khách hàng mình phụ trách | khách hàng/deal do mình hoặc thành viên phòng ban phụ trách | toàn bộ |
+| HRM | chỉ `/me` | chấm công/nghỉ phép/tăng ca/giải trình của mình + thành viên phòng ban; **duyệt** chỉ đơn của thành viên phòng ban (`DEPARTMENT_SCOPE_FORBIDDEN`), không tự duyệt (`SELF_APPROVAL_FORBIDDEN`); ảnh chấm công chỉ của phòng mình | toàn bộ, kể cả tự duyệt (không có cấp cao hơn) |
+| Analytics | 403 (không có `analytics:view`) | mọi KPI ép về phòng ban mình; `departmentId` phòng khác → 403 `DEPARTMENT_SCOPE_FORBIDDEN`, chưa gán phòng ban → 403 `DEPARTMENT_SCOPE_MISSING`; drill-down `department` chỉ phòng mình, `project` mở nhưng chỉ đếm Task giao cho phòng mình; hoạt động gần đây + WebSocket chỉ của mình/phòng ban; AI insights quét phòng ban, mốc so sánh `comparisonScope='department'`, cache tách theo phòng ban | toàn tổ chức, lọc tuỳ chọn |
+| Danh bạ IAM | hồ sơ đầy đủ của mình; người khác chỉ "thẻ danh bạ" `{id, fullName, email, departmentId, isActive}` | **+** hồ sơ đầy đủ của thành viên phòng ban (`GET /users/:id` cùng phòng 200, khác phòng 403) | đầy đủ |
+| Kho | giữ nguyên | giữ nguyên (danh mục/kho đọc toàn tổ chức) | giữ nguyên |
+| ML anomalies | 403 | giữ nguyên (theo phòng ban phụ trách, từ 24/09/2026) | toàn tổ chức |
+
+### 28.5 Read-model và sự kiện
+
+Theo database-per-service, không service nào đọc DB của service khác:
+
+| Service | Bảng read-model | Nguồn |
+|---|---|---|
+| Document | `project_refs` (`project_id`, `organization_id`, `lead_user_id`, `created_by_user_id`) | ảnh chụp lúc khởi động (§28.6) + `project.created`, `project.lead_changed`, `project.deleted` |
+| Document | `project_member_refs` (`project_id`, `user_id`, `organization_id`) | ảnh chụp + `project.member_added`, `project.member_removed` |
+| Document | `user_department_refs` (`user_id`, `organization_id`, `department_id`) | `iam.user.registered`, `iam.user.department_changed`, `iam.user.deleted` |
+| Project-Task, CRM, HRM | `dim_user` (`user_id` → `department_id`) | consumer riêng `*-service-directory-group`, chỉ đọc `iam.events` (mirror `dim_user` của Analytics) |
+
+- **Sự kiện mới** (Project-Task Service, outbox cùng transaction): `project.member_added`,
+  `project.member_removed`, `project.lead_changed`. `ProjectCreatedPayload` thêm 2 trường **tuỳ chọn**
+  `leadUserId`, `createdByUserId` (sự kiện cũ thiếu trường thì dùng `actorId`; `COALESCE` giữ giá trị đã
+  biết). Trước ngày này thêm/gỡ thành viên và đổi lead không phát sự kiện nào.
+- **Tương thích consumer cũ:** Analytics ghi 3 loại sự kiện mới vào `fact_task_events` như mọi `project.*`
+  (Dashboard đã có nhãn "đã thêm thành viên vào một dự án"); Notification Service và ml-service bỏ qua loại
+  không biết. Không có envelope version; trường mới đều optional — đúng quy ước có sẵn.
+- **Mã lỗi mới** (`packages/common-dto` + i18n vi/en/ja): `COMPANY_WIDE_ADMIN_ONLY`, `COMPANY_WIDE_READ_ONLY`,
+  `FORBIDDEN_PROJECT_DOCUMENTS`, `FOLDER_PROJECT_TOP_LEVEL_ONLY`, `DEPARTMENT_SCOPE_FORBIDDEN`,
+  `DEPARTMENT_SCOPE_MISSING`, `SELF_APPROVAL_FORBIDDEN`, `PROJECT_MEMBER_HAS_OPEN_TASKS`.
+- **Độ trễ (đánh đổi có ý thức):** đổi thành viên/lead/phòng ban có hiệu lực sau vài giây (outbox poll
+  2,5 giây + consumer); đổi phòng ban của chính người gọi có hiệu lực ở lần refresh token kế tiếp (≤ 15
+  phút). Partition key = `organizationId` nên thứ tự sự kiện trong 1 tổ chức được giữ; mọi thao tác là
+  "đặt giá trị" nên đọc lại bao nhiêu lần cũng hội tụ. `dim_user` tự lành vì IAM phát lại phòng ban của
+  mọi user mỗi lần khởi động (§4.6).
+
+### 28.6 Backfill read-model dự án
+
+- **Endpoint nội bộ** `GET /api/v1/internal/project-memberships` (Project-Task Service): `@Public()` và tự
+  kiểm tra header `x-internal-secret` bằng so sánh thời gian hằng (`timingSafeEqual`). Gateway không định
+  tuyến tiền tố `/api/v1/internal` (đã thử `..`, `%2e%2e`, `..%2f` → 404), cổng 3002 không mở ra host.
+- **Mỗi lần Document Service khởi động:** lấy ảnh chụp, thử `INITIAL_BACKFILL_ATTEMPTS = 4` lần (chờ 5/10/15
+  giây) → thay toàn bộ 2 bảng dự án → chạy consumer Kafka (`document-service-group`). Vẫn lỗi thì **không
+  chặn consumer** (sự kiện phòng ban IAM vẫn được áp dụng): ghi log lỗi, chạy consumer, thử lại nền (tối
+  đa 60 giây/lần); trước khi thay ảnh chụp sẽ **tạm dừng topic project-task và chờ message đang xử lý**,
+  thay xong mới chạy tiếp, nên ảnh chụp không ghi đè sự kiện mới hơn.
+- **Đã thấy trên hệ thống thật:** sau khi Docker Desktop khởi động lại (26/10/2026), lần 1 `fetch failed`
+  (Project-Task chưa sẵn sàng), lần 2 nạp đủ 10 dự án, consumer chạy bình thường.
+- **Biến môi trường:** `PROJECT_TASK_SERVICE_URL` (mặc định `http://project-task-service:3002`),
+  `INTERNAL_SHARED_SECRET` (cùng biến với `InternalAuthGuard`) — đã thêm vào `.env.example` của
+  document-service và project-task-service.
+
+### 28.7 Phạm vi ở đường ghi — 2 lỗi tìm được khi rà soát
+
+- **Lỗi cao — ghi theo id ngoài phạm vi (IDOR).** Luồng phạm vi Manager ban đầu chỉ thu hẹp đường **đọc**;
+  mọi đường ghi theo id vẫn chỉ lọc `organizationId`. Tái hiện trước khi sửa: Manager phòng Kỹ thuật
+  `GET /projects/:id` → 404 nhưng `PATCH /projects/:id` → 200 và `POST /projects/:id/members {chính mình}` →
+  201, sau đó xem được dự án **và** toàn bộ tài liệu dự án (read-model nhận `project.member_added`);
+  Employee `PATCH /tasks/:id` → 200, tự giao Task → 201 ("mở" dự án). Trước đợt này Manager = toàn tổ
+  chức nên không lộ; ghép với "thành viên → quyền tài liệu" thì thành đường leo thang quyền.
+  **Sửa:** `ProjectsService.assertCallerScope()` cho sửa/hoàn thành/mở lại/lưu trữ/xoá dự án, thêm/gỡ/xem
+  thành viên; `TasksService.findVisibleTaskOrFail(caller)` cho sửa/đổi trạng thái/xoá/giao/bỏ giao/bình
+  luận; tạo Task trong dự án ngoài phạm vi → 404 `PROJECT_NOT_FOUND_IN_ORG`. Ngoài phạm vi trả **404 cùng
+  mã lỗi với "không tồn tại"** để không lộ sự tồn tại của bản ghi. CRM (khách hàng/deal, kể cả đổi người
+  phụ trách, tạo deal trên khách hàng ngoài phạm vi, chuyển giai đoạn) cũng 404. HRM duyệt đơn ngoài phòng
+  ban → 403 `DEPARTMENT_SCOPE_FORBIDDEN` (kèm lý do cho màn hình duyệt — xem §28.12).
+- **Lỗi trung bình — ghi đè tệp toàn công ty.** Luồng tài liệu chặn tải lên thư mục gốc nhưng
+  `canAccessFile()` trả `true` cho mọi tệp gốc kể cả thao tác ghi: Employee tải phiên bản mới ghi đè tệp
+  của Org Admin → 201, Manager xoá → 200. **Sửa:** tệp gốc ai cũng xem, ghi chỉ Org Admin hoặc `FileShare
+  EDIT`; sau đó mở rộng thành quy tắc "cây toàn công ty chỉ Org Admin ghi" ở §28.3.
+
+### 28.8 Gỡ thành viên còn Task chưa xong → 409
+
+Thành viên là nguồn sự thật của "thuộc dự án", nên gỡ 1 người còn Task chưa xong khiến họ mất quyền xem
+chính Task đó. Quy tắc chốt: `DELETE /projects/:id/members/:userId` khi người đó còn Task khác `DONE` trong
+dự án → **409** `PROJECT_MEMBER_HAS_OPEN_TASKS` kèm `errorParams.count`; giao lại các Task đó (hoặc hoàn
+thành) rồi mới gỡ được. Giao diện hiện thông báo dịch vi/en/ja qua toast lỗi có sẵn. Gỡ người phụ trách
+vẫn là 400 `PROJECT_MEMBER_IS_LEAD` như cũ; bỏ giao Task không tự gỡ thành viên.
+
+### 28.9 Giao diện web
+
+Chọn dự án khi tạo thư mục cấp gốc ("Toàn công ty" chỉ hiện với Org Admin), nhãn dự án/"Toàn công ty" trên
+thẻ thư mục, "Đổi dự án" trong menu thư mục, bộ lọc dự án ở thư mục gốc, mục "Tài liệu" cuối trang chi
+tiết dự án; nút ghi (tải lên, thư mục mới, đổi tên, chia sẻ, xoá, phiên bản mới, xoá hàng loạt) ẩn theo
+cờ `canWrite` của thư mục/tệp. Dashboard/Báo cáo ẩn bộ lọc phòng ban với người không có `user:manage`,
+hiện dòng "Số liệu trong phạm vi phòng ban của bạn"; thẻ Nhận xét AI ghi "so với trung bình phòng ban";
+Chấm công/Nghỉ phép chỉ liệt kê thành viên phòng ban, danh sách chờ duyệt bỏ đơn của chính Manager. Chi
+tiết: `Wireframe.md` §5.1, §4.2, §7, §9.
+
+### 28.10 Chuyển dữ liệu cũ và dữ liệu demo
+
+| Script | Việc làm | Idempotent |
+|---|---|---|
+| `scripts/migrate-project-documents.js` | (1) gắn 5 thư mục "`<dự án>` - Tai lieu" vào đúng dự án (thử lại 10 × 3 giây khi read-model chưa có dự án); (2) người đang được giao việc thành thành viên dự án (`--skip-members` để bỏ); (3) 2 thư mục toàn công ty "Chính sách công ty", "Sổ tay nhân viên", mỗi thư mục 1 tệp mẫu | 3 lần chạy liên tiếp → 0 thay đổi |
+| `scripts/seed-project-docs.js` | tải 20 tài liệu mẫu (`scripts/seed-assets/project-docs/<slug>/`, 4 tài liệu Word/PDF/Excel/PowerPoint mỗi dự án) vào thư mục của dự án, tên tệp = tiêu đề tiếng Việt; bỏ qua tệp cùng tên | lần 2 → 0 tải lên |
+| `scripts/migrate-demo-ownership.js` | giao 8 khách hàng cũ nhất cho phòng Kinh doanh (3 trưởng phòng, 3 nhân viên demo, 2 nhân viên khác) — seed tạo mọi khách hàng bằng Org Admin nên CRM của Manager demo trống; deal đi theo khách hàng | lần 2 → 0 thay đổi |
+
+`seed.js` gọi 3 script trên ở cuối, theo đúng thứ tự. Kết quả trên tổ chức demo: Org Admin 24 khách
+hàng/48 deal, Manager Kinh doanh 8/16, nhân viên demo 3/6, nhân viên Kinh doanh thứ 2 2/4, Manager Kỹ thuật
+0/0. RAG lập chỉ mục 10/20 tài liệu mẫu (5 PDF + 5 DOCX, 263 đoạn); Excel/PowerPoint được đánh dấu đã xử lý
+với 0 đoạn vì bộ trích văn bản chỉ đọc PDF/DOCX/văn bản (§23.3).
+
+### 28.11 Kiểm thử và kết quả
+
+- **Unit test:** test mới/sửa cho `resolveDataScope`, `resolveFolderAccess`/`resolveFolderWrite`, `GRANTS_SQL`
+  (kiểm trên Postgres thật trong transaction ROLLBACK), files/folders/project-scope/sync service, projects/
+  tasks (phạm vi đọc + ghi, giao Task thêm thành viên, 409), CRM/HRM/IAM/Analytics/WebSocket, web
+  (`writeAccess.test.ts`). Gate tương đương CI (`TZ=UTC`): `typecheck`, `lint` (0 lỗi), `lint:i18n-strings`,
+  `test:coverage` (13 workspace jest + web 77 test, mọi ngưỡng coverage đạt), `build` — tất cả exit 0; 9/9
+  image Docker của CI build thành công.
+- **Kiểm thử sống qua Gateway:** đường ghi theo id với Manager khác phòng, Employee và Manager cùng phòng
+  trên dự án của Org Admin (dự án, thành viên, Task, bình luận, giao việc, CRM, duyệt HRM, Analytics phòng
+  khác) **92/92**; 409 khi gỡ thành viên + cờ `canWrite` từng tệp **17/17**; 20 tài liệu mẫu — mọi tài
+  khoản thấy tài liệu dự án ⇔ thấy dự án, RAG trả đoạn "Từ điển chỉ số KPI" đúng người **28/28**; kịch bản
+  phạm vi Manager 38/38; lan truyền thành viên/phòng ban (gỡ thành viên → mất tài liệu sau ~1,6 giây).
+- **Bộ kịch bản `scripts/mock-data`:** 01 31/31, 02 28/28, 03 18/18, 04 55/55, 05 27/27, 06 24/24, 07
+  12/12, 08 12/12 (bot không làm theo chỉ dẫn nhúng, không lộ tài liệu `RESTRICTED`).
+
+### 28.12 Giới hạn đã biết
+
+- **Giả định 1 instance Document Service.** Nhiều instance: ảnh chụp lúc khởi động của instance mới có thể
+  ghi đè sự kiện instance khác vừa áp dụng (group dùng chung đã commit offset).
+- Kiểm tra 409 (§28.8) chạy trước transaction, không khoá: giao Task đồng thời với gỡ thành viên có thể lọt.
+- HRM duyệt đơn ngoài phòng ban trả 403 (không phải 404) — lộ sự tồn tại của id đơn, mức thấp.
+- Xoá dự án: thư mục giữ `project_id` cũ → chỉ Org Admin/người được chia sẻ xem được; Org Admin gắn lại dự
+  án khác nếu cần.
+- Thẻ danh bạ vẫn giữ `email` (các picker giao việc/chia sẻ/nhắn tin cần); giao dịch mua hàng (Kho) của
+  Manager vẫn bằng Org Admin; ML anomalies dùng "phòng ban phụ trách" (`dim_department_manager`), chưa cộng
+  phòng ban JWT; ranh giới "toàn tổ chức" = `user:manage` nên vai trò tuỳ biến kiểu "HR toàn công ty" bị
+  thu hẹp theo phòng ban.
+- Biểu đồ Analytics theo phòng ban quét bảng fact thô thay vì continuous aggregate (chấp nhận ở quy mô đồ án).
+- RAG chưa đọc Excel/PowerPoint.
+- Seed chạy lại trên tổ chức đã có tạo thêm 8 nhân viên (hậu tố mới) và 12 khách hàng/24 deal — hành vi
+  có từ trước của `seed.js`, không do đợt này.
+
 ## Lịch sử thay đổi tài liệu
 
 - **18/07/2026** — Khởi tạo tài liệu `Technical_Spec.md`: xác định kiến trúc tổng thể, tech stack, chi tiết 6 service MVP, event-driven design (Outbox + Kafka), schema DB tổng quan, AuthN/AuthZ, quy ước API, hạ tầng Docker, bảo mật, kiểm thử, CI/CD, NFR, cấu trúc repo và giới hạn/hướng phát triển.
@@ -1530,3 +2319,6 @@ Debezium khởi động lỗi liên tục. Đã sửa: `KAFKA_LOG_DIRS=/var/lib/
 - **24/10/2026 (rà soát cuối toàn hệ thống)** — §8: rate limit Gateway chuyển sang đếm theo người dùng (300 request/phút; chưa đăng nhập vẫn theo IP, 100 request/phút). §23.8 bổ sung 6 lỗi phát hiện ở rà soát cuối (4 lỗi phân quyền tài liệu, giới hạn tần suất `search-chunks`, 2 lỗi giao diện chatbot). §25 bổ sung nhịp healthcheck Kafka. Dữ liệu kiểm thử tái sử dụng: `Mock_data.md`. Chi tiết: `RevisionHistory.md` mục 24/10/2026 (tiếp).
 - **25/10/2026 (merge Frontend2 + khắc phục CI)** — Merge 6 commit nhánh Frontend2 (tách component frontend, endpoint mới `PATCH /leave-requests/:id/cancel` để nhân viên tự hủy đơn nghỉ phép đang chờ duyệt). CI đỏ từ 11/10/2026 do `inventory-service` chép ngưỡng coverage 45/55/45/45% của `crm-service` trong khi số đo thật 39/35/40/29% — đặt lại theo số đo thật (quy ước §10/§11). 102 chuỗi tiếng Việt viết thẳng sau merge đã chuyển sang i18n. Chi tiết: `RevisionHistory.md` mục 25/10/2026.
 - **25/10/2026 (§26 — CDC Debezium, merge `test-cdc` + rà soát chéo)** — Merge bản thử nghiệm CDC của Thiều Quang Thành (`51dcf6b`): Debezium đọc WAL bảng `outbox_events` của `project-task-service` qua Outbox Event Router, đóng gói thành profile tuỳ chọn `cdc` (tắt mặc định) với 2 script `scripts/cdc-on.ps1`/`cdc-off.ps1` có thứ tự bước bảo đảm không mất sự kiện. Sửa 2 lỗi cấu hình khiến bản thử nghiệm chưa đưa sự kiện nào tới consumer (trường timestamp đòi INT64; converter bọc schema làm message vào DLQ). Rà soát chéo xác nhận 9 vấn đề, sửa trong `775c518` — gồm lỗi có từ trước mức CAO: Kafka chưa từng ghi vào volume (`KAFKA_LOG_DIRS`), tạo lại container là mất hết topic/offset (§26.6). Cập nhật khối trạng thái, §4.1, §14, cuối §25; thêm §26. Số đo: độ trễ CDC 0,40–0,62 giây so với polling khoảng 2,0 giây; 1.862 và 416/416 sự kiện không mất. Chi tiết: `RevisionHistory.md` mục 25/10/2026 (tiếp).
+- **26/10/2026 (§27 — Danh sách nhân viên & kho ảnh nhận diện, KẾ HOẠCH)** — Thêm §27 (chưa có dòng code nào): trả lời có bằng chứng 3 câu hỏi hiện trạng (kho khuôn mặt chỉ lưu embedding ở `ml-service`/`face_enrollments`, không lưu ảnh gốc; ảnh chấm công ở bucket `hrm-attendance` lưu vô thời hạn; chỉ chính chủ sửa được; nhập Excel §19.1 chưa có ảnh, chưa cập nhật được người đã có; hồ sơ cá nhân web còn giả lập số điện thoại/nút Lưu/avatar). Chốt 15 quyết định: lưu ảnh nhận diện gốc trong bucket private `ml-face-references`, chỉ đọc qua proxy có nhật ký; avatar tách riêng (`iam-avatars`, presigned TTL ngắn); đồng ý lưu phía server, ảnh tải hộ/nhập ở trạng thái `PENDING_CONSENT` không dùng để so khớp, tự huỷ sau 30 ngày; phạm vi Manager theo `departmentId` trong JWT, chỉ với Employee phòng mình; kiểm tra trùng 1:N (≥ 0,5 chặn, 0,35–0,5 cảnh báo); nhập Excel + ZIP có bước xem trước và báo cáo lỗi; mật khẩu tuỳ chọn + email kích hoạt, bỏ `Password123!`; xoá dữ liệu khuôn mặt khi vô hiệu hoá. Cập nhật căn cứ pháp lý sang Luật 91/2025/QH15 + Nghị định 356/2025/NĐ-CP (cần đối chiếu toàn văn). Giai đoạn 0 sửa trước 2 lỗi có sẵn của `ml-service` (nạp model lười không khoá dưới giới hạn 1 GB; truy vấn khuôn mặt chưa lọc `organization_id`). Đối chiếu đủ 42 mục rà soát phản biện độc lập (§27.15). Thêm ghi chú cuối §24, cập nhật khối trạng thái. Chi tiết: `RevisionHistory.md` mục 26/10/2026.
+- **26/10/2026 (§28 — Tài liệu theo phạm vi dự án & phạm vi dữ liệu của Manager, ĐÃ TRIỂN KHAI)** — Thêm §28: định nghĩa chung "thuộc dự án" (người phụ trách/thành viên/người tạo, giao Task tự thêm thành viên) và `resolveDataScope()` 3 cấp Employee < Manager (phòng ban trong JWT) < Org Admin cho Dự án/Công việc, Tài liệu, CRM, HRM, Analytics, Danh bạ; chính sách tài liệu theo dự án (thư mục cấp gốc gắn dự án, cây toàn công ty ai cũng xem nhưng chỉ Org Admin ghi, cờ `canWrite` cho thư mục/tệp, RAG dùng chung bộ lọc); 3 read-model + 3 sự kiện mới của Document Service, backfill không chặn consumer; phạm vi ở đường ghi (lỗi cao IDOR ghi theo id, lỗi trung bình ghi đè tệp toàn công ty — tìm ra ở vòng rà soát); gỡ thành viên còn Task chưa xong → 409; 3 script dữ liệu (migration, 20 tài liệu mẫu, giao khách hàng demo cho phòng Kinh doanh); kết quả kiểm thử (92/92 đường ghi, 17/17, 28/28, mock-data 01–08) và giới hạn đã biết. Thêm dòng trỏ tới §28 ở §3.3, §3.4, §4.6, §4.7, §6, §16, §17, §19.2, §23.3 (giữ nguyên nội dung cũ).
+- **26/10/2026 (§27 — ĐÃ TRIỂN KHAI giai đoạn 0–5)** — Thêm §27.16: cách làm thực tế theo từng giai đoạn, 8 chỗ khác kế hoạch (khoá riêng cho detector, mã NV chữ hoa + index thường, resync `roles_changed` thay script 1 lần, Modal thay drawer, `fflate` thay JSZip, huỷ riêng ảnh chờ, `malloc_trim`, đổi ảnh mẫu CI sang ảnh NASA phạm vi công cộng), 8 lỗi tìm được ở vòng kiểm thử độc lập và đã sửa — nặng nhất là lỗi CAO toàn hệ thống: Gateway để lọt header tin cậy do client tự gửi khi JWT không có giá trị tương ứng (`x-department-id`), nay xoá mọi header tin cậy trước khi đặt lại từ JWT. Kết quả: pytest ml-service 64, jest Gateway 42, sống 45/45 + hồi quy 195/195 + giả mạo header 10/10 bị chặn, RAM ml-service 579–645 MiB. Thêm dòng ở §6 (xoá header tin cậy) và cuối §24; cập nhật khối trạng thái đầu file và đầu §27. Chi tiết: `RevisionHistory.md` mục 26/10/2026 (tiếp 2).

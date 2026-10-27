@@ -44,6 +44,14 @@ export const EVENT_TYPES = {
   // managerId cua 1 phong ban KHONG phat event nao ca (DepartmentsService khong co OutboxService).
   // `managerId: null` nghia la phong ban vua bi go nguoi phu trach.
   DEPARTMENT_MANAGER_CHANGED: 'iam.department.manager_changed',
+  // 26/10/2026: danh sach nhan vien & kho anh nhan dien (Technical_Spec.md muc 27.4). profile_updated
+  // CHI mang ten truong da doi (khong bao gio gia tri so dien thoai/anh - gioi han muc dich muc 27.3);
+  // roles_changed mang muc vai tro (RoleLevel) de ml-service biet "Manager chi duoc thao tac Employee".
+  USER_PROFILE_UPDATED: 'iam.user.profile_updated',
+  USER_ROLES_CHANGED: 'iam.user.roles_changed',
+  // 26/10/2026: kich hoat lai tai khoan - truoc day reactivate() khong phat gi nen ml-service khong biet
+  // user da hoat dong lai (co active trong dim_user, chan tai anh ho cho tai khoan dang bi vo hieu hoa).
+  USER_REACTIVATED: 'iam.user.reactivated',
 
   // Project & Task Service (Technical_Spec.md muc 3.3)
   TASK_CREATED: 'task.created',
@@ -53,6 +61,12 @@ export const EVENT_TYPES = {
   PROJECT_CREATED: 'project.created',
   PROJECT_COMPLETED: 'project.completed',
   PROJECT_DELETED: 'project.deleted',
+  // 26/10/2026: tai lieu theo pham vi du an - Document Service tu dung read-model "ai thuoc du an
+  // nao" (khong doc DB cua Project-Task Service), nen moi thay doi thanh vien/nguoi phu trach phai
+  // phat su kien qua outbox. Truoc day addMember/removeMember/doi leadUserId khong phat gi ca.
+  PROJECT_MEMBER_ADDED: 'project.member_added',
+  PROJECT_MEMBER_REMOVED: 'project.member_removed',
+  PROJECT_LEAD_CHANGED: 'project.lead_changed',
 
   // Document Service (Technical_Spec.md muc 3.4)
   DOCUMENT_UPLOADED: 'document.uploaded',
@@ -108,6 +122,9 @@ export const EVENT_TYPE_TOPIC_MAP: Record<EventType, KafkaTopic> = {
   [EVENT_TYPES.USER_DELETED]: KAFKA_TOPICS.IAM,
   [EVENT_TYPES.USER_DEPARTMENT_CHANGED]: KAFKA_TOPICS.IAM,
   [EVENT_TYPES.DEPARTMENT_MANAGER_CHANGED]: KAFKA_TOPICS.IAM,
+  [EVENT_TYPES.USER_PROFILE_UPDATED]: KAFKA_TOPICS.IAM,
+  [EVENT_TYPES.USER_ROLES_CHANGED]: KAFKA_TOPICS.IAM,
+  [EVENT_TYPES.USER_REACTIVATED]: KAFKA_TOPICS.IAM,
 
   [EVENT_TYPES.TASK_CREATED]: KAFKA_TOPICS.PROJECT_TASK,
   [EVENT_TYPES.TASK_STATUS_CHANGED]: KAFKA_TOPICS.PROJECT_TASK,
@@ -116,6 +133,10 @@ export const EVENT_TYPE_TOPIC_MAP: Record<EventType, KafkaTopic> = {
   [EVENT_TYPES.PROJECT_CREATED]: KAFKA_TOPICS.PROJECT_TASK,
   [EVENT_TYPES.PROJECT_COMPLETED]: KAFKA_TOPICS.PROJECT_TASK,
   [EVENT_TYPES.PROJECT_DELETED]: KAFKA_TOPICS.PROJECT_TASK,
+  // 26/10/2026: tai lieu theo pham vi du an - xem chu thich tai EVENT_TYPES.PROJECT_MEMBER_ADDED.
+  [EVENT_TYPES.PROJECT_MEMBER_ADDED]: KAFKA_TOPICS.PROJECT_TASK,
+  [EVENT_TYPES.PROJECT_MEMBER_REMOVED]: KAFKA_TOPICS.PROJECT_TASK,
+  [EVENT_TYPES.PROJECT_LEAD_CHANGED]: KAFKA_TOPICS.PROJECT_TASK,
 
   [EVENT_TYPES.DOCUMENT_UPLOADED]: KAFKA_TOPICS.DOCUMENT,
   [EVENT_TYPES.DOCUMENT_SHARED]: KAFKA_TOPICS.DOCUMENT,
@@ -158,4 +179,13 @@ export const KAFKA_CONSUMER_GROUPS = {
   // ngu) - gia tri chuoi nay duoc COPY THU CONG vao app/kafka_consumer.py cua ml-service, giu o
   // day chi de tai lieu hoa/dong bo quy uoc dat ten. Sua 1 trong 2 noi PHAI sua noi con lai.
   ML_SERVICE: 'ml-service-group',
+  // 26/10/2026: Document Service lan dau tieu thu Kafka - read-model thanh vien du an + phong ban
+  // cua user, phuc vu tai lieu theo pham vi du an (apps/document-service/src/project-scope).
+  DOCUMENT_SERVICE: 'document-service-group',
+  // 26/10/2026: pham vi du lieu cua Manager theo phong ban - 3 service nay tu dung read-model
+  // user -> phong ban (bang dim_user rieng, chi doc topic iam.events) de biet "thanh vien phong ban
+  // cua Manager" ma khong goi HTTP xuyen service (xem src/user-directory cua tung service).
+  PROJECT_TASK_SERVICE_DIRECTORY: 'project-task-service-directory-group',
+  CRM_SERVICE_DIRECTORY: 'crm-service-directory-group',
+  HRM_SERVICE_DIRECTORY: 'hrm-service-directory-group',
 } as const;

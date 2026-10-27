@@ -44,9 +44,20 @@ function requireFreshModule(): { mod: InjectAuthHeadersModule; warnSpy: jest.Moc
   return { mod, warnSpy };
 }
 
-function createProxyReq(): { proxyReq: ClientRequest; setHeader: jest.Mock } {
-  const setHeader = jest.fn();
-  return { proxyReq: { setHeader } as unknown as ClientRequest, setHeader };
+// 26/10/2026: proxyReq gia giu header that (Map) - can cho test xoa header gia mao tu client.
+function createProxyReq(initial: Record<string, string> = {}): {
+  proxyReq: ClientRequest;
+  setHeader: jest.Mock;
+  headers: Map<string, string>;
+} {
+  const headers = new Map(Object.entries(initial).map(([k, v]) => [k.toLowerCase(), v]));
+  const setHeader = jest.fn((name: string, value: string) => headers.set(name.toLowerCase(), value));
+  const proxyReq = {
+    setHeader,
+    getHeaderNames: () => [...headers.keys()],
+    removeHeader: (name: string) => headers.delete(name.toLowerCase()),
+  } as unknown as ClientRequest;
+  return { proxyReq, setHeader, headers };
 }
 
 describe('inject-auth-headers - resolveInternalSharedSecret (giai quyet luc module-load)', () => {
@@ -136,5 +147,92 @@ describe('inject-auth-headers - forward x-is-super-admin tu req.user', () => {
     mod.injectAuthHeaders(proxyReq, { user: buildUser(false) } as unknown as IncomingMessage);
 
     expect(setHeader).toHaveBeenCalledWith(INTERNAL_AUTH_HEADERS.IS_SUPER_ADMIN, 'false');
+  });
+});
+
+// 26/10/2026: lo hong gia mao header (Danh sach nhan vien & kho anh nhan dien) - Gateway PHAI xoa moi
+// header tin cay client tu gui truoc khi dat lai tu JWT, ke ca khi JWT khong co gia tri cho header do.
+describe('inject-auth-headers - xoa header noi bo gia mao tu client', () => {
+  const ORIGINAL_SECRET = process.env.INTERNAL_SHARED_SECRET;
+  afterEach(() => {
+    process.env.INTERNAL_SHARED_SECRET = ORIGINAL_SECRET;
+  });
+
+  const spoofed = {
+    [INTERNAL_AUTH_HEADERS.DEPARTMENT_ID]: 'dept-cua-nguoi-khac',
+    [INTERNAL_AUTH_HEADERS.USER_ID]: 'user-gia',
+    [INTERNAL_AUTH_HEADERS.ORG_ID]: 'org-gia',
+    [INTERNAL_AUTH_HEADERS.EMAIL]: 'gia@x.vn',
+    [INTERNAL_AUTH_HEADERS.ROLES]: 'Org Admin',
+    [INTERNAL_AUTH_HEADERS.PERMISSIONS]: 'user:manage',
+    [INTERNAL_AUTH_HEADERS.IS_SUPER_ADMIN]: 'true',
+    [INTERNAL_SHARED_SECRET_HEADER]: 'secret-gia',
+    'X-Internal-Anything': 'gia',
+    'x-organization-id': 'org-gia',
+    'x-user-department': 'gia',
+  };
+
+  function buildUser(departmentId: string | null): JwtAccessPayload {
+    return {
+      sub: 'user-that',
+      organizationId: 'org-that',
+      email: 'that@x.vn',
+      roles: ['Manager'],
+      permissions: ['user:invite'],
+      departmentId,
+      isSuperAdmin: false,
+    };
+  }
+
+  it('JWT khong co phong ban: x-department-id cua client bi XOA (khong lot sang service)', () => {
+    process.env.INTERNAL_SHARED_SECRET = 'real-secret';
+    const { mod } = requireFreshModule();
+    const { proxyReq, headers } = createProxyReq({ ...spoofed, 'content-type': 'application/json', authorization: 'Bearer t' });
+
+    mod.injectAuthHeaders(proxyReq, { user: buildUser(null) } as unknown as IncomingMessage);
+
+    expect(headers.has(INTERNAL_AUTH_HEADERS.DEPARTMENT_ID)).toBe(false);
+    expect(headers.get(INTERNAL_AUTH_HEADERS.USER_ID)).toBe('user-that');
+    expect(headers.get(INTERNAL_AUTH_HEADERS.ORG_ID)).toBe('org-that');
+    expect(headers.get(INTERNAL_AUTH_HEADERS.PERMISSIONS)).toBe('user:invite');
+    expect(headers.get(INTERNAL_AUTH_HEADERS.ROLES)).toBe('Manager');
+    expect(headers.get(INTERNAL_AUTH_HEADERS.IS_SUPER_ADMIN)).toBe('false');
+    expect(headers.get(INTERNAL_SHARED_SECRET_HEADER)).toBe('real-secret');
+    expect(headers.has('x-internal-anything')).toBe(false);
+    expect(headers.has('x-organization-id')).toBe(false);
+    expect(headers.has('x-user-department')).toBe(false);
+    // Header thuong cua client giu nguyen.
+    expect(headers.get('content-type')).toBe('application/json');
+    expect(headers.get('authorization')).toBe('Bearer t');
+  });
+
+  it('JWT co phong ban: gia tri tu JWT thay the gia tri gia mao', () => {
+    process.env.INTERNAL_SHARED_SECRET = 'real-secret';
+    const { mod } = requireFreshModule();
+    const { proxyReq, headers } = createProxyReq(spoofed);
+
+    mod.injectAuthHeaders(proxyReq, { user: buildUser('dept-that') } as unknown as IncomingMessage);
+
+    expect(headers.get(INTERNAL_AUTH_HEADERS.DEPARTMENT_ID)).toBe('dept-that');
+  });
+
+  it('route cong khai (chua xac thuc): KHONG con header danh tinh nao cua client, chi bi mat that', () => {
+    process.env.INTERNAL_SHARED_SECRET = 'real-secret';
+    const { mod } = requireFreshModule();
+    const { proxyReq, headers } = createProxyReq(spoofed);
+
+    mod.injectAuthHeaders(proxyReq, {} as IncomingMessage);
+
+    expect([...headers.keys()]).toEqual([INTERNAL_SHARED_SECRET_HEADER]);
+    expect(headers.get(INTERNAL_SHARED_SECRET_HEADER)).toBe('real-secret');
+  });
+
+  it('isTrustedHeader nhan dien khong phan biet hoa thuong, bo qua header thuong', () => {
+    process.env.INTERNAL_SHARED_SECRET = 'real-secret';
+    const { mod } = requireFreshModule() as unknown as { mod: { isTrustedHeader: (n: string) => boolean } };
+    expect(mod.isTrustedHeader('X-Department-Id')).toBe(true);
+    expect(mod.isTrustedHeader('x-is-super-admin')).toBe(true);
+    expect(mod.isTrustedHeader('x-correlation-id')).toBe(false);
+    expect(mod.isTrustedHeader('x-real-ip')).toBe(false);
   });
 });

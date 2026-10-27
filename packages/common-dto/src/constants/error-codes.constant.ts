@@ -77,6 +77,8 @@ export const ERROR_CODES = {
   PROJECT_ALREADY_ARCHIVED: 'PROJECT_ALREADY_ARCHIVED',
   // 22/09/2026: ProjectMember (thanh vien du an that su, thay the localStorage o frontend).
   PROJECT_MEMBER_IS_LEAD: 'PROJECT_MEMBER_IS_LEAD',
+  // 26/10/2026: go thanh vien con Task chua xong trong du an (409) - phai giao lai Task truoc.
+  PROJECT_MEMBER_HAS_OPEN_TASKS: 'PROJECT_MEMBER_HAS_OPEN_TASKS',
 
   // ---- Document ----
   MISSING_UPLOAD_FILE: 'MISSING_UPLOAD_FILE',
@@ -100,6 +102,13 @@ export const ERROR_CODES = {
   // 24/10/2026: 1 nguoi dung goi search-chunks qua nhieu lan trong 1 khung thoi gian (429) - bao ve
   // han ngach Gemini dung CHUNG cho toan nen tang, xem SEARCH_RATE_LIMIT trong DocumentSearchService.
   DOCUMENT_SEARCH_RATE_LIMITED: 'DOCUMENT_SEARCH_RATE_LIMITED',
+  // 26/10/2026: tai lieu theo pham vi du an - chi Org Admin tao/chuyen duoc thu muc toan cong ty
+  // (khong gan du an) va tai tep len thu muc goc; nguoi khac phai chon 1 du an minh thuoc pham vi.
+  COMPANY_WIDE_ADMIN_ONLY: 'COMPANY_WIDE_ADMIN_ONLY',
+  FORBIDDEN_PROJECT_DOCUMENTS: 'FORBIDDEN_PROJECT_DOCUMENTS',
+  FOLDER_PROJECT_TOP_LEVEL_ONLY: 'FOLDER_PROJECT_TOP_LEVEL_ONLY',
+  // 26/10/2026: cay toan cong ty (thu muc khong du an) chi Org Admin ghi - nguoi khac chi xem (tru khi duoc chia se tuong minh).
+  COMPANY_WIDE_READ_ONLY: 'COMPANY_WIDE_READ_ONLY',
 
   // ---- HRM-lite: attendance/leave ----
   MISSING_CHECKIN_PHOTO: 'MISSING_CHECKIN_PHOTO',
@@ -174,6 +183,31 @@ export const ERROR_CODES = {
   INVALID_RANGE_WITH_QUARTER: 'INVALID_RANGE_WITH_QUARTER',
   INVALID_RANGE_NO_QUARTER: 'INVALID_RANGE_NO_QUARTER',
   DRILL_DOWN_SCOPE_FORBIDDEN: 'DRILL_DOWN_SCOPE_FORBIDDEN',
+
+  // ---- Pham vi du lieu theo phong ban cua Manager (26/10/2026, xem constants/data-scope.ts) ----
+  // Du lieu/phong ban duoc yeu cau nam NGOAI phong ban cua nguoi goi (Analytics departmentId, HRM duyet don).
+  DEPARTMENT_SCOPE_FORBIDDEN: 'DEPARTMENT_SCOPE_FORBIDDEN',
+  // Manager chua duoc gan phong ban nao nen khong co pham vi phong ban de xem so lieu.
+  DEPARTMENT_SCOPE_MISSING: 'DEPARTMENT_SCOPE_MISSING',
+  // Manager tu duyet/tu choi don (nghi phep/tang ca/giai trinh) cua chinh minh.
+  SELF_APPROVAL_FORBIDDEN: 'SELF_APPROVAL_FORBIDDEN',
+
+  // ---- Danh sach nhan vien & ho so (26/10/2026, Technical_Spec.md muc 27) ----
+  PHONE_INVALID: 'PHONE_INVALID',
+  EMPLOYEE_CODE_INVALID: 'EMPLOYEE_CODE_INVALID',
+  EMPLOYEE_CODE_TAKEN: 'EMPLOYEE_CODE_TAKEN',
+  AVATAR_INVALID: 'AVATAR_INVALID',
+  // Email da thuoc to chuc KHAC - thong bao chung, khong lo email do ton tai o dau.
+  EMAIL_UNAVAILABLE: 'EMAIL_UNAVAILABLE',
+  // Employee/Super Admin goi GET /users/directory.
+  DIRECTORY_FORBIDDEN: 'DIRECTORY_FORBIDDEN',
+  // Manager thao tac ho so ngoai pham vi (khong phai Employee phong minh) / nguoi khong co quyen.
+  PROFILE_SCOPE_FORBIDDEN: 'PROFILE_SCOPE_FORBIDDEN',
+  // Nguoi chi co user:invite gui kem so dien thoai/ma nhan vien khi moi.
+  FORBIDDEN_PROFILE_FIELDS: 'FORBIDDEN_PROFILE_FIELDS',
+  // PATCH /users/me/password: mat khau hien tai sai / mat khau moi trung mat khau cu.
+  CURRENT_PASSWORD_INVALID: 'CURRENT_PASSWORD_INVALID',
+  NEW_PASSWORD_SAME_AS_CURRENT: 'NEW_PASSWORD_SAME_AS_CURRENT',
 
   // ---- Chat bot noi bo (Analytics Service, bo sung 24/10/2026 - Technical_Spec.md muc 23) ----
   CHATBOT_NOT_CONFIGURED: 'CHATBOT_NOT_CONFIGURED',

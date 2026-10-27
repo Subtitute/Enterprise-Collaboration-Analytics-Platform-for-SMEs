@@ -54,5 +54,46 @@ describe('UsersController - RBAC (Fix 5, review 22/07/2026)', () => {
       expect(result).toEqual({ id: 'user-1', fullName: 'Nguyen Van A' });
       expect(serviceMock.findById).toHaveBeenCalledWith('org-1', 'user-2');
     });
+
+    // 26/10/2026: Manager (USER_INVITE + co phong ban) xem ho so thanh vien CUNG phong ban.
+    it('Manager co phong ban: chuyen sang findByIdInDepartment (service tu chan nguoi ngoai phong ban)', async () => {
+      const findByIdInDepartment = jest.fn().mockResolvedValue({ id: 'user-2' });
+      (serviceMock as any).findByIdInDepartment = findByIdInDepartment;
+      await controller.findOne('org-1', 'user-1', [PERMISSIONS.USER_INVITE], 'user-2', 'dept-1');
+      expect(findByIdInDepartment).toHaveBeenCalledWith('org-1', 'user-2', 'dept-1');
+      expect(serviceMock.findById).not.toHaveBeenCalled();
+    });
+  });
+});
+
+/** 26/10/2026: route ho so/avatar moi (Technical_Spec.md muc 27.6) - ':id' nhan uuid hoac 'me'. */
+describe('UsersController - ho so & avatar', () => {
+  const caller = { userId: '11111111-1111-4111-8111-111111111111', organizationId: 'org-1', permissions: [], departmentId: null, isSuperAdmin: false } as any;
+  let serviceMock: Record<string, jest.Mock>;
+  let controller: UsersController;
+
+  beforeEach(() => {
+    serviceMock = { setAvatar: jest.fn(), removeAvatar: jest.fn(), directory: jest.fn(), updateMyProfile: jest.fn(), changeMyPassword: jest.fn() };
+    controller = new UsersController(serviceMock as unknown as UsersService);
+  });
+
+  it("'me' -> chinh nguoi goi; uuid giu nguyen; chuoi khac -> 400", () => {
+    controller.setAvatar(caller, 'me', {} as any);
+    expect(serviceMock.setAvatar).toHaveBeenCalledWith('org-1', expect.objectContaining({ userId: caller.userId }), caller.userId, {});
+    controller.removeAvatar(caller, '22222222-2222-4222-8222-222222222222');
+    expect(serviceMock.removeAvatar).toHaveBeenCalledWith('org-1', expect.anything(), '22222222-2222-4222-8222-222222222222');
+    expect(() => controller.setAvatar(caller, 'abc', {} as any)).toThrow();
+  });
+
+  it('PATCH /users/me: Super Admin bi chan', () => {
+    expect(() => controller.updateMe({ ...caller, isSuperAdmin: true }, { phoneNumber: '0912345678' })).toThrow(ForbiddenException);
+    controller.updateMe(caller, { phoneNumber: '0912345678' });
+    expect(serviceMock.updateMyProfile).toHaveBeenCalledWith('org-1', caller.userId, { phoneNumber: '0912345678' });
+  });
+
+  // 26/10/2026: PATCH /users/me/password luon doi mat khau cua CHINH nguoi goi.
+  it('PATCH /users/me/password dung userId cua nguoi goi', () => {
+    controller.changeMyPassword(caller, { currentPassword: 'a', newPassword: 'MatKhauMoi456!' });
+    expect(serviceMock.changeMyPassword).toHaveBeenCalledWith('org-1', caller.userId, { currentPassword: 'a', newPassword: 'MatKhauMoi456!' });
   });
 });

@@ -1,4 +1,4 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
 import { FolderVisibility } from '../../entities/folder.entity';
 
 export class UpdateFolderDto {
@@ -20,4 +20,10 @@ export class UpdateFolderDto {
   @IsOptional()
   @IsEnum(FolderVisibility)
   visibility?: FolderVisibility;
+
+  // 26/10/2026: doi du an cua thu muc CAP GOC. `null` = chuyen thanh thu muc toan cong ty (chi Org
+  // Admin); khong gui = giu nguyen. @IsOptional bo qua ca null nen null di qua duoc toi service.
+  @IsOptional()
+  @IsUUID('4', { message: 'projectId phai la UUID hop le' })
+  projectId?: string | null;
 }
