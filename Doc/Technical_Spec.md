@@ -5,8 +5,8 @@
 > toàn workspace) nhưng CHƯA xác minh sống qua Gateway thật — xem §22.8. §23 (Chat bot nội bộ RAG +
 > tool-calling, 24/10/2026) đã triển khai, khác kế hoạch ban đầu ở vài điểm ghi rõ tại §23.2; §25
 > (giảm tải RAM Docker, 24/10/2026). §26 (CDC Debezium, profile tuỳ chọn `cdc`, 25/10/2026) đã
-> triển khai và xác minh sống dưới tải. §27 (Danh sách nhân viên & kho ảnh nhận diện, 26/10/2026) là
-> **KẾ HOẠCH, chưa triển khai**. §28 (Tài liệu theo phạm vi dự án & phạm vi dữ liệu của Manager, 26/10/2026)
+> triển khai và xác minh sống dưới tải. §27 (Danh sách nhân viên & kho ảnh nhận diện, 26/10/2026) đã
+> triển khai giai đoạn 0–5 và xác minh sống (§27.16); giai đoạn 6 chưa làm. §28 (Tài liệu theo phạm vi dự án & phạm vi dữ liệu của Manager, 26/10/2026)
 > đã triển khai và xác minh sống. Dữ liệu kiểm thử tái sử dụng: `Mock_data.md`. Phần cố ý chưa
 > triển khai (forecasting ML, Layer 4/6 của §19) được đánh dấu rõ tại chỗ và theo dõi thêm ở
 > `Upgrade.md`. Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
@@ -258,6 +258,10 @@ Song song với luồng real-time, các **continuous aggregate của TimescaleDB
 - **(Bổ sung 25/07/2026) Gán vai trò (`roleIds`) khi mời/sửa người dùng yêu cầu riêng `user:manage`:** phát hiện qua đợt review vòng 2 — `POST /users/invite`/`PATCH /users/:id` trước đó chỉ yêu cầu `user:invite` (Manager cũng có quyền này) nhưng KHÔNG kiểm tra người gọi có được phép gán `roleIds` cụ thể trong request hay không, cho phép một Manager tự đọc UUID vai trò Org Admin qua `GET /users` (vốn cố ý mở cho mọi người, xem trên) rồi mời một tài khoản mới với vai trò đó — leo thang đặc quyền hoàn chỉnh mà không cần bất kỳ quyền quản trị nào ban đầu. Đây là lỗi mức **Nghiêm trọng (Critical)** duy nhất phát hiện ở IAM Service trong đợt review này. Sửa: `roleIds` non-empty trong 2 endpoint trên nay bị từ chối (`403 Forbidden`, thông báo tiếng Việt) trừ khi người gọi có `user:manage` — không âm thầm bỏ qua `roleIds` vì luồng UI hợp lệ (`InviteMemberModal.tsx`) chưa bao giờ cho vai trò thấp quyền gửi trường này, nên một request có `roleIds` từ Manager gần như chắc chắn là request thủ công/độc hại, cần lộ ra ngay bằng lỗi thay vì âm thầm thành công với vai trò rỗng.
 - **Cách ly tenant:** mọi Guard/Middleware bắt buộc lọc theo `organizationId` lấy từ JWT — không cho phép truy vấn chéo tổ chức dù có ID hợp lệ của tổ chức khác. Quy tắc này áp dụng cả cho **tham chiếu chéo entity trong cùng service** (ví dụ tạo `Task` phải xác minh `projectId` thuộc đúng `organizationId`, không chỉ định dạng UUID hợp lệ).
 - **(Bổ sung 26/10/2026) Phạm vi dữ liệu 3 cấp:** ngoài RBAC (được gọi endpoint nào) và cách ly tenant, mọi service còn lọc **bản ghi nào** người gọi được thấy theo `resolveDataScope()` (`packages/common-dto`) — Employee: của mình; Manager: của mình + thành viên phòng ban (`departmentId` trong JWT); Org Admin (`user:manage`): toàn tổ chức. Ngoại lệ `GET /users` ở trên nay chỉ trả hồ sơ đầy đủ cho chính mình (và thành viên phòng ban với Manager), người khác nhận "thẻ danh bạ". Xem §28.2, §28.4.
+- **(Bổ sung 26/10/2026, tiếp) Gateway xoá header tin cậy do client gửi:** trước khi đặt header nội bộ từ
+  JWT, Gateway xoá mọi header tin cậy client tự gửi (danh sách header nội bộ, `x-internal-secret`, mọi header
+  tiền tố `x-internal-*`, `x-user-*`, `x-org-*`, `x-organization-*`), cả với WebSocket. Trước đó header Gateway
+  không đặt (vd `x-department-id` khi JWT không có phòng ban) lọt xuống service. Xem §27.16.
 
 ## 7. Quy ước thiết kế API
 
@@ -1174,6 +1178,8 @@ bàn bạc trước khi code (xem thảo luận cùng ngày: chọn **verify 1:1
   lực 01/01/2026, thay Nghị định 13/2023), giới hạn mục đích của dữ liệu khuôn mặt, đồng ý lưu phía
   server, kho ảnh nhận diện và 2 lỗi ml-service cần sửa trước (nạp model lười không khoá, truy vấn chưa
   lọc `organization_id`) — xem kế hoạch §27.
+- **Cập nhật 26/10/2026 (tiếp):** 2 lỗi trên đã sửa; kho ảnh nhận diện, đồng ý phía server và tải ảnh hộ
+  đã triển khai — xem §27.16.
 
 ---
 
@@ -1375,9 +1381,11 @@ Debezium khởi động lỗi liên tục. Đã sửa: `KAFKA_LOG_DIRS=/var/lib/
 
 ---
 
-## 27. Danh sách nhân viên & kho ảnh nhận diện *(kế hoạch chốt 26/10/2026)*
+## 27. Danh sách nhân viên & kho ảnh nhận diện *(kế hoạch chốt 26/10/2026, triển khai + kiểm thử 26/10/2026)*
 
-> Trạng thái: **KẾ HOẠCH — CHƯA TRIỂN KHAI.** Chưa có dòng code nào. Mục này gồm hiện trạng (có bằng
+> Trạng thái: **ĐÃ TRIỂN KHAI GIAI ĐOẠN 0–5, ĐÃ XÁC MINH SỐNG** (26/10/2026). Giai đoạn 6 (tuỳ chọn) chưa
+> làm. §27.1–§27.15 giữ nguyên bản kế hoạch (hiện trạng §27.1 là trước khi triển khai); cách làm thực tế, chỗ
+> khác kế hoạch, kết quả kiểm thử và giới hạn đã biết ở §27.16. Mục này gồm hiện trạng (có bằng
 > chứng file:line), các quyết định đã chốt, thiết kế và kế hoạch theo giai đoạn. Giao diện tương ứng:
 > `Wireframe.md` §16. Phạm vi xem của Manager ở các module khác do đợt "Phạm vi dữ liệu của Manager"
 > (26/10/2026, làm song song) xử lý — mục này chỉ dùng chung định nghĩa phạm vi, không lập kế hoạch lại.
@@ -1817,6 +1825,97 @@ cả hai; GĐ 4 cần GĐ 3. Lệnh nặng chạy tuần tự qua 1 khoá dùng 
 | 41 | CI không chạy ml-service | Nhận — GĐ 5 |
 | 42 | Ma trận test | Nhận — §27.13 |
 
+### 27.16 Kết quả triển khai (26/10/2026)
+
+**Đã làm theo kế hoạch (GĐ 0–5):**
+
+- **GĐ 0 — ml-service:** nạp YuNet + ArcFace 1 lần trong `lifespan` (`preload_models()`), giữ khởi tạo lười
+  có khoá kiểm tra 2 lần; `threading.Semaphore(2)` bọc pipeline. Mọi truy vấn/upsert khuôn mặt có
+  `organization_id`; upsert khác tổ chức trả `409 FACE_ORG_MISMATCH`.
+- **GĐ 1 — iam-service:** cột `phone_number`, `employee_code` (lưu chữ hoa), `avatar_object_key`,
+  `avatar_updated_at`; bảng `user_profile_change_logs` (chỉ tên trường, xoá sau 1 năm). API
+  `GET /users/directory`, `PATCH /users/me`, `PUT|DELETE /users/:id/avatar` (`:id` = uuid hoặc `me`),
+  `PATCH /users/:id` thêm SĐT/mã NV, `POST /users/invite` mật khẩu tuỳ chọn + email kích hoạt (token
+  `INVITE` 72 giờ). `GET /users` không bao giờ có `phoneNumber`/`employeeCode`. 2 event mới
+  `iam.user.profile_updated`, `iam.user.roles_changed`.
+- **GĐ 2 — ml-service:** bucket private `ml-face-references` (ảnh thu về ≤ 640px, mã hoá lại bằng OpenCV nên
+  mất EXIF/GPS), chỉ đọc qua proxy `no-store` có nhật ký `VIEW_REF`; `face_consents`,
+  `face_pending_enrollments` (tự huỷ sau 30 ngày, job mỗi giờ), `face_enrollment_events`. Kiểm tra strict cho
+  mọi luồng đăng ký, trùng 1:N (≥ 0,5 chặn, 0,35–0,5 cảnh báo). Vô hiệu hoá/xoá tài khoản xoá bản dùng, bản
+  chờ, đồng ý và object MinIO.
+- **GĐ 3 — web:** tab Quản trị > "Danh sách nhân viên", cửa sổ Hồ sơ nhân viên, panel ảnh nhận diện 4 trạng
+  thái, hộp đồng ý + banner chờ xác nhận. Hồ sơ cá nhân dùng API thật (bỏ SĐT cố định, nút Lưu giả, mã NV
+  bịa từ id).
+- **GĐ 4 — trình nhập Excel + ZIP** 4 bước: xem trước có phân loại, `/inspect` từng ảnh, ghi Tài khoản rồi
+  Ảnh, thử lại khi `USER_NOT_SYNCED`/429, tạm dừng/tiếp tục, báo cáo lỗi `.xlsx` không chứa mật khẩu. Bỏ mặc
+  định `Password123!`.
+- **GĐ 5:** job CI mới `ml-service-test` (pytest, Postgres service, tải model và ảnh mẫu theo SHA256 ghim,
+  có cache); kịch bản sống `scripts/mock-data/10-employee-directory.js` (xem `Mock_data.md`).
+
+**Khác kế hoạch:**
+
+| Kế hoạch | Thực tế | Lý do |
+|---|---|---|
+| Chỉ `Semaphore(2)` | Thêm khoá riêng quanh `setInputSize()` + `detect()` | Semaphore 2 vẫn cho 2 luồng dùng chung 1 detector |
+| Unique `(org, lower(code))` | Lưu mã NV chữ hoa + unique index thường `uq_users_org_employee_code` | `synchronize: true` không quản lý index biểu thức |
+| Script 1 lần gán `roleLevel` | Resync lúc iam khởi động phát `roles_changed` cho mọi user | Tự lành, idempotent, không cần chạy tay |
+| Drawer Hồ sơ nhân viên | Dùng `Modal` có sẵn | Tối giản, không viết thành phần trượt mới |
+| JSZip | `fflate` (đã có trong lock qua jspdf) | Biết kích thước khai báo trước khi giải nén → chặn zip bomb đơn giản |
+| — | Thêm `DELETE /enrollments/{id}?pending=true` | Huỷ riêng ảnh chờ, không xoá ảnh đang dùng |
+| — | `malloc_trim(0)` sau khi nạp model | glibc giữ ~290 MB đã free sau khi onnxruntime phân tích model |
+| Ảnh mẫu `largest_selfie.jpg` (opencv_zoo) | Ảnh tổ bay STS-130 của NASA (phạm vi công cộng), URL + SHA256 ghim | Ảnh opencv_zoo là ảnh đầu ra đã vẽ khung/điểm mốc |
+
+**Lỗi tìm được ở vòng kiểm thử độc lập, đã sửa:**
+
+1. **(CAO, toàn hệ thống) Giả mạo header nội bộ qua Gateway.** http-proxy chép nguyên header của client;
+   Gateway chỉ ghi đè header nó đặt, nên khi JWT không có phòng ban, `x-department-id` do client tự khai lọt
+   xuống service. Manager chưa có phòng ban đọc được danh sách nhân viên/ảnh chờ của phòng khác. Sửa:
+   `stripTrustedHeaders()` (`apps/gateway/src/proxy/inject-auth-headers.ts`) xoá mọi header tin cậy
+   (`INTERNAL_AUTH_HEADERS`, `x-internal-secret` và mọi header tiền tố `x-internal-*`, `x-user-*`, `x-org-*`,
+   `x-organization-*`) trước khi đặt lại từ JWT, áp dụng cả proxy WebSocket. Xem thêm §6.
+2. Tải ảnh hộ cho tài khoản đã vô hiệu hoá → nay `409 USER_INACTIVE` (`dim_user.is_active`, event mới
+   `iam.user.reactivated`).
+3. Avatar gửi thẳng API giữ EXIF/GPS → `stripImageMetadata()` ở iam bỏ khối metadata JPEG/PNG/WebP.
+4. Người do Manager mời có 0 vai trò → `invite()` gán vai trò "Employee"; user cũ được gán bù lúc iam khởi
+   động (`backfillDefaultRoles()`, idempotent).
+5. Đổi mật khẩu ở Hồ sơ là giả lập → `PATCH /users/me/password` thật (kiểm tra mật khẩu hiện tại, thu hồi mọi
+   refresh token).
+6. Kích hoạt lại tài khoản vẫn 401 → `reactivate()` xoá khoá `blacklist:user:<id>` trong Redis.
+7. UX trình nhập: dòng trùng chỉ đánh lỗi từ dòng thứ 2, ô ảnh dòng lỗi không treo "Đang kiểm tra…", nút
+   báo cáo lỗi chỉ hiện khi có lỗi.
+8. Ảnh mẫu CI là ảnh đã vẽ khung → đổi ảnh (bảng trên).
+
+**Kết quả kiểm thử (26/10/2026):**
+
+- pytest ml-service 64 test (strict, 2 ngưỡng 1:N, 10 lượt đồng thời cho kết quả giống chạy tuần tự, RBAC,
+  đồng ý/bản chờ, xuyên tenant trên `postgres-ml` thật, job quá hạn, purge qua Kafka). Ảnh test sinh bằng code
+  từ ảnh mẫu, không commit ảnh người thật.
+- jest Gateway 42 test (gồm các ca giả mạo header); jest iam thêm ma trận avatar/danh sách/DTO/SĐT/mã NV/mời;
+  vitest web thêm test trình nhập (ghép tệp, giới hạn ZIP, zip bomb, báo cáo lỗi).
+- Kiểm thử sống qua Gateway `127.0.0.1:3000`: `10-employee-directory.js` **45/45**; hồi quy `01`–`07`
+  **195/195**; 10 kiểu giả mạo header (hoa thường lẫn lộn, header trùng, `x-roles`, `x-department-id`,
+  `x-organization-id`, `x-user-id`, `x-internal-secret`, Manager giả phòng ban, Analytics phòng khác)
+  **10/10** bị chặn.
+- RAM ml-service (`mem_limit` 1 GB): 579 MiB sau khởi động, 645 MiB khi 10 request `/inspect` đồng thời qua
+  Gateway (1,8 giây cho cả 10), khoảng 700 MiB sau cả kịch bản sống; không OOM, không khởi động lại. Một lượt
+  `/inspect`: 100–160 ms.
+- Gate tương đương CI (TZ=UTC, 27/10/2026): `typecheck`, `lint` (0 lỗi), `lint:i18n-strings`,
+  `test:coverage` (1.276 test jest/vitest ở 15 workspace, đạt ngưỡng), `build` — đều qua. Chạy lại kịch bản 10
+  với ảnh sinh từ ảnh mẫu NASA: 45/45.
+
+**Giới hạn đã biết:**
+
+- Giai đoạn 6 chưa làm: ảnh chấm công vẫn lưu vô thời hạn, hrm chưa tiêu thụ `USER_DELETED`, chưa báo cho
+  chủ thể khi người khác đổi avatar, `ecap-mobile` chưa hiện avatar, embedding chưa mã hoá.
+- Lọc "Ảnh nhận diện" trong danh sách chỉ áp trên trang hiện tại (iam không biết trạng thái ảnh).
+- URL avatar presigned đổi mỗi lần tải danh sách nên trình duyệt không cache được.
+- Ngưỡng độ nét 100 và 2 ngưỡng 1:N chưa tinh chỉnh bằng dữ liệu thật.
+- Theo §27.7, Manager chỉ gửi ảnh cho người đã có: người mới do Manager mời qua import không được gửi ảnh
+  trong cùng lượt.
+- Có từ trước, không sửa đợt này: rate limit theo IP của route công khai tin `X-Real-IP`. Nginx ghi đè
+  header này, nhưng gọi thẳng cổng 3000 thì client tự đặt được (đăng nhập vẫn có giới hạn riêng theo email).
+- ml-service chưa nằm trong ma trận build Docker của CI (chỉ có job pytest).
+
 ---
 
 ## 28. Tài liệu theo phạm vi dự án & phạm vi dữ liệu của Manager *(triển khai + kiểm thử 26/10/2026)*
@@ -2222,3 +2321,4 @@ với 0 đoạn vì bộ trích văn bản chỉ đọc PDF/DOCX/văn bản (§2
 - **25/10/2026 (§26 — CDC Debezium, merge `test-cdc` + rà soát chéo)** — Merge bản thử nghiệm CDC của Thiều Quang Thành (`51dcf6b`): Debezium đọc WAL bảng `outbox_events` của `project-task-service` qua Outbox Event Router, đóng gói thành profile tuỳ chọn `cdc` (tắt mặc định) với 2 script `scripts/cdc-on.ps1`/`cdc-off.ps1` có thứ tự bước bảo đảm không mất sự kiện. Sửa 2 lỗi cấu hình khiến bản thử nghiệm chưa đưa sự kiện nào tới consumer (trường timestamp đòi INT64; converter bọc schema làm message vào DLQ). Rà soát chéo xác nhận 9 vấn đề, sửa trong `775c518` — gồm lỗi có từ trước mức CAO: Kafka chưa từng ghi vào volume (`KAFKA_LOG_DIRS`), tạo lại container là mất hết topic/offset (§26.6). Cập nhật khối trạng thái, §4.1, §14, cuối §25; thêm §26. Số đo: độ trễ CDC 0,40–0,62 giây so với polling khoảng 2,0 giây; 1.862 và 416/416 sự kiện không mất. Chi tiết: `RevisionHistory.md` mục 25/10/2026 (tiếp).
 - **26/10/2026 (§27 — Danh sách nhân viên & kho ảnh nhận diện, KẾ HOẠCH)** — Thêm §27 (chưa có dòng code nào): trả lời có bằng chứng 3 câu hỏi hiện trạng (kho khuôn mặt chỉ lưu embedding ở `ml-service`/`face_enrollments`, không lưu ảnh gốc; ảnh chấm công ở bucket `hrm-attendance` lưu vô thời hạn; chỉ chính chủ sửa được; nhập Excel §19.1 chưa có ảnh, chưa cập nhật được người đã có; hồ sơ cá nhân web còn giả lập số điện thoại/nút Lưu/avatar). Chốt 15 quyết định: lưu ảnh nhận diện gốc trong bucket private `ml-face-references`, chỉ đọc qua proxy có nhật ký; avatar tách riêng (`iam-avatars`, presigned TTL ngắn); đồng ý lưu phía server, ảnh tải hộ/nhập ở trạng thái `PENDING_CONSENT` không dùng để so khớp, tự huỷ sau 30 ngày; phạm vi Manager theo `departmentId` trong JWT, chỉ với Employee phòng mình; kiểm tra trùng 1:N (≥ 0,5 chặn, 0,35–0,5 cảnh báo); nhập Excel + ZIP có bước xem trước và báo cáo lỗi; mật khẩu tuỳ chọn + email kích hoạt, bỏ `Password123!`; xoá dữ liệu khuôn mặt khi vô hiệu hoá. Cập nhật căn cứ pháp lý sang Luật 91/2025/QH15 + Nghị định 356/2025/NĐ-CP (cần đối chiếu toàn văn). Giai đoạn 0 sửa trước 2 lỗi có sẵn của `ml-service` (nạp model lười không khoá dưới giới hạn 1 GB; truy vấn khuôn mặt chưa lọc `organization_id`). Đối chiếu đủ 42 mục rà soát phản biện độc lập (§27.15). Thêm ghi chú cuối §24, cập nhật khối trạng thái. Chi tiết: `RevisionHistory.md` mục 26/10/2026.
 - **26/10/2026 (§28 — Tài liệu theo phạm vi dự án & phạm vi dữ liệu của Manager, ĐÃ TRIỂN KHAI)** — Thêm §28: định nghĩa chung "thuộc dự án" (người phụ trách/thành viên/người tạo, giao Task tự thêm thành viên) và `resolveDataScope()` 3 cấp Employee < Manager (phòng ban trong JWT) < Org Admin cho Dự án/Công việc, Tài liệu, CRM, HRM, Analytics, Danh bạ; chính sách tài liệu theo dự án (thư mục cấp gốc gắn dự án, cây toàn công ty ai cũng xem nhưng chỉ Org Admin ghi, cờ `canWrite` cho thư mục/tệp, RAG dùng chung bộ lọc); 3 read-model + 3 sự kiện mới của Document Service, backfill không chặn consumer; phạm vi ở đường ghi (lỗi cao IDOR ghi theo id, lỗi trung bình ghi đè tệp toàn công ty — tìm ra ở vòng rà soát); gỡ thành viên còn Task chưa xong → 409; 3 script dữ liệu (migration, 20 tài liệu mẫu, giao khách hàng demo cho phòng Kinh doanh); kết quả kiểm thử (92/92 đường ghi, 17/17, 28/28, mock-data 01–08) và giới hạn đã biết. Thêm dòng trỏ tới §28 ở §3.3, §3.4, §4.6, §4.7, §6, §16, §17, §19.2, §23.3 (giữ nguyên nội dung cũ).
+- **26/10/2026 (§27 — ĐÃ TRIỂN KHAI giai đoạn 0–5)** — Thêm §27.16: cách làm thực tế theo từng giai đoạn, 8 chỗ khác kế hoạch (khoá riêng cho detector, mã NV chữ hoa + index thường, resync `roles_changed` thay script 1 lần, Modal thay drawer, `fflate` thay JSZip, huỷ riêng ảnh chờ, `malloc_trim`, đổi ảnh mẫu CI sang ảnh NASA phạm vi công cộng), 8 lỗi tìm được ở vòng kiểm thử độc lập và đã sửa — nặng nhất là lỗi CAO toàn hệ thống: Gateway để lọt header tin cậy do client tự gửi khi JWT không có giá trị tương ứng (`x-department-id`), nay xoá mọi header tin cậy trước khi đặt lại từ JWT. Kết quả: pytest ml-service 64, jest Gateway 42, sống 45/45 + hồi quy 195/195 + giả mạo header 10/10 bị chặn, RAM ml-service 579–645 MiB. Thêm dòng ở §6 (xoá header tin cậy) và cuối §24; cập nhật khối trạng thái đầu file và đầu §27. Chi tiết: `RevisionHistory.md` mục 26/10/2026 (tiếp 2).

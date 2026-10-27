@@ -3,7 +3,7 @@
 > Trạng thái: **ĐÃ TRIỂN KHAI** — mô tả wireframe khớp với giao diện đã lập trình và xác minh sống
 > cho toàn bộ màn hình MVP và các module mở rộng (CRM-lite, HRM-lite, i18n, Analytics nâng cao,
 > Kho hàng, Nhận diện khuôn mặt, Chatbot nội bộ — 24/10/2026). §16 (Danh sách nhân viên & ảnh nhận
-> diện, 26/10/2026) là **KẾ HOẠCH, chưa triển khai**. §5.1 (Tài liệu theo phạm vi dự án, 26/10/2026) đã triển
+> diện, 26/10/2026) đã triển khai và xác minh sống. §5.1 (Tài liệu theo phạm vi dự án, 26/10/2026) đã triển
 > khai và xác minh sống.
 > Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
 
@@ -606,11 +606,15 @@ Nút tròn nổi góc dưới-phải, mọi trang đã đăng nhập (chỉ hi�
 
 ---
 
-## 16. Danh sách nhân viên & ảnh nhận diện *(kế hoạch chốt 26/10/2026, xem Technical_Spec.md §27)*
+## 16. Danh sách nhân viên & ảnh nhận diện *(kế hoạch chốt 26/10/2026, triển khai 26/10/2026, xem Technical_Spec.md §27)*
 
-> Trạng thái: **KẾ HOẠCH — CHƯA TRIỂN KHAI.** Không tạo trang mới: mở rộng tab **Thành viên** của Quản
-> trị (§8) thành "Danh sách nhân viên" + drawer "Hồ sơ nhân viên"; nhân viên tự xem ở Hồ sơ cá nhân (§11).
-> `ecap-mobile` ngoài phạm vi đợt này.
+> Trạng thái: **ĐÃ TRIỂN KHAI, ĐÃ XÁC MINH SỐNG** (26/10/2026). Không tạo trang mới: mở rộng tab
+> **Thành viên** của Quản trị (§8) thành "Danh sách nhân viên" + cửa sổ "Hồ sơ nhân viên"; nhân viên tự xem
+> ở Hồ sơ cá nhân (§11). `ecap-mobile` ngoài phạm vi đợt này.
+>
+> **Khác bản kế hoạch:** "Hồ sơ nhân viên" (§16.2) dùng `Modal` có sẵn thay cho drawer trượt; bộ lọc "Ảnh
+> nhận diện" chỉ lọc trên trang đang xem; người mới do Manager mời qua import không được gửi ảnh trong cùng
+> lượt (bỏ qua có ghi lý do). Hồ sơ cá nhân (§16.5) có thêm đổi mật khẩu thật (đổi xong phải đăng nhập lại).
 
 ### 16.1 Danh sách nhân viên (`/admin/members`)
 
@@ -651,7 +655,7 @@ Nút tròn nổi góc dưới-phải, mọi trang đã đăng nhập (chỉ hi�
   diện trong danh sách**; cột "Ảnh" là avatar (fallback chữ viết tắt).
 - Mobile (< 768px): mỗi người 1 thẻ (avatar, tên, phòng ban, badge ảnh nhận diện), như `MemberCard` hiện có.
 
-### 16.2 Hồ sơ nhân viên — drawer chi tiết / chỉnh sửa
+### 16.2 Hồ sơ nhân viên — cửa sổ chi tiết / chỉnh sửa (`Modal`; kế hoạch ban đầu là drawer)
 
 ```
 ┌──────────────────────────────────────────────────┐
@@ -854,3 +858,4 @@ Hộp xác nhận đồng ý (khi tự đăng ký hoặc bấm "Xác nhận dùn
 - **24/10/2026 (Chatbot nội bộ — triển khai)** — §15 viết lại từ phác thảo kế hoạch thành mô tả giao diện thật: nút nổi chỉ hiện khi có quyền `chatbot:use`, panel có Hội thoại mới/Lịch sử, chip nguồn tài liệu bấm mở được, dòng "Đã tra cứu", số lượt đã dùng trong ngày, lỗi hiển thị ngay trong panel, nút Gửi khoá khi đang chờ trả lời.
 - **26/10/2026 (Danh sách nhân viên & ảnh nhận diện — kế hoạch)** — §16 (mới, **chỉ là kế hoạch**): mở rộng tab Thành viên (§8) thành "Danh sách nhân viên" có avatar/mã NV/số điện thoại/trạng thái ảnh nhận diện, khác nhau theo vai trò (Org Admin cả tổ chức; Manager chỉ Employee phòng mình; Employee không vào được); drawer "Hồ sơ nhân viên" để xem/sửa; panel ảnh nhận diện theo 4 trạng thái đồng ý (đang dùng, chờ nhân viên xác nhận, chưa đăng ký, nhân viên đã từ chối); trình nhập Excel + ZIP 4 bước (tệp, xem trước lỗi từng dòng, đang nhập, kết quả + báo cáo lỗi `.xlsx`); Hồ sơ cá nhân (§11) dùng API thật thay phần giả lập, kèm banner và hộp xác nhận đồng ý có phiên bản. Cập nhật khối trạng thái. Đặc tả kỹ thuật: `Technical_Spec.md` §27.
 - **26/10/2026 (Tài liệu theo phạm vi dự án & phạm vi dữ liệu của Manager — đã triển khai, Technical_Spec.md §28)** — §5.1 (mới): bộ chọn dự án khi tạo thư mục cấp gốc, nhãn dự án/"Toàn công ty", bộ lọc dự án, "Đổi dự án", cây toàn công ty chỉ xem, nút trên từng tệp theo quyền ghi của chính tệp. §4.2: mục "Tài liệu" cuối trang chi tiết dự án, thông báo 409 khi gỡ thành viên còn công việc chưa xong. §7, §9.2: phạm vi phòng ban của Manager. §12.2: sửa nhãn 2 cột cuối pipeline thành "Hoàn thành"/"Thất bại" cho khớp giao diện thật (trước ghi "Thắng"/"Thua").
+- **26/10/2026 (Danh sách nhân viên & ảnh nhận diện — đã triển khai, Technical_Spec.md §27.16)** — §16 chuyển từ kế hoạch sang đã triển khai, giữ nguyên bố cục. Ghi chú 3 chỗ khác kế hoạch: "Hồ sơ nhân viên" (§16.2) là `Modal` thay cho drawer; lọc "Ảnh nhận diện" chỉ trên trang đang xem; người mới do Manager mời qua import không được gửi ảnh cùng lượt. §16.5 có thêm đổi mật khẩu thật. Cập nhật khối trạng thái đầu file.

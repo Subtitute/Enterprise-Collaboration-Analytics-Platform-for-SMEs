@@ -2270,3 +2270,50 @@ qua; 9/9 image Docker của CI build được; mock-data 01–08 PASS (04: 55/55
 
 Chi tiết kỹ thuật: `Technical_Spec.md` §28; giao diện: `Wireframe.md` §5.1; kịch bản: `Mock_data.md` §4.4,
 §4.7, §9.
+
+---
+
+## 26/10/2026 (tiếp 2) — Danh sách nhân viên & kho ảnh nhận diện: triển khai giai đoạn 0–5
+
+Triển khai kế hoạch `Technical_Spec.md` §27 (mục 26/10/2026 ở trên) theo 2 luồng: 1 luồng lập trình, 1 luồng
+kiểm thử độc lập; lỗi do luồng kiểm thử tìm ra được sửa rồi xác minh lại trước commit. Giai đoạn 6 (tuỳ
+chọn) chưa làm.
+
+**Đã làm:**
+- **ml-service:** nạp model 1 lần lúc khởi động, giới hạn 2 lượt phân tích đồng thời + khoá riêng cho
+  detector, mọi truy vấn khuôn mặt lọc `organization_id`. Kho ảnh nhận diện trong bucket private
+  `ml-face-references`, chỉ đọc qua proxy `no-store` có nhật ký `VIEW_REF`. Đồng ý lưu phía server; ảnh tải
+  hộ/nhập ở trạng thái chờ, không dùng để so khớp tới khi nhân viên xác nhận, tự huỷ sau 30 ngày. Kiểm tra
+  trùng 1:N trong tổ chức (≥ 0,5 chặn, 0,35–0,5 cảnh báo). Vô hiệu hoá/xoá tài khoản xoá sạch dữ liệu khuôn
+  mặt và object MinIO.
+- **iam-service:** số điện thoại, mã nhân viên, avatar thật (bucket `iam-avatars`, presigned); danh sách nhân
+  viên theo phạm vi (Org Admin cả tổ chức, Manager chỉ Employee phòng mình, Employee không vào được);
+  `GET /users` không bao giờ trả SĐT/mã NV; mời không cần mật khẩu, gửi email kích hoạt.
+- **web:** tab "Danh sách nhân viên", cửa sổ Hồ sơ nhân viên, panel ảnh nhận diện 4 trạng thái, hộp đồng ý
+  + banner chờ xác nhận, trình nhập Excel + ZIP 4 bước có báo cáo lỗi. Hồ sơ cá nhân bỏ hết phần giả lập.
+- **CI:** job mới `ml-service-test` chạy pytest cho ml-service.
+
+**Lỗi tìm ra ở vòng kiểm thử độc lập (8, đã sửa hết):**
+- **Cao, toàn hệ thống — giả mạo header nội bộ qua Gateway:** Gateway chỉ ghi đè header nó đặt; khi JWT
+  không có phòng ban, `x-department-id` do client tự gửi lọt xuống service, nên Manager chưa có phòng ban đọc
+  được danh sách nhân viên/ảnh chờ của phòng khác. Lỗi có từ trước, lộ ra khi đợt này dựa vào header phòng
+  ban. Sửa: Gateway xoá mọi header tin cậy do client gửi trước khi đặt lại từ JWT, cả với WebSocket.
+- Tải ảnh hộ được cho tài khoản đã vô hiệu hoá → nay 409 `USER_INACTIVE` (event mới `iam.user.reactivated`).
+- Avatar gửi thẳng API còn giữ EXIF/GPS → iam bỏ khối metadata của JPEG/PNG/WebP.
+- Người do Manager mời không có vai trò nào → gán vai trò "Employee"; user cũ được gán bù lúc iam khởi động.
+- Đổi mật khẩu ở Hồ sơ là giả lập → endpoint thật `PATCH /users/me/password`, thu hồi mọi refresh token.
+- Kích hoạt lại tài khoản vẫn bị 401 → xoá khoá blacklist trong Redis khi kích hoạt lại.
+- UX trình nhập: dòng trùng chỉ đánh lỗi từ dòng thứ 2, ô ảnh của dòng lỗi không treo "Đang kiểm tra…".
+- Ảnh mẫu CI (opencv_zoo) là ảnh đã vẽ khung phát hiện → đổi sang ảnh tổ bay STS-130 của NASA (phạm vi công
+  cộng), tải theo URL + SHA256 ghim.
+
+**Kết quả:** pytest ml-service 64 test, jest Gateway 42 test; kịch bản sống `10-employee-directory.js`
+45/45, hồi quy mock-data 01–07 195/195, 10/10 kiểu giả mạo header bị chặn; RAM ml-service 579–645 MiB
+(giới hạn 1 GB). Gate tương đương CI: xem `Technical_Spec.md` §27.16.
+
+**Giới hạn đã biết:** giai đoạn 6 chưa làm (ảnh chấm công vẫn lưu vô thời hạn); lọc trạng thái ảnh chỉ trên
+trang đang xem; ngưỡng độ nét/1:N chưa tinh chỉnh bằng dữ liệu thật; rate limit route công khai tin
+`X-Real-IP` khi gọi thẳng cổng 3000 (có từ trước); ml-service chưa nằm trong ma trận build Docker của CI.
+
+Chi tiết kỹ thuật: `Technical_Spec.md` §27.16, §6; giao diện: `Wireframe.md` §16; kịch bản: `Mock_data.md`
+§4.9, §10.

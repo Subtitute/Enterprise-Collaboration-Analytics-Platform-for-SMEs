@@ -4,7 +4,9 @@
 > được dùng cho đợt nghiệm thu toàn hệ thống ngày 24/10/2026 (sau khi hoàn thành Chatbot RAG và đợt giảm
 > RAM). Mã nguồn kịch bản và file mẫu nằm ở `scripts/mock-data/`. Chi tiết lịch sử đầy đủ: xem
 > `RevisionHistory.md`. Cập nhật 26/10/2026: chính sách tài liệu theo dự án và phạm vi dữ liệu của Manager
-> (`Technical_Spec.md` §28) — kịch bản 04/08 đã sửa theo, kết quả chạy lại ở mục 9.
+> (`Technical_Spec.md` §28) — kịch bản 04/08 đã sửa theo, kết quả chạy lại ở mục 9. Cập nhật 26/10/2026
+> (tiếp): kịch bản mới `10-employee-directory.js` cho Danh sách nhân viên & kho ảnh nhận diện
+> (`Technical_Spec.md` §27), xem mục 4.9 và mục 10.
 
 **Mục đích:** gom về một chỗ (1) các tài khoản dùng để kiểm thử theo từng vai trò, (2) các bộ dữ liệu
 và kịch bản tái sử dụng được cùng kết quả mong đợi, (3) cách dựng lại toàn bộ khi cần — để lần kiểm
@@ -173,6 +175,34 @@ quyền: có nhóm "Sản phẩm & Kho", "Nhắn tin & Trợ lý AI", không cò
 của Employee lưu vào IAM rồi trả về trạng thái ban đầu. Kịch bản đếm riêng số phản hồi 429 (rate-limit
 của Gateway) và chờ hết cửa sổ 60 giây trước khi kiểm tra ma trận phân quyền nếu có 429.
 
+### 4.9. `10-employee-directory.js` — Danh sách nhân viên & ảnh nhận diện *(bổ sung 26/10/2026)*
+
+- **A. Danh sách + hợp đồng DTO:** Org Admin thấy cả tổ chức; Manager Kinh doanh chỉ thấy Employee phòng
+  mình; Employee và Super Admin nhận 403; `GET /users` không bao giờ có `phoneNumber`/`employeeCode`.
+- **B. Hồ sơ:** số điện thoại được chuẩn hoá hoặc bị từ chối; mã NV trùng (khác hoa thường) → 409; mời không
+  mật khẩu → email kích hoạt trong MailHog có link `/reset-password?token=`, không chứa mật khẩu; Manager mời
+  → phòng ban bị ép về phòng của Manager.
+- **C. Avatar:** chính chủ và Manager → Employee phòng mình được; Manager → phòng khác/Org Admin, Employee →
+  người khác: 403; URL presigned tải được.
+- **D. Ảnh nhận diện:** Manager tải hộ → bản chờ không được verify → nhân viên xác nhận → verify khớp; trùng
+  1:N → 409; nhân viên từ chối → tải hộ 409; proxy ảnh `no-store` + nhật ký `VIEW_REF`; Manager phòng khác
+  403.
+- **E. Vòng đời:** vô hiệu hoá → ml-service xoá bản dùng, đồng ý và object MinIO.
+
+Ảnh khuôn mặt **không nằm trong repo**. Phần D/E cần biến `ECAP_FACE_FIXTURES` trỏ tới thư mục có
+`person_a.jpg`, `person_a2.jpg`, `person_b.jpg`, `two_faces.jpg`; thiếu biến thì D/E bị bỏ qua (chỉ chạy
+17 kiểm tra). Sinh thư mục này từ ảnh mẫu của `apps/ml-service/tests/face_fixtures.py` (ảnh tổ bay STS-130
+của NASA, phạm vi công cộng; cần có sẵn 2 model và `models/sample_crew_for_tests.jpg` như job CI
+`ml-service-test`):
+
+```bash
+cd apps/ml-service
+python -c "from pathlib import Path; from tests import face_fixtures as f; o=Path('../../.face-fixtures'); o.mkdir(exist_ok=True); [ (o/n).write_bytes(g()) for n,g in [('person_a.jpg',f.person_a),('person_a2.jpg',f.person_a_variant),('person_b.jpg',f.person_b),('two_faces.jpg',f.two_faces)] ]"
+```
+
+Dọn dẹp: xoá vĩnh viễn 2 tài khoản thử, trả lại số điện thoại/avatar của Employee demo, xoá nhật ký,
+`fact_user_activity` và email MailHog do kịch bản tạo. Kịch bản không nằm trong `run-all.js`, chạy riêng.
+
 ## 5. Cách chạy
 
 Điều kiện: stack Docker đang chạy, Node ≥ 18 (dùng `fetch` có sẵn), Docker CLI trên máy chạy kịch bản
@@ -285,6 +315,17 @@ Kiểm tra sống riêng của đợt (script tạm, dữ liệu đã dọn):
 - **CRM sau khi giao khách hàng demo** (khách hàng/deal): Org Admin 24/48, Manager Kinh doanh 8/16, Employee
   `duc.hoang+227860` 3/6, Employee `an.nguyen+216140` 2/4, Manager Kỹ thuật 0/0.
 
+## 10. Kết quả lần chạy 26/10/2026 (danh sách nhân viên & ảnh nhận diện)
+
+| Kịch bản | Kết quả |
+|---|---|
+| 10 Danh sách nhân viên & ảnh nhận diện | 45/45 PASS (có `ECAP_FACE_FIXTURES`); 17/17 khi không có ảnh (bỏ qua D/E) |
+| 01–07 (hồi quy sau khi Gateway xoá header tin cậy) | 31 + 28 + 18 + 55 + 27 + 24 + 12 = 195/195 PASS |
+
+Kiểm tra sống riêng: gửi header tin cậy giả qua Gateway (hoa thường lẫn lộn, header trùng tên, `x-roles` +
+`x-is-super-admin`, `x-department-id` phòng khác, `x-organization-id`, `x-user-id`, `x-internal-secret`;
+Manager Kinh doanh giả phòng Kỹ thuật; Analytics phòng khác) → **10/10** bị chặn hoặc bị bỏ qua đúng.
+
 
 ## Lịch sử thay đổi file này
 
@@ -293,3 +334,6 @@ Kiểm tra sống riêng của đợt (script tạm, dữ liệu đã dọn):
 - 26/10/2026: tài liệu theo phạm vi dự án + phạm vi dữ liệu của Manager — mục 2 thêm 3 script dữ liệu (migration,
   20 tài liệu mẫu, giao khách hàng demo); mục 4.4 cây thư mục gắn dự án + 7 kiểm tra mới của 04; mục 4.7 thay
   đổi của 08; mục 9 (mới) kết quả chạy lại và các kiểm tra sống của đợt.
+- 26/10/2026 (tiếp): danh sách nhân viên & kho ảnh nhận diện — mục 4.9 (mới) kịch bản `10-employee-directory.js`
+  và cách sinh thư mục ảnh `ECAP_FACE_FIXTURES` (ảnh khuôn mặt không nằm trong repo); mục 10 (mới) kết quả chạy
+  và kiểm tra giả mạo header qua Gateway.
