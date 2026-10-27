@@ -275,8 +275,8 @@
     "deleteButton": "Xoá đăng ký",
     "enrolledAt": "Đã đăng ký khuôn mặt lúc {{date}}",
     "softWarningNote": "Đây chỉ là tín hiệu tham khảo để người quản lý đối chiếu với ảnh chấm công - không bao giờ chặn việc chấm công của bạn, dù khuôn mặt không khớp hoặc chưa đăng ký.",
-    "deleteConfirmTitle": "Xoá đăng ký khuôn mặt?",
-    "deleteConfirmDescription": "Dữ liệu khuôn mặt đã đăng ký sẽ bị xoá vĩnh viễn. Bạn có thể đăng ký lại bất kỳ lúc nào.",
+    "deleteConfirmTitle": "Xoá ảnh & rút lại đồng ý?",
+    "deleteConfirmDescription": "Ảnh và đặc trưng khuôn mặt (kể cả ảnh đang chờ xác nhận) sẽ bị xoá vĩnh viễn; quản trị viên không thể tải ảnh hộ cho tới khi bạn tự đăng ký lại. Chấm công vẫn hoạt động bình thường.",
     "cameraModalTitle": "Chụp ảnh đăng ký khuôn mặt",
     "captureButton": "Chụp ảnh",
     "confirmButton": "Xác nhận đăng ký",
@@ -284,8 +284,22 @@
       "enrollSuccess": "Đã đăng ký khuôn mặt thành công",
       "enrollError": "Không thể đăng ký khuôn mặt",
       "deleteSuccess": "Đã xoá đăng ký khuôn mặt",
-      "deleteError": "Không thể xoá đăng ký khuôn mặt"
-    }
+      "deleteError": "Không thể xoá đăng ký khuôn mặt",
+      "confirmSuccess": "Đã xác nhận dùng ảnh nhận diện mới",
+      "rejectSuccess": "Đã từ chối ảnh nhận diện",
+      "actionError": "Không thể thực hiện thao tác"
+    },
+    "pendingFrom": "Ảnh mới do {{name}} tải lên ngày {{date}}.",
+    "pendingNotUsed": "Ảnh này chưa dùng để đối chiếu cho tới khi bạn xác nhận (hết hạn {{date}}).",
+    "confirmPending": "Xác nhận dùng ảnh này",
+    "rejectPending": "Từ chối",
+    "rejectConfirmTitle": "Từ chối ảnh nhận diện?",
+    "rejectConfirmDescription": "Bạn sẽ không dùng nhận diện khuôn mặt; quản trị viên không thể tải ảnh hộ. Bạn có thể tự đăng ký lại bất kỳ lúc nào.",
+    "cameraButton": "Chụp bằng camera",
+    "uploadButton": "Tải ảnh từ máy",
+    "withdrawButton": "Xoá & rút lại đồng ý",
+    "withdrawnNote": "Bạn đã từ chối/rút lại đồng ý ({{date}}). Quản trị viên không thể tải ảnh hộ; bạn có thể tự đăng ký lại.",
+    "noneNote": "Bạn chưa có ảnh nhận diện. Chấm công vẫn hoạt động bình thường khi không đăng ký."
   },
   "toasts": {
     "checkInSuccess": "Đã chấm công vào làm",
@@ -406,5 +420,36 @@
         "overtime": "Duyệt làm thêm (OT)"
       }
     }
+  },
+  "face": {
+    "status": {
+      "NONE": "Chưa đăng ký",
+      "ACTIVE": "Đang dùng",
+      "PENDING_CONSENT": "Chờ NV xác nhận",
+      "WITHDRAWN": "NV đã từ chối"
+    },
+    "sources": {
+      "SELF_CAMERA": "Tự chụp",
+      "SELF_UPLOAD": "Tự tải ảnh",
+      "ADMIN": "Quản trị viên tải",
+      "MANAGER": "Quản lý tải",
+      "IMPORT": "Nhập từ Excel"
+    },
+    "consent": {
+      "title": "Đồng ý xử lý dữ liệu khuôn mặt (phiên bản v1)",
+      "purpose": "Ảnh và đặc trưng khuôn mặt chỉ dùng để đối chiếu khi chấm công, kết quả chỉ là cảnh báo tham khảo.",
+      "stored": "Ảnh được lưu; Org Admin và Manager phòng ban của bạn xem được, mỗi lượt xem đều được ghi lại.",
+      "noImpact": "Từ chối hoặc rút lại không ảnh hưởng việc chấm công.",
+      "deletion": "Dữ liệu bị xoá khi bạn rút lại, khi tài khoản bị vô hiệu hoá hoặc bị xoá.",
+      "checkbox": "Tôi đã đọc và đồng ý",
+      "agree": "Đồng ý",
+      "cancel": "Huỷ"
+    },
+    "photoAlt": "Ảnh nhận diện",
+    "pendingPhotoAlt": "Ảnh nhận diện chờ xác nhận",
+    "noStoredPhoto": "Chưa có ảnh lưu (đăng ký trước khi hệ thống lưu ảnh)",
+    "photoLoadError": "Không tải được ảnh",
+    "activeInfo": "Nguồn: {{source}} · Cập nhật: {{date}}",
+    "unknownActor": "Quản trị viên"
   }
 }

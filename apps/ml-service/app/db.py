@@ -82,6 +82,60 @@ _SCHEMA_STATEMENTS = [
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_face_enrollments_org ON face_enrollments (organization_id)",
+    # 26/10/2026: kho anh nhan dien + dong y (Technical_Spec.md muc 27.4) - them cot vao bang cu
+    # (idempotent), ban ghi dang ky truoc ngay nay khong co anh goc (photo_object_key NULL).
+    "ALTER TABLE face_enrollments ADD COLUMN IF NOT EXISTS photo_object_key TEXT NULL",
+    "ALTER TABLE face_enrollments ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'SELF_CAMERA'",
+    "ALTER TABLE face_enrollments ADD COLUMN IF NOT EXISTS enrolled_by UUID NULL",
+    "ALTER TABLE face_enrollments ADD COLUMN IF NOT EXISTS model_version TEXT NOT NULL DEFAULT 'yunet-2023mar+arcface-r100'",
+    "UPDATE face_enrollments SET enrolled_by = user_id WHERE enrolled_by IS NULL",
+    # Ban CHO xac nhan tach bang rieng: verify KHONG BAO GIO doc bang nay.
+    """
+    CREATE TABLE IF NOT EXISTS face_pending_enrollments (
+        user_id UUID PRIMARY KEY,
+        organization_id UUID NOT NULL,
+        embedding DOUBLE PRECISION[] NOT NULL,
+        photo_object_key TEXT NOT NULL,
+        source TEXT NOT NULL,
+        actor_id UUID NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        expires_at TIMESTAMPTZ NOT NULL
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_face_pending_org ON face_pending_enrollments (organization_id)",
+    # Dong y: chi ghi them; trang thai hien tai = ban ghi moi nhat cua user.
+    """
+    CREATE TABLE IF NOT EXISTS face_consents (
+        id UUID PRIMARY KEY,
+        organization_id UUID NOT NULL,
+        user_id UUID NOT NULL,
+        action TEXT NOT NULL,
+        consent_text_version TEXT NULL,
+        source TEXT NOT NULL,
+        actor_id UUID NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_face_consents_user ON face_consents (organization_id, user_id, created_at DESC)",
+    # Nhat ky: KHONG chua embedding/anh; giu 1 nam (xoa trong job hang gio, app/face_store.py).
+    """
+    CREATE TABLE IF NOT EXISTS face_enrollment_events (
+        id UUID PRIMARY KEY,
+        organization_id UUID NOT NULL,
+        actor_id UUID NOT NULL,
+        target_user_id UUID NOT NULL,
+        action TEXT NOT NULL,
+        source TEXT NULL,
+        correlation_id TEXT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_face_events_org ON face_enrollment_events (organization_id, created_at)",
+    # NULL = chua biet muc vai tro -> moi kiem tra pham vi Manager tu choi (fail-closed).
+    "ALTER TABLE dim_user ADD COLUMN IF NOT EXISTS role_level TEXT NULL",
+    # 26/10/2026: tai khoan dang bi vo hieu hoa (iam.user.deactivated/reactivated + resync luc iam khoi
+    # dong) - chan tai anh ho cho tai khoan da vo hieu hoa (Technical_Spec.md muc 27.8).
+    "ALTER TABLE dim_user ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE",
 ]
 
 
@@ -91,5 +145,6 @@ def bootstrap_schema() -> None:
             conn.execute(text(statement))
     logger.info(
         "Da kiem tra/tao xong schema ml-service (dim_user, dim_department_manager, "
-        "fact_task_events, fact_attendance, face_enrollments)."
+        "fact_task_events, fact_attendance, face_enrollments, face_pending_enrollments, face_consents, "
+        "face_enrollment_events)."
     )

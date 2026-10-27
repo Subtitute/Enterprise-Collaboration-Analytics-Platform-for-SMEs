@@ -4,7 +4,7 @@
     "subtitle": "Manage members, departments, and system access permissions.",
     "description": "Manage members, departments, and system access permissions.",
     "tabs": {
-      "members": "Members",
+      "members": "Employee directory",
       "departments": "Departments",
       "roles": "Roles & Permissions",
       "calendar": "Company Calendar",
@@ -41,7 +41,7 @@
     "description": "Manage members, departments, and access permissions within your organization.",
     "inviteMember": "Invite member",
     "importExcel": "Import from Excel",
-    "searchPlaceholder": "Search by name or email…",
+    "searchPlaceholder": "Name, email, employee code, phone…",
     "allDepartments": "All departments",
     "allStatuses": "All statuses",
     "filterDepartmentAria": "Filter by department",
@@ -58,7 +58,10 @@
       "department": "Department",
       "role": "Role",
       "status": "Status",
-      "actions": "Actions"
+      "actions": "Actions",
+      "employeeCode": "Code",
+      "phone": "Phone",
+      "face": "Face photo"
     },
     "status": {
       "active": "Active",
@@ -79,7 +82,11 @@
       "title": "Permanently delete this account?",
       "description": "\"{{fullName}}\" will be COMPLETELY removed from the organization - this cannot be undone, unlike deactivation.",
       "confirmLabel": "Delete permanently"
-    }
+    },
+    "managerDescription": "Employee directory — {{department}} department",
+    "managerScopeNote": "Only employees (Employee role) of your department are shown.",
+    "filterFaceAria": "Filter by face photo",
+    "allFaceStatuses": "Face photo: All"
   },
   "rolesPermissionsPage": {
     "otherGroup": "Other",
@@ -233,7 +240,10 @@
       "emailRequired": "Please enter an email address",
       "fullNameRequired": "Please enter a full name",
       "passwordMinLength": "Password must be at least 8 characters"
-    }
+    },
+    "passwordOptionalHint": "Leave empty to send an activation email (no password included); the link expires after 72 hours.",
+    "phoneLabel": "Phone number",
+    "employeeCodeLabel": "Employee code"
   },
   "importEmployeesModal": {
     "title": "Import employees from Excel",
@@ -300,5 +310,154 @@
   },
   "failedEvents": {
     "title": "System Failed Events"
+  },
+  "employeeDrawer": {
+    "title": "Employee profile",
+    "loadError": "Could not load the employee profile",
+    "changeAvatar": "Change photo",
+    "removeAvatar": "Remove photo",
+    "email": "Email",
+    "emailReadOnly": "Cannot be changed",
+    "employeeCode": "Employee code",
+    "fullName": "Full name",
+    "phone": "Phone number",
+    "departmentRole": "Department: {{department}} · Role: {{role}}",
+    "fullNameRequired": "Please enter the full name"
+  },
+  "facePanel": {
+    "title": "Attendance face photo",
+    "uploadTitle": "Upload a face photo for {{name}}",
+    "chooseFile": "Choose photo",
+    "chooseFileHint": "Choose a clear front-facing portrait (JPEG/PNG). It is checked right away; nothing is saved yet.",
+    "inspecting": "Checking photo…",
+    "oneFace": "1 face, {{height}}px tall",
+    "duplicateWith": "Matches the face of {{name}}",
+    "possibleDuplicateWith": "May match {{name}}",
+    "pendingNote": "The new photo waits up to 30 days for the employee's confirmation; the current photo stays in use until then.",
+    "send": "Send photo",
+    "activeTitle": "In use for matching",
+    "source": "Source: {{source}}",
+    "updatedAt": "Updated: {{date}}",
+    "by": "By: {{name}}",
+    "expiresAt": "Expires: {{date}}",
+    "pendingNotUsed": "Not used for matching until the employee confirms.",
+    "noneTitle": "No face photo yet",
+    "noneNote": "The photo will wait up to 30 days for the employee's confirmation.",
+    "withdrawnTitle": "The employee declined face recognition ({{date}}).",
+    "withdrawnNote": "Photos cannot be uploaded on their behalf. Attendance keeps working normally.",
+    "upload": "Upload photo",
+    "uploadOther": "Upload another photo",
+    "uploadReplace": "Upload replacement",
+    "cancelPending": "Cancel pending photo",
+    "delete": "Delete photo",
+    "deleteConfirmTitle": "Delete the face photo?",
+    "deleteConfirmDescription": "The current and pending photos (if any) will be deleted. This is not a consent withdrawal - another photo can be uploaded later.",
+    "cancelPendingConfirmTitle": "Cancel the pending photo?",
+    "cancelPendingConfirmDescription": "The pending photo will be deleted; the current photo (if any) is kept.",
+    "toasts": {
+      "uploaded": "Photo sent - awaiting the employee's confirmation",
+      "uploadFailed": "Could not upload the face photo",
+      "deleted": "Face photo deleted",
+      "deleteFailed": "Could not delete the face photo"
+    }
+  },
+  "importWizard": {
+    "steps": {
+      "1": "Files",
+      "2": "Preview",
+      "3": "Importing",
+      "4": "Result"
+    },
+    "file": {
+      "instructions": "Download the template and fill in employees in the given columns (password may be left empty - an activation email is sent). Put face photos in one ZIP file.",
+      "excelLabel": "Excel file (≤ 2 MB, ≤ 300 rows)",
+      "zipLabel": "Face photos (ZIP, optional)",
+      "selectZip": "Choose ZIP file…",
+      "matchingNote": "Photos are matched by the \"{{column}}\" column, or by email when empty (e.g. an.nguyen@congty.vn.jpg). Files are processed in your browser only, never uploaded.",
+      "managerNote": "You can only import employees of your own department: Role, Department, Phone and Employee code columns are ignored; photos are only sent for existing employees.",
+      "continue": "Continue"
+    },
+    "errors": {
+      "excelTooLarge": "The Excel file exceeds 2 MB.",
+      "excelEmpty": "The Excel file has no data rows.",
+      "tooManyRows": "The Excel file exceeds {{max}} rows.",
+      "zipTooLarge": "The ZIP file is too large (max 200 MB, total uncompressed size max 200 MB).",
+      "zipTooManyFiles": "The ZIP file contains more than 500 files.",
+      "zipUnreadable": "Could not read the ZIP file."
+    },
+    "preview": {
+      "inspecting": "Checking photos… {{done}}/{{total}}",
+      "summary": "Total {{total}} · Invite {{invite}} · Update {{update}} · Warnings {{warning}} · Errors {{error}}",
+      "onlyErrors": "Errors only",
+      "photoChecking": "Checking…",
+      "oneFace": "1 face",
+      "photoError": "✖ Photo error",
+      "warning": "Warning",
+      "valid": "Valid",
+      "updateNote": "\"Update\" rows only change phone, employee code and photo - never name, department or role. Rows with errors are skipped.",
+      "unmatched": "{{count}} photos in the ZIP do not match any row.",
+      "back": "← Back",
+      "submit": "Import {{count}} valid rows →",
+      "photoNotChecked": "Not checked (row has errors) {{file}}"
+    },
+    "columns": {
+      "photo": "Photo",
+      "action": "Action",
+      "face": "Face photo",
+      "account": "Account",
+      "reason": "Reason"
+    },
+    "actions": {
+      "invite": "Invite",
+      "update": "Update",
+      "outOfScope": "Out of scope"
+    },
+    "running": {
+      "progress": "Importing… {{done}}/{{total}} - Do not close this tab.",
+      "account": "Row {{row}}: account…",
+      "photo": "Row {{row}}: sending photo (retries while syncing)…",
+      "pause": "Pause",
+      "resume": "Resume"
+    },
+    "result": {
+      "summary": "Done: {{success}} succeeded · {{partial}} partially succeeded · {{failed}} failed",
+      "pendingNote": "Sent photos await each employee's confirmation within 30 days. New employees receive an activation email (no password included).",
+      "deleteSourceNote": "Please delete the source Excel/ZIP files after importing.",
+      "retry": "Retry failed steps",
+      "downloadReport": "Download error report .xlsx"
+    },
+    "reasons": {
+      "invalidEmail": "Invalid email",
+      "invalidPhone": "Invalid phone number",
+      "invalidEmployeeCode": "Invalid employee code",
+      "passwordTooShort": "Password must be at least 8 characters",
+      "duplicateEmailInFile": "Duplicate email in file",
+      "duplicateEmployeeCodeInFile": "Duplicate employee code in file",
+      "outOfScope": "Out of scope",
+      "missingFullName": "Missing full name",
+      "departmentNotFound": "Department not found",
+      "roleNotFound": "Role not found",
+      "photoNoZip": "No photo ZIP selected",
+      "photoTooLarge": "Photo exceeds 5 MB",
+      "photoUnsupported": "Only .jpg/.jpeg/.png photos are accepted",
+      "photoDuplicateName": "Duplicate photo file name in ZIP",
+      "photoNotFound": "Photo file not found in ZIP",
+      "photoUnreadable": "Could not read the photo (HEIC/corrupted)",
+      "photoWithdrawn": "Employee declined - photo skipped",
+      "managerPhotoExistingOnly": "Photos are only sent for existing employees",
+      "managerContactIgnored": "Phone/employee code ignored (requires admin rights)",
+      "updateIgnoresFields": "Existing email: name/department/role/password ignored",
+      "managerRoleDepartmentIgnored": "Role/department ignored (your department is used)",
+      "nothingToUpdate": "Nothing to update",
+      "invited": "Invited",
+      "invitedEmail": "Invited (activation email sent)",
+      "updated": "Updated",
+      "step": {
+        "pending": "Not run",
+        "ok": "Success",
+        "skipped": "Skipped",
+        "error": "Error"
+      }
+    }
   }
 }

@@ -36,7 +36,8 @@
       "uploadAvatar": "写真をアップロード",
       "saveProfile": "変更を保存",
       "updatePassword": "パスワードを更新",
-      "copyEmployeeCode": "社員番号をコピー"
+      "copyEmployeeCode": "社員番号をコピー",
+      "removeAvatar": "写真を削除"
     },
     "roles": {
       "orgAdmin": "組織管理者",
@@ -50,7 +51,18 @@
       "passwordSuccess": "パスワードを変更しました。",
       "passwordMismatch": "確認用パスワードが一致しません。",
       "passwordTooShort": "新しいパスワードは8文字以上である必要があります。",
-      "missingCurrentPassword": "現在のパスワードを入力してください。"
-    }
+      "missingCurrentPassword": "現在のパスワードを入力してください。",
+      "profileUpdateFailed": "プロフィールを更新できませんでした",
+      "avatarUpdated": "プロフィール写真を更新しました",
+      "avatarUpdateFailed": "プロフィール写真を更新できませんでした",
+      "avatarRemoved": "プロフィール写真を削除しました",
+      "passwordReLogin": "新しいパスワードで再度ログインしてください。",
+      "passwordFailed": "パスワードを変更できませんでした"
+    },
+    "adminManagedFieldsCallout": "氏名・社員番号・部署・役割は管理者が更新します。電話番号とプロフィール写真はご自身で更新できます。"
+  },
+  "faceBanner": {
+    "message": "管理者があなたの勤怠用顔写真をアップロードしました。{{date}} までに確認してください。",
+    "viewNow": "今すぐ確認"
   }
 }

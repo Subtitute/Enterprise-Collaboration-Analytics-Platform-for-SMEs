@@ -1,13 +1,49 @@
-import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Delete,
+  ForbiddenException,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, RequirePermissions } from '@app/common-guard';
 import { AuthContext, ERROR_CODES, PaginationQueryDto, PERMISSIONS, resolveDataScope } from '@app/common-dto';
-import { UsersService } from './users.service';
+import { MAX_AVATAR_SIZE_BYTES, ProfileCaller, UsersService } from './users.service';
 import { InviteUserDto } from './dto/invite-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateMyProfileDto } from './dto/update-my-profile.dto';
+import { DirectoryQueryDto } from './dto/directory-query.dto';
+import { ChangeMyPasswordDto } from './dto/change-my-password.dto';
 // 25/07/2026: pipe dung chung validate :id la UUID hop le truoc khi cham toi DB - xem chu thich
 // chi tiet trong common/uuid-param.pipe.ts (loi MINOR, review 25/07/2026).
 import { uuidParamPipe } from '../common/uuid-param.pipe';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function toProfileCaller(caller: AuthContext): ProfileCaller {
+  return {
+    userId: caller.userId,
+    permissions: caller.permissions ?? [],
+    departmentId: caller.departmentId ?? null,
+    isSuperAdmin: caller.isSuperAdmin === true,
+  };
+}
+
+/** 26/10/2026: `:id` cua route avatar nhan uuid HOAC 'me' (Technical_Spec.md muc 27.6). */
+function resolveTargetId(id: string, callerId: string): string {
+  if (id === 'me') return callerId;
+  if (!UUID_RE.test(id)) throw new BadRequestException('ID khong hop le, phai la dinh dang UUID');
+  return id;
+}
 
 /** Quan tri > Thanh vien - Wireframe.md muc 8. */
 @ApiTags('Users')
@@ -58,6 +94,39 @@ export class UsersController {
   // tu kiem tra thu cong trong handler: cho qua neu :id trung voi nguoi goi (tu-xem, dung cho
   // trang Ho so ca nhan) HOAC nguoi goi co quyen user:manage (dung cho Quan tri > Thanh vien xem
   // ho so nguoi khac); nguoc lai 403.
+  // 26/10/2026: Danh sach nhan vien (Technical_Spec.md muc 27.6) - khai bao TRUOC ':id' de khong bi
+  // uuidParamPipe bat nham. Pham vi kiem tra trong UsersService.directory() (Employee/Super Admin -> 403).
+  @Get('directory')
+  directory(@CurrentUser() caller: AuthContext, @Query() query: DirectoryQueryDto) {
+    return this.usersService.directory(caller.organizationId, toProfileCaller(caller), query);
+  }
+
+  // 26/10/2026: chinh chu tu sua so dien thoai (ho ten/ma NV/phong ban do quan tri vien cap nhat).
+  @Patch('me')
+  updateMe(@CurrentUser() caller: AuthContext, @Body() dto: UpdateMyProfileDto) {
+    if (caller.isSuperAdmin) throw new ForbiddenException({ message: 'Khong ap dung cho Super Admin', errorCode: ERROR_CODES.PROFILE_SCOPE_FORBIDDEN });
+    return this.usersService.updateMyProfile(caller.organizationId, caller.userId, dto);
+  }
+
+  // 26/10/2026: chinh chu tu doi mat khau (thay nut gia lap tren Ho so ca nhan) - thu hoi moi refresh token.
+  @Patch('me/password')
+  changeMyPassword(@CurrentUser() caller: AuthContext, @Body() dto: ChangeMyPasswordDto) {
+    return this.usersService.changeMyPassword(caller.organizationId, caller.userId, dto);
+  }
+
+  // 26/10/2026: avatar (bucket iam-avatars) - chinh chu / Org Admin / Manager voi Employee phong minh.
+  @Put(':id/avatar')
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('avatar', { limits: { fileSize: MAX_AVATAR_SIZE_BYTES } }))
+  setAvatar(@CurrentUser() caller: AuthContext, @Param('id') id: string, @UploadedFile() avatar: Express.Multer.File) {
+    return this.usersService.setAvatar(caller.organizationId, toProfileCaller(caller), resolveTargetId(id, caller.userId), avatar);
+  }
+
+  @Delete(':id/avatar')
+  removeAvatar(@CurrentUser() caller: AuthContext, @Param('id') id: string) {
+    return this.usersService.removeAvatar(caller.organizationId, toProfileCaller(caller), resolveTargetId(id, caller.userId));
+  }
+
   @Get(':id')
   findOne(
     @CurrentUser('organizationId') organizationId: string,
@@ -93,8 +162,10 @@ export class UsersController {
     // vai tro cho thanh vien moi) - xem chu thich chi tiet trong users.service.ts invite().
     @CurrentUser('permissions') callerPermissions: string[],
     @Body() dto: InviteUserDto,
+    // 26/10/2026: Manager moi -> phong ban ep ve phong cua Manager (UsersService.invite()).
+    @CurrentUser('departmentId') callerDepartmentId: string | null = null,
   ) {
-    return this.usersService.invite(organizationId, dto, callerPermissions ?? []);
+    return this.usersService.invite(organizationId, dto, callerPermissions ?? [], callerDepartmentId ?? null);
   }
 
   @Patch(':id')
@@ -134,8 +205,10 @@ export class UsersController {
   reactivate(
     @CurrentUser('organizationId') organizationId: string,
     @Param('id', uuidParamPipe()) id: string,
+    // 26/10/2026: nguoi kich hoat lai - dinh kem vao event iam.user.reactivated.
+    @CurrentUser('userId') actorId?: string,
   ) {
-    return this.usersService.reactivate(organizationId, id);
+    return this.usersService.reactivate(organizationId, id, actorId);
   }
 
   // 25/09/2026: xoa vinh vien - chi cho phep voi tai khoan DA vo hieu hoa (UsersService.remove()

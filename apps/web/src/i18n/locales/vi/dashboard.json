@@ -156,7 +156,10 @@
       "attendance_checked_out": "đã kết thúc ca làm việc",
       "leave_request_created": "đã gửi đơn yêu cầu nghỉ phép",
       "leave_request_approved": "đã duyệt một đơn nghỉ phép",
-      "leave_request_rejected": "đã từ chối một đơn nghỉ phép"
+      "leave_request_rejected": "đã từ chối một đơn nghỉ phép",
+      "iam_user_profile_updated": "đã cập nhật hồ sơ nhân viên",
+      "iam_user_roles_changed": "đã cập nhật vai trò nhân sự",
+      "iam_user_reactivated": "đã kích hoạt lại một tài khoản"
     }
   },
   "status": {

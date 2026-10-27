@@ -9,20 +9,21 @@ import { UserDepartmentSyncService } from './user-department-sync.service';
  * cung tinh than voi users.service.spec.ts trong cung thu muc.
  */
 describe('UserDepartmentSyncService', () => {
-  let qbMock: { select: jest.Mock; getMany: jest.Mock };
+  let qbMock: { leftJoin: jest.Mock; select: jest.Mock; getMany: jest.Mock };
   let userRepo: { createQueryBuilder: jest.Mock };
   let outboxService: { record: jest.Mock };
   let managerMock: Record<string, never>;
-  let dataSource: { transaction: jest.Mock };
+  let dataSource: { transaction: jest.Mock; query: jest.Mock };
   let service: UserDepartmentSyncService;
 
   beforeEach(() => {
-    qbMock = { select: jest.fn().mockReturnThis(), getMany: jest.fn() };
+    qbMock = { leftJoin: jest.fn().mockReturnThis(), select: jest.fn().mockReturnThis(), getMany: jest.fn() };
     userRepo = { createQueryBuilder: jest.fn().mockReturnValue(qbMock) };
     outboxService = { record: jest.fn().mockResolvedValue(undefined) };
     managerMock = {};
     dataSource = {
       transaction: jest.fn(async (cb: (manager: typeof managerMock) => unknown) => cb(managerMock)),
+      query: jest.fn().mockResolvedValue([]),
     };
 
     service = new UserDepartmentSyncService(dataSource as any, userRepo as any, outboxService as any);
@@ -37,26 +38,35 @@ describe('UserDepartmentSyncService', () => {
     expect(outboxService.record).not.toHaveBeenCalled();
   });
 
-  it('truy van "lean" chi 3 cot id/organizationId/departmentId qua createQueryBuilder', async () => {
+  // 26/10/2026: them ten vai tro (resync muc vai tro cho ml-service, Technical_Spec.md muc 27.4).
+  it('truy van "lean" chi id/organizationId/departmentId + ten vai tro qua createQueryBuilder', async () => {
     qbMock.getMany.mockResolvedValue([]);
 
     await service.onApplicationBootstrap();
 
     expect(userRepo.createQueryBuilder).toHaveBeenCalledWith('u');
-    expect(qbMock.select).toHaveBeenCalledWith(['u.id', 'u.organizationId', 'u.departmentId']);
+    expect(qbMock.leftJoin).toHaveBeenCalledWith('u.roles', 'r');
+    expect(qbMock.select).toHaveBeenCalledWith(['u.id', 'u.organizationId', 'u.departmentId', 'u.isActive', 'r.id', 'r.name']);
   });
 
   it('phat 1 outbox event USER_DEPARTMENT_CHANGED cho MOI user, tren TAT CA to chuc, voi departmentId hien tai', async () => {
     qbMock.getMany.mockResolvedValue([
       { id: 'user-1', organizationId: 'org-1', departmentId: 'dept-1' },
       { id: 'user-2', organizationId: 'org-1', departmentId: null },
-      { id: 'user-3', organizationId: 'org-2', departmentId: 'dept-9' },
+      { id: 'user-3', organizationId: 'org-2', departmentId: 'dept-9', isActive: false, roles: [{ id: 'r', name: 'Manager' }] },
     ]);
 
     await service.onApplicationBootstrap();
 
     expect(dataSource.transaction).toHaveBeenCalledTimes(1);
-    expect(outboxService.record).toHaveBeenCalledTimes(3);
+    // 26/10/2026: moi user 2 event - department_changed roi roles_changed (khong co vai tro -> EMPLOYEE).
+    expect(outboxService.record).toHaveBeenCalledTimes(6);
+    expect(outboxService.record).toHaveBeenNthCalledWith(2, managerMock, {
+      eventType: EVENT_TYPES.USER_ROLES_CHANGED,
+      organizationId: 'org-1',
+      producer: 'iam-service',
+      payload: { userId: 'user-1', roleLevel: 'EMPLOYEE', actorId: null, isActive: true },
+    });
     expect(outboxService.record).toHaveBeenNthCalledWith(1, managerMock, {
       eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,
       organizationId: 'org-1',
@@ -65,17 +75,38 @@ describe('UserDepartmentSyncService', () => {
       // nguoi vua thao tac (xem chu thich UserDepartmentChangedPayload.actorId, common-dto).
       payload: { userId: 'user-1', departmentId: 'dept-1', actorId: null },
     });
-    expect(outboxService.record).toHaveBeenNthCalledWith(2, managerMock, {
+    expect(outboxService.record).toHaveBeenNthCalledWith(3, managerMock, {
       eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,
       organizationId: 'org-1',
       producer: 'iam-service',
       payload: { userId: 'user-2', departmentId: null, actorId: null },
     });
-    expect(outboxService.record).toHaveBeenNthCalledWith(3, managerMock, {
+    expect(outboxService.record).toHaveBeenNthCalledWith(5, managerMock, {
       eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,
       organizationId: 'org-2',
       producer: 'iam-service',
       payload: { userId: 'user-3', departmentId: 'dept-9', actorId: null },
     });
+    expect(outboxService.record).toHaveBeenNthCalledWith(6, managerMock, {
+      eventType: EVENT_TYPES.USER_ROLES_CHANGED,
+      organizationId: 'org-2',
+      producer: 'iam-service',
+      payload: { userId: 'user-3', roleLevel: 'MANAGER', actorId: null, isActive: false },
+    });
+  });
+
+  // 26/10/2026: user dang hoat dong nhung 0 vai tro -> gan Employee cua to chuc (idempotent, chay truoc resync).
+  it('backfill vai tro Employee mac dinh truoc khi resync, loi SQL khong lam hong buoc khoi dong', async () => {
+    qbMock.getMany.mockResolvedValue([]);
+    dataSource.query.mockResolvedValueOnce([{ user_id: 'u-1' }, { user_id: 'u-2' }]);
+    await service.onApplicationBootstrap();
+    const [sqlText, params] = dataSource.query.mock.calls[0];
+    expect(sqlText).toContain('INSERT INTO user_roles');
+    expect(sqlText).toContain('NOT EXISTS');
+    expect(sqlText).toContain('u.is_active = true');
+    expect(params).toEqual(['Employee']);
+
+    dataSource.query.mockRejectedValueOnce(new Error('db down'));
+    await expect(service.backfillDefaultRoles()).resolves.toBe(0);
   });
 });

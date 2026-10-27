@@ -64,6 +64,70 @@ jobs:
       - name: Unit tests — all workspaces (with coverage; backend enforces coverageThreshold)
         run: npm run test:coverage
 
+  # 26/10/2026: pytest cho apps/ml-service (Technical_Spec.md muc 27.12 GD 5) - truoc day CI khong
+  # chay test Python nao. Model ONNX tai theo commit/SHA256 da ghim giong apps/ml-service/Dockerfile,
+  # co cache; test tich hop dung Postgres that (service container cung cong 5440 nhu postgres-ml cua
+  # docker compose). MinIO duoc thay bang ban gia trong tests/conftest.py.
+  # Anh mau: anh to bay STS-130 cua NASA (pham vi cong cong, Wikimedia Commons) - KHONG dung
+  # largest_selfie.jpg cua opencv_zoo vi do la anh dau ra cua YuNet (mat da bi ve khung/diem moc).
+  ml-service-test:
+    name: ml-service pytest
+    runs-on: ubuntu-latest
+    services:
+      postgres-ml:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: ml_db
+          POSTGRES_USER: ml_user
+          POSTGRES_PASSWORD: ml_password
+        ports:
+          - 5440:5432
+        options: >-
+          --health-cmd "pg_isready -U ml_user -d ml_db"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: apps/ml-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: apps/ml-service/requirements*.txt
+
+      - name: Cache ONNX models + sample image
+        id: face-models
+        uses: actions/cache@v4
+        with:
+          path: apps/ml-service/models
+          key: ml-face-models-yunet-48b10fa-arcface-c5cae0f-crew-7321cb1
+
+      - name: Download ONNX models + sample image (pinned commit + SHA256, mirror Dockerfile)
+        if: steps.face-models.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p models
+          curl -fL -o models/face_detection_yunet.onnx "https://media.githubusercontent.com/media/opencv/opencv_zoo/48b10fa505aeb51fbd127fc60a5c660040e823b7/models/face_detection_yunet/face_detection_yunet_2023mar.onnx"
+          curl -fL -o models/arcface_resnet100.onnx "https://media.githubusercontent.com/media/onnx/models/c5cae0f1942c8d7727372c7b1f6b485aa39e4421/validated/vision/body_analysis/arcface/model/arcfaceresnet100-8.onnx"
+          curl -fL -A "ECAP-CI/1.0 (graduation project test fixture)" -o models/sample_crew_for_tests.jpg "https://upload.wikimedia.org/wikipedia/commons/4/4b/STS-130_Official_Crew_Photo.jpg"
+          echo "8f2383e4dd3cfbb4553ea8718107fc0423210dc964f9f4280604804ed2552fa4  models/face_detection_yunet.onnx" | sha256sum -c -
+          echo "f3a6bc281e72f88862f5748b53be3d76b3b48f8f1ab1f4a537941bdc4e1b01da  models/arcface_resnet100.onnx" | sha256sum -c -
+          echo "7321cb1afaa4140569e27bf99f602140cd78791bb1c2ef7ffe4367517e8c796b  models/sample_crew_for_tests.jpg" | sha256sum -c -
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: pytest
+        env:
+          DB_HOST: localhost
+          DB_PORT: "5440"
+        run: python -m pytest -q
+
   # Step 4: build-verification only for the 7 service Docker images. Runs after the
   # job above so we don't burn CI time building images for a change that fails
   # lint/typecheck/tests. No `docker push` anywhere — see Technical_Spec.md §11.

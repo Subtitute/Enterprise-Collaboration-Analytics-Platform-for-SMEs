@@ -192,6 +192,23 @@ export const ERROR_CODES = {
   // Manager tu duyet/tu choi don (nghi phep/tang ca/giai trinh) cua chinh minh.
   SELF_APPROVAL_FORBIDDEN: 'SELF_APPROVAL_FORBIDDEN',
 
+  // ---- Danh sach nhan vien & ho so (26/10/2026, Technical_Spec.md muc 27) ----
+  PHONE_INVALID: 'PHONE_INVALID',
+  EMPLOYEE_CODE_INVALID: 'EMPLOYEE_CODE_INVALID',
+  EMPLOYEE_CODE_TAKEN: 'EMPLOYEE_CODE_TAKEN',
+  AVATAR_INVALID: 'AVATAR_INVALID',
+  // Email da thuoc to chuc KHAC - thong bao chung, khong lo email do ton tai o dau.
+  EMAIL_UNAVAILABLE: 'EMAIL_UNAVAILABLE',
+  // Employee/Super Admin goi GET /users/directory.
+  DIRECTORY_FORBIDDEN: 'DIRECTORY_FORBIDDEN',
+  // Manager thao tac ho so ngoai pham vi (khong phai Employee phong minh) / nguoi khong co quyen.
+  PROFILE_SCOPE_FORBIDDEN: 'PROFILE_SCOPE_FORBIDDEN',
+  // Nguoi chi co user:invite gui kem so dien thoai/ma nhan vien khi moi.
+  FORBIDDEN_PROFILE_FIELDS: 'FORBIDDEN_PROFILE_FIELDS',
+  // PATCH /users/me/password: mat khau hien tai sai / mat khau moi trung mat khau cu.
+  CURRENT_PASSWORD_INVALID: 'CURRENT_PASSWORD_INVALID',
+  NEW_PASSWORD_SAME_AS_CURRENT: 'NEW_PASSWORD_SAME_AS_CURRENT',
+
   // ---- Chat bot noi bo (Analytics Service, bo sung 24/10/2026 - Technical_Spec.md muc 23) ----
   CHATBOT_NOT_CONFIGURED: 'CHATBOT_NOT_CONFIGURED',
   CHATBOT_GENERATION_FAILED: 'CHATBOT_GENERATION_FAILED',

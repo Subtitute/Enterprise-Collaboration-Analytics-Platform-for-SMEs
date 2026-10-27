@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/Button';
 import { FormField, PasswordInput } from '@/components/ui/Input';
 import { LockIcon } from '@/components/ui/Icons';
 import { useToastStore } from '@/stores/toast.store';
+import { useLogout } from '@/features/auth/hooks';
+import { useChangeMyPassword } from '../hooks';
 
 export const ProfileSecurityCard = memo(function ProfileSecurityCard() {
   const { t } = useTranslation();
@@ -13,7 +15,10 @@ export const ProfileSecurityCard = memo(function ProfileSecurityCard() {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  // 26/10/2026: goi API that (PATCH /users/me/password) thay cho setTimeout gia lap; doi xong thi dang
+  // xuat (server da thu hoi moi phien dang nhap).
+  const logout = useLogout();
+  const changePassword = useChangeMyPassword(() => logout.mutate());
 
   // Xử lý đổi mật khẩu
   function handleUpdatePassword(e: FormEvent) {
@@ -40,17 +45,16 @@ export const ProfileSecurityCard = memo(function ProfileSecurityCard() {
       return;
     }
 
-    setIsUpdatingPassword(true);
-    setTimeout(() => {
-      setIsUpdatingPassword(false);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      toast({
-        variant: 'success',
-        title: t('profile:page.toasts.passwordSuccess'),
-      });
-    }, 500);
+    changePassword.mutate(
+      { currentPassword, newPassword },
+      {
+        onSuccess: () => {
+          setCurrentPassword('');
+          setNewPassword('');
+          setConfirmPassword('');
+        },
+      },
+    );
   }
 
   return (
@@ -107,7 +111,7 @@ export const ProfileSecurityCard = memo(function ProfileSecurityCard() {
 
           {/* Nút cập nhật mật khẩu: Primary ink + icon lock 14px */}
           <div className="flex justify-end pt-2">
-            <Button type="submit" variant="primary" isLoading={isUpdatingPassword}>
+            <Button type="submit" variant="primary" isLoading={changePassword.isPending}>
               <LockIcon className="h-3.5 w-3.5 mr-1.5" />
               {t('profile:page.buttons.updatePassword')}
             </Button>

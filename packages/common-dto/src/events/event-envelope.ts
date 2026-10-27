@@ -130,6 +130,31 @@ export interface UserRegisteredPayload {
   email: string;
   departmentId: string | null;
   actorId: string;
+  // 26/10/2026: muc vai tro luc tao (Technical_Spec.md muc 27.4) - optional de su kien cu van hop le.
+  roleLevel?: 'ORG_ADMIN' | 'MANAGER' | 'EMPLOYEE';
+}
+
+// 26/10/2026: danh sach nhan vien & ho so (Technical_Spec.md muc 27.4) - CHI ten truong, khong co gia tri.
+export interface UserProfileUpdatedPayload {
+  userId: string;
+  changedFields: string[];
+  actorId: string;
+}
+
+/** 26/10/2026: `actorId: null` = resync tu dong luc iam-service khoi dong (mirror UserDepartmentChangedPayload). */
+export interface UserRolesChangedPayload {
+  userId: string;
+  roleLevel: 'ORG_ADMIN' | 'MANAGER' | 'EMPLOYEE';
+  actorId: string | null;
+  // 26/10/2026: chi co trong ban resync luc khoi dong - trang thai hoat dong hien tai cho read-model
+  // cua ml-service (tu lanh khi lo event deactivated/reactivated).
+  isActive?: boolean;
+}
+
+/** 26/10/2026: xem EVENT_TYPES.USER_REACTIVATED. */
+export interface UserReactivatedPayload {
+  userId: string;
+  actorId: string;
 }
 
 export interface OrganizationRegisteredPayload {

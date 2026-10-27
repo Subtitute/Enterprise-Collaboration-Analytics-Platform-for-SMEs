@@ -8,6 +8,7 @@ import {
   deleteDepartment,
   deleteUser,
   fetchDepartments,
+  fetchDirectory,
   fetchFailedEvents,
   fetchPermissions,
   fetchRoles,
@@ -18,10 +19,15 @@ import {
   updateRolePermissions,
   updateUser,
 } from './api';
-import type { InviteUserPayload, UpdateUserPayload } from './api';
+import type { DirectoryParams, InviteUserPayload, UpdateUserPayload } from './api';
 
 export function useUsersQuery(params: { page?: number; limit?: number } = {}) {
   return useQuery({ queryKey: ['admin', 'users', params], queryFn: () => fetchUsers(params) });
+}
+
+// 26/10/2026: Danh sach nhan vien (GET /users/directory, Technical_Spec.md muc 27.6).
+export function useDirectoryQuery(params: DirectoryParams, enabled = true) {
+  return useQuery({ queryKey: ['admin', 'directory', params], queryFn: () => fetchDirectory(params), enabled, placeholderData: (prev) => prev });
 }
 
 export function useInviteUser() {
@@ -31,6 +37,7 @@ export function useInviteUser() {
     mutationFn: (payload: InviteUserPayload) => inviteUser(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'directory'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'all'] });
       toast.success(t('admin:toast.memberInvited'));
     },
@@ -45,6 +52,7 @@ export function useUpdateUser() {
     mutationFn: ({ id, payload }: { id: string; payload: UpdateUserPayload }) => updateUser(id, payload),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'directory'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'all'] });
       // 22/07/2026: sua loi thuc te - onSuccess truoc day khong invalidate ['users', id], dung
       // KHOP CHINH XAC voi queryKey cua useMyProfileQuery() (features/profile/hooks.ts). Ket qua:
@@ -65,6 +73,9 @@ export function useDeactivateUser() {
     mutationFn: (id: string) => deactivateUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'directory'] });
+      // 26/10/2026: vo hieu hoa/xoa -> ml-service xoa du lieu khuon mat qua Kafka (trang thai doi).
+      queryClient.invalidateQueries({ queryKey: ['face'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'all'] });
       toast.success(t('admin:toast.memberDeactivated'));
     },
@@ -81,6 +92,9 @@ export function useReactivateUser() {
     mutationFn: (id: string) => reactivateUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'directory'] });
+      // 26/10/2026: vo hieu hoa/xoa -> ml-service xoa du lieu khuon mat qua Kafka (trang thai doi).
+      queryClient.invalidateQueries({ queryKey: ['face'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'all'] });
       toast.success(t('admin:toast.memberReactivated'));
     },
@@ -97,6 +111,9 @@ export function useDeleteUser() {
     mutationFn: (id: string) => deleteUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'directory'] });
+      // 26/10/2026: vo hieu hoa/xoa -> ml-service xoa du lieu khuon mat qua Kafka (trang thai doi).
+      queryClient.invalidateQueries({ queryKey: ['face'] });
       queryClient.invalidateQueries({ queryKey: ['users', 'all'] });
       toast.success(t('admin:toast.memberDeleted'));
     },

@@ -41,6 +41,29 @@ export class EmailService {
     });
   }
 
+  /**
+   * 26/10/2026: email kich hoat tai khoan duoc moi KHONG kem mat khau (Technical_Spec.md muc 27.9,
+   * Q7) - KHONG BAO GIO chua mat khau; nhac xac nhan anh nhan dien neu quan tri vien co tai kem.
+   * Cung quy uoc nuot loi nhu sendPasswordResetEmail() (moi thanh vien van thanh cong).
+   */
+  async sendInviteEmail(to: string, fullName: string, activationLink: string): Promise<void> {
+    if (!this.transporter) {
+      this.logger.log(`SMTP chua duoc cau hinh (SMTP_HOST rong) - link kich hoat tai khoan cho ${to}: ${activationLink}`);
+      return;
+    }
+    try {
+      await this.transporter.sendMail({
+        from: this.configService.get<string>('smtp.from'),
+        to,
+        subject: 'Kích hoạt tài khoản - Enterprise Collaboration & Analytics Platform',
+        text: `Xin chào ${fullName},\n\nBạn vừa được mời tham gia hệ thống. Nhấp vào liên kết sau để đặt mật khẩu và kích hoạt tài khoản (liên kết hết hạn sau 72 giờ):\n\n${activationLink}\n\nNếu quản trị viên đã tải ảnh nhận diện chấm công cho bạn, hãy vào Hồ sơ cá nhân để xem và xác nhận trong vòng 30 ngày. Từ chối không ảnh hưởng tới việc chấm công.`,
+        html: `<p>Xin chào ${escapeHtml(fullName)},</p><p>Bạn vừa được mời tham gia hệ thống. <a href="${activationLink}">Nhấp vào đây để đặt mật khẩu và kích hoạt tài khoản</a> (liên kết hết hạn sau 72 giờ).</p><p>Nếu quản trị viên đã tải ảnh nhận diện chấm công cho bạn, hãy vào Hồ sơ cá nhân để xem và xác nhận trong vòng 30 ngày. Từ chối không ảnh hưởng tới việc chấm công.</p>`,
+      });
+    } catch (err) {
+      this.logger.error(`Gui email kich hoat that bai (${to}): ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
   async sendPasswordResetEmail(to: string, resetLink: string): Promise<void> {
     const from = this.configService.get<string>('smtp.from');
 
@@ -67,4 +90,9 @@ export class EmailService {
       );
     }
   }
+}
+
+// 26/10/2026: ho ten do quan tri vien nhap duoc chen vao HTML email moi - thoat ky tu de khong chen duoc the HTML.
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string);
 }

@@ -275,8 +275,8 @@
     "deleteButton": "登録を削除",
     "enrolledAt": "{{date}} に顔を登録しました",
     "softWarningNote": "これは管理者が勤怠写真と照合するための参考情報に過ぎません - 顔が一致しない場合や未登録の場合でも、出退勤がブロックされることはありません。",
-    "deleteConfirmTitle": "顔の登録を削除しますか?",
-    "deleteConfirmDescription": "登録済みの顔データは完全に削除されます。いつでも再登録できます。",
+    "deleteConfirmTitle": "写真を削除して同意を撤回しますか？",
+    "deleteConfirmDescription": "写真と顔の特徴量（確認待ちの写真を含む）は完全に削除され、再登録するまで管理者は代理でアップロードできません。勤怠打刻は通常どおり利用できます。",
     "cameraModalTitle": "顔登録用の写真を撮影",
     "captureButton": "撮影",
     "confirmButton": "登録を確定",
@@ -284,8 +284,22 @@
       "enrollSuccess": "顔を登録しました",
       "enrollError": "顔を登録できませんでした",
       "deleteSuccess": "顔の登録を削除しました",
-      "deleteError": "顔の登録を削除できませんでした"
-    }
+      "deleteError": "顔の登録を削除できませんでした",
+      "confirmSuccess": "新しい顔写真を確定しました",
+      "rejectSuccess": "顔写真を拒否しました",
+      "actionError": "操作を実行できませんでした"
+    },
+    "pendingFrom": "{{name}} が {{date}} に新しい写真をアップロードしました。",
+    "pendingNotUsed": "確認するまでこの写真は照合に使われません（期限 {{date}}）。",
+    "confirmPending": "この写真を使用する",
+    "rejectPending": "拒否",
+    "rejectConfirmTitle": "顔写真を拒否しますか？",
+    "rejectConfirmDescription": "顔認証を使用せず、管理者は代理で写真をアップロードできなくなります。いつでも自分で再登録できます。",
+    "cameraButton": "カメラで撮影",
+    "uploadButton": "写真をアップロード",
+    "withdrawButton": "削除して同意を撤回",
+    "withdrawnNote": "同意を拒否/撤回しました（{{date}}）。管理者は代理でアップロードできません。自分で再登録できます。",
+    "noneNote": "顔認証用写真が未登録です。未登録でも勤怠打刻は通常どおり利用できます。"
   },
   "toasts": {
     "checkInSuccess": "出勤を記録しました",
@@ -406,5 +420,36 @@
         "overtime": "残業承認 (OT)"
       }
     }
+  },
+  "face": {
+    "status": {
+      "NONE": "未登録",
+      "ACTIVE": "使用中",
+      "PENDING_CONSENT": "社員の確認待ち",
+      "WITHDRAWN": "社員が拒否"
+    },
+    "sources": {
+      "SELF_CAMERA": "本人（カメラ）",
+      "SELF_UPLOAD": "本人（アップロード）",
+      "ADMIN": "管理者がアップロード",
+      "MANAGER": "マネージャーがアップロード",
+      "IMPORT": "Excel インポート"
+    },
+    "consent": {
+      "title": "顔データ処理への同意（バージョン v1）",
+      "purpose": "顔写真と特徴量は勤怠打刻時の照合にのみ使用され、結果は参考の警告にすぎません。",
+      "stored": "写真は保存され、組織管理者と所属部署のマネージャーが閲覧でき、閲覧はすべて記録されます。",
+      "noImpact": "拒否・撤回しても勤怠打刻には影響しません。",
+      "deletion": "撤回した場合、アカウントが無効化・削除された場合にデータは削除されます。",
+      "checkbox": "内容を読み、同意します",
+      "agree": "同意する",
+      "cancel": "キャンセル"
+    },
+    "photoAlt": "顔認証用写真",
+    "pendingPhotoAlt": "確認待ちの顔写真",
+    "noStoredPhoto": "保存された写真なし（写真保存前の登録）",
+    "photoLoadError": "写真を読み込めません",
+    "activeInfo": "登録元: {{source}} · 更新: {{date}}",
+    "unknownActor": "管理者"
   }
 }

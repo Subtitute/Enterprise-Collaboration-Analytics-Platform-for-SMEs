@@ -1,10 +1,13 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { cn, getInitials, stringToColorClass } from '@/lib/utils';
 
 interface AvatarProps {
   name?: string;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  // 26/10/2026: anh dai dien that (presigned URL TTL ngan tu IAM, Technical_Spec.md muc 27.5). URL het
+  // han/loi tai -> tu quay ve chu viet tat (danh sach lam moi se cap URL moi).
+  src?: string | null;
 }
 
 const sizeClasses = {
@@ -13,9 +16,22 @@ const sizeClasses = {
   lg: 'h-11 w-11 text-sm',
 };
 
-export const Avatar = memo(function Avatar({ name, size = 'md', className }: AvatarProps) {
+export const Avatar = memo(function Avatar({ name, size = 'md', className, src }: AvatarProps) {
   const hasCustomBg = className && /(^|\s)bg-/.test(className);
   const hasCustomText = className && /(^|\s)text-/.test(className);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+
+  if (src && failedSrc !== src) {
+    return (
+      <img
+        src={src}
+        alt={name ?? ''}
+        title={name}
+        onError={() => setFailedSrc(src)}
+        className={cn('inline-block shrink-0 rounded-full object-cover', sizeClasses[size], className)}
+      />
+    );
+  }
 
   return (
     <span

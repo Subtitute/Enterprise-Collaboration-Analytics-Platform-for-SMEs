@@ -7,7 +7,9 @@ import { Avatar } from '@/components/ui/Avatar';
 import { TableCell, TableRow } from '@/components/ui/Table';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { EditIcon, MoreVerticalIcon, RefreshIcon, TrashIcon, UserIcon } from '@/components/ui/Icons';
-import type { User } from '@/types';
+import { formatPhone } from '@/lib/phone';
+import { FaceStatusBadge } from '@/features/face/components/FaceStatusBadge';
+import type { FaceStatus, User } from '@/types';
 
 /**
  * Chuẩn hóa nhãn và màu sắc ngữ cảnh cho Role Badge:
@@ -52,6 +54,11 @@ interface MemberTableRowProps {
   onDeactivate: (user: User) => void;
   onReactivate: (userId: string) => void;
   onDelete: (user: User) => void;
+  // 26/10/2026: Danh sach nhan vien (Wireframe muc 16.1) - bam dong mo Ho so nhan vien; Manager khong
+  // co cot Phong ban/Vai tro/Trang thai (chi Employee phong minh).
+  faceStatus?: FaceStatus;
+  showOrgColumns: boolean;
+  onOpen: (user: User) => void;
 }
 
 export const MemberTableRow = memo(function MemberTableRow({
@@ -62,23 +69,39 @@ export const MemberTableRow = memo(function MemberTableRow({
   onDeactivate,
   onReactivate,
   onDelete,
+  faceStatus,
+  showOrgColumns,
+  onOpen,
 }: MemberTableRowProps) {
   const { t } = useTranslation();
 
   return (
-    <TableRow key={u.id} className="h-14 border-b border-border-subtle hover:bg-bg-subtle transition-colors">
+    <TableRow
+      key={u.id}
+      onClick={() => onOpen(u)}
+      className="h-14 border-b border-border-subtle hover:bg-bg-subtle transition-colors cursor-pointer"
+    >
       <TableCell label={t('admin:membersPage.columns.member')} className="px-4 py-2.5">
         <div className="flex items-center gap-2.5">
-          <Avatar name={u.fullName} size="sm" className="h-8 w-8 text-[11px] bg-accent-soft text-accent" />
+          <Avatar name={u.fullName} src={u.avatarUrl} size="sm" className="h-8 w-8 text-[11px] bg-accent-soft text-accent" />
           <div className="min-w-0">
             <p className="truncate font-medium text-[13px] text-text-primary">{u.fullName}</p>
             <p className="truncate text-[12px] text-text-tertiary">{u.email}</p>
           </div>
         </div>
       </TableCell>
+      <TableCell label={t('admin:membersPage.columns.employeeCode')} className="px-4 py-2.5 font-mono text-[12px] text-text-secondary">
+        {u.employeeCode || '—'}
+      </TableCell>
+      <TableCell label={t('admin:membersPage.columns.phone')} className="px-4 py-2.5 font-mono text-[12px] tabular-nums text-text-secondary whitespace-nowrap">
+        {formatPhone(u.phoneNumber)}
+      </TableCell>
+      {showOrgColumns && (
       <TableCell label={t('admin:membersPage.columns.department')} className="px-4 py-2.5 text-[13px] text-text-secondary">
         {departmentName}
       </TableCell>
+      )}
+      {showOrgColumns && (
       <TableCell label={t('admin:membersPage.columns.role')} className="px-4 py-2.5">
         <div className="flex flex-wrap gap-1">
           {(u.roles ?? []).length === 0 ? (
@@ -98,6 +121,11 @@ export const MemberTableRow = memo(function MemberTableRow({
           )}
         </div>
       </TableCell>
+      )}
+      <TableCell label={t('admin:membersPage.columns.face')} className="px-4 py-2.5">
+        <FaceStatusBadge status={faceStatus} />
+      </TableCell>
+      {showOrgColumns && (
       <TableCell label={t('admin:membersPage.columns.status')} className="px-4 py-2.5">
         {u.isActive === false ? (
           <span className="inline-flex items-center rounded-radius-sm px-2 py-0.5 text-[12px] font-medium bg-bg-muted text-text-secondary border border-border-subtle">
@@ -109,7 +137,9 @@ export const MemberTableRow = memo(function MemberTableRow({
           </span>
         )}
       </TableCell>
-      <TableCell label={t('admin:membersPage.columns.actions')} className="px-4 py-2.5 text-right">
+      )}
+      {showOrgColumns && (
+      <TableCell label={t('admin:membersPage.columns.actions')} className="px-4 py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
         {/* 17/09/2026: an (khong chi disable) toan bo menu hanh dong khi khong co
             USER_MANAGE - moi hanh dong trong menu nay (sua vai tro/phong ban, vo hieu
             hoa, kich hoat lai) deu can quyen do, khac voi nut "Moi thanh vien" o dau
@@ -182,6 +212,7 @@ export const MemberTableRow = memo(function MemberTableRow({
           </Dropdown>
         ) : null}
       </TableCell>
+      )}
     </TableRow>
   );
 });

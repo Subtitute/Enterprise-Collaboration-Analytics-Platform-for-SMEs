@@ -3,7 +3,7 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { OutboxService } from '../outbox/outbox.service';
-import { EVENT_TYPES, UserDepartmentChangedPayload } from '@app/common-dto';
+import { DefaultRoleName, EVENT_TYPES, UserDepartmentChangedPayload, UserRolesChangedPayload, resolveRoleLevel } from '@app/common-dto';
 
 /**
  * 28/07/2026: service moi - resync toan bo departmentId cua MOI user (TAT CA to chuc, khong chi 1
@@ -53,15 +53,20 @@ export class UserDepartmentSyncService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
+    await this.backfillDefaultRoles();
     // 28/07/2026: dung createQueryBuilder() (API cap thap) thay vi userRepo.find() de lay du lieu
     // "lean" chi 3 cot can dung - User.roles duoc khai bao eager: true (xem entities/user.entity.ts)
     // nen repo.find()/findOne() se TU DONG JOIN them bang user_roles/roles du khong can den, con
     // createQueryBuilder() khong tu ap eager relation, cho phep SELECT dung 3 cot va bo qua phan
     // con lai cua entity (fullName/passwordHash/isActive/roles...) hoan toan khong can cho tac vu
     // nay.
+    // 26/10/2026: nap them ten vai tro de resync muc vai tro (iam.user.roles_changed) cho ml-service -
+    // thay cho "script 1 lan" trong Technical_Spec.md muc 27.4: cung co che tu lanh, idempotent nhu
+    // departmentId (last-value-wins theo userId), khong can chay tay.
     const users = await this.userRepo
       .createQueryBuilder('u')
-      .select(['u.id', 'u.organizationId', 'u.departmentId'])
+      .leftJoin('u.roles', 'r')
+      .select(['u.id', 'u.organizationId', 'u.departmentId', 'u.isActive', 'r.id', 'r.name'])
       .getMany();
 
     if (users.length === 0) {
@@ -90,11 +95,49 @@ export class UserDepartmentSyncService implements OnApplicationBootstrap {
           producer: UserDepartmentSyncService.PRODUCER,
           payload: payload as unknown as Record<string, unknown>,
         });
+        const rolesPayload: UserRolesChangedPayload = {
+          userId: user.id,
+          roleLevel: resolveRoleLevel((user.roles ?? []).map((r) => r.name)),
+          actorId: null,
+          // 26/10/2026: trang thai hoat dong cho ml-service (chan tai anh ho cho tai khoan bi vo hieu hoa).
+          isActive: user.isActive !== false,
+        };
+        await this.outboxService.record(manager, {
+          eventType: EVENT_TYPES.USER_ROLES_CHANGED,
+          organizationId: user.organizationId,
+          producer: UserDepartmentSyncService.PRODUCER,
+          payload: rolesPayload as unknown as Record<string, unknown>,
+        });
       }
     });
 
     this.logger.log(
       `Da resync departmentId cua ${users.length} user (tat ca to chuc) vao outbox luc khoi dong`,
     );
+  }
+
+  /**
+   * 26/10/2026: buoc 1 LAN moi lan khoi dong, idempotent - user DANG HOAT DONG nhung 0 vai tro (do
+   * Manager moi truoc ngay nay, khi invite() chua gan vai tro mac dinh) duoc gan vai tro "Employee" cua
+   * chinh to chuc minh. Bo qua Super Admin va to chuc khong co vai tro Employee. Chay TRUOC resync o
+   * duoi nen muc vai tro gui sang ml-service da dung.
+   */
+  async backfillDefaultRoles(): Promise<number> {
+    try {
+      const rows: { user_id: string }[] = await this.dataSource.query(
+        `INSERT INTO user_roles (user_id, role_id)
+         SELECT u.id, r.id FROM users u
+         JOIN roles r ON r.organization_id = u.organization_id AND r.name = $1
+         WHERE u.is_active = true AND u.is_super_admin = false
+           AND NOT EXISTS (SELECT 1 FROM user_roles ur WHERE ur.user_id = u.id)
+         RETURNING user_id`,
+        [DefaultRoleName.EMPLOYEE],
+      );
+      if (rows?.length) this.logger.log(`Da gan vai tro Employee mac dinh cho ${rows.length} user chua co vai tro nao`);
+      return rows?.length ?? 0;
+    } catch (err) {
+      this.logger.warn(`Khong gan duoc vai tro mac dinh: ${err instanceof Error ? err.message : String(err)}`);
+      return 0;
+    }
   }
 }

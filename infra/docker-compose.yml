@@ -349,6 +349,8 @@ services:
       mc mb -p local/${MINIO_BUCKET};
       mc mb -p local/${MINIO_HRM_BUCKET};
       mc mb -p local/${MINIO_INVENTORY_BUCKET};
+      mc mb -p local/${MINIO_IAM_BUCKET:-iam-avatars};
+      mc mb -p local/${MINIO_ML_BUCKET:-ml-face-references};
       exit 0;
       "
 
@@ -418,9 +420,21 @@ services:
       # healthcheck, xem chu thich tai do) - chi dam bao mailhog duoc KHOI DONG truoc, iam-service
       # tu fail-open (ghi log link reset) neu goi SMTP that bai bat ke ly do gi.
       mailhog: { condition: service_started }
+      # 26/10/2026: avatar nguoi dung (bucket iam-avatars, Technical_Spec.md muc 27.5) - cho minio-init tao bucket xong.
+      minio-init: { condition: service_completed_successfully }
     environment:
       NODE_ENV: production
       PORT: 3001
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_USE_SSL: "false"
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_IAM_BUCKET:-iam-avatars}
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost}
+      MINIO_PUBLIC_PORT: ${MINIO_PUBLIC_PORT:-9010}
+      MINIO_PUBLIC_USE_SSL: ${MINIO_PUBLIC_USE_SSL:-false}
+      AVATAR_URL_TTL_SECONDS: ${AVATAR_URL_TTL_SECONDS:-3600}
       DB_HOST: postgres-iam
       DB_PORT: 5432
       DB_NAME: ${POSTGRES_IAM_DB}
@@ -805,11 +819,21 @@ services:
     restart: unless-stopped
     # 24/10/2026 (giam tai RAM): chan tran khi nap model ArcFace (~261MB, lazy-load o lan nhan dien
     # khuon mat dau tien) - anh dau vao da duoc thu nho ve 640px (app/face.py) nen 1g la du rong.
+    # 26/10/2026: model nay nap 1 LAN luc khoi dong (khong con lazy-load) + toi da 2 luot suy luan
+    # dong thoi (Technical_Spec.md muc 27.12 GD 0) - RAM khong tang theo so request.
     mem_limit: 1g
     depends_on:
       postgres-ml: { condition: service_healthy }
       kafka: { condition: service_healthy }
+      # 26/10/2026: kho anh nhan dien (bucket private ml-face-references, chi doc qua proxy cua ml-service).
+      minio-init: { condition: service_completed_successfully }
     environment:
+      MINIO_ENDPOINT: minio
+      MINIO_PORT: 9000
+      MINIO_USE_SSL: "false"
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: ${MINIO_ML_BUCKET:-ml-face-references}
       DB_HOST: postgres-ml
       DB_PORT: 5432
       DB_NAME: ${POSTGRES_ML_DB}

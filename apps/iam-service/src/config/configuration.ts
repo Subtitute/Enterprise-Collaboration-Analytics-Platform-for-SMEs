@@ -40,6 +40,22 @@ export default () => ({
   // email (vd http://localhost:5173/reset-password?token=...). TACH RIENG voi CORS_ORIGIN (co the
   // la danh sach nhieu origin phan tach boi dau phay) vi day can DUNG 1 gia tri duy nhat.
   frontendUrl: process.env.FRONTEND_URL ?? 'http://localhost:5173',
+  // 26/10/2026: avatar nguoi dung (Technical_Spec.md muc 27.5) - bucket private `iam-avatars` (tao boi
+  // minio-init), doc qua presigned GET ky bang PUBLIC endpoint (mirror document-service/hrm-service).
+  minio: {
+    endpoint: process.env.MINIO_ENDPOINT ?? 'localhost',
+    port: parseInt(process.env.MINIO_PORT ?? '9000', 10),
+    useSsl: (process.env.MINIO_USE_SSL ?? 'false') === 'true',
+    accessKey: process.env.MINIO_ACCESS_KEY,
+    secretKey: process.env.MINIO_SECRET_KEY,
+    bucket: process.env.MINIO_BUCKET ?? 'iam-avatars',
+    publicEndpoint: process.env.MINIO_PUBLIC_ENDPOINT ?? process.env.MINIO_ENDPOINT ?? 'localhost',
+    publicPort: parseInt(process.env.MINIO_PUBLIC_PORT ?? process.env.MINIO_PORT ?? '9000', 10),
+    publicUseSsl: (process.env.MINIO_PUBLIC_USE_SSL ?? process.env.MINIO_USE_SSL ?? 'false') === 'true',
+  },
+  avatarUrlTtlSeconds: parseInt(process.env.AVATAR_URL_TTL_SECONDS ?? '3600', 10),
+  // 26/10/2026: token kich hoat tai khoan duoc moi khong kem mat khau (muc 27.9).
+  inviteTokenExpiresIn: process.env.INVITE_TOKEN_EXPIRES_IN ?? '72h',
   // 16/09/2026: "Super Admin" (tinh nang moi) - de trong (khong dat SUPER_ADMIN_EMAIL/PASSWORD)
   // la trang thai HOP LE, tat hoan toan buoc bootstrap (xem
   // bootstrap/super-admin-bootstrap.service.ts) - mirror triet ly "cau hinh ngoai tuy chon" da ap

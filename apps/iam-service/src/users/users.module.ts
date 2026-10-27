@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
 import { User } from '../entities/user.entity';
 import { Role } from '../entities/role.entity';
 import { Department } from '../entities/department.entity';
+import { EmailModule } from '../email/email.module';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { OutboxModule } from '../outbox/outbox.module';
@@ -15,7 +17,9 @@ import { UserDepartmentSyncService } from './user-department-sync.service';
 // invite()/update()); thieu dang ky o day se lam Nest nem loi "no metadata for Department" luc
 // khoi dong module.
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Role, Department]), OutboxModule],
+  // 26/10/2026: EmailModule + JwtModule cho email kich hoat tai khoan duoc moi khong kem mat khau
+  // (Technical_Spec.md muc 27.9); MinioService (avatar) den tu MinioModule @Global (app.module.ts).
+  imports: [TypeOrmModule.forFeature([User, Role, Department]), OutboxModule, EmailModule, JwtModule.register({})],
   // 28/07/2026: dang ky them UserDepartmentSyncService lam provider de Nest tu goi
   // onApplicationBootstrap() cua no luc khoi dong service (xem OnApplicationBootstrap).
   providers: [UsersService, UserDepartmentSyncService],

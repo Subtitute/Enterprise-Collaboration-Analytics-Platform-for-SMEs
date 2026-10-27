@@ -133,6 +133,11 @@ export function extractErrorMessage(error: unknown, fallback = i18n.t('common:ge
     if (data?.message) {
       return Array.isArray(data.message) ? data.message.join(', ') : data.message;
     }
+    // 26/10/2026: ml-service nay tra `{ detail, errorCode }` (kho anh nhan dien, Technical_Spec.md muc
+    // 27.6) - dich theo errorCode nhu cac service Node, `detail` lam gia tri mac dinh.
+    if (data?.errorCode && typeof data.detail === 'string') {
+      return i18n.t(`errors:${data.errorCode}`, { defaultValue: data.detail });
+    }
     if (data?.detail) return data.detail;
     if (error.message) return error.message;
   }

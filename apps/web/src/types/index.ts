@@ -82,6 +82,39 @@ export interface User {
   roles?: Role[];
   isActive?: boolean;
   createdAt?: string;
+  // 26/10/2026: ho so that (Technical_Spec.md muc 27.6) - avatarUrl co o MOI DTO; phoneNumber/
+  // employeeCode/roleLevel CHI co trong ho so day du (GET /users/directory, GET /users/:id trong pham vi).
+  avatarUrl?: string | null;
+  phoneNumber?: string | null;
+  employeeCode?: string | null;
+  roleLevel?: 'ORG_ADMIN' | 'MANAGER' | 'EMPLOYEE';
+}
+
+/** 26/10/2026: trang thai anh nhan dien + dong y (ml-service, Technical_Spec.md muc 27.8). */
+export type FaceStatus = 'NONE' | 'ACTIVE' | 'PENDING_CONSENT' | 'WITHDRAWN';
+
+export interface FaceEnrollmentStatus {
+  userId?: string;
+  status: FaceStatus;
+  enrolled: boolean;
+  enrolledAt: string | null;
+  source: string | null;
+  enrolledBy: string | null;
+  hasPhoto: boolean;
+  pending: { source: string; actorId: string; createdAt: string; expiresAt: string } | null;
+  consentAction: string | null;
+  consentAt: string | null;
+  warnings?: string[];
+}
+
+export interface FaceInspectResult {
+  ok: boolean;
+  errorCode: string | null;
+  warnings: string[];
+  faceCount: number;
+  faceHeight: number;
+  sharpness: number;
+  duplicateUserId: string | null;
 }
 
 export interface Department {

@@ -36,7 +36,8 @@
       "uploadAvatar": "Upload Photo",
       "saveProfile": "Save Changes",
       "updatePassword": "Change Password",
-      "copyEmployeeCode": "Copy employee code"
+      "copyEmployeeCode": "Copy employee code",
+      "removeAvatar": "Remove photo"
     },
     "roles": {
       "orgAdmin": "Organization Admin",
@@ -50,7 +51,18 @@
       "passwordSuccess": "Password changed successfully!",
       "passwordMismatch": "Password confirmation does not match.",
       "passwordTooShort": "New password must be at least 8 characters long.",
-      "missingCurrentPassword": "Please enter your current password."
-    }
+      "missingCurrentPassword": "Please enter your current password.",
+      "profileUpdateFailed": "Could not update your profile",
+      "avatarUpdated": "Profile photo updated",
+      "avatarUpdateFailed": "Could not update profile photo",
+      "avatarRemoved": "Profile photo removed",
+      "passwordReLogin": "Please sign in again with your new password.",
+      "passwordFailed": "Could not change the password"
+    },
+    "adminManagedFieldsCallout": "Full name, employee code, department and role are managed by administrators. You can update your phone number and profile photo."
+  },
+  "faceBanner": {
+    "message": "An administrator uploaded an attendance face photo for you. Please review and confirm it before {{date}}.",
+    "viewNow": "Review now"
   }
 }

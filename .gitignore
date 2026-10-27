@@ -79,3 +79,7 @@ __pycache__/
 # git (se phinh vinh vien lich su repo). Dev chay pytest cuc bo (ngoai Docker) can tu tai 2 file
 # nay vao apps/ml-service/models/ bang dung 2 lenh curl trong Dockerfile.
 apps/ml-service/models/
+
+# 27/10/2026: anh khuon mat sinh tu anh mau cho kich ban scripts/mock-data/10-employee-directory.js
+# (xem Doc/Mock_data.md muc 4.9) - khong commit anh khuon mat.
+.face-fixtures/

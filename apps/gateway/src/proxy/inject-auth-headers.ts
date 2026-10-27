@@ -53,6 +53,29 @@ function resolveInternalSharedSecret(): string {
 const RESOLVED_INTERNAL_SHARED_SECRET = resolveInternalSharedSecret();
 
 /**
+ * 26/10/2026: header ma service phia sau TIN (InternalAuthGuard @app/common-guard, app/auth.py cua
+ * ml-service) - CHI Gateway duoc dat. Gom dung danh sach INTERNAL_AUTH_HEADERS + bi mat noi bo, cong
+ * them moi header cung tien to (x-internal-*, x-user-*, x-org-*, x-organization-*) de 1 header moi
+ * them vao sau nay cung khong lot qua neu quen cap nhat danh sach.
+ */
+const TRUSTED_HEADER_NAMES = new Set<string>(
+  [...Object.values(INTERNAL_AUTH_HEADERS), INTERNAL_SHARED_SECRET_HEADER].map((name) => name.toLowerCase()),
+);
+const TRUSTED_HEADER_PREFIXES = ['x-internal-', 'x-user-', 'x-org-', 'x-organization-'];
+
+export function isTrustedHeader(name: string): boolean {
+  const lower = name.toLowerCase();
+  return TRUSTED_HEADER_NAMES.has(lower) || TRUSTED_HEADER_PREFIXES.some((prefix) => lower.startsWith(prefix));
+}
+
+/** Xoa moi header tin cay do client gui kem (REST va WebSocket upgrade). */
+export function stripTrustedHeaders(proxyReq: Pick<ClientRequest, 'getHeaderNames' | 'removeHeader'>): void {
+  for (const name of proxyReq.getHeaderNames()) {
+    if (isTrustedHeader(name)) proxyReq.removeHeader(name);
+  }
+}
+
+/**
  * Hook onProxyReq cua http-proxy-middleware: khi req.user da duoc middleware xac thuc JWT
  * gan (xem jwt-auth.middleware.ts), ghi cac header noi bo ma InternalAuthGuard (@app/common-guard)
  * o cac service phia sau se doc - Technical_Spec.md muc 6.
@@ -62,6 +85,13 @@ const RESOLVED_INTERNAL_SHARED_SECRET = resolveInternalSharedSecret();
  * (bo qua Gateway) tu mot client tu khai bao header context de gia mao danh tinh (bo sung 21/07/2026).
  */
 export function injectAuthHeaders(proxyReq: ClientRequest, req: IncomingMessage): void {
+  // 26/10/2026: fix lo hong gia mao header (phat hien qua kiem thu Danh sach nhan vien): http-proxy
+  // CHEP NGUYEN header cua client sang request toi service, ma truoc day ham nay chi GHI DE header
+  // noi bo nao no dat - nhanh khong dat (vd x-department-id khi JWT khong co phong ban) de lot header
+  // client tu khai, nen Manager chua co phong ban gui "x-department-id: <phong khac>" la doc duoc danh
+  // sach nhan vien/anh nhan dien cua phong khac. Xoa TOAN BO header tin cay tu client TRUOC, roi moi dat
+  // lai tu JWT da xac minh - anh huong pham vi phong ban cua MOI service, khong chi tinh nang nay.
+  stripTrustedHeaders(proxyReq);
   proxyReq.setHeader(INTERNAL_SHARED_SECRET_HEADER, RESOLVED_INTERNAL_SHARED_SECRET);
 
   // 22/08/2026: forward correlation ID (xem correlation-id.middleware.ts, chay truoc middleware

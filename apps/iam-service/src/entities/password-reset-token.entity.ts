@@ -26,4 +26,9 @@ export class PasswordResetToken extends AppBaseEntity {
 
   @Column({ name: 'used_at', type: 'timestamptz', nullable: true })
   usedAt?: Date | null;
+
+  // 26/10/2026: INVITE = token kich hoat tai khoan duoc moi khong kem mat khau (han 72 gio, Technical_Spec.md
+  // muc 27.9) - dung chung trang /reset-password va AuthService.resetPassword() voi RESET.
+  @Column({ type: 'varchar', length: 16, default: 'RESET' })
+  purpose: 'RESET' | 'INVITE';
 }

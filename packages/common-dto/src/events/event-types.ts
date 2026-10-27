@@ -44,6 +44,14 @@ export const EVENT_TYPES = {
   // managerId cua 1 phong ban KHONG phat event nao ca (DepartmentsService khong co OutboxService).
   // `managerId: null` nghia la phong ban vua bi go nguoi phu trach.
   DEPARTMENT_MANAGER_CHANGED: 'iam.department.manager_changed',
+  // 26/10/2026: danh sach nhan vien & kho anh nhan dien (Technical_Spec.md muc 27.4). profile_updated
+  // CHI mang ten truong da doi (khong bao gio gia tri so dien thoai/anh - gioi han muc dich muc 27.3);
+  // roles_changed mang muc vai tro (RoleLevel) de ml-service biet "Manager chi duoc thao tac Employee".
+  USER_PROFILE_UPDATED: 'iam.user.profile_updated',
+  USER_ROLES_CHANGED: 'iam.user.roles_changed',
+  // 26/10/2026: kich hoat lai tai khoan - truoc day reactivate() khong phat gi nen ml-service khong biet
+  // user da hoat dong lai (co active trong dim_user, chan tai anh ho cho tai khoan dang bi vo hieu hoa).
+  USER_REACTIVATED: 'iam.user.reactivated',
 
   // Project & Task Service (Technical_Spec.md muc 3.3)
   TASK_CREATED: 'task.created',
@@ -114,6 +122,9 @@ export const EVENT_TYPE_TOPIC_MAP: Record<EventType, KafkaTopic> = {
   [EVENT_TYPES.USER_DELETED]: KAFKA_TOPICS.IAM,
   [EVENT_TYPES.USER_DEPARTMENT_CHANGED]: KAFKA_TOPICS.IAM,
   [EVENT_TYPES.DEPARTMENT_MANAGER_CHANGED]: KAFKA_TOPICS.IAM,
+  [EVENT_TYPES.USER_PROFILE_UPDATED]: KAFKA_TOPICS.IAM,
+  [EVENT_TYPES.USER_ROLES_CHANGED]: KAFKA_TOPICS.IAM,
+  [EVENT_TYPES.USER_REACTIVATED]: KAFKA_TOPICS.IAM,
 
   [EVENT_TYPES.TASK_CREATED]: KAFKA_TOPICS.PROJECT_TASK,
   [EVENT_TYPES.TASK_STATUS_CHANGED]: KAFKA_TOPICS.PROJECT_TASK,
