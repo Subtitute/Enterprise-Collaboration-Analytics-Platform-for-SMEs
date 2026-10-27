@@ -34,7 +34,7 @@ export const Stepper = memo(function Stepper({
   const progressPercent = Math.min(100, Math.max(0, (currentStep / steps.length) * 100));
 
   return (
-    <div className={cn('w-full max-w-[420px] mx-auto mb-10', className)} aria-label={ariaLabel || t('common:stepper.ariaLabel')}>
+    <div className={cn('w-full max-w-[420px] mx-auto mb-6', className)} aria-label={ariaLabel || t('common:stepper.ariaLabel')}>
       {/* =========================================================================
           MOBILE VIEW (< md): Text mode + progress bar 4px (§2.5)
           ========================================================================= */}

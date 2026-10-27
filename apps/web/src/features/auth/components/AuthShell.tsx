@@ -75,7 +75,7 @@ export const AuthShell = memo(function AuthShell({ children, extraWidget, maxWid
         {/* =========================================================================
             CỘT PHẢI — FORM (§B.1, §B.4): flex: 45%, nền #F7F6F3
             ========================================================================= */}
-        <div className="relative flex-1 lg:w-[45%] min-h-screen bg-[#F7F6F3] flex flex-col justify-center items-center px-6 py-12">
+        <div className="relative flex-1 lg:w-[45%] min-h-screen bg-[#F7F6F3] flex flex-col justify-center items-center px-6 py-8 lg:py-6">
           {/* Language Switcher (§A.3, §B.4): Góc trên phải */}
           <div className="absolute top-4 right-4 md:top-5 md:right-5 lg:top-6 lg:right-6 z-20">
             <LanguageSwitcher />

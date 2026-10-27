@@ -21,6 +21,7 @@ import {
   ArrowRightIcon,
 } from '@/components/ui/Icons';
 import { extractErrorMessage } from '@/lib/api-client';
+import { containsVietnameseDiacritics } from '@/lib/utils';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
@@ -266,7 +267,7 @@ export function RegisterPage() {
           >
             {t('auth:registerPage.title')}
           </h1>
-          <p className="font-sans text-sm leading-[22px] text-text-secondary mb-8">
+          <p className="font-sans text-sm leading-[22px] text-text-secondary mb-5">
             {t('auth:registerPage.subtitle')}
           </p>
         </>
@@ -288,7 +289,7 @@ export function RegisterPage() {
       {step === 1 && (
         <form onSubmit={handleStep1Submit} noValidate className="flex flex-col">
           {/* Field Tên tổ chức (*) */}
-          <div className="mb-4">
+          <div className="mb-2.5">
             <FormField
               label={t('auth:registerPage.step1.orgNameLabel')}
               htmlFor="organizationName"
@@ -313,7 +314,7 @@ export function RegisterPage() {
           </div>
 
           {/* Field Mã số thuế (Không bắt buộc) */}
-          <div className="mb-6">
+          <div className="mb-4">
             <FormField
               label={
                 <span className="flex items-center">
@@ -367,7 +368,7 @@ export function RegisterPage() {
       {step === 2 && (
         <form onSubmit={handleStep2Submit} noValidate className="flex flex-col">
           {/* 3. Field Họ và tên quản trị viên (*) */}
-          <div className="mb-4">
+          <div className="mb-2.5">
             <FormField
               label={t('auth:registerPage.step2.adminFullNameLabel')}
               htmlFor="adminFullName"
@@ -393,7 +394,7 @@ export function RegisterPage() {
           </div>
 
           {/* 4. Field Email quản trị viên (*) */}
-          <div className="mb-4">
+          <div className="mb-2.5">
             <FormField
               label={t('auth:registerPage.step2.adminEmailLabel')}
               htmlFor="adminEmail"
@@ -419,9 +420,10 @@ export function RegisterPage() {
           </div>
 
           {/* 5. Field Mật khẩu (*) - Xếp dọc */}
-          <div className="mb-4">
+          <div className="mb-2.5">
             <FormField
               label={t('auth:registerPage.step2.adminPasswordLabel')}
+              warning={!errorKeys.adminPassword && containsVietnameseDiacritics(data.adminPassword) ? t('common:password.diacriticsWarning') : undefined}
               htmlFor="adminPassword"
               error={errorKeys.adminPassword ? t(`auth:registerPage.errors.${errorKeys.adminPassword}`) : undefined}
               required
@@ -439,9 +441,10 @@ export function RegisterPage() {
           </div>
 
           {/* 6. Field Xác nhận mật khẩu (*) - Xếp dọc */}
-          <div className="mb-6">
+          <div className="mb-4">
             <FormField
               label={t('auth:registerPage.step2.confirmPasswordLabel')}
+              warning={!errorKeys.confirmPassword && containsVietnameseDiacritics(data.confirmPassword) ? t('common:password.diacriticsWarning') : undefined}
               htmlFor="confirmPassword"
               error={errorKeys.confirmPassword ? t(`auth:registerPage.errors.${errorKeys.confirmPassword}`) : undefined}
               required
