@@ -33,8 +33,9 @@ export const Stepper = memo(function Stepper({
   const currentStepItem = steps.find((s) => s.id === currentStep) || steps[0];
   const progressPercent = Math.min(100, Math.max(0, (currentStep / steps.length) * 100));
 
+  // 28/10/2026 (merge Frontend2): khoang cach duoi mb-10 -> mb-6 de form Dang ky gon hon tren man hinh thap.
   return (
-    <div className={cn('w-full max-w-[420px] mx-auto mb-10', className)} aria-label={ariaLabel || t('common:stepper.ariaLabel')}>
+    <div className={cn('w-full max-w-[420px] mx-auto mb-6', className)} aria-label={ariaLabel || t('common:stepper.ariaLabel')}>
       {/* =========================================================================
           MOBILE VIEW (< md): Text mode + progress bar 4px (§2.5)
           ========================================================================= */}
