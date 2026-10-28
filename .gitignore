@@ -52,6 +52,9 @@ Doc/ClaudeRule/
 # 25/08/2026: ghi chu ca nhan chuan bi buoi bao ve (kich ban trinh bay, khong phai bao cao chinh
 # thuc). File nay chi la note lam viec, tuong tu ly do Doc/ClaudeRule.md khong duoc commit o tren.
 Doc/DemoScript.md
+# 28/10/2026: kich ban trinh bay tach theo tung thanh vien (DemoScript-Tien.md, DemoScript-Thanh.md) -
+# cung tinh chat ghi chu ca nhan nhu DemoScript.md, gui truc tiep cho tung nguoi, khong day len GitHub.
+Doc/DemoScript-*.md
 
 # 25/08/2026: bao cao do an (Doc/GraduationReport.tex) va toan bo file MiKTeX sinh ra khi bien dich
 # (.aux/.out/.toc/.lot/.pdf/.synctex.gz/.log...) - khong day len GitHub theo yeu cau, chi giu cuc bo.
