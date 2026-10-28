@@ -44,6 +44,10 @@ backups/
 # repo nay (truoc do nam cung cap voi thu muc repo, xem Doc/ECAP_Mobile.md "Lich su thay doi tai
 # lieu", 12/08/2026) nhung file nay khong duoc commit.
 Doc/ClaudeRule.md
+# 28/10/2026: ClaudeRule.md chuyen vao thu muc Doc/ClaudeRule/ cung cac ghi chu lenh (Commit, DocRefractor...)
+# va ban sao tai lieu huong dan Claude Code tieng Viet (claude-howto, giay phep MIT) - van la tai lieu noi bo,
+# khong commit ca thu muc.
+Doc/ClaudeRule/
 
 # 25/08/2026: ghi chu ca nhan chuan bi buoi bao ve (kich ban trinh bay, khong phai bao cao chinh
 # thuc). File nay chi la note lam viec, tuong tu ly do Doc/ClaudeRule.md khong duoc commit o tren.
