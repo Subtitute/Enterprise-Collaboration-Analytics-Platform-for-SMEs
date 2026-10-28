@@ -22,6 +22,7 @@ import {
 } from '@/features/face/hooks';
 import { FaceConsentDialog } from '@/features/face/components/FaceConsentDialog';
 import { FacePhotoBox } from '@/features/face/components/FacePhotoBox';
+import { canUseWebcam } from '@/features/face/camera';
 import { FACE_SECTION_ID } from './FacePendingBanner';
 
 type ConsentIntent = 'camera' | 'upload' | 'confirm' | null;
@@ -34,6 +35,10 @@ type ConsentIntent = 'camera' | 'upload' | 'confirm' | null;
  * 16.5): xem anh dang dung + anh CHO (qua proxy, khong cache), xac nhan/tu choi anh do quan tri vien
  * tai ho, tu dang ky bang camera HOAC tai anh tu may (chuan hoa JPEG o trinh duyet), xoa = rut lai
  * dong y. Dong y ghi o server (face-consent-v1) thay vi chi la o tick phia client.
+ *
+ * 27/10/2026: trinh duyet khong mo duoc webcam (dien thoai vao qua http LAN, khong co getUserMedia)
+ * thi nut camera mo app camera qua <input accept="image/*" capture="user"> thay vi modal bao "khong
+ * ho tro" - anh di cung duong chuan hoa JPEG nhu "Tai anh tu may" (nguon SELF_CAMERA).
  */
 export const ProfileFaceEnrollmentCard = memo(function ProfileFaceEnrollmentCard() {
   const { t } = useTranslation();
@@ -45,6 +50,8 @@ export const ProfileFaceEnrollmentCard = memo(function ProfileFaceEnrollmentCard
   const withdraw = useWithdrawMyFace();
   const { map: userNameMap } = useUserNameMap();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const captureInputRef = useRef<HTMLInputElement>(null);
+  const webcam = canUseWebcam();
   const [consentIntent, setConsentIntent] = useState<ConsentIntent>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isRejectOpen, setIsRejectOpen] = useState(false);
@@ -66,21 +73,28 @@ export const ProfileFaceEnrollmentCard = memo(function ProfileFaceEnrollmentCard
     setConsentIntent(null);
     // Mo hop chon tep NGAY trong su kien bam (cu chi nguoi dung) - trinh duyet moi cho phep.
     if (intent === 'upload') fileInputRef.current?.click();
-    if (intent === 'camera') setIsCameraOpen(true);
+    if (intent === 'camera') {
+      if (webcam) setIsCameraOpen(true);
+      else captureInputRef.current?.click();
+    }
   }
 
-  async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: ChangeEvent<HTMLInputElement>, source: 'SELF_CAMERA' | 'SELF_UPLOAD') {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
     try {
-      enroll.mutate({ photo: await normalizeFacePhoto(file), source: 'SELF_UPLOAD' });
+      enroll.mutate({ photo: await normalizeFacePhoto(file), source });
     } catch (err) {
       toast.error(t('hrm:faceEnroll.toasts.enrollError'), t(err instanceof ImageNormalizeError ? 'errors:FACE_INVALID_IMAGE' : 'common:genericError'));
     }
   }
 
   const pendingActor = data?.pending ? userNameMap[data.pending.actorId] ?? t('hrm:face.unknownActor') : '';
+  // 28/10/2026: dang gui anh tu the nay (khong qua modal webcam) -> spinner dung nut vua bam (camera qua
+  // input capture hoac "Tai anh tu may") va khoa ca 2 nut; truoc day spinner luon o nut tai anh.
+  const enrollingFromCard = enroll.isPending && !isCameraOpen;
+  const enrollingSource = enrollingFromCard ? enroll.variables?.source : undefined;
 
   return (
     <>
@@ -166,11 +180,23 @@ export const ProfileFaceEnrollmentCard = memo(function ProfileFaceEnrollmentCard
               )}
 
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                <Button type="button" variant={data.status === 'ACTIVE' ? 'secondary' : 'primary'} onClick={() => setConsentIntent('camera')}>
+                <Button
+                  type="button"
+                  variant={data.status === 'ACTIVE' ? 'secondary' : 'primary'}
+                  onClick={() => setConsentIntent('camera')}
+                  isLoading={enrollingSource === 'SELF_CAMERA'}
+                  disabled={enrollingFromCard}
+                >
                   <CameraIcon className="h-3.5 w-3.5 mr-1.5" />
                   {t(data.status === 'ACTIVE' ? 'hrm:faceEnroll.reEnrollButton' : 'hrm:faceEnroll.cameraButton')}
                 </Button>
-                <Button type="button" variant="secondary" onClick={() => setConsentIntent('upload')} isLoading={enroll.isPending && !isCameraOpen}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setConsentIntent('upload')}
+                  isLoading={enrollingSource === 'SELF_UPLOAD'}
+                  disabled={enrollingFromCard}
+                >
                   <UploadIcon className="h-3.5 w-3.5 mr-1.5" />
                   {t('hrm:faceEnroll.uploadButton')}
                 </Button>
@@ -191,7 +217,10 @@ export const ProfileFaceEnrollmentCard = memo(function ProfileFaceEnrollmentCard
         </CardContent>
       </Card>
 
-      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png" className="hidden" onChange={handleFileChange} />
+      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png" className="hidden" onChange={(e) => handleFileChange(e, 'SELF_UPLOAD')} />
+      {!webcam && (
+        <input ref={captureInputRef} type="file" accept="image/*" capture="user" className="hidden" onChange={(e) => handleFileChange(e, 'SELF_CAMERA')} />
+      )}
 
       <FaceConsentDialog
         open={consentIntent !== null}

@@ -53,6 +53,8 @@ export function CheckInCamera({
   onConfirm,
   isSubmitting,
   mode = 'checkin',
+  facingMode = 'user',
+  confirmLabel,
 }: {
   open: boolean;
   onClose: () => void;
@@ -63,6 +65,12 @@ export function CheckInCamera({
   // CHI doi vai khoa i18n (tieu de/nut) + bo qua xin vi tri GPS (khong can cho dang ky khuon mat) -
   // khong doi logic camera/anh.
   mode?: 'checkin' | 'enroll';
+  // 27/10/2026: 2 prop tuy chon cho hop tai anh nhan dien HO (FaceUploadDialog) - quan ly chup nhan
+  // vien nen uu tien camera sau ('environment', chi la rang buoc "ideal": laptop 1 webcam van mo
+  // binh thuong) va nut xac nhan chi la "Dung anh nay" (anh con qua buoc kiem tra truoc khi gui).
+  // Mac dinh giu nguyen hanh vi cu (camera truoc, nhan theo `mode`) cho cham cong + tu dang ky.
+  facingMode?: 'user' | 'environment';
+  confirmLabel?: string;
 }) {
   const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -76,6 +84,11 @@ export function CheckInCamera({
   // startCamera() ben duoi) - dat true khi effect vong doi mo camera chay, dat false trong cleanup
   // cua CHINH effect do (khi `open` chuyen ve false HOAC component unmount).
   const isOpenRef = useRef(false);
+  // 28/10/2026: so thu tu lan goi startCamera() - dong roi mo lai modal (hoac bam "Thu lai") TRUOC KHI
+  // lan xin camera dau tien resolve thi isOpenRef da true tro lai, nen kiem tra o Fix 6b khong du: stream
+  // cua lan CU van duoc gan roi bi lan moi ghi de ma khong stop (den camera sang mai). Chi lan goi MOI
+  // NHAT con hieu luc; cleanup khi dong modal cung tang so nay de vo hieu lan dang cho.
+  const startCallRef = useRef(0);
   const [status, setStatus] = useState<CameraStatus>('requesting');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
@@ -102,13 +115,14 @@ export function CheckInCamera({
   }
 
   async function startCamera() {
+    const callId = ++startCallRef.current;
     setStatus('requesting');
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
         setStatus('unavailable');
         return;
       }
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode } });
       // 26/08/2026: Fix 6b - sua loi thuc te - getUserMedia() la async, khong co gi dam bao modal
       // VAN CON MO luc no resolve (nguoi dung co the da dong modal trong luc trinh duyet dang cho
       // nguoi dung cap quyen camera, co the mat vai giay). Truoc ban sua nay, stream tra ve luon
@@ -117,7 +131,7 @@ export function CheckInCamera({
       // lan mo modal KE TIEP se GHI DE streamRef.current bang stream MOI ma khong dung stream cu
       // (stream mo coi khong bao gio duoc stop()). Kiem tra isOpenRef NGAY SAU khi resolve - neu
       // modal da dong, dung ngay track cua stream VUA nhan duoc thay vi gan vao streamRef.current.
-      if (!isOpenRef.current) {
+      if (!isOpenRef.current || callId !== startCallRef.current) {
         stream.getTracks().forEach((track) => track.stop());
         return;
       }
@@ -126,12 +140,13 @@ export function CheckInCamera({
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
-      setStatus('ready');
+      if (callId === startCallRef.current) setStatus('ready');
     } catch {
       // getUserMedia tu choi ca 2 truong hop (nguoi dung tu choi cap quyen VA khong tim thay
       // camera nao) qua cung 1 exception - khong the phan biet tin cay tu error.name tren moi
       // trinh duyet, nen gop chung thanh 1 thong bao ro rang kem nut "Thử lại".
-      setStatus('denied');
+      // 28/10/2026: loi cua 1 lan goi da bi thay the khong duoc ghi de trang thai cua lan moi.
+      if (callId === startCallRef.current) setStatus('denied');
     }
   }
 
@@ -148,10 +163,21 @@ export function CheckInCamera({
     if (mode !== 'enroll') locationRef.current = getCurrentLocationSoft();
     return () => {
       isOpenRef.current = false;
+      startCallRef.current += 1;
       stopStream();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // 28/10/2026: component bi go khoi cay (vd Escape dong ca lop cha) khi dang hien anh vua chup thi
+  // nhanh `!open` o tren khong chay -> thu hoi Object URL cua anh xem truoc tai day (thu hoi lai URL
+  // da thu hoi boi clearPreview() la vo hai).
+  useEffect(
+    () => () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    },
+    [previewUrl],
+  );
 
   function handleCapture() {
     const video = videoRef.current;
@@ -209,7 +235,7 @@ export function CheckInCamera({
                 <RefreshIcon className="h-4 w-4" /> {t('hrm:checkInCamera.retakeButton')}
               </Button>
               <Button type="button" variant="primary" onClick={handleConfirm} isLoading={isSubmitting}>
-                {t(confirmKey)}
+                {confirmLabel ?? t(confirmKey)}
               </Button>
             </>
           ) : (

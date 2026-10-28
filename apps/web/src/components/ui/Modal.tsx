@@ -9,6 +9,13 @@ import { cn } from '@/lib/utils';
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+// 28/10/2026: ngan xep cac Modal dang mo (dung chung toan ung dung) - CHI Modal tren cung xu ly phim
+// Escape/Tab. Truoc day moi Modal dang mo deu nghe keydown tren document nen khi modal chong modal
+// (ho so nhan vien -> hop tai anh nhan dien -> camera), 1 lan Escape trong camera dong CA 3 lop: mat
+// anh vua chup, anh da kiem tra va chinh sua chua luu cua ho so. Gio Escape chi dong lop tren cung,
+// lop duoi giu nguyen; lop tren dang chan dong (preventCloseWhilePending) thi Escape khong dong gi.
+const openModalStack: object[] = [];
+
 type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
 
 interface ModalProps {
@@ -101,7 +108,10 @@ export function Modal({
     const firstFocusable = dialogRef.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
     (firstFocusable ?? dialogRef.current)?.focus();
 
+    const layer = {};
+    openModalStack.push(layer);
     const onKeyDown = (e: KeyboardEvent) => {
+      if (openModalStack[openModalStack.length - 1] !== layer) return;
       if (e.key === 'Escape') {
         if (preventCloseRef.current) return;
         onCloseRef.current();
@@ -129,6 +139,8 @@ export function Modal({
 
     return () => {
       document.removeEventListener('keydown', onKeyDown);
+      const index = openModalStack.indexOf(layer);
+      if (index !== -1) openModalStack.splice(index, 1);
       document.body.style.overflow = prevOverflow;
       previouslyFocusedRef.current?.focus?.();
     };
