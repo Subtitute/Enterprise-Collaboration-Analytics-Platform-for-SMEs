@@ -62,6 +62,9 @@ Doc/Thanh-side.xlsx
 Doc/Tien-side.md
 Doc/Tien-side.xlsx
 Doc/~$*-side.xlsx
+# 28/10/2026: bao cao tien do trinh bay rieng cua tung thanh vien (vd Doc/Baocao2810.md cua Tien) - tai lieu
+# ca nhan, khong day len GitHub.
+Doc/Baocao*.md
 
 # Frontend
 apps/web/dist/
