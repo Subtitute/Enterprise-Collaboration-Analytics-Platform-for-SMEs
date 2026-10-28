@@ -33,6 +33,7 @@ const LAUNCHER_CLASSES = cn(
   'transition-all hover:scale-105 active:scale-95 cursor-pointer',
   'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2',
 );
+// 26/10/2026 - Rà soát layout & responsive 390px: z-[25] không che Topbar (z-30), Modal (z-50); trên mobile panel cách top 4.5rem và bottom-40 không che Topbar/Toast
 const PANEL_CLASSES = cn(
   'fixed z-[25] flex flex-col overflow-hidden rounded-radius-lg border border-border-subtle bg-bg-surface shadow-md animate-slide-up',
   'left-4 right-4 top-[4.5rem] bottom-40',

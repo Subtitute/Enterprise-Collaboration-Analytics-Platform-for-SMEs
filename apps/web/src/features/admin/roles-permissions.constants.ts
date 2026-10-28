@@ -96,6 +96,7 @@ export const PERMISSION_META: Record<string, PermissionMeta> = {
 };
 
 /** Danh sách thứ tự hiển thị của các module nghiệp vụ */
+// 26/10/2026 - Rà soát phân quyền: gom đủ nhóm 'inventory' (Sản phẩm & Kho) và 'message' (Nhắn tin & Trợ lý AI), loại bỏ hoàn toàn nhóm 'Khác'
 export const MODULE_ORDER: Array<{ key: ModuleKey }> = [
   { key: 'hrm' },
   { key: 'crm' },

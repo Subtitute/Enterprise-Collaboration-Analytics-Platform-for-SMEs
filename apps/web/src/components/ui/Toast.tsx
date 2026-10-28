@@ -47,6 +47,7 @@ function ToastCard({ item }: { item: ToastItem }) {
 // 24/10/2026 (ra soat cuoi): man hinh < 640px panel chiem gan tron chieu ngang (top 4.5rem -> bottom
 // 10rem) nen 'bottom-40' cu day toast len NGAY TREN noi dung panel - doi sang mep TREN man hinh (de len
 // Topbar, vua 1 toast truoc moc 4.5rem cua panel); sm+ giu nguyen ben trai panel.
+// 26/10/2026 - Rà soát layout & responsive 390px: trên mobile khi mở panel chatbot, toast đảo lên top-2 không bị chồng đè lên panel hoặc launcher
 const TOAST_POSITION_CLASSES: Record<ChatbotLayer, string> = {
   none: 'bottom-4 right-4',
   launcher: 'bottom-40 right-4 sm:bottom-20',
