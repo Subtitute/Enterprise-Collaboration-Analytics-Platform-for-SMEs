@@ -3,18 +3,21 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { FileIcon, FolderIcon } from '@/components/ui/Icons';
 import { formatBytes, formatRelativeTime } from '@/lib/utils';
-import { useDownloadFile, useProjectFilesQuery } from '../hooks';
+import { useFilePreview, useProjectFilesQuery } from '../hooks';
 import { getFileTypeTheme } from './DocumentCard';
+import { FilePreviewModal } from './FilePreviewModal';
 
 /**
  * 26/10/2026: muc "Tai lieu" o trang chi tiet du an - tep trong moi thu muc cua du an ma nguoi dung
  * xem duoc (GET /files?projectId=, backend tu loc dung quy tac pham vi du an). Bam ten tep = mo xem
  * (cung luong openFile() cua trang Tai lieu); "Mo thu muc" dan sang trang Tai lieu dung thu muc.
+ * 27/10/2026: bam ten tep mo FilePreviewModal (useFilePreview, chung voi trang Tai lieu) thay vi tab
+ * moi disposition=inline - .txt/.csv bi server ep tai ve, Word/Excel/PowerPoint trinh duyet khong hien.
  */
 export const ProjectDocumentsSection = memo(function ProjectDocumentsSection({ projectId }: { projectId: string }) {
   const { t } = useTranslation();
   const filesQuery = useProjectFilesQuery(projectId);
-  const download = useDownloadFile();
+  const preview = useFilePreview();
   const files = filesQuery.data ?? [];
 
   return (
@@ -38,7 +41,7 @@ export const ProjectDocumentsSection = memo(function ProjectDocumentsSection({ p
               </span>
               <button
                 type="button"
-                onClick={() => download.openFile(file.id, 'inline')}
+                onClick={() => preview.openPreview(file)}
                 title={t('documents:fileTable.openFileTitle')}
                 className="min-w-0 flex-1 truncate text-left text-[13px] font-medium text-text-primary hover:text-accent transition-colors cursor-pointer"
               >
@@ -62,6 +65,7 @@ export const ProjectDocumentsSection = memo(function ProjectDocumentsSection({ p
           ))}
         </ul>
       )}
+      <FilePreviewModal {...preview.modalProps} />
     </section>
   );
 });

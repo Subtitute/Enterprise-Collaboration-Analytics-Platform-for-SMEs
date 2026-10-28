@@ -15,7 +15,8 @@ interface FileTableProps {
   folderId: string | null;
   onShare: (file: FileItem) => void;
   onVersionHistory: (file: FileItem) => void;
-  onPreview?: (file: FileItem) => void;
+  // 27/10/2026: bat buoc - bam ten tep (luoi lan bang) luon mo FilePreviewModal, khong mo tab moi.
+  onPreview: (file: FileItem) => void;
   viewMode?: 'grid' | 'list';
   // 26/10/2026: false = nguoi goi chi xem thu muc nay (cay toan cong ty) - an chia se/xoa (writeAccess.ts).
   canWrite?: boolean;
@@ -61,9 +62,11 @@ export const FileTable = React.memo(function FileTable({
     );
   }, []);
 
+  // 27/10/2026: chi con tai xuong (attachment) - xem tep di qua onPreview (FilePreviewModal).
+  // 28/10/2026: openFile(id) khong con tham so disposition (luon attachment, xem hooks.ts).
   const handleDownloadFile = useCallback(
-    (id: string, disposition: 'inline' | 'attachment') => {
-      download.openFile(id, disposition);
+    (id: string) => {
+      download.openFile(id);
     },
     [download],
   );
@@ -71,7 +74,7 @@ export const FileTable = React.memo(function FileTable({
   const handleBatchDownload = useCallback(() => {
     selectedFileIds.forEach((id, index) => {
       setTimeout(() => {
-        download.openFile(id, 'attachment');
+        download.openFile(id);
       }, index * 300);
     });
   }, [selectedFileIds, download]);

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Download } from '@playwright/test';
 import { loginAsAdmin, uniqueName } from './helpers';
 
 // 28/07/2026: luong "vang" Tai lieu - tai len 1 tep, mo xem truc tiep ("Xem tệp", mo tab moi) va
@@ -8,7 +8,10 @@ import { loginAsAdmin, uniqueName } from './helpers';
 // vo tinh sua lai thanh goi window.open() sau 1 await, popup blocker se lai am tham chan no va CHI
 // e2e test that (dieu khien trinh duyet that, co popup blocker that) moi phat hien duoc dieu nay -
 // unit test (jsdom) khong the mo phong hanh vi popup blocker cua trinh duyet that.
-test('tai len tep, mo xem truc tiep (khong bi popup blocker chan) va chia se voi thanh vien khac', async ({ page }) => {
+// 28/10/2026: bam ten tep gio mo modal xem truoc NGAY TRONG app (FilePreviewModal), khong con tab moi.
+// Kiem tra popup blocker chuyen sang nut "Tải xuống" trong modal - nut nay van dung openFile(): mo tab
+// trong dong bo trong onClick roi gan URL presigned attachment sau khi API tra ve -> tep duoc tai ve.
+test('tai len tep, xem trong modal, tai xuong (khong bi popup blocker chan) va chia se voi thanh vien khac', async ({ page }) => {
   await loginAsAdmin(page);
   await page.goto('/documents');
 
@@ -38,17 +41,30 @@ test('tai len tep, mo xem truc tiep (khong bi popup blocker chan) va chia se voi
   const fileRow = page.getByRole('row', { name: new RegExp(fileName) });
   await expect(fileRow).toBeVisible();
 
-  // "Xem tệp" (click ten tep) phai mo 1 tab/popup MOI thanh cong, khong bi chan.
+  // 28/10/2026: bam ten tep -> modal xem truoc (anh hien tu URL presigned inline), khong mo tab.
+  await fileRow.getByText(fileName, { exact: true }).click();
+  const preview = page.locator('[role="dialog"][aria-modal="true"]').filter({ hasText: fileName });
+  await expect(preview).toBeVisible();
+  await expect(preview.getByRole('img', { name: fileName })).toBeVisible();
+
+  // "Tải xuống" trong modal phai mo duoc 1 tab/popup MOI (khong bi chan) va tep phai duoc tai ve.
   // 28/07/2026: openFile() mo tab TRONG (about:blank) dong bo truoc, roi gan location.href = url
   // that SAU KHI mutation (goi API lay presigned URL) hoan tat - waitForLoadState() cu bi false
   // positive vi about:blank tu no "domcontentloaded" gan nhu ngay lap tuc, truoc khi dieu huong
-  // that xay ra. Doi URL thuc su roi khoi about:blank (bat dau bang http) moi la kiem tra dung.
+  // that xay ra.
+  // 28/10/2026: URL attachment khong dieu huong tab ma thanh 1 lan tai xuong -> doi su kien download
+  // cua chinh popup do (gan listener ngay khi popup duoc tao, truoc khi URL that ve toi).
+  const downloadPromise = new Promise<Download>((resolve) => {
+    page.context().once('page', (popupPage) => popupPage.once('download', resolve));
+  });
   const popupPromise = page.waitForEvent('popup');
-  await fileRow.getByText(fileName, { exact: true }).click();
+  await preview.getByRole('button', { name: 'Tải xuống', exact: true }).click();
   const popup = await popupPromise;
-  await popup.waitForURL(/^http/, { timeout: 15_000 });
-  expect(popup.url()).not.toBe('about:blank');
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe(fileName);
   await popup.close();
+  await page.keyboard.press('Escape');
+  await expect(preview).toBeHidden();
 
   // Chia se voi 1 thanh vien bat ky khac trong to chuc demo.
   // 28/07/2026: cuon hang nay ve giua man hinh truoc khi mo dropdown - Dropdown.tsx dinh vi panel

@@ -13,6 +13,7 @@
 //   2. Them buoc upload vai tai lieu mau (text/CSV sinh trong bo nho, khong can asset nhi phan
 //      that) vao 1 thu muc rieng cho tung du an, qua Document Service - giup "Hoat dong tai lieu"
 //      tren Analytics co du lieu that va bucket MinIO khong con trong rong.
+//      27/10/2026: bo cac tep text/CSV nay - thay bang tai lieu that trong scripts/seed-assets (xem main()).
 //   3. Them 1 buoc BO SUNG (xem seedHistoricalAnalyticsData ben duoi) noi TRUC TIEP vao TimescaleDB
 //      de tao lich su ~8 tuan cho bieu do xu huong - xem chu thich chi tiet o buoc do ve ly do
 //      khong the/khong nen lam dieu nay qua API cong khai.
@@ -208,23 +209,8 @@ async function apiCall(path, options = {}) {
   return body;
 }
 
-/**
- * Upload multipart/form-data - KHONG dat header Content-Type thu cong (khac apiCall()):
- * global fetch/FormData cua Node 20 tu sinh boundary dung chuan, tu dat lai se lam hong request.
- */
-async function uploadFile(path, { headers = {}, formData }) {
-  const res = await fetchWithRetry(`${API_BASE_URL}${path}`, {
-    method: 'POST',
-    headers,
-    body: formData,
-  });
-  const text = await res.text();
-  const body = text ? JSON.parse(text) : null;
-  if (!res.ok) {
-    throw new Error(`POST ${path} (upload) -> ${res.status}: ${JSON.stringify(body)}`);
-  }
-  return body;
-}
+// 27/10/2026: bo uploadFile() cung buildSampleDocuments() - seed.js khong con tu tai tep nao len (xem chu
+// thich trong vong lap du an cua main()); tep mau do seed-project-docs.js/migrate-project-documents.js tai.
 
 function randomFrom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -232,37 +218,6 @@ function randomFrom(arr) {
 
 function randomInt(min, max) {
   return min + Math.floor(Math.random() * (max - min + 1));
-}
-
-/** Sinh 2-4 tai lieu mau (noi dung sinh trong bo nho, khong can asset nhi phan that) cho 1 du an. */
-function buildSampleDocuments(project) {
-  const count = randomInt(2, 4);
-  const docs = [];
-  const today = new Date().toISOString().slice(0, 10);
-  for (let i = 0; i < count; i += 1) {
-    if (i % 2 === 0) {
-      docs.push({
-        filename: `bao-cao-tien-do-${i + 1}.txt`,
-        mimeType: 'text/plain',
-        content:
-          `Bao cao tien do du an: ${project.name}\n` +
-          `Ngay cap nhat: ${today}\n` +
-          `Mo ta: ${project.description}\n` +
-          `Trang thai tong quan: dang trien khai theo ke hoach.\n`,
-      });
-    } else {
-      docs.push({
-        filename: `du-lieu-cong-viec-${i + 1}.csv`,
-        mimeType: 'text/csv',
-        content:
-          'task,gio_lam,trang_thai\n' +
-          `Thiet ke,${randomInt(4, 12)},DOING\n` +
-          `Kiem thu,${randomInt(2, 8)},TODO\n` +
-          `Trien khai,${randomInt(6, 16)},DONE\n`,
-      });
-    }
-  }
-  return docs;
 }
 
 /** Tao khach hang + deal CRM mau (CUSTOMERS/DEAL_TEMPLATES dau file) - xem chu thich 2 hang so do. */
@@ -443,7 +398,6 @@ async function main() {
   const projectIds = [];
   const folderIds = [];
   let totalTasks = 0;
-  let totalFiles = 0;
 
   for (let projectIndex = 0; projectIndex < PROJECTS.length; projectIndex += 1) {
     const proj = PROJECTS[projectIndex];
@@ -471,16 +425,10 @@ async function main() {
       body: JSON.stringify({ name: `${project.name} - Tai lieu` }),
     });
     folderIds.push(folder.id);
-
-    const sampleDocs = buildSampleDocuments(project);
-    for (const doc of sampleDocs) {
-      const formData = new FormData();
-      const blob = new Blob([doc.content], { type: doc.mimeType });
-      formData.append('file', blob, doc.filename);
-      formData.append('folderId', folder.id);
-      await uploadFile('/files/upload', { headers: authHeaders, formData });
-      totalFiles += 1;
-    }
+    // 27/10/2026: bo 2-4 tep gia bao-cao-tien-do-N.txt / du-lieu-cong-viec-N.csv sinh trong bo nho cho
+    // moi du an (vai dong chu khong dau, lam "nhieu" ket qua tim kiem RAG cua chat bot). 20 tai lieu
+    // Word/PDF/Excel/PowerPoint that trong scripts/seed-assets/project-docs (seed-project-docs.js o cuoi
+    // main()) thay the - thu muc du an van tao o day de duoc gan du an va nhan cac tai lieu do.
 
     // --- Cong viec cua du an ---
     // 23/09/2026: du an AT_RISK duoc tao NHIEU task hon han (thay vi cung random 6-10 nhu moi du
@@ -539,7 +487,7 @@ async function main() {
       }
     }
     console.log(
-      `Du an "${project.name}": da tao ${taskCount} task (co giao nguoi), 1 thu muc + ${sampleDocs.length} tai lieu`,
+      `Du an "${project.name}": da tao ${taskCount} task (co giao nguoi), 1 thu muc tai lieu`,
     );
   }
 
@@ -556,7 +504,8 @@ async function main() {
   console.log('\n=== Seed hoan tat (qua API cong khai) ===');
   console.log(`Dang nhap Org Admin: ${adminEmail} / ${adminPassword}`);
   console.log('Nhan vien demo dung chung mat khau tren.');
-  console.log(`Tong: ${projectIds.length} du an, ${totalTasks} task, ${totalFiles} tai lieu da upload.`);
+  // 27/10/2026: bo dem tai lieu da upload - tai lieu mau do 2 script tren tai va tu in so luong.
+  console.log(`Tong: ${projectIds.length} du an, ${totalTasks} task.`);
   console.log('Mo dashboard va cho vai giay de Analytics Service xu ly xong hang doi Kafka.');
 
   // ==========================================================================================

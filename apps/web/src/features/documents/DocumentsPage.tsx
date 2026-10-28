@@ -6,7 +6,9 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { ChevronRightIcon, FileTextIcon, PlusIcon, UploadIcon } from '@/components/ui/Icons';
-import { useFilesQuery, useFoldersQuery, useDownloadFile, useDocumentProjects } from './hooks';
+// 27/10/2026: useFilePreview thay state previewFile + useDownloadFile rieng cua trang (dung chung voi
+// muc "Tai lieu" cua du an va chip nguon Chat bot).
+import { useFilesQuery, useFoldersQuery, useFilePreview, useDocumentProjects } from './hooks';
 import { FolderGrid } from './components/FolderGrid';
 import { FileTable } from './components/FileTable';
 import { COMPANY_WIDE_FILTER, DocumentFilterToolbar } from './components/DocumentFilterToolbar';
@@ -49,8 +51,7 @@ export function DocumentsPage() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [sharingFile, setSharingFile] = useState<FileItem | null>(null);
   const [historyFile, setHistoryFile] = useState<FileItem | null>(null);
-  const [previewFile, setPreviewFile] = useState<FileItem | null>(null);
-  const download = useDownloadFile();
+  const preview = useFilePreview();
   // 28/07/2026: sharingFolder - dieu khien FolderShareModal, mirror y het sharingFile/ShareModal o
   // tren (tinh nang kiem soat truy cap thu muc theo cap do).
   const [sharingFolder, setSharingFolder] = useState<Folder | null>(null);
@@ -177,7 +178,6 @@ export function DocumentsPage() {
 
   const handleClearSearch = useCallback(() => setSearchTerm(''), []);
   const handleOpenFolder = useCallback((folder: Folder) => setCurrentFolderId(folder.id), [setCurrentFolderId]);
-  const handleDownloadFile = useCallback((fileId: string) => download.openFile(fileId, 'attachment'), [download]);
 
   return (
     <div className="relative min-h-[calc(100vh-140px)] space-y-5">
@@ -327,7 +327,7 @@ export function DocumentsPage() {
                 folderId={currentFolderId}
                 onShare={setSharingFile}
                 onVersionHistory={setHistoryFile}
-                onPreview={setPreviewFile}
+                onPreview={preview.openPreview}
                 viewMode={viewMode}
                 canWrite={canUploadHere}
               />
@@ -350,12 +350,7 @@ export function DocumentsPage() {
       {/* 28/07/2026: render FolderShareModal, mirror vi tri/pattern cua ShareModal (tep) ngay tren. */}
       <FolderShareModal folder={sharingFolder} onClose={() => setSharingFolder(null)} />
       <VersionHistoryModal file={historyFile} folderId={currentFolderId} onClose={() => setHistoryFile(null)} canWrite={canWriteFile(historyFile, canUploadHere)} />
-      <FilePreviewModal
-        file={previewFile}
-        open={Boolean(previewFile)}
-        onClose={() => setPreviewFile(null)}
-        onDownload={handleDownloadFile}
-      />
+      <FilePreviewModal {...preview.modalProps} />
     </div>
   );
 }

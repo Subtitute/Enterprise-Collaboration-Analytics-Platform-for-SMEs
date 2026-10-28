@@ -73,8 +73,10 @@ export interface DocumentCardProps {
   file: FileItem;
   isSelected: boolean;
   onToggleSelect: (id: string, e: React.MouseEvent) => void;
-  onPreview?: (file: FileItem) => void;
-  onDownload: (id: string, disposition: 'inline' | 'attachment') => void;
+  // 27/10/2026: onPreview bat buoc, bo nhanh du phong mo tab moi disposition=inline - bam ten tep luon
+  // mo FilePreviewModal (cung DocumentTableRow); onDownload chi con tai xuong (attachment).
+  onPreview: (file: FileItem) => void;
+  onDownload: (id: string) => void;
   onShare: (file: FileItem) => void;
   onVersionHistory: (file: FileItem) => void;
   onDelete: (file: FileItem) => void;
@@ -116,7 +118,7 @@ export const DocumentCard = React.memo(function DocumentCard({
           />
           <button
             type="button"
-            onClick={() => (onPreview ? onPreview(file) : onDownload(file.id, 'inline'))}
+            onClick={() => onPreview(file)}
             title={t('documents:fileTable.openFileTitle')}
             className="flex min-w-0 flex-1 items-center gap-3 text-left cursor-pointer"
           >
@@ -137,7 +139,7 @@ export const DocumentCard = React.memo(function DocumentCard({
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => onDownload(file.id, 'attachment')}
+            onClick={() => onDownload(file.id)}
             title={t('documents:fileTable.download')}
             className="flex h-6 w-6 items-center justify-center rounded-radius-sm text-text-tertiary opacity-0 group-hover:opacity-100 hover:bg-bg-subtle hover:text-text-primary transition-all cursor-pointer"
           >
@@ -161,7 +163,7 @@ export const DocumentCard = React.memo(function DocumentCard({
                 <DropdownItem
                   className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
                   onClick={() => {
-                    onDownload(file.id, 'attachment');
+                    onDownload(file.id);
                     close();
                   }}
                 >

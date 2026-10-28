@@ -76,6 +76,8 @@ export function ChatbotPanel({ open, onClose }: ChatbotPanelProps) {
           onConversationCreated={setActiveConversationId}
           onBusyChange={handleBusyChange}
           inputRef={inputRef}
+          // 28/10/2026: dong panel -> huy chip nguon dang tai (xem ChatbotThread).
+          panelOpen={open}
         />
       ) : (
         <ChatbotHistory

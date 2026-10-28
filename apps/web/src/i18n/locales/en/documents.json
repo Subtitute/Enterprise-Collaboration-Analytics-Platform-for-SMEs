@@ -57,7 +57,7 @@
       "updated": "Updated",
       "actions": "Actions"
     },
-    "openFileTitle": "Open and view file in new tab",
+    "openFileTitle": "Preview file",
     "optionsAria": "File options",
     "viewFile": "View file",
     "download": "Download",
@@ -191,7 +191,14 @@
     "loadErrorDesc": "An error occurred while connecting or rendering the file. Please download to view.",
     "fileTooLargeDesc": "File size exceeds the limit for direct preview (> {{maxSize}}). Please download to view full content.",
     "unsupportedDesc": "This file format is not supported for inline browser preview. Please download to open in a compatible application.",
-    "emptyContent": "The file is empty or has no content."
+    "emptyContent": "The file is empty or has no content.",
+    "sheetTruncated": "Showing the first {{rows}} of {{totalRows}} rows and {{cols}} of {{totalCols}} columns. Please download to see the whole sheet.",
+    "sheetEmpty": "This sheet is empty.",
+    "pptxSimplified": "Simplified view: only the title and text of each slide are shown, without layout, images, charts or animations.",
+    "downloadOriginal": "Download original",
+    "slideLabel": "Slide {{n}}",
+    "slideNoText": "This slide has no text content.",
+    "noSlides": "This presentation has no slides."
   },
   "projectScope": {
     "label": "Project",

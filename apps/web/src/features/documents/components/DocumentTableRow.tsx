@@ -12,8 +12,10 @@ export interface DocumentTableRowProps {
   file: FileItem;
   isSelected: boolean;
   onToggleSelect: (id: string, e: React.MouseEvent) => void;
-  onPreview?: (file: FileItem) => void;
-  onDownload: (id: string, disposition: 'inline' | 'attachment') => void;
+  // 27/10/2026: onPreview bat buoc - bam ten tep/"Xem tệp" luon mo FilePreviewModal (khong mo tab
+  // moi nua); onDownload chi con tai xuong (attachment).
+  onPreview: (file: FileItem) => void;
+  onDownload: (id: string) => void;
   onShare: (file: FileItem) => void;
   onVersionHistory: (file: FileItem) => void;
   onDelete: (file: FileItem) => void;
@@ -50,11 +52,14 @@ export const DocumentTableRow = React.memo(function DocumentTableRow({
       <TableCell label={t('documents:fileTable.columns.name')}>
         <button
           type="button"
-          // 22/07/2026: goi onDownload/openFile(id, 'inline') dong bo ngay trong onClick de tab moi
-          // khong bi popup blocker chan.
-          onClick={() => onDownload(file.id, 'inline')}
+          // 27/10/2026: mo FilePreviewModal thay cho tab moi disposition=inline (ghi chu popup blocker
+          // 22/07/2026 khong con ap dung o day) - .txt/.csv bi server ep attachment, Office trinh duyet
+          // khong hien duoc nen tab moi chi lam tep bi tai ve.
+          // 28/10/2026: them max-w-full - <button> co width theo noi dung nen ten tep dai (tai lieu that
+          // trong kho) day hang rong qua man hinh 390px (trang cuon ngang ~20px), `truncate` khong co tac dung.
+          onClick={() => onPreview(file)}
           title={t('documents:fileTable.openFileTitle')}
-          className="flex min-w-0 items-center gap-3 text-left transition-colors cursor-pointer"
+          className="flex min-w-0 max-w-full items-center gap-3 text-left transition-colors cursor-pointer"
         >
           <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-radius-md ${theme.bg}`}>
             <FileIcon className="h-5 w-5 stroke-1.5" />
@@ -79,7 +84,7 @@ export const DocumentTableRow = React.memo(function DocumentTableRow({
         <div className="flex items-center justify-end gap-1">
           <button
             type="button"
-            onClick={() => onDownload(file.id, 'attachment')}
+            onClick={() => onDownload(file.id)}
             title={t('documents:fileTable.download')}
             className="flex h-6 w-6 items-center justify-center rounded-radius-sm text-text-tertiary opacity-0 group-hover:opacity-100 hover:bg-bg-subtle hover:text-text-primary transition-all cursor-pointer"
           >
@@ -99,21 +104,19 @@ export const DocumentTableRow = React.memo(function DocumentTableRow({
           >
             {({ close }) => (
               <div className="min-w-[200px] p-1 rounded-radius-md border border-border-subtle bg-white shadow-md text-left">
-                {onPreview && (
-                  <DropdownItem
-                    className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
-                    onClick={() => {
-                      onPreview(file);
-                      close();
-                    }}
-                  >
-                    <EyeIcon className="h-4 w-4 text-text-secondary" /> {t('documents:fileTable.viewFile')}
-                  </DropdownItem>
-                )}
                 <DropdownItem
                   className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
                   onClick={() => {
-                    onDownload(file.id, 'attachment');
+                    onPreview(file);
+                    close();
+                  }}
+                >
+                  <EyeIcon className="h-4 w-4 text-text-secondary" /> {t('documents:fileTable.viewFile')}
+                </DropdownItem>
+                <DropdownItem
+                  className="h-9 px-2.5 rounded-radius-sm hover:bg-bg-subtle text-[13px] text-text-primary"
+                  onClick={() => {
+                    onDownload(file.id);
                     close();
                   }}
                 >

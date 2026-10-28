@@ -6,7 +6,9 @@ import { Spinner } from '@/components/ui/Spinner';
 import { AlertCircleIcon, FileTextIcon, SendIcon, SparklesIcon } from '@/components/ui/Icons';
 import { extractErrorMessage } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
-import { useDownloadFile } from '@/features/documents/hooks';
+// 27/10/2026: chip nguon mo FilePreviewModal (useFilePreview lay metadata theo fileId) thay vi tab moi.
+import { useFilePreview } from '@/features/documents/hooks';
+import { FilePreviewModal } from '@/features/documents/components/FilePreviewModal';
 import { CHATBOT_QUESTION_MAX_LENGTH } from '../api';
 import type { ChatbotMessage } from '../api';
 import { useAskChatbot, useChatbotMessages, useCreateChatbotConversation } from '../hooks';
@@ -19,6 +21,9 @@ interface ChatbotThreadProps {
   onConversationCreated: (conversationId: string) => void;
   onBusyChange: (busy: boolean) => void;
   inputRef: RefObject<HTMLTextAreaElement>;
+  // 28/10/2026: panel dang hien hay da dong (panel chi an di, thread van mounted) - dong panel khi chip
+  // nguon con dang tai metadata thi huy lan mo do, modal khong tu bat len sau khi panel da dong.
+  panelOpen?: boolean;
 }
 
 /**
@@ -27,12 +32,17 @@ interface ChatbotThreadProps {
  * hoi/ngay, AI qua tai...) hien NGAY TRONG panel (khong qua toast) va tra lai noi dung vao o nhap de
  * nguoi dung bam gui lai. Hoi thoai moi chi duoc tao o backend khi gui cau hoi DAU TIEN.
  */
-export function ChatbotThread({ conversationId, onConversationCreated, onBusyChange, inputRef }: ChatbotThreadProps) {
+export function ChatbotThread({ conversationId, onConversationCreated, onBusyChange, inputRef, panelOpen = true }: ChatbotThreadProps) {
   const { t } = useTranslation();
   const messagesQuery = useChatbotMessages(conversationId);
   const createConversation = useCreateChatbotConversation();
   const askChatbot = useAskChatbot();
-  const { openFile } = useDownloadFile();
+  const preview = useFilePreview();
+  const { cancelPending } = preview;
+
+  useEffect(() => {
+    if (!panelOpen) cancelPending();
+  }, [panelOpen, cancelPending]);
 
   const [input, setInput] = useState('');
   const [pendingQuestion, setPendingQuestion] = useState<string | null>(null);
@@ -140,7 +150,12 @@ export function ChatbotThread({ conversationId, onConversationCreated, onBusyCha
           message.role === 'user' ? (
             <UserBubble key={message.id} content={message.content} />
           ) : (
-            <AssistantBubble key={message.id} message={message} onOpenSource={(fileId) => openFile(fileId, 'inline')} />
+            <AssistantBubble
+              key={message.id}
+              message={message}
+              onOpenSource={preview.openPreviewById}
+              loadingFileId={preview.loadingFileId}
+            />
           ),
         )}
 
@@ -196,6 +211,8 @@ export function ChatbotThread({ conversationId, onConversationCreated, onBusyCha
           </span>
         </div>
       </div>
+      {/* Modal render qua portal (z-50, tren panel z-[25]); Esc trong modal khong dong panel (xem ChatbotWidget). */}
+      <FilePreviewModal {...preview.modalProps} />
     </div>
   );
 }
@@ -210,7 +227,18 @@ function UserBubble({ content }: { content: string }) {
   );
 }
 
-function AssistantBubble({ message, onOpenSource }: { message: ChatbotMessage; onOpenSource: (fileId: string) => void }) {
+// 27/10/2026: loadingFileId - chip dang lay metadata tep hien aria-busy + mo di. KHONG dung `disabled`
+// (nut dang focus bi disabled lam focus roi ve <body>, panel mat phim Esc); bam lap vo hai vi
+// fetchQuery gop request dang chay cung key.
+function AssistantBubble({
+  message,
+  onOpenSource,
+  loadingFileId,
+}: {
+  message: ChatbotMessage;
+  onOpenSource: (fileId: string) => void;
+  loadingFileId: string | null;
+}) {
   const { t } = useTranslation();
   const toolNames = [...new Set(message.toolCalls.map((call) => call.name))];
   return (
@@ -227,11 +255,13 @@ function AssistantBubble({ message, onOpenSource }: { message: ChatbotMessage; o
                 key={citation.fileId}
                 type="button"
                 onClick={() => onOpenSource(citation.fileId)}
+                aria-busy={loadingFileId === citation.fileId}
                 aria-label={t('chatbot:thread.openSource', { name: citation.fileName })}
                 title={t('chatbot:thread.openSource', { name: citation.fileName })}
                 className={cn(
                   'inline-flex max-w-full items-center gap-1 rounded-full border border-border-subtle bg-white px-2 py-0.5',
                   'text-[11px] text-text-primary transition-colors hover:border-accent hover:text-accent cursor-pointer',
+                  loadingFileId === citation.fileId && 'cursor-wait opacity-60',
                 )}
               >
                 <FileTextIcon className="h-3 w-3 shrink-0" />

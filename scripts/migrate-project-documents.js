@@ -9,36 +9,40 @@
 //      tham thu hoi. Bo qua bang --skip-members.
 //   3. Dam bao 2 thu muc chinh sach TOAN CONG TY (khong gan du an) - moi nguoi deu xem duoc - moi
 //      thu muc 1 tai lieu mau neu dang trong.
+//      27/10/2026: tai lieu mau la tep that (PDF/Word) trong scripts/seed-assets/company-docs thay cho
+//      .txt sinh trong bo nho; tai len neu thu muc chua co tep cung ten, roi xoa ban .txt cu (cai dat
+//      da chay script truoc ngay nay) qua DELETE /files/:id de service xoa ca object MinIO + doan RAG.
 //
 // Cach chay: node scripts/migrate-project-documents.js [--skip-members]
 // Bien moi truong: SEED_API_BASE_URL (mac dinh http://127.0.0.1:3000/api/v1), SEED_ADMIN_EMAIL,
 // SEED_ADMIN_PASSWORD (mac dinh tai khoan demo cua seed.js).
 
+const fs = require('fs');
+const path = require('path');
+
 const API_BASE_URL = process.env.SEED_API_BASE_URL || 'http://127.0.0.1:3000/api/v1';
 const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || 'admin@demo-sme.vn';
 const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || 'Password123!';
 const FOLDER_SUFFIX = ' - Tai lieu';
+const ASSET_DIR = path.join(__dirname, 'seed-assets', 'company-docs');
 
+// 27/10/2026: `file` = ten hien thi tren web-app, `source` = tep nguon trong ASSET_DIR, `legacyFile` = ban
+// .txt cu cua script nay (bi xoa sau khi thu muc da co tai lieu that). Noi dung 2 tep that giu nguyen cac
+// quy dinh cua ban .txt cu (gio lam, cham cong, phep nam, pham vi tai lieu...) va viet day du hon.
 const POLICY_FOLDERS = [
   {
     name: 'Chính sách công ty',
-    file: 'noi-quy-lam-viec.txt',
-    content:
-      'NỘI QUY LÀM VIỆC\n' +
-      '1. Giờ làm việc: 08:30 - 17:30, thứ Hai đến thứ Sáu; nghỉ trưa 12:00 - 13:00.\n' +
-      '2. Chấm công bằng ảnh khi bắt đầu và kết thúc ca; quên chấm công thì gửi giải trình trong 3 ngày.\n' +
-      '3. Nghỉ phép năm: 12 ngày, cộng 1 ngày cho mỗi 5 năm thâm niên; xin nghỉ trước ít nhất 2 ngày làm việc.\n' +
-      '4. Tài liệu dự án chỉ chia sẻ trong phạm vi dự án; tài liệu toàn công ty do Quản trị viên phát hành.\n',
+    file: 'Nội quy làm việc.pdf',
+    source: 'noi-quy-lam-viec.pdf',
+    mimeType: 'application/pdf',
+    legacyFile: 'noi-quy-lam-viec.txt',
   },
   {
     name: 'Sổ tay nhân viên',
-    file: 'so-tay-nhan-vien.txt',
-    content:
-      'SỔ TAY NHÂN VIÊN\n' +
-      'Chào mừng bạn gia nhập công ty. Sổ tay này tóm tắt quy trình làm việc chung:\n' +
-      '- Mỗi dự án có thư mục tài liệu riêng; bạn thấy tài liệu của các dự án mình tham gia.\n' +
-      '- Công việc được giao và theo dõi trên bảng Kanban của từng dự án.\n' +
-      '- Mọi thắc mắc về chế độ, liên hệ phòng Nhân sự; về hệ thống, liên hệ Quản trị viên.\n',
+    file: 'Sổ tay nhân viên.docx',
+    source: 'so-tay-nhan-vien.docx',
+    mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    legacyFile: 'so-tay-nhan-vien.txt',
   },
 ];
 
@@ -64,6 +68,7 @@ async function api(path, { token, method = 'GET', body, formData } = {}) {
 }
 
 const list = (data) => (Array.isArray(data) ? data : data?.data ?? []);
+const sameName = (a, b) => a.normalize('NFC') === b.normalize('NFC');
 
 async function login() {
   const res = await api('/auth/login', { method: 'POST', body: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD } });
@@ -124,7 +129,11 @@ async function addAssigneesAsMembers(token, projects) {
   return added;
 }
 
-/** Buoc 3: thu muc chinh sach toan cong ty (khong gan du an), moi thu muc 1 tai lieu mau neu trong. */
+/**
+ * Buoc 3: thu muc chinh sach toan cong ty (khong gan du an), moi thu muc 1 tai lieu mau.
+ * 27/10/2026: idempotent theo TEN tep (giong seed-project-docs.js) thay vi "thu muc trong"; ban .txt cu chi
+ * bi xoa khi thu muc da co tai lieu that (thieu tep nguon -> giu nguyen ban cu).
+ */
 async function ensurePolicyFolders(token, folders) {
   for (const policy of POLICY_FOLDERS) {
     let folder = folders.find((f) => !f.parentFolderId && f.name === policy.name);
@@ -134,13 +143,23 @@ async function ensurePolicyFolders(token, folders) {
     } else if (folder.projectId) {
       await api(`/folders/${folder.id}`, { token, method: 'PATCH', body: { projectId: null } });
     }
-    const files = await api(`/files?folderId=${folder.id}&limit=5`, { token });
-    if (list(files).length > 0) continue;
-    const formData = new FormData();
-    formData.append('file', new Blob([policy.content], { type: 'text/plain' }), policy.file);
-    formData.append('folderId', folder.id);
-    await api('/files/upload', { token, method: 'POST', formData });
-    console.log(`  Tai len "${policy.file}" vao "${policy.name}"`);
+    const files = list(await api(`/files?folderId=${folder.id}&limit=500`, { token }));
+    if (!files.some((f) => sameName(f.fileName, policy.file))) {
+      const sourcePath = path.join(ASSET_DIR, policy.source);
+      if (!fs.existsSync(sourcePath)) {
+        console.log(`  Bo qua "${policy.file}": thieu tep ${path.relative(process.cwd(), sourcePath)}`);
+        continue;
+      }
+      const formData = new FormData();
+      formData.append('file', new Blob([fs.readFileSync(sourcePath)], { type: policy.mimeType }), policy.file);
+      formData.append('folderId', folder.id);
+      await api('/files/upload', { token, method: 'POST', formData });
+      console.log(`  Tai len "${policy.file}" vao "${policy.name}"`);
+    }
+    for (const legacy of files.filter((f) => sameName(f.fileName, policy.legacyFile))) {
+      await api(`/files/${legacy.id}`, { token, method: 'DELETE' });
+      console.log(`  Xoa tai lieu cu "${legacy.fileName}" khoi "${policy.name}"`);
+    }
   }
 }
 

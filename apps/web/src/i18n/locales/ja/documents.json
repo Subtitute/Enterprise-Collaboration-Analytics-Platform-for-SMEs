@@ -57,7 +57,7 @@
       "updated": "更新日時",
       "actions": "操作"
     },
-    "openFileTitle": "新しいタブでファイルを開いて表示",
+    "openFileTitle": "ファイルをプレビュー",
     "optionsAria": "ファイルオプション",
     "viewFile": "ファイルを表示",
     "download": "ダウンロード",
@@ -191,7 +191,14 @@
     "loadErrorDesc": "接続または描画中にエラーが発生しました。直接表示するにはダウンロードしてください。",
     "fileTooLargeDesc": "ファイルサイズがプレビュー上限を超えています（> {{maxSize}}）。内容を確認するにはダウンロードしてください。",
     "unsupportedDesc": "この形式はブラウザ内での直接プレビューに対応していません。対応アプリケーションで開くにはダウンロードしてください。",
-    "emptyContent": "ファイルが空か、内容がありません。"
+    "emptyContent": "ファイルが空か、内容がありません。",
+    "sheetTruncated": "先頭の {{rows}}/{{totalRows}} 行、{{cols}}/{{totalCols}} 列を表示しています。シート全体を確認するにはダウンロードしてください。",
+    "sheetEmpty": "このシートは空です。",
+    "pptxSimplified": "簡易表示：各スライドのタイトルとテキストのみを表示しています（レイアウト、画像、グラフ、アニメーションは含まれません）。",
+    "downloadOriginal": "元のファイルをダウンロード",
+    "slideLabel": "スライド {{n}}",
+    "slideNoText": "このスライドにはテキストがありません。",
+    "noSlides": "このプレゼンテーションにはスライドがありません。"
   },
   "projectScope": {
     "label": "プロジェクト",

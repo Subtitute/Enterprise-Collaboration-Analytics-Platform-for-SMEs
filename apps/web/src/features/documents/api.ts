@@ -256,6 +256,8 @@ export async function uploadNewVersion(fileId: string, file: File, onProgress?: 
 // 22/07/2026: them tham so disposition - 'inline' de mo/xem truc tiep tren trinh duyet (PDF,
 // anh, text render duoc ngay trong tab moi), 'attachment' (mac dinh) de luon ep hop thoai Luu
 // tap tin - khop voi 2 hanh dong rieng biet o FileTable ("Xem tệp" vs "Tải xuống").
+// 28/10/2026: "Xem tệp" khong con mo tab moi - 'inline' gio chi do FilePreviewModal dung (lay noi dung
+// de hien ngay trong modal); moi nut "Tải xuống" (useDownloadFile().openFile) dung 'attachment'.
 export async function getDownloadUrl(fileId: string, disposition: 'inline' | 'attachment' = 'attachment'): Promise<string> {
   const { data } = await apiClient.get<{ downloadUrl: string }>(`/files/${fileId}/download`, { params: { disposition } });
   return data.downloadUrl;

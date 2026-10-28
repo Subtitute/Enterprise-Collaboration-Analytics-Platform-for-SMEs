@@ -1,12 +1,23 @@
-import { useEffect, useState, useMemo, memo } from 'react';
+import { useCallback, useEffect, useState, useMemo, memo, lazy, Suspense } from 'react';
+import type { ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { Spinner } from '@/components/ui/Spinner';
-import { DownloadIcon, XIcon, FileIcon, AlertCircleIcon } from '@/components/ui/Icons';
+import { DownloadIcon, FileIcon, AlertCircleIcon } from '@/components/ui/Icons';
 import { formatBytes } from '@/lib/utils';
 import { getDownloadUrl } from '../api';
 import type { FileItem } from '@/types';
+// 27/10/2026: xem truoc Word/Excel/PowerPoint ngay trong trinh duyet - phan loai dinh dang + nguong
+// dung luong tach sang preview/preview-type.ts, trang thai tai dung chung o preview/PreviewLoading.tsx.
+import {
+  detectPreviewType,
+  isOfficePreview,
+  maxPreviewBytes,
+  MAX_OFFICE_PREVIEW_SIZE_BYTES,
+  type OfficePreviewProps,
+  type OfficePreviewType,
+} from './preview/preview-type';
+import { PreviewLoading, PreviewLoadingOverlay } from './preview/PreviewLoading';
 
 interface FilePreviewModalProps {
   file: FileItem | null;
@@ -15,8 +26,35 @@ interface FilePreviewModalProps {
   onDownload: (fileId: string) => void;
 }
 
-// Ngưỡng dung lượng tối đa hỗ trợ xem trực tiếp (20MB)
-const MAX_PREVIEW_SIZE_BYTES = 20 * 1024 * 1024;
+// 27/10/2026: 3 trinh xem Office nap lazy (React.lazy + dynamic import) -> docx-preview, SheetJS va
+// bo giai nen pptx nam o chunk rieng, chi tai khi mo dung loai tep. Ung dung chua co ErrorBoundary nen
+// neu chunk tai loi (mang/ban build moi) thi thay bang component bao loi -> modal hien giao dien loi
+// san co, khong lam sap ca trang.
+function ChunkLoadFailed({ onError }: OfficePreviewProps) {
+  useEffect(() => {
+    onError();
+  }, [onError]);
+  return null;
+}
+
+function lazyOfficePreview(load: () => Promise<{ default: ComponentType<OfficePreviewProps> }>) {
+  return lazy(() => load().catch(() => ({ default: ChunkLoadFailed })));
+}
+
+const OFFICE_PREVIEWS: Record<OfficePreviewType, ComponentType<OfficePreviewProps>> = {
+  docx: lazyOfficePreview(() => import('./preview/DocxPreview')),
+  xlsx: lazyOfficePreview(() => import('./preview/XlsxPreview')),
+  pptx: lazyOfficePreview(() => import('./preview/PptxPreview')),
+};
+
+/** 27/10/2026: tai noi dung Office ve dang nhi phan, tu choi som neu Content-Length vuot nguong. */
+async function readOfficeBody(res: Response): Promise<Uint8Array> {
+  const declared = Number(res.headers.get('content-length') || 0);
+  if (declared > MAX_OFFICE_PREVIEW_SIZE_BYTES) throw new Error('Office file too large to preview');
+  const buf = await res.arrayBuffer();
+  if (buf.byteLength > MAX_OFFICE_PREVIEW_SIZE_BYTES) throw new Error('Office file too large to preview');
+  return new Uint8Array(buf);
+}
 
 export const FilePreviewModal = memo(function FilePreviewModal({ file, open, onClose, onDownload }: FilePreviewModalProps) {
   const { t } = useTranslation();
@@ -24,45 +62,50 @@ export const FilePreviewModal = memo(function FilePreviewModal({ file, open, onC
   const [isLoadingUrl, setIsLoadingUrl] = useState(false);
   const [urlError, setUrlError] = useState<string | null>(null);
   const [textContent, setTextContent] = useState<string | null>(null);
-  const [isLoadingText, setIsLoadingText] = useState(false);
+  // 27/10/2026: doi ten isLoadingText -> isLoadingContent (dung chung cho text/csv va tep Office).
+  const [isLoadingContent, setIsLoadingContent] = useState(false);
+  const [officeData, setOfficeData] = useState<Uint8Array | null>(null);
   const [hasRenderError, setHasRenderError] = useState(false);
 
   // Phân loại định dạng dựa trên mime_type thực tế hoặc fallback extension
-  const previewType = useMemo<'pdf' | 'image' | 'text' | 'csv' | 'unsupported'>(() => {
-    if (!file) return 'unsupported';
-    const mime = (file.mimeType || '').toLowerCase();
-    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+  const previewType = useMemo(() => detectPreviewType(file), [file]);
+  const maxBytes = maxPreviewBytes(previewType);
 
-    if (mime === 'application/pdf' || ext === 'pdf') return 'pdf';
-    if (
-      mime.startsWith('image/') ||
-      ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].includes(ext)
-    ) {
-      return 'image';
-    }
-    if (mime === 'text/csv' || ext === 'csv') return 'csv';
-    if (mime.startsWith('text/') || ext === 'txt') return 'text';
+  const isOverSize = Boolean(file?.size && file.size > maxBytes);
 
-    return 'unsupported';
-  }, [file]);
-
-  const isOverSize = Boolean(file?.size && file.size > MAX_PREVIEW_SIZE_BYTES);
+  // 27/10/2026: callback on dinh cho trinh xem Office (nam trong deps cua effect phan tich tep).
+  const handleRenderError = useCallback(() => setHasRenderError(true), []);
+  const handleDownload = useCallback(() => {
+    if (file) onDownload(file.id);
+  }, [file, onDownload]);
 
   // Lấy download URL inline khi mở modal
   useEffect(() => {
     if (!open || !file) {
       setDownloadUrl(null);
       setTextContent(null);
+      setOfficeData(null);
       setUrlError(null);
       setHasRenderError(false);
       return;
     }
+
+    // 27/10/2026: doi tep khi modal dang mo -> xoa noi dung/loi cua tep truoc.
+    setTextContent(null);
+    setOfficeData(null);
+    setHasRenderError(false);
+    // 28/10/2026: dong modal khi tep truoc con dang tai thi .finally() cua lan do bi chan boi isMounted
+    // -> co isLoading* ket o true va tep mo sau (PDF, anh, tep khong ho tro) chi hien spinner mai mai.
+    setIsLoadingUrl(false);
+    setIsLoadingContent(false);
 
     if (isOverSize || previewType === 'unsupported') {
       return;
     }
 
     let isMounted = true;
+    // 28/10/2026: huy luon luot tai noi dung (tep Office toi 15MB) khi dong modal/doi tep giua chung.
+    const controller = new AbortController();
     setIsLoadingUrl(true);
     setUrlError(null);
 
@@ -71,22 +114,27 @@ export const FilePreviewModal = memo(function FilePreviewModal({ file, open, onC
         if (!isMounted) return;
         setDownloadUrl(url);
 
-        // Nếu là text hoặc csv thì fetch nội dung để render an toàn
-        if (previewType === 'text' || previewType === 'csv') {
-          setIsLoadingText(true);
-          fetch(url)
-            .then((res) => {
-              if (!res.ok) throw new Error('Failed to fetch text content');
-              return res.text();
-            })
-            .then((txt) => {
-              if (isMounted) setTextContent(txt);
+        // Nếu là text, csv hoặc Office thì fetch nội dung để render an toàn
+        // 27/10/2026: Office tai ve dang ArrayBuffer (cung URL presigned inline, cung cach fetch nhu van ban).
+        const isOffice = isOfficePreview(previewType);
+        if (previewType === 'text' || previewType === 'csv' || isOffice) {
+          setIsLoadingContent(true);
+          fetch(url, { signal: controller.signal })
+            .then(async (res) => {
+              if (!res.ok) throw new Error('Failed to fetch preview content');
+              if (isOffice) {
+                const data = await readOfficeBody(res);
+                if (isMounted) setOfficeData(data);
+              } else {
+                const txt = await res.text();
+                if (isMounted) setTextContent(txt);
+              }
             })
             .catch(() => {
               if (isMounted) setHasRenderError(true);
             })
             .finally(() => {
-              if (isMounted) setIsLoadingText(false);
+              if (isMounted) setIsLoadingContent(false);
             });
         }
       })
@@ -99,6 +147,7 @@ export const FilePreviewModal = memo(function FilePreviewModal({ file, open, onC
 
     return () => {
       isMounted = false;
+      controller.abort();
     };
   }, [open, file, isOverSize, previewType]);
 
@@ -126,6 +175,8 @@ export const FilePreviewModal = memo(function FilePreviewModal({ file, open, onC
 
   if (!file) return null;
 
+  const OfficePreview = isOfficePreview(previewType) ? OFFICE_PREVIEWS[previewType] : null;
+
   return (
     <Modal
       open={open}
@@ -141,11 +192,15 @@ export const FilePreviewModal = memo(function FilePreviewModal({ file, open, onC
               <p className="text-[12px] font-mono text-text-tertiary tabular-nums mt-0.5">{formatBytes(file.size)}</p>
             )}
           </div>
+          {/* 28/10/2026: man hinh hep (< sm) chu "Tải xuống" bi an -> nut chi con icon, gan aria-label/title
+              de trinh doc man hinh va nguoi dung van biet nut lam gi. */}
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={() => onDownload(file.id)}
+            aria-label={t('documents:preview.download')}
+            title={t('documents:preview.download')}
             className="shrink-0 flex items-center gap-1.5 h-8 rounded-radius-sm border-border-strong text-[12px] font-medium"
           >
             <DownloadIcon className="h-3.5 w-3.5 text-text-secondary" />
@@ -156,15 +211,10 @@ export const FilePreviewModal = memo(function FilePreviewModal({ file, open, onC
     >
       <div className="relative flex flex-col items-center justify-center min-h-[360px] h-[60vh] sm:h-[75vh] w-full bg-bg-subtle rounded-radius-md overflow-hidden border border-border-subtle">
         {/* Loading state */}
-        {(isLoadingUrl || isLoadingText) && (
-          <div className="flex flex-col items-center justify-center gap-3">
-            <Spinner size="md" />
-            <p className="text-[12px] font-medium text-text-tertiary">{t('documents:preview.loading')}</p>
-          </div>
-        )}
+        {(isLoadingUrl || isLoadingContent) && <PreviewLoading />}
 
         {/* Lỗi tải file hoặc render */}
-        {!isLoadingUrl && !isLoadingText && (urlError || hasRenderError) && (
+        {!isLoadingUrl && !isLoadingContent && (urlError || hasRenderError) && (
           <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
             <div className="flex h-12 w-12 items-center justify-center rounded-radius-md bg-[#F8E5E3] text-[#B3261E] border border-[#B3261E]/20">
               <AlertCircleIcon className="h-6 w-6" />
@@ -188,7 +238,7 @@ export const FilePreviewModal = memo(function FilePreviewModal({ file, open, onC
 
         {/* Fallback khi tệp vượt kích thước hoặc không hỗ trợ */}
         {!isLoadingUrl &&
-          !isLoadingText &&
+          !isLoadingContent &&
           !urlError &&
           !hasRenderError &&
           (isOverSize || previewType === 'unsupported') && (
@@ -199,8 +249,9 @@ export const FilePreviewModal = memo(function FilePreviewModal({ file, open, onC
               <div>
                 <p className="text-[15px] font-semibold text-text-primary truncate max-w-xs sm:max-w-md">{file.name}</p>
                 <p className="text-[12px] text-text-secondary font-normal mt-1">
+                  {/* 27/10/2026: nguong theo loai tep (Office 15MB, con lai 20MB). */}
                   {isOverSize
-                    ? t('documents:preview.fileTooLargeDesc', { maxSize: '20MB' })
+                    ? t('documents:preview.fileTooLargeDesc', { maxSize: `${maxBytes / (1024 * 1024)}MB` })
                     : t('documents:preview.unsupportedDesc')}
                 </p>
                 {file.size && (
@@ -255,7 +306,7 @@ export const FilePreviewModal = memo(function FilePreviewModal({ file, open, onC
 
         {/* Render Text */}
         {!isLoadingUrl &&
-          !isLoadingText &&
+          !isLoadingContent &&
           !urlError &&
           !hasRenderError &&
           !isOverSize &&
@@ -269,7 +320,7 @@ export const FilePreviewModal = memo(function FilePreviewModal({ file, open, onC
 
         {/* Render CSV */}
         {!isLoadingUrl &&
-          !isLoadingText &&
+          !isLoadingContent &&
           !urlError &&
           !hasRenderError &&
           !isOverSize &&
@@ -302,6 +353,19 @@ export const FilePreviewModal = memo(function FilePreviewModal({ file, open, onC
                 </table>
               )}
             </div>
+          )}
+
+        {/* 27/10/2026: Render Word/Excel/PowerPoint (chunk lazy, key theo tep de reset trang thai khi doi tep) */}
+        {!isLoadingUrl &&
+          !isLoadingContent &&
+          !urlError &&
+          !hasRenderError &&
+          !isOverSize &&
+          OfficePreview &&
+          officeData && (
+            <Suspense fallback={<PreviewLoadingOverlay />}>
+              <OfficePreview key={file.id} data={officeData} onError={handleRenderError} onDownload={handleDownload} />
+            </Suspense>
           )}
       </div>
     </Modal>

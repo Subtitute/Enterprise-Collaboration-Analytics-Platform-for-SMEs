@@ -57,7 +57,7 @@
       "updated": "Cập nhật",
       "actions": "Hành động"
     },
-    "openFileTitle": "Mở và xem tệp trong tab mới",
+    "openFileTitle": "Xem trước tệp",
     "optionsAria": "Tùy chọn tệp",
     "viewFile": "Xem tệp",
     "download": "Tải xuống",
@@ -191,7 +191,14 @@
     "loadErrorDesc": "Đã xảy ra lỗi khi kết nối hoặc hiển thị tệp. Vui lòng tải xuống để xem trực tiếp.",
     "fileTooLargeDesc": "Tệp vượt quá kích thước cho phép xem trực tiếp (> {{maxSize}}). Vui lòng tải xuống để xem nội dung đầy đủ.",
     "unsupportedDesc": "Định dạng này không hỗ trợ xem trực tiếp trên trình duyệt. Vui lòng tải xuống tệp để mở trên ứng dụng tương thích.",
-    "emptyContent": "Tệp văn bản trống hoặc không có nội dung."
+    "emptyContent": "Tệp văn bản trống hoặc không có nội dung.",
+    "sheetTruncated": "Đang hiển thị {{rows}}/{{totalRows}} dòng và {{cols}}/{{totalCols}} cột đầu tiên. Vui lòng tải xuống để xem toàn bộ trang tính.",
+    "sheetEmpty": "Trang tính này trống.",
+    "pptxSimplified": "Bản xem giản lược: chỉ hiển thị tiêu đề và nội dung chữ của từng trang chiếu, không bao gồm bố cục, hình ảnh, biểu đồ và hiệu ứng.",
+    "downloadOriginal": "Tải tệp gốc",
+    "slideLabel": "Trang chiếu {{n}}",
+    "slideNoText": "Trang chiếu này không có nội dung chữ.",
+    "noSlides": "Bản trình chiếu không có trang chiếu nào."
   },
   "projectScope": {
     "label": "Dự án",

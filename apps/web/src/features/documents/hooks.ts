@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { FileItem } from '@/types';
 import { toast } from '@/stores/toast.store';
 // 26/10/2026: ten du an cho bo chon/nhan du an cua thu muc (tai lieu theo pham vi du an).
 import { useProjectsQuery } from '@/features/projects/hooks';
@@ -255,13 +256,18 @@ export function useDeleteFile(folderId: string | null) {
 // ve URL that thi chi gan lai `tab.location.href` cua tab da mo san (khong goi window.open lan
 // 2 => khong con bi chan). Neu ngay ca tab trong cung bi chan (vd. trinh duyet khong coi click
 // nay la gesture hop le), fallback ve dung hanh vi cu (best-effort) kem toast bao cho nguoi dung.
+// 27/10/2026: moi loi "xem/mo tep" (bam ten tep, "Xem tệp", chip nguon Chat bot) da chuyen sang
+// FilePreviewModal (useFilePreview ben duoi) - khong con mo tab moi nen khong con lo popup blocker.
+// openFile() nay chi con phuc vu "Tải xuống" (attachment); ly do goi DONG BO trong onClick o tren
+// van dung cho duong tai xuong.
+// 28/10/2026: bo tham so disposition va nhanh 'inline' (khong con noi nao goi) - openFile(fileId) luon
+// tai xuong attachment; xem truc tiep chi con di qua FilePreviewModal.
 export function useDownloadFile() {
   const mutation = useMutation({
-    mutationFn: ({ fileId, disposition = 'attachment' }: { fileId: string; disposition?: 'inline' | 'attachment' }) =>
-      getDownloadUrl(fileId, disposition),
+    mutationFn: (fileId: string) => getDownloadUrl(fileId, 'attachment'),
   });
 
-  const openFile = (fileId: string, disposition: 'inline' | 'attachment' = 'attachment') => {
+  const openFile = (fileId: string) => {
     // 28/07/2026: sua loi thuc te phat hien qua E2E test (Playwright, trinh duyet That) - lan sua
     // 22/07/2026 truyen "noopener" ngay o LAN GOI window.open() DAU TIEN (mo tab trong). Theo dung
     // dac ta WHATWG HTML, khi co "noopener" (hoac "noreferrer", von ke ham "noopener"), trinh duyet
@@ -282,7 +288,7 @@ export function useDownloadFile() {
       toast.info(t('documents:hooks.popupBlockedTitle'), t('documents:hooks.popupBlockedDescription'));
     }
     mutation.mutate(
-      { fileId, disposition },
+      fileId,
       {
         onSuccess: (url) => {
           if (tab) {
@@ -293,11 +299,64 @@ export function useDownloadFile() {
         },
         onError: (error) => {
           tab?.close();
-          toast.error(disposition === 'inline' ? t('documents:hooks.openFileError') : t('documents:hooks.downloadFileError'), extractErrorMessage(error));
+          toast.error(t('documents:hooks.downloadFileError'), extractErrorMessage(error));
         },
       },
     );
   };
 
   return { ...mutation, openFile };
+}
+
+// 27/10/2026: xem tep NGAY TRONG app (FilePreviewModal) cho moi loi "bam ten tep/mo tep": danh sach
+// (luoi + bang) o trang Tai lieu, muc "Tai lieu" cua trang chi tiet du an va chip nguon cua Chat bot.
+// Truoc day bam ten tep mo tab moi voi disposition=inline: .txt/.csv bi server ep attachment (chong
+// stored-XSS), Word/Excel/PowerPoint trinh duyet khong hien duoc => nguoi dung chi thay tep bi tai ve.
+// Hook gom state cua modal + nut "Tải xuống" trong modal (attachment nhu cu); noi goi chi can
+// `<FilePreviewModal {...preview.modalProps} />`. Noi chi co fileId (chip nguon Chat bot) dung
+// openPreviewById: lay metadata GET /files/:id (chung cache ['file', id] voi useFileQuery, khong retry
+// vi 404/403 khong tu het), loi thi toast; bam lien nhieu chip chi lay ket qua cua lan bam CUOI.
+export function useFilePreview() {
+  const queryClient = useQueryClient();
+  const { openFile } = useDownloadFile();
+  const [file, setFile] = useState<FileItem | null>(null);
+  const [loadingFileId, setLoadingFileId] = useState<string | null>(null);
+  const latestRequestRef = useRef(0);
+
+  const openPreviewById = useCallback(
+    async (fileId: string) => {
+      const requestId = ++latestRequestRef.current;
+      setLoadingFileId(fileId);
+      try {
+        const meta = await queryClient.fetchQuery({ queryKey: ['file', fileId], queryFn: () => fetchFile(fileId), retry: false });
+        if (latestRequestRef.current === requestId) setFile(meta);
+      } catch (error) {
+        if (latestRequestRef.current === requestId) toast.error(t('documents:hooks.openFileError'), extractErrorMessage(error));
+      } finally {
+        if (latestRequestRef.current === requestId) setLoadingFileId(null);
+      }
+    },
+    [queryClient],
+  );
+  const openPreview = useCallback((target: FileItem) => setFile(target), []);
+  const closePreview = useCallback(() => setFile(null), []);
+  // 28/10/2026: bo lan mo dang cho metadata (vd Esc dong panel Chat bot khi chip nguon con dang tai) -
+  // truoc day request van chay tiep va modal tu mo len SAU khi panel da dong.
+  const cancelPending = useCallback(() => {
+    latestRequestRef.current += 1;
+    setLoadingFileId(null);
+  }, []);
+
+  return {
+    openPreview,
+    openPreviewById,
+    cancelPending,
+    loadingFileId,
+    modalProps: {
+      file,
+      open: file !== null,
+      onClose: closePreview,
+      onDownload: openFile,
+    },
+  };
 }
