@@ -12,8 +12,10 @@
 const fs = require('fs');
 const path = require('path');
 
+// 28/10/2026: bo du lieu nganh khac (SEED_DATASET) chua co tai lieu theo cong trinh -> bo qua ca buoc nay.
+const DATASET = require('./seed-datasets').loadDataset();
 const API_BASE_URL = process.env.SEED_API_BASE_URL || 'http://127.0.0.1:3000/api/v1';
-const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || 'admin@demo-sme.vn';
+const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || DATASET.ADMIN_EMAIL || 'admin@demo-sme.vn';
 const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || 'Password123!';
 const ASSET_DIR = path.join(__dirname, 'seed-assets', 'project-docs');
 // Ten thu muc du an do seed.js tao (migrate-project-documents.js gan projectId cho thu muc nay).
@@ -93,6 +95,10 @@ async function ensureProjectFolder(token, project, folders) {
 }
 
 async function seedProjectDocs({ token } = {}) {
+  if (DATASET.PROJECT_DOCUMENTS && DATASET.PROJECT_DOCUMENTS.length === 0) {
+    console.log(`Tai lieu du an: bo du lieu "${process.env.SEED_DATASET}" chua co - bo qua.`);
+    return;
+  }
   const accessToken =
     token ?? (await api('/auth/login', { method: 'POST', body: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD } })).accessToken;
   const projects = list(await api('/projects?limit=100', { token: accessToken }));

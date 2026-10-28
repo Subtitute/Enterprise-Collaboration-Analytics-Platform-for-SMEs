@@ -19,9 +19,12 @@
 
 const fs = require('fs');
 const path = require('path');
+const { loadDataset, makeDocx, DOCX_MIME } = require('./seed-datasets');
 
+// 28/10/2026: bo du lieu nganh khac (SEED_DATASET) mang theo tai lieu chinh sach rieng - xem POLICY_FOLDERS.
+const DATASET = loadDataset();
 const API_BASE_URL = process.env.SEED_API_BASE_URL || 'http://127.0.0.1:3000/api/v1';
-const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || 'admin@demo-sme.vn';
+const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || DATASET.ADMIN_EMAIL || 'admin@demo-sme.vn';
 const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || 'Password123!';
 const FOLDER_SUFFIX = ' - Tai lieu';
 const ASSET_DIR = path.join(__dirname, 'seed-assets', 'company-docs');
@@ -29,7 +32,7 @@ const ASSET_DIR = path.join(__dirname, 'seed-assets', 'company-docs');
 // 27/10/2026: `file` = ten hien thi tren web-app, `source` = tep nguon trong ASSET_DIR, `legacyFile` = ban
 // .txt cu cua script nay (bi xoa sau khi thu muc da co tai lieu that). Noi dung 2 tep that giu nguyen cac
 // quy dinh cua ban .txt cu (gio lam, cham cong, phep nam, pham vi tai lieu...) va viet day du hon.
-const POLICY_FOLDERS = [
+const DEFAULT_POLICY_FOLDERS = [
   {
     name: 'Chính sách công ty',
     file: 'Nội quy làm việc.pdf',
@@ -45,6 +48,15 @@ const POLICY_FOLDERS = [
     legacyFile: 'so-tay-nhan-vien.txt',
   },
 ];
+// 28/10/2026: bo du lieu nganh khac thay 2 tai lieu tren bang tai lieu cua no, sinh DOCX tu van ban luc chay.
+const POLICY_FOLDERS = DATASET.POLICY_DOCUMENTS
+  ? DATASET.POLICY_DOCUMENTS.map((doc) => ({
+      name: doc.folder,
+      file: doc.file,
+      mimeType: DOCX_MIME,
+      build: () => makeDocx(doc.title, doc.sections),
+    }))
+  : DEFAULT_POLICY_FOLDERS;
 
 async function api(path, { token, method = 'GET', body, formData } = {}) {
   for (let attempt = 0; ; attempt += 1) {
@@ -145,18 +157,24 @@ async function ensurePolicyFolders(token, folders) {
     }
     const files = list(await api(`/files?folderId=${folder.id}&limit=500`, { token }));
     if (!files.some((f) => sameName(f.fileName, policy.file))) {
-      const sourcePath = path.join(ASSET_DIR, policy.source);
-      if (!fs.existsSync(sourcePath)) {
-        console.log(`  Bo qua "${policy.file}": thieu tep ${path.relative(process.cwd(), sourcePath)}`);
-        continue;
+      let content;
+      if (policy.build) {
+        content = await policy.build();
+      } else {
+        const sourcePath = path.join(ASSET_DIR, policy.source);
+        if (!fs.existsSync(sourcePath)) {
+          console.log(`  Bo qua "${policy.file}": thieu tep ${path.relative(process.cwd(), sourcePath)}`);
+          continue;
+        }
+        content = fs.readFileSync(sourcePath);
       }
       const formData = new FormData();
-      formData.append('file', new Blob([fs.readFileSync(sourcePath)], { type: policy.mimeType }), policy.file);
+      formData.append('file', new Blob([content], { type: policy.mimeType }), policy.file);
       formData.append('folderId', folder.id);
       await api('/files/upload', { token, method: 'POST', formData });
       console.log(`  Tai len "${policy.file}" vao "${policy.name}"`);
     }
-    for (const legacy of files.filter((f) => sameName(f.fileName, policy.legacyFile))) {
+    for (const legacy of files.filter((f) => policy.legacyFile && sameName(f.fileName, policy.legacyFile))) {
       await api(`/files/${legacy.id}`, { token, method: 'DELETE' });
       console.log(`  Xoa tai lieu cu "${legacy.fileName}" khoi "${policy.name}"`);
     }

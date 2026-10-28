@@ -19,12 +19,15 @@
 //      khong the/khong nen lam dieu nay qua API cong khai.
 
 const crypto = require('crypto');
+// 28/10/2026: bo du lieu nganh khac (vd SEED_DATASET=noi-that, xem scripts/seed-datasets/) ghi de cac hang so
+// du lieu ben duoi; khong dat bien thi giu nguyen du lieu cong ty may tinh mac dinh.
+const DATASET = require('./seed-datasets').loadDataset();
 
 const API_BASE_URL = process.env.SEED_API_BASE_URL || 'http://localhost:3000/api/v1';
 
-const DEPARTMENTS = ['Kinh doanh', 'Kỹ thuật', 'Nhân sự', 'Marketing'];
+const DEPARTMENTS = DATASET.DEPARTMENTS || ['Kinh doanh', 'Kỹ thuật', 'Nhân sự', 'Marketing'];
 
-const EMPLOYEES = [
+const EMPLOYEES = DATASET.EMPLOYEES || [
   { fullName: 'Nguyễn Văn An', email: 'an.nguyen@demo-sme.vn' },
   { fullName: 'Trần Thị Bình', email: 'binh.tran@demo-sme.vn' },
   { fullName: 'Lê Văn Chi', email: 'chi.le@demo-sme.vn' },
@@ -35,7 +38,7 @@ const EMPLOYEES = [
   { fullName: 'Ngô Thị Giang', email: 'giang.ngo@demo-sme.vn' },
 ];
 
-const PROJECTS = [
+const PROJECTS = DATASET.PROJECTS || [
   { name: 'Website bán hàng SME', description: 'Xây dựng website thương mại điện tử cho SME' },
   { name: 'Triển khai CRM nội bộ', description: 'Triển khai hệ thống CRM quản lý khách hàng' },
   { name: 'Nâng cấp hạ tầng Docker', description: 'Container hóa toàn bộ hệ thống nội bộ' },
@@ -49,9 +52,9 @@ const PROJECTS = [
 // Math.random() nhu truoc day (co lan chay ra du lieu qua "phang", AI khong tim thay gi dang noi).
 // 2 phong ban con lai (Nhan su/Marketing) + 4 du an con lai van giu nguyen ty le ngau nhien trung lap
 // (xem biasedProbability() ben duoi) de du lieu khong "qua hoan hao"/de bi nhan ra la gia mao.
-const STRUGGLE_DEPT_NAME = 'Kinh doanh';
-const THRIVE_DEPT_NAME = 'Kỹ thuật';
-const AT_RISK_PROJECT_INDEX = 2; // 'Nâng cấp hạ tầng Docker'
+const STRUGGLE_DEPT_NAME = DATASET.STRUGGLE_DEPT_NAME || 'Kinh doanh';
+const THRIVE_DEPT_NAME = DATASET.THRIVE_DEPT_NAME || 'Kỹ thuật';
+const AT_RISK_PROJECT_INDEX = DATASET.AT_RISK_PROJECT_INDEX ?? 2; // 'Nâng cấp hạ tầng Docker'
 
 /**
  * Nhan 1 ty le xac suat "trung lap" (baseline) theo dung boi canh (du an nay co phai AT_RISK
@@ -85,7 +88,7 @@ function weightedByDept(pool, getDeptId, { struggleDeptId, thriveDeptId, weight 
   return weighted;
 }
 
-const TASK_TITLES = [
+const TASK_TITLES = DATASET.TASK_TITLES || [
   'Thiết kế giao diện trang chủ',
   'Tích hợp cổng thanh toán',
   'Viết tài liệu API',
@@ -103,7 +106,7 @@ const TASK_TITLES = [
 // moi. Danh sach nay dung chung ten cong ty/nganh nghe VIET NAM thuc te (khong phai placeholder
 // kieu "Khach hang A") de anh xa/bao cao cua tinh nang AI Insight (Gemini/Groq - xem
 // analytics-service/src/ai-insights) va man hinh CRM trong nom that hon khi demo.
-const CUSTOMERS = [
+const CUSTOMERS = DATASET.CUSTOMERS || [
   { name: 'Nguyễn Thanh Tùng', company: 'Công ty TNHH Thương mại Đại Phát', email: 'tung.nguyen@daiphat.vn', phone: '0903123456', notes: 'Khách hàng quen thuộc, chuyên phân phối hàng gia dụng' },
   { name: 'Trần Thị Mai Anh', company: 'Công ty CP Thực phẩm Hương Việt', email: 'maianh.tran@huongviet.com.vn', phone: '0912345678', notes: 'Đang mở rộng chuỗi cửa hàng tại TP.HCM' },
   { name: 'Lê Hoàng Nam', company: 'Xưởng May Thành Công', email: 'nam.le@thanhcongtailor.vn', phone: '0987654321', notes: 'Khách hàng tiềm năng, quan tâm gói CRM và quản lý kho' },
@@ -124,7 +127,7 @@ const CUSTOMERS = [
  * hanh, khong phai toan bo deal moi tinh. `closeOffsetDays` am = da qua (danh cho WON/LOST, mo
  * phong ngay du kien chot trong qua khu), duong = trong tuong lai (deal dang hoat dong).
  */
-const DEAL_TEMPLATES = [
+const DEAL_TEMPLATES = DATASET.DEAL_TEMPLATES || [
   { customer: 0, title: 'Gói triển khai CRM cơ bản', value: 45000000, stage: 'WON', closeOffsetDays: -40 },
   { customer: 0, title: 'Hợp đồng bảo trì hệ thống năm 2027', value: 18000000, stage: 'NEGOTIATION', closeOffsetDays: 20 },
   { customer: 1, title: 'Gói quản lý chuỗi cung ứng thực phẩm', value: 120000000, stage: 'PROPOSAL', closeOffsetDays: 30 },
@@ -162,8 +165,8 @@ const DEAL_TEMPLATES = [
 // RIENG BIET danh cho Playwright (xem package.json), khong bao gio dung chung to chuc demo mac
 // dinh nay (noi nguoi dung THAT xem/trinh bay dan chung do an) - fix loi du lieu rac ("Khach hang
 // E2E ...", "Thanh vien E2E ...") tich luy vinh vien vao to chuc demo qua nhieu lan chay E2E.
-const DEMO_ORG_NAME = process.env.SEED_ORG_NAME || 'Demo SME (Seed Script)';
-const DEMO_ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || 'admin@demo-sme.vn';
+const DEMO_ORG_NAME = process.env.SEED_ORG_NAME || DATASET.ORG_NAME || 'Demo SME (Seed Script)';
+const DEMO_ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || DATASET.ADMIN_EMAIL || 'admin@demo-sme.vn';
 const DEMO_ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || 'Password123!';
 
 function sleep(ms) {
@@ -355,7 +358,8 @@ async function main() {
     // suffix ${suffix} cua lan chay nay (giong adminEmail o tren) de script THAT SU re-runnable
     // nhieu lan tren cung 1 DB, thay vi chi org/admin duy nhat con nhan vien thi bi trung email
     // voi lan chay truoc va lam hong ca script (409 Conflict).
-    const email = emp.email.replace('@demo-sme.vn', `+${suffix}@demo-sme.vn`);
+    // 28/10/2026: chen hau to truoc '@' cho moi ten mien (bo du lieu nganh khac dung ten mien rieng).
+    const email = emp.email.replace('@', `+${suffix}@`);
     const created = await apiCall('/users/invite', {
       method: 'POST',
       headers: authHeaders,

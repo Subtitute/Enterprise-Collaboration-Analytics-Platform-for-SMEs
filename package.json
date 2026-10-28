@@ -31,6 +31,7 @@
     "seed": "node scripts/seed.js",
     "seed:inventory": "node scripts/seed-inventory.js",
     "seed:e2e": "node scripts/seed-e2e.js",
+    "seed:noi-that": "node scripts/seed-noi-that.js",
     "backup": "node scripts/backup.js",
     "restore": "node scripts/restore.js"
   },

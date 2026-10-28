@@ -369,6 +369,29 @@ mọi yêu cầu tải/đăng ký ảnh khuôn mặt bị chặn trong trình du
 - `e2e/tests/documents.spec.ts` (tổ chức E2E, đã sửa theo cửa sổ xem trước): 1/1 PASS.
 
 
+## 12. Tổ chức demo thứ hai — Nội thất An Gia *(bổ sung 28/10/2026)*
+
+Minh chứng cho câu hỏi "ECAP có dùng cho ngành khác được không": một công ty nội thất – xây dựng hư cấu chạy
+trên cùng hệ thống, **không sửa code ứng dụng**, chỉ đổi dữ liệu seed.
+
+- **Cách tạo:** `npm run seed:noi-that` (gọi `seed.js` rồi `seed-inventory.js` với `SEED_DATASET=noi-that`). Dữ
+  liệu nằm ở `scripts/seed-datasets/noi-that.js`; `scripts/seed-datasets/index.js` chọn bộ dữ liệu và sinh DOCX
+  từ văn bản. Không đặt `SEED_DATASET` thì mọi script seed giữ nguyên dữ liệu công ty máy tính. Chạy lại an toàn
+  (tổ chức, phòng ban, dự án, danh mục, sản phẩm, kho đều theo tên).
+- **Đăng nhập:** `admin@demo-noithat.vn` / `Password123!`. Nhân viên dùng email trong `noi-that.js` thêm hậu tố
+  `+<6 số>` của lần chạy (in ra khi seed), cùng mật khẩu.
+- **Dữ liệu:** 4 phòng ban (Kinh doanh, Thiết kế, Thi công, Kế toán - Nhân sự), 8 nhân viên, 5 công trình (công
+  trình cải tạo nhà phố được đánh dấu chậm tiến độ cho Nhận xét AI), 10 khách hàng và 20 cơ hội bán hàng, 5 danh
+  mục và 12 vật tư (không ảnh — giao diện hiện biểu tượng thay thế), 2 kho, 2 tài liệu chính sách DOCX ("Quy trình
+  thi công và nghiệm thu", "Sổ tay nhân viên An Gia" — có mục làm thêm giờ 40 giờ/tháng và quên chấm công để câu gợi
+  ý của Trợ lý ECAP trả lời được), dữ liệu lịch sử 8 tuần cho biểu đồ.
+- **Kết quả lần chạy 28/10/2026:** 5 dự án, 42 công việc, 2 tài liệu chính sách đã lập chỉ mục RAG; 12 sản phẩm,
+  24 biến động nhập kho, 26 giao dịch khách hàng; 123/41/164 hàng lịch sử ở 3 bảng fact. Kiểm tra trên trình duyệt
+  bằng tài khoản Quản trị viên: Tổng quan, Dự án & Công việc, Danh mục sản phẩm, Tài liệu, Khách hàng hiển thị dữ
+  liệu nội thất, không lỗi; Trợ lý ECAP trả lời "tối đa 40 giờ mỗi tháng" kèm nguồn "Sổ tay nhân viên An Gia.docx".
+- **Chưa có:** tài liệu riêng theo từng công trình; trưởng phòng Kinh doanh (bước giao khách hàng cho phòng Kinh
+  doanh của `migrate-demo-ownership.js` tự bỏ qua — khách hàng do Quản trị viên phụ trách).
+
 ## Lịch sử thay đổi file này
 
 - 24/10/2026: khởi tạo tài liệu — tài khoản theo vai trò, bộ file mẫu, 9 kịch bản kiểm thử sống kèm kết
@@ -383,3 +406,4 @@ mọi yêu cầu tải/đăng ký ảnh khuôn mặt bị chặn trong trình du
   `seed.js` không còn tải 15 tệp `.txt/.csv` mẫu, `migrate-project-documents.js` tải "Nội quy làm việc.pdf"/"Sổ tay
   nhân viên.docx" từ `scripts/seed-assets/company-docs/` và xoá 2 tệp `.txt` cũ, ghi số liệu tài liệu demo hiện có
   (22 tệp, 7 thư mục, 12 tệp / 286 đoạn RAG); mục 11 (mới) kết quả chạy lại 01–07, 10 và các kiểm tra sống của đợt.
+- **28/10/2026 (mục 12)** — Thêm tổ chức demo thứ hai Nội thất An Gia (`npm run seed:noi-that`): cách tạo, tài khoản, dữ liệu, kết quả lần chạy đầu.

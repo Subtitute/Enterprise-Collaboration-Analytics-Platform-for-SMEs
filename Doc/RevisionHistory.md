@@ -2425,3 +2425,22 @@ liệu seed không có điểm khuôn mặt; ngưỡng 0,35 chưa hiệu chỉnh
 
 Chi tiết kỹ thuật: `Technical_Spec.md` §23.9 và phần bổ sung cuối §24; giao diện: `Wireframe.md` §15; kịch bản:
 `Mock_data.md` §4.2.
+
+---
+
+## 28/10/2026 (tiếp 3) — Tổ chức demo thứ hai: Nội thất An Gia
+
+Để trả lời câu hỏi của giảng viên "ứng dụng có dùng cho loại doanh nghiệp khác được không" bằng minh chứng chạy
+được: thêm bộ dữ liệu seed cho một công ty nội thất – xây dựng hư cấu, chạy trên cùng hệ thống, không sửa dòng code
+ứng dụng nào.
+
+- `scripts/seed-datasets/noi-that.js`: phòng ban, nhân viên, 5 công trình, khách hàng, cơ hội bán hàng, vật tư và
+  kho, 2 tài liệu chính sách (viết bằng văn bản, sinh DOCX lúc seed — không thêm tệp nhị phân).
+- `scripts/seed-datasets/index.js`: chọn bộ dữ liệu theo `SEED_DATASET`; `seed.js`, `seed-inventory.js`,
+  `migrate-project-documents.js`, `seed-project-docs.js` lấy dữ liệu từ đó khi có, không đặt biến thì giữ nguyên
+  dữ liệu công ty máy tính. `seed-inventory.js` bỏ qua tải ảnh cho sản phẩm không có ảnh.
+- `npm run seed:noi-that` (`scripts/seed-noi-that.js`, cùng kiểu `seed-e2e.js`).
+
+**Kết quả:** seed thành công (5 dự án, 42 công việc, 10 khách hàng, 12 vật tư, 2 kho, 2 tài liệu đã lập chỉ mục);
+kiểm tra trên trình duyệt các trang chính của tổ chức mới không lỗi; Trợ lý ECAP trả lời từ sổ tay của công ty nội
+thất. Chi tiết: `Mock_data.md` mục 12.

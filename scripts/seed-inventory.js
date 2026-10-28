@@ -20,8 +20,12 @@ const path = require('path');
 
 const API_BASE_URL = process.env.SEED_API_BASE_URL || 'http://localhost:3000/api/v1';
 
-const DEMO_ORG_NAME = process.env.SEED_ORG_NAME || 'Demo SME (Seed Script)';
-const DEMO_ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || 'admin@demo-sme.vn';
+// 28/10/2026: bo du lieu nganh khac (SEED_DATASET, xem scripts/seed-datasets/) mang theo danh muc, san pham,
+// kho rieng (vd vat tu noi that, khong co anh - giao dien tu hien bieu tuong thay the).
+const DATASET = require('./seed-datasets').loadDataset();
+const DATASET_INVENTORY = DATASET.INVENTORY || {};
+const DEMO_ORG_NAME = process.env.SEED_ORG_NAME || DATASET.ORG_NAME || 'Demo SME (Seed Script)';
+const DEMO_ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || DATASET.ADMIN_EMAIL || 'admin@demo-sme.vn';
 const DEMO_ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || 'Password123!';
 
 const IMAGE_DIR = path.join(__dirname, 'seed-assets', 'products');
@@ -96,7 +100,7 @@ function randomTimestampInRange(startMs, endMs) {
 // Du lieu demo - CHUNG 1 chu de "may tinh va linh kien laptop, PC" theo yeu cau chu dau an.
 // ==========================================================================================
 
-const CATEGORIES = [
+const CATEGORIES = DATASET_INVENTORY.CATEGORIES || [
   { name: 'Laptop', description: 'May tinh xach tay tu van phong den gaming/do hoa' },
   { name: 'PC để bàn', description: 'May tinh de ban nguyen bo, van phong va gaming' },
   { name: 'Linh kiện PC', description: 'CPU, RAM, SSD, card do hoa, bo mach chu, nguon, case, tan nhiet' },
@@ -106,7 +110,7 @@ const CATEGORIES = [
 
 // 16/10/2026: 19 san pham, moi san pham 1 anh WebP that (xem scripts/seed-assets/products/) -
 // unitPrice la gia thi truong Viet Nam THAM KHAO (VND), khong phai gia niem yet chinh thuc.
-const PRODUCTS = [
+const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
   // --- Laptop ---
   {
     category: 'Laptop',
@@ -266,7 +270,7 @@ const PRODUCTS = [
   },
 ];
 
-const WAREHOUSES = [
+const WAREHOUSES = DATASET_INVENTORY.WAREHOUSES || [
   { name: 'Kho Hà Nội', address: 'Khu cong nghiep Quang Minh, Ha Noi' },
   { name: 'Kho Hồ Chí Minh', address: 'Khu cong nghiep Tan Binh, TP. Ho Chi Minh' },
 ];
@@ -274,7 +278,7 @@ const WAREHOUSES = [
 // 16/10/2026: danh dau vai SKU "ban chay" - dung de gan trong so cao hon khi chon san pham cho
 // buoc seed customer-purchases ben duoi, de bieu do xu huong (market-trend-analysis) co du lieu
 // "mot vai mat hang ban chay hon han" thay vi phang deu tren ca 19 san pham.
-const POPULAR_SKUS = new Set([
+const POPULAR_SKUS = new Set(DATASET_INVENTORY.POPULAR_SKUS || [
   'SSD-SAMSUNG-870QVO-8TB',
   'RAM-KINGSTON-HYPERX-SODIMM',
   'MOUSE-PROTOARC-WIRELESS',
@@ -392,6 +396,7 @@ async function main() {
 
     // Luon thu tai anh (idempotent theo y nghia: setImage() thay the anh cu, khong tao trung) -
     // xem ProductsService.setImage() apps/inventory-service.
+    if (!spec.image) continue; // 28/10/2026: san pham khong co anh (bo du lieu nganh khac)
     const imagePath = path.join(IMAGE_DIR, spec.image);
     try {
       await uploadProductImage(product.id, imagePath);
