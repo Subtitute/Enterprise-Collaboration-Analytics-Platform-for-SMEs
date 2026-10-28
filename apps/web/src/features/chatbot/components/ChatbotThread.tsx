@@ -14,7 +14,12 @@ import type { ChatbotMessage } from '../api';
 import { useAskChatbot, useChatbotMessages, useCreateChatbotConversation } from '../hooks';
 import { ChatbotAnswer } from './ChatbotAnswer';
 
-const SUGGESTION_KEYS = ['tasks', 'leave', 'documents'] as const;
+// 28/10/2026: cau goi y phai tra loi duoc bang du lieu that (cau "lam viec tu xa" cu khong co tai lieu
+// nao tra loi) + noi ro tro ly lam duoc/chua lam duoc gi - truoc day loi chao qua mo ho nen nguoi dung
+// khong biet hoi gi. Danh sach bam theo 5 cong cu o chatbot-tools.service.ts (analytics-service).
+const SUGGESTION_KEYS = ['tasks', 'leave', 'documents', 'forgotCheckIn'] as const;
+const CAN_KEYS = ['documents', 'work', 'leave', 'attendance'] as const;
+const CANNOT_KEYS = ['otherModules', 'otherPeople', 'actions', 'fileTypes'] as const;
 
 interface ChatbotThreadProps {
   conversationId: string | null;
@@ -62,9 +67,12 @@ export function ChatbotThread({ conversationId, onConversationCreated, onBusyCha
   }, [isBusy, onBusyChange]);
 
   // Cuon xuong cuoi moi khi co tin nhan moi/trang thai cho/loi moi.
+  // 28/10/2026: loi chao dai hon (khoi "lam duoc/chua lam duoc") - khung trong thi giu o dau de nguoi dung doc
+  // tieu de va pham vi truoc, khong bi cuon thang xuong cau goi y.
   useEffect(() => {
     const node = scrollRef.current;
-    if (node) node.scrollTop = node.scrollHeight;
+    if (!node || (messages.length === 0 && pendingQuestion === null && errorMessage === null)) return;
+    node.scrollTop = node.scrollHeight;
   }, [messages.length, pendingQuestion, errorMessage]);
 
   async function submit(text: string) {
@@ -115,6 +123,11 @@ export function ChatbotThread({ conversationId, onConversationCreated, onBusyCha
                 <p className="text-[14px] font-semibold text-text-primary">{t('chatbot:thread.welcomeTitle')}</p>
                 <p className="mt-0.5 text-[12px] leading-[18px] text-text-secondary">{t('chatbot:thread.welcomeDescription')}</p>
               </div>
+            </div>
+            <div className="space-y-2 rounded-radius-md border border-border-subtle bg-bg-subtle px-3 py-2.5 text-[12px] leading-[18px]">
+              <ScopeList title={t('chatbot:thread.scope.canTitle')} items={CAN_KEYS.map((key) => t(`chatbot:thread.scope.can.${key}`))} />
+              <ScopeList title={t('chatbot:thread.scope.cannotTitle')} items={CANNOT_KEYS.map((key) => t(`chatbot:thread.scope.cannot.${key}`))} />
+              <p className="text-text-tertiary">{t('chatbot:thread.scope.tip')}</p>
             </div>
             <div className="space-y-1.5">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">{t('chatbot:thread.suggestionsLabel')}</p>
@@ -278,6 +291,19 @@ function AssistantBubble({
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+function ScopeList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div>
+      <p className="font-semibold text-text-primary">{title}</p>
+      <ul className="mt-0.5 list-disc space-y-0.5 pl-4 text-text-secondary">
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
     </div>
   );
 }

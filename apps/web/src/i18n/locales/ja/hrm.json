@@ -27,8 +27,8 @@
       "offSite": "オフィス外"
     },
     "faceMatchBadge": {
-      "matchedTitle": "写真の顔が登録済みの顔と一致しています",
-      "notMatchedTitle": "写真の顔が登録済みの顔と一致していません - 参考情報のみで、出退勤をブロックしません",
+      "matchedTitle": "登録写真との類似度 {{percent}}%（一致しきい値 {{threshold}}% 以上）",
+      "notMatchedTitle": "登録写真との類似度 {{percent}}%（一致しきい値 {{threshold}}% 未満）- 参考情報であり、打刻はブロックされません",
       "matched": "顔が一致",
       "notMatched": "不一致"
     },
@@ -124,6 +124,13 @@
       "error": "証明写真を読み込めないか、リンクの有効期限が切れています。",
       "imageAlt": "勤怠証明写真",
       "close": "閉じる"
+    },
+    "faceResult": {
+      "matched": "顔が登録写真と {{percent}}% 一致しました（一致しきい値 {{threshold}}%）。",
+      "notMatched": "顔の類似度は {{percent}}% で、一致しきい値 {{threshold}}% を下回りました。管理者の確認用に記録され、打刻はブロックされません。",
+      "notEnrolled": "顔照合なし：顔写真がまだ登録されていません（マイプロフィール）。",
+      "noFace": "顔照合なし：写真に顔がちょうど1つはっきり写っていません。",
+      "unavailable": "顔照合なし：顔認識サービスが時間内に応答しませんでした。"
     }
   },
   "leaveRequestsPage": {
@@ -299,7 +306,11 @@
     "uploadButton": "写真をアップロード",
     "withdrawButton": "削除して同意を撤回",
     "withdrawnNote": "同意を拒否/撤回しました（{{date}}）。管理者は代理でアップロードできません。自分で再登録できます。",
-    "noneNote": "顔認証用写真が未登録です。未登録でも勤怠打刻は通常どおり利用できます。"
+    "noneNote": "顔認証用写真が未登録です。未登録でも勤怠打刻は通常どおり利用できます。",
+    "testButton": "顔認識を試す",
+    "testModalTitle": "顔認識を試す",
+    "testConfirm": "照合する",
+    "testResultTitle": "顔認識テストの結果"
   },
   "toasts": {
     "checkInSuccess": "出勤を記録しました",

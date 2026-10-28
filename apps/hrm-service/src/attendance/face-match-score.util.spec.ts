@@ -1,47 +1,83 @@
-import { BadRequestException } from '@nestjs/common';
-import { ERROR_CODES } from '@app/common-dto';
-import { parseOptionalFaceMatchScore } from './face-match-score.util';
+import { createHash, createHmac } from 'crypto';
+import { verifyFaceMatchToken } from './face-match-score.util';
 
-describe('parseOptionalFaceMatchScore', () => {
-  it('tra ve undefined khi khong gui gia tri (chua dang ky khuon mat/khong phat hien duoc mat)', () => {
-    expect(parseOptionalFaceMatchScore(undefined)).toBeUndefined();
-    expect(parseOptionalFaceMatchScore('')).toBeUndefined();
+// 28/10/2026: token ky diem khuon mat - thay cho test parseOptionalFaceMatchScore (diem tho tu trinh
+// duyet khong con duoc nhan).
+const SECRET = 'dev-shared-secret-change-me';
+const NOW = 1_700_000_000;
+const PHOTO = Buffer.from('photo');
+const CTX = { organizationId: 'org-1', userId: 'user-1', photo: PHOTO };
+
+// Vector sinh boi apps/ml-service/app/face_token.py (tests/test_face_token.py::FIXED_VECTOR) - khop
+// tung byte giua Python va TypeScript.
+const FIXED_VECTOR =
+  'eyJ2IjoxLCJvcmciOiJvcmctMSIsInN1YiI6InVzZXItMSIsInNjb3JlIjowLjUsInBoIjoiNTVjNjRkMGZjZDZmOWQ1ZjdjODI4' +
+  'MDkzODU3ZTNmZGZkYTY4NDc4YmI0ZTliZDI0ZDQ4MWVmMzkxYzc4MDRlOCIsImV4cCI6MTcwMDAwMDMwMH0' +
+  '.KK-t7o90hciOCF9d6vXAEOgDp8YXIvjLqxdprhTRz-A';
+
+function sign(payload: Record<string, unknown>, secret = SECRET): string {
+  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const key = createHmac('sha256', secret).update('ecap-face-match-score-v1').digest();
+  return `${body}.${createHmac('sha256', key).update(body).digest('base64url')}`;
+}
+
+function payload(overrides: Record<string, unknown> = {}) {
+  return {
+    v: 1,
+    org: 'org-1',
+    sub: 'user-1',
+    score: 0.62,
+    ph: createHash('sha256').update(PHOTO).digest('hex'),
+    exp: NOW + 300,
+    ...overrides,
+  };
+}
+
+describe('verifyFaceMatchToken', () => {
+  it('nhan dung vector do ml-service ky (khop dinh dang giua 2 ngon ngu)', () => {
+    expect(verifyFaceMatchToken(FIXED_VECTOR, CTX, SECRET, NOW)).toEqual({ score: 0.5 });
   });
 
-  // 24/10/2026 (fix phat hien qua QA doc lap): Number("   ") = 0 trong JS (khong phai NaN) - neu
-  // khong tu trim truoc, chuoi chi co khoang trang se bi hieu nham thanh diem so 0 (ket luan RO
-  // RANG "khong khop") thay vi dung nghia "khong co du lieu".
-  it('tra ve undefined khi gia tri chi co khoang trang (khong bi hieu nham thanh 0)', () => {
-    expect(parseOptionalFaceMatchScore('   ')).toBeUndefined();
+  it('khong gui token (chua dang ky khuon mat/khong thay mat) -> khong co diem, khong bao loi', () => {
+    expect(verifyFaceMatchToken(undefined, CTX, SECRET, NOW)).toEqual({});
+    expect(verifyFaceMatchToken('   ', CTX, SECRET, NOW)).toEqual({});
   });
 
-  it('tra ve dung so thuc khi gia tri hop le trong khoang [-1, 1]', () => {
-    expect(parseOptionalFaceMatchScore('0.9')).toBe(0.9);
-    expect(parseOptionalFaceMatchScore('-1')).toBe(-1);
-    expect(parseOptionalFaceMatchScore('1')).toBe(1);
-    expect(parseOptionalFaceMatchScore('0')).toBe(0);
+  it('token hop le -> tra ve diem', () => {
+    expect(verifyFaceMatchToken(sign(payload()), CTX, SECRET, NOW)).toEqual({ score: 0.62 });
   });
 
-  it('nem BadRequestException kem errorCode INVALID_FACE_MATCH_SCORE khi gia tri khong phai so', () => {
-    expect(() => parseOptionalFaceMatchScore('abc')).toThrow(BadRequestException);
-    try {
-      parseOptionalFaceMatchScore('abc');
-    } catch (err) {
-      expect((err as BadRequestException).getResponse()).toMatchObject({ errorCode: ERROR_CODES.INVALID_FACE_MATCH_SCORE });
-    }
+  it('sua diem trong payload (gia mao 0.99) -> sai chu ky, bo qua diem', () => {
+    const [, signature] = sign(payload()).split('.');
+    const forgedBody = Buffer.from(JSON.stringify(payload({ score: 0.99 }))).toString('base64url');
+    expect(verifyFaceMatchToken(`${forgedBody}.${signature}`, CTX, SECRET, NOW)).toEqual({ rejected: 'bad-signature' });
   });
 
-  it('nem BadRequestException khi gia tri vuot khoang [-1, 1] THAT SU (khong phai sai so lam tron)', () => {
-    expect(() => parseOptionalFaceMatchScore('1.5')).toThrow(BadRequestException);
-    expect(() => parseOptionalFaceMatchScore('-1.5')).toThrow(BadRequestException);
-    expect(() => parseOptionalFaceMatchScore('50')).toThrow(BadRequestException);
+  it('ky bang secret khac -> bo qua', () => {
+    expect(verifyFaceMatchToken(sign(payload(), 'secret-khac'), CTX, SECRET, NOW)).toEqual({ rejected: 'bad-signature' });
   });
 
-  // 24/10/2026: fix loi thuc te phat hien khi kiem thu song - ArcFace (float32) tra ve gia tri
-  // nhu 1.0000001192092896 khi tu so sanh 1 vector voi chinh no (truong hop PHO BIEN NHAT trong
-  // thuc te), KHONG duoc tu choi vi se vo hieu hoa hoan toan check-in that.
-  it('kep (clamp) ve dung bien [-1, 1] khi gia tri lech NHO do sai so lam tron float32, KHONG nem loi', () => {
-    expect(parseOptionalFaceMatchScore('1.0000001192092896')).toBe(1);
-    expect(parseOptionalFaceMatchScore('-1.0000001192092896')).toBe(-1);
+  it('token cua nguoi khac hoac to chuc khac -> bo qua', () => {
+    expect(verifyFaceMatchToken(sign(payload({ sub: 'user-2' })), CTX, SECRET, NOW)).toEqual({ rejected: 'other-user' });
+    expect(verifyFaceMatchToken(sign(payload({ org: 'org-2' })), CTX, SECRET, NOW)).toEqual({ rejected: 'other-user' });
+  });
+
+  it('dung token cua anh khac cho anh cham cong nay -> bo qua', () => {
+    const ctx = { ...CTX, photo: Buffer.from('anh-khac') };
+    expect(verifyFaceMatchToken(sign(payload()), ctx, SECRET, NOW)).toEqual({ rejected: 'other-photo' });
+  });
+
+  it('token het han -> bo qua', () => {
+    expect(verifyFaceMatchToken(sign(payload({ exp: NOW - 1 })), CTX, SECRET, NOW)).toEqual({ rejected: 'expired' });
+  });
+
+  it('token hong dinh dang -> bo qua', () => {
+    expect(verifyFaceMatchToken('khong-co-dau-cham', CTX, SECRET, NOW)).toEqual({ rejected: 'malformed' });
+    expect(verifyFaceMatchToken('a.b.c', CTX, SECRET, NOW)).toEqual({ rejected: 'malformed' });
+  });
+
+  it('kep diem lech nho do sai so float32, bo qua diem vo ly', () => {
+    expect(verifyFaceMatchToken(sign(payload({ score: 1.0000001192092896 })), CTX, SECRET, NOW)).toEqual({ score: 1 });
+    expect(verifyFaceMatchToken(sign(payload({ score: 50 })), CTX, SECRET, NOW)).toEqual({ rejected: 'score-out-of-range' });
   });
 });

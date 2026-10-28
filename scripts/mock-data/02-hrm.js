@@ -24,23 +24,24 @@ function photoForm(extra) {
   const since = Date.now();
   const created = { attendance: null, attendanceKeys: [], leave: null, overtime: null, event: null };
   try {
-    // 1. Cham cong - thieu anh -> 400; co anh + GPS + faceMatchScore thap -> van thanh cong (co mem)
+    // 1. Cham cong - thieu anh -> 400; co anh + GPS -> thanh cong. 28/10/2026: diem khuon mat chi nhan qua
+    //    token ml-service ky (faceMatchToken) - gui diem tho/token gia mao -> bi bo qua, khong co ket qua khop.
     check('check-in thieu anh -> 400', (await api('employee', 'POST', '/attendance/check-in', new FormData())).status === 400);
     const bad = await api('employee', 'POST', '/attendance/check-in', photoForm({ latitude: 999, longitude: 105.8 }));
     check('check-in vi do ngoai mien gia tri -> 400', bad.status === 400, bad.status);
-    const ci = await api('employee', 'POST', '/attendance/check-in', photoForm({ latitude: 21.0285, longitude: 105.8048, faceMatchScore: 0.2 }));
+    const ci = await api('employee', 'POST', '/attendance/check-in', photoForm({ latitude: 21.0285, longitude: 105.8048, faceMatchScore: 0.99, faceMatchToken: 'gia.mao' }));
     if (ci.status === 400 && ci.data && ci.data.errorCode === 'ALREADY_CHECKED_IN_TODAY') {
       check('check-in (bo qua: nhan vien da cham cong hom nay)', true, JSON.stringify(ci.data).slice(0, 120));
     } else {
       created.attendance = ci.data && ci.data.id;
       if (ci.data && ci.data.checkInPhotoObjectKey) created.attendanceKeys.push(ci.data.checkInPhotoObjectKey);
-      check('check-in co anh + GPS + face score thap van thanh cong (co mem)', ci.status === 201 && ci.data.checkInFaceMatched === false,
+      check('check-in co anh + GPS thanh cong; diem/token gia mao bi bo qua', ci.status === 201 && ci.data.checkInFaceMatched == null,
         `${ci.status} onSite=${ci.data && ci.data.checkInIsOnSite} faceMatched=${ci.data && ci.data.checkInFaceMatched}`);
       const again = await api('employee', 'POST', '/attendance/check-in', photoForm({}));
       check('check-in lan 2 trong ngay -> 400 ALREADY_CHECKED_IN_TODAY', again.status === 400 && again.data.errorCode === 'ALREADY_CHECKED_IN_TODAY', again.status);
       const co = await api('employee', 'POST', '/attendance/check-out', photoForm({ faceMatchScore: 0.9 }));
       if (co.data && co.data.checkOutPhotoObjectKey) created.attendanceKeys.push(co.data.checkOutPhotoObjectKey);
-      check('check-out (face score cao -> khop)', co.status === 201 && co.data.checkOutFaceMatched === true,
+      check('check-out: diem tho 0.9 khong con duoc tin (khong co ket qua khop)', co.status === 201 && co.data.checkOutFaceMatched == null,
         `${co.status} faceMatched=${co.data && co.data.checkOutFaceMatched}`);
       const me = list((await api('employee', 'GET', '/attendance/me?limit=5')).data);
       check('lich su cham cong cua toi co ban ghi moi', me.some((a) => a.id === created.attendance));

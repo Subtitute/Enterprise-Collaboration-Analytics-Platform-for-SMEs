@@ -608,11 +608,11 @@ Nút tròn nổi góc dưới-phải, mọi trang đã đăng nhập (chỉ hi�
                                                 ┌───────────────────────────────────┐
                                                 │ Trợ lý nội bộ  [Mới] [Lịch sử] [x] │
                                                 ├───────────────────────────────────┤
-                                                │  Bạn: Quy định làm việc từ xa?     │
-                                                │                                     │
-                                                │  Trợ lý: Nhân viên được làm việc   │
-                                                │  từ xa tối đa 2 ngày/tuần...        │
-                                                │  [📄 quy-dinh-lam-viec.pdf]  ← chip │
+                                                │  Bạn: Làm thêm giờ tối đa bao      │
+                                                │  nhiêu giờ một tháng?               │
+                                                │  Trợ lý: Tối đa 40 giờ/tháng, đăng │
+                                                │  ký trên ECAP và Quản lý duyệt...   │
+                                                │  [📄 Sổ tay nhân viên.docx] ← chip  │
                                                 │  Đã tra cứu: tài liệu               │
                                                 ├───────────────────────────────────┤
                                                 │ [Nhập câu hỏi...]           [Gửi]  │
@@ -621,6 +621,8 @@ Nút tròn nổi góc dưới-phải, mọi trang đã đăng nhập (chỉ hi�
                                                                                 [💬] ← nút nổi
 ```
 
+- *(28/10/2026)* Khi chưa có câu hỏi, panel hiện lời chào gồm 3 khối "Mình có thể giúp" / "Chưa hỗ trợ" /
+  mẹo đặt câu hỏi và 4 câu gợi ý đều trả lời được bằng dữ liệu demo (Technical_Spec.md §23.9).
 - Bấm nút nổi mở panel hội thoại nhỏ (không phải trang riêng) — dùng được từ bất kỳ trang nào.
   Esc đóng panel; đóng panel không mất hội thoại, kể cả khi đang chờ trả lời.
 - **Lịch sử:** danh sách hội thoại cũ, mở lại hoặc xoá (có hộp xác nhận).

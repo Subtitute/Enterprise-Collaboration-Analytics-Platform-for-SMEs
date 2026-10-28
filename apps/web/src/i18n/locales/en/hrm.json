@@ -27,8 +27,8 @@
       "offSite": "Off-site"
     },
     "faceMatchBadge": {
-      "matchedTitle": "The face in the photo matches the enrolled face",
-      "notMatchedTitle": "The face in the photo does NOT match the enrolled face - reference signal only, does not block check-in",
+      "matchedTitle": "{{percent}}% similar to the enrolled photo, meets the {{threshold}}% match threshold",
+      "notMatchedTitle": "{{percent}}% similar to the enrolled photo, below the {{threshold}}% match threshold - a reference signal only, check-in is never blocked",
       "matched": "Face matched",
       "notMatched": "Not matched"
     },
@@ -124,6 +124,13 @@
       "error": "Unable to load photo proof or link has expired.",
       "imageAlt": "Attendance photo proof",
       "close": "Close"
+    },
+    "faceResult": {
+      "matched": "Face matches the enrolled photo at {{percent}}% (match threshold {{threshold}}%).",
+      "notMatched": "Face is {{percent}}% similar to the enrolled photo, below the {{threshold}}% match threshold. Recorded for your manager to review; check-in is not blocked.",
+      "notEnrolled": "Face not checked: you have not enrolled a face photo yet (My profile).",
+      "noFace": "Face not checked: the photo does not show exactly one clear face.",
+      "unavailable": "Face not checked: the recognition service did not respond in time."
     }
   },
   "leaveRequestsPage": {
@@ -299,7 +306,11 @@
     "uploadButton": "Upload a photo",
     "withdrawButton": "Delete & withdraw consent",
     "withdrawnNote": "You declined/withdrew consent ({{date}}). Administrators cannot upload photos for you; you can enroll yourself again.",
-    "noneNote": "You have no face reference photo. Attendance works normally without it."
+    "noneNote": "You have no face reference photo. Attendance works normally without it.",
+    "testButton": "Try face recognition",
+    "testModalTitle": "Try face recognition",
+    "testConfirm": "Compare",
+    "testResultTitle": "Face recognition test"
   },
   "toasts": {
     "checkInSuccess": "Checked in",

@@ -12,6 +12,7 @@ import { toast } from '@/stores/toast.store';
 import { ImageNormalizeError, normalizeFacePhoto } from '@/lib/image-normalize';
 import { useUserNameMap } from '@/hooks/useOrgUsers';
 import { CheckInCamera } from '@/features/hrm/components/CheckInCamera';
+import { useFaceVerifyTest } from '@/features/hrm/hooks';
 import { fetchMyFacePhoto } from '@/features/face/api';
 import {
   useConfirmMyPendingFace,
@@ -54,6 +55,9 @@ export const ProfileFaceEnrollmentCard = memo(function ProfileFaceEnrollmentCard
   const webcam = canUseWebcam();
   const [consentIntent, setConsentIntent] = useState<ConsentIntent>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  // 28/10/2026: "Thu nhan dien" - doi chieu thu 1 anh voi anh da dang ky, khong tao ban ghi cham cong.
+  const [isTestOpen, setIsTestOpen] = useState(false);
+  const faceTest = useFaceVerifyTest();
   const [isRejectOpen, setIsRejectOpen] = useState(false);
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const [largePhoto, setLargePhoto] = useState<string | null>(null);
@@ -201,6 +205,12 @@ export const ProfileFaceEnrollmentCard = memo(function ProfileFaceEnrollmentCard
                   <UploadIcon className="h-3.5 w-3.5 mr-1.5" />
                   {t('hrm:faceEnroll.uploadButton')}
                 </Button>
+                {data.status === 'ACTIVE' && (
+                  <Button type="button" variant="secondary" onClick={() => setIsTestOpen(true)} disabled={!webcam || faceTest.isPending}>
+                    <CameraIcon className="h-3.5 w-3.5 mr-1.5" />
+                    {t('hrm:faceEnroll.testButton')}
+                  </Button>
+                )}
                 {(data.status === 'ACTIVE' || data.pending) && (
                   <Button type="button" variant="secondary" onClick={() => setIsWithdrawOpen(true)}>
                     <TrashIcon className="h-3.5 w-3.5 mr-1.5" />
@@ -236,6 +246,16 @@ export const ProfileFaceEnrollmentCard = memo(function ProfileFaceEnrollmentCard
         onConfirm={(photo) => enroll.mutate({ photo, source: 'SELF_CAMERA' }, { onSuccess: () => setIsCameraOpen(false) })}
         isSubmitting={enroll.isPending}
         mode="enroll"
+      />
+
+      <CheckInCamera
+        open={isTestOpen}
+        onClose={() => setIsTestOpen(false)}
+        onConfirm={(photo) => faceTest.mutate(photo, { onSettled: () => setIsTestOpen(false) })}
+        isSubmitting={faceTest.isPending}
+        mode="enroll"
+        title={t('hrm:faceEnroll.testModalTitle')}
+        confirmLabel={t('hrm:faceEnroll.testConfirm')}
       />
 
       <ConfirmDialog

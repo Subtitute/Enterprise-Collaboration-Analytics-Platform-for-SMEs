@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { CameraIcon, MapPinIcon } from '@/components/ui/Icons';
 import { getAttendancePhotoUrl } from '../api';
+import { DEFAULT_FACE_MATCH_THRESHOLD, toFacePercent } from '../face-result';
 
 /**
  * 13/08/2026 (Technical_Spec.md muc 17): huy hieu co "on-site"/"off-site" - `null`/`undefined`
@@ -40,11 +41,14 @@ export function OnSiteBadge({ isOnSite }: { isOnSite?: boolean | null }) {
 export function FaceMatchBadge({ matched, score }: { matched?: boolean | null; score?: number | null }) {
   const { t } = useTranslation();
   if (matched === undefined || matched === null) return null;
-  const percent = score != null ? Math.round(Math.max(0, score) * 100) : null;
+  // 28/10/2026: tooltip ghi ro % tuong dong va nguong khop de Manager hieu con so dang xem.
+  const percent = score != null ? toFacePercent(score) : null;
+  const threshold = toFacePercent(DEFAULT_FACE_MATCH_THRESHOLD);
+  const titleKey = matched ? 'hrm:attendancePage.faceMatchBadge.matchedTitle' : 'hrm:attendancePage.faceMatchBadge.notMatchedTitle';
   return (
     <span
       className={`inline-flex items-center gap-1 text-[11px] font-semibold whitespace-nowrap shrink-0 ${matched ? 'text-emerald-600' : 'text-amber-600'}`}
-      title={matched ? t('hrm:attendancePage.faceMatchBadge.matchedTitle') : t('hrm:attendancePage.faceMatchBadge.notMatchedTitle')}
+      title={t(titleKey, { percent: percent ?? '—', threshold })}
     >
       <CameraIcon className="h-3 w-3" />
       {matched ? t('hrm:attendancePage.faceMatchBadge.matched') : t('hrm:attendancePage.faceMatchBadge.notMatched')}

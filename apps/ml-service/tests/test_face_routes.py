@@ -9,6 +9,9 @@ bang FakeStorage (tests/conftest.py); anh test sinh bang code (tests/face_fixtur
 
 DIEU KIEN TIEN QUYET: `docker compose up -d postgres-ml` dang chay + model ONNX cuc bo."""
 
+import base64
+import hashlib
+import json
 import uuid
 
 import pytest
@@ -153,8 +156,15 @@ def test_tu_dang_ky_ghi_dong_y_luu_anh_khong_EXIF_va_verify_khop(client, org, fa
     stored = list(fake_storage.objects.values())
     assert len(stored) == 1 and stored[0][:2] == b"\xff\xd8" and b"Exif" not in stored[0]
 
-    verify = client.post("/api/v1/ml/face/verify", headers=_emp(org), files=_photo(ff.person_a_variant())).json()
+    verify_photo = ff.person_a_variant()
+    verify = client.post("/api/v1/ml/face/verify", headers=_emp(org), files=_photo(verify_photo)).json()
     assert verify["enrolled"] is True and verify["matched"] is True
+    # 28/10/2026: token ky diem gan dung to chuc, nguoi dung, diem va SHA-256 cua CHINH anh vua doi chieu.
+    body = verify["token"].split(".")[0]
+    payload = json.loads(base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)))
+    assert payload["org"] == org.id and payload["sub"] == org.emp and payload["score"] == verify["score"]
+    assert payload["ph"] == hashlib.sha256(verify_photo).hexdigest()
+    assert verify["threshold"] == 0.35
 
 
 def test_dang_ky_lai_ghi_de_va_xoa_anh_cu(client, org, fake_storage):
@@ -186,7 +196,7 @@ def test_ban_cho_khong_duoc_verify_cho_toi_khi_xac_nhan(client, org):
     assert put.json()["status"] == "PENDING_CONSENT" and put.json()["pending"]["source"] == "ADMIN"
 
     verify = client.post("/api/v1/ml/face/verify", headers=_emp(org), files=_photo(ff.person_a())).json()
-    assert verify == {"enrolled": False, "score": None, "matched": None}
+    assert verify == {"enrolled": False, "score": None, "matched": None, "threshold": 0.35, "token": None}
 
     pending_photo = client.get("/api/v1/ml/face/enrollment/pending/photo", headers=_emp(org))
     assert pending_photo.status_code == 200 and pending_photo.headers["cache-control"] == "no-store"

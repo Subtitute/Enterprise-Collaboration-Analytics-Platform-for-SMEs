@@ -28,6 +28,7 @@ from app.face import (
     extract_face_embedding,
 )
 from app import face_store
+from app.face_token import sign_face_match
 from app.storage import PhotoNotFoundError, new_object_key, storage
 
 router = APIRouter(prefix="/api/v1/ml/face")
@@ -248,14 +249,23 @@ def verify_face(photo: UploadFile, ctx: AuthContext = Depends(get_auth_context))
         ).fetchone()
     finally:
         session.close()
+    # 28/10/2026: tra kem `threshold` (giao dien hien "x% / nguong y%") va `token` ky diem cho dung anh
+    # nay (app/face_token.py) - hrm-service chi tin diem qua token, khong nhan diem tho tu trinh duyet.
     if row is None:
-        return {"enrolled": False, "score": None, "matched": None}
+        return {"enrolled": False, "score": None, "matched": None, "threshold": MATCH_THRESHOLD, "token": None}
+    image_bytes = _read_photo(photo)
     try:
-        candidate = extract_face_embedding(_read_photo(photo))
+        candidate = extract_face_embedding(image_bytes)
     except NoFaceDetectedError as err:
         raise FaceError(400, err.error_code, str(err)) from err
     score = cosine_similarity(candidate, list(row[0]))
-    return {"enrolled": True, "score": score, "matched": score >= MATCH_THRESHOLD}
+    return {
+        "enrolled": True,
+        "score": score,
+        "matched": score >= MATCH_THRESHOLD,
+        "threshold": MATCH_THRESHOLD,
+        "token": sign_face_match(ctx.organization_id, ctx.user_id, score, image_bytes),
+    }
 
 
 # ---------------------------------------------------------------- Org Admin / Manager -----------

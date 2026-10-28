@@ -9,6 +9,7 @@ import {
   cancelLeaveRequest,
   checkIn,
   checkOut,
+  verifyFace,
   createAttendanceAdjustment,
   createCalendarEvent,
   createLeaveRequest,
@@ -43,6 +44,7 @@ import type {
   UpdateLeavePolicyPayload,
 } from './api';
 import type { CheckInLocation } from './components/CheckInCamera';
+import { describeFaceResult } from './face-result';
 
 export function useMyAttendanceQuery(params: { page?: number; limit?: number } = {}) {
   return useQuery({ queryKey: ['attendance', 'me', params], queryFn: () => fetchMyAttendance(params) });
@@ -101,9 +103,13 @@ export function useCheckIn() {
   const { t } = useTranslation();
   return useMutation({
     mutationFn: ({ photo, location }: { photo: Blob; location?: CheckInLocation }) => checkIn(photo, location),
-    onSuccess: () => {
+    // 28/10/2026: bao ngay % tuong dong khuon mat (hoac ly do khong doi chieu duoc) ngay sau khi chup.
+    onSuccess: ({ attendance, face }) => {
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      toast.success(t('hrm:toasts.checkInSuccess'));
+      toast.success(
+        t('hrm:toasts.checkInSuccess'),
+        describeFaceResult(t, face, attendance.checkInFaceMatched, attendance.checkInFaceMatchScore),
+      );
     },
     onError: (error) => toast.error(t('hrm:toasts.checkInError'), extractErrorMessage(error)),
   });
@@ -114,11 +120,32 @@ export function useCheckOut() {
   const { t } = useTranslation();
   return useMutation({
     mutationFn: ({ photo, location }: { photo: Blob; location?: CheckInLocation }) => checkOut(photo, location),
-    onSuccess: () => {
+    onSuccess: ({ attendance, face }) => {
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      toast.success(t('hrm:toasts.checkOutSuccess'));
+      toast.success(
+        t('hrm:toasts.checkOutSuccess'),
+        describeFaceResult(t, face, attendance.checkOutFaceMatched, attendance.checkOutFaceMatchScore),
+      );
     },
     onError: (error) => toast.error(t('hrm:toasts.checkOutError'), extractErrorMessage(error)),
+  });
+}
+
+/**
+ * 28/10/2026: "Thu nhan dien" o Ho so ca nhan - doi chieu 1 anh voi anh da dang ky, KHONG tao ban ghi
+ * cham cong. Loi (khong thay mat/dich vu cham) cung bao bang toast thay vi im lang.
+ */
+export function useFaceVerifyTest() {
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: (photo: Blob) => verifyFace(photo),
+    onSuccess: (result) => {
+      const face = { status: result.enrolled ? ('scored' as const) : ('notEnrolled' as const), threshold: result.threshold };
+      const description = describeFaceResult(t, face, result.matched, result.score);
+      if (result.matched) toast.success(t('hrm:faceEnroll.testResultTitle'), description);
+      else toast.info(t('hrm:faceEnroll.testResultTitle'), description);
+    },
+    onError: (error) => toast.error(t('hrm:faceEnroll.testResultTitle'), extractErrorMessage(error)),
   });
 }
 

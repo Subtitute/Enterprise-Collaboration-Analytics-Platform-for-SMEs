@@ -9,7 +9,8 @@
 > triển khai giai đoạn 0–5 và xác minh sống (§27.16); giai đoạn 6 chưa làm. §28 (Tài liệu theo phạm vi dự án & phạm vi dữ liệu của Manager, 26/10/2026)
 > đã triển khai và xác minh sống. §29 (xem trước tài liệu ngay trong ứng dụng gồm Word/Excel/PowerPoint, dọn kho
 > tài liệu demo, chụp ảnh nhận diện bằng camera, 27–28/10/2026) đã triển khai và xác minh sống trên bản
-> production. Dữ liệu kiểm thử tái sử dụng: `Mock_data.md`. Phần cố ý chưa
+> production. §23.9 (hướng dẫn trong khung trợ lý) và phần bổ sung cuối §24 (điểm khuôn mặt do máy chủ ký, hiển thị
+> phần trăm, thử nhận diện), 28/10/2026, đã triển khai và xác minh sống. Dữ liệu kiểm thử tái sử dụng: `Mock_data.md`. Phần cố ý chưa
 > triển khai (forecasting ML, Layer 4/6 của §19) được đánh dấu rõ tại chỗ và theo dõi thêm ở
 > `Upgrade.md`. Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
 
@@ -1085,6 +1086,23 @@ tiếng Nhật/emoji, không lộ API key hay stack trace trong phản hồi/log
 - `unpdf@1.8.1` khai báo Node ≥ 22 trong khi image chạy Node 20.20 — đã kiểm tra: thư viện tự polyfill
   `Promise.withResolvers`, các API còn lại có sẵn trên Node 20.20; đọc PDF xác minh sống.
 
+### 23.9 Hướng dẫn trong khung trợ lý *(bổ sung 28/10/2026)*
+
+Lời chào cũ chỉ có một câu chung chung và 3 câu gợi ý, trong đó câu "Quy định làm việc từ xa của công ty là gì?"
+không có tài liệu demo nào trả lời được: trong 300 đoạn đã index, cụm này chỉ xuất hiện trong chính tài liệu
+hướng dẫn sử dụng (ở chỗ liệt kê câu gợi ý). Người dùng không biết trợ lý làm được gì nên hỏi sai phạm vi.
+
+- Lời chào chia 3 khối: **Mình có thể giúp** (tài liệu được xem dạng PDF/Word/văn bản; công việc chưa xong
+  và tiến độ dự án; số ngày phép; chấm công hôm nay), **Chưa hỗ trợ** (khách hàng, kho, số liệu báo cáo,
+  chấm công các ngày trước; dữ liệu người khác; tạo/sửa/duyệt/xoá; nội dung Excel/PowerPoint/ảnh), và
+  **mẹo** (nêu tên tài liệu/dự án/khoảng thời gian; có hạn mức câu hỏi mỗi ngày). Danh sách bám đúng 5 công
+  cụ ở §23.4.
+- Câu gợi ý đổi thành câu có dữ liệu thật: "Làm thêm giờ tối đa bao nhiêu giờ một tháng?" (Sổ tay nhân viên
+  §7: 40 giờ/tháng) và thêm "Quên chấm công thì tôi phải làm gì?"; giữ 2 câu về công việc và ngày phép.
+- Chỉ đổi `ChatbotThread.tsx` và `chatbot.json` (vi/en/ja); backend không đổi.
+- **Còn lại:** tệp demo `Hướng dẫn sử dụng web-app ECAP.pdf` (dự án Báo cáo KPI) vẫn liệt kê câu gợi ý cũ;
+  tệp là tài sản nhị phân có sẵn, chưa có script sinh lại.
+
 ---
 
 ## 24. Nhận diện khuôn mặt cho Chấm công (verify 1:1, cảnh báo mềm) *(bổ sung 24/10/2026)*
@@ -1160,7 +1178,8 @@ bàn bạc trước khi code (xem thảo luận cùng ngày: chọn **verify 1:1
     checkbox đồng ý không reset sau khi xoá đăng ký (có thể đăng ký lại không cần đồng ý lại),
     thẻ trạng thái hiểu nhầm "lỗi tải dữ liệu" thành "chưa đăng ký" khi API lỗi tạm thời, alt text
     ảnh xem trước dùng nhầm chuỗi của màn check-in.
-  - **Cố ý KHÔNG sửa (ghi nhận là giới hạn đã biết, đúng tinh thần cờ GPS đã chấp nhận từ trước)**:
+  - **Cố ý KHÔNG sửa (ghi nhận là giới hạn đã biết, đúng tinh thần cờ GPS đã chấp nhận từ trước)**
+    *(28/10/2026: đã đổi quyết định, điểm nay do máy chủ ký — xem "Bổ sung 28/10/2026" cuối mục này)*:
     điểm `faceMatchScore` do client gửi lên vẫn chỉ là 1 con số thô, không có cơ chế ký/xác thực
     chống giả mạo — cùng mức độ tin cậy (và cùng mức độ có thể giả mạo được) như toạ độ GPS của
     cờ on-site/off-site đã chấp nhận từ 13/08/2026; thêm 1 lớp ký HMAC được cân nhắc nhưng không
@@ -1183,6 +1202,36 @@ bàn bạc trước khi code (xem thảo luận cùng ngày: chọn **verify 1:1
   lọc `organization_id`) — xem kế hoạch §27.
 - **Cập nhật 26/10/2026 (tiếp):** 2 lỗi trên đã sửa; kho ảnh nhận diện, đồng ý phía server và tải ảnh hộ
   đã triển khai — xem §27.16.
+
+**Bổ sung 28/10/2026 — điểm khuôn mặt do máy chủ ký, hiển thị phần trăm, thử nhận diện.** Quyết định "không
+ký" ở trên được đổi lại khi rà soát trước buổi bảo vệ: người dùng gửi được `faceMatchScore=0.99` tuỳ ý (chính
+`scripts/mock-data/02-hrm.js` gửi thẳng 0.9 mà không qua nhận diện), nên dòng "Khớp khuôn mặt" không có giá trị
+làm bằng chứng. Đồng thời phần trăm gần như không bao giờ hiện: mọi lỗi (chưa đăng ký, không thấy mặt, ml-service
+chậm quá 5 giây ở lần gọi đầu) đều bị nuốt im lặng.
+
+- **Ký điểm (`apps/ml-service/app/face_token.py`):** `/ml/face/verify` trả thêm `threshold` và `token` =
+  `base64url(payload).base64url(HMAC-SHA256)`. Payload gồm phiên bản, tổ chức, người dùng, điểm, SHA-256 của
+  chính ảnh vừa đối chiếu, hạn 5 phút. Khoá ký suy ra từ `INTERNAL_SHARED_SECRET` (đã có ở cả 2 service) bằng
+  HMAC với nhãn `ecap-face-match-score-v1` — không thêm biến môi trường, và token không dùng lẫn sang mục đích
+  khác của secret.
+- **Kiểm tra (`apps/hrm-service/src/attendance/face-match-score.util.ts`):** check-in/out nhận `faceMatchToken`
+  thay cho `faceMatchScore` (trường thô bị bỏ qua). Chỉ lấy điểm khi chữ ký đúng (so sánh thời gian hằng),
+  đúng tổ chức và người gọi, còn hạn, và SHA-256 khớp **ảnh chấm công hrm-service vừa nhận**. Token sai/hết
+  hạn/khác người/khác ảnh thì bỏ điểm và ghi log, chấm công vẫn thành công — giữ nguyên "cảnh báo mềm". Hai
+  service vẫn không gọi HTTP lẫn nhau. Định dạng khớp từng byte giữa Python và TypeScript nhờ một vector cố
+  định dùng chung trong 2 bộ test.
+- **Hiển thị (`apps/web`):** sau khi chấm công, thông báo ghi ngay "Khuôn mặt khớp 62% với ảnh đã đăng ký
+  (ngưỡng khớp 35%)", hoặc lý do không đối chiếu được (chưa đăng ký / không thấy rõ đúng một khuôn mặt / dịch
+  vụ chưa phản hồi kịp). Tooltip badge ở các bảng chấm công ghi rõ phần trăm và ngưỡng. Phần trăm là điểm
+  cosine × 100 (điểm âm tính 0%), không phải xác suất; ngưỡng 0,35 vẫn là giá trị tham khảo chưa hiệu chỉnh.
+- **Thử nhận diện:** Hồ sơ cá nhân có nút "Thử nhận diện" (chỉ khi đã đăng ký và có webcam) — chụp 1 ảnh,
+  đối chiếu với ảnh đã đăng ký, báo phần trăm và ngưỡng, không tạo bản ghi chấm công.
+- **Kiểm thử:** hrm `face-match-score.util.spec.ts` 10 ca (vector chung, giả điểm 0.99, sai secret, khác
+  người/tổ chức, khác ảnh, hết hạn, hỏng định dạng, kẹp sai số float32); ml `test_face_token.py` 3 ca và
+  `test_face_routes.py` kiểm tra payload token; web `face-result.test.ts` và 2 ca mới ở
+  `ProfileFaceEnrollmentCard.test.tsx`; `02-hrm.js` đổi sang kiểm tra điểm thô và token giả đều bị bỏ qua.
+- **Còn lại:** lịch sử chấm công trong dữ liệu seed không có điểm (badge không hiện ở các ngày cũ); ứng dụng
+  di động chưa gửi ảnh qua nhận diện.
 
 ---
 
@@ -2474,3 +2523,4 @@ phẩm và xuất PDF Dashboard vẫn chạy, 0 lỗi console. `vendor-pdf` gi�
 - **26/10/2026 (§28 — Tài liệu theo phạm vi dự án & phạm vi dữ liệu của Manager, ĐÃ TRIỂN KHAI)** — Thêm §28: định nghĩa chung "thuộc dự án" (người phụ trách/thành viên/người tạo, giao Task tự thêm thành viên) và `resolveDataScope()` 3 cấp Employee < Manager (phòng ban trong JWT) < Org Admin cho Dự án/Công việc, Tài liệu, CRM, HRM, Analytics, Danh bạ; chính sách tài liệu theo dự án (thư mục cấp gốc gắn dự án, cây toàn công ty ai cũng xem nhưng chỉ Org Admin ghi, cờ `canWrite` cho thư mục/tệp, RAG dùng chung bộ lọc); 3 read-model + 3 sự kiện mới của Document Service, backfill không chặn consumer; phạm vi ở đường ghi (lỗi cao IDOR ghi theo id, lỗi trung bình ghi đè tệp toàn công ty — tìm ra ở vòng rà soát); gỡ thành viên còn Task chưa xong → 409; 3 script dữ liệu (migration, 20 tài liệu mẫu, giao khách hàng demo cho phòng Kinh doanh); kết quả kiểm thử (92/92 đường ghi, 17/17, 28/28, mock-data 01–08) và giới hạn đã biết. Thêm dòng trỏ tới §28 ở §3.3, §3.4, §4.6, §4.7, §6, §16, §17, §19.2, §23.3 (giữ nguyên nội dung cũ).
 - **26/10/2026 (§27 — ĐÃ TRIỂN KHAI giai đoạn 0–5)** — Thêm §27.16: cách làm thực tế theo từng giai đoạn, 8 chỗ khác kế hoạch (khoá riêng cho detector, mã NV chữ hoa + index thường, resync `roles_changed` thay script 1 lần, Modal thay drawer, `fflate` thay JSZip, huỷ riêng ảnh chờ, `malloc_trim`, đổi ảnh mẫu CI sang ảnh NASA phạm vi công cộng), 8 lỗi tìm được ở vòng kiểm thử độc lập và đã sửa — nặng nhất là lỗi CAO toàn hệ thống: Gateway để lọt header tin cậy do client tự gửi khi JWT không có giá trị tương ứng (`x-department-id`), nay xoá mọi header tin cậy trước khi đặt lại từ JWT. Kết quả: pytest ml-service 64, jest Gateway 42, sống 45/45 + hồi quy 195/195 + giả mạo header 10/10 bị chặn, RAM ml-service 579–645 MiB. Thêm dòng ở §6 (xoá header tin cậy) và cuối §24; cập nhật khối trạng thái đầu file và đầu §27. Chi tiết: `RevisionHistory.md` mục 26/10/2026 (tiếp 2).
 - **28/10/2026 (§29 — Xem trước tài liệu trong ứng dụng, dọn kho tài liệu demo, chụp ảnh nhận diện bằng camera, ĐÃ TRIỂN KHAI)** — Thêm §29: mọi lối "xem tệp" (bảng, lưới, mục "Tài liệu" của dự án, chip nguồn Chat bot) mở `FilePreviewModal`; Word (`docx-preview` 0.4.0), Excel (SheetJS, 500 × 50) và PowerPoint (bản giản lược chữ) dựng ngay trong trình duyệt, kèm thiết kế an toàn (trần 15 MB, chốt ZIP + trần `word/document.xml` 5 MB và trang tính 20 MB, `.docx` trong iframe sandbox không script + CSP riêng, lọc liên kết, không `innerHTML` cho xlsx/pptx, `.txt/.csv` vẫn bị ép `attachment`); dọn kho demo (15 tệp mẫu, 2 tệp `.txt` công ty thay bằng PDF/DOCX thật, 1 thư mục rỗng, 85 object MinIO mồ côi 3,73 MiB → 22 tệp, 286 đoạn RAG); "Chụp bằng camera" cho ảnh nhận diện tải hộ và dự phòng `capture` trên điện thoại. Rà soát độc lập tìm 1 lỗi mức CAO (CSS injection qua `docx-preview` đổi giao diện cả ứng dụng, phủ lớp che nút đóng, gọi máy chủ ngoài) và 3 lỗi trung bình (spinner kẹt, Escape đóng mọi Modal chồng nhau, nội dung tài liệu công ty sai so với hệ thống) — đã sửa; vòng tích hợp sửa thêm các mục thấp và bỏ `vendor-pdf` khỏi lần tải đầu (/login 1.449 → 852 kB JS). Thêm dòng trỏ ở §3.4, cuối §27.16, §28.10, §28.11; cập nhật khối trạng thái. Chi tiết: `RevisionHistory.md` mục 28/10/2026.
+- **28/10/2026 (§23.9, §24 — điểm khuôn mặt do máy chủ ký, hiển thị phần trăm, hướng dẫn Trợ lý ECAP)** — ml-service ký điểm tương đồng kèm hash ảnh và hạn dùng, hrm-service chỉ nhận điểm qua token (đổi quyết định "không ký" cũ); giao diện báo ngay phần trăm/ngưỡng hoặc lý do sau khi chấm công, thêm nút "Thử nhận diện"; lời chào chatbot nói rõ làm được/chưa làm được, thay câu gợi ý không có dữ liệu trả lời.

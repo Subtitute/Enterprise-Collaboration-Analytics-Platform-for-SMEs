@@ -15,7 +15,7 @@
 // Don dep: xoa vinh vien 2 tai khoan test, tra lai so dien thoai/avatar cua Employee demo, xoa dau vet.
 const fs = require('fs');
 const path = require('path');
-const { api, call, loginRaw, login, decode, check, summary, sql, q, sleep, list, purgeTraces } = require('./lib');
+const { api, call, loginRaw, login, decode, check, summary, sql, q, sleep, list, purgeTraces, minioRm } = require('./lib');
 
 const TAG = Date.now().toString(36);
 const FIX = process.env.ECAP_FACE_FIXTURES;
@@ -41,6 +41,9 @@ async function waitFor(fn, timeoutMs = 30000, stepMs = 2000) {
 (async () => {
   const since = Date.now();
   const created = [];
+  // 28/10/2026: ban ghi + anh cham cong cua buoc D7a/D7b (xoa o phan don dep).
+  const attendanceIds = [];
+  const attendancePhotoKeys = [];
   let employeeOriginalPhone = null;
   try {
     const adminTok = await login('admin');
@@ -156,6 +159,23 @@ async function waitFor(fn, timeoutMs = 30000, stepMs = 2000) {
       check('D6 xac nhan -> ACTIVE', conf.status === 200 && conf.data.status === 'ACTIVE', conf.status);
       const v1 = await asKd('POST', '/ml/face/verify', form('photo', face('person_a2.jpg')));
       check('D7 verify sau xac nhan -> khop', v1.data.enrolled === true && v1.data.matched === true, JSON.stringify(v1.data));
+      // 28/10/2026: diem khuon mat chi duoc nhan qua token ml-service ky cho DUNG anh do (Technical_Spec.md §24).
+      const punch = (kind, file, token) => {
+        const fd = form('photo', face(file), `${kind}.jpg`);
+        if (token) fd.append('faceMatchToken', token);
+        return asKd('POST', `/attendance/${kind}`, fd);
+      };
+      const ci = await punch('check-in', 'person_a2.jpg', v1.data.token);
+      if (ci.data && ci.data.id) attendanceIds.push(ci.data.id);
+      for (const k of ['checkInPhotoObjectKey', 'checkOutPhotoObjectKey']) if (ci.data && ci.data[k]) attendancePhotoKeys.push(ci.data[k]);
+      check('D7a check-in dung anh + token -> khop, diem bang diem verify',
+        ci.status === 201 && ci.data.checkInFaceMatched === true && Math.abs(ci.data.checkInFaceMatchScore - v1.data.score) < 1e-6,
+        `${ci.status} matched=${ci.data && ci.data.checkInFaceMatched} score=${ci.data && ci.data.checkInFaceMatchScore}`);
+      const co = await punch('check-out', 'person_b.jpg', v1.data.token);
+      if (co.data && co.data.checkOutPhotoObjectKey) attendancePhotoKeys.push(co.data.checkOutPhotoObjectKey);
+      check('D7b check-out anh KHAC dung lai token cu -> bo qua diem, van cham cong',
+        co.status === 201 && co.data.checkOutFaceMatched == null && co.data.checkOutFaceMatchScore == null,
+        `${co.status} matched=${co.data && co.data.checkOutFaceMatched}`);
       const photo = await api('manager', 'GET', `/ml/face/enrollments/${kd.data.id}/photo`);
       check('D8 proxy anh: image/jpeg + Cache-Control no-store', photo.status === 200 && photo.headers.get('cache-control') === 'no-store' && (photo.headers.get('content-type') || '').startsWith('image/jpeg'), photo.status);
       const views = sql('postgres-ml', `select count(*) from face_enrollment_events where target_user_id = ${q(kd.data.id)} and action = 'VIEW_REF' and actor_id = ${q(managerClaims.sub)};`);
@@ -257,6 +277,12 @@ async function waitFor(fn, timeoutMs = 30000, stepMs = 2000) {
     await api('employee', 'PATCH', '/users/me', { phoneNumber: employeeOriginalPhone }).catch(() => null);
     await api('employee', 'DELETE', '/users/me/avatar').catch(() => null);
     await sleep(3000);
+    for (const id of attendanceIds) {
+      sql('postgres-hrm', `delete from outbox_events where payload::text like ${q('%' + id + '%')}; delete from attendances where id = ${q(id)};`);
+    }
+    for (const key of attendancePhotoKeys) {
+      try { minioRm('hrm-attendance', key); } catch (e) { check(`don dep anh ${key}`, false, e.message); }
+    }
     if (created.length) {
       const ids = created.map(q).join(',');
       sql('postgres-ml', `delete from face_enrollment_events where target_user_id in (${ids}); delete from face_consents where user_id in (${ids});`);

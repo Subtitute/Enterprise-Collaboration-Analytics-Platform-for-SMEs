@@ -27,8 +27,8 @@
       "offSite": "Ngoài văn phòng"
     },
     "faceMatchBadge": {
-      "matchedTitle": "Khuôn mặt trong ảnh khớp với khuôn mặt đã đăng ký",
-      "notMatchedTitle": "Khuôn mặt trong ảnh KHÔNG khớp với khuôn mặt đã đăng ký - chỉ là tín hiệu tham khảo, không chặn chấm công",
+      "matchedTitle": "Độ tương đồng {{percent}}% với ảnh đã đăng ký, đạt ngưỡng khớp {{threshold}}%",
+      "notMatchedTitle": "Độ tương đồng {{percent}}% với ảnh đã đăng ký, dưới ngưỡng khớp {{threshold}}% - chỉ là tín hiệu tham khảo, không chặn chấm công",
       "matched": "Khớp khuôn mặt",
       "notMatched": "Không khớp"
     },
@@ -124,6 +124,13 @@
       "error": "Không thể tải ảnh bằng chứng hoặc liên kết đã hết hạn.",
       "imageAlt": "Ảnh chụp chấm công",
       "close": "Đóng"
+    },
+    "faceResult": {
+      "matched": "Khuôn mặt khớp {{percent}}% với ảnh đã đăng ký (ngưỡng khớp {{threshold}}%).",
+      "notMatched": "Khuôn mặt giống {{percent}}% ảnh đã đăng ký, dưới ngưỡng khớp {{threshold}}%. Đã ghi nhận để Quản lý đối chiếu, không chặn chấm công.",
+      "notEnrolled": "Chưa đối chiếu khuôn mặt: bạn chưa đăng ký ảnh nhận diện (Hồ sơ cá nhân).",
+      "noFace": "Chưa đối chiếu khuôn mặt: không thấy rõ đúng một khuôn mặt trong ảnh.",
+      "unavailable": "Chưa đối chiếu khuôn mặt: dịch vụ nhận diện chưa phản hồi kịp."
     }
   },
   "leaveRequestsPage": {
@@ -299,7 +306,11 @@
     "uploadButton": "Tải ảnh từ máy",
     "withdrawButton": "Xoá & rút lại đồng ý",
     "withdrawnNote": "Bạn đã từ chối/rút lại đồng ý ({{date}}). Quản trị viên không thể tải ảnh hộ; bạn có thể tự đăng ký lại.",
-    "noneNote": "Bạn chưa có ảnh nhận diện. Chấm công vẫn hoạt động bình thường khi không đăng ký."
+    "noneNote": "Bạn chưa có ảnh nhận diện. Chấm công vẫn hoạt động bình thường khi không đăng ký.",
+    "testButton": "Thử nhận diện",
+    "testModalTitle": "Thử nhận diện khuôn mặt",
+    "testConfirm": "Đối chiếu",
+    "testResultTitle": "Kết quả thử nhận diện"
   },
   "toasts": {
     "checkInSuccess": "Đã chấm công vào làm",

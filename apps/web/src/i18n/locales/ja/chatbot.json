@@ -14,12 +14,13 @@
   },
   "thread": {
     "welcomeTitle": "こんにちは！何をお手伝いしましょうか？",
-    "welcomeDescription": "社内文書とあなた自身のデータをもとに、閲覧権限のある範囲内でお答えします。",
+    "welcomeDescription": "社内文書とあなた自身のデータをもとに、閲覧権限の範囲内でお答えします。読み取りのみで、データは一切変更しません。",
     "suggestionsLabel": "質問の例",
     "suggestions": {
       "tasks": "まだ完了していない自分のタスクは？",
       "leave": "今年の有給休暇はあと何日残っていますか？",
-      "documents": "会社のリモートワーク規定は？"
+      "documents": "残業は月に最大何時間までですか？",
+      "forgotCheckIn": "打刻を忘れた場合はどうすればよいですか？"
     },
     "placeholder": "質問を入力…（Enterで送信、Shift+Enterで改行）",
     "send": "質問を送信",
@@ -33,7 +34,24 @@
     "charCount": "{{count}}/{{max}}",
     "loadError": "このチャットを読み込めませんでした。",
     "retry": "再試行",
-    "disclaimer": "AIアシスタントは誤ることがあります。重要な情報は必ずご確認ください。"
+    "disclaimer": "AIアシスタントは誤ることがあります。重要な情報は必ずご確認ください。",
+    "scope": {
+      "canTitle": "お手伝いできること",
+      "can": {
+        "documents": "閲覧できる文書（PDF、Word、テキスト）から規則・手順・ガイドを調べる",
+        "work": "未完了のタスクと参加中プロジェクトの進捗を一覧する",
+        "leave": "残りの有給休暇日数を確認する",
+        "attendance": "今日の出勤・退勤打刻の有無を確認する"
+      },
+      "cannotTitle": "未対応",
+      "cannot": {
+        "otherModules": "顧客、在庫、分析レポートの数値、過去日の勤怠",
+        "otherPeople": "他の人の個人データ",
+        "actions": "作成・編集・承認・削除（画面での操作方法をご案内します）",
+        "fileTypes": "Excel、PowerPoint、画像ファイルの内容"
+      },
+      "tip": "ヒント：文書名・プロジェクト名・期間を添えると、より正確に回答できます。1日の質問数には上限があり、使用数は各回答後に下部に表示されます。"
+    }
   },
   "tools": {
     "search_documents": "文書",

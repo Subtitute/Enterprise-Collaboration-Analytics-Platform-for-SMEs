@@ -88,10 +88,11 @@ Mỗi kịch bản in từng dòng `PASS`/`FAIL` và dòng tổng kết `x/y PAS
 
 ### 4.2. `02-hrm.js` — Chấm công, nghỉ phép, tăng ca, lịch
 
-- Check-in thiếu ảnh → 400; vĩ độ ngoài miền → 400; có ảnh + GPS + `faceMatchScore` thấp → **201** với
-  `checkInFaceMatched=false` (cờ mềm, không chặn chấm công); check-in lần 2 → 400
-  `ALREADY_CHECKED_IN_TODAY`; check-out với điểm cao → `checkOutFaceMatched=true`. `checkInIsOnSite`
-  là `null` khi chưa cấu hình `OFFICE_LATITUDE/LONGITUDE`.
+- Check-in thiếu ảnh → 400; vĩ độ ngoài miền → 400; có ảnh + GPS → **201**; check-in lần 2 → 400
+  `ALREADY_CHECKED_IN_TODAY`. *(28/10/2026)* Điểm khuôn mặt chỉ được nhận qua token do ml-service ký
+  (`faceMatchToken`, Technical_Spec.md §24): check-in gửi `faceMatchScore=0.99` kèm token giả và check-out
+  gửi `faceMatchScore=0.9` đều phải ra `checkIn/checkOutFaceMatched = null` (điểm bị bỏ qua, chấm công vẫn
+  thành công). `checkInIsOnSite` là `null` khi chưa cấu hình `OFFICE_LATITUDE/LONGITUDE`.
 - Employee tạo đơn nghỉ phép (ngày ở tương lai xa) → PENDING; tự duyệt → 403; Manager thấy đơn và duyệt
   → APPROVED; Employee nhận thông báo real-time (outbox → Kafka → notification-service) trong ≤ 15 giây.
 - Employee đăng ký tăng ca → Manager từ chối; Employee tạo ngày lễ → 403; Manager tạo được.
@@ -193,6 +194,9 @@ của Gateway) và chờ hết cửa sổ 60 giây trước khi kiểm tra ma tr
 - **D. Ảnh nhận diện:** Manager tải hộ → bản chờ không được verify → nhân viên xác nhận → verify khớp; trùng
   1:N → 409; nhân viên từ chối → tải hộ 409; proxy ảnh `no-store` + nhật ký `VIEW_REF`; Manager phòng khác
   403.
+- **D7a/D7b (28/10/2026):** sau khi verify khớp, nhân viên thử check-in bằng đúng ảnh kèm `faceMatchToken` → khớp,
+  điểm bằng điểm verify; check-out bằng ảnh khác nhưng dùng lại token đó → điểm bị bỏ qua, chấm công vẫn 201. Bản
+  ghi chấm công và ảnh của 2 bước này bị xoá ở phần dọn dẹp.
 - **E. Vòng đời:** vô hiệu hoá → ml-service xoá bản dùng, đồng ý và object MinIO.
 
 Ảnh khuôn mặt **không nằm trong repo**. Phần D/E cần biến `ECAP_FACE_FIXTURES` trỏ tới thư mục có

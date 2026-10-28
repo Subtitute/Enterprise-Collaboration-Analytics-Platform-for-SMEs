@@ -1,4 +1,6 @@
+import { isAxiosError } from 'axios';
 import { apiClient } from '@/lib/api-client';
+import type { FaceCheck } from './face-result';
 import type {
   Attendance,
   AttendanceAdjustment,
@@ -23,6 +25,15 @@ export interface FaceVerifyResult {
   enrolled: boolean;
   score?: number | null;
   matched?: boolean | null;
+  // 28/10/2026: nguong khop de hien "x% / nguong y%" va token ky diem gui kem cham cong.
+  threshold?: number;
+  token?: string | null;
+}
+
+/** 28/10/2026: cham cong tra kem ket qua doi chieu de giao dien bao ngay phan tram/ly do. */
+export interface AttendanceSubmitResult {
+  attendance: Attendance;
+  face: FaceCheck;
 }
 
 /**
@@ -44,23 +55,24 @@ export interface FaceVerifyResult {
 const FACE_VERIFY_TIMEOUT_MS = 5000;
 
 /**
- * CANH BAO MEM, KHONG BAO GIO throw - bat kem moi loi (khong phat hien duoc khuon mat, mang
- * loi, chua dang ky, qua thoi gian cho...) va tra ve `undefined` (nghia "khong co du lieu de
- * danh gia", mirror CHINH XAC getCurrentLocationSoft() o CheckInCamera.tsx). checkIn()/checkOut()
- * ben duoi goi ham nay TRUOC khi gui check-in/out thuc su - LUON tiep tuc cham cong du ket qua
- * la gi.
+ * CANH BAO MEM, KHONG BAO GIO throw - checkIn()/checkOut() ben duoi goi ham nay TRUOC khi gui
+ * check-in/out thuc su va LUON tiep tuc cham cong du ket qua la gi (mirror getCurrentLocationSoft()
+ * o CheckInCamera.tsx). 28/10/2026: tra ve ly do thay vi `undefined` cam lang (chua dang ky / khong
+ * thay mat / dich vu cham) de giao dien bao cho nguoi dung, va giu token ky diem thay cho diem tho.
  */
-async function verifyFaceSoft(photo: Blob): Promise<number | undefined> {
+async function verifyFaceSoft(photo: Blob): Promise<FaceCheck> {
   try {
-    const result = await verifyFaceRaw(photo);
-    if (!result.enrolled || result.score === null || result.score === undefined) return undefined;
-    return result.score;
-  } catch {
-    return undefined;
+    const result = await verifyFace(photo);
+    if (!result.enrolled) return { status: 'notEnrolled' };
+    if (!result.token) return { status: 'unavailable' };
+    return { status: 'scored', token: result.token, threshold: result.threshold };
+  } catch (error) {
+    // ml-service tra 400 khi anh khong co dung 1 khuon mat du ro (FACE_NONE/FACE_MULTIPLE/...).
+    return { status: isAxiosError(error) && error.response?.status === 400 ? 'noFace' : 'unavailable' };
   }
 }
 
-async function verifyFaceRaw(photo: Blob): Promise<FaceVerifyResult> {
+export async function verifyFace(photo: Blob): Promise<FaceVerifyResult> {
   const form = new FormData();
   form.append('photo', photo, 'verify.jpg');
   const { data } = await apiClient.post<FaceVerifyResult>('/ml/face/verify', form, {
@@ -70,34 +82,34 @@ async function verifyFaceRaw(photo: Blob): Promise<FaceVerifyResult> {
   return data;
 }
 
-/** 24/10/2026: `faceMatchScore` la tuy chon - thieu (chua dang ky/khong phat hien duoc mat) thi khong gui field, mirror appendLocation() o tren. */
-function appendFaceMatchScore(form: FormData, score?: number) {
-  if (score === undefined) return;
-  form.append('faceMatchScore', String(score));
+/** 28/10/2026: gui token ky diem (thay `faceMatchScore` tho) - khong co token thi khong gui field, mirror appendLocation() o tren. */
+function appendFaceMatchToken(form: FormData, token?: string) {
+  if (!token) return;
+  form.append('faceMatchToken', token);
 }
 
-export async function checkIn(photo: Blob, location?: CheckInLocation): Promise<Attendance> {
-  const faceMatchScore = await verifyFaceSoft(photo);
+export async function checkIn(photo: Blob, location?: CheckInLocation): Promise<AttendanceSubmitResult> {
+  const face = await verifyFaceSoft(photo);
   const form = new FormData();
   form.append('photo', photo, 'checkin.jpg');
   appendLocation(form, location);
-  appendFaceMatchScore(form, faceMatchScore);
+  appendFaceMatchToken(form, face.token);
   const { data } = await apiClient.post<Attendance>('/attendance/check-in', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
-  return data;
+  return { attendance: data, face };
 }
 
-export async function checkOut(photo: Blob, location?: CheckInLocation): Promise<Attendance> {
-  const faceMatchScore = await verifyFaceSoft(photo);
+export async function checkOut(photo: Blob, location?: CheckInLocation): Promise<AttendanceSubmitResult> {
+  const face = await verifyFaceSoft(photo);
   const form = new FormData();
   form.append('photo', photo, 'checkout.jpg');
   appendLocation(form, location);
-  appendFaceMatchScore(form, faceMatchScore);
+  appendFaceMatchToken(form, face.token);
   const { data } = await apiClient.post<Attendance>('/attendance/check-out', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
-  return data;
+  return { attendance: data, face };
 }
 
 export async function fetchMyAttendance(params: { page?: number; limit?: number } = {}): Promise<PaginatedResponse<Attendance>> {

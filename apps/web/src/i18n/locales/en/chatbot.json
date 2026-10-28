@@ -14,12 +14,13 @@
   },
   "thread": {
     "welcomeTitle": "Hi! How can I help you?",
-    "welcomeDescription": "I answer from internal documents and your own data — only within what you are allowed to see.",
+    "welcomeDescription": "I answer from internal documents and your own data, only within what you are allowed to see. I only read; I never change any data.",
     "suggestionsLabel": "Suggested questions",
     "suggestions": {
       "tasks": "Which of my tasks are not finished yet?",
       "leave": "How many leave days do I have left this year?",
-      "documents": "What is the company's remote work policy?"
+      "documents": "What is the maximum overtime per month?",
+      "forgotCheckIn": "What should I do if I forget to check in?"
     },
     "placeholder": "Type a question… (Enter to send, Shift+Enter for a new line)",
     "send": "Send question",
@@ -33,7 +34,24 @@
     "charCount": "{{count}}/{{max}}",
     "loadError": "Could not load this conversation.",
     "retry": "Retry",
-    "disclaimer": "The AI assistant can make mistakes — double-check important information."
+    "disclaimer": "The AI assistant can make mistakes — double-check important information.",
+    "scope": {
+      "canTitle": "I can help with",
+      "can": {
+        "documents": "Looking up rules, procedures and guides in documents you can view (PDF, Word, text)",
+        "work": "Listing your unfinished tasks and the progress of projects you are in",
+        "leave": "Telling you how many leave days you have left",
+        "attendance": "Telling you whether you have checked in/out today"
+      },
+      "cannotTitle": "Not supported yet",
+      "cannot": {
+        "otherModules": "Customers, warehouse, analytics figures, attendance on previous days",
+        "otherPeople": "Other people's personal data",
+        "actions": "Creating, editing, approving or deleting - I will show you how to do it in the app",
+        "fileTypes": "Content of Excel, PowerPoint and image files"
+      },
+      "tip": "Tip: mention the document, project or time period for a more precise answer. Questions per day are limited; your usage appears at the bottom after each question."
+    }
   },
   "tools": {
     "search_documents": "documents",

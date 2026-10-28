@@ -14,12 +14,13 @@
   },
   "thread": {
     "welcomeTitle": "Xin chào! Mình có thể giúp gì cho bạn?",
-    "welcomeDescription": "Mình trả lời dựa trên tài liệu nội bộ và dữ liệu của chính bạn — chỉ trong phạm vi bạn có quyền xem.",
+    "welcomeDescription": "Mình trả lời dựa trên tài liệu nội bộ và dữ liệu của chính bạn, trong phạm vi bạn có quyền xem. Mình chỉ đọc, không thay đổi dữ liệu nào.",
     "suggestionsLabel": "Gợi ý câu hỏi",
     "suggestions": {
       "tasks": "Tôi đang có những công việc nào chưa hoàn thành?",
       "leave": "Tôi còn bao nhiêu ngày phép năm nay?",
-      "documents": "Quy định làm việc từ xa của công ty là gì?"
+      "documents": "Làm thêm giờ tối đa bao nhiêu giờ một tháng?",
+      "forgotCheckIn": "Quên chấm công thì tôi phải làm gì?"
     },
     "placeholder": "Nhập câu hỏi… (Enter để gửi, Shift+Enter để xuống dòng)",
     "send": "Gửi câu hỏi",
@@ -33,7 +34,24 @@
     "charCount": "{{count}}/{{max}}",
     "loadError": "Không tải được nội dung cuộc trò chuyện.",
     "retry": "Thử lại",
-    "disclaimer": "Trợ lý AI có thể nhầm lẫn — hãy kiểm tra lại thông tin quan trọng."
+    "disclaimer": "Trợ lý AI có thể nhầm lẫn — hãy kiểm tra lại thông tin quan trọng.",
+    "scope": {
+      "canTitle": "Mình có thể giúp",
+      "can": {
+        "documents": "Tra cứu nội quy, quy trình, hướng dẫn trong tài liệu bạn được xem (PDF, Word, văn bản)",
+        "work": "Liệt kê công việc chưa xong và tiến độ các dự án bạn tham gia",
+        "leave": "Cho biết số ngày phép còn lại",
+        "attendance": "Cho biết hôm nay bạn đã chấm công vào/ra chưa"
+      },
+      "cannotTitle": "Chưa hỗ trợ",
+      "cannot": {
+        "otherModules": "Khách hàng, kho hàng, số liệu báo cáo phân tích, chấm công các ngày trước",
+        "otherPeople": "Dữ liệu cá nhân của người khác",
+        "actions": "Tạo, sửa, duyệt hay xoá - mình sẽ hướng dẫn bạn thao tác trên giao diện",
+        "fileTypes": "Nội dung tệp Excel, PowerPoint và hình ảnh"
+      },
+      "tip": "Mẹo: nêu tên tài liệu, dự án hoặc khoảng thời gian để câu trả lời chính xác hơn. Số câu hỏi mỗi ngày có giới hạn; số đã dùng hiện ở cuối khung sau mỗi câu."
+    }
   },
   "tools": {
     "search_documents": "tài liệu",

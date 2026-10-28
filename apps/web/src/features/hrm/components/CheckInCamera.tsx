@@ -55,6 +55,7 @@ export function CheckInCamera({
   mode = 'checkin',
   facingMode = 'user',
   confirmLabel,
+  title,
 }: {
   open: boolean;
   onClose: () => void;
@@ -71,6 +72,8 @@ export function CheckInCamera({
   // Mac dinh giu nguyen hanh vi cu (camera truoc, nhan theo `mode`) cho cham cong + tu dang ky.
   facingMode?: 'user' | 'environment';
   confirmLabel?: string;
+  // 28/10/2026: tieu de rieng cho "Thu nhan dien" (ProfileFaceEnrollmentCard) - mac dinh theo `mode`.
+  title?: string;
 }) {
   const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -222,7 +225,7 @@ export function CheckInCamera({
     <Modal
       open={open}
       onClose={onClose}
-      title={t(titleKey)}
+      title={title ?? t(titleKey)}
       size="sm"
       footer={
         <div className="flex justify-end gap-2 w-full">

@@ -2387,3 +2387,41 @@ Merge `Frontend2`, `tien/review-ui-responsive`, `tien/fix-documents-grid`, `tien
 workspace jest + web 35 file / 194 test), build — đều qua; build lại image `web`; kịch bản giao diện `09-ui-smoke.js`
 32/32; kiểm tra riêng các phần vừa merge trên bản thật (Đăng ký 2 bước + cảnh báo dấu, Lưới tài liệu, nút chatbot,
 bảng chấm công, 390px và 1366px, không lỗi console) 18/18.
+
+---
+
+## 28/10/2026 (tiếp 2) — Điểm khuôn mặt do máy chủ ký, hiển thị phần trăm, hướng dẫn Trợ lý ECAP
+
+Rà soát trước buổi bảo vệ phát hiện 3 vấn đề trên bản đang chạy:
+- **Giả mạo được điểm khuôn mặt:** web tự gọi ml-service rồi gửi `faceMatchScore` lên hrm-service, máy chủ tin con
+  số đó (`scripts/mock-data/02-hrm.js` gửi thẳng 0.9 vẫn ra "Khớp").
+- **Phần trăm gần như không bao giờ hiện:** chưa đăng ký, không thấy mặt, ml-service chậm quá 5 giây đều bị bỏ qua
+  im lặng.
+- **Trợ lý ECAP khó dùng:** lời chào không nói làm được gì; câu gợi ý "Quy định làm việc từ xa" không có tài
+  liệu demo nào trả lời được.
+
+Đã sửa:
+- **Ký điểm:** ml-service trả token HMAC-SHA256 gồm tổ chức, người dùng, điểm, SHA-256 của ảnh, hạn 5 phút; khoá
+  suy ra từ `INTERNAL_SHARED_SECRET` với nhãn riêng. hrm-service chỉ nhận điểm qua `faceMatchToken` khi chữ ký,
+  người gọi, hạn và hash ảnh chấm công đều khớp; sai thì bỏ điểm, ghi log, chấm công vẫn thành công. Đổi quyết
+  định "không ký" ghi ở `Technical_Spec.md` §24.
+- **Hiển thị:** thông báo sau chấm công ghi ngay phần trăm và ngưỡng khớp, hoặc lý do không đối chiếu được;
+  tooltip badge ghi phần trăm và ngưỡng; Hồ sơ cá nhân có nút "Thử nhận diện" (không tạo bản ghi chấm công).
+- **Trợ lý ECAP:** lời chào chia "Mình có thể giúp" / "Chưa hỗ trợ" / mẹo, bám đúng 5 công cụ; câu gợi ý đổi sang
+  "Làm thêm giờ tối đa bao nhiêu giờ một tháng?" và thêm "Quên chấm công thì tôi phải làm gì?"; khung trống không
+  còn tự cuộn xuống cuối.
+
+**Kết quả:**
+- Kiểm thử đơn vị: hrm-service 130 test (10 ca mới cho token, có vector dùng chung với Python); ml-service 67 test;
+  web 64 test ở hrm/chatbot/profile/face; typecheck, lint, `lint:i18n-strings` sạch.
+- Kiểm tra sống qua Gateway sau khi build lại 3 image: `10-employee-directory.js` 47/47 (thêm D7a: chấm công đúng
+  ảnh kèm token → khớp, điểm bằng điểm verify; D7b: dùng lại token cho ảnh khác → bỏ điểm), `02-hrm.js` 22/22
+  (điểm thô 0.99 và token giả bị bỏ qua).
+- Kiểm tra giao diện bằng trình duyệt: lời chào đủ 8 dòng phạm vi và 4 câu gợi ý; câu "làm thêm giờ" trả lời 40
+  giờ/tháng kèm chip nguồn; check-in của tài khoản chưa đăng ký khuôn mặt báo đúng lý do (bản ghi thử đã xoá).
+
+**Còn lại:** tệp demo `Hướng dẫn sử dụng web-app ECAP.pdf` vẫn liệt kê câu gợi ý cũ; lịch sử chấm công trong dữ
+liệu seed không có điểm khuôn mặt; ngưỡng 0,35 chưa hiệu chỉnh trên dữ liệu thật.
+
+Chi tiết kỹ thuật: `Technical_Spec.md` §23.9 và phần bổ sung cuối §24; giao diện: `Wireframe.md` §15; kịch bản:
+`Mock_data.md` §4.2.

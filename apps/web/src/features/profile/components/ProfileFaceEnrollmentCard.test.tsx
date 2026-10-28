@@ -8,6 +8,11 @@ import { ProfileFaceEnrollmentCard } from './ProfileFaceEnrollmentCard';
 const normalize = vi.fn();
 const enrollMutate = vi.fn();
 const cameraProps = vi.fn();
+// 28/10/2026: CheckInCamera thu 2 cua nut "Thu nhan dien" (co `title` rieng) - ghi rieng de khong lam lech
+// cac assertion toHaveBeenLastCalledWith cua camera dang ky.
+const testCameraProps = vi.fn();
+const faceTestMutate = vi.fn();
+const statusState = { status: 'NONE' };
 const toastError = vi.fn();
 const normalizedBlob = new Blob(['normalized'], { type: 'image/jpeg' });
 // 28/10/2026: trang thai mutation dang ky doi duoc theo tung test (kiem tra spinner dung nut).
@@ -28,12 +33,13 @@ vi.mock('@/features/face/hooks', () => {
     useMyFaceStatusQuery: () => ({
       isLoading: false,
       isError: false,
-      data: { status: 'NONE', enrolled: false, enrolledAt: null, source: null, enrolledBy: null, hasPhoto: false, pending: null, consentAction: null, consentAt: null },
+      data: { status: statusState.status, enrolled: statusState.status === 'ACTIVE', enrolledAt: null, source: null, enrolledBy: null, hasPhoto: false, pending: null, consentAction: null, consentAt: null },
     }),
     useEnrollMyFace: () => ({ mutate: enrollMutate, ...enrollState }),
     useConfirmMyPendingFace: idle,
     useRejectMyPendingFace: idle,
     useWithdrawMyFace: idle,
+    useFacePhotoUrl: () => ({ url: null, failed: false }),
   };
 });
 vi.mock('@/features/face/components/FaceConsentDialog', () => ({
@@ -45,11 +51,12 @@ vi.mock('@/features/face/components/FaceConsentDialog', () => ({
     ) : null,
 }));
 vi.mock('@/features/hrm/components/CheckInCamera', () => ({
-  CheckInCamera: (props: { open: boolean }) => {
-    cameraProps(props);
+  CheckInCamera: (props: { open: boolean; title?: string }) => {
+    (props.title ? testCameraProps : cameraProps)(props);
     return null;
   },
 }));
+vi.mock('@/features/hrm/hooks', () => ({ useFaceVerifyTest: () => ({ mutate: faceTestMutate, isPending: false }) }));
 
 function setWebcam(available: boolean) {
   Object.defineProperty(window, 'isSecureContext', { value: available, configurable: true });
@@ -67,6 +74,7 @@ describe('ProfileFaceEnrollmentCard - camera fallback', () => {
     normalize.mockResolvedValue(normalizedBlob);
     enrollState.isPending = false;
     enrollState.variables = undefined;
+    statusState.status = 'NONE';
   });
 
   afterEach(() => setWebcam(false));
@@ -123,5 +131,23 @@ describe('ProfileFaceEnrollmentCard - camera fallback', () => {
     expect(document.querySelector('input[capture]')).toBeNull();
     openCameraThroughConsent();
     expect(cameraProps).toHaveBeenLastCalledWith(expect.objectContaining({ open: true, mode: 'enroll' }));
+  });
+
+  it('da dang ky + co webcam -> nut "Thu nhan dien" mo camera rieng, anh chup gui di doi chieu', () => {
+    setWebcam(true);
+    statusState.status = 'ACTIVE';
+    render(<ProfileFaceEnrollmentCard />);
+    fireEvent.click(screen.getByRole('button', { name: /hrm:faceEnroll\.testButton/ }));
+    expect(testCameraProps).toHaveBeenLastCalledWith(expect.objectContaining({ open: true, title: 'hrm:faceEnroll.testModalTitle' }));
+    const photo = new Blob(['selfie'], { type: 'image/jpeg' });
+    testCameraProps.mock.lastCall?.[0].onConfirm(photo);
+    expect(faceTestMutate).toHaveBeenCalledWith(photo, expect.anything());
+    expect(enrollMutate).not.toHaveBeenCalled();
+  });
+
+  it('chua dang ky -> khong co nut "Thu nhan dien"', () => {
+    setWebcam(true);
+    render(<ProfileFaceEnrollmentCard />);
+    expect(screen.queryByRole('button', { name: /hrm:faceEnroll\.testButton/ })).toBeNull();
   });
 });

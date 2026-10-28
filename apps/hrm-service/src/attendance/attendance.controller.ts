@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  Logger,
   Param,
   Post,
   Query,
@@ -18,7 +19,7 @@ import { AttendanceService } from './attendance.service';
 import { AttendanceQueryDto } from './dto/attendance-query.dto';
 import { photoMimeTypeFileFilter } from './allowed-photo-mime-types';
 import { parseOptionalCoordinate } from './coordinate.util';
-import { parseOptionalFaceMatchScore } from './face-match-score.util';
+import { verifyFaceMatchToken } from './face-match-score.util';
 
 const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024;
 
@@ -27,7 +28,16 @@ const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024;
 @ApiBearerAuth()
 @Controller('attendance')
 export class AttendanceController {
+  private readonly logger = new Logger(AttendanceController.name);
+
   constructor(private readonly attendanceService: AttendanceService) {}
+
+  /** 28/10/2026: diem khuon mat chi nhan qua token do ml-service ky cho dung anh nay (face-match-score.util.ts). */
+  private faceMatchScoreFrom(token: string | undefined, organizationId: string, userId: string, photo: Express.Multer.File) {
+    const { score, rejected } = verifyFaceMatchToken(token, { organizationId, userId, photo: photo.buffer });
+    if (rejected) this.logger.warn(`Bo qua token diem khuon mat (${rejected}) cua user ${userId}`);
+    return score;
+  }
 
   // 13/08/2026: `latitude`/`longitude` (Doc/ECAP_Mobile.md muc 13) - CO Y KHONG bat buoc, xem
   // coordinate.util.ts va Attendance entity cho ly do day du (co "on-site" chi de Manager doi
@@ -42,12 +52,12 @@ export class AttendanceController {
     @UploadedFile() photo: Express.Multer.File,
     @Body('latitude') latitudeRaw?: string,
     @Body('longitude') longitudeRaw?: string,
-    @Body('faceMatchScore') faceMatchScoreRaw?: string,
+    @Body('faceMatchToken') faceMatchToken?: string,
   ) {
     if (!photo) throw new BadRequestException({ message: 'Thiếu ảnh chấm công', errorCode: ERROR_CODES.MISSING_CHECKIN_PHOTO });
     const latitude = parseOptionalCoordinate(latitudeRaw, 'latitude', -90, 90);
     const longitude = parseOptionalCoordinate(longitudeRaw, 'longitude', -180, 180);
-    const faceMatchScore = parseOptionalFaceMatchScore(faceMatchScoreRaw);
+    const faceMatchScore = this.faceMatchScoreFrom(faceMatchToken, organizationId, userId, photo);
     return this.attendanceService.checkIn(organizationId, userId, photo, latitude, longitude, faceMatchScore);
   }
 
@@ -61,12 +71,12 @@ export class AttendanceController {
     @UploadedFile() photo: Express.Multer.File,
     @Body('latitude') latitudeRaw?: string,
     @Body('longitude') longitudeRaw?: string,
-    @Body('faceMatchScore') faceMatchScoreRaw?: string,
+    @Body('faceMatchToken') faceMatchToken?: string,
   ) {
     if (!photo) throw new BadRequestException({ message: 'Thiếu ảnh chấm công', errorCode: ERROR_CODES.MISSING_CHECKIN_PHOTO });
     const latitude = parseOptionalCoordinate(latitudeRaw, 'latitude', -90, 90);
     const longitude = parseOptionalCoordinate(longitudeRaw, 'longitude', -180, 180);
-    const faceMatchScore = parseOptionalFaceMatchScore(faceMatchScoreRaw);
+    const faceMatchScore = this.faceMatchScoreFrom(faceMatchToken, organizationId, userId, photo);
     return this.attendanceService.checkOut(organizationId, userId, photo, latitude, longitude, faceMatchScore);
   }
 
