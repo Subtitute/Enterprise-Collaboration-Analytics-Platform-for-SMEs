@@ -126,7 +126,10 @@ export const DocumentCard = React.memo(function DocumentCard({
               <FileIcon className="h-5 w-5 stroke-1.5" />
             </span>
             <div className="min-w-0 flex-1">
-              <span className="block truncate text-[13px] leading-5 font-medium text-text-primary group-hover:text-accent transition-colors">
+              {/* 27/10/2026 - Hiển thị tối đa 2 dòng tên tệp kèm title tooltip */}
+              <span
+                title={file.name}
+                className="block text-[13px] leading-5 font-medium text-text-primary group-hover:text-accent transition-colors line-clamp-2 break-words min-h-[20px]">
                 {file.name}
               </span>
               <span className="font-mono text-[12px] leading-4 text-text-tertiary tabular-nums">
