@@ -4,7 +4,8 @@
 > cho toàn bộ màn hình MVP và các module mở rộng (CRM-lite, HRM-lite, i18n, Analytics nâng cao,
 > Kho hàng, Nhận diện khuôn mặt, Chatbot nội bộ — 24/10/2026). §16 (Danh sách nhân viên & ảnh nhận
 > diện, 26/10/2026) đã triển khai và xác minh sống. §5.1 (Tài liệu theo phạm vi dự án, 26/10/2026) đã triển
-> khai và xác minh sống.
+> khai và xác minh sống. Cửa sổ xem trước tệp (§5, gồm Word/Excel/PowerPoint) và chụp ảnh nhận diện bằng
+> camera (§16.3, §16.5) — 28/10/2026 — đã triển khai và xác minh sống.
 > Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
 
 **Tài liệu liên quan:** [General_idea.md](General_idea.md) · [Technical_Spec.md](Technical_Spec.md)
@@ -166,6 +167,34 @@
 - **Modal Chia sẻ:** chọn user (hoặc **phòng ban**, bổ sung 28/07/2026) được gắn nhãn "đã chia sẻ" — ghi vào `FileShare`. **(Điều chỉnh 21/07/2026, nâng cấp 28/07/2026)** Trong MVP ban đầu, `FileShare` chỉ mang tính hiển thị, không giới hạn quyền truy cập thực tế. **Từ 28/07/2026, đã có access-control thực sự nhưng theo THƯ MỤC (opt-in):** mỗi thư mục có biểu tượng khoá 🔒 khi ở chế độ "Hạn chế truy cập" — chỉ người tạo thư mục, Org Admin, hoặc người/phòng ban được chia sẻ tường minh (qua modal "Quản lý chia sẻ" mới, menu `⋮` của thư mục) mới thấy được thư mục đó và tài liệu bên trong; mặc định MỌI thư mục vẫn mở cho cả tổ chức như trước (không đổi hành vi dữ liệu cũ). Chia sẻ 1 tệp lẻ (`FileShare`) vẫn hoạt động như "link trực tiếp" tới đúng tệp đó dù thư mục cha đang hạn chế.
 - Mỗi file hiển thị nhãn phiên bản (`v3`) kèm link "Xem lịch sử phiên bản" (danh sách `FileVersion`, tối đa N bản gần nhất).
 - **(Bổ sung 22/07/2026)** Click trực tiếp vào tên tệp (hoặc mục "Xem tệp" trong menu `⋮`) mở tệp ngay trong tab mới của trình duyệt (`Content-Disposition: inline` — PDF/ảnh/text được trình duyệt tự render, không cần tải về máy trước). Mục "Tải xuống" riêng biệt luôn ép hộp thoại Lưu tệp (`Content-Disposition: attachment`).
+- **(Cập nhật 28/10/2026, thay cho mục trên — Technical_Spec.md §29)** Bấm tên tệp (tooltip "Xem trước tệp") hoặc
+  "Xem tệp" trong menu `⋮` mở **cửa sổ xem trước ngay trong ứng dụng**, không mở tab mới, ở mọi nơi: dạng bảng
+  và lưới của trang Tài liệu, mục "Tài liệu" của trang chi tiết dự án, chip nguồn trong Chat bot (§15). "Tải
+  xuống" (trên dòng, trong `⋮`, tải hàng loạt, nút trong cửa sổ) vẫn tải tệp về máy.
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│ Bảng KPI mẫu theo phòng ban.xlsx                [⤓ Tải xuống] ✕ │
+│ 31.8 KB                                                         │
+├────────────────────────────────────────────────────────────────┤
+│ [Tổng hợp] [Kinh doanh] [Kỹ thuật] [Marketing] …   ← tab trang tính│
+│ ⚠ Đang hiển thị 500/2.000 dòng và 50/120 cột đầu tiên…  (nếu bị cắt)│
+│    │ A            │ B        │ C        │                         │
+│  1 │ Phòng ban    │ KPI      │ Đạt      │                         │
+│  2 │ Kinh doanh   │ …        │ …        │                         │
+└────────────────────────────────────────────────────────────────┘
+```
+
+  - **PDF/ảnh:** hiển thị như trước. **Văn bản/CSV:** nội dung dạng chữ/bảng (máy chủ vẫn ép tải về nên
+    trình duyệt không tự mở được — cửa sổ đọc nội dung và hiển thị an toàn).
+  - **Word (.docx):** các trang tài liệu như bản in, trong 1 khung riêng (liên kết `http/https/mailto` mở tab
+    mới, liên kết mục lục cuộn trong khung). **Excel (.xlsx/.xls):** tab theo trang tính, bảng giá trị (không hiện
+    công thức), tối đa 500 dòng × 50 cột kèm dòng báo bị cắt. **PowerPoint (.pptx):** thẻ "Trang chiếu N" gồm
+    tiêu đề và các dòng chữ, dải ghi chú "Bản xem giản lược…" kèm nút "Tải tệp gốc".
+  - Đang tải: vòng xoay "Đang tải bản xem trước…". Tệp Office > 15 MB (khác > 20 MB), `.doc/.ppt` cũ hoặc tệp
+    hỏng/rỗng: thông báo kèm nút "Tải xuống để xem".
+  - Màn hình < 640px: cửa sổ rộng gần hết màn hình (lề 16px), nút tải xuống chỉ còn biểu tượng (vẫn có tên cho
+    trình đọc màn hình). Escape đóng cửa sổ và trả focus về tên tệp vừa bấm.
 
 ### 5.1 Tài liệu theo phạm vi dự án *(bổ sung 26/10/2026, xem Technical_Spec.md §28)*
 
@@ -715,6 +744,11 @@ Hộp "Tải ảnh thay thế" (chọn tệp → kiểm tra ngay):
 
 - Ảnh chỉ tải khi mở drawer (qua API, không cache); "Xem ảnh lớn" mở modal, mỗi lượt xem được ghi nhật ký.
 - Lỗi chặn (không mặt, nhiều mặt, mặt quá nhỏ, trùng với người khác ≥ 0,5) → nút "Gửi ảnh" bị khoá kèm lý do.
+- **(Bổ sung 28/10/2026, Technical_Spec.md §29.1)** Hộp tải ảnh có thêm nút **[📷 Chụp bằng camera]** dưới dòng kết
+  quả kiểm tra. Máy có webcam (https hoặc localhost): mở cửa sổ camera (ưu tiên camera sau) → [Chụp ảnh] →
+  [Chụp lại] / [Dùng ảnh này]; ảnh chụp được kiểm tra như ảnh chọn từ máy. Điện thoại vào qua http trong LAN
+  (trình duyệt không cho dùng webcam): nút mở thẳng app camera của máy. Ô chọn ảnh và nút camera bị khoá khi
+  đang kiểm tra/đang gửi. Escape trong cửa sổ camera chỉ đóng camera, hộp tải ảnh và Hồ sơ nhân viên giữ nguyên.
 
 ### 16.4 Trình nhập Excel + ZIP (4 bước)
 
@@ -819,6 +853,10 @@ Hộp xác nhận đồng ý (khi tự đăng ký hoặc bấm "Xác nhận dùn
 - "Từ chối" → hộp xác nhận ngắn: "Bạn sẽ không dùng nhận diện khuôn mặt; quản trị viên không thể tải
   ảnh hộ. Bạn có thể tự đăng ký lại bất kỳ lúc nào."
 - Mobile web (< 768px): 2 ảnh xếp dọc, nút xếp thành cột.
+- **(Bổ sung 28/10/2026)** Nút camera ("Chụp bằng camera", hoặc "Đăng ký lại" khi đã có ảnh; sau hộp đồng ý): có webcam → cửa sổ camera như cũ; điện thoại
+  vào qua http trong LAN → mở app camera trước của máy, ảnh được chuẩn hoá như "Tải ảnh từ máy". Khi đang gửi ảnh
+  từ thẻ này, vòng xoay hiện đúng ở nút vừa bấm và cả 2 nút bị khoá. Riêng màn Chấm công trên điện thoại qua http
+  vẫn báo "không hỗ trợ camera" (chưa có đường dự phòng, xem Technical_Spec.md §29.7).
 
 ---
 
@@ -859,3 +897,4 @@ Hộp xác nhận đồng ý (khi tự đăng ký hoặc bấm "Xác nhận dùn
 - **26/10/2026 (Danh sách nhân viên & ảnh nhận diện — kế hoạch)** — §16 (mới, **chỉ là kế hoạch**): mở rộng tab Thành viên (§8) thành "Danh sách nhân viên" có avatar/mã NV/số điện thoại/trạng thái ảnh nhận diện, khác nhau theo vai trò (Org Admin cả tổ chức; Manager chỉ Employee phòng mình; Employee không vào được); drawer "Hồ sơ nhân viên" để xem/sửa; panel ảnh nhận diện theo 4 trạng thái đồng ý (đang dùng, chờ nhân viên xác nhận, chưa đăng ký, nhân viên đã từ chối); trình nhập Excel + ZIP 4 bước (tệp, xem trước lỗi từng dòng, đang nhập, kết quả + báo cáo lỗi `.xlsx`); Hồ sơ cá nhân (§11) dùng API thật thay phần giả lập, kèm banner và hộp xác nhận đồng ý có phiên bản. Cập nhật khối trạng thái. Đặc tả kỹ thuật: `Technical_Spec.md` §27.
 - **26/10/2026 (Tài liệu theo phạm vi dự án & phạm vi dữ liệu của Manager — đã triển khai, Technical_Spec.md §28)** — §5.1 (mới): bộ chọn dự án khi tạo thư mục cấp gốc, nhãn dự án/"Toàn công ty", bộ lọc dự án, "Đổi dự án", cây toàn công ty chỉ xem, nút trên từng tệp theo quyền ghi của chính tệp. §4.2: mục "Tài liệu" cuối trang chi tiết dự án, thông báo 409 khi gỡ thành viên còn công việc chưa xong. §7, §9.2: phạm vi phòng ban của Manager. §12.2: sửa nhãn 2 cột cuối pipeline thành "Hoàn thành"/"Thất bại" cho khớp giao diện thật (trước ghi "Thắng"/"Thua").
 - **26/10/2026 (Danh sách nhân viên & ảnh nhận diện — đã triển khai, Technical_Spec.md §27.16)** — §16 chuyển từ kế hoạch sang đã triển khai, giữ nguyên bố cục. Ghi chú 3 chỗ khác kế hoạch: "Hồ sơ nhân viên" (§16.2) là `Modal` thay cho drawer; lọc "Ảnh nhận diện" chỉ trên trang đang xem; người mới do Manager mời qua import không được gửi ảnh cùng lượt. §16.5 có thêm đổi mật khẩu thật. Cập nhật khối trạng thái đầu file.
+- **28/10/2026 (Xem trước tệp trong ứng dụng + chụp ảnh nhận diện bằng camera — đã triển khai, Technical_Spec.md §29)** — §5: bấm tên tệp/"Xem tệp" ở mọi nơi (bảng, lưới, mục "Tài liệu" của dự án, chip nguồn Chat bot) mở cửa sổ xem trước thay cho tab mới, tooltip "Xem trước tệp"; thêm phác thảo cửa sổ và cách hiển thị Word (trang như bản in), Excel (tab trang tính, 500 × 50), PowerPoint (bản giản lược theo trang chiếu), trạng thái tải/lỗi/quá lớn, màn hình hẹp. §16.3: nút "Chụp bằng camera" trong hộp tải ảnh hộ (webcam hoặc app camera của điện thoại), Escape chỉ đóng lớp camera. §16.5: dự phòng app camera khi không có webcam; Chấm công trên điện thoại qua http chưa có dự phòng. Cập nhật khối trạng thái.

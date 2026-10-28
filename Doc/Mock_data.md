@@ -6,7 +6,9 @@
 > `RevisionHistory.md`. Cập nhật 26/10/2026: chính sách tài liệu theo dự án và phạm vi dữ liệu của Manager
 > (`Technical_Spec.md` §28) — kịch bản 04/08 đã sửa theo, kết quả chạy lại ở mục 9. Cập nhật 26/10/2026
 > (tiếp): kịch bản mới `10-employee-directory.js` cho Danh sách nhân viên & kho ảnh nhận diện
-> (`Technical_Spec.md` §27), xem mục 4.9 và mục 10.
+> (`Technical_Spec.md` §27), xem mục 4.9 và mục 10. Cập nhật 28/10/2026: kho tài liệu demo đã dọn (seed không
+> còn tệp `.txt/.csv` mẫu, 2 tài liệu công ty là PDF/DOCX thật — `Technical_Spec.md` §29), kết quả chạy lại ở
+> mục 11.
 
 **Mục đích:** gom về một chỗ (1) các tài khoản dùng để kiểm thử theo từng vai trò, (2) các bộ dữ liệu
 và kịch bản tái sử dụng được cùng kết quả mong đợi, (3) cách dựng lại toàn bộ khi cần — để lần kiểm
@@ -41,8 +43,8 @@ Hộp thư MailHog (email quên mật khẩu, lời mời thành viên): `http:/
 | Lệnh (chạy ở thư mục gốc repo) | Tạo ra |
 |---|---|
 | `docker compose -f infra/docker-compose.yml --env-file infra/.env up -d` | Toàn bộ stack (điều kiện tiên quyết cho mọi mục dưới) |
-| `npm run seed` | Tổ chức demo, người dùng, phòng ban, dự án/công việc, khách hàng, tài liệu mẫu (`scripts/seed.js`); ở cuối gọi 3 script idempotent dưới đây (26/10/2026) |
-| `node scripts/migrate-project-documents.js` | Gắn thư mục "`<dự án>` - Tai lieu" vào dự án, người được giao việc thành thành viên dự án, 2 thư mục toàn công ty "Chính sách công ty"/"Sổ tay nhân viên" |
+| `npm run seed` | Tổ chức demo, người dùng, phòng ban, dự án/công việc và thư mục "`<dự án>` - Tai lieu", khách hàng (`scripts/seed.js`); ở cuối gọi 3 script idempotent dưới đây (26/10/2026). Từ 27/10/2026 không còn tải 15 tệp mẫu `bao-cao-tien-do-N.txt`/`du-lieu-cong-viec-N.csv` |
+| `node scripts/migrate-project-documents.js` | Gắn thư mục "`<dự án>` - Tai lieu" vào dự án, người được giao việc thành thành viên dự án, 2 thư mục toàn công ty "Chính sách công ty"/"Sổ tay nhân viên". Từ 27/10/2026 tải 2 tài liệu thật "Nội quy làm việc.pdf" và "Sổ tay nhân viên.docx" từ `scripts/seed-assets/company-docs/` (bỏ qua nếu đã có cùng tên) rồi mới xoá `noi-quy-lam-viec.txt`/`so-tay-nhan-vien.txt` cũ |
 | `node scripts/seed-project-docs.js` | 20 tài liệu mẫu Word/PDF/Excel/PowerPoint (`scripts/seed-assets/project-docs/`) vào thư mục của 5 dự án — bỏ qua tệp đã có cùng tên |
 | `node scripts/migrate-demo-ownership.js` | Giao 8 khách hàng cho phòng Kinh doanh (3 Manager, 3 nhân viên demo, 2 nhân viên khác) để CRM của Manager/nhân viên demo có dữ liệu |
 | `npm run seed:inventory` | Danh mục sản phẩm, sản phẩm, kho, tồn kho, giao dịch mua hàng (`scripts/seed-inventory.js`) |
@@ -51,6 +53,10 @@ Hộp thư MailHog (email quên mật khẩu, lời mời thành viên): `http:/
 
 Kịch bản trong `scripts/mock-data/` **không cần** dữ liệu nào ngoài 3 lệnh seed trên — chúng tự tạo dữ
 liệu tạm của mình rồi tự xoá.
+
+Dữ liệu tài liệu của tổ chức demo sau đợt dọn kho 27–28/10/2026 (`Technical_Spec.md` §29.4): **22 tệp** (20
+tài liệu dự án + 2 tài liệu công ty), 7 thư mục, 0 tệp `.txt/.csv`, RAG lập chỉ mục 12 tệp / 286 đoạn. Kịch bản
+04 kết thúc phải để lại đúng các con số này.
 
 ## 3. Bộ file mẫu (`scripts/mock-data/fixtures/`)
 
@@ -326,6 +332,38 @@ Kiểm tra sống riêng: gửi header tin cậy giả qua Gateway (hoa thườn
 `x-is-super-admin`, `x-department-id` phòng khác, `x-organization-id`, `x-user-id`, `x-internal-secret`;
 Manager Kinh doanh giả phòng Kỹ thuật; Analytics phòng khác) → **10/10** bị chặn hoặc bị bỏ qua đúng.
 
+## 11. Kết quả lần chạy 28/10/2026 (xem trước tài liệu, dọn kho demo, chụp ảnh bằng camera)
+
+Chạy trên bản `web` production build lại (`Technical_Spec.md` §29), sau khi dọn kho tài liệu demo.
+
+| Kịch bản | Kết quả |
+|---|---|
+| 01 Auth + IAM | 31/31 PASS |
+| 02 HRM | 22/22 PASS (nhân viên demo đã chấm công hôm đó nên kịch bản tự bỏ nhánh check-in/check-out) |
+| 03 Dự án/công việc | 18/18 PASS |
+| 04 Tài liệu | 55/55 PASS — dọn dẹp xong còn 22 tệp, 7 thư mục, 286 đoạn RAG |
+| 05 CRM + Kho | 27/27 PASS |
+| 06 Analytics + nhắn tin | 24/24 PASS |
+| 07 Chatbot | 12/12 PASS (không gọi Gemini) |
+| 10 Danh sách nhân viên & ảnh nhận diện | 45/45 PASS (có `ECAP_FACE_FIXTURES`). Lần chạy đầu 16/17 do `fetch failed` (ECONNRESET của `wslrelay` trên `127.0.0.1:3000`, không liên quan thay đổi), khối `finally` vẫn dọn sạch; chạy lại 45/45 |
+
+Kiểm tra sống riêng của đợt (script tạm, chỉ đọc; hội thoại Chat bot phục vụ từ trình duyệt, 0 lượt Gemini;
+mọi yêu cầu tải/đăng ký ảnh khuôn mặt bị chặn trong trình duyệt) — **45/45**:
+
+- Org Admin: mở PDF/DOCX/XLSX/PPTX ở dạng bảng, dạng lưới, mục "Tài liệu" của dự án CRM và 2 tài liệu công ty →
+  cửa sổ xem trước có nội dung, không mở tab, không tải tệp, 0 lỗi console; "Tải xuống" trong cửa sổ → 1 tab
+  + tệp đúng tên (`disposition=attachment`); 390px: không tràn ngang, cửa sổ x=16 w=350.
+- Employee `duc.hoang+227860`: 2 thư mục công ty không có nút tải lên/thư mục mới, xem được cả 2 tài liệu.
+- Employee `kien.dinh+167828` (không thuộc dự án "Hệ thống báo cáo KPI"): chip nguồn tài liệu KPI → 403 + toast
+  "Bạn không có quyền truy cập tệp này.", không mở cửa sổ; Esc khi chip đang tải → panel đóng, không cửa sổ nào
+  bật lên sau đó.
+- Manager `an.nguyen+227860` → Hồ sơ Hoàng Văn Đức → hộp tải ảnh → "Chụp bằng camera" (camera giả của Chromium)
+  → `/ml/face/inspect` trả `FACE_NONE`, "Gửi ảnh" bị khoá; Escape chỉ đóng camera, lần 2 đóng hộp tải ảnh, lần 3
+  đóng hồ sơ. Không ảnh nào được gửi cho nhân viên demo.
+- Tệp độc hại (thay nội dung URL presigned trong trình duyệt): `.docx` 100.000 đoạn → báo lỗi sau 0,39 giây;
+  `.docx` 20.000 đoạn → hiển thị; `.xlsx` rỗng / HTML đổi đuôi → báo lỗi; `.xlsx` 2.000 × 120 → hiển thị.
+- `e2e/tests/documents.spec.ts` (tổ chức E2E, đã sửa theo cửa sổ xem trước): 1/1 PASS.
+
 
 ## Lịch sử thay đổi file này
 
@@ -337,3 +375,7 @@ Manager Kinh doanh giả phòng Kỹ thuật; Analytics phòng khác) → **10/1
 - 26/10/2026 (tiếp): danh sách nhân viên & kho ảnh nhận diện — mục 4.9 (mới) kịch bản `10-employee-directory.js`
   và cách sinh thư mục ảnh `ECAP_FACE_FIXTURES` (ảnh khuôn mặt không nằm trong repo); mục 10 (mới) kết quả chạy
   và kiểm tra giả mạo header qua Gateway.
+- 28/10/2026: xem trước tài liệu trong ứng dụng, dọn kho tài liệu demo, chụp ảnh nhận diện bằng camera — mục 2:
+  `seed.js` không còn tải 15 tệp `.txt/.csv` mẫu, `migrate-project-documents.js` tải "Nội quy làm việc.pdf"/"Sổ tay
+  nhân viên.docx" từ `scripts/seed-assets/company-docs/` và xoá 2 tệp `.txt` cũ, ghi số liệu tài liệu demo hiện có
+  (22 tệp, 7 thư mục, 12 tệp / 286 đoạn RAG); mục 11 (mới) kết quả chạy lại 01–07, 10 và các kiểm tra sống của đợt.

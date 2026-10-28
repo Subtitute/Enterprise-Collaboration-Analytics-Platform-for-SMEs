@@ -2317,3 +2317,49 @@ trang đang xem; ngưỡng độ nét/1:N chưa tinh chỉnh bằng dữ liệu 
 
 Chi tiết kỹ thuật: `Technical_Spec.md` §27.16, §6; giao diện: `Wireframe.md` §16; kịch bản: `Mock_data.md`
 §4.9, §10.
+
+---
+
+## 28/10/2026 — Xem trước tài liệu trong ứng dụng, dọn kho tài liệu demo, chụp ảnh nhận diện bằng camera
+
+Làm theo 3 vòng: 4 luồng triển khai song song (dọn kho tài liệu demo; mọi lối "xem tệp" mở cửa sổ xem trước;
+xem trước Word/Excel/PowerPoint trong trình duyệt; chụp ảnh nhận diện bằng camera), 4 vòng rà soát độc lập (mỗi
+vòng 1 luồng, kiểm bằng cách chạy thật chứ không chỉ đọc code), 1 vòng tích hợp cuối. Chủ dự án chọn dựng tài
+liệu Office ngay trong trình duyệt (không thêm container chuyển đổi), xoá thư mục rỗng `RA-repro-view-share`
+và 85 object MinIO mồ côi, giữ nguyên Chấm công trên điện thoại (chưa thêm đường dự phòng camera).
+
+**Lỗi tìm ra ở vòng rà soát:**
+- **Cao — chèn CSS qua tệp Word:** `docx-preview` dựng thẻ `<style>` bằng cách nối chuỗi giá trị lấy từ tệp và
+  chép nguyên `style` của hình VML. 1 tệp `.docx` độc hại (ai có quyền tải lên thư mục dùng chung đều tạo được)
+  đổi giao diện cả ứng dụng, phủ lớp kín màn hình che cả nút đóng (giả mạo giao diện) và gọi `url(...)` ra máy
+  chủ ngoài khi người khác mở xem. Bộ lọc liên kết/thẻ của luồng triển khai không chạm tới chỗ này. Sửa: tài liệu
+  nằm trong iframe sandbox không cho chạy script, có CSP riêng chặn mọi tài nguyên ngoài; 27 tệp độc hại kiểm
+  lại đều bị giam trong khung.
+- Trung bình: đóng cửa sổ khi tệp Office đang tải làm tệp mở sau kẹt vòng xoay mãi (đặt lại cờ + huỷ lượt tải);
+  1 lần Escape đóng mọi cửa sổ chồng nhau — camera, hộp tải ảnh và Hồ sơ nhân viên cùng lúc, mất ảnh vừa chụp và
+  chỉnh sửa chưa lưu (`Modal` nay có ngăn xếp, chỉ lớp trên cùng nhận Escape — áp dụng toàn ứng dụng); 2 tài liệu
+  công ty sai 7 điểm so với hệ thống mà chat bot lại trích làm "Nguồn" (sửa nội dung, sinh lại, tải lại); kịch
+  bản E2E Tài liệu còn chờ tab mới (viết lại theo cửa sổ xem trước + kiểm tra tải xuống).
+- Thấp (sửa ở vòng rà soát hoặc vòng tích hợp): tên tệp dài tràn ngang ở 390px; ô chọn ảnh bấm được khi ảnh trước
+  còn đang kiểm tra; đóng/mở lại camera quá nhanh để camera cũ sáng mãi, URL ảnh xem trước không thu hồi; Esc lúc
+  chip nguồn đang tải để cửa sổ bật lên sau khi panel đã đóng; `.docx` nhỏ chứa 100.000 đoạn văn treo tab 4–5
+  giây (thêm trần 5 MB cho `word/document.xml`, 20 MB cho trang tính); `.xlsx` rỗng/đổi đuôi hiện bảng trống thay
+  vì báo lỗi; dòng kết quả cũ hiện lại khi mở lại hộp tải ảnh; vòng xoay nằm nhầm nút; nút tải xuống không có tên
+  ở màn hình hẹp.
+
+**Dữ liệu demo:** bỏ 15 tệp mẫu `.txt/.csv` (cả trong `seed.js`), thay 2 tệp `.txt` công ty bằng "Nội quy làm
+việc.pdf" và "Sổ tay nhân viên.docx" thật, xoá 85 object MinIO mồ côi (3,73 MiB) → 22 tệp, 22 object, 12 tệp lập
+chỉ mục RAG / 286 đoạn.
+
+**Hiệu năng tải trang:** cấu hình chia chunk cũ kéo `vendor-pdf` (~587 kB) vào mọi trang vì hàm preload của Vite
+nằm trong chunk đó; đổi `manualChunks` sang dạng hàm → JS của trang đăng nhập 1.449 → 852 kB (gzip 435 → 256 kB).
+
+**Kết quả:** gate tương đương CI qua (1.186 test jest + 170 test vitest); kiểm thử sống trên bản production 45/45
+(4 vai trò, 390px, camera giả, tệp độc hại); E2E Tài liệu 1/1; mock-data 01–07 và 10 đều PASS.
+
+**Giới hạn đã biết:** PowerPoint chỉ là bản giản lược chữ; chưa có CSP ở Nginx; kích thước khai báo trong ZIP có
+thể bị làm giả (chặn bởi trần 15 MB); Chấm công trên điện thoại qua http chưa có dự phòng camera; URL presigned ký
+cho `localhost:9010` nên máy khác trong LAN cần đặt `MINIO_PUBLIC_ENDPOINT`.
+
+Chi tiết kỹ thuật: `Technical_Spec.md` §29; giao diện: `Wireframe.md` §5, §16.3, §16.5; kịch bản: `Mock_data.md`
+§2, §11.

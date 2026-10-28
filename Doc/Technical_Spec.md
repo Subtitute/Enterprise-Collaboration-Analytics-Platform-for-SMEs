@@ -7,7 +7,9 @@
 > (giảm tải RAM Docker, 24/10/2026). §26 (CDC Debezium, profile tuỳ chọn `cdc`, 25/10/2026) đã
 > triển khai và xác minh sống dưới tải. §27 (Danh sách nhân viên & kho ảnh nhận diện, 26/10/2026) đã
 > triển khai giai đoạn 0–5 và xác minh sống (§27.16); giai đoạn 6 chưa làm. §28 (Tài liệu theo phạm vi dự án & phạm vi dữ liệu của Manager, 26/10/2026)
-> đã triển khai và xác minh sống. Dữ liệu kiểm thử tái sử dụng: `Mock_data.md`. Phần cố ý chưa
+> đã triển khai và xác minh sống. §29 (xem trước tài liệu ngay trong ứng dụng gồm Word/Excel/PowerPoint, dọn kho
+> tài liệu demo, chụp ảnh nhận diện bằng camera, 27–28/10/2026) đã triển khai và xác minh sống trên bản
+> production. Dữ liệu kiểm thử tái sử dụng: `Mock_data.md`. Phần cố ý chưa
 > triển khai (forecasting ML, Layer 4/6 của §19) được đánh dấu rõ tại chỗ và theo dõi thêm ở
 > `Upgrade.md`. Chi tiết lịch sử đầy đủ: xem `RevisionHistory.md`.
 
@@ -119,6 +121,7 @@ flowchart TB
 - **Lưu trữ (điều chỉnh 21/07/2026):** bucket MinIO cấu hình **private** (không bật anonymous/public download); mọi truy cập tải file bắt buộc đi qua presigned URL có thời hạn ngắn (mặc định 15 phút) do Document Service cấp sau khi đã xác thực `organizationId` của người gọi.
 - **Phạm vi `FileShare`/access-control (điều chỉnh 21/07/2026, nâng cấp thành access-control thực sự 28/07/2026):** mặc định (`Folder.visibility = 'organization'`) vẫn giữ nguyên hành vi MVP — mọi thành viên tổ chức xem/tải được mọi tài liệu, **không đổi hành vi của dữ liệu đã có** (opt-in). Người tạo thư mục (hoặc Org Admin) có thể chuyển 1 thư mục cụ thể sang `visibility = 'restricted'`: khi đó chỉ người tạo, Org Admin, hoặc người/phòng ban được cấp quyền tường minh qua `FolderShare` (bảng mới) mới thấy được thư mục đó và các tệp bên trong. `FileShare` (tệp lẻ, không đổi tên) giờ cũng là 1 đường cấp quyền TRUY CẬP THỰC SỰ (không chỉ gắn nhãn hiển thị) cho MỘT tệp cụ thể — dùng cho trường hợp "có link trực tiếp tới 1 tệp trong thư mục hạn chế mà không cần thấy được cả thư mục". Cả `FolderShare` lẫn `FileShare` đều chấp nhận đích là 1 người dùng (`sharedWithUserId`) HOẶC 1 phòng ban (`sharedWithDepartmentId`, mới) — chi tiết đầy đủ xem §6 và §14. **Cập nhật 24/10/2026:** hạn chế nay kế thừa xuống mọi cấp thư mục con — thư mục con thường nằm trong thư mục `restricted` trước đây bị bỏ sót (mở cho mọi người); quy tắc mới đi ngược lên các thư mục cha, xem §23.3.
 - **Cập nhật 26/10/2026 (§28):** tài liệu đi theo dự án — thư mục cấp gốc gắn `projectId`, chỉ người thuộc dự án (Manager: thêm dự án liên quan tới phòng ban) xem được cây của dự án; cây toàn công ty ai cũng xem nhưng chỉ Org Admin ghi (trừ `FolderShare`/`FileShare EDIT`). Câu "mặc định mọi thành viên tổ chức xem/tải được mọi tài liệu" ở trên nay chỉ còn đúng với cây toàn công ty. Document Service lần đầu tiêu thụ Kafka (read-model `project_refs`/`project_member_refs`/`user_department_refs`, backfill lúc khởi động). Xem §28.3, §28.5, §28.6.
+- **Cập nhật 28/10/2026 (§29):** bấm tên tệp mở bản xem trước ngay trong ứng dụng (PDF, ảnh, văn bản, CSV và Word/Excel/PowerPoint dựng trong trình duyệt, không thêm container); `disposition=inline` chỉ còn do modal xem trước dùng, `.txt/.csv` vẫn bị ép `attachment`. Xem §29.1, §29.2.
 
 ### 3.5 Notification Service
 - **Trách nhiệm:** tiêu thụ sự kiện từ Kafka (từ IAM, Project-Task, Document), sinh notification tương ứng, lưu MongoDB, đẩy real-time qua WebSocket tới user liên quan, đánh dấu đã đọc/chưa đọc.
@@ -1916,6 +1919,10 @@ cả hai; GĐ 4 cần GĐ 3. Lệnh nặng chạy tuần tự qua 1 khoá dùng 
   header này, nhưng gọi thẳng cổng 3000 thì client tự đặt được (đăng nhập vẫn có giới hạn riêng theo email).
 - ml-service chưa nằm trong ma trận build Docker của CI (chỉ có job pytest).
 
+**Cập nhật 28/10/2026 (§29.1):** hộp tải ảnh hộ có thêm "Chụp bằng camera" (webcam, hoặc `capture="environment"`
+trên điện thoại không có `getUserMedia`), Hồ sơ cá nhân dùng `capture="user"` khi không có webcam; ảnh chụp đi
+chung đường chuẩn hoá → `/inspect` → bản chờ xác nhận. Escape trong camera nay chỉ đóng lớp camera (§29.3).
+
 ---
 
 ## 28. Tài liệu theo phạm vi dự án & phạm vi dữ liệu của Manager *(triển khai + kiểm thử 26/10/2026)*
@@ -2114,6 +2121,10 @@ hàng/48 deal, Manager Kinh doanh 8/16, nhân viên demo 3/6, nhân viên Kinh d
 0/0. RAG lập chỉ mục 10/20 tài liệu mẫu (5 PDF + 5 DOCX, 263 đoạn); Excel/PowerPoint được đánh dấu đã xử lý
 với 0 đoạn vì bộ trích văn bản chỉ đọc PDF/DOCX/văn bản (§23.3).
 
+**Cập nhật 28/10/2026 (§29.4):** bước (3) của migrate nay tải 2 tài liệu thật "Nội quy làm việc.pdf" và "Sổ
+tay nhân viên.docx" (`scripts/seed-assets/company-docs/`) rồi xoá 2 tệp `.txt` cũ; `seed.js` không còn tạo 15
+tệp `.txt/.csv` mẫu. RAG tổ chức demo hiện lập chỉ mục 12 tệp / 286 đoạn (10 tài liệu dự án + 2 tài liệu công ty).
+
 ### 28.11 Kiểm thử và kết quả
 
 - **Unit test:** test mới/sửa cho `resolveDataScope`, `resolveFolderAccess`/`resolveFolderWrite`, `GRANTS_SQL`
@@ -2129,6 +2140,7 @@ với 0 đoạn vì bộ trích văn bản chỉ đọc PDF/DOCX/văn bản (§2
   phạm vi Manager 38/38; lan truyền thành viên/phòng ban (gỡ thành viên → mất tài liệu sau ~1,6 giây).
 - **Bộ kịch bản `scripts/mock-data`:** 01 31/31, 02 28/28, 03 18/18, 04 55/55, 05 27/27, 06 24/24, 07
   12/12, 08 12/12 (bot không làm theo chỉ dẫn nhúng, không lộ tài liệu `RESTRICTED`).
+- **Cập nhật 28/10/2026 (§29.6):** sau khi dọn kho demo, 04 vẫn 55/55 và để lại đúng 22 tệp, 7 thư mục, 286 đoạn RAG.
 
 ### 28.12 Giới hạn đã biết
 
@@ -2146,6 +2158,145 @@ với 0 đoạn vì bộ trích văn bản chỉ đọc PDF/DOCX/văn bản (§2
 - RAG chưa đọc Excel/PowerPoint.
 - Seed chạy lại trên tổ chức đã có tạo thêm 8 nhân viên (hậu tố mới) và 12 khách hàng/24 deal — hành vi
   có từ trước của `seed.js`, không do đợt này.
+
+---
+
+## 29. Xem trước tài liệu trong ứng dụng, dọn kho tài liệu demo, chụp ảnh nhận diện bằng camera *(27–28/10/2026)*
+
+> Trạng thái: **ĐÃ TRIỂN KHAI, ĐÃ XÁC MINH SỐNG** (28/10/2026) trên image `web` build lại, gọi qua
+> `http://127.0.0.1/`. Không đổi service backend nào. Giao diện: `Wireframe.md` §5, §16.3, §16.5. Dữ liệu
+> và kịch bản: `Mock_data.md` §2, §11.
+
+Đợt này làm theo 3 vòng: 4 luồng triển khai song song (D1–D4), 4 vòng rà soát độc lập (R1–R4, mỗi vòng
+rà soát đúng 1 luồng), 1 vòng tích hợp cuối sửa các mục còn tồn và chạy gate, kiểm thử sống. Chủ dự án chọn
+phương án (a): dựng Word/Excel/PowerPoint ngay trong trình duyệt, không thêm container chuyển đổi.
+
+### 29.1 Đã làm
+
+- **D1 — dọn kho tài liệu demo.** `scripts/seed.js` không còn tạo 15 tệp mẫu `bao-cao-tien-do-N.txt` /
+  `du-lieu-cong-viec-N.csv` (bỏ `buildSampleDocuments()`, `uploadFile()`); thư mục dự án vẫn được tạo.
+  `scripts/migrate-project-documents.js` bước (3) tải 2 tài liệu công ty thật từ
+  `scripts/seed-assets/company-docs/` — "Nội quy làm việc.pdf" (4 trang, nhúng font Arial) và "Sổ tay nhân
+  viên.docx" (3 trang) — idempotent theo tên tệp (NFC), chỉ xoá `noi-quy-lam-viec.txt`/`so-tay-nhan-vien.txt`
+  cũ khi bản mới đã có; thiếu tệp nguồn thì giữ bản `.txt`. Nội dung bám đúng hành vi hệ thống (giờ làm
+  08:30–17:30, giải trình/sửa công tối đa 7 ngày, OT ×1,5/×2,0/×3,0 ≤ 40 giờ/tháng, phép năm 12 ngày + 1 ngày
+  mỗi 5 năm, quyền xem tài liệu theo dự án…); số liệu ví dụ ghi "minh hoạ".
+- **D2 — mọi lối "xem tệp" mở `FilePreviewModal`:** bấm tên tệp ở bảng và lưới của trang Tài liệu, mục
+  "Tài liệu" của trang chi tiết dự án và chip nguồn của Chat bot. Hook dùng chung `useFilePreview()`
+  (`features/documents/hooks.ts`): `openPreview(file)`; `openPreviewById(id)` cho chip nguồn (lấy metadata
+  `GET /files/:id`, 404/403 → toast đã dịch, bấm nhiều chip chỉ lấy lần cuối); `cancelPending()`. Mọi nút "Tải
+  xuống" (dòng, menu `⋮`, thẻ lưới, tải hàng loạt, nút trong modal) vẫn mở tab trống đồng bộ trong onClick
+  rồi gán URL `attachment` (chống popup blocker như 22/07/2026). Tooltip tên tệp: "Xem trước tệp".
+- **D3 — xem trước Office trong trình duyệt:** `.docx` qua `docx-preview@0.4.0` (Apache-2.0, phụ thuộc duy
+  nhất `jszip` đã có sẵn); `.xlsx`/`.xls` qua SheetJS có sẵn (tab trang tính, tối đa 500 dòng × 50 cột, chỉ
+  giá trị đã lưu, không hiện công thức, bỏ trang tính ẩn); `.pptx` bản giản lược (tiêu đề + chữ của từng
+  trang chiếu, không bố cục/hình/biểu đồ, có nhãn "Bản xem giản lược" và nút "Tải tệp gốc"). 3 trình xem nạp
+  lazy (chunk `vendor-docx`, `XlsxPreview`, `PptxPreview`); `.doc`/`.ppt` nhị phân cũ vẫn "không hỗ trợ → tải
+  xuống".
+- **D4 — chụp ảnh nhận diện bằng camera:** hộp "Tải ảnh nhận diện" của Org Admin/Manager (§27.16) có nút "Chụp
+  bằng camera": trình duyệt có webcam (secure context + `getUserMedia`) mở `CheckInCamera` (camera sau, nút
+  "Dùng ảnh này"); điện thoại vào qua http LAN (không có `getUserMedia`) mở app camera qua
+  `<input accept="image/*" capture="environment">`. Hồ sơ cá nhân dùng `capture="user"` khi không có webcam
+  (nguồn `SELF_CAMERA`). Ảnh chụp đi chung đường với tệp: chuẩn hoá JPEG → `/ml/face/inspect` → lỗi chặn khoá
+  "Gửi ảnh" → bản CHỜ nhân viên xác nhận; quy tắc đồng ý §27.8 không đổi. `CheckInCamera` thêm 2 prop tuỳ chọn
+  `facingMode`, `confirmLabel` (mặc định giữ nguyên hành vi chấm công).
+
+### 29.2 Thiết kế an toàn của bản xem trước
+
+| Lớp | Cách làm |
+|---|---|
+| Dung lượng | Tệp Office ≤ 15 MB (kiểm cả `Content-Length` lẫn số byte nhận được), loại khác ≤ 20 MB như cũ; vượt → thông báo kèm nút tải xuống. Đóng modal/đổi tệp giữa chừng → `AbortController` huỷ lượt tải |
+| ZIP (chống zip bomb) | Đọc mục lục bằng bộ lọc của `fflate` TRƯỚC khi giao cho thư viện: ≤ 3.000 mục, tổng kích thước khai báo ≤ 100 MB, `word/document.xml` ≤ 5 MB, mỗi `xl/worksheets/*.xml` và `xl/sharedStrings.xml` ≤ 20 MB (28/10/2026, §29.3); pptx chỉ giải nén `presentation.xml`, quan hệ và các trang chiếu |
+| `.docx` | `renderAltChunks: false` (HTML nhúng mặc định bị dựng thành `iframe srcdoc` không sandbox), `ignoreFonts`, ảnh thành `data:` URL, tắt bình luận/theo dõi thay đổi. Kết quả dựng vào `DocumentFragment`, qua `hardenDocxOutput()` (chỉ giữ liên kết `http`/`https`/`mailto` với `target="_blank" rel="noopener noreferrer"` và `#neo`; xoá `script`/`iframe`/`object`/`embed`/`form`/`base`/`meta`/`link`) rồi mới đưa vào 1 `iframe srcdoc` **sandbox không có `allow-scripts`**, kèm CSP riêng `default-src 'none'; style-src 'unsafe-inline'; img-src data:; font-src data:` và `<base href="about:srcdoc">` (liên kết mục lục cuộn trong khung) |
+| `.xlsx`/`.pptx` | Dựng bằng phần tử React từ dữ liệu thô — không `innerHTML`, không `sheet_to_html`; SheetJS tắt `cellFormula`/`cellHTML`/`cellStyles`/`bookVBA`; XML trang chiếu đọc bằng `DOMParser`, chỉ lấy chữ. `.xlsx` phải là ZIP có `xl/workbook.xml` hoặc tệp CFB (`.xls` cũ), còn lại (rỗng, HTML đổi đuôi…) → giao diện lỗi như `.docx`/`.pptx` |
+| `.txt`/`.csv` | Document Service vẫn ép `Content-Disposition: attachment` (bản sửa stored-XSS 25/07/2026); modal `fetch()` nội dung và hiển thị dạng văn bản (`<pre>`/bảng, vô hiệu hoá CSV formula injection) |
+| Chunk lazy | Nạp lỗi (mạng/bản build mới) → giao diện lỗi sẵn có, không sập trang |
+
+### 29.3 Rà soát độc lập và vòng tích hợp
+
+| Mức | Phát hiện | Xử lý |
+|---|---|---|
+| **Cao** (R3) | `docx-preview` dựng thẻ `<style>` bằng cách nối chuỗi giá trị lấy từ tệp (màu, font, tên style, `lvlText`) và chép nguyên thuộc tính `style` của hình VML. 1 tệp `.docx` độc hại đổi giao diện cả ứng dụng, phủ lớp `position:fixed` kín màn hình (che cả nút đóng) và gọi `url(...)` ra máy chủ ngoài; không chạy được JS | Tài liệu nằm trong iframe sandbox + CSP (§29.2). Kiểm thử lại với 27 tệp độc hại: CSS/lớp phủ chỉ trong khung, request ngoài bị CSP chặn |
+| Trung bình (R3) | Đóng modal khi tệp Office đang tải rồi mở PDF → spinner kẹt mãi | Đặt lại cờ tải mỗi lần mở/đổi tệp + `AbortController` |
+| Trung bình (R4) | 1 lần Escape trong camera đóng cùng lúc camera, hộp tải ảnh và cửa sổ Hồ sơ nhân viên (mất ảnh vừa chụp, chỉnh sửa chưa lưu) — `Modal` nào đang mở cũng nghe phím trên `document` | `Modal.tsx`: ngăn xếp các Modal đang mở, chỉ lớp trên cùng xử lý Escape/Tab; lớp trên đang chặn đóng thì Escape không đóng gì. Áp dụng cho mọi Modal chồng nhau trong ứng dụng |
+| Trung bình (R1) | 2 tài liệu công ty sai 7 điểm so với hệ thống (ảnh chấm công nhân viên tự xem được; quên cả ngày không có bản ghi để giải trình; quên check-out bị đánh dấu chứ không mất công; thư mục "Hạn chế truy cập" vẫn hiện với người tạo/Org Admin; mời không bắt buộc mật khẩu; nghỉ việc riêng có lương theo BLLĐ; câu chữ) — chat bot trích dẫn các tài liệu này làm "Nguồn" | Sửa nội dung, sinh lại, tải lại bằng chính đường của migrate (id mới `b23464bf…`, `2d559163…`) |
+| Trung bình (R2) | `e2e/tests/documents.spec.ts` còn chờ popup khi bấm tên tệp | Spec mới: bấm tên → modal hiện ảnh; "Tải xuống" trong modal → popup + sự kiện tải tệp đúng tên |
+| Thấp | R2: tên tệp dài tràn ngang 20px ở 390px; R4: ô chọn ảnh bấm được khi `/inspect` đang chạy (kết quả ảnh A mở khoá "Gửi ảnh" cho ảnh B) | Sửa trong vòng rà soát |
+| Thấp (tích hợp) | `CheckInCamera` đóng/mở lại trước khi camera sẵn sàng → stream cũ không tắt (đèn camera sáng mãi), URL ảnh xem trước không thu hồi khi gỡ component; Esc lúc chip nguồn đang tải → panel đóng nhưng modal vẫn bật lên sau; `.docx` 272 KB chứa 100.000 đoạn văn treo tab 4–5 giây; `.xlsx` rỗng/đổi đuôi hiện bảng trống; dòng kết quả cũ hiện lại khi mở lại hộp tải ảnh; spinner nằm nhầm nút ở Hồ sơ cá nhân; nút tải xuống trong modal không có tên khi chỉ còn icon (< 640px); nhánh `inline` chết của `useDownloadFile().openFile` | Số thứ tự lượt gọi trong `CheckInCamera` + thu hồi URL khi gỡ; `cancelPending()` khi panel đóng; trần từng phần ZIP (§29.2); kiểm tra chữ ký ZIP/CFB; bộ đếm lượt trong hộp tải ảnh; spinner theo nguồn của lượt gửi; `aria-label`; bỏ tham số `disposition` |
+
+Báo cáo nhưng không sửa: xem §29.7.
+
+### 29.4 Dọn dữ liệu demo (tổ chức `843cf57b…`, 27–28/10/2026)
+
+- Xoá 15 tệp mẫu (8 `.txt`, 7 `.csv`) qua `DELETE /files/:id` sau khi đối chiếu tổ chức trong JWT và tên tệp;
+  thay 2 tệp `.txt` công ty bằng PDF/DOCX thật; xoá thư mục rỗng `RA-repro-view-share` (do một lần tái hiện lỗi
+  ngày 24/10/2026 để lại, chủ dự án đồng ý).
+- Xoá 85 object MinIO mồ côi (3,73 MiB: 45 `.txt`, 32 `.csv`, 7 `.pdf`, 1 `.docx`, không có dòng `file_metas`,
+  sinh ra từ các lần reset CSDL 28/07–23/09/2026).
+- Sau đợt: **22 tệp** (20 tài liệu dự án + 2 tài liệu công ty), 22 object MinIO, 7 thư mục, 0 tệp `.txt/.csv`,
+  0 đoạn RAG mồ côi; RAG lập chỉ mục **12 tệp / 286 đoạn** (PDF công ty 13 đoạn, DOCX công ty 10 đoạn). Tổ
+  chức E2E không bị đụng tới.
+
+### 29.5 Tách chunk: bỏ `vendor-pdf` khỏi lần tải đầu
+
+`manualChunks` dạng object đưa module **và mọi phụ thuộc chưa có chunk** vào chunk thủ công — kể cả hàm
+`__vitePreload` ảo của Vite (jspdf có `import()` bên trong). Chunk chính phải import helper này từ
+`vendor-pdf`, nên `index.html` modulepreload `vendor-pdf` (~587 kB) và `vendor-zip` trên **mọi** trang. Đổi
+sang dạng hàm (`apps/web/vite.config.ts`): gán module theo tên gói trong `node_modules` như cũ, đặt riêng
+helper vào `vendor-react` (chunk luôn tải). Đo trên bản build production (Chromium, tải trang đầy đủ):
+
+| Trang | Trước | Sau |
+|---|---|---|
+| `/login` | 8 tệp JS, 1.449,1 kB (gzip 434,8 kB) | 6 tệp, 851,8 kB (gzip 255,5 kB) |
+| `/documents` | 13 tệp JS, 1.503,7 kB (gzip 446,2 kB) | 11 tệp, 906,2 kB (gzip 266,8 kB) |
+
+Kích thước chunk gần như không đổi (chính 548,2 → 544,3 kB, `vendor-react` 164,6 → 166,6 kB, `vendor-pdf`
+586,6 → 585,7 kB). Không có cảnh báo chunk vòng; Dashboard, Báo cáo, Danh sách nhân viên (nhập Excel), Sản
+phẩm và xuất PDF Dashboard vẫn chạy, 0 lỗi console. `vendor-pdf` giờ chỉ tải ở Dashboard (import tĩnh
+`lib/pdf-export.ts`).
+
+### 29.6 Kiểm thử và kết quả (28/10/2026)
+
+- **Unit test mới/sửa:** `preview/*` (loại tệp, chốt ZIP + trần từng phần, docx-safety, pptx, xlsx kể cả tệp
+  rỗng/đổi đuôi), `FilePreviewModal` (iframe sandbox + CSP, spinner sau khi huỷ, `.xlsx` lỗi), `useFilePreview`,
+  `FileTable`, `ProjectDocumentsSection`, `ChatbotThread` (chip lỗi, huỷ khi panel đóng), `Modal` (Escape với 3
+  lớp — kiểm bằng đột biến: bỏ bản sửa thì 2/4 test đỏ), `CheckInCamera` (stream cũ, thu hồi URL),
+  `FaceUploadDialog`, `ProfileFaceEnrollmentCard`.
+- **Gate tương đương CI** (`TZ=UTC`, jest `--maxWorkers=2`, vitest `--maxWorkers=2`): `typecheck` 0, `lint` 0
+  lỗi, `lint:i18n-strings` sạch (254 tệp), `test:coverage` 13 workspace jest 1.186 test + web 30 tệp/170 test
+  (mọi ngưỡng đạt), `build` 0.
+- **Sống trên production web** (`f-live.js`, Playwright Chromium): **45/45** — Org Admin mở pdf/docx/xlsx/pptx ở
+  dạng bảng, lưới, mục "Tài liệu" của dự án và 2 tài liệu công ty: modal có nội dung, không tab/không tải;
+  "Tải xuống" trong modal → 1 popup + tệp đúng tên; 390px: không tràn ngang, modal x=16 w=350; Employee
+  `duc.hoang+227860` thấy 2 thư mục công ty chỉ đọc và xem được trong modal; `kien.dinh+167828` (không thuộc dự
+  án KPI) bấm chip → 403 + toast, không modal; Esc khi chip đang tải → panel đóng, không modal bật lên (0 lượt
+  gọi Gemini — hội thoại phục vụ từ trình duyệt); Manager `an.nguyen+227860` → Hồ sơ nhân viên → hộp tải ảnh
+  → "Chụp bằng camera" (camera giả) → `/inspect` trả `FACE_NONE`, "Gửi ảnh" khoá; Escape chỉ đóng camera, rồi
+  hộp tải ảnh, rồi hồ sơ; 0 yêu cầu tải/đăng ký ảnh (bị chặn). Tệp độc hại thay nội dung presigned: `.docx`
+  100.000 đoạn → báo lỗi sau 0,39 giây (trước: treo 4–5 giây), 20.000 đoạn vẫn dựng (0,6 giây), `.xlsx` rỗng/HTML
+  đổi đuôi → báo lỗi, `.xlsx` 2.000 × 120 vẫn dựng (1,1 giây).
+- `e2e/tests/documents.spec.ts` (tổ chức E2E): 1/1 qua. Mock-data 01–07: 31/31, 22/22, 18/18, 55/55, 27/27, 24/24,
+  12/12; `10-employee-directory.js` 45/45 (`Mock_data.md` §11).
+
+### 29.7 Giới hạn đã biết
+
+- `.pptx` chỉ là bản giản lược chữ (không bố cục, hình, biểu đồ); `docx-preview` không tính trường
+  `PAGE`/`NUMPAGES` nên chân trang "Trang x/y" hiện giá trị lưu sẵn (vd "1/1").
+- Chưa có Content-Security-Policy ở `apps/web/nginx.conf`; bảo vệ `.docx` dựa vào sandbox + CSP của iframe.
+- Kích thước khai báo trong ZIP có thể bị làm giả: jszip/SheetJS có thể giải nén nhiều hơn khai báo, chỉ bị
+  chặn bởi trần 15 MB của tệp. Tệp vượt trần từng phần hiện thông báo lỗi chung ("Không thể tải bản xem
+  trước"), chưa có câu riêng "quá lớn".
+- Tab không bị "nhốt" bên trong iframe `.docx` (Escape vẫn được chuyển tiếp); chunk xem trước tải lỗi thì phải
+  tải lại trang mới thử lại được.
+- Chấm công trên điện thoại qua http LAN vẫn báo "không hỗ trợ camera" — chủ dự án chọn chưa thêm đường dự
+  phòng cho ảnh bằng chứng chấm công (web ưu tiên hơn app mobile). Webcam bị từ chối quyền không tự chuyển sang
+  `capture`; vẫn còn nút tải tệp.
+- URL presigned ký cho `localhost:9010`: máy khác trong LAN chỉ xem trước/tải được khi đặt
+  `MINIO_PUBLIC_ENDPOINT` (và `MINIO_PUBLIC_PORT`) theo địa chỉ máy chủ.
+- RAG vẫn chưa đọc Excel/PowerPoint; menu `⋮` của thẻ lưới chưa có "Xem tệp" (bấm tên vẫn mở modal); Dashboard
+  vẫn tải `vendor-pdf` do import tĩnh `lib/pdf-export.ts`.
+- Tổ chức E2E còn 14 tệp `.txt/.csv` mẫu cũ (không đụng tới theo quy tắc); lần `seed:e2e` sau sẽ không tạo
+  thêm và migrate sẽ thay 2 tệp công ty.
 
 ## Lịch sử thay đổi tài liệu
 
@@ -2322,3 +2473,4 @@ với 0 đoạn vì bộ trích văn bản chỉ đọc PDF/DOCX/văn bản (§2
 - **26/10/2026 (§27 — Danh sách nhân viên & kho ảnh nhận diện, KẾ HOẠCH)** — Thêm §27 (chưa có dòng code nào): trả lời có bằng chứng 3 câu hỏi hiện trạng (kho khuôn mặt chỉ lưu embedding ở `ml-service`/`face_enrollments`, không lưu ảnh gốc; ảnh chấm công ở bucket `hrm-attendance` lưu vô thời hạn; chỉ chính chủ sửa được; nhập Excel §19.1 chưa có ảnh, chưa cập nhật được người đã có; hồ sơ cá nhân web còn giả lập số điện thoại/nút Lưu/avatar). Chốt 15 quyết định: lưu ảnh nhận diện gốc trong bucket private `ml-face-references`, chỉ đọc qua proxy có nhật ký; avatar tách riêng (`iam-avatars`, presigned TTL ngắn); đồng ý lưu phía server, ảnh tải hộ/nhập ở trạng thái `PENDING_CONSENT` không dùng để so khớp, tự huỷ sau 30 ngày; phạm vi Manager theo `departmentId` trong JWT, chỉ với Employee phòng mình; kiểm tra trùng 1:N (≥ 0,5 chặn, 0,35–0,5 cảnh báo); nhập Excel + ZIP có bước xem trước và báo cáo lỗi; mật khẩu tuỳ chọn + email kích hoạt, bỏ `Password123!`; xoá dữ liệu khuôn mặt khi vô hiệu hoá. Cập nhật căn cứ pháp lý sang Luật 91/2025/QH15 + Nghị định 356/2025/NĐ-CP (cần đối chiếu toàn văn). Giai đoạn 0 sửa trước 2 lỗi có sẵn của `ml-service` (nạp model lười không khoá dưới giới hạn 1 GB; truy vấn khuôn mặt chưa lọc `organization_id`). Đối chiếu đủ 42 mục rà soát phản biện độc lập (§27.15). Thêm ghi chú cuối §24, cập nhật khối trạng thái. Chi tiết: `RevisionHistory.md` mục 26/10/2026.
 - **26/10/2026 (§28 — Tài liệu theo phạm vi dự án & phạm vi dữ liệu của Manager, ĐÃ TRIỂN KHAI)** — Thêm §28: định nghĩa chung "thuộc dự án" (người phụ trách/thành viên/người tạo, giao Task tự thêm thành viên) và `resolveDataScope()` 3 cấp Employee < Manager (phòng ban trong JWT) < Org Admin cho Dự án/Công việc, Tài liệu, CRM, HRM, Analytics, Danh bạ; chính sách tài liệu theo dự án (thư mục cấp gốc gắn dự án, cây toàn công ty ai cũng xem nhưng chỉ Org Admin ghi, cờ `canWrite` cho thư mục/tệp, RAG dùng chung bộ lọc); 3 read-model + 3 sự kiện mới của Document Service, backfill không chặn consumer; phạm vi ở đường ghi (lỗi cao IDOR ghi theo id, lỗi trung bình ghi đè tệp toàn công ty — tìm ra ở vòng rà soát); gỡ thành viên còn Task chưa xong → 409; 3 script dữ liệu (migration, 20 tài liệu mẫu, giao khách hàng demo cho phòng Kinh doanh); kết quả kiểm thử (92/92 đường ghi, 17/17, 28/28, mock-data 01–08) và giới hạn đã biết. Thêm dòng trỏ tới §28 ở §3.3, §3.4, §4.6, §4.7, §6, §16, §17, §19.2, §23.3 (giữ nguyên nội dung cũ).
 - **26/10/2026 (§27 — ĐÃ TRIỂN KHAI giai đoạn 0–5)** — Thêm §27.16: cách làm thực tế theo từng giai đoạn, 8 chỗ khác kế hoạch (khoá riêng cho detector, mã NV chữ hoa + index thường, resync `roles_changed` thay script 1 lần, Modal thay drawer, `fflate` thay JSZip, huỷ riêng ảnh chờ, `malloc_trim`, đổi ảnh mẫu CI sang ảnh NASA phạm vi công cộng), 8 lỗi tìm được ở vòng kiểm thử độc lập và đã sửa — nặng nhất là lỗi CAO toàn hệ thống: Gateway để lọt header tin cậy do client tự gửi khi JWT không có giá trị tương ứng (`x-department-id`), nay xoá mọi header tin cậy trước khi đặt lại từ JWT. Kết quả: pytest ml-service 64, jest Gateway 42, sống 45/45 + hồi quy 195/195 + giả mạo header 10/10 bị chặn, RAM ml-service 579–645 MiB. Thêm dòng ở §6 (xoá header tin cậy) và cuối §24; cập nhật khối trạng thái đầu file và đầu §27. Chi tiết: `RevisionHistory.md` mục 26/10/2026 (tiếp 2).
+- **28/10/2026 (§29 — Xem trước tài liệu trong ứng dụng, dọn kho tài liệu demo, chụp ảnh nhận diện bằng camera, ĐÃ TRIỂN KHAI)** — Thêm §29: mọi lối "xem tệp" (bảng, lưới, mục "Tài liệu" của dự án, chip nguồn Chat bot) mở `FilePreviewModal`; Word (`docx-preview` 0.4.0), Excel (SheetJS, 500 × 50) và PowerPoint (bản giản lược chữ) dựng ngay trong trình duyệt, kèm thiết kế an toàn (trần 15 MB, chốt ZIP + trần `word/document.xml` 5 MB và trang tính 20 MB, `.docx` trong iframe sandbox không script + CSP riêng, lọc liên kết, không `innerHTML` cho xlsx/pptx, `.txt/.csv` vẫn bị ép `attachment`); dọn kho demo (15 tệp mẫu, 2 tệp `.txt` công ty thay bằng PDF/DOCX thật, 1 thư mục rỗng, 85 object MinIO mồ côi 3,73 MiB → 22 tệp, 286 đoạn RAG); "Chụp bằng camera" cho ảnh nhận diện tải hộ và dự phòng `capture` trên điện thoại. Rà soát độc lập tìm 1 lỗi mức CAO (CSS injection qua `docx-preview` đổi giao diện cả ứng dụng, phủ lớp che nút đóng, gọi máy chủ ngoài) và 3 lỗi trung bình (spinner kẹt, Escape đóng mọi Modal chồng nhau, nội dung tài liệu công ty sai so với hệ thống) — đã sửa; vòng tích hợp sửa thêm các mục thấp và bỏ `vendor-pdf` khỏi lần tải đầu (/login 1.449 → 852 kB JS). Thêm dòng trỏ ở §3.4, cuối §27.16, §28.10, §28.11; cập nhật khối trạng thái. Chi tiết: `RevisionHistory.md` mục 28/10/2026.
