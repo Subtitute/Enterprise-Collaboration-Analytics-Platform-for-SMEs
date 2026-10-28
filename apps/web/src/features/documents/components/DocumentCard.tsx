@@ -127,9 +127,11 @@ export const DocumentCard = React.memo(function DocumentCard({
             </span>
             <div className="min-w-0 flex-1">
               {/* 27/10/2026 - Hiển thị tối đa 2 dòng tên tệp kèm title tooltip */}
+              {/* 28/10/2026: bỏ class `block` - Tailwind sinh `display: block` sau `line-clamp-2` nên đè mất
+                  `display: -webkit-box`, tên tệp dài vẫn hiện 3-6 dòng; nay cắt đúng 2 dòng. */}
               <span
                 title={file.name}
-                className="block text-[13px] leading-5 font-medium text-text-primary group-hover:text-accent transition-colors line-clamp-2 break-words min-h-[20px]">
+                className="text-[13px] leading-5 font-medium text-text-primary group-hover:text-accent transition-colors line-clamp-2 break-words min-h-[20px]">
                 {file.name}
               </span>
               <span className="font-mono text-[12px] leading-4 text-text-tertiary tabular-nums">

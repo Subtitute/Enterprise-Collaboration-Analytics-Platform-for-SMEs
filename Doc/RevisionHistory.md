@@ -2363,3 +2363,27 @@ cho `localhost:9010` nên máy khác trong LAN cần đặt `MINIO_PUBLIC_ENDPOI
 
 Chi tiết kỹ thuật: `Technical_Spec.md` §29; giao diện: `Wireframe.md` §5, §16.3, §16.5; kịch bản: `Mock_data.md`
 §2, §11.
+
+---
+
+## 28/10/2026 (tiếp) — Merge 4 nhánh frontend của Tiến vào main
+
+Merge `Frontend2`, `tien/review-ui-responsive`, `tien/fix-documents-grid`, `tien/add-unit-tests` (chỉ thay đổi
+`apps/web`, không đụng backend):
+- **Frontend2:** nút/panel chatbot màu accent, bảng chấm công tỉ lệ 4:8, form Đăng ký gọn hơn + cảnh báo mật khẩu
+  có dấu tiếng Việt (dùng lại `containsVietnameseDiacritics`). Nhánh đổi email tài khoản demo ở trang Đăng nhập
+  sang hậu tố `+246317` (seed trên máy khác) — Git gộp im lặng không báo xung đột; đã giữ lại `+227860` khớp DB
+  demo và `Mock_data.md`. Bổ sung chú thích ngày cho các chỗ sửa (nhánh chưa ghi).
+- **review-ui-responsive:** badge GPS/khớp khuôn mặt không vỡ dòng. 1 xung đột ở `ProfileFaceEnrollmentCard.tsx`:
+  giữ `id` + `scroll-mt-20` của main (banner "Xem ngay" cuộn tới khối ảnh nhận diện) cùng chú thích của nhánh.
+- **fix-documents-grid:** tên tệp ở chế độ Lưới tối đa 2 dòng + tooltip tên đầy đủ, gộp tự động với thay đổi
+  "bấm thẻ mở cửa sổ xem trước". **Lỗi phát hiện khi kiểm tra trên bản build thật:** class `block` đứng cùng
+  `line-clamp-2` — Tailwind sinh `display: block` sau nên đè `display: -webkit-box`, tên tệp vẫn hiện 3–6 dòng
+  (đo trên trình duyệt). Bỏ `block`; đo lại: mọi tên ≤ 2 dòng ở 390px và 1366px.
+- **add-unit-tests:** 24 unit test (MobileRolesView, CustomerCard, OrgAttendanceLogTable, PersonalAttendanceTable,
+  leave-shared), chạy lại trên main hiện tại đều qua.
+
+**Kết quả:** gate tương đương CI (TZ=UTC) — typecheck, lint 0 lỗi, `lint:i18n-strings`, `test:coverage` (13
+workspace jest + web 35 file / 194 test), build — đều qua; build lại image `web`; kịch bản giao diện `09-ui-smoke.js`
+32/32; kiểm tra riêng các phần vừa merge trên bản thật (Đăng ký 2 bước + cảnh báo dấu, Lưới tài liệu, nút chatbot,
+bảng chấm công, 390px và 1366px, không lỗi console) 18/18.
