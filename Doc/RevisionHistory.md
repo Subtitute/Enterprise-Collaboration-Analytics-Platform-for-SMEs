@@ -2457,3 +2457,16 @@ báo cáo, tài liệu và Trợ lý ECAP đều dùng "ECAP". Đổi thống nh
 
 **Kiểm tra:** lint 0 lỗi, `tsc` sạch, dựng lại image `web`; ảnh chụp ngày 29/10/2026 cho thấy thanh bên và trang
 đăng nhập hiển thị ECAP.
+
+## 29/10/2026 (tiếp) — Dữ liệu demo viết có dấu
+
+Một số dữ liệu demo hiện trên giao diện còn viết không dấu: tên quản trị viên của tổ chức Nội thất An Gia
+("Quan Tri Vien Demo"), mô tả 5 danh mục và 19 sản phẩm, địa chỉ 2 kho của Demo SME, ghi chú giao dịch khách hàng
+("Giao dich demo (seed)").
+
+- `scripts/seed.js`, `scripts/seed-inventory.js`: đổi các chuỗi trên sang tiếng Việt có dấu cho các lần seed sau.
+- Dữ liệu đang chạy: cập nhật qua API (PATCH người dùng, danh mục, sản phẩm, kho, giao dịch) trên 2 tổ chức demo —
+  Demo SME 52 bản ghi (5 danh mục, 19 sản phẩm, 2 kho, 26 giao dịch), Nội thất An Gia 27 bản ghi (tên quản trị viên, 26
+  giao dịch). Chạy kiểm tra lại: không còn chuỗi không dấu nào.
+
+**Kiểm tra:** `node --check` 2 script; ảnh chụp trang Kho hàng và Danh mục sản phẩm hiển thị đúng chữ có dấu.

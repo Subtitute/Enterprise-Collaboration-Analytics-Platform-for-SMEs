@@ -286,7 +286,8 @@ async function main() {
       method: 'POST',
       body: JSON.stringify({
         organizationName: DEMO_ORG_NAME,
-        adminFullName: 'Quan Tri Vien Demo',
+        // 29/10/2026: ten quan tri vien co dau (truoc day 'Quan Tri Vien Demo', lo ra o to chuc Noi that An Gia).
+        adminFullName: 'Quản Trị Viên Demo',
         adminEmail,
         adminPassword,
       }),

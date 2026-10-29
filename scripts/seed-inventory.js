@@ -98,14 +98,16 @@ function randomTimestampInRange(startMs, endMs) {
 
 // ==========================================================================================
 // Du lieu demo - CHUNG 1 chu de "may tinh va linh kien laptop, PC" theo yeu cau chu dau an.
+// 29/10/2026: viet co dau mo ta danh muc, mo ta san pham, dia chi kho va ghi chu giao dich (truoc day khong dau,
+// hien len giao dien Danh muc san pham/Kho/Khach hang).
 // ==========================================================================================
 
 const CATEGORIES = DATASET_INVENTORY.CATEGORIES || [
-  { name: 'Laptop', description: 'May tinh xach tay tu van phong den gaming/do hoa' },
-  { name: 'PC để bàn', description: 'May tinh de ban nguyen bo, van phong va gaming' },
-  { name: 'Linh kiện PC', description: 'CPU, RAM, SSD, card do hoa, bo mach chu, nguon, case, tan nhiet' },
-  { name: 'Màn hình', description: 'Man hinh may tinh van phong va gaming' },
-  { name: 'Phụ kiện', description: 'Ban phim, chuot, tai nghe va phu kien may tinh' },
+  { name: 'Laptop', description: 'Máy tính xách tay từ văn phòng đến gaming/đồ họa' },
+  { name: 'PC để bàn', description: 'Máy tính để bàn nguyên bộ, văn phòng và gaming' },
+  { name: 'Linh kiện PC', description: 'CPU, RAM, SSD, card đồ họa, bo mạch chủ, nguồn, case, tản nhiệt' },
+  { name: 'Màn hình', description: 'Màn hình máy tính văn phòng và gaming' },
+  { name: 'Phụ kiện', description: 'Bàn phím, chuột, tai nghe và phụ kiện máy tính' },
 ];
 
 // 16/10/2026: 19 san pham, moi san pham 1 anh WebP that (xem scripts/seed-assets/products/) -
@@ -117,7 +119,7 @@ const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
     name: 'Laptop Dell XPS M1330',
     sku: 'LAP-DELL-XPSM1330',
     unitPrice: 18900000,
-    description: 'Dong XPS mong nhe, vo nhom, phu hop van phong di dong',
+    description: 'Dòng XPS mỏng nhẹ, vỏ nhôm, phù hợp văn phòng di động',
     image: 'laptop-dell-xps-m1330.webp',
   },
   {
@@ -125,7 +127,7 @@ const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
     name: 'Laptop Lenovo ThinkPad T460',
     sku: 'LAP-LENOVO-T460',
     unitPrice: 14900000,
-    description: 'Dong ThinkPad ben bi, ban phim go tot, huong doanh nhan',
+    description: 'Dòng ThinkPad bền bỉ, bàn phím gõ tốt, hướng doanh nhân',
     image: 'laptop-lenovo-thinkpad-t460.webp',
   },
   {
@@ -133,7 +135,7 @@ const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
     name: 'Laptop HP Envy 14',
     sku: 'LAP-HP-ENVY14',
     unitPrice: 26900000,
-    description: 'Intel Core i7 + NVIDIA GeForce GTX, man hinh 14 inch vien mong',
+    description: 'Intel Core i7 + NVIDIA GeForce GTX, màn hình 14 inch viền mỏng',
     image: 'laptop-hp-envy-14.webp',
   },
   // --- PC để bàn ---
@@ -142,7 +144,7 @@ const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
     name: 'PC Gaming Fractal Design TUF Edition',
     sku: 'PC-GAMING-FRACTAL-TUF',
     unitPrice: 24500000,
-    description: 'Case Fractal Design kinh cuong luc, GPU GeForce GTX, tan nhiet RGB',
+    description: 'Case Fractal Design kính cường lực, GPU GeForce GTX, tản nhiệt RGB',
     image: 'pc-gaming-fractal-tuf.webp',
   },
   {
@@ -150,7 +152,7 @@ const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
     name: 'PC Văn phòng Dell OptiPlex 9020',
     sku: 'PC-OFFICE-OPTIPLEX9020',
     unitPrice: 8900000,
-    description: 'May bo van phong, nho gon, on dinh cho tac vu hanh chinh',
+    description: 'Máy bộ văn phòng, nhỏ gọn, ổn định cho tác vụ hành chính',
     image: 'pc-office-dell-optiplex-9020.webp',
   },
   // --- Linh kiện PC ---
@@ -159,7 +161,7 @@ const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
     name: 'CPU Intel Core i9-9900K',
     sku: 'CPU-INTEL-I9-9900K',
     unitPrice: 7200000,
-    description: '8 nhan 16 luong, socket LGA1151, hieu nang cao cho gaming/dung lieu',
+    description: '8 nhân 16 luồng, socket LGA1151, hiệu năng cao cho gaming/dữ liệu',
     image: 'cpu-intel-core-i9-9900k.webp',
   },
   {
@@ -167,7 +169,7 @@ const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
     name: 'CPU AMD Ryzen 9 3900X',
     sku: 'CPU-AMD-R9-3900X',
     unitPrice: 6500000,
-    description: '12 nhan 24 luong, socket AM4, manh cho da nhiem va render',
+    description: '12 nhân 24 luồng, socket AM4, mạnh cho đa nhiệm và render',
     image: 'cpu-amd-ryzen-9-3900x.webp',
   },
   {
@@ -175,7 +177,7 @@ const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
     name: 'RAM Laptop Kingston HyperX SO-DIMM (Kit 2x4GB)',
     sku: 'RAM-KINGSTON-HYPERX-SODIMM',
     unitPrice: 650000,
-    description: 'Bo nho SO-DIMM cho laptop, bao hanh tron doi',
+    description: 'Bộ nhớ SO-DIMM cho laptop, bảo hành trọn đời',
     image: 'ram-kingston-hyperx-sodimm.webp',
   },
   {
@@ -183,7 +185,7 @@ const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
     name: 'SSD Samsung 870 QVO 8TB',
     sku: 'SSD-SAMSUNG-870QVO-8TB',
     unitPrice: 14900000,
-    description: 'O cung SSD SATA dung luong lon, chuan 2.5 inch',
+    description: 'Ổ cứng SSD SATA dung lượng lớn, chuẩn 2.5 inch',
     image: 'ssd-samsung-870qvo-8tb.webp',
   },
   {
@@ -191,7 +193,7 @@ const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
     name: 'Card đồ họa MSI GeForce RTX 3070 Ventus 3X OC',
     sku: 'GPU-MSI-RTX3070-VENTUS3X',
     unitPrice: 13900000,
-    description: '3 quat tan nhiet, phu hop gaming 1440p va dung do hoa',
+    description: '3 quạt tản nhiệt, phù hợp gaming 1440p và dựng đồ họa',
     image: 'gpu-msi-rtx3070-ventus3x.webp',
   },
   {
@@ -199,7 +201,7 @@ const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
     name: 'Bo mạch chủ ASUS ROG Strix Z390-F Gaming',
     sku: 'MB-ASUS-ROG-STRIXZ390F',
     unitPrice: 4500000,
-    description: 'Chipset Z390, socket LGA1151, ho tro overclock',
+    description: 'Chipset Z390, socket LGA1151, hỗ trợ overclock',
     image: 'mainboard-asus-rog-strix-z390f.webp',
   },
   {
@@ -207,7 +209,7 @@ const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
     name: 'Nguồn máy tính OCZ 600W',
     sku: 'PSU-OCZ-600W',
     unitPrice: 1850000,
-    description: 'Cong suat 600W, chuan 80 Plus',
+    description: 'Công suất 600W, chuẩn 80 Plus',
     image: 'psu-ocz-600w.webp',
   },
   {
@@ -215,7 +217,7 @@ const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
     name: 'Case Gaming ATX',
     sku: 'CASE-ATX-GAMING',
     unitPrice: 2100000,
-    description: 'Vo may ATX, nhieu khe cam mo rong, luu thong khi tot',
+    description: 'Vỏ máy ATX, nhiều khe cắm mở rộng, lưu thông khí tốt',
     image: 'case-atx-gaming.webp',
   },
   {
@@ -223,7 +225,7 @@ const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
     name: 'Tản nhiệt khí Arctic Freezer 13',
     sku: 'COOLER-ARCTIC-FREEZER13',
     unitPrice: 450000,
-    description: 'Tan nhiet khi 4 ong dong, van hanh em',
+    description: 'Tản nhiệt khí 4 ống đồng, vận hành êm',
     image: 'cooler-arctic-freezer13.webp',
   },
   // --- Màn hình ---
@@ -232,7 +234,7 @@ const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
     name: 'Màn hình Gaming cong BenQ',
     sku: 'MON-BENQ-CURVEDGAMING',
     unitPrice: 7900000,
-    description: 'Man hinh cong, tan so quet cao, phu hop gaming',
+    description: 'Màn hình cong, tần số quét cao, phù hợp gaming',
     image: 'monitor-benq-curved-gaming.webp',
   },
   {
@@ -240,7 +242,7 @@ const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
     name: 'Màn hình Samsung SyncMaster 940B',
     sku: 'MON-SAMSUNG-SYNCMASTER940B',
     unitPrice: 1990000,
-    description: 'Man hinh van phong 19 inch, gia tot',
+    description: 'Màn hình văn phòng 19 inch, giá tốt',
     image: 'monitor-samsung-syncmaster940b.webp',
   },
   // --- Phụ kiện ---
@@ -249,7 +251,7 @@ const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
     name: 'Bàn phím cơ Keychron K4',
     sku: 'KB-KEYCHRON-K4',
     unitPrice: 1890000,
-    description: 'Ban phim co 96%, den nen RGB, ho tro Bluetooth',
+    description: 'Bàn phím cơ 96%, đèn nền RGB, hỗ trợ Bluetooth',
     image: 'keyboard-keychron-k4.webp',
   },
   {
@@ -257,7 +259,7 @@ const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
     name: 'Chuột không dây ProtoArc',
     sku: 'MOUSE-PROTOARC-WIRELESS',
     unitPrice: 450000,
-    description: 'Chuot khong day, thiet ke cong thai hoc',
+    description: 'Chuột không dây, thiết kế công thái học',
     image: 'mouse-protoarc-wireless.webp',
   },
   {
@@ -265,14 +267,14 @@ const PRODUCTS = DATASET_INVENTORY.PRODUCTS || [
     name: 'Tai nghe Creative Sound BlasterX H5',
     sku: 'HEADSET-CREATIVE-SBX-H5',
     unitPrice: 1450000,
-    description: 'Tai nghe gaming co mic, am thanh chi tiet',
+    description: 'Tai nghe gaming có mic, âm thanh chi tiết',
     image: 'headset-creative-soundblasterx-h5.webp',
   },
 ];
 
 const WAREHOUSES = DATASET_INVENTORY.WAREHOUSES || [
-  { name: 'Kho Hà Nội', address: 'Khu cong nghiep Quang Minh, Ha Noi' },
-  { name: 'Kho Hồ Chí Minh', address: 'Khu cong nghiep Tan Binh, TP. Ho Chi Minh' },
+  { name: 'Kho Hà Nội', address: 'Khu công nghiệp Quang Minh, Hà Nội' },
+  { name: 'Kho Hồ Chí Minh', address: 'Khu công nghiệp Tân Bình, TP. Hồ Chí Minh' },
 ];
 
 // 16/10/2026: danh dau vai SKU "ban chay" - dung de gan trong so cao hon khi chon san pham cho
@@ -302,7 +304,8 @@ async function main() {
       method: 'POST',
       body: JSON.stringify({
         organizationName: DEMO_ORG_NAME,
-        adminFullName: 'Quan Tri Vien Demo',
+        // 29/10/2026: ten quan tri vien co dau (truoc day 'Quan Tri Vien Demo').
+        adminFullName: 'Quản Trị Viên Demo',
         adminEmail: DEMO_ADMIN_EMAIL,
         adminPassword: DEMO_ADMIN_PASSWORD,
       }),
@@ -485,7 +488,7 @@ async function main() {
             warehouseId,
             quantity: randomInt(1, 5),
             purchasedAt,
-            note: 'Giao dich demo (seed)',
+            note: 'Giao dịch demo (seed)',
           }),
         });
         purchaseCount += 1;
