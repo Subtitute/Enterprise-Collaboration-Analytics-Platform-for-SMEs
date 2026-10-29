@@ -12,6 +12,7 @@ interface AuthShellProps {
   maxWidth?: 380 | 480 | number;
 }
 
+// 29/10/2026: thong nhat ten he thong la ECAP (bao cao, tai lieu, Tro ly ECAP) - truoc day giao dien ghi EFS.
 export const AuthShell = memo(function AuthShell({ children, extraWidget, maxWidth = 380 }: AuthShellProps) {
   const { t } = useTranslation();
 
@@ -31,7 +32,7 @@ export const AuthShell = memo(function AuthShell({ children, extraWidget, maxWid
                 <path d="M11 17h10" />
               </svg>
               <span className="font-sans text-xl leading-6 font-semibold tracking-[-0.01em] text-[#F7F6F3]">
-                EFS
+                ECAP
               </span>
             </div>
 
@@ -95,7 +96,7 @@ export const AuthShell = memo(function AuthShell({ children, extraWidget, maxWid
                 <path d="M11 17h10" />
               </svg>
               <span className="font-sans text-lg font-semibold tracking-[-0.01em] text-text-primary">
-                EFS
+                ECAP
               </span>
             </div>
 

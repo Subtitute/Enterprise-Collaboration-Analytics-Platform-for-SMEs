@@ -2444,3 +2444,16 @@ Chi tiết kỹ thuật: `Technical_Spec.md` §23.9 và phần bổ sung cuối 
 **Kết quả:** seed thành công (5 dự án, 42 công việc, 10 khách hàng, 12 vật tư, 2 kho, 2 tài liệu đã lập chỉ mục);
 kiểm tra trên trình duyệt các trang chính của tổ chức mới không lỗi; Trợ lý ECAP trả lời từ sổ tay của công ty nội
 thất. Chi tiết: `Mock_data.md` mục 12.
+
+## 29/10/2026 — Thống nhất tên hệ thống trên giao diện là ECAP
+
+Giao diện web trước đây ghi "EFS" ở logo thanh bên, trang đăng nhập/đăng ký và trang quản trị nền tảng, trong khi
+báo cáo, tài liệu và Trợ lý ECAP đều dùng "ECAP". Đổi thống nhất sang ECAP:
+
+- `Sidebar.tsx` (aria-label, title, chữ logo), `AuthShell.tsx`, `AuthLayout.tsx` (huy hiệu chữ), `PlatformAdminHeader.tsx`,
+  `public/logo-lockup-dark.svg`, `public/logo-lockup-light.svg`, chú thích trong `tailwind.config.ts`.
+- Không đổi API, khoá dịch hay dữ liệu. Phần số liệu minh hoạ trên trang đăng nhập (`MockDashboardPreview.tsx`) là
+  hình trang trí viết cứng, không đọc API, không ảnh hưởng số liệu đo nào; giữ nguyên.
+
+**Kiểm tra:** lint 0 lỗi, `tsc` sạch, dựng lại image `web`; ảnh chụp ngày 29/10/2026 cho thấy thanh bên và trang
+đăng nhập hiển thị ECAP.

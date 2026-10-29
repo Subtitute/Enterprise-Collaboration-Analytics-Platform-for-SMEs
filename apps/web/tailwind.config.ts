@@ -6,7 +6,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // EFS Design System v0.2 Tokens
+        // ECAP Design System v0.2 Tokens (29/10/2026: thong nhat ten he thong la ECAP (bao cao, tai lieu, Tro ly ECAP) - truoc day giao dien ghi EFS.)
         'bg-canvas': '#F7F6F3',
         'bg-surface': '#FFFFFF',
         'bg-subtle': '#FAF9F6',

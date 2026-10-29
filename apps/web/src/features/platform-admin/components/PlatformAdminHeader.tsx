@@ -16,7 +16,7 @@ export const PlatformAdminHeader = memo(function PlatformAdminHeader() {
             <span className="flex h-6 w-6 shrink-0 items-center justify-center text-text-primary">
               <CascadeLogoIcon className="h-6 w-6 text-[#1C1B1A]" />
             </span>
-            <span className="text-base font-semibold text-text-primary tracking-tight">EFS</span>
+            <span className="text-base font-semibold text-text-primary tracking-tight">ECAP</span>{/* 29/10/2026: thong nhat ten he thong la ECAP (bao cao, tai lieu, Tro ly ECAP) - truoc day giao dien ghi EFS. */}
           </div>
           <div className="h-5 w-px bg-border-subtle" aria-hidden="true" />
           <div>

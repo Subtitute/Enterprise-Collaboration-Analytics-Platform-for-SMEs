@@ -217,8 +217,9 @@ function SidebarHeader({ collapsed, onNavigate, onClose }: { collapsed: boolean;
       <Link
         to="/"
         onClick={onNavigate}
-        aria-label="EFS"
-        title="EFS"
+        // 29/10/2026: thong nhat ten he thong la ECAP (bao cao, tai lieu, Tro ly ECAP) - truoc day giao dien ghi EFS.
+        aria-label="ECAP"
+        title="ECAP"
         className="flex items-center rounded-radius-sm p-1 transition-colors hover:bg-bg-subtle cursor-pointer overflow-hidden min-w-0"
       >
         <span className="flex h-6 w-6 shrink-0 items-center justify-center text-text-primary">
@@ -230,7 +231,7 @@ function SidebarHeader({ collapsed, onNavigate, onClose }: { collapsed: boolean;
             collapsed ? 'max-w-0 opacity-0 ml-0' : 'max-w-[140px] opacity-100 ml-2',
           )}
         >
-          <span className="block truncate text-base font-semibold text-text-primary tracking-tight">EFS</span>
+          <span className="block truncate text-base font-semibold text-text-primary tracking-tight">ECAP</span>
         </div>
       </Link>
 

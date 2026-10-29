@@ -7,6 +7,6 @@
       <path d="M11 17h10" />
     </svg>
   </g>
-  <!-- Wordmark EFS -->
-  <text x="38" y="21" font-family="'IBM Plex Sans', -apple-system, sans-serif" font-size="20" font-weight="600" letter-spacing="-0.01em" fill="#F7F6F3">EFS</text>
+  <!-- Wordmark ECAP (29/10/2026: thong nhat ten he thong la ECAP (bao cao, tai lieu, Tro ly ECAP) - truoc day giao dien ghi EFS.) -->
+  <text x="38" y="21" font-family="'IBM Plex Sans', -apple-system, sans-serif" font-size="20" font-weight="600" letter-spacing="-0.01em" fill="#F7F6F3">ECAP</text>
 </svg>

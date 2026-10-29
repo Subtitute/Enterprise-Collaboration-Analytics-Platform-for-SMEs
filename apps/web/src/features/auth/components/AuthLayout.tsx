@@ -10,8 +10,9 @@ export function AuthLayout({ title, subtitle, children, wide }: { title: string;
       </div>
       <div className={`relative z-10 ${wide ? 'w-full max-w-3xl' : 'w-full max-w-lg'}`}>
         <div className="mb-6 flex flex-col items-center gap-2 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0E5E5E] text-base font-bold text-white">
-            EFS
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0E5E5E] text-sm font-bold text-white">
+            {/* 29/10/2026: thong nhat ten he thong la ECAP (bao cao, tai lieu, Tro ly ECAP) - truoc day giao dien ghi EFS. Chu nho hon 1 bac de 4 ky tu vua o vuong 48px. */}
+            ECAP
           </div>
           <h1 className="font-display text-2xl font-bold tracking-tight text-slate-900">{title}</h1>
           {subtitle && <p className="text-sm text-slate-500 max-w-sm sm:max-w-none">{subtitle}</p>}
