@@ -55,6 +55,12 @@ Doc/DemoScript.md
 # 28/10/2026: kich ban trinh bay tach theo tung thanh vien (DemoScript-Tien.md, DemoScript-Thanh.md) -
 # cung tinh chat ghi chu ca nhan nhu DemoScript.md, gui truc tiep cho tung nguoi, khong day len GitHub.
 Doc/DemoScript-*.md
+# 01/11/2026: ban PDF de in cua cac kich ban tren (DemoScript.pdf, DemoScript-Tien.pdf, DemoScript-Thanh.pdf).
+Doc/DemoScript*.pdf
+# 03/11/2026: gom toan bo tai lieu bao cao tot nghiep (bao cao LaTeX, kich ban trinh bay, ban giao viec cua tung
+# thanh vien) vao 1 thu muc rieng; kem thu muc mau Overleaf giang vien gui de tham khao cach trinh bay.
+Doc/Báo cáo tốt nghiệp/
+Doc/Overleaf Projects (5 items)/
 
 # 25/08/2026: bao cao do an (Doc/GraduationReport.tex) va toan bo file MiKTeX sinh ra khi bien dich
 # (.aux/.out/.toc/.lot/.pdf/.synctex.gz/.log...) - khong day len GitHub theo yeu cau, chi giu cuc bo.
