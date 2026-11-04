@@ -168,58 +168,24 @@ export function AnalyticsPage() {
     aiInsightsMutation.mutate({ range: aiRange, anomalies: anomaliesMutation.data?.anomalies });
   }, [aiInsightsMutation, aiRange, anomaliesMutation.data?.anomalies]);
 
+  // 29/10/2026 - Bỏ tự chèn mockProjects và sampleDeadlines, chỉ dùng dữ liệu thực tế từ API
   const progressRows = useMemo(() => {
-    const rawRows = (progressQuery.data ?? []).map((item, idx) => {
+    return (progressQuery.data ?? []).map((item) => {
       const totalTasks = item.totalTasks ?? 0;
       const completedTasks = item.completedTasks ?? 0;
       const progress = item.progress ?? (totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0);
-      // Hạn chót mẫu minh họa cho dự án thực tế
-      const sampleDeadlines = ['30/09/2026', '15/10/2026', '28/10/2026', '05/11/2026'];
       return {
         projectId: item.projectId,
         name: projectNames[item.projectId] ?? t('analytics:page.unnamedProject', { id: item.projectId.slice(0, 8) }),
         progress,
         completedTasks,
         totalTasks,
-        deadline: sampleDeadlines[idx % sampleDeadlines.length],
       };
     });
-
-    // Bổ sung 2–3 dự án giả lập với các mốc tiến độ đa dạng khi danh sách còn ít
-    if (rawRows.length <= 2) {
-      const mockProjects = [
-        {
-          projectId: 'mock-p1',
-          name: t('analytics:mockProjects.crmUpgrade'),
-          progress: 85,
-          completedTasks: 17,
-          totalTasks: 20,
-          deadline: '25/09/2026',
-        },
-        {
-          projectId: 'mock-p2',
-          name: t('analytics:mockProjects.customerPortal'),
-          progress: 60,
-          completedTasks: 12,
-          totalTasks: 20,
-          deadline: '10/10/2026',
-        },
-        {
-          projectId: 'mock-p3',
-          name: t('analytics:mockProjects.operationsOptimization'),
-          progress: 35,
-          completedTasks: 7,
-          totalTasks: 20,
-          deadline: '15/11/2026',
-        },
-      ];
-      return [...rawRows, ...mockProjects.slice(0, 3 - rawRows.length)];
-    }
-
-    return rawRows;
   }, [progressQuery.data, projectNames, t]);
 
   // 4 Chỉ số KPI Vận hành cốt lõi & Chỉ số so sánh định lượng thực tế theo kỳ lọc
+  // 29/10/2026 - Xóa bỏ các hằng số tỷ lệ phần trăm so với kỳ trước (projPct, progPct, docPct, dealPct)
   const kpiStats = useMemo(() => {
     // 1. Tổng dự án đang chạy
     const totalProjects = progressRows.length;
@@ -241,47 +207,14 @@ export function AnalyticsPage() {
     const wonDeals = allDeals.filter((d) => d.stage === 'WON');
     const totalWonValue = wonDeals.reduce((acc, curr) => acc + (Number(curr.value) || 0), 0);
 
-    // Chỉ số so sánh định lượng theo kỳ lọc (đa ngôn ngữ)
-    const trendConfigMap: Record<DateRangeOption, { trendKey: string; projPct: string; progPct: string; docPct: string; dealPct: string }> = {
-      '7d': {
-        trendKey: 'vsLastWeek',
-        projPct: '+12%',
-        progPct: '+4.5%',
-        docPct: '+18%',
-        dealPct: '+8.2%',
-      },
-      '30d': {
-        trendKey: 'vsLastMonth',
-        projPct: '+12%',
-        progPct: '+6.2%',
-        docPct: '+24%',
-        dealPct: '+15.4%',
-      },
-      quarter: {
-        trendKey: 'vsLastQuarter',
-        projPct: '+15%',
-        progPct: '+11.0%',
-        docPct: '+35%',
-        dealPct: '+22.6%',
-      },
-    };
-    const config = trendConfigMap[range] ?? trendConfigMap['30d'];
-    const currentTrend = {
-      proj: t(`analytics:kpiCards.trends.${config.trendKey}`, { percent: config.projPct }),
-      prog: t(`analytics:kpiCards.trends.${config.trendKey}`, { percent: config.progPct }),
-      doc: t(`analytics:kpiCards.trends.${config.trendKey}`, { percent: config.docPct }),
-      deal: t(`analytics:kpiCards.trends.${config.trendKey}`, { percent: config.dealPct }),
-    };
-
     return {
       totalProjects,
       avgProgress,
       totalDocVolume,
       wonDealsCount: wonDeals.length,
       totalWonValue,
-      trend: currentTrend,
     };
-  }, [progressRows, activityQuery.data, dealsQuery.data, range, t]);
+  }, [progressRows, activityQuery.data, dealsQuery.data]);
 
   return (
     <div className="space-y-6">

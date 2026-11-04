@@ -1,7 +1,7 @@
+// 29/10/2026 - Xóa bỏ badge phần trăm so với kỳ trước viết cứng, chỉ hiển thị số liệu thực tế trên thẻ KPI
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/Card';
-import { TrendingUpIcon } from '@/components/ui/Icons';
 import { formatDealValue } from '@/features/crm/utils';
 
 export interface KpiStatsData {
@@ -10,12 +10,6 @@ export interface KpiStatsData {
   totalDocVolume: number;
   wonDealsCount: number;
   totalWonValue: number;
-  trend: {
-    proj: string;
-    prog: string;
-    doc: string;
-    deal: string;
-  };
 }
 
 export interface AnalyticsKpiCardsProps {
@@ -40,10 +34,6 @@ export const AnalyticsKpiCards = React.memo(function AnalyticsKpiCards({ stats }
             {stats.totalProjects}
           </span>
         </div>
-        <div className="mt-2 flex items-center gap-1 font-mono text-xs font-medium text-success tabular-nums">
-          <TrendingUpIcon className="h-3 w-3 shrink-0" />
-          <span>{stats.trend.proj}</span>
-        </div>
       </Card>
 
       {/* KPI 2: Tỷ lệ tiến độ trung bình */}
@@ -58,10 +48,6 @@ export const AnalyticsKpiCards = React.memo(function AnalyticsKpiCards({ stats }
             {stats.avgProgress}%
           </span>
         </div>
-        <div className="mt-2 flex items-center gap-1 font-mono text-xs font-medium text-success tabular-nums">
-          <TrendingUpIcon className="h-3 w-3 shrink-0" />
-          <span>{stats.trend.prog}</span>
-        </div>
       </Card>
 
       {/* KPI 3: Khối lượng tài liệu mới */}
@@ -75,10 +61,6 @@ export const AnalyticsKpiCards = React.memo(function AnalyticsKpiCards({ stats }
           <span className="font-mono text-[40px] leading-[48px] font-medium text-text-primary tabular-nums">
             {stats.totalDocVolume}
           </span>
-        </div>
-        <div className="mt-2 flex items-center gap-1 font-mono text-xs font-medium text-success tabular-nums">
-          <TrendingUpIcon className="h-3 w-3 shrink-0" />
-          <span>{stats.trend.doc}</span>
         </div>
       </Card>
 
@@ -97,12 +79,7 @@ export const AnalyticsKpiCards = React.memo(function AnalyticsKpiCards({ stats }
             {stats.totalWonValue > 0 ? formatDealValue(stats.totalWonValue) : `${stats.wonDealsCount} deal`}
           </span>
         </div>
-        <div className="mt-2 flex items-center gap-1 font-mono text-xs font-medium text-success tabular-nums">
-          <TrendingUpIcon className="h-3 w-3 shrink-0" />
-          <span>{stats.trend.deal}</span>
-        </div>
       </Card>
     </div>
   );
 });
-
