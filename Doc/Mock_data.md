@@ -213,6 +213,23 @@ python -c "from pathlib import Path; from tests import face_fixtures as f; o=Pat
 Dọn dẹp: xoá vĩnh viễn 2 tài khoản thử, trả lại số điện thoại/avatar của Employee demo, xoá nhật ký,
 `fact_user_activity` và email MailHog do kịch bản tạo. Kịch bản không nằm trong `run-all.js`, chạy riêng.
 
+### 4.10. `11-timesheet.js` — Loại nghỉ, lịch làm việc, kỳ công, ngoại lệ *(bổ sung 04/11/2026)*
+
+Kiểm tra trên hệ thống thật, qua Gateway, các quy tắc của `Technical_Spec.md` §30: đơn nghỉ theo ba loại và
+toàn bộ mã lỗi `LEAVE_*` (không có ngày làm việc, trùng đơn, vượt số dư), điều chỉnh số dư, lịch làm việc và ngày
+làm bù, bảng công và ký hiệu, sửa công tay (ghi chú bắt buộc), khoá kỳ (tháng chưa kết thúc, còn đơn chờ phải
+`force`, snapshot không đổi khi dữ liệu đổi), mở khoá bắt buộc lý do, các việc bị chặn khi tháng khoá (huỷ đơn chờ
+vẫn được), và tab Ngoại lệ. **Chỉ chạy trên tổ chức kiểm thử riêng** (`admin@e2e-test.local`, dựng bằng
+`npm run seed:e2e`), không bao giờ trên tổ chức demo; dữ liệu tạo ra được xoá ở cuối kể cả khi có kiểm tra thất
+bại. Các dòng của tháng đã qua không tạo được qua API nên kịch bản chèn thẳng vào `postgres-hrm`. Kịch bản có
+trong `run-all.js`.
+
+**Dữ liệu chấm công giả lập cho demo:** `npm run seed:attendance` (`scripts/seed-attendance.js`) ghi chấm công từ
+01/10/2026 tới hôm qua cho Demo SME và Nội thất An Gia, kèm đơn nghỉ (đủ ba loại) và làm thêm mẫu. Chạy lại được
+(idempotent, không đụng dòng có sẵn); ảnh là một JPEG xám, không có khuôn mặt. Script ghi thẳng SQL nên **không đi
+qua sự kiện**: trang Phân tích và phát hiện bất thường **không** tính dữ liệu này. Đây là dữ liệu giả lập, phải nói
+rõ khi demo. Chạy trước buổi demo để dữ liệu tới hôm qua.
+
 ## 5. Cách chạy
 
 Điều kiện: stack Docker đang chạy, Node ≥ 18 (dùng `fetch` có sẵn), Docker CLI trên máy chạy kịch bản
@@ -224,6 +241,8 @@ node scripts/mock-data/run-all.js --with-llm   # thêm 07 phần 2 và 08 (~6 l�
 node scripts/mock-data/04-documents.js         # chạy riêng 1 kịch bản
 node scripts/mock-data/07-chatbot.js manager "Câu hỏi 1" "Câu hỏi 2"   # hỏi tuỳ ý (mỗi câu 1 lượt)
 node scripts/mock-data/09-ui-smoke.js          # giao diện, chạy riêng
+node scripts/mock-data/11-timesheet.js      # kỳ công, chạy trên tổ chức kiểm thử (npm run seed:e2e trước)
+npm run seed:attendance                        # chấm công giả lập cho tổ chức demo (trước buổi demo)
 ```
 
 Biến môi trường (mặc định là giá trị demo): `ECAP_API_BASE` (`http://127.0.0.1:3000/api/v1`),
@@ -392,6 +411,37 @@ trên cùng hệ thống, **không sửa code ứng dụng**, chỉ đổi dữ 
 - **Chưa có:** tài liệu riêng theo từng công trình; trưởng phòng Kinh doanh (bước giao khách hàng cho phòng Kinh
   doanh của `migrate-demo-ownership.js` tự bỏ qua — khách hàng do Quản trị viên phụ trách).
 
+## 13. Kết quả lần chạy 04/11/2026 (đợt nhân sự: loại nghỉ, lịch làm việc, kỳ công)
+
+Chạy trên hệ thống thật sau khi dựng lại image (`Technical_Spec.md` §30).
+
+| Kịch bản | Kết quả |
+|---|---|
+| 01 Auth + IAM | 31/31 PASS |
+| 02 HRM | 28/28 PASS |
+| 03 Dự án/công việc | 18/18 PASS |
+| 04 Tài liệu | 55/55 PASS |
+| 05 CRM + Kho | 27/27 PASS |
+| 06 Analytics + nhắn tin | 24/24 PASS |
+| 07 Chatbot | 16/16 PASS |
+| 08 Chatbot bảo mật | 12/12 PASS (hai lần chạy trước đó 11/12 do Gemini và Groq timeout trả 503, không phải lỗi logic) |
+| 09 Giao diện | 32/32 PASS |
+| 10 Danh sách nhân viên | 17/17 phần không dùng ảnh khuôn mặt (phần ảnh 47/47 đo 28/10/2026, lần này không chạy) |
+| **11 Kỳ công (mới)** | **156/156 PASS** |
+
+Thao tác giao diện bằng Playwright có ảnh chụp (04/11/2026): nghỉ phép và duyệt đơn 26/26; lịch công ty 8/8; bảng
+công 34/34 (đối chiếu tay từ dữ liệu gốc cho 3 người tháng 10 và 2 người tháng 11, so cả CSV và MISA); chi tiết
+công, khoá kỳ, ngoại lệ, phạm vi 35/35; ngôn ngữ `en`, `ja` 10/10; khổ 375px 7/7.
+
+Playwright (`e2e/`): chạy toàn bộ **18/18** trong một lần chạy (mốc cũ 11/17 ngày 24/10/2026). Sáu test lỗi thời đã
+sửa: selector cũ ở `projects-and-tasks`, `admin-import-employees` (form nay chia bước), `admin-members` (danh sách
+phân trang, menu đóng khi trang cuộn), `hrm`; `analytics` tạo dữ liệu thật trước khi chạy (trước đây chỉ đạt nhờ dự
+án giả); test drill-down cố định phần nhận xét AI, LLM thật do kịch bản 07 và `ai-insights-action-plan` kiểm tra.
+
+Lưu ý demo: khoá kỳ trên **Tháng 10** (chỉ khoá được tháng đã kết thúc), sau demo mở khoá lại. Hai đợt seed cũ
+(`+227860`, `+216140`) từng tạo 8 cặp nhân viên trùng tên; ngày 04/11/2026 đã đổi tên đệm 8 tài khoản `+216140` qua API
+(email giữ nguyên). Chạy lại `npm run seed` trên Demo SME sẽ tạo thêm một đợt nhân viên trùng tên.
+
 ## Lịch sử thay đổi file này
 
 - 24/10/2026: khởi tạo tài liệu — tài khoản theo vai trò, bộ file mẫu, 9 kịch bản kiểm thử sống kèm kết
@@ -407,3 +457,4 @@ trên cùng hệ thống, **không sửa code ứng dụng**, chỉ đổi dữ 
   nhân viên.docx" từ `scripts/seed-assets/company-docs/` và xoá 2 tệp `.txt` cũ, ghi số liệu tài liệu demo hiện có
   (22 tệp, 7 thư mục, 12 tệp / 286 đoạn RAG); mục 11 (mới) kết quả chạy lại 01–07, 10 và các kiểm tra sống của đợt.
 - **28/10/2026 (mục 12)** — Thêm tổ chức demo thứ hai Nội thất An Gia (`npm run seed:noi-that`): cách tạo, tài khoản, dữ liệu, kết quả lần chạy đầu.
+- **04/11/2026 (mục 4.10, 13)** — Thêm kịch bản `11-timesheet.js` (loại nghỉ, lịch làm việc, kỳ công, ngoại lệ; chỉ tổ chức kiểm thử), lệnh `npm run seed:attendance` và kết quả chạy lại 01–11, Playwright 18/18 (`Technical_Spec.md` §30).

@@ -659,6 +659,22 @@ không loại bỏ hoàn toàn khả năng trùng tên người thật.
 `todayGmt7` cố định để kết quả tất định), `flutter analyze` (0 lỗi mới), `flutter build apk
 --debug` thành công.
 
+## 19. Chọn loại nghỉ khi tạo đơn (04/11/2026)
+
+Máy chủ nay kiểm tra đơn nghỉ theo loại và số dư (`Technical_Spec.md` §30), nên ứng dụng gửi `leaveType` riêng thay
+vì tiền tố trong lý do:
+
+- `lib/models/leave_request.dart`: hằng `leaveTypeDefault` (`ANNUAL`), bảng nhãn `leaveTypeLabelsVi` (phép năm có
+  lương, nghỉ ốm, nghỉ việc riêng không lương) dùng chung cho hai nơi tạo đơn và danh sách; model đọc `leaveType`,
+  thiếu thì mặc định phép năm giống máy chủ; mã lạ hiện nguyên mã.
+- `leave_requests_page.dart` (trang Nghỉ phép) và `chat_page.dart` (chip "Hẹn lịch nghỉ" trong Nhắn tin) có ô
+  **Loại nghỉ**; danh sách đơn hiện loại nghỉ ở dòng phụ.
+- Lỗi từ máy chủ (vượt số dư, trùng đơn, không có ngày làm việc) hiện qua cơ chế báo lỗi sẵn có của ứng dụng; không
+  thêm màn hình mới. Duyệt đơn, bảng công và khoá kỳ vẫn không có trên mobile.
+
+**Xác minh:** `flutter test` 27/27 (thêm `test/leave_request_test.dart`), `flutter analyze` không lỗi mới. **Chưa chạy
+trên thiết bị thật**: ô chọn loại nghỉ và hiển thị lỗi chưa được thử bằng tay trên điện thoại.
+
 ## Lịch sử thay đổi tài liệu
 
 - **06/08/2026** — Khởi tạo tài liệu, đồng thời với việc scaffold `ecap-mobile` (Flutter/Dart,
@@ -758,3 +774,4 @@ không loại bỏ hoàn toàn khả năng trùng tên người thật.
   (cùng quy tắc với bản web), hiện chip "Hẹn lịch nghỉ" dưới tin nhắn của chính người gửi trong
   `chat_page.dart`, tạo đơn nghỉ thật qua API sẵn có khi bấm vào. Chi tiết đầy đủ ở §18 (mới). Xác
   minh: `flutter test` 24/24 (14 test mới), `flutter analyze`/`build apk --debug` sạch.
+- **04/11/2026 (chọn loại nghỉ)** — §19 (mới): ô Loại nghỉ ở trang Nghỉ phép và chip "Hẹn lịch nghỉ", gửi `leaveType` riêng. Xác minh: `flutter test` 27/27, `flutter analyze` không lỗi mới; chưa chạy trên thiết bị thật.

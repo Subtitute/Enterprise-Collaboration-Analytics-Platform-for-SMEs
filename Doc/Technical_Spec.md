@@ -393,6 +393,7 @@ thủ công mỗi lần có tính năng mới.
 - **(Bổ sung 22/07/2026) Reactivate tài khoản (`PATCH /users/:id/reactivate`) và Archive dự án (`POST /projects/:id/archive`) không phát Outbox event** — `EVENT_TYPES` (`packages/common-dto`) chưa có `USER_REACTIVATED`/`PROJECT_ARCHIVED` tương ứng; thêm event type mới kéo theo cập nhật Notification/Analytics Service nên để ngoài phạm vi 2 fix này (đều thuộc nhóm ưu tiên Major/Minor của đợt review, không phải Critical).
 - **(Bổ sung 25/07/2026) `TasksService.assign()` (Project & Task) và `FilesService.share()` (Document) không xác minh `userId`/`sharedWithUserId` mục tiêu thuộc đúng `organizationId` của người gọi** — cả 2 service không có cơ chế gọi nội bộ sang IAM Service để tra cứu tổ chức của một user id (chưa tồn tại `HttpService`/API client nội bộ nào giữa các service trong toàn bộ codebase, xác minh qua rà soát mã nguồn). Mức độ nghiêm trọng thấp vì KHÔNG cấp quyền truy cập dữ liệu trái phép — mọi đường đọc dữ liệu vẫn tự kiểm tra lại `organizationId` độc lập; hệ quả thực tế chỉ là: (1) gán task cho một id không thuộc tổ chức sẽ không bao giờ hiện ở "task của tôi" cho bất kỳ ai; (2) chia sẻ tài liệu có thể kích hoạt notification tới một user id tuỳ ý ở tổ chức khác. Hướng khắc phục đúng đắn (thêm internal API tra cứu tổ chức của user) cần hạ tầng mới, ngoài phạm vi 1 đợt sửa lỗi.
 - **(Bổ sung 25/07/2026) Traffic nâng cấp WebSocket (`/ws/notifications`, `/ws/analytics`) không đi qua rate-limit của Gateway** — do được xử lý ở tầng `http.Server.on('upgrade', ...)` thay vì middleware Express thông thường (xem `apps/gateway/src/proxy/setup-gateway.ts:78`), nơi `createRateLimitMiddleware()` không bao giờ chạy được. Xác thực JWT cho đường này vẫn có (thực hiện ở tầng downstream qua Socket.IO handshake, không phải qua Gateway), chỉ riêng rate-limit là còn thiếu — ghi nhận là giới hạn đã biết, không phải thiếu sót vô tình.
+- **(Bổ sung 04/11/2026) Hạn chế của đợt nhân sự** — chưa có ca kíp (một lịch cho cả tổ chức), chưa có nghỉ nửa ngày, chưa thông báo Quản lý khi có đơn nghỉ mới, tính lương vẫn ngoài phạm vi; danh sách đầy đủ ở §30.9.
 
 ## 15. Observability hạ tầng *(bổ sung 04/08/2026)*
 
@@ -440,6 +441,7 @@ Chấm công (check-in/out kèm ảnh chụp làm bằng chứng) và nghỉ ph�
 - **Ảnh chấm công lưu trong bucket MinIO RIÊNG** (`hrm-attendance`, không gọi HTTP sang Document Service) — quyết định kiến trúc mirror đúng lý do đã ghi nhận cho CRM-lite (§16 không áp dụng ở đây, nhưng cùng nguyên tắc chung của dự án): giữ ghi nhận chấm công (ảnh + bản ghi + outbox event) là 1 transaction cục bộ duy nhất, và hiện KHÔNG có hạ tầng gọi HTTP nội bộ giữa các service trong repo. Object key `${organizationId}/${userId}/${workDate}/checkin|checkout.<ext>`. MIME allowlist thu gọn chỉ còn `image/jpeg`/`image/png` (ảnh xuất ra từ `<canvas>.toBlob()` trên trình duyệt) kèm kiểm tra magic-byte, sao chép-và-thu-gọn từ `apps/document-service/src/files/allowed-mime-types.ts`.
 - **RBAC:** permission mới `attendance:checkin`, `attendance:view`, `leave_request:create`, `leave_request:view`, `leave_request:approve`. Employee tự chấm công/tự xin nghỉ (`attendance:checkin`, `leave_request:create`); Manager có thêm quyền xem toàn tổ chức và duyệt nghỉ phép. **Giới hạn đã biết (chấp nhận được ở quy mô đồ án):** `attendance:view`/`leave_request:view` cho phép xem TOÀN TỔ CHỨC, không giới hạn theo phòng ban của Manager — vì `Attendance`/`LeaveRequest` không lưu `departmentId` (muốn lọc đúng theo phòng ban của Manager cần hạ tầng tra cứu xuyên service tương tự bảng chiều `dim_user` của Analytics Service, ngoài phạm vi đợt này).
 - **Cập nhật 26/10/2026 (§28.4):** giới hạn "`attendance:view` = xem toàn tổ chức" ở trên đã xử lý — Manager chỉ xem chấm công/ảnh/nghỉ phép/tăng ca/giải trình của thành viên phòng ban, chỉ duyệt đơn của thành viên phòng ban (`DEPARTMENT_SCOPE_FORBIDDEN`) và không tự duyệt (`SELF_APPROVAL_FORBIDDEN`); Org Admin giữ toàn tổ chức.
+- **Cập nhật 04/11/2026 (§30):** `LeaveRequest` có thêm `leaveType` (phép năm, nghỉ ốm, nghỉ không lương); máy chủ nay kiểm tra ngày làm việc, trùng đơn và **chặn vượt số dư phép năm** (trước đó chỉ xét tính hợp lệ của ngày); số ngày của đơn tính theo lịch làm việc của công ty (kể cả ngày làm bù), không còn cố định thứ 2–6; bảng công tháng do `hrm-service` tính và có khoá kỳ, không còn tính ở phía giao diện. Các mô tả cũ trong mục này về đơn nghỉ và bảng công đọc cùng §30.
 - **Endpoint `GET /attendance/:id/photo`, `GET /attendance/me`, `GET /leave-requests/me`:** không gắn `@RequirePermissions` cố định — tự kiểm tra "chính chủ HOẶC có quyền xem toàn tổ chức" bên trong service, mirror endpoint bình luận của `TasksController` (không nằm trong nhóm quyền cố định).
 - **Sự kiện Kafka mới** (topic `hrm.events`): `attendance.checked_in`, `attendance.checked_out`, `leave_request.created`, `leave_request.approved`, `leave_request.rejected`. Notification Service subscribe thêm topic này nhưng CHỈ sinh thông báo cho 2 sự kiện có người nhận rõ ràng (`leave_request.approved`/`rejected` — nhắn cho chính người xin nghỉ), mirror đúng lý do bỏ qua `DEAL_CREATED` ở CRM-lite: `leave_request.created` không có "người duyệt" cụ thể ngay lúc tạo (bất kỳ Manager/Org Admin nào cũng duyệt được), Notification Service không có hạ tầng tra cứu "toàn bộ Manager của tổ chức này". Không sinh thông báo cho check-in/out (hành động tự thân).
 - **Gateway:** route `/api/v1/attendance`, `/api/v1/leave-requests` (`services.hrm` → `hrm-service:3006`).
@@ -2347,6 +2349,95 @@ phẩm và xuất PDF Dashboard vẫn chạy, 0 lỗi console. `vendor-pdf` gi�
 - Tổ chức E2E còn 14 tệp `.txt/.csv` mẫu cũ (không đụng tới theo quy tắc); lần `seed:e2e` sau sẽ không tạo
   thêm và migrate sẽ thay 2 tệp công ty.
 
+## 30. Loại nghỉ, kiểm tra đơn & số dư phép, lịch làm việc, kỳ công và bảng công ở máy chủ, ngoại lệ chấm công *(triển khai + kiểm thử 04/11/2026)*
+
+Đợt nâng cấp nhân sự đưa phần tính toán nghiệp vụ nhân sự về `hrm-service`. Trước đó máy chủ chỉ xét tính hợp lệ của ngày trong đơn nghỉ, không đối chiếu số dư, và việc tổng hợp bảng công tháng nằm ở phía giao diện web; từ đợt này kiểm tra đơn, số dư và bảng công đều do máy chủ thực hiện, web, ứng dụng di động và Trợ lý ECAP dùng chung một nguồn số liệu. Tính lương vẫn **ngoài phạm vi**: ECAP chỉ xuất bảng công sang MISA/Fast.
+
+### 30.1 Loại nghỉ và kiểm tra đơn
+
+- Cột mới `leave_requests.leave_type` (`ANNUAL` | `SICK` | `UNPAID`, mặc định `ANNUAL`), dùng enum `LeaveType` và hằng `LEAVE_TYPE_RULES` ở `packages/common-dto`. Phép năm: có lương, trừ số dư. Nghỉ ốm: có lương, không trừ số dư. Nghỉ không lương: không lương, không trừ số dư.
+- `CreateLeaveRequestDto.leaveType` là trường tuỳ chọn. Thiếu thì suy từ tiền tố cũ của `reason` (ứng dụng di động bản cũ vẫn gửi tiền tố), không có tiền tố thì `ANNUAL`. Một bước backfill idempotent khi khởi động gán loại cho đơn cũ theo tiền tố; chỉ áp dụng cho đơn tạo trước 05/11/2026 00:00 GMT+7, không sửa nội dung `reason`.
+- `create()` chạy trong một giao dịch, khoá theo người bằng `pg_advisory_xact_lock` để hai đơn gửi đồng thời không cùng lọt. Thứ tự kiểm tra: ngày hợp lệ → không ở quá khứ → có ít nhất một ngày làm việc theo lịch công ty (`LEAVE_NO_WORKING_DAYS`) → không trùng đơn `PENDING`/`APPROVED` của chính người đó (`LEAVE_OVERLAP`) → với phép năm, không vượt số dư (`LEAVE_BALANCE_EXCEEDED`), kiểm tra theo từng năm mà đơn chạm tới.
+- `decide()` khi duyệt kiểm tra lại số dư (không tính đơn đó hai lần) và chặn nếu tháng đã khoá (`TIMESHEET_PERIOD_LOCKED`). Số ngày của đơn (`workingDays`) tính theo lịch công ty, đã trừ cuối tuần và ngày lễ; `findMine`, `findAll`, API đọc một đơn đều trả trường này.
+- Đơn tự huỷ vẫn lưu `REJECTED` như trước (xem 30.9).
+
+### 30.2 Số dư phép và điều chỉnh
+
+- Thực hưởng năm Y = `baseDaysPerYear` + `floor(số năm thâm niên / seniorityYearsPerBonusDay)` + tổng điều chỉnh của năm Y. Không có `joinedAt` thì thâm niên bằng 0. Còn lại = thực hưởng − đã dùng − đang chờ; `usedDays` chỉ tính loại trừ số dư.
+- `GET /leave-requests/me/balance` giữ các trường cũ, thêm `pendingDays`, `adjustmentDays`, `seniorityBonusDays`, `entitledDays`, `remainingDays`. Trợ lý ECAP (`get_my_leave_balance`) lấy thẳng các số này, không tự tính lại.
+- Bảng mới `leave_balance_adjustments` (`organizationId`, `userId`, `year`, `days` khác 0 và có thể âm, `note` bắt buộc, `createdByUserId`): **chỉ thêm, không sửa, không xoá**. Quyền `organization:manage`. `POST /leave-requests/balance-adjustments` (`{ userId, year, days, note }`, `userId` phải thuộc tổ chức; sai trả `LEAVE_ADJUSTMENT_INVALID`) và `GET /leave-requests/balance-adjustments?userId=&year=`. Đây chỉ là phần điều chỉnh thủ công của ý "sổ phát sinh phép": phần đã dùng vẫn tính lại từ đơn đã duyệt, không ghi sổ riêng.
+
+### 30.3 Lịch làm việc và ngày làm bù
+
+- Bảng `work_schedules`, mỗi tổ chức một dòng, tự tạo mặc định khi đọc lần đầu: `workingWeekdays` (0 = Chủ nhật; mặc định thứ 2–6), `workStart` 08:30, `workEnd` 17:30, `lateGraceMinutes` 0, `earlyLeaveGraceMinutes` 0, `breakMinutes` 60. Kiểm tra: giờ dạng `HH:mm`, `workEnd > workStart`, thứ trong tuần 0–6 không trùng và không rỗng, số phút 0–240, số giờ làm một ngày phải dương; sai trả `WORK_SCHEDULE_INVALID`.
+- Loại lịch mới `MAKEUP_WORKDAY` ("Ngày làm bù") trong Lịch công ty, cùng quyền với `HOLIDAY` (`CALENDAR_MANAGE`). Thứ tự ưu tiên: ngày lễ thắng tất cả; ngày làm bù biến ngày nghỉ trong tuần thành ngày làm; còn lại theo `workingWeekdays`. Chỉ `HOLIDAY` được dùng để kiểm tra trùng ngày lễ.
+- API: `GET /work-calendar/schedule` (mọi thành viên), `PUT /work-calendar/schedule` (`organization:manage`), `GET /work-calendar/working-days?startDate=&endDate=` (mọi thành viên; trả `{ workingDays, holidays }`, khoảng tối đa 366 ngày). Gateway thêm hai tiền tố `/api/v1/timesheets`, `/api/v1/work-calendar` vào nhóm `hrm-service`.
+- Nhãn "đi muộn" và khung đăng ký làm thêm trên giao diện đọc từ lịch này, không còn cố định 08:30–17:30. Một lịch cho cả tổ chức, chưa có ca kíp.
+
+### 30.4 Bảng công tháng tính ở máy chủ
+
+Hàm thuần `computeMonth` (`timesheet-calculator.ts`, không đụng cơ sở dữ liệu, có spec riêng) nhận tháng, thời điểm hiện tại, lịch, danh sách người, chấm công, đơn nghỉ và làm thêm đã duyệt, dòng sửa tay. Trình duyệt chỉ hiển thị và xuất CSV, MISA/Fast.
+
+| Ký hiệu | Ý nghĩa | Công |
+|---|---|---|
+| `X` | Đi làm (đủ lượt vào, ra) | 1 |
+| `Q` | Thiếu lượt chấm (quên chấm ra, ngày đã qua) | 1 |
+| `LN` | Đi làm vào ngày nghỉ | 0 (giờ làm vẫn cộng) |
+| `P` | Phép năm | 1 |
+| `OM` | Nghỉ ốm | 1 |
+| `KL` | Nghỉ không lương | 0 |
+| `L` | Ngày lễ rơi vào ngày làm việc | 1 |
+| `V` | Vắng | 0 |
+
+Quy tắc mỗi ngày (theo thứ tự): trước `joinedAt` thì không có dòng; lễ trên ngày làm việc (theo tuần hoặc làm bù) là `L`; ngày nghỉ có chấm công là `LN`, không có thì không ký hiệu; ngày làm việc có chấm công thì đủ vào, ra là `X`, thiếu ra và đã qua ngày là `Q`; **chấm công thắng đơn nghỉ**; không chấm công mà có đơn đã duyệt thì `P`/`OM`/`KL` theo loại; không có gì thì ngày đã qua là `V`. Đi muộn và về sớm tính theo phút sau gia hạn của lịch; giờ làm trừ giờ nghỉ khi làm từ 5 giờ trở lên. Làm thêm chỉ tính theo đơn đã duyệt và **phần giao** với giờ chấm thực tế; có đơn mà không đủ giờ vào, ra thì 0 giờ và sinh ngoại lệ `OT_NO_ATTENDANCE`.
+
+Tổng theo người gồm số ngày công thực tế, ngày làm ngày nghỉ, phép có lương, nghỉ không lương, lễ, vắng, `paidDays`, `expectedDays` (từ `max(đầu tháng, joinedAt)` tới cuối tháng), giờ thực tế, giờ chuẩn, số lần muộn, về sớm, thiếu lượt chấm ra, giờ làm thêm, cờ `hasManual`, `isNewMember` và `status` (`sufficient` | `insufficient` | `notJoined`).
+
+Nhân viên đã vô hiệu hoá (`dim_user.is_active = false`) chỉ được tính ở kỳ đang mở nếu có chấm công trong tháng; trước đó họ bị tính vắng oan (xem `RevisionHistory.md` 04/11/2026).
+
+- `GET /timesheets?month=YYYY-MM` (quyền `attendance:view`, phạm vi như các API chấm công khác): `{ month, period, schedule, standardDays, rows }`. Kỳ mở tính trực tiếp, kỳ khoá đọc `snapshot` rồi lọc theo phạm vi.
+- `GET /timesheets/users/:userId?month=`: chi tiết từng ngày của một người (ký hiệu, giờ vào, ra, muộn, sớm, làm thêm, cờ sửa tay, ghi chú); ngoài phạm vi trả 404.
+- `PUT /timesheets/entries` và `DELETE /timesheets/entries/:userId/:workDate`: sửa tay và bỏ sửa tay, quyền `attendance_adjustment:approve`. **Ghi chú bắt buộc**; chặn khi kỳ khoá, ngày tương lai, trước `joinedAt`, ký hiệu sai (`TIMESHEET_ENTRY_INVALID`). Bảng `timesheet_entries` chỉ lưu dòng sửa tay (duy nhất theo `organizationId`, `userId`, `workDate`); tính lại vẫn giữ các dòng này.
+
+### 30.5 Khoá kỳ và mở khoá
+
+- Bảng `timesheet_periods` (`organizationId`, `year`, `month`, `status` `OPEN`|`LOCKED`, người và thời điểm khoá, mở khoá, `unlockReason`, `snapshot` jsonb); chưa có dòng nghĩa là `OPEN`.
+- `POST /timesheets/:month/lock` (quyền `organization:manage`, body `{ force? }`): chỉ tháng **đã kết thúc** (`TIMESHEET_PERIOD_NOT_ENDED`); đã khoá trả `TIMESHEET_PERIOD_ALREADY_LOCKED`; còn đơn nghỉ, làm thêm, giải trình đang chờ trong tháng thì trả 409 `TIMESHEET_PERIOD_HAS_PENDING` kèm số đơn, và chỉ khoá khi gửi `force: true`. Khoá lưu `snapshot` toàn tổ chức nên số không đổi khi dữ liệu gốc đổi.
+- `POST /timesheets/:month/unlock` (`organization:manage`, `{ reason }` **bắt buộc**): chưa khoá trả `TIMESHEET_PERIOD_NOT_LOCKED`. Xoá snapshot, giữ dòng sửa tay.
+- Tháng khoá chặn: duyệt hoặc từ chối đơn nghỉ, tạo và duyệt làm thêm, tạo và duyệt giải trình chạm tháng đó, sửa tay (`TIMESHEET_PERIOD_LOCKED` qua `PeriodLockService.assertOpen`). **Huỷ đơn đang chờ vẫn được.** Dòng kỳ được khoá ghi để hai người khoá cùng lúc không tạo trùng.
+
+### 30.6 Ngoại lệ chấm công
+
+`GET /timesheets/exceptions?month=&type=&page=&limit=` (quyền `attendance:view`, cùng phạm vi, sắp ngày giảm dần) dùng lại `computeMonth`, không có logic thứ hai. Loại: đi muộn, về sớm, vắng, quên chấm ra, chưa chấm vào hôm nay (đã quá giờ vào cộng gia hạn, không có đơn nghỉ), làm thêm không có chấm công. Kèm số đếm theo loại và số đơn đang chờ. Trên web là tab "Ngoại lệ" (`ExceptionsPanel.tsx`) trong thẻ chấm công của Quản lý hoặc toàn tổ chức.
+
+### 30.7 Dữ liệu và bảng
+
+| Thay đổi | Ghi chú |
+|---|---|
+| `leave_requests.leave_type` | Cột mới, backfill theo tiền tố `reason` |
+| `dim_user.joined_at` (date, null) | Từ sự kiện IAM (`USER_REGISTERED`, đợt phát lại `USER_DEPARTMENT_CHANGED`), chỉ ghi khi sự kiện có giá trị; thiếu thì thâm niên 0 |
+| `dim_user.is_active` (boolean, mặc định true) | Dùng cho quy tắc nhân viên vô hiệu hoá |
+| `leave_balance_adjustments`, `work_schedules`, `timesheet_periods`, `timesheet_entries` | Bảng mới (30.2–30.5) |
+
+Mã lỗi mới (có bản dịch `vi`/`en`/`ja` trong `errors.json`): `LEAVE_BALANCE_EXCEEDED`, `LEAVE_OVERLAP`, `LEAVE_NO_WORKING_DAYS`, `LEAVE_ADJUSTMENT_INVALID`, `WORK_SCHEDULE_INVALID`, `TIMESHEET_MONTH_INVALID`, `TIMESHEET_PERIOD_LOCKED`, `TIMESHEET_PERIOD_ALREADY_LOCKED`, `TIMESHEET_PERIOD_NOT_LOCKED`, `TIMESHEET_PERIOD_NOT_ENDED`, `TIMESHEET_PERIOD_HAS_PENDING`, `TIMESHEET_ENTRY_INVALID`.
+
+### 30.8 Giao diện, dữ liệu demo và kiểm chứng
+
+- Web: `NewLeaveRequestModal` có ô chọn loại nghỉ, hiện số ngày làm việc và phép còn lại, hiện lỗi `LEAVE_*` đã dịch; `LeavePolicyModal` có phần điều chỉnh số dư; `CalendarEventModal` và `CompanyCalendar` thêm "Ngày làm bù"; `WorkScheduleModal` mới; `MonthlyTimesheetTable` viết lại để lấy dữ liệu máy chủ (nhãn trạng thái kỳ, nút Khoá kỳ/Mở khoá, chú giải ký hiệu, bấm dòng mở `TimesheetDetailModal`); `ExceptionsPanel` mới. Ứng dụng di động `ecap-mobile` có ô chọn loại nghỉ: `flutter test` 27/27, `flutter analyze` không lỗi mới, **chưa chạy trên thiết bị thật**.
+- `npm run seed:attendance` (`scripts/seed-attendance.js`): chấm công giả lập từ 01/10/2026 tới hôm qua cho Demo SME và Nội thất An Gia, kèm đơn nghỉ và làm thêm mẫu; idempotent; ảnh là một JPEG xám, không có khuôn mặt. Ghi thẳng SQL nên **không đi qua sự kiện**: Phân tích và phát hiện bất thường không tính dữ liệu này. Đây là dữ liệu giả lập.
+- Kịch bản `scripts/mock-data/11-timesheet.js` (mới): 156/156 trên hệ thống thật.
+- Kiểm thử chạy lại 04/11/2026: Jest 126 tệp / 1.461 kiểm thử (Nhân sự 391), Vitest web 40 tệp / 218, pytest `ml-service` 67 (đo 28/10, không đổi code), tổng 1.746. Typecheck toàn repo, `tsc` web, `lint:i18n-strings` (259 tệp) sạch. Playwright toàn bộ 18/18 trong một lần chạy (mốc cũ 11/17 ngày 24/10/2026); sáu test lỗi thời đã sửa, test Phân tích nay tạo dữ liệu thật trước khi chạy. Thao tác giao diện có ảnh: nghỉ phép 26/26, lịch công ty 8/8, bảng công 34/34 (đối chiếu tay từ dữ liệu gốc), chi tiết/khoá kỳ/ngoại lệ 35/35, ngôn ngữ `en`/`ja` 10/10, khổ 375px 7/7.
+
+### 30.9 Hạn chế còn lại
+
+- Chưa có ca kíp, xếp ca; một lịch cho cả tổ chức. Chưa có nghỉ nửa ngày.
+- Chưa thông báo cho Quản lý khi có đơn nghỉ mới. Đơn tự huỷ vẫn lưu `REJECTED`, người huỷ nhận thông báo "đã bị từ chối".
+- Trần làm thêm 40 giờ/tháng vẫn là hằng số.
+- Không có ngày nghỉ việc: người đã có chấm công rồi bị vô hiệu hoá giữa tháng vẫn bị tính `V` các ngày sau đó.
+- Trong tháng đang chạy, phần lớn nhân viên hiện "Thiếu công" vì công chuẩn tính cả tháng.
+- Tọa độ văn phòng vẫn một điểm cho mỗi lần triển khai. API lịch không nhận ngày quá khứ nên không thêm lễ cho tháng đã qua qua giao diện.
+- Quy tắc và phân quyền chưa kiểm với doanh nghiệp thật; dữ liệu demo là giả lập. Trợ lý ECAP phụ thuộc Gemini, Groq: mạng kém trả 503.
+
 ## Lịch sử thay đổi tài liệu
 
 - **18/07/2026** — Khởi tạo tài liệu `Technical_Spec.md`: xác định kiến trúc tổng thể, tech stack, chi tiết 6 service MVP, event-driven design (Outbox + Kafka), schema DB tổng quan, AuthN/AuthZ, quy ước API, hạ tầng Docker, bảo mật, kiểm thử, CI/CD, NFR, cấu trúc repo và giới hạn/hướng phát triển.
@@ -2524,3 +2615,4 @@ phẩm và xuất PDF Dashboard vẫn chạy, 0 lỗi console. `vendor-pdf` gi�
 - **26/10/2026 (§27 — ĐÃ TRIỂN KHAI giai đoạn 0–5)** — Thêm §27.16: cách làm thực tế theo từng giai đoạn, 8 chỗ khác kế hoạch (khoá riêng cho detector, mã NV chữ hoa + index thường, resync `roles_changed` thay script 1 lần, Modal thay drawer, `fflate` thay JSZip, huỷ riêng ảnh chờ, `malloc_trim`, đổi ảnh mẫu CI sang ảnh NASA phạm vi công cộng), 8 lỗi tìm được ở vòng kiểm thử độc lập và đã sửa — nặng nhất là lỗi CAO toàn hệ thống: Gateway để lọt header tin cậy do client tự gửi khi JWT không có giá trị tương ứng (`x-department-id`), nay xoá mọi header tin cậy trước khi đặt lại từ JWT. Kết quả: pytest ml-service 64, jest Gateway 42, sống 45/45 + hồi quy 195/195 + giả mạo header 10/10 bị chặn, RAM ml-service 579–645 MiB. Thêm dòng ở §6 (xoá header tin cậy) và cuối §24; cập nhật khối trạng thái đầu file và đầu §27. Chi tiết: `RevisionHistory.md` mục 26/10/2026 (tiếp 2).
 - **28/10/2026 (§29 — Xem trước tài liệu trong ứng dụng, dọn kho tài liệu demo, chụp ảnh nhận diện bằng camera, ĐÃ TRIỂN KHAI)** — Thêm §29: mọi lối "xem tệp" (bảng, lưới, mục "Tài liệu" của dự án, chip nguồn Chat bot) mở `FilePreviewModal`; Word (`docx-preview` 0.4.0), Excel (SheetJS, 500 × 50) và PowerPoint (bản giản lược chữ) dựng ngay trong trình duyệt, kèm thiết kế an toàn (trần 15 MB, chốt ZIP + trần `word/document.xml` 5 MB và trang tính 20 MB, `.docx` trong iframe sandbox không script + CSP riêng, lọc liên kết, không `innerHTML` cho xlsx/pptx, `.txt/.csv` vẫn bị ép `attachment`); dọn kho demo (15 tệp mẫu, 2 tệp `.txt` công ty thay bằng PDF/DOCX thật, 1 thư mục rỗng, 85 object MinIO mồ côi 3,73 MiB → 22 tệp, 286 đoạn RAG); "Chụp bằng camera" cho ảnh nhận diện tải hộ và dự phòng `capture` trên điện thoại. Rà soát độc lập tìm 1 lỗi mức CAO (CSS injection qua `docx-preview` đổi giao diện cả ứng dụng, phủ lớp che nút đóng, gọi máy chủ ngoài) và 3 lỗi trung bình (spinner kẹt, Escape đóng mọi Modal chồng nhau, nội dung tài liệu công ty sai so với hệ thống) — đã sửa; vòng tích hợp sửa thêm các mục thấp và bỏ `vendor-pdf` khỏi lần tải đầu (/login 1.449 → 852 kB JS). Thêm dòng trỏ ở §3.4, cuối §27.16, §28.10, §28.11; cập nhật khối trạng thái. Chi tiết: `RevisionHistory.md` mục 28/10/2026.
 - **28/10/2026 (§23.9, §24 — điểm khuôn mặt do máy chủ ký, hiển thị phần trăm, hướng dẫn Trợ lý ECAP)** — ml-service ký điểm tương đồng kèm hash ảnh và hạn dùng, hrm-service chỉ nhận điểm qua token (đổi quyết định "không ký" cũ); giao diện báo ngay phần trăm/ngưỡng hoặc lý do sau khi chấm công, thêm nút "Thử nhận diện"; lời chào chatbot nói rõ làm được/chưa làm được, thay câu gợi ý không có dữ liệu trả lời.
+- **04/11/2026 (§30 — Loại nghỉ, kiểm tra đơn và số dư phép, lịch làm việc, kỳ công, bảng công ở máy chủ, ngoại lệ chấm công, ĐÃ TRIỂN KHAI)** — Thêm §30: `leave_type` (ANNUAL/SICK/UNPAID) và quy tắc trừ số dư; `create()` kiểm tra ngày làm việc, trùng đơn, vượt số dư trong giao dịch có khoá theo người; số dư do máy chủ tính (thực hưởng = phép cơ bản + thâm niên + điều chỉnh) và bảng `leave_balance_adjustments` chỉ thêm; `work_schedules` và loại lịch "Ngày làm bù"; bảng công tháng tính ở `hrm-service` (`computeMonth`, ký hiệu X/Q/LN/P/OM/KL/L/V), khoá và mở khoá kỳ có snapshot, sửa tay có ghi chú; tab Ngoại lệ; `dim_user.joined_at`, `dim_user.is_active`; 12 mã lỗi mới; `npm run seed:attendance` và kịch bản 11. Sửa các chỗ cũ ở §14, §17. Kiểm chứng: Jest 1.461, Vitest web 218, pytest 67 (tổng 1.746), Playwright 18/18, kịch bản 01–11 đạt (kịch bản 10 chỉ phần không dùng ảnh), `flutter test` 27/27 (chưa chạy trên thiết bị thật).

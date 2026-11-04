@@ -2470,3 +2470,39 @@ Một số dữ liệu demo hiện trên giao diện còn viết không dấu: t
   giao dịch). Chạy kiểm tra lại: không còn chuỗi không dấu nào.
 
 **Kiểm tra:** `node --check` 2 script; ảnh chụp trang Kho hàng và Danh mục sản phẩm hiển thị đúng chữ có dấu.
+
+## 04/11/2026 — Đợt nâng cấp nhân sự: loại nghỉ, lịch làm việc, kỳ công, bảng công ở máy chủ, ngoại lệ
+
+Trước đợt này, máy chủ chỉ xét tính hợp lệ của ngày trong đơn nghỉ, không đối chiếu số dư phép, còn bảng công tháng
+được tổng hợp ở phía giao diện web và chưa có khoá kỳ. Đợt này đưa các phần đó về `hrm-service`:
+
+- **Loại nghỉ và kiểm tra đơn:** cột `leave_type` (phép năm, nghỉ ốm, nghỉ không lương); `create()` kiểm tra ngày làm
+  việc, trùng đơn, vượt số dư trong một giao dịch có khoá theo người; duyệt đơn kiểm tra lại số dư.
+- **Số dư:** thực hưởng = phép cơ bản + thâm niên + điều chỉnh, do máy chủ tính; web, ứng dụng di động và Trợ lý ECAP
+  dùng chung. Bảng `leave_balance_adjustments` chỉ thêm, ghi chú bắt buộc.
+- **Lịch làm việc** (`work_schedules`) và loại lịch "Ngày làm bù"; số ngày của đơn nghỉ tính theo lịch này.
+- **Kỳ công và bảng công ở máy chủ:** `computeMonth`, ký hiệu X/Q/LN/P/OM/KL/L/V, sửa công tay có ghi chú, khoá kỳ có
+  snapshot và mở khoá bắt buộc lý do; tháng khoá chặn duyệt đơn nghỉ, làm thêm, giải trình và sửa tay.
+- **Tab Ngoại lệ** trên trang chấm công; `dim_user.joined_at`, `dim_user.is_active`; `npm run seed:attendance`;
+  kịch bản 11. Chi tiết thiết kế: `Technical_Spec.md` §30.
+
+**Lỗi tìm thấy và đã sửa trong đợt này:**
+
+1. **Nhân viên đã vô hiệu hoá bị tính vắng.** Bảng công tính cả những tài khoản đã vô hiệu hoá nên họ hiện ngày vắng ở
+   kỳ đang mở. Sửa: chỉ tính họ nếu có chấm công trong tháng (`dim_user.is_active`). Còn lại một hạn chế: chưa có
+   ngày nghỉ việc, người đã có chấm công rồi bị vô hiệu hoá giữa tháng vẫn bị tính vắng các ngày sau đó.
+2. **Gợi ý tạo đơn nghỉ trong Nhắn tin ghép tiền tố vào lý do.** `LeaveRequestSuggestion.tsx` ghép `[LOẠI]` vào `reason`
+   (ứng dụng di động cũng gửi theo kiểu tiền tố). Sửa: gửi `leaveType` riêng; máy chủ vẫn nhận tiền tố cũ để tương thích.
+3. **CSV bảng công lộ khoá i18n.** Tệp xuất ra chứa khoá dịch thay vì nhãn. Đã sửa; sau đó đối chiếu tay CSV và MISA
+   với dữ liệu gốc cho 3 người tháng 10, 2 người tháng 11 (bảng công 34/34 bước giao diện).
+4. **Nhãn "đi muộn" và khung đăng ký làm thêm cố định 08:30–17:30.** Nay đọc từ lịch làm việc của tổ chức.
+5. **Thứ tự dòng bảng công nhảy.** Đã sửa trong lần viết lại `MonthlyTimesheetTable.tsx`.
+6. **Số liệu giả trên trang Phân tích** đã gỡ ở nhánh của Tiến (`543a087`, Việc 1b) và nay đã vào `main` qua hai lần
+   merge `a7958e0` (gỡ số liệu giả trang Phân tích, Việc 1b) và `9314f9e` (mã nhân viên, số điện thoại trên thẻ thành
+   viên, Việc 1c).
+
+**Kiểm tra (04/11/2026):** Jest 126 tệp / 1.461 kiểm thử, Vitest web 40 tệp / 218, pytest 67 (đo 28/10), tổng 1.746;
+typecheck, `tsc` web, `lint:i18n-strings` (259 tệp) sạch. Kịch bản trên hệ thống thật: 01–09 đạt toàn bộ, 10 phần không
+dùng ảnh 17/17, 11 (mới) 156/156; kịch bản 08 hai lần trước đó 11/12 do Gemini và Groq timeout trả 503, lần cuối 12/12.
+Playwright toàn bộ 18/18 trong một lần chạy (mốc cũ 11/17 ngày 24/10/2026): sáu test lỗi thời được sửa, test Phân tích
+nay tạo dữ liệu thật trước khi chạy. Ứng dụng di động `flutter test` 27/27; **chưa chạy trên thiết bị thật**.

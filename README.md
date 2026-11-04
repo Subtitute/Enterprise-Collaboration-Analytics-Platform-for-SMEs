@@ -19,7 +19,7 @@ Monorepo npm workspaces gồm **Core Platform** (8 microservice NestJS + React S
 | `notification-service` | chỉ nội bộ (internal-net), không map ra host | Thông báo real-time (MongoDB) |
 | `analytics-service` | chỉ nội bộ (internal-net), không map ra host | Kafka consumer + KPI/dashboard (TimescaleDB) |
 | `crm-service` | chỉ nội bộ (internal-net), không map ra host | Khách hàng, cơ hội bán hàng (bổ sung 04/08/2026) |
-| `hrm-service` | chỉ nội bộ (internal-net), không map ra host | Chấm công (photo-proof), nghỉ phép (bổ sung 05/08/2026) |
+| `hrm-service` | chỉ nội bộ (internal-net), không map ra host | Chấm công (photo-proof), nghỉ phép (bổ sung 05/08/2026); loại nghỉ, lịch làm việc, bảng công và kỳ công (cập nhật 04/11/2026) |
 
 **(Cập nhật 21/07/2026)** Đây là finding nghiêm trọng nhất của đợt review hạ tầng: 5 service nghiệp
 vụ trên trước đây map port thẳng ra host, cho phép gọi trực tiếp bỏ qua Gateway (bỏ qua luôn JWT
@@ -91,6 +91,8 @@ Seed dữ liệu demo (đăng ký 1 tổ chức mẫu, phòng ban, nhân viên, 
 cd ..
 npm run seed
 ```
+
+*(Bổ sung 04/11/2026)* Dữ liệu chấm công giả lập từ 01/10/2026 tới hôm qua (kèm đơn nghỉ và làm thêm mẫu) cho bảng công và tab Ngoại lệ của hai tổ chức demo: `npm run seed:attendance` (chạy lại được, ảnh là một JPEG xám, ghi thẳng SQL nên trang Phân tích không tính dữ liệu này). Chạy trước buổi demo.
 
 Dừng toàn bộ hệ thống: `docker compose -f infra/docker-compose.yml down` (thêm `-v` nếu muốn
 xoá luôn volume dữ liệu).
