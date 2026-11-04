@@ -4,6 +4,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Dropdown, DropdownItem } from '@/components/ui/Dropdown';
 import { EditIcon, MoreVerticalIcon, RefreshIcon, TrashIcon, UserIcon } from '@/components/ui/Icons';
 import { getRoleBadgeConfig } from './MemberTableRow';
+import { formatPhone } from '@/lib/phone';
 import { FaceStatusBadge } from '@/features/face/components/FaceStatusBadge';
 import type { FaceStatus, User } from '@/types';
 
@@ -108,7 +109,23 @@ export const MemberCard = memo(function MemberCard({
         )}
       </div>
 
-      <div className="mt-3.5 pt-3 border-t border-border-subtle flex flex-wrap items-center justify-between gap-2 text-[12px]">
+      {/* 29/10/2026: Rà soát UI danh sách nhân viên và hồ sơ theo Việc 1c - hiển thị mã NV và số điện thoại trên mobile card */}
+      {(u.employeeCode || u.phoneNumber) && (
+        <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[12px]">
+          {u.employeeCode && (
+            <span className="font-mono text-[11px] px-1.5 py-0.5 rounded-radius-sm bg-bg-subtle text-text-secondary border border-border-subtle font-medium">
+              {u.employeeCode}
+            </span>
+          )}
+          {u.phoneNumber && (
+            <span className="font-mono text-[11px] tabular-nums text-text-secondary">
+              {formatPhone(u.phoneNumber)}
+            </span>
+          )}
+        </div>
+      )}
+
+      <div className="mt-3 pt-2.5 border-t border-border-subtle flex flex-wrap items-center justify-between gap-2 text-[12px]">
         <div className="flex items-center gap-1.5 text-text-secondary">
           <span className="text-text-tertiary">{t('admin:membersPage.columns.department')}:</span>
           <span className="font-medium text-text-primary">{departmentName}</span>
