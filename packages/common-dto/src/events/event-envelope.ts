@@ -132,6 +132,9 @@ export interface UserRegisteredPayload {
   actorId: string;
   // 26/10/2026: muc vai tro luc tao (Technical_Spec.md muc 27.4) - optional de su kien cu van hop le.
   roleLevel?: 'ORG_ADMIN' | 'MANAGER' | 'EMPLOYEE';
+  // 04/11/2026: ngay vao lam 'YYYY-MM-DD' theo GMT+7 (tu User.createdAt) cho dim_user cua hrm-service
+  // (tham nien, bang cong) - optional de su kien cu van hop le.
+  joinedAt?: string;
 }
 
 // 26/10/2026: danh sach nhan vien & ho so (Technical_Spec.md muc 27.4) - CHI ten truong, khong co gia tri.
@@ -185,6 +188,8 @@ export interface UserDepartmentChangedPayload {
   userId: string;
   departmentId: string | null;
   actorId: string | null;
+  // 04/11/2026: xem UserRegisteredPayload.joinedAt - dot resync luc khoi dong la nguon lap day cho user cu.
+  joinedAt?: string;
 }
 
 // 23/09/2026: payload cho EVENT_TYPES.DEPARTMENT_MANAGER_CHANGED - xem ghi chu tai event-types.ts.
@@ -269,8 +274,8 @@ export interface LeaveRequestRejectedPayload {
 }
 
 /**
- * 15/09/2026: Lich cong ty (HRM-lite mo rong). `type` la CalendarEventType (HOLIDAY|EVENT) -
- * khong import truc tiep enum de tranh vong lap phu thuoc trong file event schema thuan tuy nay
+ * 15/09/2026: Lich cong ty (HRM-lite mo rong). `type` la CalendarEventType (04/11/2026:
+ * HOLIDAY|EVENT|MAKEUP_WORKDAY) - khong import truc tiep enum de tranh vong lap phu thuoc trong file event schema thuan tuy nay
  * (mirror cach DealStageChangedPayload ben tren dung `string` cho `toStage`/`fromStage` thay vi
  * import DealStage).
  */

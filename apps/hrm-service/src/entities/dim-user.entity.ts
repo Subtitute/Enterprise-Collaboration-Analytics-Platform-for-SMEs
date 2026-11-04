@@ -20,6 +20,14 @@ export class DimUser {
   @Column({ name: 'department_id', type: 'uuid', nullable: true })
   departmentId: string | null;
 
+  // 04/11/2026: ngay vao lam 'YYYY-MM-DD' theo GMT+7 (tham nien, bang cong); null = chua nhan duoc tu IAM.
+  @Column({ name: 'joined_at', type: 'date', nullable: true })
+  joinedAt: string | null;
+
+  // 04/11/2026: false = tai khoan da vo hieu hoa ben IAM, khong con bi tinh vang trong ky cong dang mo.
+  @Column({ name: 'is_active', type: 'boolean', default: true })
+  isActive: boolean;
+
   @Column({ name: 'updated_at', type: 'timestamptz', default: () => 'now()' })
   updatedAt: Date;
 }

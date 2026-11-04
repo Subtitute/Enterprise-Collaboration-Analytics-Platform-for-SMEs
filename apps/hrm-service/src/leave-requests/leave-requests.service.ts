@@ -1,9 +1,11 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, FindOperator, Repository } from 'typeorm';
+import { isUUID } from 'class-validator';
+import { DataSource, EntityManager, FindOperator, In, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm';
 import {
   ERROR_CODES,
   EVENT_TYPES,
+  LEAVE_TYPE_RULES,
   LeaveRequestApprovedPayload,
   LeaveRequestCreatedPayload,
   LeaveRequestRejectedPayload,
@@ -15,31 +17,50 @@ import {
 // 26/10/2026: pham vi xem/duyet theo phong ban cua Manager - xem src/user-directory.
 import { ScopeCaller, assertCanDecide, scopeUserFilter } from '../user-directory/user-directory';
 import { LeaveRequest } from '../entities/leave-request.entity';
+import { LeaveBalanceAdjustment } from '../entities/leave-balance-adjustment.entity';
+import { DimUser } from '../entities/dim-user.entity';
 import { OutboxService } from '../outbox/outbox.service';
 import { toGmt7DateString } from '../attendance/attendance-date.util';
 import { LeavePolicyService } from '../leave-policy/leave-policy.service';
-import { countWorkingDaysInclusive } from './working-days.util';
+import { WorkCalendarService } from '../work-calendar/work-calendar.service';
+import { PeriodLockService } from '../work-calendar/period-lock.service';
+import { CalendarBook, countWorkingDays, countWorkingDaysInYear, monthProbes, yearsInRange } from '../work-calendar/work-calendar.util';
+import { LeavePolicyRules, YearBalance, computeYearBalance } from './leave-balance.util';
+import { inferLeaveTypeFromReason } from './leave-type.util';
 import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
 import { DecideLeaveRequestDto } from './dto/decide-leave-request.dto';
 import { LeaveRequestQueryDto } from './dto/leave-request-query.dto';
+import { CreateBalanceAdjustmentDto } from './dto/create-balance-adjustment.dto';
+import { BalanceAdjustmentQueryDto } from './dto/balance-adjustment-query.dto';
 
 const PRODUCER = 'hrm-service';
+const MIN_ADJUSTMENT_YEAR = 2000;
+const MAX_ADJUSTMENT_YEAR = 2100;
+const MAX_ADJUSTMENT_DAYS = 366;
+const MAX_ADJUSTMENTS_LISTED = 200;
 
-/** GET /leave-requests/me/balance - xem LeaveRequestsService.getMyBalance(). */
-export interface LeaveBalance {
-  year: number;
-  usedDays: number;
+/**
+ * GET /leave-requests/me/balance - xem LeaveRequestsService.getMyBalance().
+ * 04/11/2026: may chu tinh luon thuc huong va con lai (YearBalance), giu 2 truong chinh sach cu.
+ */
+export interface LeaveBalance extends YearBalance {
   baseDaysPerYear: number;
   seniorityYearsPerBonusDay: number;
 }
+
+/** 04/11/2026: don nghi kem so ngay lam viec tinh theo lich cong ty. */
+export type LeaveRequestWithDays = LeaveRequest & { workingDays: number };
 
 @Injectable()
 export class LeaveRequestsService {
   constructor(
     @InjectDataSource() private readonly dataSource: DataSource,
     @InjectRepository(LeaveRequest) private readonly leaveRequestRepo: Repository<LeaveRequest>,
+    @InjectRepository(LeaveBalanceAdjustment) private readonly adjustmentRepo: Repository<LeaveBalanceAdjustment>,
     private readonly outboxService: OutboxService,
     private readonly leavePolicyService: LeavePolicyService,
+    private readonly workCalendarService: WorkCalendarService,
+    private readonly periodLockService: PeriodLockService,
   ) {}
 
   async create(organizationId: string, userId: string, dto: CreateLeaveRequestDto): Promise<LeaveRequest> {
@@ -58,14 +79,42 @@ export class LeaveRequestsService {
       throw new BadRequestException({ message: 'Ngày bắt đầu không được ở trong quá khứ', errorCode: ERROR_CODES.LEAVE_START_DATE_IN_PAST });
     }
 
+    // 04/11/2026: loai nghi, ngay lam viec, trung don, so du. Lich va chinh sach nap ngoai giao dich vi
+    // getOrCreate co the gap 23505 - loi do se lam hong giao dich dang mo.
+    const startDate = dto.startDate.slice(0, 10);
+    const endDate = dto.endDate.slice(0, 10);
+    const leaveType = dto.leaveType ?? inferLeaveTypeFromReason(dto.reason);
+    const book = await this.loadBookForYears(organizationId, startDate, endDate);
+    if (countWorkingDays(book, startDate, endDate) === 0) {
+      throw new BadRequestException({ message: 'Khoảng ngày đã chọn không có ngày làm việc nào', errorCode: ERROR_CODES.LEAVE_NO_WORKING_DAYS });
+    }
+    const policy = LEAVE_TYPE_RULES[leaveType].deductsBalance ? await this.leavePolicyService.getOrCreate(organizationId) : null;
+
     return this.dataSource.transaction(async (manager) => {
+      await this.lockUserLeave(manager, organizationId, userId);
+
+      const overlapping = await manager.findOne(LeaveRequest, {
+        where: {
+          organizationId,
+          userId,
+          status: In([LeaveRequestStatus.PENDING, LeaveRequestStatus.APPROVED]),
+          startDate: LessThanOrEqual(endDate),
+          endDate: MoreThanOrEqual(startDate),
+        },
+      });
+      if (overlapping) {
+        throw new ConflictException({ message: 'Khoảng ngày này trùng với một đơn nghỉ đang chờ duyệt hoặc đã duyệt của bạn', errorCode: ERROR_CODES.LEAVE_OVERLAP });
+      }
+      if (policy) await this.assertWithinBalance(manager, organizationId, userId, { startDate, endDate }, book, policy);
+
       const leaveRequest = await manager.save(
         manager.create(LeaveRequest, {
           organizationId,
           userId,
-          startDate: dto.startDate,
-          endDate: dto.endDate,
+          startDate,
+          endDate,
           reason: dto.reason,
+          leaveType,
           status: LeaveRequestStatus.PENDING,
         }),
       );
@@ -73,8 +122,8 @@ export class LeaveRequestsService {
       const payload: LeaveRequestCreatedPayload = {
         leaveRequestId: leaveRequest.id,
         userId,
-        startDate: dto.startDate,
-        endDate: dto.endDate,
+        startDate,
+        endDate,
       };
       await this.outboxService.record(manager, {
         eventType: EVENT_TYPES.LEAVE_REQUEST_CREATED,
@@ -87,14 +136,14 @@ export class LeaveRequestsService {
     });
   }
 
-  async findMine(organizationId: string, userId: string, query: LeaveRequestQueryDto): Promise<PaginatedResponse<LeaveRequest>> {
+  async findMine(organizationId: string, userId: string, query: LeaveRequestQueryDto): Promise<PaginatedResponse<LeaveRequestWithDays>> {
     const [data, total] = await this.leaveRequestRepo.findAndCount({
       where: { organizationId, userId },
       order: { createdAt: 'DESC' },
       skip: (query.page - 1) * query.limit,
       take: query.limit,
     });
-    return paginate(data, total, query.page, query.limit);
+    return paginate(await this.withWorkingDays(organizationId, data), total, query.page, query.limit);
   }
 
   /**
@@ -105,7 +154,7 @@ export class LeaveRequestsService {
    * 26/10/2026: `caller` (tuy chon) - Manager chi xem don cua chinh minh + thanh vien phong ban
    * (read-model dim_user), khong con toan to chuc; Org Admin (USER_MANAGE) giu nguyen.
    */
-  async findAll(organizationId: string, query: LeaveRequestQueryDto, caller?: ScopeCaller): Promise<PaginatedResponse<LeaveRequest>> {
+  async findAll(organizationId: string, query: LeaveRequestQueryDto, caller?: ScopeCaller): Promise<PaginatedResponse<LeaveRequestWithDays>> {
     const where: { organizationId: string; userId?: string | FindOperator<string>; status?: LeaveRequestStatus } = { organizationId };
     const userFilter = await scopeUserFilter(this.dataSource, organizationId, caller, PERMISSIONS.LEAVE_REQUEST_VIEW, query.userId);
     if (userFilter === false) return paginate([], 0, query.page, query.limit);
@@ -118,50 +167,63 @@ export class LeaveRequestsService {
       skip: (query.page - 1) * query.limit,
       take: query.limit,
     });
-    return paginate(data, total, query.page, query.limit);
+    return paginate(await this.withWorkingDays(organizationId, data), total, query.page, query.limit);
   }
 
   /**
    * 22/09/2026: So du phep nam hien tai (HRM-lite mo rong, theo de xuat cua Tien: "Số dư phép -
-   * Theo dõi còn/đã dùng - Cập nhật realtime sau khi duyệt"). Chi tra ve `usedDays` (so ngay lam
-   * viec cua CAC don APPROVED giao voi nam hien tai) + chinh sach hien hanh (baseDaysPerYear/
-   * seniorityYearsPerBonusDay) - KHONG tu tinh entitledDays/remainingDays o day vi con thieu 1
-   * thanh phan CHI frontend co san: ngay vao lam (User.createdAt, song o database rieng cua IAM
-   * Service - HRM Service khong duoc phep truy van truc tiep, database-per-service). Frontend
-   * (LeaveRequestsPage.tsx) da co san du lieu nay qua useOrgUsersQuery() (goi API that qua Gateway,
-   * khong phai truy van DB xuyen service) nen ghep not phia frontend, mirror dung pattern
-   * isNewMember/expectedDays cua MonthlyTimesheetTable.tsx cho cung 1 loai gioi han.
+   * Theo dõi còn/đã dùng - Cập nhật realtime sau khi duyệt").
+   *
+   * 04/11/2026: may chu tinh tron so du - ngay vao lam da co trong dim_user nen khong con phai ghep o
+   * frontend; dem ngay theo lich cong ty thay cho Thu 2 - Thu 6 co dinh. Cung 1 cach tinh voi kiem tra
+   * luc tao/duyet don (loadYearBalances) de so hien thi khong lech so dung de chan.
    */
   async getMyBalance(organizationId: string, userId: string): Promise<LeaveBalance> {
     const policy = await this.leavePolicyService.getOrCreate(organizationId);
-    const year = new Date().getFullYear();
-    const yearStart = `${year}-01-01`;
-    const yearEnd = `${year}-12-31`;
+    const year = Number(toGmt7DateString(new Date()).slice(0, 4));
+    const book = await this.workCalendarService.loadBook(organizationId, `${year}-01-01`, `${year}-12-31`);
+    const [balance] = await this.loadYearBalances(this.dataSource.manager, organizationId, userId, [year], book, policy);
+    return { ...balance, baseDaysPerYear: policy.baseDaysPerYear, seniorityYearsPerBonusDay: policy.seniorityYearsPerBonusDay };
+  }
 
-    const approvedThisYear = await this.leaveRequestRepo
-      .createQueryBuilder('lr')
-      .where('lr.organizationId = :organizationId', { organizationId })
-      .andWhere('lr.userId = :userId', { userId })
-      .andWhere('lr.status = :status', { status: LeaveRequestStatus.APPROVED })
-      .andWhere('lr.startDate <= :yearEnd', { yearEnd })
-      .andWhere('lr.endDate >= :yearStart', { yearStart })
-      .getMany();
-
-    let usedDays = 0;
-    for (const lr of approvedThisYear) {
-      // Cat khoang giao voi nam hien tai truoc khi dem ngay lam viec - phong truong hop don nghi
-      // vat qua giao thua nam (hiem nhung van dung).
-      const clampedStart = lr.startDate < yearStart ? yearStart : lr.startDate;
-      const clampedEnd = lr.endDate > yearEnd ? yearEnd : lr.endDate;
-      usedDays += countWorkingDaysInclusive(clampedStart, clampedEnd);
+  /** 04/11/2026: Org Admin dieu chinh so phep cua 1 nhan vien, chi them moi. */
+  async createBalanceAdjustment(organizationId: string, actorId: string, dto: CreateBalanceAdjustmentDto): Promise<LeaveBalanceAdjustment> {
+    const note = typeof dto.note === 'string' ? dto.note.trim() : '';
+    const isValid =
+      isUUID(dto.userId) &&
+      Number.isInteger(dto.year) &&
+      dto.year >= MIN_ADJUSTMENT_YEAR &&
+      dto.year <= MAX_ADJUSTMENT_YEAR &&
+      Number.isInteger(dto.days) &&
+      dto.days !== 0 &&
+      Math.abs(dto.days) <= MAX_ADJUSTMENT_DAYS &&
+      note !== '';
+    if (!isValid) {
+      throw new BadRequestException({
+        message: `Điều chỉnh phép không hợp lệ: số ngày phải là số nguyên khác 0 (tối đa ${MAX_ADJUSTMENT_DAYS}), năm hợp lệ và bắt buộc có ghi chú`,
+        errorCode: ERROR_CODES.LEAVE_ADJUSTMENT_INVALID,
+      });
+    }
+    const member = await this.dataSource.getRepository(DimUser).findOne({ where: { userId: dto.userId, organizationId } });
+    if (!member) {
+      throw new BadRequestException({ message: 'Nhân viên không thuộc tổ chức của bạn', errorCode: ERROR_CODES.LEAVE_ADJUSTMENT_INVALID });
     }
 
-    return {
-      year,
-      usedDays,
-      baseDaysPerYear: policy.baseDaysPerYear,
-      seniorityYearsPerBonusDay: policy.seniorityYearsPerBonusDay,
-    };
+    return this.adjustmentRepo.save(
+      this.adjustmentRepo.create({ organizationId, userId: dto.userId, year: dto.year, days: dto.days, note, createdByUserId: actorId }),
+    );
+  }
+
+  async findBalanceAdjustments(organizationId: string, query: BalanceAdjustmentQueryDto): Promise<LeaveBalanceAdjustment[]> {
+    return this.adjustmentRepo.find({
+      where: {
+        organizationId,
+        ...(query.userId ? { userId: query.userId } : {}),
+        ...(query.year !== undefined ? { year: query.year } : {}),
+      },
+      order: { createdAt: 'DESC' },
+      take: MAX_ADJUSTMENTS_LISTED,
+    });
   }
 
   // 26/10/2026: `caller` (tuy chon) - Manager chi duyet don cua thanh vien phong ban, khong tu duyet (xem assertCanDecide()).
@@ -177,6 +239,9 @@ export class LeaveRequestsService {
    * Duyet/tu choi 1 yeu cau nghi phep - mirror pattern khoa pessimistic_write + re-check cua
    * ProjectsService.complete()/archive() (apps/project-task-service) de tranh race condition khi
    * 2 Manager cung duyet 1 yeu cau dong thoi (vd 1 duyet, 1 tu choi cung luc).
+   *
+   * 04/11/2026: duyet phep nam phai kiem tra lai so du (chinh sach/dieu chinh co the da doi tu luc tao
+   * don); ca duyet lan tu choi deu bi chan khi thang cua don da khoa ky cong.
    */
   private async decide(
     organizationId: string,
@@ -198,7 +263,17 @@ export class LeaveRequestsService {
       });
     }
 
+    // 04/11/2026: nap ngoai giao dich, ly do nhu trong create().
+    const isApproving = toStatus === LeaveRequestStatus.APPROVED;
+    const needsBalanceCheck = isApproving && LEAVE_TYPE_RULES[existing.leaveType].deductsBalance;
+    const book = needsBalanceCheck ? await this.loadBookForYears(organizationId, existing.startDate, existing.endDate) : null;
+    const policy = needsBalanceCheck ? await this.leavePolicyService.getOrCreate(organizationId) : null;
+
     return this.dataSource.transaction(async (manager) => {
+      // 04/11/2026: khoa theo nguoi TRUOC khoa dong (khop thu tu trong create()) de khong the deadlock va
+      // 2 don cua cung 1 nguoi khong duoc duyet song song cung vuot so du.
+      if (isApproving) await this.lockUserLeave(manager, organizationId, existing.userId);
+
       const leaveRequest = await manager.findOne(LeaveRequest, {
         where: { id, organizationId },
         lock: { mode: 'pessimistic_write' },
@@ -210,6 +285,9 @@ export class LeaveRequestsService {
         errorCode: ERROR_CODES.LEAVE_REQUEST_ALREADY_DECIDED,
       });
       }
+
+      await this.periodLockService.assertOpen(organizationId, monthProbes(leaveRequest.startDate, leaveRequest.endDate), manager);
+      if (book && policy) await this.assertWithinBalance(manager, organizationId, leaveRequest.userId, leaveRequest, book, policy);
 
       leaveRequest.status = toStatus;
       leaveRequest.approverId = approverId;
@@ -282,5 +360,88 @@ export class LeaveRequestsService {
 
       return updated;
     });
+  }
+
+  /** 04/11/2026: serialize moi kiem tra trung don/so du cua 1 nguoi, giai phong khi giao dich ket thuc. */
+  private async lockUserLeave(manager: EntityManager, organizationId: string, userId: string): Promise<void> {
+    await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`leave:${organizationId}:${userId}`]);
+  }
+
+  /** 04/11/2026: lich cua tron cac nam ma don cham toi - du de dem ca don khac cua nguoi do trong nhung nam ay. */
+  private loadBookForYears(organizationId: string, startDate: string, endDate: string): Promise<CalendarBook> {
+    return this.workCalendarService.loadBook(organizationId, `${startDate.slice(0, 4)}-01-01`, `${endDate.slice(0, 4)}-12-31`);
+  }
+
+  /** 04/11/2026: `book` phai phu tron cac nam trong `years`. `excludeRequestId` xem computeYearBalance(). */
+  private async loadYearBalances(
+    manager: EntityManager,
+    organizationId: string,
+    userId: string,
+    years: number[],
+    book: CalendarBook,
+    policy: LeavePolicyRules,
+    excludeRequestId?: string,
+  ): Promise<YearBalance[]> {
+    const requests = await manager.find(LeaveRequest, {
+      where: {
+        organizationId,
+        userId,
+        status: In([LeaveRequestStatus.PENDING, LeaveRequestStatus.APPROVED]),
+        startDate: LessThanOrEqual(`${years[years.length - 1]}-12-31`),
+        endDate: MoreThanOrEqual(`${years[0]}-01-01`),
+      },
+    });
+    const adjustments = await manager.find(LeaveBalanceAdjustment, { where: { organizationId, userId, year: In(years) } });
+    const member = await manager.findOne(DimUser, { where: { userId, organizationId } });
+    const today = toGmt7DateString(new Date());
+
+    return years.map((year) =>
+      computeYearBalance({
+        year,
+        today,
+        joinedAt: member?.joinedAt,
+        policy,
+        adjustmentDays: adjustments.filter((adjustment) => adjustment.year === year).reduce((sum, adjustment) => sum + adjustment.days, 0),
+        requests,
+        book,
+        excludeRequestId,
+      }),
+    );
+  }
+
+  /**
+   * 04/11/2026: voi tung nam ma don cham toi: da duyet + dang cho + don nay khong duoc vuot thuc huong. Nam
+   * chi bi cham boi ngay khong phai ngay lam viec (vd don ket thuc vao 01/01 la ngay le) khong bi xet.
+   */
+  private async assertWithinBalance(
+    manager: EntityManager,
+    organizationId: string,
+    userId: string,
+    request: { id?: string; startDate: string; endDate: string },
+    book: CalendarBook,
+    policy: LeavePolicyRules,
+  ): Promise<void> {
+    const years = yearsInRange(request.startDate, request.endDate);
+    const balances = await this.loadYearBalances(manager, organizationId, userId, years, book, policy, request.id);
+    for (const balance of balances) {
+      const requestedDays = countWorkingDaysInYear(book, request.startDate, request.endDate, balance.year);
+      if (requestedDays > 0 && requestedDays > balance.remainingDays) {
+        const remainingDays = Math.max(0, balance.remainingDays);
+        throw new BadRequestException({
+          message: `Số ngày nghỉ vượt quá số phép còn lại của năm ${balance.year}: cần ${requestedDays} ngày, còn ${remainingDays} ngày`,
+          errorCode: ERROR_CODES.LEAVE_BALANCE_EXCEEDED,
+          errorParams: { year: balance.year, requestedDays, remainingDays },
+        });
+      }
+    }
+  }
+
+  /** 04/11/2026: nap lich 1 lan cho ca trang roi dem cho tung don. */
+  private async withWorkingDays(organizationId: string, rows: LeaveRequest[]): Promise<LeaveRequestWithDays[]> {
+    if (rows.length === 0) return [];
+    const from = rows.reduce((min, row) => (row.startDate < min ? row.startDate : min), rows[0].startDate);
+    const to = rows.reduce((max, row) => (row.endDate > max ? row.endDate : max), rows[0].endDate);
+    const book = await this.workCalendarService.loadBook(organizationId, from, to);
+    return rows.map((row) => ({ ...row, workingDays: countWorkingDays(book, row.startDate, row.endDate) }));
   }
 }

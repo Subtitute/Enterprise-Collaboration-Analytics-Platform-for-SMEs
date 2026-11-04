@@ -12,6 +12,11 @@ import { CalendarEventQueryDto } from './dto/calendar-event-query.dto';
 
 const PRODUCER = 'hrm-service';
 
+/** 04/11/2026: loai muc lich lam doi lich lam viec cua ca to chuc - chi nhom giu CALENDAR_MANAGE moi dung vao. */
+function isCompanyWideType(type?: CalendarEventType): boolean {
+  return type === CalendarEventType.HOLIDAY || type === CalendarEventType.MAKEUP_WORKDAY;
+}
+
 /**
  * Lich cong ty (HRM-lite mo rong) - ngay le (HOLIDAY) + su kien/dat lich (EVENT).
  *
@@ -28,6 +33,10 @@ const PRODUCER = 'hrm-service';
  *   quyen tung nguoi (vd 1 Manager van sua/xoa duoc HOLIDAY do Org Admin tao, mien la giu
  *   CALENDAR_MANAGE - khac voi EVENT, noi tham quyen THAP HON khong dung duoc vao muc do nguoi
  *   tham quyen CAO HON tao).
+ *
+ * 04/11/2026: MAKEUP_WORKDAY (ngay lam bu) dung dung quy tac quyen cua HOLIDAY vi cung lam doi lich lam
+ * viec cua ca to chuc (xem isCompanyWideType()). findHolidayForDate() van chi tinh HOLIDAY: lam bu khong
+ * chan cham cong.
  */
 @Injectable()
 export class CalendarEventsService {
@@ -75,20 +84,22 @@ export class CalendarEventsService {
   ): void {
     const hasCalendarManage = permissions.includes(PERMISSIONS.CALENDAR_MANAGE);
     const targetType = nextType ?? existing.type;
-    const touchesHoliday = existing.type === CalendarEventType.HOLIDAY || targetType === CalendarEventType.HOLIDAY;
+    const touchesCompanyWide = isCompanyWideType(existing.type) || isCompanyWideType(targetType);
 
     // Dung toi mot HOLIDAY (dang la HOLIDAY, HOAC dang doi SANG/giu HOLIDAY qua PATCH) deu doi hoi
     // CALENDAR_MANAGE - "san choi rieng" cua Org Admin/Manager, BAT KE chu so huu/tham quyen.
-    if (touchesHoliday && !hasCalendarManage) {
+    // 04/11/2026: ap dung ca cho MAKEUP_WORKDAY.
+    if (touchesCompanyWide && !hasCalendarManage) {
       throw new ForbiddenException({
-        message: 'Bạn không đủ quyền thao tác với ngày nghỉ lễ công ty',
+        message: 'Bạn không đủ quyền thao tác với ngày nghỉ lễ hoặc ngày làm bù của công ty',
         errorCode: ERROR_CODES.CALENDAR_EVENT_FORBIDDEN_HOLIDAY,
       });
     }
 
     // Da la HOLIDAY tu truoc: vua xac nhan CALENDAR_MANAGE o tren la DU, khong so sanh tham quyen
     // tung nguoi nua (ke ca dang "ha cap" ve EVENT qua PATCH - van la thao tac tren 1 HOLIDAY).
-    if (existing.type === CalendarEventType.HOLIDAY) return;
+    // 04/11/2026: ap dung ca cho MAKEUP_WORKDAY.
+    if (isCompanyWideType(existing.type)) return;
 
     // Tu day tro di existing CHAC CHAN la EVENT. QUAN TRONG: van phai ap dung dung quy tac EVENT
     // (chu so huu HOAC tham quyen cao hon) ngay ca khi dang doi SANG HOLIDAY qua PATCH - da xac
@@ -118,9 +129,10 @@ export class CalendarEventsService {
   async create(organizationId: string, userId: string, permissions: string[], dto: CreateCalendarEventDto): Promise<CalendarEvent> {
     // 03/10/2026: tao HOLIDAY doi hoi CALENDAR_MANAGE - kiem tra o day (khong phai decorator tinh
     // tren controller) vi phu thuoc dto.type (body cua request).
-    if (dto.type === CalendarEventType.HOLIDAY && !permissions.includes(PERMISSIONS.CALENDAR_MANAGE)) {
+    // 04/11/2026: ap dung ca cho MAKEUP_WORKDAY.
+    if (isCompanyWideType(dto.type) && !permissions.includes(PERMISSIONS.CALENDAR_MANAGE)) {
       throw new ForbiddenException({
-        message: 'Bạn không đủ quyền tạo ngày nghỉ lễ công ty',
+        message: 'Bạn không đủ quyền tạo ngày nghỉ lễ hoặc ngày làm bù của công ty',
         errorCode: ERROR_CODES.CALENDAR_EVENT_FORBIDDEN_HOLIDAY,
       });
     }

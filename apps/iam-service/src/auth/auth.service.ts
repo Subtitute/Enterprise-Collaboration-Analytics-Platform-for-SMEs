@@ -25,6 +25,7 @@ import { LoginDto } from './dto/login.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { isPostgresUniqueViolation } from '../common/db-errors.util';
+import { toJoinedAt } from '../users/joined-at.util';
 import {
   DefaultRoleName,
   ERROR_CODES,
@@ -185,6 +186,8 @@ export class AuthService {
           actorId: user.id,
           // 26/10/2026: nguoi dang ky to chuc luon la Org Admin (muc vai tro cho ml-service, muc 27.4).
           roleLevel: 'ORG_ADMIN',
+          // 04/11/2026: ngay vao lam cho dim_user cua hrm-service.
+          joinedAt: toJoinedAt(user.createdAt),
         };
         await this.outboxService.record(manager, {
           eventType: EVENT_TYPES.USER_REGISTERED,

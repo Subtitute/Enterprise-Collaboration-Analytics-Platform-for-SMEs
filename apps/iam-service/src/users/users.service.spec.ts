@@ -230,6 +230,25 @@ describe('UsersService', () => {
       expect(result.departmentId).toBe('dept-new');
     });
 
+    // 04/11/2026: doi phong ban thuong gui kem joinedAt neu ban ghi co createdAt.
+    it('USER_DEPARTMENT_CHANGED gui kem joinedAt theo ngay GMT+7 cua createdAt', async () => {
+      const existingUser = { id: 'user-1', organizationId: ORG_ID, departmentId: 'dept-old', roles: [], createdAt: new Date('2024-03-14T18:30:00Z') };
+      userRepo.findOne.mockResolvedValue(existingUser);
+      departmentRepo.findOne.mockResolvedValue({ id: 'dept-new', organizationId: ORG_ID });
+      managerMock.findOneOrFail.mockResolvedValue(existingUser);
+      managerMock.save.mockImplementation(async (u: any) => u);
+
+      await service.update(ORG_ID, 'user-1', { departmentId: 'dept-new' } as any, [], ACTOR_ID);
+
+      expect(outboxService.record).toHaveBeenCalledWith(
+        managerMock,
+        expect.objectContaining({
+          eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,
+          payload: { userId: 'user-1', departmentId: 'dept-new', actorId: ACTOR_ID, joinedAt: '2024-03-15' },
+        }),
+      );
+    });
+
     it('phat outbox event USER_DEPARTMENT_CHANGED voi departmentId=null khi go user khoi phong ban', async () => {
       const existingUser = {
         id: 'user-1',

@@ -15,6 +15,7 @@ import { ScopeCaller, assertCanDecide, scopeUserFilter } from '../user-directory
 import { AttendanceAdjustment, AttendanceAdjustmentStatus } from '../entities/attendance-adjustment.entity';
 import { Attendance } from '../entities/attendance.entity';
 import { OutboxService } from '../outbox/outbox.service';
+import { PeriodLockService } from '../work-calendar/period-lock.service';
 import { CreateAttendanceAdjustmentDto } from './dto/create-attendance-adjustment.dto';
 import { DecideAttendanceAdjustmentDto } from './dto/decide-attendance-adjustment.dto';
 import { AttendanceAdjustmentQueryDto } from './dto/attendance-adjustment-query.dto';
@@ -36,6 +37,7 @@ export class AttendanceAdjustmentsService {
     @InjectRepository(AttendanceAdjustment) private readonly adjustmentRepo: Repository<AttendanceAdjustment>,
     @InjectRepository(Attendance) private readonly attendanceRepo: Repository<Attendance>,
     private readonly outboxService: OutboxService,
+    private readonly periodLockService: PeriodLockService,
   ) {}
 
   async create(
@@ -73,6 +75,9 @@ export class AttendanceAdjustmentsService {
         errorCode: ERROR_CODES.ATTENDANCE_ADJUSTMENT_INVALID_RANGE,
       });
     }
+    // 04/11/2026: thang da khoa ky cong khong nhan don moi. Don PENDING chua doi gio cham cong, nen khong can
+    // giu khoa toi luc luu - neu lot qua trong luc dang khoa thi buoc duyet van bi chan.
+    await this.periodLockService.assertOpen(organizationId, [attendance.workDate]);
 
     return this.adjustmentRepo.save(
       this.adjustmentRepo.create({
@@ -201,6 +206,8 @@ export class AttendanceAdjustmentsService {
           errorCode: ERROR_CODES.ATTENDANCE_ADJUSTMENT_ALREADY_DECIDED,
         });
       }
+      // 04/11/2026: ca duyet lan tu choi deu bi chan khi thang cua don da khoa ky cong.
+      await this.periodLockService.assertOpen(organizationId, [adjustment.workDate], manager);
 
       adjustment.status = toStatus;
       adjustment.approverId = approverId;

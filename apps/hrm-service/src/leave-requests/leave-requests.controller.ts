@@ -8,6 +8,8 @@ import { LeaveRequestsService } from './leave-requests.service';
 import { CreateLeaveRequestDto } from './dto/create-leave-request.dto';
 import { DecideLeaveRequestDto } from './dto/decide-leave-request.dto';
 import { LeaveRequestQueryDto } from './dto/leave-request-query.dto';
+import { CreateBalanceAdjustmentDto } from './dto/create-balance-adjustment.dto';
+import { BalanceAdjustmentQueryDto } from './dto/balance-adjustment-query.dto';
 
 /** Nghi phep - Technical_Spec.md muc 17, Wireframe.md muc 13. */
 @ApiTags('LeaveRequests')
@@ -43,6 +45,23 @@ export class LeaveRequestsController {
     @CurrentUser('userId') userId: string,
   ) {
     return this.leaveRequestsService.getMyBalance(organizationId, userId);
+  }
+
+  /** 04/11/2026: dieu chinh so phep - chi Org Admin, chi them moi (khong co sua/xoa). */
+  @Post('balance-adjustments')
+  @RequirePermissions(PERMISSIONS.ORG_MANAGE)
+  createBalanceAdjustment(
+    @CurrentUser('organizationId') organizationId: string,
+    @CurrentUser('userId') actorId: string,
+    @Body() dto: CreateBalanceAdjustmentDto,
+  ) {
+    return this.leaveRequestsService.createBalanceAdjustment(organizationId, actorId, dto);
+  }
+
+  @Get('balance-adjustments')
+  @RequirePermissions(PERMISSIONS.ORG_MANAGE)
+  findBalanceAdjustments(@CurrentUser('organizationId') organizationId: string, @Query() query: BalanceAdjustmentQueryDto) {
+    return this.leaveRequestsService.findBalanceAdjustments(organizationId, query);
   }
 
   @Get()

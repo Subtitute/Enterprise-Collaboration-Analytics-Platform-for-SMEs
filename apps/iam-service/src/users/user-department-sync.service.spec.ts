@@ -46,7 +46,21 @@ describe('UserDepartmentSyncService', () => {
 
     expect(userRepo.createQueryBuilder).toHaveBeenCalledWith('u');
     expect(qbMock.leftJoin).toHaveBeenCalledWith('u.roles', 'r');
-    expect(qbMock.select).toHaveBeenCalledWith(['u.id', 'u.organizationId', 'u.departmentId', 'u.isActive', 'r.id', 'r.name']);
+    // 04/11/2026: them u.createdAt de phat joinedAt.
+    expect(qbMock.select).toHaveBeenCalledWith(['u.id', 'u.organizationId', 'u.departmentId', 'u.isActive', 'u.createdAt', 'r.id', 'r.name']);
+  });
+
+  // 04/11/2026: dot resync la nguon lap day dim_user.joined_at (hrm-service) cho user da co tu truoc.
+  it('phat joinedAt theo ngay GMT+7 tu createdAt, khong co createdAt thi bo field', async () => {
+    qbMock.getMany.mockResolvedValue([
+      { id: 'user-1', organizationId: 'org-1', departmentId: null, createdAt: new Date('2024-03-14T18:30:00Z') },
+      { id: 'user-2', organizationId: 'org-1', departmentId: null },
+    ]);
+
+    await service.onApplicationBootstrap();
+
+    expect(outboxService.record.mock.calls[0][1].payload).toEqual({ userId: 'user-1', departmentId: null, actorId: null, joinedAt: '2024-03-15' });
+    expect(JSON.parse(JSON.stringify(outboxService.record.mock.calls[2][1].payload))).not.toHaveProperty('joinedAt');
   });
 
   it('phat 1 outbox event USER_DEPARTMENT_CHANGED cho MOI user, tren TAT CA to chuc, voi departmentId hien tai', async () => {

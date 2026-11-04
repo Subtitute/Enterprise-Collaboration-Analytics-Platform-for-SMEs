@@ -16,6 +16,13 @@ import { LeavePolicy } from './entities/leave-policy.entity';
 import { OutboxEvent } from './entities/outbox-event.entity';
 // 26/10/2026: read-model user -> phong ban cho pham vi xem/duyet cua Manager (xem src/user-directory).
 import { DimUser } from './entities/dim-user.entity';
+// 04/11/2026: lich lam viec, dieu chinh so phep, ky cong - xem src/work-calendar.
+import { WorkSchedule } from './entities/work-schedule.entity';
+import { LeaveBalanceAdjustment } from './entities/leave-balance-adjustment.entity';
+import { TimesheetPeriod } from './entities/timesheet-period.entity';
+import { TimesheetEntry } from './entities/timesheet-entry.entity';
+import { WorkCalendarModule } from './work-calendar/work-calendar.module';
+import { TimesheetsModule } from './timesheets/timesheets.module';
 import { UserDirectoryModule } from './user-directory/user-directory.module';
 import { KafkaModule } from './kafka/kafka.module';
 import { MinioModule } from './minio/minio.module';
@@ -40,7 +47,20 @@ import { HealthController } from './health/health.controller';
         username: config.get<string>('db.user'),
         password: config.get<string>('db.password'),
         database: config.get<string>('db.name'),
-        entities: [Attendance, LeaveRequest, CalendarEvent, AttendanceAdjustment, OvertimeRequest, LeavePolicy, OutboxEvent, DimUser],
+        entities: [
+          Attendance,
+          LeaveRequest,
+          CalendarEvent,
+          AttendanceAdjustment,
+          OvertimeRequest,
+          LeavePolicy,
+          OutboxEvent,
+          DimUser,
+          WorkSchedule,
+          LeaveBalanceAdjustment,
+          TimesheetPeriod,
+          TimesheetEntry,
+        ],
         // MVP: dung synchronize thay vi migration thu cong - Technical_Spec.md muc 14 (gioi han da biet).
         synchronize: true,
       }),
@@ -58,6 +78,8 @@ import { HealthController } from './health/health.controller';
     AttendanceAdjustmentsModule,
     OvertimeRequestsModule,
     LeavePolicyModule,
+    WorkCalendarModule,
+    TimesheetsModule,
     UserDirectoryModule,
   ],
   controllers: [HealthController, MetricsController],

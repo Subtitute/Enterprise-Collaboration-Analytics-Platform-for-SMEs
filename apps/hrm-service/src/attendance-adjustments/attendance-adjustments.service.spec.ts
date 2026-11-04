@@ -51,6 +51,7 @@ describe('AttendanceAdjustmentsService', () => {
     adjustmentRepoMock?: { findOne: jest.Mock };
     attendanceRepoMock?: { findOne: jest.Mock };
     managerMock?: { findOne?: jest.Mock; save: jest.Mock; update?: jest.Mock };
+    assertOpen?: jest.Mock;
   } = {}) {
     const managerMock =
       opts.managerMock ??
@@ -66,16 +67,53 @@ describe('AttendanceAdjustmentsService', () => {
     };
     const attendanceRepoMock = opts.attendanceRepoMock ?? { findOne: jest.fn() };
     const outboxServiceMock = { record: jest.fn().mockResolvedValue(undefined) };
+    // 04/11/2026: mac dinh ky cong dang mo.
+    const periodLockServiceMock = { assertOpen: opts.assertOpen ?? jest.fn().mockResolvedValue(undefined) };
 
     const service = new AttendanceAdjustmentsService(
       dataSourceMock as any,
       adjustmentRepoMock as any,
       attendanceRepoMock as any,
       outboxServiceMock as any,
+      periodLockServiceMock as any,
     );
 
-    return { service, dataSourceMock, managerMock, adjustmentRepoMock, attendanceRepoMock, outboxServiceMock };
+    return { service, dataSourceMock, managerMock, adjustmentRepoMock, attendanceRepoMock, outboxServiceMock, periodLockServiceMock };
   }
+
+  // 04/11/2026: thang da khoa ky cong khong nhan giai trinh moi, khong duyet/tu choi duoc.
+  describe('ky cong da khoa', () => {
+    const locked = () => jest.fn().mockRejectedValue(Object.assign(new Error('locked'), { response: { errorCode: ERROR_CODES.TIMESHEET_PERIOD_LOCKED } }));
+
+    it('create bi chan, khong luu', async () => {
+      const workDate = todayDateStr();
+      const attendanceRepoMock = { findOne: jest.fn().mockResolvedValue({ id: attendanceId, organizationId, userId, workDate, checkInAt: new Date(), checkOutAt: null }) };
+      const { service, adjustmentRepoMock, periodLockServiceMock } = createService({ attendanceRepoMock, assertOpen: locked() });
+      const dto: CreateAttendanceAdjustmentDto = {
+        attendanceId,
+        proposedCheckInAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        proposedCheckOutAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+        reason: 'x',
+      };
+      await expect(service.create(organizationId, userId, dto)).rejects.toMatchObject({ response: { errorCode: ERROR_CODES.TIMESHEET_PERIOD_LOCKED } });
+      expect(periodLockServiceMock.assertOpen).toHaveBeenCalledWith(organizationId, [workDate]);
+      expect((adjustmentRepoMock as any).save).not.toHaveBeenCalled();
+    });
+
+    it.each(['approve', 'reject'] as const)('%s bi chan trong giao dich, khong doi gio cham cong, khong ghi outbox', async (action) => {
+      const managerMock = { findOne: jest.fn().mockResolvedValue(pendingAdjustment()), save: jest.fn(), update: jest.fn() };
+      const { service, outboxServiceMock, periodLockServiceMock } = createService({
+        adjustmentRepoMock: { findOne: jest.fn().mockResolvedValue(pendingAdjustment()) },
+        managerMock,
+        assertOpen: locked(),
+      });
+      await expect(service[action](organizationId, adjustmentId, approverId, {})).rejects.toMatchObject({ response: { errorCode: ERROR_CODES.TIMESHEET_PERIOD_LOCKED } });
+      expect(periodLockServiceMock.assertOpen).toHaveBeenCalledWith(organizationId, [pendingAdjustment().workDate], managerMock);
+      expect(managerMock.save).not.toHaveBeenCalled();
+      expect(managerMock.update).not.toHaveBeenCalled();
+      expect(outboxServiceMock.record).not.toHaveBeenCalled();
+    });
+  });
 
   describe('create', () => {
     it('tao yeu cau giai trinh thanh cong voi trang thai PENDING, chup lai gio goc tu Attendance', async () => {

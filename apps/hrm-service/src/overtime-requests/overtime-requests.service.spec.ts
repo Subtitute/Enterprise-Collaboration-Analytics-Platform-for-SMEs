@@ -38,6 +38,7 @@ describe('OvertimeRequestsService', () => {
   function createService(opts: {
     overtimeRepoMock?: { findOne: jest.Mock; find?: jest.Mock; create?: jest.Mock; save?: jest.Mock };
     managerMock?: { findOne?: jest.Mock; save: jest.Mock };
+    assertOpen?: jest.Mock;
   } = {}) {
     const managerMock =
       opts.managerMock ??
@@ -50,11 +51,48 @@ describe('OvertimeRequestsService', () => {
       save: jest.fn((entity: unknown) => Promise.resolve({ id: overtimeId, ...(entity as object) })),
     };
     const outboxServiceMock = { record: jest.fn().mockResolvedValue(undefined) };
+    // 04/11/2026: mac dinh ky cong dang mo.
+    const periodLockServiceMock = { assertOpen: opts.assertOpen ?? jest.fn().mockResolvedValue(undefined) };
 
-    const service = new OvertimeRequestsService(dataSourceMock as any, overtimeRepoMock as any, outboxServiceMock as any);
+    const service = new OvertimeRequestsService(dataSourceMock as any, overtimeRepoMock as any, outboxServiceMock as any, periodLockServiceMock as any);
 
-    return { service, dataSourceMock, managerMock, overtimeRepoMock, outboxServiceMock };
+    return { service, dataSourceMock, managerMock, overtimeRepoMock, outboxServiceMock, periodLockServiceMock };
   }
+
+  // 04/11/2026: thang da khoa ky cong khong nhan don moi, khong duyet/tu choi duoc.
+  describe('ky cong da khoa', () => {
+    const locked = () => jest.fn().mockRejectedValue(Object.assign(new Error('locked'), { response: { errorCode: ERROR_CODES.TIMESHEET_PERIOD_LOCKED } }));
+    const dto: CreateOvertimeRequestDto = { workDate, otStart: '18:00', otEnd: '20:00', multiplierType: OvertimeMultiplierType.WEEKDAY, reason: 'x' };
+
+    it('create bi chan, khong luu', async () => {
+      const { service, overtimeRepoMock, periodLockServiceMock } = createService({ assertOpen: locked() });
+      await expect(service.create(organizationId, userId, dto)).rejects.toMatchObject({ response: { errorCode: ERROR_CODES.TIMESHEET_PERIOD_LOCKED } });
+      expect(periodLockServiceMock.assertOpen).toHaveBeenCalledWith(organizationId, [workDate]);
+      expect(overtimeRepoMock.save).not.toHaveBeenCalled();
+    });
+
+    it.each(['approve', 'reject'] as const)('%s bi chan trong giao dich, khong luu, khong ghi outbox', async (action) => {
+      const managerMock = { findOne: jest.fn().mockResolvedValue(pendingOvertime()), save: jest.fn() };
+      const { service, outboxServiceMock, periodLockServiceMock } = createService({
+        overtimeRepoMock: { findOne: jest.fn().mockResolvedValue(pendingOvertime()) },
+        managerMock,
+        assertOpen: locked(),
+      });
+      await expect(service[action](organizationId, overtimeId, approverId, {})).rejects.toMatchObject({ response: { errorCode: ERROR_CODES.TIMESHEET_PERIOD_LOCKED } });
+      expect(periodLockServiceMock.assertOpen).toHaveBeenCalledWith(organizationId, [workDate], managerMock);
+      expect(managerMock.save).not.toHaveBeenCalled();
+      expect(outboxServiceMock.record).not.toHaveBeenCalled();
+    });
+
+    it('ky mo: van duyet binh thuong', async () => {
+      const { service, periodLockServiceMock } = createService({
+        overtimeRepoMock: { findOne: jest.fn().mockResolvedValue(pendingOvertime()) },
+        managerMock: { findOne: jest.fn().mockResolvedValue(pendingOvertime()), save: jest.fn((entity: unknown) => Promise.resolve(entity)) },
+      });
+      await expect(service.approve(organizationId, overtimeId, approverId, {})).resolves.toMatchObject({ status: OvertimeRequestStatus.APPROVED });
+      expect(periodLockServiceMock.assertOpen).toHaveBeenCalledTimes(1);
+    });
+  });
 
   describe('create', () => {
     it('tao yeu cau OT thanh cong, SERVER TU TINH multiplier tu multiplierType (khong nhan tu client)', async () => {

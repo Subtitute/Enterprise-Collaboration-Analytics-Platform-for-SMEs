@@ -12,6 +12,9 @@ export * from './enums/deal-stage.enum';
 export * from './enums/leave-request-status.enum';
 // 15/09/2026: Lich cong ty (HRM-lite mo rong) - xem enums/calendar-event-type.enum.ts.
 export * from './enums/calendar-event-type.enum';
+// 04/11/2026: loai nghi phep va ky hieu bang cong - xem enums/leave-type.enum.ts, enums/timesheet-symbol.enum.ts.
+export * from './enums/leave-type.enum';
+export * from './enums/timesheet-symbol.enum';
 // 15/10/2026: Inventory Service (Danh muc san pham + Kho) - xem enums/stock-movement-type.enum.ts.
 export * from './enums/stock-movement-type.enum';
 export * from './interfaces/auth-context.interface';

@@ -94,7 +94,8 @@ const TOOLS: ChatbotTool[] = [
   },
   {
     name: 'get_my_leave_balance',
-    description: 'Lấy số ngày nghỉ phép năm của chính người dùng trong năm hiện tại: số ngày được hưởng, đã dùng và còn lại.',
+    // 04/11/2026: them "dang cho duyet" - remainingDays da tru ca don dang cho.
+    description: 'Lấy số ngày nghỉ phép năm của chính người dùng trong năm hiện tại: số ngày được hưởng, đã dùng, đang chờ duyệt và còn lại.',
     parameters: { type: 'object', properties: {} },
   },
   {
@@ -283,39 +284,33 @@ export class ChatbotToolsService {
   }
 
   /**
-   * So ngay phep THUC HUONG = phep nam co ban + phep tham nien (floor(so nam lam viec / chu ky)) - mirror
-   * DUNG cach LeaveRequestsPage.tsx (apps/web) dang tinh tu GET /leave-requests/me/balance + ngay tao tai
-   * khoan (GET /users/:id cua chinh minh), de bot va giao dien khong bao 2 con so khac nhau. Backend tinh
-   * san, model chi dien giai (cung nguyen tac "AI khong tu tinh so lieu" cua Nhan xet AI).
+   * 04/11/2026: so lieu phep do hrm-service tinh (GET /leave-requests/me/balance: co ban + tham nien + dieu
+   * chinh, tru da duyet va dang cho) - bo phan tu tinh va loi goi /users/:id, de bot, giao dien va kiem tra
+   * don khong bao 2 con so khac nhau. Model chi dien giai (cung nguyen tac "AI khong tu tinh so lieu" cua
+   * Nhan xet AI).
    */
   private async getMyLeaveBalance(ctx: ToolContext, timeoutMs: number): Promise<ToolResult> {
     const balance = await this.callGateway<{
       year: number;
-      usedDays: number;
+      entitledDays: number;
       baseDaysPerYear: number;
-      seniorityYearsPerBonusDay: number;
+      seniorityBonusDays: number;
+      adjustmentDays: number;
+      usedDays: number;
+      pendingDays: number;
+      remainingDays: number;
     }>('GET', '/leave-requests/me/balance', ctx, timeoutMs);
 
-    let seniorityBonusDays = 0;
-    let note: string | undefined;
-    try {
-      const me = await this.callGateway<{ createdAt?: string }>('GET', `/users/${ctx.userId}`, ctx, timeoutMs);
-      const joinedAt = me.createdAt ? new Date(me.createdAt).getTime() : NaN;
-      const yearsOfService = Number.isNaN(joinedAt) ? 0 : Math.max(0, Math.floor((Date.now() - joinedAt) / (365.25 * 24 * 60 * 60 * 1000)));
-      seniorityBonusDays = balance.seniorityYearsPerBonusDay > 0 ? Math.floor(yearsOfService / balance.seniorityYearsPerBonusDay) : 0;
-    } catch {
-      note = 'Không lấy được ngày vào làm nên chưa cộng ngày phép thâm niên.';
-    }
-    const entitledDays = balance.baseDaysPerYear + seniorityBonusDays;
     return {
       data: {
         year: balance.year,
-        entitledDays,
+        entitledDays: balance.entitledDays,
         baseDaysPerYear: balance.baseDaysPerYear,
-        seniorityBonusDays,
+        seniorityBonusDays: balance.seniorityBonusDays,
+        adjustmentDays: balance.adjustmentDays,
         usedDays: balance.usedDays,
-        remainingDays: entitledDays - balance.usedDays,
-        ...(note ? { note } : {}),
+        pendingDays: balance.pendingDays,
+        remainingDays: balance.remainingDays,
       },
     };
   }

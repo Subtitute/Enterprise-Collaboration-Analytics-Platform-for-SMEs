@@ -261,6 +261,16 @@ describe('UsersService - ho so, avatar, danh sach nhan vien', () => {
         payload: expect.objectContaining({ roleLevel: 'MANAGER' }),
       }));
     });
+
+    // 04/11/2026: ngay vao lam cho dim_user cua hrm-service, tinh theo lich GMT+7.
+    it('USER_REGISTERED mang joinedAt theo ngay GMT+7 cua createdAt', async () => {
+      manager.save.mockImplementation(async (entity: any) => ({ id: 'new-id', createdAt: new Date('2024-03-14T18:30:00Z'), roles: entity.roles ?? [], ...entity }));
+      await service.invite(ORG, { email: 'moi@x.vn', fullName: 'Moi' } as any, [PERMISSIONS.USER_MANAGE]);
+      expect(outboxService.record).toHaveBeenCalledWith(manager, expect.objectContaining({
+        eventType: EVENT_TYPES.USER_REGISTERED,
+        payload: expect.objectContaining({ joinedAt: '2024-03-15' }),
+      }));
+    });
   });
 
   // 26/10/2026: KHONG tao tai khoan 0 vai tro (Manager moi truoc day tao user 0 quyen).

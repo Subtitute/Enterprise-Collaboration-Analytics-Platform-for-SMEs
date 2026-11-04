@@ -10,7 +10,7 @@ describe('user-directory', () => {
   const dept = '33333333-3333-4333-8333-333333333333';
 
   function makeDataSource(rows: Array<{ userId: string }> = []) {
-    const repo = { upsert: jest.fn(), delete: jest.fn(), find: jest.fn().mockResolvedValue(rows) };
+    const repo = { upsert: jest.fn(), update: jest.fn(), delete: jest.fn(), find: jest.fn().mockResolvedValue(rows) };
     return { repo, dataSource: { getRepository: jest.fn().mockReturnValue(repo) } as any };
   }
 
@@ -27,6 +27,50 @@ describe('user-directory', () => {
     const { repo, dataSource } = makeDataSource();
     await applyDirectoryEvent(dataSource, { eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED, organizationId: org, payload: { userId: user, departmentId: 'x' } } as any);
     expect(repo.upsert).toHaveBeenCalledWith(expect.objectContaining({ departmentId: null }), ['userId']);
+  });
+
+  // 04/11/2026: su kien cu/doi phong ban khong co joinedAt thi KHONG duoc xoa gia tri da co.
+  it('joinedAt hop le -> ghi; thieu hoac hong -> khong dua vao upsert de giu gia tri cu', async () => {
+    const { repo, dataSource } = makeDataSource();
+    const send = (joinedAt?: unknown) =>
+      applyDirectoryEvent(dataSource, { eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED, organizationId: org, payload: { userId: user, departmentId: dept, joinedAt } } as any);
+
+    await send('2024-03-15');
+    expect(repo.upsert.mock.calls[0][0]).toMatchObject({ joinedAt: '2024-03-15' });
+
+    for (const bad of [undefined, null, '', '2024-02-30', '15/03/2024', 20240315]) {
+      repo.upsert.mockClear();
+      await send(bad);
+      expect(repo.upsert).toHaveBeenCalledTimes(1);
+      expect(repo.upsert.mock.calls[0][0]).not.toHaveProperty('joinedAt');
+    }
+  });
+
+  // 04/11/2026: nhan vien da vo hieu hoa khong con bi tinh vang trong ky cong dang mo.
+  it('USER_DEACTIVATED/USER_REACTIVATED -> doi is_active, khong dung toi phong ban', async () => {
+    const { repo, dataSource } = makeDataSource();
+    expect(await applyDirectoryEvent(dataSource, { eventType: EVENT_TYPES.USER_DEACTIVATED, organizationId: org, payload: { userId: user } } as any)).toBe(true);
+    expect(repo.update).toHaveBeenLastCalledWith({ userId: user, organizationId: org }, expect.objectContaining({ isActive: false }));
+    expect(await applyDirectoryEvent(dataSource, { eventType: EVENT_TYPES.USER_REACTIVATED, organizationId: org, payload: { userId: user } } as any)).toBe(true);
+    expect(repo.update).toHaveBeenLastCalledWith({ userId: user, organizationId: org }, expect.objectContaining({ isActive: true }));
+    expect(repo.update.mock.calls[0][1]).not.toHaveProperty('departmentId');
+    expect(repo.upsert).not.toHaveBeenCalled();
+  });
+
+  it('USER_ROLES_CHANGED: chi dot phat lai (co isActive) moi cap nhat trang thai', async () => {
+    const { repo, dataSource } = makeDataSource();
+    const send = (extra: object) => applyDirectoryEvent(dataSource, { eventType: EVENT_TYPES.USER_ROLES_CHANGED, organizationId: org, payload: { userId: user, roleLevel: 'EMPLOYEE', ...extra } } as any);
+
+    expect(await send({})).toBe(false);
+    expect(repo.update).not.toHaveBeenCalled();
+    expect(await send({ isActive: false })).toBe(true);
+    expect(repo.update).toHaveBeenCalledWith({ userId: user, organizationId: org }, expect.objectContaining({ isActive: false }));
+  });
+
+  it('USER_DEPARTMENT_CHANGED khong dua is_active vao upsert, khong ghi de trang thai da vo hieu hoa', async () => {
+    const { repo, dataSource } = makeDataSource();
+    await applyDirectoryEvent(dataSource, { eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED, organizationId: org, payload: { userId: user, departmentId: dept } } as any);
+    expect(repo.upsert.mock.calls[0][0]).not.toHaveProperty('isActive');
   });
 
   it('USER_DELETED -> xoa dong cua user', async () => {

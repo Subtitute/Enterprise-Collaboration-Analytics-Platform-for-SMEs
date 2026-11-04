@@ -153,17 +153,36 @@ describe('ChatbotToolsService', () => {
     expect(execution.output.endsWith('…[đã cắt bớt]')).toBe(true);
   });
 
-  it('get_my_leave_balance: cong phep tham nien theo ngay vao lam (mirror LeaveRequestsPage)', async () => {
-    const joined = new Date(Date.now() - 11 * 365.25 * 24 * 60 * 60 * 1000).toISOString();
-    fetchMock
-      .mockResolvedValueOnce(jsonResponse(200, { year: 2026, usedDays: 3, baseDaysPerYear: 12, seniorityYearsPerBonusDay: 5 }))
-      .mockResolvedValueOnce(jsonResponse(200, { id: 'user-1', createdAt: joined }));
+  // 04/11/2026: so lieu do hrm-service tinh, bot chi chuyen tiep va khong con goi /users/:id.
+  it('get_my_leave_balance: dung nguyen so lieu hrm-service tra ve, chi goi 1 API', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(200, {
+        year: 2026,
+        usedDays: 3,
+        pendingDays: 2,
+        adjustmentDays: 1,
+        seniorityBonusDays: 2,
+        entitledDays: 15,
+        remainingDays: 10,
+        baseDaysPerYear: 12,
+        seniorityYearsPerBonusDay: 5,
+      }),
+    );
 
     const execution = await service.execute('get_my_leave_balance', {}, CTX, 5000);
 
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock.mock.calls[0][0]).toBe(`${GATEWAY}/api/v1/leave-requests/me/balance`);
-    expect(fetchMock.mock.calls[1][0]).toBe(`${GATEWAY}/api/v1/users/user-1`);
-    expect(JSON.parse(execution.output)).toMatchObject({ entitledDays: 14, seniorityBonusDays: 2, usedDays: 3, remainingDays: 11 });
+    expect(JSON.parse(execution.output)).toEqual({
+      year: 2026,
+      entitledDays: 15,
+      baseDaysPerYear: 12,
+      seniorityBonusDays: 2,
+      adjustmentDays: 1,
+      usedDays: 3,
+      pendingDays: 2,
+      remainingDays: 10,
+    });
   });
 
   it('get_my_attendance_today: chi lay ban ghi HOM NAY (GMT+7), quy gio ve GMT+7', async () => {

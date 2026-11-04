@@ -27,6 +27,7 @@ import { EmailService } from '../email/email.service';
 import { parseDurationMs } from '../auth/auth.service';
 import { isPostgresUniqueViolation } from '../common/db-errors.util';
 import { probeImage, stripImageMetadata } from '../common/image-probe.util';
+import { toJoinedAt } from './joined-at.util';
 import {
   ERROR_CODES,
   EVENT_TYPES,
@@ -446,6 +447,8 @@ export class UsersService {
           actorId: user.id,
           // 26/10/2026: ml-service can muc vai tro ngay tu dau (pham vi Manager chi Employee).
           roleLevel: resolveRoleLevel(roles.map((r) => r.name)),
+          // 04/11/2026: ngay vao lam cho dim_user cua hrm-service.
+          joinedAt: toJoinedAt(user.createdAt),
         };
         await this.outboxService.record(manager, {
           eventType: EVENT_TYPES.USER_REGISTERED,
@@ -626,6 +629,8 @@ export class UsersService {
           userId: updated.id,
           departmentId: updated.departmentId ?? null,
           actorId,
+          // 04/11/2026: gui kem de dim_user cua hrm-service tu sua neu con thieu ngay vao lam.
+          joinedAt: toJoinedAt(updated.createdAt),
         };
         await this.outboxService.record(manager, {
           eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,

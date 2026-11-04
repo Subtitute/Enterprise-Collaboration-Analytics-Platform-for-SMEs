@@ -14,6 +14,7 @@ import {
 import { ScopeCaller, assertCanDecide, scopeUserFilter } from '../user-directory/user-directory';
 import { OvertimeMultiplierType, OvertimeRequest, OvertimeRequestStatus } from '../entities/overtime-request.entity';
 import { OutboxService } from '../outbox/outbox.service';
+import { PeriodLockService } from '../work-calendar/period-lock.service';
 import { CreateOvertimeRequestDto } from './dto/create-overtime-request.dto';
 import { DecideOvertimeRequestDto } from './dto/decide-overtime-request.dto';
 import { OvertimeRequestQueryDto } from './dto/overtime-request-query.dto';
@@ -65,6 +66,7 @@ export class OvertimeRequestsService {
     @InjectDataSource() private readonly dataSource: DataSource,
     @InjectRepository(OvertimeRequest) private readonly overtimeRepo: Repository<OvertimeRequest>,
     private readonly outboxService: OutboxService,
+    private readonly periodLockService: PeriodLockService,
   ) {}
 
   async create(organizationId: string, userId: string, dto: CreateOvertimeRequestDto): Promise<OvertimeRequest> {
@@ -75,6 +77,9 @@ export class OvertimeRequestsService {
         errorCode: ERROR_CODES.OVERTIME_REQUEST_INVALID_RANGE,
       });
     }
+    // 04/11/2026: thang da khoa ky cong khong nhan don moi. Don PENDING khong doi so cong, nen khong can giu
+    // khoa toi luc luu - neu lot qua trong luc dang khoa thi buoc duyet van bi chan.
+    await this.periodLockService.assertOpen(organizationId, [dto.workDate]);
 
     // Tran 40h/thang: cong don gio cua cac yeu cau CHUA bi tu choi trong CUNG thang cua nguoi nay.
     const [monthStart, monthEnd] = monthDateRange(dto.workDate.slice(0, 7));
@@ -186,6 +191,8 @@ export class OvertimeRequestsService {
           errorCode: ERROR_CODES.OVERTIME_REQUEST_ALREADY_DECIDED,
         });
       }
+      // 04/11/2026: ca duyet lan tu choi deu bi chan khi thang cua don da khoa ky cong.
+      await this.periodLockService.assertOpen(organizationId, [overtime.workDate], manager);
 
       overtime.status = toStatus;
       overtime.approverId = approverId;

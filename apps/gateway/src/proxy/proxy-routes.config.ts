@@ -63,6 +63,7 @@ export const REST_PROXY_ROUTES: RestProxyRouteGroup[] = [
     // khien Gateway tra 404 "Cannot GET/POST ..." du service da co san route (phat hien qua smoke
     // test thu cong sau khi rebuild Docker - danh sach prefix nay PHAI duoc cap nhat THU CONG moi
     // khi hrm-service co prefix route moi, khong tu dong suy ra tu controller).
+    // 04/11/2026: them '/api/v1/timesheets' (ky cong, ngoai le) va '/api/v1/work-calendar' (lich lam viec).
     prefixes: [
       '/api/v1/attendance',
       '/api/v1/leave-requests',
@@ -70,6 +71,8 @@ export const REST_PROXY_ROUTES: RestProxyRouteGroup[] = [
       '/api/v1/attendance-adjustments',
       '/api/v1/overtime-requests',
       '/api/v1/leave-policy',
+      '/api/v1/timesheets',
+      '/api/v1/work-calendar',
     ],
     targetConfigKey: 'services.hrm',
   },

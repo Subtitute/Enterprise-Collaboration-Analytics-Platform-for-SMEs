@@ -20,6 +20,25 @@ function asUuid(value: unknown): string | null {
   return typeof value === 'string' && UUID_RE.test(value) ? value : null;
 }
 
+// 04/11/2026: chi nhan ngay co that dang 'YYYY-MM-DD' - gia tri hong se lam cau upsert loi va consumer lap lai mai.
+function asDateString(value: unknown): string | null {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value ? value : null;
+}
+
+/**
+ * 04/11/2026: trang thai hoat dong mang theo su kien, null neu su kien khong noi gi ve trang thai.
+ * USER_ROLES_CHANGED chi co isActive trong dot phat lai luc IAM khoi dong - nguon lap day cho user da bi vo
+ * hieu hoa tu truoc khi co cot nay (su kien USER_DEACTIVATED cu da qua offset, consumer khong doc lai).
+ */
+function activeFlagOf(eventType: string, payload: Record<string, unknown>): boolean | null {
+  if (eventType === EVENT_TYPES.USER_DEACTIVATED) return false;
+  if (eventType === EVENT_TYPES.USER_REACTIVATED) return true;
+  if (eventType === EVENT_TYPES.USER_ROLES_CHANGED && typeof payload.isActive === 'boolean') return payload.isActive;
+  return null;
+}
+
 /** Tra ve true neu su kien thuoc nhom duoc ap dung (de test/ghi log), false neu bo qua. */
 export async function applyDirectoryEvent(dataSource: DataSource, event: DomainEvent): Promise<boolean> {
   const payload = (event?.payload ?? {}) as Record<string, unknown>;
@@ -29,11 +48,21 @@ export async function applyDirectoryEvent(dataSource: DataSource, event: DomainE
 
   const repo = dataSource.getRepository(DimUser);
   if (event.eventType === EVENT_TYPES.USER_REGISTERED || event.eventType === EVENT_TYPES.USER_DEPARTMENT_CHANGED) {
-    await repo.upsert({ userId, organizationId, departmentId: asUuid(payload.departmentId), updatedAt: new Date() }, ['userId']);
+    // 04/11/2026: chi ghi joinedAt khi su kien co gia tri - upsert bo qua cot undefined nen gia tri cu duoc giu.
+    const joinedAt = asDateString(payload.joinedAt);
+    await repo.upsert(
+      { userId, organizationId, departmentId: asUuid(payload.departmentId), updatedAt: new Date(), ...(joinedAt ? { joinedAt } : {}) },
+      ['userId'],
+    );
     return true;
   }
   if (event.eventType === EVENT_TYPES.USER_DELETED) {
     await repo.delete({ userId, organizationId });
+    return true;
+  }
+  const isActive = activeFlagOf(event.eventType, payload);
+  if (isActive !== null) {
+    await repo.update({ userId, organizationId }, { isActive, updatedAt: new Date() });
     return true;
   }
   return false;

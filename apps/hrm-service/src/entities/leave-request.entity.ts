@@ -1,5 +1,5 @@
 import { Column, Entity, Index } from 'typeorm';
-import { LeaveRequestStatus } from '@app/common-dto';
+import { LeaveRequestStatus, LeaveType } from '@app/common-dto';
 import { AppBaseEntity } from '../common/base.entity';
 
 /** Yeu cau nghi phep - Technical_Spec.md muc 17, Wireframe.md muc 13. */
@@ -22,6 +22,10 @@ export class LeaveRequest extends AppBaseEntity {
 
   @Column({ type: 'text' })
   reason: string;
+
+  // 04/11/2026: loai nghi tach khoi tien to `reason`; don cu duoc suy lai luc khoi dong (LeaveTypeBackfillService).
+  @Column({ name: 'leave_type', type: 'enum', enum: LeaveType, default: LeaveType.ANNUAL })
+  leaveType: LeaveType;
 
   @Column({ type: 'enum', enum: LeaveRequestStatus, default: LeaveRequestStatus.PENDING })
   status: LeaveRequestStatus;

@@ -2,6 +2,8 @@ import { TaskStatus, ProjectStatus, TASK_STATUS_TRANSITIONS } from './task-statu
 import { DealStage, DEAL_STAGE_TRANSITIONS } from './deal-stage.enum';
 import { LeaveRequestStatus } from './leave-request-status.enum';
 import { CalendarEventType } from './calendar-event-type.enum';
+import { LEAVE_TYPE_RULES, LeaveType } from './leave-type.enum';
+import { TIMESHEET_SYMBOL_VALUE, TimesheetSymbol } from './timesheet-symbol.enum';
 import { DefaultRoleName, PERMISSIONS, DEFAULT_ROLE_PERMISSIONS } from './permission.enum';
 
 /**
@@ -55,8 +57,31 @@ describe('LeaveRequestStatus / CalendarEventType', () => {
     expect(Object.values(LeaveRequestStatus)).toEqual(['PENDING', 'APPROVED', 'REJECTED']);
   });
 
-  it('giu dung 2 gia tri CalendarEventType', () => {
-    expect(Object.values(CalendarEventType)).toEqual(['HOLIDAY', 'EVENT']);
+  // 04/11/2026: them MAKEUP_WORKDAY (ngay lam bu).
+  it('giu dung 3 gia tri CalendarEventType', () => {
+    expect(Object.values(CalendarEventType)).toEqual(['HOLIDAY', 'EVENT', 'MAKEUP_WORKDAY']);
+  });
+});
+
+// 04/11/2026: gia tri nay duoc luu vao DB va quyet dinh tru phep, tra luong, so cong.
+describe('LeaveType / LEAVE_TYPE_RULES', () => {
+  it('giu dung 3 loai nghi', () => {
+    expect(Object.values(LeaveType)).toEqual(['ANNUAL', 'SICK', 'UNPAID']);
+  });
+
+  it('chi phep nam tru so du; nghi om van tra luong; nghi khong luong khong tra luong', () => {
+    expect(LEAVE_TYPE_RULES).toEqual({
+      ANNUAL: { paid: true, deductsBalance: true },
+      SICK: { paid: true, deductsBalance: false },
+      UNPAID: { paid: false, deductsBalance: false },
+    });
+  });
+});
+
+describe('TimesheetSymbol / TIMESHEET_SYMBOL_VALUE', () => {
+  it('giu dung 8 ky hieu va moi ky hieu deu co so cong', () => {
+    expect(Object.values(TimesheetSymbol)).toEqual(['X', 'Q', 'LN', 'P', 'OM', 'KL', 'L', 'V']);
+    expect(TIMESHEET_SYMBOL_VALUE).toEqual({ X: 1, Q: 1, LN: 0, P: 1, OM: 1, KL: 0, L: 1, V: 0 });
   });
 });
 

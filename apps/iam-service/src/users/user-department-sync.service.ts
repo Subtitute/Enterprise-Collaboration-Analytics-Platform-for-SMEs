@@ -4,6 +4,7 @@ import { DataSource, Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { OutboxService } from '../outbox/outbox.service';
 import { DefaultRoleName, EVENT_TYPES, UserDepartmentChangedPayload, UserRolesChangedPayload, resolveRoleLevel } from '@app/common-dto';
+import { toJoinedAt } from './joined-at.util';
 
 /**
  * 28/07/2026: service moi - resync toan bo departmentId cua MOI user (TAT CA to chuc, khong chi 1
@@ -63,10 +64,11 @@ export class UserDepartmentSyncService implements OnApplicationBootstrap {
     // 26/10/2026: nap them ten vai tro de resync muc vai tro (iam.user.roles_changed) cho ml-service -
     // thay cho "script 1 lan" trong Technical_Spec.md muc 27.4: cung co che tu lanh, idempotent nhu
     // departmentId (last-value-wins theo userId), khong can chay tay.
+    // 04/11/2026: nap them createdAt de phat joinedAt - lap day dim_user.joined_at cua hrm-service cho user cu.
     const users = await this.userRepo
       .createQueryBuilder('u')
       .leftJoin('u.roles', 'r')
-      .select(['u.id', 'u.organizationId', 'u.departmentId', 'u.isActive', 'r.id', 'r.name'])
+      .select(['u.id', 'u.organizationId', 'u.departmentId', 'u.isActive', 'u.createdAt', 'r.id', 'r.name'])
       .getMany();
 
     if (users.length === 0) {
@@ -88,6 +90,7 @@ export class UserDepartmentSyncService implements OnApplicationBootstrap {
           userId: user.id,
           departmentId: user.departmentId ?? null,
           actorId: null,
+          joinedAt: toJoinedAt(user.createdAt),
         };
         await this.outboxService.record(manager, {
           eventType: EVENT_TYPES.USER_DEPARTMENT_CHANGED,

@@ -214,6 +214,56 @@ describe('CalendarEventsService', () => {
     });
   });
 
+  // 04/11/2026: MAKEUP_WORKDAY cung quy tac quyen voi HOLIDAY vi cung lam doi lich lam viec ca to chuc.
+  describe('MAKEUP_WORKDAY (ngay lam bu)', () => {
+    const repoFor = (existing: unknown) => ({
+      findOne: jest.fn().mockResolvedValue(existing),
+      save: jest.fn((entity: unknown) => Promise.resolve(entity)),
+    });
+    const makeup = (overrides: Record<string, unknown> = {}) => existingEvent({ type: CalendarEventType.MAKEUP_WORKDAY, ...overrides });
+    const forbiddenHoliday = { response: expect.objectContaining({ errorCode: ERROR_CODES.CALENDAR_EVENT_FORBIDDEN_HOLIDAY }) };
+
+    it('Manager giu CALENDAR_MANAGE tao duoc; Employee khong tao duoc', async () => {
+      const dto: CreateCalendarEventDto = { title: 'Lam bu', type: CalendarEventType.MAKEUP_WORKDAY, startDate: futureDateStr(10) };
+
+      const created = await createService().service.create(organizationId, 'manager-1', managerPermissions, dto);
+      expect(created.type).toBe(CalendarEventType.MAKEUP_WORKDAY);
+
+      const { service, dataSourceMock } = createService();
+      await expect(service.create(organizationId, 'employee-1', employeePermissions, dto)).rejects.toMatchObject(forbiddenHoliday);
+      expect(dataSourceMock.transaction).not.toHaveBeenCalled();
+    });
+
+    it('chu so huu khong con quyen CALENDAR_MANAGE khong sua/xoa duoc', async () => {
+      const existing = makeup({ createdByUserId: 'employee-1' });
+      const { service } = createService({ calendarEventRepoMock: repoFor(existing) });
+      await expect(service.update(organizationId, 'employee-1', employeePermissions, calendarEventId, { title: 'x' })).rejects.toMatchObject(forbiddenHoliday);
+      await expect(service.delete(organizationId, 'employee-1', employeePermissions, calendarEventId)).rejects.toMatchObject(forbiddenHoliday);
+    });
+
+    it('Manager sua duoc ngay lam bu do Org Admin tao - khong so sanh tham quyen', async () => {
+      const existing = makeup({ createdByUserId: 'admin-1', createdByRank: 3 });
+      const { service } = createService({ calendarEventRepoMock: repoFor(existing) });
+      await expect(service.update(organizationId, 'manager-1', managerPermissions, calendarEventId, { title: 'x' })).resolves.toMatchObject({ title: 'x' });
+    });
+
+    it('Employee khong doi duoc EVENT cua minh sang MAKEUP_WORKDAY', async () => {
+      const existing = existingEvent({ type: CalendarEventType.EVENT, createdByUserId: 'employee-1', createdByRank: 1 });
+      const { service } = createService({ calendarEventRepoMock: repoFor(existing) });
+      await expect(
+        service.update(organizationId, 'employee-1', employeePermissions, calendarEventId, { type: CalendarEventType.MAKEUP_WORKDAY }),
+      ).rejects.toMatchObject(forbiddenHoliday);
+    });
+
+    it('Manager khong "lach" duoc so sanh tham quyen bang cach doi EVENT cua Org Admin sang MAKEUP_WORKDAY', async () => {
+      const existing = existingEvent({ type: CalendarEventType.EVENT, createdByUserId: 'admin-1', createdByRank: 3 });
+      const { service } = createService({ calendarEventRepoMock: repoFor(existing) });
+      await expect(
+        service.update(organizationId, 'manager-1', managerPermissions, calendarEventId, { type: CalendarEventType.MAKEUP_WORKDAY }),
+      ).rejects.toMatchObject({ response: expect.objectContaining({ errorCode: ERROR_CODES.CALENDAR_EVENT_FORBIDDEN_LOWER_RANK }) });
+    });
+  });
+
   describe('findHolidayForDate (bo sung 17/09/2026 - chan cham cong vao ngay nghi le)', () => {
     it('tra ve muc lich HOLIDAY khop khoang ngay, loc dung type/organizationId', async () => {
       const calendarEventRepoMock = { findOne: jest.fn().mockResolvedValue(existingEvent()) };
