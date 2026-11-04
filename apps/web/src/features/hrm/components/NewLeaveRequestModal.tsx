@@ -6,7 +6,8 @@ import { FormField, Textarea } from '@/components/ui/Input';
 import { DatePicker } from '@/components/ui/DatePicker';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { calculateWorkingDays, getTodayGmt7DateString } from '@/lib/utils';
-import { useCreateLeaveRequest } from '../hooks';
+import { extractErrorMessage } from '@/lib/api-client';
+import { useCreateLeaveRequest, useMyLeaveBalanceQuery, useWorkingDaysQuery } from '../hooks';
 
 export type LeaveTypeOption = 'ANNUAL' | 'SICK' | 'UNPAID';
 
@@ -19,7 +20,14 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
   const [error, setError] = useState('');
   const createLeaveRequest = useCreateLeaveRequest();
 
-  const totalWorkingDays = calculateWorkingDays(startDate, endDate);
+  // 04/11/2026: so ngay lam viec lay tu lich cong ty (GET /work-calendar/working-days); neu API loi/chua co
+  // thi lui ve dem thu 2-6 de form van dung duoc.
+  const workingDaysQuery = useWorkingDaysQuery(startDate, endDate);
+  const totalWorkingDays = workingDaysQuery.data?.workingDays ?? calculateWorkingDays(startDate, endDate);
+  const balanceQuery = useMyLeaveBalanceQuery();
+  const remainingDays = balanceQuery.data?.remainingDays;
+  const exceedsBalance =
+    leaveType === 'ANNUAL' && remainingDays !== undefined && totalWorkingDays > 0 && totalWorkingDays > remainingDays;
   const todayGmt7 = getTodayGmt7DateString();
 
   const typeOptions = [
@@ -64,12 +72,11 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
       return;
     }
 
-    const typePrefix = `[${leaveType}]`;
-    const fullReason = `${typePrefix} ${reason.trim()}`;
-
+    // 04/11/2026: gui leaveType rieng, khong ghep tien to vao reason nua. Loi LEAVE_* (het phep, trung don,
+    // khong co ngay lam viec) hien ngay duoi o ly do, da dich theo errorCode.
     createLeaveRequest.mutate(
-      { startDate, endDate, reason: fullReason },
-      { onSuccess: handleClose },
+      { startDate, endDate, reason: reason.trim(), leaveType: leaveType as LeaveTypeOption },
+      { onSuccess: handleClose, onError: (err) => setError(extractErrorMessage(err)) },
     );
   }
 
@@ -146,6 +153,19 @@ export function NewLeaveRequestModal({ open, onClose }: { open: boolean; onClose
               {t('hrm:newLeaveRequestModal.totalDaysSuffix')}
             </span>
           </div>
+        )}
+
+        {workingDaysQuery.data?.workingDays === 0 && (
+          <p className="text-[12px] text-[#B3261E]">{t('hrm:newLeaveRequestModal.noWorkingDays')}</p>
+        )}
+
+        {/* 04/11/2026: so phep nam con lai, canh bao neu don vuot so du (may chu van kiem tra lai khi gui) */}
+        {leaveType === 'ANNUAL' && remainingDays !== undefined && (
+          <p className={`text-[12px] ${exceedsBalance ? 'text-[#B3261E]' : 'text-text-secondary'}`}>
+            {exceedsBalance
+              ? t('hrm:newLeaveRequestModal.exceedsBalance', { remaining: remainingDays })
+              : t('hrm:newLeaveRequestModal.remainingHint', { remaining: remainingDays })}
+          </p>
         )}
 
         {/* 2. Loại nghỉ phép *: CustomFilterSelect phẳng */}

@@ -136,5 +136,18 @@
   "FACE_ORG_MISMATCH": "The face data belongs to another organization",
   "USER_INACTIVE": "This account is deactivated",
   "CURRENT_PASSWORD_INVALID": "The current password is incorrect",
-  "NEW_PASSWORD_SAME_AS_CURRENT": "The new password must differ from the current one"
+  "NEW_PASSWORD_SAME_AS_CURRENT": "The new password must differ from the current one",
+
+  "LEAVE_BALANCE_EXCEEDED": "Not enough annual leave remaining for this request.",
+  "LEAVE_OVERLAP": "These dates overlap with a pending or approved leave request.",
+  "LEAVE_NO_WORKING_DAYS": "This date range has no working days in the company calendar.",
+  "LEAVE_ADJUSTMENT_INVALID": "Invalid leave balance adjustment (days must be non-zero and a note is required).",
+  "WORK_SCHEDULE_INVALID": "Invalid work schedule. Check the working days, start/end times and minutes.",
+  "TIMESHEET_MONTH_INVALID": "Invalid timesheet month.",
+  "TIMESHEET_PERIOD_LOCKED": "The timesheet period for this month is locked, so it cannot be changed.",
+  "TIMESHEET_PERIOD_ALREADY_LOCKED": "The timesheet period for this month is already locked.",
+  "TIMESHEET_PERIOD_NOT_LOCKED": "The timesheet period for this month is not locked.",
+  "TIMESHEET_PERIOD_NOT_ENDED": "This month has not ended yet, so its period cannot be locked.",
+  "TIMESHEET_PERIOD_HAS_PENDING": "This month still has pending leave, overtime or attendance explanation requests.",
+  "TIMESHEET_ENTRY_INVALID": "Invalid manual entry (future date, before the join date, wrong symbol or missing note)."
 }

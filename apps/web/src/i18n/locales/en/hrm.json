@@ -95,6 +95,7 @@
           "employee": "Employee",
           "department": "Department",
           "actualDays": "Workdays",
+          "paidLeaveDays": "Paid leave",
           "workHours": "Total Hours",
           "lateCount": "Late",
           "missingCheckOut": "Missing Checkout",
@@ -151,7 +152,23 @@
       "saveButton": "Save",
       "cancelButton": "Cancel",
       "policyUpdateSuccess": "Leave policy updated",
-      "policyUpdateError": "Could not update leave policy"
+      "policyUpdateError": "Could not update leave policy",
+      "pendingLabel": "Pending",
+      "adjustmentNote": "Adjusted by {{days}} days from the default",
+      "adjust": {
+        "title": "Adjust leave balance",
+        "hint": "Add-only; entries cannot be edited or deleted. A note is required; use a negative number to deduct.",
+        "selectEmployee": "Select employee…",
+        "yearLabel": "Year",
+        "daysLabel": "Days (+/-)",
+        "noteLabel": "Note",
+        "addButton": "Add adjustment",
+        "invalid": "Select an employee and enter a year, a non-zero number of days and a note.",
+        "success": "Leave balance adjustment added",
+        "error": "Could not add the leave balance adjustment",
+        "listError": "Could not load adjustments",
+        "empty": "No adjustments this year yet"
+      }
     },
     "pending": {
       "cardTitle": "Pending ({{count}})",
@@ -216,7 +233,8 @@
     "viewTitle": "Calendar entry details",
     "type": {
       "HOLIDAY": "Holiday",
-      "EVENT": "Event"
+      "EVENT": "Event",
+      "MAKEUP_WORKDAY": "Make-up workday"
     },
     "holidayHint": "All employees will be unable to check in on this date range and will receive a notification.",
     "titleLabel": "Title",
@@ -231,7 +249,8 @@
     "cancel": "Cancel",
     "create": "Create entry",
     "saveChanges": "Save changes",
-    "delete": "Delete"
+    "delete": "Delete",
+    "makeupHint": "A weekly day off on which the whole company works; it counts as a normal working day (holidays still take precedence)."
   },
   "newLeaveRequestModal": {
     "title": "Create leave request",
@@ -246,7 +265,7 @@
     "endDateLabel": "End date",
     "totalDaysPrefix": "Total:",
     "totalDaysValue": "{{count}} days",
-    "totalDaysSuffix": "(weekends excluded)",
+    "totalDaysSuffix": "(per company work calendar)",
     "reasonLabel": "Reason",
     "reasonPlaceholder": "Reason for the leave request…",
     "cancelButton": "Cancel",
@@ -258,7 +277,10 @@
       "endDateBeforeStart": "The end date cannot be before the start date",
       "missingType": "Please select a leave type",
       "missingReason": "Please enter a reason for the leave"
-    }
+    },
+    "exceedsBalance": "Exceeds remaining annual leave ({{remaining}} days). The server will reject this request.",
+    "remainingHint": "Annual leave remaining: {{remaining}} days",
+    "noWorkingDays": "This date range has no working days in the company calendar."
   },
   "checkInCamera": {
     "modalTitle": "Take attendance photo",
@@ -394,7 +416,7 @@
       "submitButton": "Submit OT Request",
       "cancelButton": "Cancel",
       "errors": {
-        "overlapOfficeHours": "OT hours cannot overlap with official office hours (08:30 - 17:30)",
+        "overlapOfficeHours": "OT hours cannot overlap with official office hours ({{start}} - {{end}})",
         "monthlyCapExceeded": "Total OT hours this month exceeds legal cap of 40 hours",
         "hasLeaveOnDate": "Cannot register OT because you have an approved leave on this date",
         "invalidRange": "OT end time must be after start time",
@@ -428,7 +450,8 @@
         "timesheet": "Monthly Timesheet",
         "log": "Attendance Logs",
         "adjustments": "Adjustments",
-        "overtime": "Overtime (OT)"
+        "overtime": "Overtime (OT)",
+        "exceptions": "Exceptions"
       }
     }
   },
@@ -462,5 +485,112 @@
     "photoLoadError": "Could not load photo",
     "activeInfo": "Source: {{source}} · Updated: {{date}}",
     "unknownActor": "An administrator"
+  },
+  "workSchedule": {
+    "title": "Company work schedule",
+    "openButton": "Work schedule",
+    "loadError": "Could not load the work schedule",
+    "weekdaysLabel": "Working days of the week",
+    "workStartLabel": "Start time",
+    "workEndLabel": "End time",
+    "lateGraceLabel": "Late grace (minutes)",
+    "earlyGraceLabel": "Early-leave grace (minutes)",
+    "breakLabel": "Lunch break (minutes)",
+    "hint": "Changes apply to working days, late/early-leave and standard hours of months that are still open.",
+    "errors": {
+      "noWeekday": "Select at least one working day.",
+      "timeRange": "End time must be after start time.",
+      "minutes": "Minutes must be a whole number from 0 to 240."
+    },
+    "saveSuccess": "Work schedule saved",
+    "saveError": "Could not save the work schedule"
+  },
+  "timesheet": {
+    "symbols": {
+      "X": "Worked",
+      "Q": "Missing punch",
+      "LN": "Worked on day off",
+      "P": "Annual leave",
+      "OM": "Sick leave",
+      "KL": "Unpaid leave",
+      "L": "Holiday",
+      "V": "Absent"
+    },
+    "unknownEmployee": "Employee",
+    "loadError": "Could not load the timesheet",
+    "manualRowHint": "Has manually edited days",
+    "period": {
+      "status": {
+        "OPEN": "Period open",
+        "LOCKED": "Period locked"
+      },
+      "lockedAt": "Locked on {{date}}",
+      "lockButton": "Lock period",
+      "unlockButton": "Unlock period",
+      "forceLockButton": "Lock anyway",
+      "lockConfirmTitle": "Lock timesheet period {{month}}?",
+      "lockConfirmDescription": "Once locked, this month is final: requests cannot be decided and entries cannot be edited until it is unlocked.",
+      "pendingTitle": "Requests are still pending",
+      "pendingDescription": "This month still has {{leave}} leave, {{overtime}} overtime and {{adjustment}} attendance explanation requests pending. If you lock anyway, they can no longer be decided. Are you sure?",
+      "unlockTitle": "Unlock timesheet period {{month}}",
+      "reasonLabel": "Reason for unlocking",
+      "reasonRequired": "Please enter a reason for unlocking",
+      "lockSuccess": "Timesheet period locked",
+      "lockError": "Could not lock the timesheet period",
+      "unlockSuccess": "Timesheet period unlocked",
+      "unlockError": "Could not unlock the timesheet period"
+    }
+  },
+  "timesheetDetail": {
+    "title": "Timesheet detail: {{name}} ({{month}})",
+    "loadError": "Could not load the timesheet detail",
+    "empty": "No timesheet data for this month",
+    "paidOfExpected": "Paid days / standard days",
+    "periodStatus": "Period status",
+    "lockedHint": "This period is locked; manual edits are disabled. Unlock the period to make changes.",
+    "columns": {
+      "date": "Date",
+      "symbol": "Symbol",
+      "checkIn": "In",
+      "checkOut": "Out",
+      "late": "Late",
+      "ot": "Overtime",
+      "note": "Note"
+    },
+    "minutes": "{{count}} min",
+    "manualMark": "Manual edit",
+    "editButton": "Edit",
+    "editTitle": "Manually edit {{date}}",
+    "symbolLabel": "Symbol",
+    "noteLabel": "Note",
+    "noteRequired": "Please enter a note",
+    "removeButton": "Remove manual edit",
+    "saveSuccess": "Manual edit saved",
+    "saveError": "Could not save the manual edit",
+    "removeSuccess": "Manual edit removed",
+    "removeError": "Could not remove the manual edit"
+  },
+  "exceptions": {
+    "types": {
+      "LATE": "Late",
+      "EARLY_LEAVE": "Left early",
+      "ABSENT": "Absent",
+      "MISSING_CHECKOUT": "Missing check-out",
+      "NOT_CHECKED_IN": "Not checked in",
+      "OT_NO_ATTENDANCE": "Overtime without attendance"
+    },
+    "minutes": "{{count}} min",
+    "in": "in",
+    "out": "out",
+    "loadError": "Could not load exceptions",
+    "pendingSummary": "Pending this month: {{leave}} leave, {{overtime}} overtime, {{adjustment}} attendance explanation requests.",
+    "emptyTitle": "No exceptions",
+    "emptyDescription": "There are no irregular days this month.",
+    "columns": {
+      "employee": "Employee",
+      "date": "Date",
+      "type": "Type",
+      "detail": "Detail"
+    }
   }
 }

@@ -26,10 +26,7 @@ import {
   useAllAttendanceQuery,
   useApproveAttendanceAdjustment,
   useApprovedAttendanceAdjustmentsQuery,
-  useApprovedLeaveRequestsQuery,
   useApproveOvertimeRequest,
-  useApprovedOvertimeRequestsQuery,
-  useCalendarEventsQuery,
   useCheckIn,
   useCheckOut,
   useMyAttendanceAdjustmentsQuery,
@@ -64,7 +61,7 @@ export function AttendancePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [cameraMode, setCameraMode] = useState<'checkin' | 'checkout' | null>(null);
-  const [orgSubTab, setOrgSubTab] = useState<'timesheet' | 'log' | 'adjustments' | 'overtime'>('timesheet');
+  const [orgSubTab, setOrgSubTab] = useState<'timesheet' | 'log' | 'exceptions' | 'adjustments' | 'overtime'>('timesheet');
 
   // Modal states for extensions
   const [viewingPhoto, setViewingPhoto] = useState<ViewingPhotoTarget | null>(null);
@@ -108,7 +105,6 @@ export function AttendancePage() {
 
   const permissions = usePermissions();
   const canManageAdjustments = permissions.includes(PERMISSIONS.ATTENDANCE_ADJUSTMENT_VIEW);
-  const canViewOrgLeaves = permissions.includes(PERMISSIONS.LEAVE_REQUEST_VIEW);
   // 26/10/2026: Manager chi xem/duyet trong phong ban cua minh (backend HRM ep pham vi nay) - bang cong
   // chi liet ke thanh vien phong ban (khong hien ca to chuc voi toan "vang"), danh sach cho duyet bo don
   // cua chinh minh (khong tu duyet - backend tra 403 SELF_APPROVAL_FORBIDDEN). Org Admin giu nguyen.
@@ -118,30 +114,18 @@ export function AttendancePage() {
     [isOrgScope, orgUsers, currentUser?.departmentId],
   );
 
-  // 16/10/2026: Lien thong Cham cong - Nghi phep - Lich cong ty:
-  // Query lich cong ty de lay cac ngay le (HOLIDAY)
-  const calendarEventsQuery = useCalendarEventsQuery();
-  const holidays = useMemo(
-    () => calendarEventsQuery.data?.filter((e) => e.type === 'HOLIDAY') ?? [],
-    [calendarEventsQuery.data],
-  );
-
-  // Danh sach nghi phep da duyet toan to chuc (Manager/Admin co quyen) hoac cua ca nhan (Employee)
-  const approvedOrgLeavesQuery = useApprovedLeaveRequestsQuery({ enabled: canViewOrgLeaves });
+  // 04/11/2026: bang cong thang do may chu tinh (useTimesheetQuery trong MonthlyTimesheetTable) nen khong con nap
+  // lich cong ty, don nghi da duyet toan to chuc, OT da duyet o day nua. Chi con don nghi da duyet cua chinh minh
+  // cho PersonalAttendanceTable.
   const myApprovedLeaves = useMemo(
     () => myLeaveRequestsQuery.data?.data.filter((l) => l.status === 'APPROVED') ?? [],
     [myLeaveRequestsQuery.data?.data],
-  );
-  const orgApprovedLeaves = useMemo(
-    () => (canViewOrgLeaves ? (approvedOrgLeavesQuery.data ?? []) : myApprovedLeaves),
-    [canViewOrgLeaves, approvedOrgLeavesQuery.data, myApprovedLeaves],
   );
 
   // 22/09/2026: giai trinh cham cong/tang ca - du lieu that tu server (thay localStorage truoc
   // day). Danh sach "cho duyet" (Manager/Org Admin) va "cua toi" deu can cho trang nay: "cho duyet"
   // de hien trong PendingAdjustmentsList/PendingOvertimeList, "cua toi" khong con can thiet truc
-  // tiep vi hau qua da phan anh THANG vao Attendance that (xem duoi) - nhung van giu useApprovedOvertimeRequestsQuery()
-  // rieng cho MonthlyTimesheetTable (otHours that).
+  // tiep vi hau qua da phan anh THANG vao Attendance that (xem duoi).
   // 16/10/2026: Voi Employee, KHONG duoc goi useApprovedAttendanceAdjustmentsQuery de tranh loi 403;
   // gate qua enabled: canManageAdjustments. Dong thoi dung useMyAttendanceAdjustmentsQuery de Employee
   // cung xem duoc badge "Da sua cong" va badge "Cho duyet giai trinh" cua chinh minh.
@@ -149,7 +133,6 @@ export function AttendancePage() {
   const pendingAdjustmentsQuery = usePendingAttendanceAdjustmentsQuery();
   const pendingOvertimeQuery = usePendingOvertimeRequestsQuery();
   const approvedAdjustmentsQuery = useApprovedAttendanceAdjustmentsQuery({ enabled: canManageAdjustments });
-  const approvedOvertimeQuery = useApprovedOvertimeRequestsQuery();
   const approveAdjustmentMutation = useApproveAttendanceAdjustment();
   const rejectAdjustmentMutation = useRejectAttendanceAdjustment();
   const approveOvertimeMutation = useApproveOvertimeRequest();
@@ -176,7 +159,7 @@ export function AttendancePage() {
   // khong thay tab 'timesheet'/'log' nao ca - tu chuyen sang tab DAU TIEN ho thuc su xem duoc
   // ngay khi xac dinh duoc quyen (tranh dung "mac ket" o 1 tab rong/an).
   useEffect(() => {
-    if (orgSubTab === 'timesheet' || orgSubTab === 'log') {
+    if (orgSubTab === 'timesheet' || orgSubTab === 'log' || orgSubTab === 'exceptions') {
       if (canViewAll) return;
     } else if (orgSubTab === 'adjustments') {
       if (canViewAdjustments) return;
@@ -343,9 +326,6 @@ export function AttendancePage() {
           orgUsers={scopedOrgUsers}
           departments={departmentsQuery.data ?? []}
           today={today}
-          approvedOvertime={approvedOvertimeQuery.data ?? []}
-          approvedLeaveRequests={orgApprovedLeaves}
-          calendarEvents={holidays}
           userNameMap={userNameMap}
           approvedAdjustmentAttendanceIds={approvedAdjustmentAttendanceIds}
           onNavigateUser={handleNavigateUser}

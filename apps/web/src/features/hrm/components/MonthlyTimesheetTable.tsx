@@ -1,47 +1,36 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/ui/Avatar';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog, Modal } from '@/components/ui/Modal';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
-import { DownloadIcon, SearchIcon, ClockIcon, FileTextIcon } from '@/components/ui/Icons';
-import { useAuthStore } from '@/stores/auth.store';
+import { FormField, Textarea } from '@/components/ui/Input';
+import { QueryState } from '@/components/ui/QueryState';
+import { DownloadIcon, SearchIcon } from '@/components/ui/Icons';
+import { PERMISSIONS } from '@/constants/permissions';
+import { formatDate } from '@/lib/utils';
+import { useAuthStore, usePermissions } from '@/stores/auth.store';
 import { toast } from '@/stores/toast.store';
-import type { Attendance, CalendarEvent, Department, LeaveRequest, OvertimeRequest, User } from '@/types';
+import type { Department, TimesheetPending, TimesheetRow, User } from '@/types';
+import { extractPendingConflict } from '../api';
+import { useLockTimesheetPeriod, useTimesheetQuery, useUnlockTimesheetPeriod } from '../hooks';
+import { TimesheetDetailModal } from './TimesheetDetailModal';
+import { WorkScheduleModal } from './WorkScheduleModal';
+import { SymbolLegend, displayUserName } from './timesheet-shared';
 
+// 04/11/2026: bang cong khong con tu tinh o trinh duyet (truoc day dem thu 2-6, gio 08:30, 8 gio/ngay cung).
+// Du lieu lay tu may chu qua useTimesheetQuery(month) (hrm-service, computeMonth) - component chi ghep
+// ten/phong ban tu `users`, `departments`, loc, xuat CSV va dieu khien khoa/mo khoa ky.
 interface MonthlyTimesheetTableProps {
-  records: Attendance[];
   users: User[];
   departments: Department[];
-  selectedMonth: string; // 'YYYY-MM' or 'all'
+  selectedMonth: string; // 'YYYY-MM' or 'all' ('all' dung thang hien tai, bang cong luon theo thang)
   today: string; // 'YYYY-MM-DD' GMT+7
-  /** 22/09/2026: OT DA DUYET (status=APPROVED) toan to chuc, khong loc thang - component tu loc
-   *  theo khoang ngay cua thang dang xet (xem summaries useMemo ben duoi). Thay the heuristic doan
-   *  "checkout sau 17:30" truoc day bang du lieu that (OvertimeRequestsService). */
-  approvedOvertime: OvertimeRequest[];
-  /** 16/10/2026: Lien thong nghi phep da duyet (status=APPROVED) de tinh cong huong luong (paidLeaveDays) */
-  approvedLeaveRequests?: LeaveRequest[];
-  /** 16/10/2026: Lien thong lich cong ty ngay le (type=HOLIDAY) de tinh ngay le huong luong (paidHolidayDays) */
-  calendarEvents?: CalendarEvent[];
 }
 
-interface UserSummary {
-  userId: string;
+interface UserSummary extends TimesheetRow {
   name: string;
   departmentName: string;
-  departmentId: string | null;
-  actualDays: number;
-  paidLeaveDays: number;
-  paidHolidayDays: number;
-  paidDays: number;
-  expectedDays: number;
-  totalActualHours: number;
-  totalExpectedHours: number;
-  lateCount: number;
-  missingCheckOutCount: number;
-  otHours: number;
-  status: 'sufficient' | 'insufficient' | 'newMember' | 'notJoined';
-  isNewMember: boolean;
 }
 
 // Làm sạch giá trị để chống tấn công CSV Injection (Formula Injection)
@@ -57,52 +46,48 @@ function sanitizeCsvValue(val: string | number): string {
   return str;
 }
 
-// Đọc giờ và phút theo GMT+7 chuẩn xác
-function getGmt7TimeParts(isoString: string): { hour: number; minute: number } {
-  const d = new Date(isoString);
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Ho_Chi_Minh',
-    hour: 'numeric',
-    minute: 'numeric',
-    hourCycle: 'h23',
-  }).formatToParts(d);
-  const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? 0);
-  const minute = Number(parts.find((p) => p.type === 'minute')?.value ?? 0);
-  return { hour, minute };
-}
-
-// Tính số ngày làm việc (Thứ 2 - Thứ 6) trong một khoảng ngày YYYY-MM-DD
-function countWorkingDays(startDateStr: string, endDateStr: string): number {
-  const start = new Date(startDateStr);
-  const end = new Date(endDateStr);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) {
-    return 0;
-  }
-  let count = 0;
-  const cur = new Date(start);
-  while (cur <= end) {
-    const day = cur.getDay();
-    if (day !== 0 && day !== 6) {
-      count++;
-    }
-    cur.setDate(cur.getDate() + 1);
-  }
-  return count;
+function StatusBadge({ status }: { status: UserSummary['status'] }) {
+  const { t } = useTranslation();
+  const style =
+    status === 'notJoined'
+      ? 'bg-bg-muted text-text-tertiary'
+      : status === 'sufficient'
+        ? 'bg-success-soft text-success'
+        : 'bg-warning-soft text-warning';
+  return (
+    <span className={`inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold ${style}`}>
+      {t(`hrm:attendancePage.allAttendance.timesheet.status.${status}`)}
+    </span>
+  );
 }
 
 const TimesheetDesktopRow = React.memo(function TimesheetDesktopRow({
   summary: s,
+  onSelect,
 }: {
   summary: UserSummary;
+  onSelect: (s: UserSummary) => void;
 }) {
   const { t } = useTranslation();
 
   return (
-    <tr key={s.userId} className="hover:bg-bg-subtle transition-colors h-14">
+    <tr
+      className="hover:bg-bg-subtle transition-colors h-14 cursor-pointer"
+      tabIndex={0}
+      onClick={() => onSelect(s)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') onSelect(s);
+      }}
+    >
       <td className="py-2 px-3 whitespace-nowrap">
         <div className="flex items-center gap-2">
           <Avatar name={s.name} size="sm" className="h-6 w-6 text-[10px] bg-[#E4EFEE] text-[#0E5E5E] font-semibold" />
           <span className="font-medium text-text-primary truncate max-w-[150px]">{s.name}</span>
+          {s.hasManual && (
+            <span className="text-[10px] text-text-tertiary" title={t('hrm:timesheet.manualRowHint')}>
+              ✎
+            </span>
+          )}
         </div>
       </td>
       <td className="py-2 px-3 text-text-secondary whitespace-nowrap">{s.departmentName}</td>
@@ -141,26 +126,7 @@ const TimesheetDesktopRow = React.memo(function TimesheetDesktopRow({
         {s.otHours > 0 ? `${s.otHours}h` : '—'}
       </td>
       <td className="py-2 px-3 text-center whitespace-nowrap">
-        {s.status === 'notJoined' && (
-          <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-bg-muted text-text-tertiary">
-            {t('hrm:attendancePage.allAttendance.timesheet.status.notJoined')}
-          </span>
-        )}
-        {s.status === 'newMember' && (
-          <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-info-soft text-info">
-            {t('hrm:attendancePage.allAttendance.timesheet.status.newMember')}
-          </span>
-        )}
-        {s.status === 'sufficient' && (
-          <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-success-soft text-success">
-            {t('hrm:attendancePage.allAttendance.timesheet.status.sufficient')}
-          </span>
-        )}
-        {s.status === 'insufficient' && (
-          <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-warning-soft text-warning">
-            {t('hrm:attendancePage.allAttendance.timesheet.status.insufficient')}
-          </span>
-        )}
+        <StatusBadge status={s.status} />
       </td>
     </tr>
   );
@@ -168,15 +134,22 @@ const TimesheetDesktopRow = React.memo(function TimesheetDesktopRow({
 
 const TimesheetMobileCard = React.memo(function TimesheetMobileCard({
   summary: s,
+  onSelect,
 }: {
   summary: UserSummary;
+  onSelect: (s: UserSummary) => void;
 }) {
   const { t } = useTranslation();
 
   return (
     <div
-      key={s.userId}
-      className="p-3 rounded-radius-sm border border-border-subtle bg-white shadow-none space-y-2"
+      role="button"
+      tabIndex={0}
+      onClick={() => onSelect(s)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') onSelect(s);
+      }}
+      className="p-3 rounded-radius-sm border border-border-subtle bg-white shadow-none space-y-2 cursor-pointer"
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
@@ -186,26 +159,7 @@ const TimesheetMobileCard = React.memo(function TimesheetMobileCard({
             <p className="text-[11px] text-text-tertiary truncate">{s.departmentName}</p>
           </div>
         </div>
-        {s.status === 'notJoined' && (
-          <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-bg-muted text-text-tertiary">
-            {t('hrm:attendancePage.allAttendance.timesheet.status.notJoined')}
-          </span>
-        )}
-        {s.status === 'newMember' && (
-          <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-info-soft text-info">
-            {t('hrm:attendancePage.allAttendance.timesheet.status.newMember')}
-          </span>
-        )}
-        {s.status === 'sufficient' && (
-          <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-success-soft text-success">
-            {t('hrm:attendancePage.allAttendance.timesheet.status.sufficient')}
-          </span>
-        )}
-        {s.status === 'insufficient' && (
-          <span className="inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold bg-warning-soft text-warning">
-            {t('hrm:attendancePage.allAttendance.timesheet.status.insufficient')}
-          </span>
-        )}
+        <StatusBadge status={s.status} />
       </div>
 
       <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border-subtle text-[11px]">
@@ -251,19 +205,30 @@ const TimesheetMobileCard = React.memo(function TimesheetMobileCard({
   );
 });
 
-export function MonthlyTimesheetTable({
-  records,
-  users,
-  departments,
-  selectedMonth,
-  today,
-  approvedOvertime,
-  approvedLeaveRequests = [],
-  calendarEvents = [],
-}: MonthlyTimesheetTableProps) {
+export function MonthlyTimesheetTable({ users, departments, selectedMonth, today }: MonthlyTimesheetTableProps) {
   const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const [selectedDeptId, setSelectedDeptId] = useState('all');
+  const [detailTarget, setDetailTarget] = useState<UserSummary | null>(null);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  // Khoa ky: 'confirm' = hoi xac nhan khoa thuong; forcePending != null = con don dang cho, hoi xac nhan force.
+  const [lockConfirmOpen, setLockConfirmOpen] = useState(false);
+  const [forcePending, setForcePending] = useState<TimesheetPending | null>(null);
+  const [unlockOpen, setUnlockOpen] = useState(false);
+  const [unlockReason, setUnlockReason] = useState('');
+  const [unlockError, setUnlockError] = useState('');
+
+  const permissions = usePermissions();
+  const canManagePeriod = permissions.includes(PERMISSIONS.ORG_MANAGE);
+  const canAdjust = permissions.includes(PERMISSIONS.ATTENDANCE_ADJUSTMENT_APPROVE);
+
+  // 04/11/2026: bang cong luon theo 1 thang cu the; 'all' (tat ca thoi gian) dung thang hien tai.
+  const month = selectedMonth && selectedMonth !== 'all' ? selectedMonth : today.slice(0, 7);
+  const timesheetQuery = useTimesheetQuery(month);
+  const lockPeriod = useLockTimesheetPeriod();
+  const unlockPeriod = useUnlockTimesheetPeriod();
+  const period = timesheetQuery.data?.period;
+  const isLocked = period?.status === 'LOCKED';
 
   const deptMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -273,213 +238,25 @@ export function MonthlyTimesheetTable({
     return map;
   }, [departments]);
 
-  // Bộ tính toán tổng hợp chỉ số bảng công từng nhân viên
+  // Ghép tên + phòng ban từ users/departments vào dòng do máy chủ tính; thiếu tên không làm vỡ bảng.
   const summaries = useMemo<UserSummary[]>(() => {
-    // Xác định khoảng thời gian của tháng đang xét
-    const now = new Date();
-    let year = now.getFullYear();
-    let month = now.getMonth() + 1; // 1-12
-    if (selectedMonth && selectedMonth !== 'all') {
-      const [y, m] = selectedMonth.split('-').map(Number);
-      if (y && m) {
-        year = y;
-        month = m;
-      }
-    }
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const firstDayOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
-    const lastDayOfMonth = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
-    const standardWorkingDays = countWorkingDays(firstDayOfMonth, lastDayOfMonth) || 22;
-
-    // 16/10/2026: Xac dinh cac ngay HOLIDAY roi vao Thu 2 - Thu 6 trong thang (paidHolidayDays)
-    const holidayDatesInMonth = new Set<string>();
-    for (const ev of calendarEvents) {
-      if (ev.type !== 'HOLIDAY') continue;
-      const start = ev.startDate < firstDayOfMonth ? firstDayOfMonth : ev.startDate;
-      const end = ev.endDate > lastDayOfMonth ? lastDayOfMonth : ev.endDate;
-      if (start > end) continue;
-      const cur = new Date(start);
-      const stop = new Date(end);
-      while (cur <= stop) {
-        const dayOfWeek = cur.getDay();
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-          const y = cur.getFullYear();
-          const m = String(cur.getMonth() + 1).padStart(2, '0');
-          const d = String(cur.getDate()).padStart(2, '0');
-          holidayDatesInMonth.add(`${y}-${m}-${d}`);
-        }
-        cur.setDate(cur.getDate() + 1);
-      }
-    }
-    const paidHolidayDays = holidayDatesInMonth.size;
-
-    // Gom nhóm bản ghi theo userId (lọc theo khoảng ngày của tháng được chọn nếu khác 'all')
-    const recordsByUser = new Map<string, Attendance[]>();
-    for (const r of records) {
-      if (selectedMonth && selectedMonth !== 'all') {
-        if (r.workDate < firstDayOfMonth || r.workDate > lastDayOfMonth) continue;
-      }
-      const list = recordsByUser.get(r.userId) || [];
-      list.push(r);
-      recordsByUser.set(r.userId, list);
-    }
-
-    // 16/10/2026: Gom so ngay nghi phep HUONG LUONG (ANNUAL/SICK) da duyet (APPROVED) theo tung userId
-    // Triệt tiêu lỗi cộng trùng công (Double-counting): Nếu nhân viên đã đi làm và có log check-in thực tế trong ngày,
-    // ưu tiên tính ngày làm việc thực tế, loại trừ không cộng dồn thêm ngày phép.
-    const paidLeaveDaysByUser = new Map<string, number>();
-    const countedLeaveDatesByUser = new Map<string, Set<string>>();
-
-    for (const lr of approvedLeaveRequests) {
-      if (lr.status !== 'APPROVED') continue;
-      // Kiem tra loai nghi phep co luong khong (ANNUAL hoac SICK; UNPAID khong tinh)
-      const isUnpaid = lr.reason.includes('[UNPAID]') || lr.reason.includes('Nghỉ việc riêng') || lr.reason.includes('Personal leave') || lr.reason.includes('私用休暇'); // i18n-lint-ignore - gia tri SO KHOP du lieu, khong phai text hien thi
-      if (isUnpaid) continue;
-
-      const start = lr.startDate < firstDayOfMonth ? firstDayOfMonth : lr.startDate;
-      const end = lr.endDate > lastDayOfMonth ? lastDayOfMonth : lr.endDate;
-      if (start > end) continue;
-
-      const userRecords = recordsByUser.get(lr.userId) || [];
-      const userWorkedDates = new Set(userRecords.map((r) => r.workDate));
-      const userCounted = countedLeaveDatesByUser.get(lr.userId) || new Set<string>();
-
-      let leaveWorkingDays = 0;
-      const cur = new Date(start);
-      const stop = new Date(end);
-      while (cur <= stop) {
-        const dayOfWeek = cur.getDay();
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-          const y = cur.getFullYear();
-          const m = String(cur.getMonth() + 1).padStart(2, '0');
-          const d = String(cur.getDate()).padStart(2, '0');
-          const dateStr = `${y}-${m}-${d}`;
-          // Khong dem trung neu ngay nghi phep trung vao ngay nghi le cong ty hoac ngay da di lam thuc te
-          if (!holidayDatesInMonth.has(dateStr) && !userWorkedDates.has(dateStr) && !userCounted.has(dateStr)) {
-            leaveWorkingDays++;
-            userCounted.add(dateStr);
-          }
-        }
-        cur.setDate(cur.getDate() + 1);
-      }
-      countedLeaveDatesByUser.set(lr.userId, userCounted);
-      paidLeaveDaysByUser.set(lr.userId, (paidLeaveDaysByUser.get(lr.userId) ?? 0) + leaveWorkingDays);
-    }
-
-    // 22/09/2026: gio OT THAT (da duyet) trong khoang ngay cua thang dang xet, cong don theo
-    // userId - thay heuristic doan "checkout sau 17:30" truoc day (xem OvertimeRequestsService).
-    const otHoursByUser = new Map<string, number>();
-    for (const ot of approvedOvertime) {
-      if (ot.workDate < firstDayOfMonth || ot.workDate > lastDayOfMonth) continue;
-      otHoursByUser.set(ot.userId, (otHoursByUser.get(ot.userId) ?? 0) + ot.estimatedHours);
-    }
-
-    // Duyệt qua tất cả người dùng (hoặc những người có log)
-    return users.map((user) => {
-      const userRecords = recordsByUser.get(user.id) || [];
-      const deptName = user.departmentId ? deptMap.get(user.departmentId) || t('hrm:attendancePage.allAttendance.timesheet.noDepartment') : t('hrm:attendancePage.allAttendance.timesheet.noDepartment');
-
-      // Kiểm tra xem nhân viên có mới gia nhập trong tháng này hoặc chưa gia nhập không
-      let isNewMember = false;
-      let isNotJoinedYet = false;
-      let expectedDays = standardWorkingDays;
-      let joinDateGmt7: string | null = null;
-      if (user.createdAt) {
-        joinDateGmt7 = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(user.createdAt));
-        if (joinDateGmt7 > lastDayOfMonth) {
-          // Chưa gia nhập tại thời điểm của tháng đang xem
-          isNotJoinedYet = true;
-          expectedDays = 0;
-        } else if (joinDateGmt7 >= firstDayOfMonth && joinDateGmt7 <= lastDayOfMonth) {
-          isNewMember = true;
-          // Tính định mức từ ngày join đến hết tháng
-          expectedDays = countWorkingDays(joinDateGmt7, lastDayOfMonth) || 1;
-        }
-      }
-      const totalExpectedHours = expectedDays * 8;
-
-      let actualDays = 0;
-      let totalActualHours = 0;
-      let lateCount = 0;
-      let missingCheckOutCount = 0;
-      const otHours = Math.round((otHoursByUser.get(user.id) ?? 0) * 10) / 10;
-      const paidLeaveDays = paidLeaveDaysByUser.get(user.id) ?? 0;
-      let userPaidHolidayDays = 0;
-      if (!isNotJoinedYet) {
-        if (isNewMember && joinDateGmt7) {
-          // Chi cong ngay le roi vao hoac sau ngay nhan vien gia nhap
-          userPaidHolidayDays = Array.from(holidayDatesInMonth).filter((d) => d >= joinDateGmt7).length;
-        } else {
-          userPaidHolidayDays = paidHolidayDays;
-        }
-      }
-
-      // Tính toán trên từng log chấm công
-      for (const rec of userRecords) {
-        actualDays++;
-
-        // 1. Kiểm tra đi muộn (sau 08:30 GMT+7)
-        if (rec.checkInAt) {
-          const { hour: inHour, minute: inMin } = getGmt7TimeParts(rec.checkInAt);
-          if (inHour > 8 || (inHour === 8 && inMin > 30)) {
-            lateCount++;
-          }
-        }
-
-        // 2. Kiểm tra quên checkout
-        const isPastDay = rec.workDate < today;
-        if (!rec.checkOutAt && isPastDay) {
-          missingCheckOutCount++;
-        }
-
-        // 3. Tính giờ làm thực tế & khấu trừ giờ nghỉ trưa
-        if (rec.checkInAt && rec.checkOutAt) {
-          const inMs = new Date(rec.checkInAt).getTime();
-          const outMs = new Date(rec.checkOutAt).getTime();
-          if (outMs > inMs) {
-            let rawHours = (outMs - inMs) / (1000 * 60 * 60);
-            // Quy tắc khấu trừ giờ nghỉ trưa cố định: nếu ca làm việc kéo dài > 5 tiếng, trừ 1 tiếng nghỉ trưa
-            if (rawHours >= 5) {
-              rawHours = Math.max(0, rawHours - 1);
-            }
-            totalActualHours += rawHours;
-          }
-        }
-      }
-
-      const totalPaidDays = actualDays + paidLeaveDays + userPaidHolidayDays;
-
-      // 16/10/2026: Đánh giá trạng thái công chuẩn hóa:
-      // paidDays >= expectedDays -> sufficient (Đủ công)
-      let status: 'sufficient' | 'insufficient' | 'newMember' | 'notJoined' = 'sufficient';
-      if (isNotJoinedYet) {
-        status = 'notJoined';
-      } else if (isNewMember) {
-        status = totalPaidDays >= expectedDays ? 'sufficient' : 'insufficient';
-      } else if (totalPaidDays < expectedDays) {
-        status = 'insufficient';
-      }
-
-      return {
-        userId: user.id,
-        name: user.fullName || user.email,
-        departmentName: deptName,
-        departmentId: user.departmentId ?? null,
-        actualDays,
-        paidLeaveDays,
-        paidHolidayDays: userPaidHolidayDays,
-        paidDays: totalPaidDays,
-        expectedDays,
-        totalActualHours: Math.round(totalActualHours * 10) / 10,
-        totalExpectedHours,
-        lateCount,
-        missingCheckOutCount,
-        otHours: Math.round(otHours * 10) / 10,
-        status,
-        isNewMember,
-      };
-    });
-  }, [records, users, deptMap, selectedMonth, today, t, approvedOvertime, approvedLeaveRequests, calendarEvents]);
+    const userMap = new Map(users.map((u) => [u.id, u]));
+    const noDept = t('hrm:attendancePage.allAttendance.timesheet.noDepartment');
+    // 04/11/2026: may chu khong dam bao thu tu dong (dim_user doi thu tu sau moi dot phat lai cua IAM), sap theo
+    // ten de bang va tep xuat khong doi cho giua cac lan xem.
+    return (timesheetQuery.data?.rows ?? [])
+      .map((row) => {
+        const user = userMap.get(row.userId);
+        const deptId = row.departmentId ?? user?.departmentId ?? null;
+        return {
+          ...row,
+          departmentId: deptId,
+          name: displayUserName(user, t('hrm:timesheet.unknownEmployee')),
+          departmentName: (deptId && deptMap.get(deptId)) || noDept,
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name, 'vi') || a.userId.localeCompare(b.userId));
+  }, [timesheetQuery.data, users, deptMap, t]);
 
   // Bộ lọc theo phòng ban & tìm kiếm theo tên
   const filteredSummaries = useMemo(() => {
@@ -524,12 +301,12 @@ export function MonthlyTimesheetTable({
       sanitizeCsvValue(t(`hrm:attendancePage.allAttendance.timesheet.status.${s.status}`)),
     ]);
 
-    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const csvContent = '﻿' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `timesheet-${selectedMonth || 'all'}.csv`);
+    link.setAttribute('download', `timesheet-${month}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -538,10 +315,9 @@ export function MonthlyTimesheetTable({
 
   const currentUser = useAuthStore((s) => s.user);
 
-  // 22/09/2026: cac cot actualDays/totalActualHours/lateCount/missingCheckOutCount/otHours deu la
-  // so lieu THAT (Attendance + OvertimeRequest da duyet tu server, xem summaries o tren) - header
-  // van mo phong dung khuon mau import MISA/Fast (chua doi chieu voi tai lieu import chinh thuc cua
-  // 2 phan mem nay, ghi nhan la gioi han da biet).
+  // 04/11/2026: so lieu lay tu may chu (hrm-service computeMonth); header van mo phong khuon mau import
+  // MISA/Fast (chua doi chieu voi tai lieu import chinh thuc cua 2 phan mem nay, ghi nhan la gioi han da biet).
+  // Moi o van di qua sanitizeCsvValue() de chong CSV injection.
   const handleExportPayroll = () => {
     // Header chuẩn MISA / Fast HRM import template
     const headers = [
@@ -586,7 +362,7 @@ export function MonthlyTimesheetTable({
     ];
 
     const csvContent =
-      '\uFEFF' +
+      '﻿' +
       [
         headers.join(','),
         ...rows.map((e) => e.join(',')),
@@ -598,7 +374,7 @@ export function MonthlyTimesheetTable({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `payroll-misa-fast-${selectedMonth || 'all'}.csv`);
+    link.setAttribute('download', `payroll-misa-fast-${month}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -607,8 +383,81 @@ export function MonthlyTimesheetTable({
     toast.success(t('hrm:extensions.payroll.successExport'));
   };
 
+  // 04/11/2026: khoa ky. Con don dang cho -> may chu tra 409 TIMESHEET_PERIOD_HAS_PENDING kem so don; hoi xac
+  // nhan roi gui lai voi force: true. Loi khac da duoc toast boi useLockTimesheetPeriod().
+  function submitLock(force: boolean) {
+    lockPeriod.mutate(
+      { month, force },
+      {
+        onSuccess: () => {
+          setLockConfirmOpen(false);
+          setForcePending(null);
+        },
+        onError: (error) => {
+          const pending = extractPendingConflict(error);
+          setLockConfirmOpen(false);
+          if (pending) setForcePending(pending);
+          else setForcePending(null);
+        },
+      },
+    );
+  }
+
+  function submitUnlock() {
+    if (!unlockReason.trim()) {
+      setUnlockError(t('hrm:timesheet.period.reasonRequired'));
+      return;
+    }
+    unlockPeriod.mutate(
+      { month, reason: unlockReason.trim() },
+      {
+        onSuccess: () => {
+          setUnlockOpen(false);
+          setUnlockReason('');
+          setUnlockError('');
+        },
+      },
+    );
+  }
+
   return (
     <div className="space-y-4">
+      {/* Trạng thái kỳ công + nút Khoá/Mở khoá/Lịch làm việc (chỉ ORG_MANAGE) */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2 text-[12px] text-text-secondary">
+          <span className="font-medium text-text-primary">{t('hrm:attendancePage.allAttendance.timesheet.title', { month })}</span>
+          {period && (
+            <span
+              className={`inline-flex items-center h-[22px] px-2 rounded-[2px] text-[11px] font-semibold ${
+                isLocked ? 'bg-warning-soft text-warning' : 'bg-success-soft text-success'
+              }`}
+            >
+              {t(`hrm:timesheet.period.status.${period.status}`)}
+            </span>
+          )}
+          {isLocked && period?.lockedAt && (
+            <span className="text-text-tertiary">{t('hrm:timesheet.period.lockedAt', { date: formatDate(period.lockedAt) })}</span>
+          )}
+        </div>
+        {canManagePeriod && (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setScheduleOpen(true)} className="h-9 text-xs">
+              {t('hrm:workSchedule.openButton')}
+            </Button>
+            {period && !isLocked && (
+              <Button type="button" variant="outline" size="sm" onClick={() => setLockConfirmOpen(true)} className="h-9 text-xs">
+                {t('hrm:timesheet.period.lockButton')}
+              </Button>
+            )}
+            {period && isLocked && (
+              <Button type="button" variant="outline" size="sm" onClick={() => setUnlockOpen(true)} className="h-9 text-xs">
+                {t('hrm:timesheet.period.unlockButton')}
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Thanh công cụ: Tìm kiếm, lọc phòng ban và nút Xuất CSV / Payroll */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
         <div className="flex flex-1 items-center gap-2">
@@ -638,6 +487,7 @@ export function MonthlyTimesheetTable({
             variant="outline"
             size="sm"
             onClick={handleExportCsv}
+            disabled={!timesheetQuery.data}
             className="flex items-center gap-1.5 rounded-radius-sm border-border-strong bg-white text-text-primary hover:bg-canvas text-xs font-semibold h-9"
           >
             <DownloadIcon className="h-3.5 w-3.5 text-text-tertiary" />
@@ -649,6 +499,7 @@ export function MonthlyTimesheetTable({
             variant="outline"
             size="sm"
             onClick={handleExportPayroll}
+            disabled={!timesheetQuery.data}
             className="flex items-center gap-1.5 rounded-radius-sm border-border-strong bg-white text-text-primary hover:bg-canvas text-xs font-semibold h-9"
           >
             <DownloadIcon className="h-3.5 w-3.5 text-text-tertiary" />
@@ -657,50 +508,127 @@ export function MonthlyTimesheetTable({
         </div>
       </div>
 
-      {/* Hiển thị bảng số liệu trên màn hình Desktop */}
-      <div className="hidden sm:block overflow-x-auto max-h-[460px] overflow-y-auto rounded-radius-sm border border-border-subtle">
-        <table className="w-full text-[13px]">
-          <thead className="sticky top-0 bg-bg-subtle z-10 border-b border-border-subtle">
-            <tr className="text-left text-[12px] font-medium text-text-tertiary">
-              <th className="py-2.5 px-3 bg-bg-subtle">{t('hrm:attendancePage.allAttendance.timesheet.columns.employee')}</th>
-              <th className="py-2.5 px-3 bg-bg-subtle">{t('hrm:attendancePage.allAttendance.timesheet.columns.department')}</th>
-              <th className="py-2.5 px-3 bg-bg-subtle text-right">{t('hrm:attendancePage.allAttendance.timesheet.columns.actualDays')}</th>
-              <th className="py-2.5 px-3 bg-bg-subtle text-right">{t('hrm:attendancePage.allAttendance.timesheet.columns.workHours')}</th>
-              <th className="py-2.5 px-3 bg-bg-subtle text-center">{t('hrm:attendancePage.allAttendance.timesheet.columns.lateCount')}</th>
-              <th className="py-2.5 px-3 bg-bg-subtle text-center">{t('hrm:attendancePage.allAttendance.timesheet.columns.missingCheckOut')}</th>
-              <th className="py-2.5 px-3 bg-bg-subtle text-right">{t('hrm:attendancePage.allAttendance.timesheet.columns.otHours')}</th>
-              <th className="py-2.5 px-3 bg-bg-subtle text-center">{t('hrm:attendancePage.allAttendance.timesheet.columns.status')}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border-subtle bg-white">
-            {filteredSummaries.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="py-8 text-center text-text-tertiary">
-                  {t('hrm:attendancePage.allAttendance.timesheet.empty')}
-                </td>
+      <QueryState
+        isLoading={timesheetQuery.isLoading}
+        isError={timesheetQuery.isError}
+        onRetry={() => timesheetQuery.refetch()}
+        errorTitle={t('hrm:timesheet.loadError')}
+      >
+        {/* Hiển thị bảng số liệu trên màn hình Desktop */}
+        <div className="hidden sm:block overflow-x-auto max-h-[460px] overflow-y-auto rounded-radius-sm border border-border-subtle">
+          <table className="w-full text-[13px]">
+            <thead className="sticky top-0 bg-bg-subtle z-10 border-b border-border-subtle">
+              <tr className="text-left text-[12px] font-medium text-text-tertiary">
+                <th className="py-2.5 px-3 bg-bg-subtle">{t('hrm:attendancePage.allAttendance.timesheet.columns.employee')}</th>
+                <th className="py-2.5 px-3 bg-bg-subtle">{t('hrm:attendancePage.allAttendance.timesheet.columns.department')}</th>
+                <th className="py-2.5 px-3 bg-bg-subtle text-right">{t('hrm:attendancePage.allAttendance.timesheet.columns.actualDays')}</th>
+                <th className="py-2.5 px-3 bg-bg-subtle text-right">{t('hrm:attendancePage.allAttendance.timesheet.columns.workHours')}</th>
+                <th className="py-2.5 px-3 bg-bg-subtle text-center">{t('hrm:attendancePage.allAttendance.timesheet.columns.lateCount')}</th>
+                <th className="py-2.5 px-3 bg-bg-subtle text-center">{t('hrm:attendancePage.allAttendance.timesheet.columns.missingCheckOut')}</th>
+                <th className="py-2.5 px-3 bg-bg-subtle text-right">{t('hrm:attendancePage.allAttendance.timesheet.columns.otHours')}</th>
+                <th className="py-2.5 px-3 bg-bg-subtle text-center">{t('hrm:attendancePage.allAttendance.timesheet.columns.status')}</th>
               </tr>
-            ) : (
-              filteredSummaries.map((s) => (
-                <TimesheetDesktopRow key={s.userId} summary={s} />
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="divide-y divide-border-subtle bg-white">
+              {filteredSummaries.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-8 text-center text-text-tertiary">
+                    {t('hrm:attendancePage.allAttendance.timesheet.empty')}
+                  </td>
+                </tr>
+              ) : (
+                filteredSummaries.map((s) => <TimesheetDesktopRow key={s.userId} summary={s} onSelect={setDetailTarget} />)
+              )}
+            </tbody>
+          </table>
+        </div>
 
-      {/* Hiển thị dạng Card danh sách trên giao diện Di động (Mobile) */}
-      <div className="block sm:hidden space-y-2.5 max-h-[460px] overflow-y-auto pr-0.5">
-        {filteredSummaries.length === 0 ? (
-          <div className="py-8 text-center text-xs text-text-tertiary">
-            {t('hrm:attendancePage.allAttendance.timesheet.empty')}
+        {/* Hiển thị dạng Card danh sách trên giao diện Di động (Mobile) */}
+        <div className="block sm:hidden space-y-2.5 max-h-[460px] overflow-y-auto pr-0.5">
+          {filteredSummaries.length === 0 ? (
+            <div className="py-8 text-center text-xs text-text-tertiary">
+              {t('hrm:attendancePage.allAttendance.timesheet.empty')}
+            </div>
+          ) : (
+            filteredSummaries.map((s) => <TimesheetMobileCard key={s.userId} summary={s} onSelect={setDetailTarget} />)
+          )}
+        </div>
+
+        <SymbolLegend />
+      </QueryState>
+
+      {/* Chi tiết ngày của 1 nhân viên (mở khi bấm dòng) */}
+      {detailTarget && (
+        <TimesheetDetailModal
+          open
+          onClose={() => setDetailTarget(null)}
+          userId={detailTarget.userId}
+          userName={detailTarget.name}
+          month={month}
+          today={today}
+          canAdjust={canAdjust}
+        />
+      )}
+
+      {canManagePeriod && <WorkScheduleModal open={scheduleOpen} onClose={() => setScheduleOpen(false)} />}
+
+      {/* Xác nhận khoá kỳ */}
+      <ConfirmDialog
+        open={lockConfirmOpen}
+        onClose={() => setLockConfirmOpen(false)}
+        onConfirm={() => submitLock(false)}
+        isLoading={lockPeriod.isPending}
+        title={t('hrm:timesheet.period.lockConfirmTitle', { month })}
+        description={t('hrm:timesheet.period.lockConfirmDescription')}
+        confirmLabel={t('hrm:timesheet.period.lockButton')}
+      />
+
+      {/* Còn đơn đang chờ: hiện số đơn và cho xác nhận khoá với force: true */}
+      <ConfirmDialog
+        open={forcePending !== null}
+        onClose={() => setForcePending(null)}
+        onConfirm={() => submitLock(true)}
+        isLoading={lockPeriod.isPending}
+        title={t('hrm:timesheet.period.pendingTitle')}
+        description={t('hrm:timesheet.period.pendingDescription', {
+          leave: forcePending?.leave ?? 0,
+          overtime: forcePending?.overtime ?? 0,
+          adjustment: forcePending?.adjustment ?? 0,
+        })}
+        confirmLabel={t('hrm:timesheet.period.forceLockButton')}
+        danger
+      />
+
+      {/* Mở khoá bắt buộc nhập lý do */}
+      <Modal
+        open={unlockOpen}
+        onClose={() => setUnlockOpen(false)}
+        preventCloseWhilePending={unlockPeriod.isPending}
+        title={t('hrm:timesheet.period.unlockTitle', { month })}
+        size="sm"
+      >
+        <div className="space-y-3">
+          <FormField label={t('hrm:timesheet.period.reasonLabel')} htmlFor="unlock-reason" error={unlockError} required>
+            <Textarea
+              id="unlock-reason"
+              value={unlockReason}
+              onChange={(e) => {
+                setUnlockReason(e.target.value);
+                if (unlockError) setUnlockError('');
+              }}
+              className="min-h-[80px]"
+            />
+          </FormField>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => setUnlockOpen(false)} disabled={unlockPeriod.isPending}>
+              {t('common:actions.cancel')}
+            </Button>
+            <Button type="button" size="sm" onClick={submitUnlock} disabled={unlockPeriod.isPending}>
+              {t('hrm:timesheet.period.unlockButton')}
+            </Button>
           </div>
-        ) : (
-          filteredSummaries.map((s) => (
-            <TimesheetMobileCard key={s.userId} summary={s} />
-          ))
-        )}
-      </div>
+        </div>
+      </Modal>
     </div>
   );
 }
-

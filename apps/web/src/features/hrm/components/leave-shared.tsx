@@ -1,4 +1,5 @@
-import type { LeaveRequestStatus } from '@/types';
+import type { LeaveRequest, LeaveRequestStatus } from '@/types';
+import { calculateWorkingDays } from '@/lib/utils';
 
 export function LeaveTypeBadge({ rawType, label }: { rawType: string | null; label: string | null }) {
   if (!label) return null;
@@ -81,3 +82,25 @@ export function parseLeaveReason(rawReason: string | undefined | null, t: (key: 
   };
 }
 
+
+/**
+ * 04/11/2026: uu tien `leaveType` do may chu tra ve; parseLeaveReason() chi la duong lui cho don cu
+ * (loai nam trong tien to cua reason). Tien to khong bao gio hien cho nguoi dung (cleanReason da cat).
+ */
+export function getLeaveDisplay(
+  request: Pick<LeaveRequest, 'leaveType' | 'reason'>,
+  t: (key: string, options?: any) => string,
+) {
+  const parsed = parseLeaveReason(request.reason, t);
+  if (!request.leaveType) return parsed;
+  return {
+    rawType: request.leaveType as string | null,
+    leaveType: t(`hrm:newLeaveRequestModal.types.${request.leaveType}`) as string | null,
+    cleanReason: parsed.cleanReason,
+  };
+}
+
+/** 04/11/2026: so ngay lam viec theo lich cong ty do may chu tinh; thieu (don cu/API cu) thi lui ve dem thu 2-6. */
+export function getLeaveWorkingDays(request: Pick<LeaveRequest, 'workingDays' | 'startDate' | 'endDate'>): number {
+  return request.workingDays ?? calculateWorkingDays(request.startDate, request.endDate);
+}

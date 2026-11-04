@@ -10,11 +10,8 @@ import { cn, getTodayGmt7DateString } from '@/lib/utils';
 import { useCreateLeaveRequest } from '@/features/hrm/hooks';
 import type { ChatMessage } from '@/types';
 
-// 03/10/2026: cung 1 quy uoc [LOAI] ngay truoc reason ma NewLeaveRequestModal.tsx dang dung that su
-// (CreateLeaveRequestPayload KHONG co field leaveType rieng - server doc loai nghi phep tu chinh
-// tien to nay trong `reason`, xem parseLeaveReason() trong LeaveRequestsPage.tsx) - PHAI lap lai
-// dung quy uoc nay thi yeu cau tao tu goi y chat moi hien dung "Loai nghi phep" o "Lich su nghi
-// phep", khong thi se hien thi nhu 1 yeu cau "khong ro loai".
+// 04/11/2026: loai nghi gui rieng qua leaveType nhu NewLeaveRequestModal.tsx, khong ghep tien to [LOAI] vao
+// reason nua - may chu chan so du dung theo loai va ly do hien nguyen van trong "Lich su nghi phep".
 const LEAVE_TYPE_OPTIONS = ['ANNUAL', 'SICK', 'UNPAID'] as const;
 type LeaveTypeOption = (typeof LEAVE_TYPE_OPTIONS)[number];
 
@@ -59,9 +56,8 @@ export const LeaveRequestSuggestion = React.memo(function LeaveRequestSuggestion
       setError(t('messaging:leaveSuggestion.errors.missingReason'));
       return;
     }
-    const fullReason = `[${leaveType}] ${reason.trim()}`;
     createLeaveRequest.mutate(
-      { startDate: date, endDate: date, reason: fullReason },
+      { startDate: date, endDate: date, reason: reason.trim(), leaveType },
       {
         onSuccess: () => {
           setIsConfirmed(true);

@@ -65,14 +65,11 @@ export function LeaveRequestsPage() {
 
   const leaveBalance = useMemo(() => {
     if (!balanceQuery.data) return null;
-    const { usedDays, baseDaysPerYear, seniorityYearsPerBonusDay, year } = balanceQuery.data;
-    const selfRecord = orgUsers.find((u) => u.id === currentUser?.id);
-    const joinDate = selfRecord?.createdAt ? new Date(selfRecord.createdAt) : null;
-    const yearsOfService = joinDate ? Math.max(0, Math.floor((Date.now() - joinDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000))) : 0;
-    const seniorityBonusDays = seniorityYearsPerBonusDay > 0 ? Math.floor(yearsOfService / seniorityYearsPerBonusDay) : 0;
-    const entitledDays = baseDaysPerYear + seniorityBonusDays;
-    return { year, usedDays, entitledDays, seniorityBonusDays, remainingDays: entitledDays - usedDays };
-  }, [balanceQuery.data, orgUsers, currentUser?.id]);
+    // 04/11/2026: hrm-service tra san entitledDays/pendingDays/adjustmentDays/remainingDays (tinh theo ngay vao
+    // lam that cua dim_user), bo doan tu ghep tham nien tu useOrgUsers truoc day.
+    const { year, usedDays, pendingDays, adjustmentDays, entitledDays, seniorityBonusDays, remainingDays } = balanceQuery.data;
+    return { year, usedDays, pendingDays: pendingDays ?? 0, adjustmentDays: adjustmentDays ?? 0, entitledDays, seniorityBonusDays: seniorityBonusDays ?? 0, remainingDays };
+  }, [balanceQuery.data]);
 
   const [pendingActions, setPendingActions] = useState<Record<string, 'approve' | 'reject'>>({});
   const canApprove = !pendingQuery.isError && pendingQuery.isSuccess;

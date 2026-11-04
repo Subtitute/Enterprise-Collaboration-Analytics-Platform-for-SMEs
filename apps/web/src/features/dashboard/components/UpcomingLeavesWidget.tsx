@@ -110,9 +110,12 @@ export const UpcomingLeavesWidget = memo(function UpcomingLeavesWidget() {
               const endStr = item.endDate ? item.endDate.slice(0, 10) : '';
               const isToday = startStr <= todayStr && endStr >= todayStr;
               const isTomorrow = startStr === tomorrowStr;
-              const daysCount = calculateWorkingDays(item.startDate, item.endDate);
+              // 04/11/2026: uu tien so ngay + loai nghi do may chu tra ve, don cu moi lui ve cach cu.
+              const daysCount = item.workingDays ?? calculateWorkingDays(item.startDate, item.endDate);
               const employeeName = userNameMap[item.userId] || t('dashboard:upcomingLeaves.employee');
-              const typeLabel = parseLeaveType(item.reason, t as any);
+              const typeLabel = item.leaveType
+                ? t(`dashboard:upcomingLeaves.types.${item.leaveType}`)
+                : parseLeaveType(item.reason, t as any);
 
               return (
                 <div

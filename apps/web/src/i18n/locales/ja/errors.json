@@ -136,5 +136,18 @@
   "FACE_ORG_MISMATCH": "顔データは別の組織に属しています",
   "USER_INACTIVE": "このアカウントは無効化されています",
   "CURRENT_PASSWORD_INVALID": "現在のパスワードが正しくありません",
-  "NEW_PASSWORD_SAME_AS_CURRENT": "新しいパスワードは現在のパスワードと異なる必要があります"
+  "NEW_PASSWORD_SAME_AS_CURRENT": "新しいパスワードは現在のパスワードと異なる必要があります",
+
+  "LEAVE_BALANCE_EXCEEDED": "年次有給休暇の残日数が足りません。",
+  "LEAVE_OVERLAP": "この期間は申請中または承認済みの休暇申請と重複しています。",
+  "LEAVE_NO_WORKING_DAYS": "この期間には会社カレンダー上の勤務日がありません。",
+  "LEAVE_ADJUSTMENT_INVALID": "休暇残日数の調整が無効です(日数は 0 以外、メモは必須)。",
+  "WORK_SCHEDULE_INVALID": "勤務スケジュールが無効です。勤務日、始業・終業時刻、分数を確認してください。",
+  "TIMESHEET_MONTH_INVALID": "勤務表の月が無効です。",
+  "TIMESHEET_PERIOD_LOCKED": "この月の勤務期間は締め済みのため変更できません。",
+  "TIMESHEET_PERIOD_ALREADY_LOCKED": "この月の勤務期間はすでに締め済みです。",
+  "TIMESHEET_PERIOD_NOT_LOCKED": "この月の勤務期間は締められていません。",
+  "TIMESHEET_PERIOD_NOT_ENDED": "この月はまだ終了していないため、締められません。",
+  "TIMESHEET_PERIOD_HAS_PENDING": "今月は未処理の休暇・残業・勤怠説明の申請があります。",
+  "TIMESHEET_ENTRY_INVALID": "手動修正が無効です(未来の日付、入社前、記号の誤り、またはメモ未入力)。"
 }

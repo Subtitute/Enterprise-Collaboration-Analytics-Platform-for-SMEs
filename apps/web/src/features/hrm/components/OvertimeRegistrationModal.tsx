@@ -8,7 +8,7 @@ import { TimePicker } from '@/components/ui/TimePicker';
 import { CustomFilterSelect } from '@/components/ui/CustomFilterSelect';
 import { InfoIcon } from '@/components/ui/Icons';
 import type { LeaveRequest, OvertimeMultiplierType } from '@/types';
-import { useCreateOvertimeRequest } from '../hooks';
+import { useCreateOvertimeRequest, useWorkScheduleQuery } from '../hooks';
 
 interface OvertimeRegistrationModalProps {
   userId: string;
@@ -32,6 +32,10 @@ export function OvertimeRegistrationModal({ userId, open, onClose, leaveRequests
   const [multiplierType, setMultiplierType] = useState<OvertimeMultiplierType>('WEEKDAY');
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
+  // 04/11/2026: gio hanh chinh lay tu lich lam viec cua cong ty, khong co dinh 08:30 - 17:30.
+  const schedule = useWorkScheduleQuery({ enabled: open }).data;
+  const officeStart = schedule?.workStart ?? '08:30';
+  const officeEnd = schedule?.workEnd ?? '17:30';
 
   // Tính số giờ và phút OT dự kiến
   const { totalHours, durationText } = useMemo(() => {
@@ -77,15 +81,17 @@ export function OvertimeRegistrationModal({ userId, open, onClose, leaveRequests
       return;
     }
 
-    // 3. Chặn trùng với giờ hành chính chính thức (08:30 - 17:30) vào các ngày trong tuần
+    // 3. Chặn trùng với giờ hành chính của công ty vào các ngày trong tuần
     const selectedD = new Date(workDate);
     const isWeekend = selectedD.getDay() === 0 || selectedD.getDay() === 6;
     const [sH, sM] = otStart.split(':').map(Number);
     const [eH, eM] = otEnd.split(':').map(Number);
     const startMins = sH * 60 + sM;
     const endMins = eH * 60 + eM;
-    const officeStartMins = 8 * 60 + 30; // 08:30
-    const officeEndMins = 17 * 60 + 30; // 17:30
+    const [officeStartH, officeStartM] = officeStart.split(':').map(Number);
+    const [officeEndH, officeEndM] = officeEnd.split(':').map(Number);
+    const officeStartMins = officeStartH * 60 + officeStartM;
+    const officeEndMins = officeEndH * 60 + officeEndM;
 
     if (!isWeekend && multiplierType === 'WEEKDAY') {
       const isOverlapping =
@@ -94,7 +100,7 @@ export function OvertimeRegistrationModal({ userId, open, onClose, leaveRequests
         (startMins <= officeStartMins && endMins >= officeEndMins);
 
       if (isOverlapping) {
-        setError(t('hrm:extensions.overtime.errors.overlapOfficeHours'));
+        setError(t('hrm:extensions.overtime.errors.overlapOfficeHours', { start: officeStart, end: officeEnd }));
         return;
       }
     }

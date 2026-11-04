@@ -28,6 +28,8 @@ import type { CalendarEvent } from '@/types';
 
 const TYPE_DOT_CLASS: Record<CalendarEvent['type'], string> = {
   HOLIDAY: 'bg-[#B3261E]',
+  // 04/11/2026: ngay lam bu - mau xanh (info) rieng, khong trung ngay le/su kien.
+  MAKEUP_WORKDAY: 'bg-[#1E5A8A]',
   EVENT: 'bg-[#0E5E5E]',
 };
 
@@ -110,7 +112,9 @@ const CalendarDayCell = React.memo(function CalendarDayCell({
               'block w-full truncate rounded px-1.5 py-0.5 text-left text-[10px] font-medium transition-opacity hover:opacity-80 cursor-pointer',
               ev.type === 'HOLIDAY'
                 ? 'bg-[#F8E5E3] text-[#B3261E] border border-[#B3261E]/20'
-                : 'bg-[#E4EFEE] text-[#0E5E5E] border border-[#0E5E5E]/20',
+                : ev.type === 'MAKEUP_WORKDAY'
+                  ? 'bg-[#E4EEF5] text-[#1E5A8A] border border-[#1E5A8A]/20'
+                  : 'bg-[#E4EFEE] text-[#0E5E5E] border border-[#0E5E5E]/20',
             )}
           >
             {ev.title}
@@ -160,7 +164,7 @@ export function CompanyCalendar() {
    * do Org Admin tao du backend van chap nhan request - form chi mo len o dang chi-doc oan uong.
    */
   function canManageEvent(event: CalendarEvent): boolean {
-    if (event.type === 'HOLIDAY') return canManageCalendar;
+    if (event.type === 'HOLIDAY' || event.type === 'MAKEUP_WORKDAY') return canManageCalendar;
     if (currentUser && event.createdByUserId === currentUser.id) return true;
     return canManageCalendar && ownRank > event.createdByRank;
   }
@@ -250,10 +254,14 @@ export function CompanyCalendar() {
       </div>
 
       {/* Legend dot 6px: Ngày lễ #B3261E, Sự kiện #0E5E5E */}
-      <div className="flex items-center gap-3 text-[12px] font-normal text-text-secondary">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-normal text-text-secondary">
         <span className="flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-[#B3261E] shrink-0" />
           <span>{t('hrm:calendarEventModal.type.HOLIDAY')}</span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#1E5A8A] shrink-0" />
+          <span>{t('hrm:calendarEventModal.type.MAKEUP_WORKDAY')}</span>
         </span>
         <span className="flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 rounded-full bg-[#0E5E5E] shrink-0" />

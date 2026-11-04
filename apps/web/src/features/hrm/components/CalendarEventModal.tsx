@@ -62,10 +62,11 @@ export function CalendarEventModal({
   // vd quyen vua bi thu hoi sau khi muc nay da duoc tao) van phai hien dung HOLIDAY dang la gia tri
   // THAT cua no, khong duoc am tham doi thanh EVENT chi vi bo loc o tren - neu khong, cong tac se
   // khong co nut nao o trang thai "dang chon" ca (gay hieu lam cho nguoi xem read-only).
+  // 04/11/2026: them MAKEUP_WORKDAY (ngay lam bu) - cung quy tac quyen voi HOLIDAY (can CALENDAR_MANAGE).
   const typeOptions: CalendarEventType[] = canManageCalendar
-    ? ['HOLIDAY', 'EVENT']
-    : calendarEvent?.type === 'HOLIDAY'
-      ? ['HOLIDAY']
+    ? ['HOLIDAY', 'MAKEUP_WORKDAY', 'EVENT']
+    : calendarEvent?.type === 'HOLIDAY' || calendarEvent?.type === 'MAKEUP_WORKDAY'
+      ? [calendarEvent.type]
       : ['EVENT'];
 
   useEffect(() => {
@@ -190,7 +191,7 @@ export function CalendarEventModal({
                 <span
                   className={cn(
                     'h-2 w-2 rounded-full shrink-0',
-                    opt === 'HOLIDAY' ? 'bg-[#B3261E]' : 'bg-[#0E5E5E]',
+                    opt === 'HOLIDAY' ? 'bg-[#B3261E]' : opt === 'MAKEUP_WORKDAY' ? 'bg-[#1E5A8A]' : 'bg-[#0E5E5E]',
                   )}
                 />
                 <span>{t(`hrm:calendarEventModal.type.${opt}`)}</span>
@@ -201,6 +202,12 @@ export function CalendarEventModal({
           {type === 'HOLIDAY' && (
             <p className="rounded-radius-xs bg-[#FBEEE0] border border-[#B45309]/20 px-3 py-2 text-[12px] text-[#B45309]">
               {t('hrm:calendarEventModal.holidayHint')}
+            </p>
+          )}
+
+          {type === 'MAKEUP_WORKDAY' && (
+            <p className="rounded-radius-xs bg-[#E4EEF5] border border-[#1E5A8A]/20 px-3 py-2 text-[12px] text-[#1E5A8A]">
+              {t('hrm:calendarEventModal.makeupHint')}
             </p>
           )}
 

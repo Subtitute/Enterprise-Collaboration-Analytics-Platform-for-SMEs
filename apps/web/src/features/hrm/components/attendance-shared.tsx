@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Spinner } from '@/components/ui/Spinner';
 import { CameraIcon, MapPinIcon } from '@/components/ui/Icons';
 import { getAttendancePhotoUrl } from '../api';
+import { useWorkScheduleQuery } from '../hooks';
 import { DEFAULT_FACE_MATCH_THRESHOLD, toFacePercent } from '../face-result';
 
 /**
@@ -202,6 +203,9 @@ export function AttendanceStatusBadge({
   isPendingAdjustment?: boolean;
 }) {
   const { t } = useTranslation();
+  // 04/11/2026: muon tinh theo lich lam viec cua cong ty, cung quy tac voi bang cong - doi gio vao hay gia han
+  // thi Nhat ky va Lich su khong con bao muon khac voi bang cong; ngay nghi tuan khong tinh muon.
+  const schedule = useWorkScheduleQuery().data;
 
   if (isPendingAdjustment) {
     return (
@@ -230,7 +234,10 @@ export function AttendanceStatusBadge({
   }).formatToParts(checkInDate);
   const checkInHour = Number(gmt7Parts.find((p) => p.type === 'hour')?.value ?? 0);
   const checkInMinute = Number(gmt7Parts.find((p) => p.type === 'minute')?.value ?? 0);
-  const isLate = checkInHour > 8 || (checkInHour === 8 && checkInMinute > 30); // Giờ chuẩn vào ca 8:30
+  const [startHour, startMinute] = (schedule?.workStart ?? '08:30').split(':').map(Number);
+  const lateAfterMinute = startHour * 60 + startMinute + (schedule?.lateGraceMinutes ?? 0);
+  const isOffDay = schedule ? !schedule.workingWeekdays.includes(new Date(`${record.workDate}T00:00:00Z`).getUTCDay()) : false;
+  const isLate = !isOffDay && checkInHour * 60 + checkInMinute > lateAfterMinute;
   const isPastDay = record.workDate < today;
   const isMissingCheckOut = !record.checkOutAt && isPastDay;
 

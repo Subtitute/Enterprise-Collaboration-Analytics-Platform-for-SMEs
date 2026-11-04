@@ -6,11 +6,21 @@ import type {
   AttendanceAdjustment,
   CalendarEvent,
   CalendarEventType,
+  LeaveBalanceAdjustment,
   LeaveRequest,
   LeaveRequestStatus,
+  LeaveType,
   OvertimeMultiplierType,
   OvertimeRequest,
   PaginatedResponse,
+  TimesheetDay,
+  TimesheetExceptions,
+  TimesheetExceptionType,
+  TimesheetMonth,
+  TimesheetPending,
+  TimesheetSymbol,
+  TimesheetUserDetail,
+  WorkSchedule,
 } from '@/types';
 import type { CheckInLocation } from './components/CheckInCamera';
 
@@ -148,6 +158,8 @@ export interface CreateLeaveRequestPayload {
   startDate: string;
   endDate: string;
   reason: string;
+  // 04/11/2026: gui loai nghi rieng, khong ghep tien to vao reason nua.
+  leaveType?: LeaveType;
 }
 
 export async function createLeaveRequest(payload: CreateLeaveRequestPayload): Promise<LeaveRequest> {
@@ -170,13 +182,6 @@ export async function fetchPendingLeaveRequests(params: { page?: number; limit?:
     params: { status: 'PENDING' as LeaveRequestStatus, ...params },
   });
   return data;
-}
-
-export async function fetchApprovedLeaveRequests(params: { page?: number; limit?: number } = {}): Promise<LeaveRequest[]> {
-  const { data } = await apiClient.get<PaginatedResponse<LeaveRequest>>('/leave-requests', {
-    params: { status: 'APPROVED' as LeaveRequestStatus, limit: 500, ...params },
-  });
-  return data.data;
 }
 
 /**
@@ -213,11 +218,17 @@ export async function cancelLeaveRequest(id: string): Promise<LeaveRequest> {
 // LeaveRequestsService.getMyBalance() (apps/hrm-service): can User.createdAt (ngay vao lam, song o
 // database rieng cua IAM Service) de tinh thuong nien, frontend tu ghep not qua useOrgUsersQuery()
 // da co san (xem LeaveRequestsPage.tsx).
+// 04/11/2026: may chu nay tinh san thuc huong/tham nien/dieu chinh (hrm-service), giao dien khong tu ghep nua.
 export interface LeaveBalance {
   year: number;
   usedDays: number;
   baseDaysPerYear: number;
   seniorityYearsPerBonusDay: number;
+  pendingDays: number;
+  adjustmentDays: number;
+  seniorityBonusDays: number;
+  entitledDays: number;
+  remainingDays: number;
 }
 
 export async function fetchMyLeaveBalance(): Promise<LeaveBalance> {
@@ -322,16 +333,6 @@ export async function fetchPendingOvertimeRequests(params: { page?: number; limi
   return data;
 }
 
-/** 22/09/2026: danh sach OT DA DUYET toan to chuc, khong loc thang (to chuc quy mo nho - xem
- *  MonthlyTimesheetTable.tsx) - dung de tinh otHours THAT cho bang cong thang, thay heuristic
- *  doan "checkout sau 17:30" truoc day. */
-export async function fetchApprovedOvertimeRequests(): Promise<OvertimeRequest[]> {
-  const { data } = await apiClient.get<PaginatedResponse<OvertimeRequest>>('/overtime-requests', {
-    params: { status: 'APPROVED', limit: 500 },
-  });
-  return data.data;
-}
-
 export async function approveOvertimeRequest(id: string, decisionNote?: string): Promise<OvertimeRequest> {
   const { data } = await apiClient.patch<OvertimeRequest>(`/overtime-requests/${id}/approve`, { decisionNote });
   return data;
@@ -374,4 +375,109 @@ export async function updateCalendarEvent(id: string, payload: Partial<CalendarE
 
 export async function deleteCalendarEvent(id: string): Promise<void> {
   await apiClient.delete(`/calendar-events/${id}`);
+}
+
+// 04/11/2026: dieu chinh so du phep (chi them, khong sua/xoa) - quyen ORG_MANAGE.
+export interface CreateLeaveAdjustmentPayload {
+  userId: string;
+  year: number;
+  days: number;
+  note: string;
+}
+
+export async function createLeaveAdjustment(payload: CreateLeaveAdjustmentPayload): Promise<LeaveBalanceAdjustment> {
+  const { data } = await apiClient.post<LeaveBalanceAdjustment>('/leave-requests/balance-adjustments', payload);
+  return data;
+}
+
+export async function fetchLeaveAdjustments(userId: string, year: number): Promise<LeaveBalanceAdjustment[]> {
+  const { data } = await apiClient.get<LeaveBalanceAdjustment[] | PaginatedResponse<LeaveBalanceAdjustment>>(
+    '/leave-requests/balance-adjustments',
+    { params: { userId, year } },
+  );
+  // Gia dinh hop dong: mang tran hoac dang phan trang { data } - chap nhan ca hai.
+  return Array.isArray(data) ? data : data.data;
+}
+
+// 04/11/2026: lich lam viec va so ngay lam viec theo lich cong ty (module work-calendar).
+export interface WorkingDaysResult {
+  workingDays: number;
+  holidays: { date: string; title: string }[];
+}
+
+export async function fetchWorkingDays(startDate: string, endDate: string): Promise<WorkingDaysResult> {
+  const { data } = await apiClient.get<WorkingDaysResult>('/work-calendar/working-days', { params: { startDate, endDate } });
+  return data;
+}
+
+export async function fetchWorkSchedule(): Promise<WorkSchedule> {
+  const { data } = await apiClient.get<WorkSchedule>('/work-calendar/schedule');
+  return data;
+}
+
+export async function updateWorkSchedule(payload: WorkSchedule): Promise<WorkSchedule> {
+  const { data } = await apiClient.put<WorkSchedule>('/work-calendar/schedule', payload);
+  return data;
+}
+
+// 04/11/2026: bang cong va ky cong do may chu tinh (module timesheets). Giao dien khong tu tinh nua.
+export async function fetchTimesheet(month: string): Promise<TimesheetMonth> {
+  const { data } = await apiClient.get<TimesheetMonth>('/timesheets', { params: { month } });
+  return data;
+}
+
+export async function fetchTimesheetUser(userId: string, month: string): Promise<TimesheetUserDetail> {
+  const { data } = await apiClient.get<TimesheetUserDetail>(`/timesheets/users/${userId}`, { params: { month } });
+  return data;
+}
+
+export interface UpsertTimesheetEntryPayload {
+  userId: string;
+  workDate: string;
+  symbol: TimesheetSymbol;
+  note: string;
+}
+
+export async function upsertTimesheetEntry(payload: UpsertTimesheetEntryPayload): Promise<TimesheetDay> {
+  const { data } = await apiClient.put<TimesheetDay>('/timesheets/entries', payload);
+  return data;
+}
+
+export async function deleteTimesheetEntry(userId: string, workDate: string): Promise<void> {
+  await apiClient.delete(`/timesheets/entries/${userId}/${workDate}`);
+}
+
+export async function lockTimesheetPeriod(month: string, force = false): Promise<void> {
+  await apiClient.post(`/timesheets/${month}/lock`, { force });
+}
+
+export async function unlockTimesheetPeriod(month: string, reason: string): Promise<void> {
+  await apiClient.post(`/timesheets/${month}/unlock`, { reason });
+}
+
+export async function fetchTimesheetExceptions(params: {
+  month: string;
+  type?: TimesheetExceptionType;
+  page?: number;
+  limit?: number;
+}): Promise<TimesheetExceptions> {
+  const { data } = await apiClient.get<TimesheetExceptions>('/timesheets/exceptions', { params });
+  return data;
+}
+
+/**
+ * 04/11/2026: khoa ky ma con don dang cho -> may chu tra 409 TIMESHEET_PERIOD_HAS_PENDING kem
+ * `errorParams: { leave, overtime, adjustment }` (AllExceptionsFilter chi chuyen tiep errorCode,
+ * errorParams, details). Tra ve so don de giao dien hoi xac nhan `force`, hoac null neu loi khong
+ * phai truong hop nay.
+ */
+export function extractPendingConflict(error: unknown): TimesheetPending | null {
+  if (!isAxiosError(error) || error.response?.status !== 409) return null;
+  const data = error.response.data as { errorCode?: string; errorParams?: Partial<TimesheetPending> } | undefined;
+  if (data?.errorCode !== 'TIMESHEET_PERIOD_HAS_PENDING') return null;
+  return {
+    leave: Number(data.errorParams?.leave ?? 0),
+    overtime: Number(data.errorParams?.overtime ?? 0),
+    adjustment: Number(data.errorParams?.adjustment ?? 0),
+  };
 }

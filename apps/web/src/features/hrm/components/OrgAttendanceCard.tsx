@@ -6,8 +6,9 @@ import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { UsersIcon, EditIcon, ClockIcon } from '@/components/ui/Icons';
-import type { Attendance, AttendanceAdjustment, OvertimeRequest, User, Department, LeaveRequest, CalendarEvent } from '@/types';
+import type { Attendance, AttendanceAdjustment, OvertimeRequest, User, Department } from '@/types';
 import { MonthlyTimesheetTable } from './MonthlyTimesheetTable';
+import { ExceptionsPanel } from './ExceptionsPanel';
 import { PendingAdjustmentsList } from './PendingAdjustmentsList';
 import { PendingOvertimeList } from './PendingOvertimeList';
 import { OrgAttendanceLogTable } from './OrgAttendanceLogTable';
@@ -17,8 +18,9 @@ export interface OrgAttendanceCardProps {
   canViewAll: boolean;
   canViewAdjustments: boolean;
   canViewOvertime: boolean;
-  orgSubTab: 'timesheet' | 'log' | 'adjustments' | 'overtime';
-  setOrgSubTab: (tab: 'timesheet' | 'log' | 'adjustments' | 'overtime') => void;
+  // 04/11/2026: them tab 'exceptions' (Ngoai le).
+  orgSubTab: 'timesheet' | 'log' | 'exceptions' | 'adjustments' | 'overtime';
+  setOrgSubTab: (tab: 'timesheet' | 'log' | 'exceptions' | 'adjustments' | 'overtime') => void;
   pendingAdjustmentsCount: number;
   pendingOtCount: number;
   orgSelectedMonth: string;
@@ -38,9 +40,7 @@ export interface OrgAttendanceCardProps {
   orgUsers: User[];
   departments: Department[];
   today: string;
-  approvedOvertime: OvertimeRequest[];
-  approvedLeaveRequests?: LeaveRequest[];
-  calendarEvents?: CalendarEvent[];
+  // 04/11/2026: bo approvedOvertime/approvedLeaveRequests/calendarEvents - bang cong lay du lieu da tinh tu may chu.
   userNameMap: Record<string, string>;
   approvedAdjustmentAttendanceIds: Set<string>;
   onNavigateUser: (userId: string) => void;
@@ -72,9 +72,6 @@ export function OrgAttendanceCard({
   orgUsers,
   departments,
   today,
-  approvedOvertime,
-  approvedLeaveRequests,
-  calendarEvents,
   userNameMap,
   approvedAdjustmentAttendanceIds,
   onNavigateUser,
@@ -122,6 +119,20 @@ export function OrgAttendanceCard({
                   }`}
                 >
                   {t('hrm:extensions.orgTabs.subtabs.log')}
+                </button>
+              )}
+
+              {canViewAll && (
+                <button
+                  type="button"
+                  onClick={() => setOrgSubTab('exceptions')}
+                  className={`px-3 py-1 text-[13px] leading-5 rounded-[4px] transition-all cursor-pointer ${
+                    orgSubTab === 'exceptions'
+                      ? 'bg-white text-text-primary font-semibold shadow-xs border border-border-subtle'
+                      : 'text-text-secondary hover:text-text-primary'
+                  }`}
+                >
+                  {t('hrm:extensions.orgTabs.subtabs.exceptions')}
                 </button>
               )}
 
@@ -176,7 +187,7 @@ export function OrgAttendanceCard({
           </div>
 
           {/* Bộ lọc tháng cho Quản lý tổ chức (khi xem Timesheet hoặc Log) */}
-          {(orgSubTab === 'timesheet' || orgSubTab === 'log') && (
+          {(orgSubTab === 'timesheet' || orgSubTab === 'log' || orgSubTab === 'exceptions') && (
             <div className="flex items-center gap-2">
               <CustomFilterSelect
                 value={orgSelectedMonth}
@@ -202,6 +213,16 @@ export function OrgAttendanceCard({
             onApprove={onApproveOt}
             onReject={onRejectOt}
           />
+        ) : orgSubTab === 'timesheet' ? (
+          // 04/11/2026: bang cong tu tai du lieu may chu (useTimesheetQuery) nen khong phu thuoc query nhat ky cham cong nua.
+          <QueryState
+            isLoading={isDepartmentsLoading}
+            loadingFallback={<FullPageSpinner label={t('hrm:attendancePage.allAttendance.loading')} />}
+          >
+            <MonthlyTimesheetTable users={orgUsers} departments={departments} selectedMonth={orgSelectedMonth} today={today} />
+          </QueryState>
+        ) : orgSubTab === 'exceptions' ? (
+          <ExceptionsPanel selectedMonth={orgSelectedMonth} today={today} users={orgUsers} />
         ) : (
           <QueryState
             isLoading={isAllAttendanceLoading || isDepartmentsLoading}
@@ -211,18 +232,7 @@ export function OrgAttendanceCard({
             errorTitle={t('hrm:attendancePage.allAttendance.errorTitle')}
             errorDescription={t('hrm:attendancePage.allAttendance.errorDescription')}
           >
-            {orgSubTab === 'timesheet' ? (
-              <MonthlyTimesheetTable
-                records={filteredAllRecords}
-                users={orgUsers}
-                departments={departments}
-                selectedMonth={orgSelectedMonth}
-                today={today}
-                approvedOvertime={approvedOvertime}
-                approvedLeaveRequests={approvedLeaveRequests}
-                calendarEvents={calendarEvents}
-              />
-            ) : filteredAllRecords.length === 0 ? (
+            {filteredAllRecords.length === 0 ? (
               <EmptyState
                 title={t('hrm:attendancePage.allAttendance.emptyTitle')}
                 description={

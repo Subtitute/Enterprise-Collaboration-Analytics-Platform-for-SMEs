@@ -95,6 +95,7 @@
           "employee": "Nhân viên",
           "department": "Phòng ban",
           "actualDays": "Ngày công",
+          "paidLeaveDays": "Nghỉ có lương",
           "workHours": "Tổng giờ làm",
           "lateCount": "Đi muộn",
           "missingCheckOut": "Quên checkout",
@@ -151,7 +152,23 @@
       "saveButton": "Lưu",
       "cancelButton": "Hủy",
       "policyUpdateSuccess": "Đã cập nhật chính sách nghỉ phép",
-      "policyUpdateError": "Không thể cập nhật chính sách nghỉ phép"
+      "policyUpdateError": "Không thể cập nhật chính sách nghỉ phép",
+      "pendingLabel": "Đang chờ",
+      "adjustmentNote": "Đã điều chỉnh {{days}} ngày so với mức mặc định",
+      "adjust": {
+        "title": "Điều chỉnh số dư phép",
+        "hint": "Chỉ thêm, không sửa hay xóa. Ghi chú bắt buộc; số ngày âm để trừ bớt.",
+        "selectEmployee": "Chọn nhân viên…",
+        "yearLabel": "Năm",
+        "daysLabel": "Số ngày (+/-)",
+        "noteLabel": "Ghi chú",
+        "addButton": "Thêm điều chỉnh",
+        "invalid": "Vui lòng chọn nhân viên, nhập năm, số ngày khác 0 và ghi chú.",
+        "success": "Đã thêm điều chỉnh số dư phép",
+        "error": "Không thể thêm điều chỉnh số dư phép",
+        "listError": "Không thể tải danh sách điều chỉnh",
+        "empty": "Chưa có điều chỉnh nào trong năm này"
+      }
     },
     "pending": {
       "cardTitle": "Chờ duyệt ({{count}})",
@@ -216,7 +233,8 @@
     "viewTitle": "Chi tiết mục lịch",
     "type": {
       "HOLIDAY": "Ngày lễ",
-      "EVENT": "Sự kiện"
+      "EVENT": "Sự kiện",
+      "MAKEUP_WORKDAY": "Ngày làm bù"
     },
     "holidayHint": "Toàn bộ nhân viên sẽ không thể chấm công vào (các) ngày này và sẽ nhận được thông báo.",
     "titleLabel": "Tiêu đề",
@@ -231,7 +249,8 @@
     "cancel": "Huỷ",
     "create": "Tạo mục lịch",
     "saveChanges": "Lưu thay đổi",
-    "delete": "Xoá"
+    "delete": "Xoá",
+    "makeupHint": "Ngày nghỉ trong tuần nhưng cả công ty đi làm; được tính như ngày làm việc bình thường (ngày lễ vẫn được ưu tiên hơn)."
   },
   "newLeaveRequestModal": {
     "title": "Tạo yêu cầu nghỉ phép",
@@ -246,7 +265,7 @@
     "endDateLabel": "Ngày kết thúc",
     "totalDaysPrefix": "Tổng cộng:",
     "totalDaysValue": "{{count}} ngày",
-    "totalDaysSuffix": "(không tính cuối tuần)",
+    "totalDaysSuffix": "(theo lịch làm việc của công ty)",
     "reasonLabel": "Lý do",
     "reasonPlaceholder": "Lý do xin nghỉ phép…",
     "cancelButton": "Hủy",
@@ -258,7 +277,10 @@
       "endDateBeforeStart": "Ngày kết thúc không được trước ngày bắt đầu",
       "missingType": "Vui lòng chọn loại nghỉ phép",
       "missingReason": "Vui lòng nhập lý do nghỉ phép"
-    }
+    },
+    "exceedsBalance": "Vượt số phép năm còn lại ({{remaining}} ngày). Máy chủ sẽ từ chối đơn này.",
+    "remainingHint": "Phép năm còn lại: {{remaining}} ngày",
+    "noWorkingDays": "Khoảng ngày này không có ngày làm việc nào theo lịch công ty."
   },
   "checkInCamera": {
     "modalTitle": "Chụp ảnh chấm công",
@@ -394,7 +416,7 @@
       "submitButton": "Gửi đăng ký OT",
       "cancelButton": "Hủy",
       "errors": {
-        "overlapOfficeHours": "Giờ OT không được trùng lấn với giờ làm việc hành chính (08:30 - 17:30)",
+        "overlapOfficeHours": "Giờ OT không được trùng lấn với giờ làm việc hành chính ({{start}} - {{end}})",
         "monthlyCapExceeded": "Tổng số giờ OT trong tháng đã vượt trần 40 giờ theo Bộ luật Lao động",
         "hasLeaveOnDate": "Không thể đăng ký OT do bạn đã có lịch nghỉ phép trong ngày này",
         "invalidRange": "Giờ kết thúc OT phải sau giờ bắt đầu",
@@ -428,7 +450,8 @@
         "timesheet": "Bảng công tổng hợp",
         "log": "Nhật ký chấm công",
         "adjustments": "Duyệt giải trình",
-        "overtime": "Duyệt làm thêm (OT)"
+        "overtime": "Duyệt làm thêm (OT)",
+        "exceptions": "Ngoại lệ"
       }
     }
   },
@@ -462,5 +485,112 @@
     "photoLoadError": "Không tải được ảnh",
     "activeInfo": "Nguồn: {{source}} · Cập nhật: {{date}}",
     "unknownActor": "Quản trị viên"
+  },
+  "workSchedule": {
+    "title": "Lịch làm việc của công ty",
+    "openButton": "Lịch làm việc",
+    "loadError": "Không thể tải lịch làm việc",
+    "weekdaysLabel": "Ngày làm việc trong tuần",
+    "workStartLabel": "Giờ vào",
+    "workEndLabel": "Giờ ra",
+    "lateGraceLabel": "Cho phép đến muộn (phút)",
+    "earlyGraceLabel": "Cho phép về sớm (phút)",
+    "breakLabel": "Giờ nghỉ trưa (phút)",
+    "hint": "Thay đổi áp dụng cho số ngày làm việc, đi muộn, về sớm và số giờ chuẩn của các tháng còn mở.",
+    "errors": {
+      "noWeekday": "Chọn ít nhất một ngày làm việc.",
+      "timeRange": "Giờ ra phải sau giờ vào.",
+      "minutes": "Số phút phải là số nguyên từ 0 đến 240."
+    },
+    "saveSuccess": "Đã lưu lịch làm việc",
+    "saveError": "Không thể lưu lịch làm việc"
+  },
+  "timesheet": {
+    "symbols": {
+      "X": "Đi làm",
+      "Q": "Thiếu lượt chấm",
+      "LN": "Đi làm ngày nghỉ",
+      "P": "Phép năm",
+      "OM": "Nghỉ ốm",
+      "KL": "Nghỉ không lương",
+      "L": "Nghỉ lễ",
+      "V": "Vắng"
+    },
+    "unknownEmployee": "Nhân viên",
+    "loadError": "Không thể tải bảng công",
+    "manualRowHint": "Có ngày được sửa tay",
+    "period": {
+      "status": {
+        "OPEN": "Kỳ đang mở",
+        "LOCKED": "Kỳ đã khóa"
+      },
+      "lockedAt": "Khóa ngày {{date}}",
+      "lockButton": "Khóa kỳ",
+      "unlockButton": "Mở khóa kỳ",
+      "forceLockButton": "Vẫn khóa kỳ",
+      "lockConfirmTitle": "Khóa kỳ công {{month}}?",
+      "lockConfirmDescription": "Sau khi khóa, bảng công tháng này được chốt: không duyệt đơn, không sửa tay được nữa cho tới khi mở khóa.",
+      "pendingTitle": "Còn đơn đang chờ duyệt",
+      "pendingDescription": "Tháng này còn {{leave}} đơn nghỉ, {{overtime}} đơn làm thêm và {{adjustment}} đơn giải trình đang chờ. Nếu vẫn khóa, các đơn này sẽ không còn duyệt được. Bạn có chắc chắn muốn khóa?",
+      "unlockTitle": "Mở khóa kỳ công {{month}}",
+      "reasonLabel": "Lý do mở khóa",
+      "reasonRequired": "Vui lòng nhập lý do mở khóa",
+      "lockSuccess": "Đã khóa kỳ công",
+      "lockError": "Không thể khóa kỳ công",
+      "unlockSuccess": "Đã mở khóa kỳ công",
+      "unlockError": "Không thể mở khóa kỳ công"
+    }
+  },
+  "timesheetDetail": {
+    "title": "Chi tiết công: {{name}} ({{month}})",
+    "loadError": "Không thể tải chi tiết công",
+    "empty": "Không có dữ liệu công trong tháng này",
+    "paidOfExpected": "Công hưởng lương / công chuẩn",
+    "periodStatus": "Trạng thái kỳ",
+    "lockedHint": "Kỳ công đã khóa, không thể sửa tay. Hãy mở khóa kỳ nếu cần chỉnh.",
+    "columns": {
+      "date": "Ngày",
+      "symbol": "Ký hiệu",
+      "checkIn": "Vào",
+      "checkOut": "Ra",
+      "late": "Muộn",
+      "ot": "Làm thêm",
+      "note": "Ghi chú"
+    },
+    "minutes": "{{count}} phút",
+    "manualMark": "Sửa tay",
+    "editButton": "Sửa",
+    "editTitle": "Sửa tay công ngày {{date}}",
+    "symbolLabel": "Ký hiệu",
+    "noteLabel": "Ghi chú",
+    "noteRequired": "Vui lòng nhập ghi chú",
+    "removeButton": "Bỏ sửa tay",
+    "saveSuccess": "Đã lưu công sửa tay",
+    "saveError": "Không thể lưu công sửa tay",
+    "removeSuccess": "Đã bỏ sửa tay",
+    "removeError": "Không thể bỏ sửa tay"
+  },
+  "exceptions": {
+    "types": {
+      "LATE": "Đi muộn",
+      "EARLY_LEAVE": "Về sớm",
+      "ABSENT": "Vắng",
+      "MISSING_CHECKOUT": "Quên chấm ra",
+      "NOT_CHECKED_IN": "Chưa chấm vào",
+      "OT_NO_ATTENDANCE": "Làm thêm không chấm công"
+    },
+    "minutes": "{{count}} phút",
+    "in": "vào",
+    "out": "ra",
+    "loadError": "Không thể tải danh sách ngoại lệ",
+    "pendingSummary": "Đang chờ duyệt trong tháng: {{leave}} đơn nghỉ, {{overtime}} đơn làm thêm, {{adjustment}} đơn giải trình.",
+    "emptyTitle": "Không có ngoại lệ",
+    "emptyDescription": "Không có ngày bất thường nào trong tháng này.",
+    "columns": {
+      "employee": "Nhân viên",
+      "date": "Ngày",
+      "type": "Loại",
+      "detail": "Chi tiết"
+    }
   }
 }

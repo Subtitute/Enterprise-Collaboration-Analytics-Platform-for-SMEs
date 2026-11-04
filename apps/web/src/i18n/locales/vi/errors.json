@@ -151,5 +151,18 @@
   "FACE_ORG_MISMATCH": "Dữ liệu khuôn mặt thuộc tổ chức khác",
   "USER_INACTIVE": "Tài khoản đang bị vô hiệu hoá",
   "CURRENT_PASSWORD_INVALID": "Mật khẩu hiện tại không đúng",
-  "NEW_PASSWORD_SAME_AS_CURRENT": "Mật khẩu mới phải khác mật khẩu hiện tại"
+  "NEW_PASSWORD_SAME_AS_CURRENT": "Mật khẩu mới phải khác mật khẩu hiện tại",
+
+  "LEAVE_BALANCE_EXCEEDED": "Số ngày phép năm còn lại không đủ cho đơn nghỉ này.",
+  "LEAVE_OVERLAP": "Khoảng ngày này trùng với một đơn nghỉ đang chờ duyệt hoặc đã được duyệt.",
+  "LEAVE_NO_WORKING_DAYS": "Khoảng ngày này không có ngày làm việc nào theo lịch công ty.",
+  "LEAVE_ADJUSTMENT_INVALID": "Điều chỉnh số dư phép không hợp lệ (số ngày phải khác 0, ghi chú là bắt buộc).",
+  "WORK_SCHEDULE_INVALID": "Lịch làm việc không hợp lệ. Hãy kiểm tra ngày làm việc, giờ vào/ra và số phút.",
+  "TIMESHEET_MONTH_INVALID": "Tháng bảng công không hợp lệ.",
+  "TIMESHEET_PERIOD_LOCKED": "Kỳ công của tháng này đã khóa nên không thể thay đổi.",
+  "TIMESHEET_PERIOD_ALREADY_LOCKED": "Kỳ công của tháng này đã được khóa.",
+  "TIMESHEET_PERIOD_NOT_LOCKED": "Kỳ công của tháng này chưa bị khóa.",
+  "TIMESHEET_PERIOD_NOT_ENDED": "Tháng này chưa kết thúc nên chưa thể khóa kỳ công.",
+  "TIMESHEET_PERIOD_HAS_PENDING": "Tháng này còn đơn nghỉ, làm thêm hoặc giải trình đang chờ duyệt.",
+  "TIMESHEET_ENTRY_INVALID": "Dòng sửa tay không hợp lệ (ngày tương lai, trước ngày vào làm, ký hiệu sai hoặc thiếu ghi chú)."
 }

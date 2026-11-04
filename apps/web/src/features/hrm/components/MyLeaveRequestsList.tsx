@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { formatDate, calculateWorkingDays } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import type { LeaveRequest } from '@/types';
-import { LeaveTypeBadge, LeaveStatusBadge, parseLeaveReason } from './leave-shared';
+import { LeaveTypeBadge, LeaveStatusBadge, getLeaveDisplay, getLeaveWorkingDays } from './leave-shared';
 import { useCancelLeaveRequest } from '../hooks';
 
 interface MyLeaveRequestItemProps {
@@ -15,8 +15,9 @@ interface MyLeaveRequestItemProps {
 const MyLeaveRequestItem = React.memo(function MyLeaveRequestItem({ request }: MyLeaveRequestItemProps) {
   const { t } = useTranslation();
   const cancelMutation = useCancelLeaveRequest();
-  const days = calculateWorkingDays(request.startDate, request.endDate);
-  const { rawType, leaveType, cleanReason } = parseLeaveReason(request.reason, t);
+  // 04/11/2026: so ngay + loai nghi lay tu may chu (workingDays, leaveType); don cu moi lui ve cach cu.
+  const days = getLeaveWorkingDays(request);
+  const { rawType, leaveType, cleanReason } = getLeaveDisplay(request, t);
 
   return (
     <div

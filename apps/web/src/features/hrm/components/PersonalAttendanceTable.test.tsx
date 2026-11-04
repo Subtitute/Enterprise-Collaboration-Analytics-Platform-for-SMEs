@@ -4,6 +4,9 @@ import { render, screen } from '@testing-library/react';
 import { PersonalAttendanceTable, type PersonalAttendanceTableProps } from './PersonalAttendanceTable';
 import type { Attendance, LeaveRequest } from '@/types';
 
+// 04/11/2026: AttendanceStatusBadge doc lich lam viec de biet muon; test nay chay voi lich mac dinh.
+vi.mock('../hooks', () => ({ useWorkScheduleQuery: () => ({ data: undefined }) }));
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, options?: any) => {

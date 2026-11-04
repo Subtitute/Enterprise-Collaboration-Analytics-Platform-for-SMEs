@@ -4,12 +4,13 @@ import { Avatar } from '@/components/ui/Avatar';
 import { QueryState } from '@/components/ui/QueryState';
 import { FullPageSpinner } from '@/components/ui/Spinner';
 import { ChevronLeftIcon } from '@/components/ui/Icons';
-import { formatDate, calculateWorkingDays } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { useUserNameMap } from '@/hooks/useOrgUsers';
 import { usePermissions } from '@/stores/auth.store';
 import { PERMISSIONS } from '@/constants/permissions';
 import { useEmployeeLeaveRequestsQuery } from './hooks';
-import { parseLeaveReason, LeaveTypeBadge, LeaveStatusBadge } from './LeaveRequestsPage';
+import { LeaveTypeBadge, LeaveStatusBadge } from './LeaveRequestsPage';
+import { getLeaveDisplay, getLeaveWorkingDays } from './components/leave-shared';
 
 /**
  * 03/10/2026: trang chi tiet lich su nghi phep cua 1 nhan vien (/leave-requests/:userId) - CHI
@@ -75,8 +76,9 @@ export default function LeaveRequestDetailPage() {
           ) : (
             <div className="space-y-3">
               {requests.map((request) => {
-                const days = calculateWorkingDays(request.startDate, request.endDate);
-                const { rawType, leaveType, cleanReason } = parseLeaveReason(request.reason, t);
+                // 04/11/2026: so ngay + loai nghi lay tu may chu; don cu moi lui ve cach cu.
+                const days = getLeaveWorkingDays(request);
+                const { rawType, leaveType, cleanReason } = getLeaveDisplay(request, t);
 
                 return (
                   <div

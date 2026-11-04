@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Avatar } from '@/components/ui/Avatar';
 import { CheckIcon, XIcon } from '@/components/ui/Icons';
-import { formatDate, calculateWorkingDays } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import type { LeaveRequest, User } from '@/types';
-import { LeaveTypeBadge, LeaveStatusBadge, parseLeaveReason } from './leave-shared';
+import { LeaveTypeBadge, LeaveStatusBadge, getLeaveDisplay, getLeaveWorkingDays } from './leave-shared';
 import { EmployeeHistoryPicker } from './EmployeeHistoryPicker';
 
 interface PendingLeaveItemProps {
@@ -25,9 +25,10 @@ const PendingLeaveItem = React.memo(function PendingLeaveItem({
 }: PendingLeaveItemProps) {
   const { t } = useTranslation();
   const isRowBusy = rowAction !== undefined;
-  const days = calculateWorkingDays(request.startDate, request.endDate);
+  // 04/11/2026: so ngay + loai nghi lay tu may chu; don cu moi lui ve cach cu.
+  const days = getLeaveWorkingDays(request);
   const employeeName = userNameMap[request.userId] || t('hrm:leaveRequestsPage.pending.unknownEmployee');
-  const { rawType, leaveType, cleanReason } = parseLeaveReason(request.reason, t);
+  const { rawType, leaveType, cleanReason } = getLeaveDisplay(request, t);
 
   return (
     <div

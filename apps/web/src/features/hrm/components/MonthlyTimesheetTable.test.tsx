@@ -1,307 +1,248 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+// 04/11/2026: viet lai theo du lieu may chu - bang cong khong con tu tinh o trinh duyet (cac ca cu kiem tra
+// phep tinh T2-T6/ngay le/nghi phep da chuyen sang spec cua timesheet-calculator o hrm-service), nen test
+// o day kiem tra: ghep ten/phong ban, thang 'all', trang thai loading/loi, CSV chong injection, khoa/mo khoa ky
+// (gom xac nhan force khi con don dang cho) va mo chi tiet khi bam dong.
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { AxiosError } from 'axios';
 import { MonthlyTimesheetTable } from './MonthlyTimesheetTable';
-import type { Attendance, CalendarEvent, Department, LeaveRequest, OvertimeRequest, User } from '@/types';
+import type { Department, TimesheetMonth, TimesheetRow, User } from '@/types';
 
-// Mock react-i18next
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string, options?: any) => {
-      if (key === 'hrm:attendancePage.allAttendance.timesheet.status.sufficient') return 'Đủ công';
-      if (key === 'hrm:attendancePage.allAttendance.timesheet.status.insufficient') return 'Thiếu công';
-      if (key === 'hrm:attendancePage.allAttendance.timesheet.status.newMember') return 'Nhân viên mới';
-      if (key === 'hrm:attendancePage.allAttendance.timesheet.status.notJoined') return 'Chưa gia nhập';
-      // 24/10/2026: chu thich "(X làm + Y phép)" chuyen sang key i18n (truoc la chuoi hardcode).
-      if (key === 'hrm:attendancePage.allAttendance.workedPlusLeave') return `(${options.actual} làm + ${options.paid} phép)`;
-      if (options?.month) return `Tháng ${options.month}`;
-      return key;
-    },
+    // Tra ve khoa kem tham so de test doi chieu duoc so lieu noi suy.
+    t: (key: string, options?: Record<string, unknown>) => (options ? `${key} ${JSON.stringify(options)}` : key),
   }),
 }));
 
-// Mock auth store
+let mockPermissions: string[] = [];
 vi.mock('@/stores/auth.store', () => ({
-  useAuthStore: () => ({
-    user: { id: 'admin-1', fullName: 'Admin User' },
-  }),
+  useAuthStore: (selector?: (s: unknown) => unknown) => {
+    const state = { user: { id: 'admin-1', fullName: 'Admin User' } };
+    return selector ? selector(state) : state;
+  },
+  usePermissions: () => mockPermissions,
 }));
 
-describe('MonthlyTimesheetTable - Liên thông Chấm công, Nghỉ phép và Lịch công ty', () => {
-  const mockUser: User = {
-    id: 'user-001',
-    email: 'employee@company.com',
-    fullName: 'Nguyễn Văn A',
+const mockTimesheet = vi.fn();
+const mockLockMutate = vi.fn();
+const mockUnlockMutate = vi.fn();
+vi.mock('../hooks', () => ({
+  useTimesheetQuery: (month: string) => mockTimesheet(month),
+  useLockTimesheetPeriod: () => ({ mutate: mockLockMutate, isPending: false }),
+  useUnlockTimesheetPeriod: () => ({ mutate: mockUnlockMutate, isPending: false }),
+}));
+
+vi.mock('./TimesheetDetailModal', () => ({
+  TimesheetDetailModal: ({ userId, month, canAdjust }: { userId: string; month: string; canAdjust: boolean }) => (
+    <div data-testid="detail">{`${userId}|${month}|${canAdjust}`}</div>
+  ),
+}));
+vi.mock('./WorkScheduleModal', () => ({
+  WorkScheduleModal: ({ open }: { open: boolean }) => (open ? <div data-testid="schedule-modal" /> : null),
+}));
+
+const ORG_MANAGE = 'organization:manage';
+const ADJUST = 'attendance_adjustment:approve';
+
+const user: User = {
+  id: 'user-001',
+  email: 'employee@company.com',
+  fullName: 'Nguyễn Văn A',
+  departmentId: 'dept-1',
+  roles: [],
+  isActive: true,
+  createdAt: '2026-01-01T00:00:00Z',
+};
+const department: Department = { id: 'dept-1', name: 'Kỹ thuật', organizationId: 'org-1' };
+
+function row(overrides: Partial<TimesheetRow> = {}): TimesheetRow {
+  return {
+    userId: user.id,
     departmentId: 'dept-1',
-    roles: [],
-    isActive: true,
-    createdAt: '2026-01-01T00:00:00Z',
+    joinedAt: '2026-01-01',
+    actualDays: 20,
+    offDayWorkDays: 0,
+    paidLeaveDays: 2,
+    unpaidLeaveDays: 0,
+    paidHolidayDays: 0,
+    absentDays: 0,
+    paidDays: 22,
+    expectedDays: 22,
+    totalActualHours: 160,
+    totalExpectedHours: 176,
+    lateCount: 1,
+    earlyLeaveCount: 0,
+    missingCheckOutCount: 0,
+    otHours: 3,
+    approvedOtHours: 3,
+    hasManual: false,
+    isNewMember: false,
+    status: 'sufficient',
+    ...overrides,
   };
+}
 
-  const mockDepartment: Department = {
-    id: 'dept-1',
-    name: 'Kỹ thuật',
-    organizationId: 'org-1',
+function month(rows: TimesheetRow[], status: 'OPEN' | 'LOCKED' = 'OPEN'): TimesheetMonth {
+  return {
+    month: '2026-10',
+    period: { status, lockedAt: status === 'LOCKED' ? '2026-11-02T00:00:00Z' : null },
+    schedule: { workingWeekdays: [1, 2, 3, 4, 5], workStart: '08:30', workEnd: '17:30', lateGraceMinutes: 0, earlyLeaveGraceMinutes: 0, breakMinutes: 60 },
+    standardDays: 22,
+    rows,
   };
+}
 
-  // Tháng 10/2026: Có 31 ngày, 22 ngày làm việc chuẩn (T2-T6)
-  const selectedMonth = '2026-10';
-  const today = '2026-10-31';
+function setQuery(data: TimesheetMonth | undefined, extra: Record<string, unknown> = {}) {
+  mockTimesheet.mockReturnValue({ data, isLoading: false, isError: false, refetch: vi.fn(), ...extra });
+}
 
-  // Helper tạo danh sách log chấm công
-  function createAttendanceRecords(userId: string, count: number): Attendance[] {
-    const records: Attendance[] = [];
-    let added = 0;
-    // Bắt đầu từ ngày 1/10/2026
-    const cur = new Date(2026, 9, 1);
-    while (added < count && cur.getMonth() === 9) {
-      const day = cur.getDay();
-      if (day >= 1 && day <= 5) {
-        const d = String(cur.getDate()).padStart(2, '0');
-        const workDate = `2026-10-${d}`;
-        records.push({
-          id: `att-${added + 1}`,
-          userId,
-          workDate,
-          checkInAt: `${workDate}T08:30:00+07:00`,
-          checkOutAt: `${workDate}T17:30:00+07:00`,
-          createdAt: `${workDate}T08:30:00Z`,
-          updatedAt: `${workDate}T17:30:00Z`,
-        });
-        added++;
-      }
-      cur.setDate(cur.getDate() + 1);
-    }
-    return records;
-  }
+function renderTable(selectedMonth = '2026-10', users: User[] = [user]) {
+  return render(<MonthlyTimesheetTable users={users} departments={[department]} selectedMonth={selectedMonth} today="2026-11-04" />);
+}
 
-  it('Case 1: Nhân viên làm đủ 22/22 ngày chuẩn -> paidDays = 22, status = "Đủ công"', () => {
-    const records = createAttendanceRecords(mockUser.id, 22);
+describe('MonthlyTimesheetTable - bảng công lấy dữ liệu máy chủ', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPermissions = [];
+    setQuery(month([row()]));
+  });
 
-    render(
-      <MonthlyTimesheetTable
-        records={records}
-        users={[mockUser]}
-        departments={[mockDepartment]}
-        selectedMonth={selectedMonth}
-        today={today}
-        approvedOvertime={[]}
-        approvedLeaveRequests={[]}
-        calendarEvents={[]}
-      />,
-    );
-
-    expect(screen.getAllByText('Đủ công').length).toBeGreaterThan(0);
-    // Kiểm tra hiển thị ngày công
+  it('Case 1: ghép tên + phòng ban từ users/departments vào dòng của máy chủ, hiện công hưởng lương / công chuẩn', () => {
+    renderTable();
+    expect(screen.getAllByText('Nguyễn Văn A').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Kỹ thuật').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/22 \/ 22/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('hrm:attendancePage.allAttendance.timesheet.status.sufficient').length).toBeGreaterThan(0);
+    expect(mockTimesheet).toHaveBeenCalledWith('2026-10');
   });
 
-  it('Case 2: 20 ngày đi làm thực tế + 2 ngày nghỉ phép năm có lương (ANNUAL) -> paidDays = 22, status = "Đủ công"', () => {
-    // 20 ngày đi làm thực tế
-    const records = createAttendanceRecords(mockUser.id, 20);
-
-    // 2 ngày nghỉ phép năm: Thứ Năm 29/10/2026 & Thứ Sáu 30/10/2026 (ngày làm thứ 21 & 22 trong tháng)
-    const approvedLeave: LeaveRequest = {
-      id: 'leave-1',
-      userId: mockUser.id,
-      startDate: '2026-10-29',
-      endDate: '2026-10-30',
-      reason: '[ANNUAL] Nghỉ phép du lịch gia đình',
-      status: 'APPROVED',
-      createdAt: '2026-10-20T00:00:00Z',
-      updatedAt: '2026-10-21T00:00:00Z',
-    };
-
-    render(
-      <MonthlyTimesheetTable
-        records={records}
-        users={[mockUser]}
-        departments={[mockDepartment]}
-        selectedMonth={selectedMonth}
-        today={today}
-        approvedOvertime={[]}
-        approvedLeaveRequests={[approvedLeave]}
-        calendarEvents={[]}
-      />,
-    );
-
-    expect(screen.getAllByText('Đủ công').length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/22 \/ 22/).length).toBeGreaterThan(0);
-    // Chú thích (20 làm + 2 phép)
-    expect(screen.getAllByText('(20 làm + 2 phép)').length).toBeGreaterThan(0);
+  // 04/11/2026: máy chủ không đảm bảo thứ tự dòng; bảng phải sắp theo tên để không đổi chỗ giữa các lần xem.
+  it('Case 1b: dòng được sắp theo tên, tên trùng thì theo mã người dùng', () => {
+    const named = (id: string, fullName: string): User => ({ ...user, id, fullName });
+    setQuery(month([row({ userId: 'u3' }), row({ userId: 'u1' }), row({ userId: 'u2' })]));
+    const { container } = renderTable('2026-10', [named('u3', 'Đỗ Văn C'), named('u1', 'An Văn B'), named('u2', 'An Văn B')]);
+    const names = [...container.querySelectorAll('table tbody tr')].map((tr) => tr.querySelector('td')?.textContent ?? '');
+    expect(names.map((name) => name.replace(/^.*?(An Văn B|Đỗ Văn C).*$/, '$1'))).toEqual(['An Văn B', 'An Văn B', 'Đỗ Văn C']);
   });
 
-  it('Case 3: 21 ngày đi làm thực tế + 1 ngày lễ công ty (HOLIDAY rơi vào T2-T6) -> paidDays = 22, status = "Đủ công"', () => {
-    // 21 ngày đi làm thực tế
-    const records = createAttendanceRecords(mockUser.id, 21);
-
-    // 1 ngày lễ công ty rơi vào Thứ Sáu 30/10/2026
-    const holiday: CalendarEvent = {
-      id: 'holiday-1',
-      title: 'Ngày thành lập công ty',
-      type: 'HOLIDAY',
-      startDate: '2026-10-30',
-      endDate: '2026-10-30',
-      createdByUserId: 'admin-1',
-      createdByRank: 3,
-      createdAt: '2026-10-01T00:00:00Z',
-    };
-
-    render(
-      <MonthlyTimesheetTable
-        records={records}
-        users={[mockUser]}
-        departments={[mockDepartment]}
-        selectedMonth={selectedMonth}
-        today={today}
-        approvedOvertime={[]}
-        approvedLeaveRequests={[]}
-        calendarEvents={[holiday]}
-      />,
-    );
-
-    expect(screen.getAllByText('Đủ công').length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/22 \/ 22/).length).toBeGreaterThan(0);
+  it('Case 2: dòng thiếu thông tin người dùng không làm vỡ bảng (hiện nhãn dự phòng, phòng ban "chưa gán")', () => {
+    setQuery(month([row({ userId: 'ghost', departmentId: null })]));
+    renderTable();
+    expect(screen.getAllByText('hrm:timesheet.unknownEmployee').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('hrm:attendancePage.allAttendance.timesheet.noDepartment').length).toBeGreaterThan(0);
   });
 
-  it('Case 4: 19 ngày đi làm thực tế + 3 ngày nghỉ không lương (UNPAID) -> paidDays = 19, status = "Thiếu công"', () => {
-    // 19 ngày đi làm thực tế
-    const records = createAttendanceRecords(mockUser.id, 19);
-
-    // 3 ngày nghỉ việc riêng không hưởng lương (UNPAID)
-    const unpaidLeave: LeaveRequest = {
-      id: 'leave-unpaid-1',
-      userId: mockUser.id,
-      startDate: '2026-10-28',
-      endDate: '2026-10-30',
-      reason: '[UNPAID] Việc riêng gia đình',
-      status: 'APPROVED',
-      createdAt: '2026-10-20T00:00:00Z',
-      updatedAt: '2026-10-21T00:00:00Z',
-    };
-
-    render(
-      <MonthlyTimesheetTable
-        records={records}
-        users={[mockUser]}
-        departments={[mockDepartment]}
-        selectedMonth={selectedMonth}
-        today={today}
-        approvedOvertime={[]}
-        approvedLeaveRequests={[unpaidLeave]}
-        calendarEvents={[]}
-      />,
-    );
-
-    expect(screen.getAllByText('Thiếu công').length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/19 \/ 22/).length).toBeGreaterThan(0);
+  it('Case 3: tháng "all" dùng tháng hiện tại (từ today)', () => {
+    renderTable('all');
+    expect(mockTimesheet).toHaveBeenCalledWith('2026-11');
   });
 
-  it('Case 5: Nhân viên có đơn nghỉ phép APPROVED vào ngày X nhưng thực tế vẫn đi làm và check-in -> paidDays chỉ tính đúng 1 công (không bị cộng trùng thành 2 công)', () => {
-    // 20 ngày đi làm thực tế (từ 01/10/2026 đến 28/10/2026)
-    const records = createAttendanceRecords(mockUser.id, 20);
+  it('Case 4: đang tải thì không có bảng, lỗi thì hiện trạng thái lỗi (không trang trắng)', () => {
+    setQuery(undefined, { isLoading: true });
+    const { unmount } = renderTable();
+    expect(screen.queryByText('Nguyễn Văn A')).toBeNull();
+    unmount();
 
-    // Đơn nghỉ phép năm APPROVED rơi vào đúng ngày Thứ Tư 28/10/2026 (ngày nhân viên vẫn đến làm và check-in)
-    const approvedLeaveConflict: LeaveRequest = {
-      id: 'leave-conflict-1',
-      userId: mockUser.id,
-      startDate: '2026-10-28',
-      endDate: '2026-10-28',
-      reason: '[ANNUAL] Nghỉ phép cá nhân nhưng vẫn đi làm',
-      status: 'APPROVED',
-      createdAt: '2026-10-20T00:00:00Z',
-      updatedAt: '2026-10-21T00:00:00Z',
-    };
-
-    render(
-      <MonthlyTimesheetTable
-        records={records}
-        users={[mockUser]}
-        departments={[mockDepartment]}
-        selectedMonth={selectedMonth}
-        today={today}
-        approvedOvertime={[]}
-        approvedLeaveRequests={[approvedLeaveConflict]}
-        calendarEvents={[]}
-      />,
-    );
-
-    // Do ngày 28/10 đã tính vào actualDays = 20, paidLeaveDays bị loại trừ không cộng dồn (paidLeaveDays = 0)
-    // paidDays phải bằng đúng 20 (nếu bị lỗi cộng trùng double-counting thì paidDays sẽ bị vọt lên 21)
-    expect(screen.getAllByText(/20 \/ 22/).length).toBeGreaterThan(0);
-    // Không hiển thị chú thích cộng ngày phép vì paidLeaveDays = 0
-    expect(screen.queryByText('(20 làm + 1 phép)')).toBeNull();
+    setQuery(undefined, { isError: true });
+    renderTable();
+    expect(screen.getByText('hrm:timesheet.loadError')).toBeInTheDocument();
   });
-  it('Case 6: Nhan vien gia nhap giua thang chi duoc huong ngay le >= ngay gia nhap (khong bi cong ngay le truoc do)', () => {
-    // Nhan vien gia nhap vao 15/10/2026
-    const newMemberUser: User = {
-      id: 'user-newbie',
-      email: 'newbie@company.com',
-      fullName: 'Tran Van Newbie',
-      departmentId: 'dept-1',
-      roles: [],
-      isActive: true,
-      createdAt: '2026-10-15T08:00:00Z',
-    };
 
-    // 2 ngay le trong thang:
-    // Le 1: 02/10/2026 (Truoc khi vao cong ty) -> KHONG duoc huong
-    // Le 2: 20/10/2026 (Sau khi da vao cong ty) -> DUOC huong
-    const holidays: CalendarEvent[] = [
-      {
-        id: 'holiday-early',
-        title: 'Le dau thang',
-        startDate: '2026-10-02',
-        endDate: '2026-10-02',
-        type: 'HOLIDAY',
-        createdByUserId: 'admin-1',
-        createdByRank: 3,
-        createdAt: '2026-10-01T00:00:00Z',
-      },
-      {
-        id: 'holiday-mid',
-        title: 'Le giua thang',
-        startDate: '2026-10-20',
-        endDate: '2026-10-20',
-        type: 'HOLIDAY',
-        createdByUserId: 'admin-1',
-        createdByRank: 3,
-        createdAt: '2026-10-01T00:00:00Z',
-      },
-    ];
+  it('Case 5: bấm dòng mở chi tiết ngày của đúng nhân viên, kèm quyền sửa tay', () => {
+    mockPermissions = [ADJUST];
+    renderTable();
+    fireEvent.click(screen.getAllByText('Nguyễn Văn A')[0]);
+    expect(screen.getByTestId('detail')).toHaveTextContent('user-001|2026-10|true');
+  });
 
-    // Nhan vien lam thuc te 5 ngay tu 15/10 den 21/10 (tru ngay 20/10 la ngay le)
-    const records: Attendance[] = [
-      '2026-10-15',
-      '2026-10-16',
-      '2026-10-19',
-      '2026-10-21',
-      '2026-10-22',
-    ].map((workDate, idx) => ({
-      id: `att-new-${idx}`,
-      userId: newMemberUser.id,
-      workDate,
-      checkInAt: `${workDate}T08:30:00+07:00`,
-      checkOutAt: `${workDate}T17:30:00+07:00`,
-      createdAt: `${workDate}T08:30:00Z`,
-      updatedAt: `${workDate}T17:30:00Z`,
-    }));
+  it('Case 6: xuất CSV giữ chống CSV injection (tên bắt đầu bằng "=" được bọc dấu nháy)', async () => {
+    setQuery(month([row({ userId: 'evil' })]));
+    const evilUser: User = { ...user, id: 'evil', fullName: '=HYPERLINK("http://x")' };
+    let captured: Blob | null = null;
+    const createUrl = vi.fn((b: Blob) => {
+      captured = b;
+      return 'blob:test';
+    });
+    Object.assign(URL, { createObjectURL: createUrl, revokeObjectURL: vi.fn() });
 
-    render(
-      <MonthlyTimesheetTable
-        records={records}
-        users={[newMemberUser]}
-        departments={[mockDepartment]}
-        selectedMonth={selectedMonth}
-        today={today}
-        approvedOvertime={[]}
-        approvedLeaveRequests={[]}
-        calendarEvents={holidays}
-      />,
-    );
+    renderTable('2026-10', [evilUser]);
+    fireEvent.click(screen.getByText('hrm:attendancePage.allAttendance.exportCsv'));
+    expect(createUrl).toHaveBeenCalled();
 
-    // Dinh muc tu 15/10 den 31/10 co 12 ngay lam viec (T2-T6)
-    // paidDays = 5 ngay thuc lam + 1 ngay le (20/10) = 6 ngay.
-    // Neu bi loi lay holidayDatesInMonth.size thi se bi cong 2 ngay le -> paidDays thanh 7 (SAI).
-    expect(screen.getAllByText(/6 \/ 12/).length).toBeGreaterThan(0);
+    const text = await new Promise<string>((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.readAsText(captured as unknown as Blob);
+    });
+    expect(text).toContain(`"'=HYPERLINK(""http://x"")"`);
+    expect(text).not.toMatch(/(^|,)=HYPERLINK/m);
+  });
+});
+
+describe('MonthlyTimesheetTable - khóa và mở khóa kỳ', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPermissions = [ORG_MANAGE];
+    setQuery(month([row()]));
+  });
+
+  it('Case 7: chỉ người có organization:manage thấy nút Khóa kỳ; kỳ đã khóa thì hiện nhãn khóa và nút Mở khóa', () => {
+    mockPermissions = [];
+    const { unmount } = renderTable();
+    expect(screen.queryByText('hrm:timesheet.period.lockButton')).toBeNull();
+    unmount();
+
+    mockPermissions = [ORG_MANAGE];
+    const second = renderTable();
+    expect(screen.getByText('hrm:timesheet.period.lockButton')).toBeInTheDocument();
+    expect(screen.queryByText('hrm:timesheet.period.unlockButton')).toBeNull();
+    second.unmount();
+
+    setQuery(month([row()], 'LOCKED'));
+    renderTable();
+    expect(screen.getByText('hrm:timesheet.period.status.LOCKED')).toBeInTheDocument();
+    expect(screen.getByText('hrm:timesheet.period.unlockButton')).toBeInTheDocument();
+    expect(screen.queryByText('hrm:timesheet.period.lockButton')).toBeNull();
+  });
+
+  it('Case 8: khóa kỳ có xác nhận; 409 TIMESHEET_PERIOD_HAS_PENDING hiện số đơn và xác nhận lại với force: true', async () => {
+    renderTable();
+    fireEvent.click(screen.getByText('hrm:timesheet.period.lockButton'));
+
+    // Hộp xác nhận khóa thường: nút xác nhận cũng mang nhãn "Khóa kỳ" (nút thứ hai trong DOM)
+    const lockButtons = screen.getAllByText('hrm:timesheet.period.lockButton');
+    fireEvent.click(lockButtons[lockButtons.length - 1]);
+    expect(mockLockMutate).toHaveBeenCalledTimes(1);
+    expect(mockLockMutate.mock.calls[0][0]).toEqual({ month: '2026-10', force: false });
+
+    // Máy chủ trả 409: còn 2 đơn nghỉ, 1 làm thêm, 3 giải trình
+    const conflict = new AxiosError('conflict', 'ERR_BAD_REQUEST', undefined, undefined, {
+      status: 409,
+      data: { errorCode: 'TIMESHEET_PERIOD_HAS_PENDING', errorParams: { leave: 2, overtime: 1, adjustment: 3 } },
+    } as never);
+    act(() => mockLockMutate.mock.calls[0][1].onError(conflict));
+
+    expect(await screen.findByText(/"leave":2,"overtime":1,"adjustment":3/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText('hrm:timesheet.period.forceLockButton'));
+    await waitFor(() => expect(mockLockMutate).toHaveBeenCalledTimes(2));
+    expect(mockLockMutate.mock.calls[1][0]).toEqual({ month: '2026-10', force: true });
+  });
+
+  it('Case 9: mở khóa bắt buộc nhập lý do', () => {
+    setQuery(month([row()], 'LOCKED'));
+    renderTable();
+    fireEvent.click(screen.getByText('hrm:timesheet.period.unlockButton'));
+
+    const buttons = screen.getAllByText('hrm:timesheet.period.unlockButton');
+    fireEvent.click(buttons[buttons.length - 1]);
+    expect(mockUnlockMutate).not.toHaveBeenCalled();
+    expect(screen.getByText('hrm:timesheet.period.reasonRequired')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole('textbox', { name: /hrm:timesheet.period.reasonLabel/ }), { target: { value: 'Sửa lại công' } });
+    const again = screen.getAllByText('hrm:timesheet.period.unlockButton');
+    fireEvent.click(again[again.length - 1]);
+    expect(mockUnlockMutate).toHaveBeenCalledTimes(1);
+    expect(mockUnlockMutate.mock.calls[0][0]).toEqual({ month: '2026-10', reason: 'Sửa lại công' });
   });
 });

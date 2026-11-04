@@ -12,14 +12,16 @@ import {
   verifyFace,
   createAttendanceAdjustment,
   createCalendarEvent,
+  createLeaveAdjustment,
   createLeaveRequest,
   createOvertimeRequest,
   deleteCalendarEvent,
+  deleteTimesheetEntry,
+  extractPendingConflict,
   fetchAllAttendance,
   fetchApprovedAttendanceAdjustments,
-  fetchApprovedLeaveRequests,
-  fetchApprovedOvertimeRequests,
   fetchCalendarEvents,
+  fetchLeaveAdjustments,
   fetchLeavePolicy,
   fetchLeaveRequestsForUser,
   fetchMyAttendance,
@@ -30,19 +32,31 @@ import {
   fetchPendingAttendanceAdjustments,
   fetchPendingLeaveRequests,
   fetchPendingOvertimeRequests,
+  fetchTimesheet,
+  fetchTimesheetExceptions,
+  fetchTimesheetUser,
+  fetchWorkSchedule,
+  fetchWorkingDays,
+  lockTimesheetPeriod,
   rejectAttendanceAdjustment,
   rejectLeaveRequest,
   rejectOvertimeRequest,
+  unlockTimesheetPeriod,
   updateCalendarEvent,
   updateLeavePolicy,
+  updateWorkSchedule,
+  upsertTimesheetEntry,
 } from './api';
 import type {
   CalendarEventPayload,
   CreateAttendanceAdjustmentPayload,
+  CreateLeaveAdjustmentPayload,
   CreateLeaveRequestPayload,
   CreateOvertimeRequestPayload,
   UpdateLeavePolicyPayload,
+  UpsertTimesheetEntryPayload,
 } from './api';
+import type { TimesheetExceptionType, WorkSchedule } from '@/types';
 import type { CheckInLocation } from './components/CheckInCamera';
 import { describeFaceResult } from './face-result';
 
@@ -189,16 +203,6 @@ export function usePendingLeaveRequestsQuery() {
   });
 }
 
-/** 16/10/2026: Danh sach don nghi phep da duyet (APPROVED) toan to chuc - gate qua enabled de tranh 403 cho Employee. */
-export function useApprovedLeaveRequestsQuery(options?: { enabled?: boolean }) {
-  return useQuery({
-    queryKey: ['leave-requests', 'approved'],
-    queryFn: () => fetchApprovedLeaveRequests(),
-    retry: false,
-    enabled: options?.enabled,
-  });
-}
-
 /**
  * 03/10/2026: lich su nghi phep DAY DU (khong loc status) cua 1 nhan vien cu the - dung boi
  * LeaveRequestDetailPage.tsx (/leave-requests/:userId, CHI Manager/Org Admin). Mirror
@@ -233,6 +237,8 @@ export function useApproveLeaveRequest() {
     mutationFn: (id: string) => approveLeaveRequest(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
+      // 04/11/2026: duyet don doi bang cong, so du phep va danh sach ngoai le do may chu tinh.
+      queryClient.invalidateQueries({ queryKey: ['timesheets'] });
       toast.success(t('hrm:toasts.approveLeaveRequestSuccess'));
     },
     onError: (error) => toast.error(t('hrm:toasts.approveLeaveRequestError'), extractErrorMessage(error)),
@@ -246,6 +252,7 @@ export function useRejectLeaveRequest() {
     mutationFn: (id: string) => rejectLeaveRequest(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['timesheets'] });
       toast.success(t('hrm:toasts.rejectLeaveRequestSuccess'));
     },
     onError: (error) => toast.error(t('hrm:toasts.rejectLeaveRequestError'), extractErrorMessage(error)),
@@ -259,6 +266,7 @@ export function useCancelLeaveRequest() {
     mutationFn: (id: string) => cancelLeaveRequest(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['timesheets'] });
       toast.success(t('hrm:toasts.cancelLeaveRequestSuccess'));
     },
     onError: (error) => toast.error(t('hrm:toasts.cancelLeaveRequestError'), extractErrorMessage(error)),
@@ -312,6 +320,7 @@ export function useApproveAttendanceAdjustment() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attendance-adjustments'] });
       queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['timesheets'] });
       toast.success(t('hrm:extensions.adjustment.successApprove'));
     },
     onError: (error) => toast.error(t('hrm:extensions.adjustment.errorApprove'), extractErrorMessage(error)),
@@ -346,15 +355,6 @@ export function usePendingOvertimeRequestsQuery() {
   });
 }
 
-/** 403 la ket qua BINH THUONG cho Employee - dung boi MonthlyTimesheetTable.tsx de tinh otHours that. */
-export function useApprovedOvertimeRequestsQuery() {
-  return useQuery({
-    queryKey: ['overtime-requests', 'approved'],
-    queryFn: () => fetchApprovedOvertimeRequests(),
-    retry: false,
-  });
-}
-
 export function useCreateOvertimeRequest() {
   const queryClient = useQueryClient();
   const { t } = useTranslation();
@@ -375,6 +375,7 @@ export function useApproveOvertimeRequest() {
     mutationFn: (id: string) => approveOvertimeRequest(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['overtime-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['timesheets'] });
       toast.success(t('hrm:extensions.overtime.successApprove'));
     },
     onError: (error) => toast.error(t('hrm:extensions.overtime.errorApprove'), extractErrorMessage(error)),
@@ -407,6 +408,9 @@ export function useCreateCalendarEvent() {
     mutationFn: (payload: CalendarEventPayload) => createCalendarEvent(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      // 04/11/2026: ngay le/ngay lam bu doi so ngay lam viec va bang cong.
+      queryClient.invalidateQueries({ queryKey: ['work-calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['timesheets'] });
       toast.success(t('hrm:toasts.calendarEventCreated'));
     },
     onError: (error) => toast.error(t('hrm:toasts.calendarEventCreateFailed'), extractErrorMessage(error)),
@@ -420,6 +424,9 @@ export function useUpdateCalendarEvent() {
     mutationFn: ({ id, payload }: { id: string; payload: Partial<CalendarEventPayload> }) => updateCalendarEvent(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      // 04/11/2026: ngay le/ngay lam bu doi so ngay lam viec va bang cong.
+      queryClient.invalidateQueries({ queryKey: ['work-calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['timesheets'] });
       toast.success(t('hrm:toasts.calendarEventUpdated'));
     },
     onError: (error) => toast.error(t('hrm:toasts.calendarEventUpdateFailed'), extractErrorMessage(error)),
@@ -433,8 +440,151 @@ export function useDeleteCalendarEvent() {
     mutationFn: (id: string) => deleteCalendarEvent(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      // 04/11/2026: ngay le/ngay lam bu doi so ngay lam viec va bang cong.
+      queryClient.invalidateQueries({ queryKey: ['work-calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['timesheets'] });
       toast.success(t('hrm:toasts.calendarEventDeleted'));
     },
     onError: (error) => toast.error(t('hrm:toasts.calendarEventDeleteFailed'), extractErrorMessage(error)),
+  });
+}
+
+// 04/11/2026: so ngay lam viec theo lich cong ty cho khoang ngay (form don nghi). Chi goi khi du 2 ngay
+// hop le; loi khong chan form (giao dien lui ve dem thu 2-6).
+export function useWorkingDaysQuery(startDate: string, endDate: string) {
+  return useQuery({
+    queryKey: ['work-calendar', 'working-days', startDate, endDate],
+    queryFn: () => fetchWorkingDays(startDate, endDate),
+    enabled: Boolean(startDate) && Boolean(endDate) && endDate >= startDate,
+    retry: false,
+  });
+}
+
+export function useWorkScheduleQuery(options?: { enabled?: boolean }) {
+  return useQuery({ queryKey: ['work-calendar', 'schedule'], queryFn: () => fetchWorkSchedule(), enabled: options?.enabled });
+}
+
+export function useUpdateWorkSchedule() {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: (payload: WorkSchedule) => updateWorkSchedule(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['work-calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['timesheets'] });
+      queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
+      toast.success(t('hrm:workSchedule.saveSuccess'));
+    },
+    onError: (error) => toast.error(t('hrm:workSchedule.saveError'), extractErrorMessage(error)),
+  });
+}
+
+// 04/11/2026: dieu chinh so du phep (ORG_MANAGE). Danh sach theo (userId, year); chi tai khi da chon nguoi.
+export function useLeaveAdjustmentsQuery(userId: string, year: number) {
+  return useQuery({
+    queryKey: ['leave-requests', 'adjustments', userId, year],
+    queryFn: () => fetchLeaveAdjustments(userId, year),
+    enabled: Boolean(userId),
+  });
+}
+
+export function useCreateLeaveAdjustment() {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: (payload: CreateLeaveAdjustmentPayload) => createLeaveAdjustment(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
+      toast.success(t('hrm:leaveRequestsPage.balance.adjust.success'));
+    },
+    onError: (error) => toast.error(t('hrm:leaveRequestsPage.balance.adjust.error'), extractErrorMessage(error)),
+  });
+}
+
+// 04/11/2026: bang cong thang do may chu tinh. 403 (khong co ATTENDANCE_VIEW) khong retry. keepPreviousData
+// de doi thang khong lam trang nhap nhay trang.
+export function useTimesheetQuery(month: string) {
+  return useQuery({
+    queryKey: ['timesheets', 'month', month],
+    queryFn: () => fetchTimesheet(month),
+    retry: false,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useTimesheetUserQuery(userId: string, month: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['timesheets', 'user', userId, month],
+    queryFn: () => fetchTimesheetUser(userId, month),
+    enabled: (options?.enabled ?? true) && Boolean(userId),
+    retry: false,
+  });
+}
+
+export function useTimesheetExceptionsQuery(params: { month: string; type?: TimesheetExceptionType; page: number; limit: number }) {
+  return useQuery({
+    queryKey: ['timesheets', 'exceptions', params],
+    queryFn: () => fetchTimesheetExceptions(params),
+    retry: false,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useUpsertTimesheetEntry() {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: (payload: UpsertTimesheetEntryPayload) => upsertTimesheetEntry(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timesheets'] });
+      toast.success(t('hrm:timesheetDetail.saveSuccess'));
+    },
+    onError: (error) => toast.error(t('hrm:timesheetDetail.saveError'), extractErrorMessage(error)),
+  });
+}
+
+export function useDeleteTimesheetEntry() {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: ({ userId, workDate }: { userId: string; workDate: string }) => deleteTimesheetEntry(userId, workDate),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timesheets'] });
+      toast.success(t('hrm:timesheetDetail.removeSuccess'));
+    },
+    onError: (error) => toast.error(t('hrm:timesheetDetail.removeError'), extractErrorMessage(error)),
+  });
+}
+
+/**
+ * 04/11/2026: khoa ky cong. 409 TIMESHEET_PERIOD_HAS_PENDING la luong BINH THUONG (con don dang cho) - khong
+ * toast loi o day, MonthlyTimesheetTable doc so don qua extractPendingConflict() roi hoi xac nhan `force`.
+ */
+export function useLockTimesheetPeriod() {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: ({ month, force }: { month: string; force?: boolean }) => lockTimesheetPeriod(month, force),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timesheets'] });
+      toast.success(t('hrm:timesheet.period.lockSuccess'));
+    },
+    onError: (error) => {
+      if (extractPendingConflict(error)) return;
+      toast.error(t('hrm:timesheet.period.lockError'), extractErrorMessage(error));
+    },
+  });
+}
+
+export function useUnlockTimesheetPeriod() {
+  const queryClient = useQueryClient();
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: ({ month, reason }: { month: string; reason: string }) => unlockTimesheetPeriod(month, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['timesheets'] });
+      toast.success(t('hrm:timesheet.period.unlockSuccess'));
+    },
+    onError: (error) => toast.error(t('hrm:timesheet.period.unlockError'), extractErrorMessage(error)),
   });
 }

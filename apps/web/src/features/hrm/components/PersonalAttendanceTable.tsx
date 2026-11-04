@@ -17,7 +17,7 @@ import {
   LeaveAttendanceBadge,
   type ViewingPhotoTarget,
 } from './attendance-shared';
-import { parseLeaveReason } from './leave-shared';
+import { getLeaveDisplay } from './leave-shared';
 
 interface PersonalAttendanceRowProps {
   record: Attendance;
@@ -198,7 +198,8 @@ export function PersonalAttendanceTable({
       const e = new Date(lr.endDate);
       if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) continue;
 
-      const { rawType, leaveType } = parseLeaveReason(lr.reason, t);
+      // 04/11/2026: uu tien leaveType cua may chu (don moi khong con tien to trong reason).
+      const { rawType, leaveType } = getLeaveDisplay(lr, t);
 
       const cur = new Date(s);
       while (cur <= e) {

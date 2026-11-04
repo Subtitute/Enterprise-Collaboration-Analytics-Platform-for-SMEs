@@ -95,6 +95,7 @@
           "employee": "従業員",
           "department": "部署",
           "actualDays": "実出勤日数",
+          "paidLeaveDays": "有給日数",
           "workHours": "実労働時間",
           "lateCount": "遅刻回数",
           "missingCheckOut": "退勤未打刻",
@@ -151,7 +152,23 @@
       "saveButton": "保存",
       "cancelButton": "キャンセル",
       "policyUpdateSuccess": "休暇ポリシーを更新しました",
-      "policyUpdateError": "休暇ポリシーを更新できませんでした"
+      "policyUpdateError": "休暇ポリシーを更新できませんでした",
+      "pendingLabel": "申請中",
+      "adjustmentNote": "標準から{{days}}日調整済み",
+      "adjust": {
+        "title": "休暇残日数の調整",
+        "hint": "追加のみで、編集・削除はできません。メモは必須で、減らす場合はマイナスの日数を入力します。",
+        "selectEmployee": "社員を選択…",
+        "yearLabel": "年",
+        "daysLabel": "日数(+/-)",
+        "noteLabel": "メモ",
+        "addButton": "調整を追加",
+        "invalid": "社員、年、0 以外の日数、メモを入力してください。",
+        "success": "休暇残日数の調整を追加しました",
+        "error": "休暇残日数の調整を追加できません",
+        "listError": "調整一覧を読み込めません",
+        "empty": "この年の調整はまだありません"
+      }
     },
     "pending": {
       "cardTitle": "承認待ち（{{count}}件）",
@@ -216,7 +233,8 @@
     "viewTitle": "カレンダー項目の詳細",
     "type": {
       "HOLIDAY": "祝日",
-      "EVENT": "イベント"
+      "EVENT": "イベント",
+      "MAKEUP_WORKDAY": "振替出勤日"
     },
     "holidayHint": "全従業員がこの期間に打刻できなくなり、通知が送信されます。",
     "titleLabel": "タイトル",
@@ -231,7 +249,8 @@
     "cancel": "キャンセル",
     "create": "項目を作成",
     "saveChanges": "変更を保存",
-    "delete": "削除"
+    "delete": "削除",
+    "makeupHint": "週の休日に全社で出勤する日です。通常の勤務日として扱われます(祝日が優先されます)。"
   },
   "newLeaveRequestModal": {
     "title": "休暇申請を作成",
@@ -246,7 +265,7 @@
     "endDateLabel": "終了日",
     "totalDaysPrefix": "合計:",
     "totalDaysValue": "{{count}}日",
-    "totalDaysSuffix": "（週末を除く）",
+    "totalDaysSuffix": "(会社の勤務カレンダー基準)",
     "reasonLabel": "理由",
     "reasonPlaceholder": "休暇の理由を入力…",
     "cancelButton": "キャンセル",
@@ -258,7 +277,10 @@
       "endDateBeforeStart": "終了日を開始日より前にすることはできません",
       "missingType": "休暇の種類を選択してください",
       "missingReason": "休暇の理由を入力してください"
-    }
+    },
+    "exceedsBalance": "年次有給休暇の残日数({{remaining}}日)を超えています。サーバーで却下されます。",
+    "remainingHint": "年次有給休暇の残日数: {{remaining}}日",
+    "noWorkingDays": "この期間には会社カレンダー上の勤務日がありません。"
   },
   "checkInCamera": {
     "modalTitle": "勤怠写真を撮影",
@@ -394,7 +416,7 @@
       "submitButton": "残業申請を送信",
       "cancelButton": "キャンセル",
       "errors": {
-        "overlapOfficeHours": "残業時間は所定労働時間（08:30〜17:30）と重複して指定できません",
+        "overlapOfficeHours": "残業時間は所定労働時間（{{start}}〜{{end}}）と重複して指定できません",
         "monthlyCapExceeded": "今月の残業時間合計が労働法の上限（40時間）を超過しています",
         "hasLeaveOnDate": "この日は休暇が登録されているため残業申請できません",
         "invalidRange": "残業終了時刻は開始時刻より後である必要があります",
@@ -428,7 +450,8 @@
         "timesheet": "勤怠集計表",
         "log": "打刻ログ",
         "adjustments": "修正承認",
-        "overtime": "残業承認 (OT)"
+        "overtime": "残業承認 (OT)",
+        "exceptions": "例外"
       }
     }
   },
@@ -462,5 +485,112 @@
     "photoLoadError": "写真を読み込めません",
     "activeInfo": "登録元: {{source}} · 更新: {{date}}",
     "unknownActor": "管理者"
+  },
+  "workSchedule": {
+    "title": "会社の勤務スケジュール",
+    "openButton": "勤務スケジュール",
+    "loadError": "勤務スケジュールを読み込めません",
+    "weekdaysLabel": "週の勤務日",
+    "workStartLabel": "始業時刻",
+    "workEndLabel": "終業時刻",
+    "lateGraceLabel": "遅刻の猶予(分)",
+    "earlyGraceLabel": "早退の猶予(分)",
+    "breakLabel": "昼休み(分)",
+    "hint": "変更は、未締めの月の勤務日数・遅刻・早退・所定時間に反映されます。",
+    "errors": {
+      "noWeekday": "勤務日を 1 日以上選択してください。",
+      "timeRange": "終業時刻は始業時刻より後にしてください。",
+      "minutes": "分は 0〜240 の整数で入力してください。"
+    },
+    "saveSuccess": "勤務スケジュールを保存しました",
+    "saveError": "勤務スケジュールを保存できません"
+  },
+  "timesheet": {
+    "symbols": {
+      "X": "出勤",
+      "Q": "打刻不足",
+      "LN": "休日出勤",
+      "P": "年次有給",
+      "OM": "病欠",
+      "KL": "無給休暇",
+      "L": "祝日",
+      "V": "欠勤"
+    },
+    "unknownEmployee": "社員",
+    "loadError": "勤務表を読み込めません",
+    "manualRowHint": "手動修正した日があります",
+    "period": {
+      "status": {
+        "OPEN": "期間:未締め",
+        "LOCKED": "期間:締め済み"
+      },
+      "lockedAt": "{{date}} に締め",
+      "lockButton": "期間を締める",
+      "unlockButton": "締めを解除",
+      "forceLockButton": "このまま締める",
+      "lockConfirmTitle": "{{month}} の勤務期間を締めますか?",
+      "lockConfirmDescription": "締めると今月は確定し、解除するまで申請の承認や手動修正はできません。",
+      "pendingTitle": "未処理の申請があります",
+      "pendingDescription": "今月は休暇申請 {{leave}} 件、残業申請 {{overtime}} 件、勤怠説明 {{adjustment}} 件が未処理です。このまま締めると承認できなくなります。締めてよろしいですか?",
+      "unlockTitle": "{{month}} の勤務期間の締めを解除",
+      "reasonLabel": "解除の理由",
+      "reasonRequired": "解除の理由を入力してください",
+      "lockSuccess": "勤務期間を締めました",
+      "lockError": "勤務期間を締められません",
+      "unlockSuccess": "勤務期間の締めを解除しました",
+      "unlockError": "勤務期間の締めを解除できません"
+    }
+  },
+  "timesheetDetail": {
+    "title": "勤務詳細: {{name}} ({{month}})",
+    "loadError": "勤務詳細を読み込めません",
+    "empty": "この月の勤務データはありません",
+    "paidOfExpected": "有給日数 / 所定日数",
+    "periodStatus": "期間の状態",
+    "lockedHint": "この期間は締め済みのため手動修正できません。修正するには締めを解除してください。",
+    "columns": {
+      "date": "日付",
+      "symbol": "記号",
+      "checkIn": "出勤",
+      "checkOut": "退勤",
+      "late": "遅刻",
+      "ot": "残業",
+      "note": "メモ"
+    },
+    "minutes": "{{count}}分",
+    "manualMark": "手動修正",
+    "editButton": "修正",
+    "editTitle": "{{date}} を手動修正",
+    "symbolLabel": "記号",
+    "noteLabel": "メモ",
+    "noteRequired": "メモを入力してください",
+    "removeButton": "手動修正を取り消す",
+    "saveSuccess": "手動修正を保存しました",
+    "saveError": "手動修正を保存できません",
+    "removeSuccess": "手動修正を取り消しました",
+    "removeError": "手動修正を取り消せません"
+  },
+  "exceptions": {
+    "types": {
+      "LATE": "遅刻",
+      "EARLY_LEAVE": "早退",
+      "ABSENT": "欠勤",
+      "MISSING_CHECKOUT": "退勤打刻漏れ",
+      "NOT_CHECKED_IN": "未出勤打刻",
+      "OT_NO_ATTENDANCE": "打刻なしの残業"
+    },
+    "minutes": "{{count}}分",
+    "in": "出勤",
+    "out": "退勤",
+    "loadError": "例外一覧を読み込めません",
+    "pendingSummary": "今月の未処理: 休暇 {{leave}} 件、残業 {{overtime}} 件、勤怠説明 {{adjustment}} 件。",
+    "emptyTitle": "例外はありません",
+    "emptyDescription": "今月は異常な日がありません。",
+    "columns": {
+      "employee": "社員",
+      "date": "日付",
+      "type": "種別",
+      "detail": "詳細"
+    }
   }
 }

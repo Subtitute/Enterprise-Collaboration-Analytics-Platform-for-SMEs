@@ -5,6 +5,9 @@ import { EditIcon } from '@/components/ui/Icons';
 export interface LeaveBalanceInfo {
   year: number;
   usedDays: number;
+  // 04/11/2026: may chu tinh san (ke ca don dang cho va dieu chinh), giao dien khong tu ghep nua.
+  pendingDays: number;
+  adjustmentDays: number;
   entitledDays: number;
   seniorityBonusDays: number;
   remainingDays: number;
@@ -46,8 +49,8 @@ export const LeaveBalanceCard = React.memo(function LeaveBalanceCard({
         )}
       </div>
 
-      {/* 3 cột chỉ số: số mono ~20-24px */}
-      <div className="grid grid-cols-3 divide-x divide-border-subtle py-1 text-center">
+      {/* 4 cột chỉ số (04/11/2026: thêm Đang chờ): số mono ~20-24px */}
+      <div className="grid grid-cols-4 divide-x divide-border-subtle py-1 text-center">
         <div className="px-1.5">
           <p className="font-mono text-[22px] leading-[28px] font-medium text-text-primary tabular-nums">
             {leaveBalance.entitledDays}
@@ -65,6 +68,14 @@ export const LeaveBalanceCard = React.memo(function LeaveBalanceCard({
           </p>
         </div>
         <div className="px-1.5">
+          <p className="font-mono text-[22px] leading-[28px] font-medium text-text-primary tabular-nums">
+            {leaveBalance.pendingDays}
+          </p>
+          <p className="mt-0.5 text-[11px] font-normal text-text-secondary truncate" title={t('hrm:leaveRequestsPage.balance.pendingLabel')}>
+            {t('hrm:leaveRequestsPage.balance.pendingLabel')}
+          </p>
+        </div>
+        <div className="px-1.5">
           <p
             className={`font-mono text-[22px] leading-[28px] font-medium tabular-nums ${
               leaveBalance.remainingDays < 0 ? 'text-[#B3261E]' : 'text-text-primary'
@@ -77,6 +88,12 @@ export const LeaveBalanceCard = React.memo(function LeaveBalanceCard({
           </p>
         </div>
       </div>
+
+      {leaveBalance.adjustmentDays !== 0 && (
+        <p className="border-t border-border-subtle pt-2 text-center text-[11px] text-text-tertiary">
+          {t('hrm:leaveRequestsPage.balance.adjustmentNote', { days: leaveBalance.adjustmentDays })}
+        </p>
+      )}
 
       {leaveBalance.seniorityBonusDays > 0 && (
         <p className="border-t border-border-subtle pt-2 text-center text-[11px] text-text-tertiary">

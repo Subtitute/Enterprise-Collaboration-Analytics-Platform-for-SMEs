@@ -463,7 +463,8 @@ export interface FailedEvent {
 }
 
 // 15/09/2026: Lich cong ty (HRM-lite mo rong, theo yeu cau GVHD) - Technical_Spec.md "Lich cong ty".
-export type CalendarEventType = 'HOLIDAY' | 'EVENT';
+// 04/11/2026: them MAKEUP_WORKDAY (ngay lam bu) - ngay nghi trong tuan nhung cong ty yeu cau di lam.
+export type CalendarEventType = 'HOLIDAY' | 'EVENT' | 'MAKEUP_WORKDAY';
 
 export interface CalendarEvent {
   id: string;
@@ -546,12 +547,19 @@ export type LeaveRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 // 20/08/2026: LEAVE_REQUEST_STATUS_LABEL_VI (map tinh, chi tieng Viet) da bo - rollout i18n, dung
 // t('hrm:enums.leaveRequestStatus.'+status) qua useTranslation() thay the.
 
+// 04/11/2026: loai nghi gui rieng (khong ghep tien to vao reason nua).
+export type LeaveType = 'ANNUAL' | 'SICK' | 'UNPAID';
+
 export interface LeaveRequest {
   id: string;
   userId: string;
   startDate: string;
   endDate: string;
   reason: string;
+  // 04/11/2026: may chu tra ve loai nghi va so ngay lam viec tinh theo lich cong ty; don cu co the
+  // thieu, khi do giao dien lui ve parseLeaveReason()/calculateWorkingDays().
+  leaveType?: LeaveType;
+  workingDays?: number;
   status: LeaveRequestStatus;
   approverId?: string | null;
   decisionNote?: string | null;
@@ -732,4 +740,122 @@ export interface TopProduct {
   categoryId: string;
   unitsSold: number;
   revenue: number;
+}
+
+// 04/11/2026: bang cong do may chu tinh (hrm-service, module timesheets) - giao dien chi hien thi.
+export type TimesheetSymbol = 'X' | 'Q' | 'LN' | 'P' | 'OM' | 'KL' | 'L' | 'V';
+export const TIMESHEET_SYMBOLS: TimesheetSymbol[] = ['X', 'Q', 'LN', 'P', 'OM', 'KL', 'L', 'V'];
+export type TimesheetPeriodStatus = 'OPEN' | 'LOCKED';
+
+export interface TimesheetPeriod {
+  status: TimesheetPeriodStatus;
+  lockedAt?: string | null;
+  lockedByUserId?: string | null;
+  unlockedAt?: string | null;
+  unlockReason?: string | null;
+}
+
+export interface WorkSchedule {
+  workingWeekdays: number[]; // 0 = Chu nhat
+  workStart: string; // HH:mm
+  workEnd: string;
+  lateGraceMinutes: number;
+  earlyLeaveGraceMinutes: number;
+  breakMinutes: number;
+}
+
+export interface TimesheetRow {
+  userId: string;
+  departmentId?: string | null;
+  joinedAt?: string | null;
+  actualDays: number;
+  offDayWorkDays: number;
+  paidLeaveDays: number;
+  unpaidLeaveDays: number;
+  paidHolidayDays: number;
+  absentDays: number;
+  paidDays: number;
+  expectedDays: number;
+  totalActualHours: number;
+  totalExpectedHours: number;
+  lateCount: number;
+  earlyLeaveCount: number;
+  missingCheckOutCount: number;
+  otHours: number;
+  approvedOtHours: number;
+  hasManual: boolean;
+  isNewMember: boolean;
+  status: 'sufficient' | 'insufficient' | 'notJoined';
+}
+
+export interface TimesheetMonth {
+  month: string;
+  period: TimesheetPeriod;
+  schedule: WorkSchedule;
+  standardDays: number;
+  rows: TimesheetRow[];
+}
+
+export interface TimesheetDay {
+  date: string;
+  symbol: TimesheetSymbol | null;
+  workValue: number;
+  isWorkingDay: boolean;
+  holidayName?: string | null;
+  checkInAt?: string | null;
+  checkOutAt?: string | null;
+  workedHours: number;
+  lateMinutes: number;
+  earlyLeaveMinutes: number;
+  otHours: number;
+  isManual: boolean;
+  note?: string | null;
+}
+
+export interface TimesheetUserDetail {
+  month: string;
+  period: TimesheetPeriod;
+  summary: TimesheetRow;
+  days: TimesheetDay[];
+}
+
+export type TimesheetExceptionType = 'LATE' | 'EARLY_LEAVE' | 'ABSENT' | 'MISSING_CHECKOUT' | 'NOT_CHECKED_IN' | 'OT_NO_ATTENDANCE';
+export const TIMESHEET_EXCEPTION_TYPES: TimesheetExceptionType[] = [
+  'LATE',
+  'EARLY_LEAVE',
+  'ABSENT',
+  'MISSING_CHECKOUT',
+  'NOT_CHECKED_IN',
+  'OT_NO_ATTENDANCE',
+];
+
+export interface TimesheetPending {
+  leave: number;
+  overtime: number;
+  adjustment: number;
+}
+
+export interface TimesheetExceptionRow {
+  type: TimesheetExceptionType;
+  userId: string;
+  workDate: string;
+  minutes?: number | null;
+  checkInAt?: string | null;
+  checkOutAt?: string | null;
+  otHours?: number | null;
+}
+
+export interface TimesheetExceptions extends PaginatedResponse<TimesheetExceptionRow> {
+  counts: Record<TimesheetExceptionType, number>;
+  pending: TimesheetPending;
+}
+
+export interface LeaveBalanceAdjustment {
+  id: string;
+  userId: string;
+  year: number;
+  days: number;
+  note: string;
+  createdByUserId: string;
+  createdAt: string;
 }
