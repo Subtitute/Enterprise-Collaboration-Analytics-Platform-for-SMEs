@@ -13,6 +13,18 @@ const JPEG = Buffer.from(
 );
 const DATE = (d) => new Date(Date.now() + d * 86400000).toISOString().slice(0, 10);
 
+// 04/11/2026: don nghi gio bi chan neu khong co ngay lam viec hoac trung don, nen ngay co dinh DATE(150) co the
+// roi vao cuoi tuan hay dung don con lai. Tim ngay lam viec chua co don, tinh theo lich that cua to chuc.
+async function freeWorkday(fromOffset) {
+  const mine = list((await api('employee', 'GET', '/leave-requests/me?limit=100')).data).filter((x) => x.status !== 'REJECTED');
+  for (let offset = fromOffset; offset < fromOffset + 60; offset++) {
+    const day = DATE(offset);
+    const range = (await api('employee', 'GET', `/work-calendar/working-days?startDate=${day}&endDate=${day}`)).data;
+    if (range && range.workingDays === 1 && !mine.some((x) => x.startDate <= day && day <= x.endDate)) return day;
+  }
+  throw new Error('khong tim duoc ngay lam viec trong de tao don nghi');
+}
+
 function photoForm(extra) {
   const fd = new FormData();
   fd.append('photo', new Blob([JPEG], { type: 'image/jpeg' }), 'checkin.jpg');
@@ -58,7 +70,8 @@ function photoForm(extra) {
     check('xem so ngay phep', bal0 && typeof bal0.usedDays === 'number', JSON.stringify(bal0));
     const inv = await api('employee', 'POST', '/leave-requests', { startDate: DATE(160), endDate: DATE(150), reason: TAG });
     check('don nghi phep endDate < startDate -> 400', inv.status === 400, inv.status);
-    const lr = await api('employee', 'POST', '/leave-requests', { startDate: DATE(150), endDate: DATE(150), reason: `Việc gia đình ${TAG}` });
+    const leaveDay = await freeWorkday(150);
+    const lr = await api('employee', 'POST', '/leave-requests', { startDate: leaveDay, endDate: leaveDay, reason: `Việc gia đình ${TAG}` });
     created.leave = lr.data && lr.data.id;
     check('Employee tao don nghi phep', lr.status === 201 && lr.data.status === 'PENDING', `${lr.status} ${JSON.stringify(lr.data).slice(0, 120)}`);
     check('Employee tu duyet -> 403', (await api('employee', 'PATCH', `/leave-requests/${created.leave}/approve`, {})).status === 403);

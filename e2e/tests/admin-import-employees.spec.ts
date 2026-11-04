@@ -28,24 +28,28 @@ test('nhap nhan vien hang loat tu file Excel', async ({ page }) => {
 
   try {
     await page.getByRole('button', { name: 'Nhập từ Excel' }).click();
-    await page.locator('#import-employees-file').setInputFiles(filePath);
+    // 04/11/2026: o chon tep Excel khong con id rieng (ImportEmployeesModal co them o chon .zip anh) -
+    // chon theo accept de khong nham sang o .zip.
+    await page.locator('input[type="file"][accept=".xlsx,.xls"]').setInputFiles(filePath);
 
-    await expect(page.getByText('1 dòng hợp lệ')).toBeVisible();
-    await expect(page.getByText('1 dòng có lỗi')).toBeVisible();
+    // 04/11/2026: form nhap nay chia buoc (Tep -> Xem truoc -> Dang nhap -> Ket qua) - sang buoc Xem truoc
+    // roi moi co so dong hop le va ly do loi.
+    await page.getByRole('button', { name: 'Tiếp tục', exact: true }).click();
+    await expect(page.getByText(/Tổng 2 · Mời mới 1 · Cập nhật 0 · Cảnh báo 0 · Lỗi 1/)).toBeVisible();
     await expect(page.getByText('Thiếu họ và tên')).toBeVisible();
 
     // 24/09/2026: khong assert truc tiep vao noi dung toast - toast tu dong bien mat sau 4.5s
     // (Toast.tsx) nen de dua vao thoi diem chinh xac request hoan tat, dan den flaky. Trang thai
     // "Đã tạo" trong CHINH dong xem truoc thi ON DINH (khong tu bien mat) va phan anh dung ket qua
     // that su tu server (khong phai lac quan/optimistic).
-    await page.getByRole('button', { name: 'Nhập 1 nhân viên' }).click();
-    await expect(page.getByRole('cell', { name: 'Đã tạo' })).toBeVisible();
+    await page.getByRole('button', { name: /Nhập 1 dòng hợp lệ/ }).click();
+    await expect(page.getByText(/Hoàn tất: 1 thành công/)).toBeVisible({ timeout: 20_000 });
 
     // Modal co 2 nut cung ten hien thi "Đóng": nut X o goc (aria-label) va nut footer (chu). Nut
     // footer dung sau trong DOM -> .last().
     await page.getByRole('button', { name: 'Đóng', exact: true }).last().click();
 
-    await page.getByPlaceholder('Tìm theo tên hoặc email…').fill(email);
+    await page.getByPlaceholder('Tên, email, mã NV, SĐT…').fill(email);
     await expect(page.getByRole('row', { name: new RegExp(email) })).toBeVisible();
   } finally {
     fs.unlinkSync(filePath);

@@ -12,6 +12,8 @@ const plan = [
   ['04-documents.js'],
   ['05-crm-inventory.js'],
   ['06-analytics-messaging.js'],
+  // 04/11/2026: nghi phep theo loai, lich lam viec, ky cong - chi tren to chuc kiem thu, tu don sach.
+  ['11-timesheet.js'],
   ['07-chatbot.js', ...(withLlm ? ['employee'] : ['employee', '-'])],
   ...(withLlm ? [['08-chatbot-security.js']] : []),
 ];

@@ -45,6 +45,25 @@ function isoDateOffset(days: number): string {
 }
 
 /**
+ * 04/11/2026: don nghi gio bi chan khi khong co ngay lam viec hoac trung don cua chinh minh, nen 2 ngay co
+ * dinh (isoDateOffset(10), (11)) co the roi vao cuoi tuan hoac dung don da duyet tu lan chay truoc. Tim 1 ngay
+ * Thu 2-6 chua co don, doc qua API that. Dung lai token cua phien dang nhap tren trang (`authorization`) thay vi
+ * dang nhap them lan nua: chay ca bo test nhanh thi lan dang nhap phu nay co luc bi tu choi.
+ */
+async function freeWeekdayForLeave(page: Page, authorization: string): Promise<string> {
+  const res = await page.request.get('/api/v1/leave-requests/me?limit=100', { headers: { Authorization: authorization } });
+  expect(res.ok(), `GET /leave-requests/me tra ${res.status()}`).toBeTruthy();
+  const mine: Array<{ startDate: string; endDate: string; status: string }> = (await res.json()).data;
+  for (let offset = 10; offset < 300; offset++) {
+    const date = isoDateOffset(offset);
+    const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
+    if (weekday === 0 || weekday === 6) continue;
+    if (!mine.some((r) => r.status !== 'REJECTED' && r.startDate <= date && date <= r.endDate)) return date;
+  }
+  throw new Error('Khong tim duoc ngay lam viec trong de tao don nghi');
+}
+
+/**
  * Di qua modal "Chụp ảnh chấm công" (dung chung cho ca check-in va check-out) - doi camera gia lap
  * san sang ("Chụp ảnh" tu disabled sang enabled) roi chup + xac nhan. Modal tu dong dong sau khi
  * mutation check-in/check-out thanh cong (setCameraMode(null) trong AttendancePage.tsx), khong can
@@ -94,7 +113,9 @@ test('cham cong: check-in va check-out trong ngay, trang thai cap nhat dung', as
   if (await checkInButton.isVisible()) {
     await checkInButton.click();
     await confirmAttendancePhoto(page);
-    await expect(page.getByText('Đã vào làm lúc')).toBeVisible();
+    // 04/11/2026: the Hom nay khong con dong "Da vao lam luc"; check-in xong phai hien nhan "Da Check-in" va nut Check-out.
+    await expect(page.getByText('Đã Check-in', { exact: true })).toBeVisible();
+    await expect(checkOutButton).toBeVisible();
   }
 
   if (await checkOutButton.isVisible()) {
@@ -110,17 +131,22 @@ test('cham cong: check-in va check-out trong ngay, trang thai cap nhat dung', as
 
 test('nghi phep: tao yeu cau moi va tu duyet (Org Admin co quyen leave_request:approve)', async ({ page }) => {
   await loginAsAdmin(page);
+  const appRequest = page.waitForRequest((r) => r.url().includes('/api/v1/leave-requests') && Boolean(r.headers().authorization));
   await page.goto('/leave-requests');
+  const authorization = (await appRequest).headers().authorization;
 
   const reason = uniqueName('E2E nghi phep');
-  const startDate = isoDateOffset(10);
-  const endDate = isoDateOffset(11);
+  const startDate = await freeWeekdayForLeave(page, authorization);
+  const endDate = startDate;
 
   await page.getByRole('button', { name: 'Yêu cầu mới', exact: true }).click();
   const newRequestDialog = page.getByLabel('Tạo yêu cầu nghỉ phép');
   await newRequestDialog.getByLabel('Ngày bắt đầu').fill(startDate);
   await newRequestDialog.getByLabel('Ngày kết thúc').fill(endDate);
   await newRequestDialog.getByLabel('Lý do').fill(reason);
+  // 04/11/2026: nghi om khong tru so du - test lap lai nhieu lan khong lam het phep nam cua tai khoan E2E.
+  await newRequestDialog.getByRole('button', { name: /Nghỉ phép năm/ }).click();
+  await page.getByRole('button', { name: /Nghỉ ốm/ }).last().click();
 
   // 22/08/2026: sua loi thuc te phat hien khi chay chung ca bo e2e (khong flaky khi chay rieng file
   // nay - chi lo ra khi he thong da xu ly nhieu request/event nen tren tu cac spec khac chay truoc):

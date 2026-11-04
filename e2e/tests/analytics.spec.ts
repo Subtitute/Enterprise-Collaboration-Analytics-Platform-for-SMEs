@@ -1,5 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { loginAsAdmin } from './helpers';
+import { ensureProjectWithTasks, loginAsAdmin } from './helpers';
+
+// 04/11/2026: to chuc E2E khong co du lieu tien do du an; truoc day 2 test duoi van dat nho trang nay tu
+// chen du an mau khi it du lieu. Trang da bo du lieu gia nen test tu tao du lieu that truoc khi chay.
+let e2eProject: { id: string; name: string };
+test.beforeAll(async ({ request }) => {
+  e2eProject = await ensureProjectWithTasks(request);
+});
 
 // 22/08/2026: e2e smoke cho trang "Bao cao & Phan tich" (AnalyticsPage.tsx) - mot audit gan day
 // phat hien module Analytics/Reports chua co bat ky Playwright coverage nao. Trang nay KHONG co
@@ -134,7 +141,35 @@ test('GET /analytics/drill-down tra ve dung cau truc du lieu cho scope=departmen
 // label (van ban that su, on dinh) de chon thanh nao can bam, khong dua vao thu tu/vi tri pixel
 // cua <path>/<rect> ben trong Recharts SVG.
 test('bam vao 1 thanh trong bieu do Nhan xet AI mo dung panel drill-down', async ({ page }) => {
-  test.setTimeout(60_000); // goi API Gemini/Groq that qua Tao tom tat bao cao co the mat vai giay.
+  test.setTimeout(60_000);
+  // 04/11/2026: nhan xet AI co bo dem 30 phut va do LLM chon nen so thanh trong bieu do khong co dinh; test nay
+  // kiem tra panel drill-down (API that) nen co dinh phan nhan xet. LLM that da co kich ban 07 va
+  // ai-insights-action-plan.spec.ts kiem tra.
+  await page.route('**/api/v1/analytics/ai-insights**', (route) =>
+    route.fulfill({
+      json: {
+        range: '30d',
+        generatedAt: new Date().toISOString(),
+        insights: [
+          {
+            scope: 'project',
+            scopeId: e2eProject.id,
+            severity: 'warning',
+            metric: 'completionRate',
+            headline: 'Tiến độ cần theo dõi',
+            detail: 'Dữ liệu cố định của kiểm thử',
+            recommendation: null,
+            actionPlan: null,
+            evidence: { value: 40, comparisonValue: null, unit: 'percent' },
+          },
+        ],
+        candidates: [
+          { scope: 'organization', scopeId: null, completionRate: 60 },
+          { scope: 'project', scopeId: e2eProject.id, completionRate: 40 },
+        ],
+      },
+    }),
+  );
   await loginAsAdmin(page);
   await page.goto('/analytics');
 

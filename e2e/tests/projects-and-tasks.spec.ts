@@ -10,9 +10,11 @@ test('tao du an, tao cong viec, doi trang thai va thay cot Kanban cap nhat dung'
 
   const projectName = uniqueName('Du an E2E');
   await page.goto('/projects');
-  await page.getByRole('button', { name: 'Dự án mới' }).click();
+  // 04/11/2026: nut mo form nay ten "Tao du an" (projects.json newProject); nut gui nam trong dialog
+  // cung ten nen phai gioi han trong dialog, neu khong se khop ca nut o dau trang.
+  await page.getByRole('button', { name: 'Tạo dự án' }).first().click();
   await page.getByLabel('Tên dự án').fill(projectName);
-  await page.getByRole('button', { name: 'Tạo dự án', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Tạo dự án', exact: true }).click();
 
   const projectCard = page.getByText(projectName, { exact: true });
   await expect(projectCard).toBeVisible();

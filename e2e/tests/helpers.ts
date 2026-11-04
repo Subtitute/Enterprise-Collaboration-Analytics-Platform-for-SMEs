@@ -1,4 +1,5 @@
-import type { Page } from '@playwright/test';
+import { expect } from '@playwright/test';
+import type { APIRequestContext, Page } from '@playwright/test';
 
 // 25/09/2026: tai khoan Org Admin cua to chuc E2E RIENG (`npm run seed:e2e`, xem
 // scripts/seed-e2e.js) - KHONG con dung to chuc demo mac dinh (admin@demo-sme.vn) nhu truoc day.
@@ -21,6 +22,39 @@ export async function loginAsAdmin(page: Page) {
   // khop CA 2 nut (nut submit form that su + nut demo). Them exact:true de chi lay nut submit.
   await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
   await page.waitForURL('**/dashboard');
+}
+
+/**
+ * 04/11/2026: tao 1 du an co 2 cong viec qua API that cho to chuc E2E, roi cho su kien toi bang phan
+ * tich (Outbox doc moi 2,5 giay, nen cho toi da 20 giay) - dung cho cac test can so lieu tien do du an.
+ */
+export async function ensureProjectWithTasks(request: APIRequestContext) {
+  const login = await request.post('/api/v1/auth/login', { data: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD } });
+  expect(login.ok()).toBeTruthy();
+  const body = await login.json();
+  const headers = { Authorization: `Bearer ${body.accessToken ?? body.tokens?.accessToken}` };
+
+  const created = await request.post('/api/v1/projects', { headers, data: { name: uniqueName('Du an phan tich E2E') } });
+  expect(created.ok()).toBeTruthy();
+  const project = await created.json();
+  for (const title of ['Cong viec 1', 'Cong viec 2']) {
+    const task = await request.post('/api/v1/tasks', { headers, data: { projectId: project.id, title: uniqueName(title) } });
+    expect(task.ok()).toBeTruthy();
+  }
+
+  await expect
+    .poll(
+      async () => {
+        const res = await request.get('/api/v1/analytics/project-progress', { headers, params: { range: '30d' } });
+        if (!res.ok()) return false;
+        const json = await res.json();
+        const rows: { projectId: string }[] = Array.isArray(json) ? json : (json.data ?? []);
+        return rows.some((row) => row.projectId === project.id);
+      },
+      { timeout: 20_000, intervals: [1_000] },
+    )
+    .toBeTruthy();
+  return project as { id: string; name: string };
 }
 
 /** Ten/email duy nhat theo lan chay - tranh trung du lieu giua nhieu lan chay E2E lien tiep. */
