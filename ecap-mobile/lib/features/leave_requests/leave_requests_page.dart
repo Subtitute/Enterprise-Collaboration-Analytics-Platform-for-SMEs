@@ -85,7 +85,8 @@ class _LeaveRequestsPageState extends State<LeaveRequestsPage> {
                     (r) => Card(
                       child: ListTile(
                         title: Text('${formatDateVi(r.startDate)} → ${formatDateVi(r.endDate)}'),
-                        subtitle: Text(r.reason),
+                        subtitle: Text('${leaveTypeLabelVi(r.leaveType)}\n${r.reason}'),
+                        isThreeLine: true,
                         trailing: Chip(
                           label: Text(leaveRequestStatusLabelVi(r.status)),
                           backgroundColor: _statusColor(r.status).withValues(alpha: 0.15),
@@ -114,6 +115,7 @@ class _NewLeaveRequestDialogState extends State<_NewLeaveRequestDialog> {
   DateTime? _startDate;
   DateTime? _endDate;
   final _reasonController = TextEditingController();
+  String _leaveType = leaveTypeDefault;
   bool _submitting = false;
   String? _errorMessage;
 
@@ -148,6 +150,7 @@ class _NewLeaveRequestDialogState extends State<_NewLeaveRequestDialog> {
         'startDate': _startDate!.toIso8601String().split('T').first,
         'endDate': _endDate!.toIso8601String().split('T').first,
         'reason': _reasonController.text.trim(),
+        'leaveType': _leaveType,
       });
       if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (e) {
@@ -182,6 +185,15 @@ class _NewLeaveRequestDialogState extends State<_NewLeaveRequestDialog> {
             title: Text(_endDate == null ? 'Chọn ngày kết thúc' : formatDateVi(_endDate!.toIso8601String())),
             trailing: const Icon(Icons.calendar_today),
             onTap: () => _pickDate(isStart: false),
+          ),
+          // 04/11/2026: chon loai nghi (mac dinh phep nam) - server dung de tinh so du / kiem tra trung ngay.
+          DropdownButtonFormField<String>(
+            initialValue: _leaveType,
+            decoration: const InputDecoration(labelText: 'Loại nghỉ'),
+            items: [
+              for (final e in leaveTypeLabelsVi.entries) DropdownMenuItem(value: e.key, child: Text(e.value)),
+            ],
+            onChanged: (v) => setState(() => _leaveType = v ?? leaveTypeDefault),
           ),
           TextField(
             controller: _reasonController,

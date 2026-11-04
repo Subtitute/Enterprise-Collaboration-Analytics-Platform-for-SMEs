@@ -6,6 +6,7 @@ import '../../core/auth_session.dart';
 import '../../core/date_format.dart';
 import '../../core/user_directory.dart';
 import '../../models/conversation.dart';
+import '../../models/leave_request.dart';
 import '../../models/message.dart';
 import 'leave_detection.dart';
 
@@ -304,6 +305,7 @@ class _LeaveQuickCreateSheet extends StatefulWidget {
 class _LeaveQuickCreateSheetState extends State<_LeaveQuickCreateSheet> {
   late DateTime _date;
   late final TextEditingController _reasonController;
+  String _leaveType = leaveTypeDefault;
   bool _submitting = false;
   String? _errorMessage;
 
@@ -346,6 +348,7 @@ class _LeaveQuickCreateSheetState extends State<_LeaveQuickCreateSheet> {
         'startDate': dateStr,
         'endDate': dateStr,
         'reason': _reasonController.text.trim(),
+        'leaveType': _leaveType,
       });
       if (mounted) Navigator.of(context).pop(true);
     } on ApiException catch (e) {
@@ -382,6 +385,15 @@ class _LeaveQuickCreateSheetState extends State<_LeaveQuickCreateSheet> {
             title: Text(formatDateVi(_date.toIso8601String())),
             trailing: const Icon(Icons.calendar_today),
             onTap: _pickDate,
+          ),
+          // 04/11/2026: chon loai nghi (mac dinh phep nam) - server dung de tinh so du / kiem tra trung ngay.
+          DropdownButtonFormField<String>(
+            initialValue: _leaveType,
+            decoration: const InputDecoration(labelText: 'Loại nghỉ'),
+            items: [
+              for (final e in leaveTypeLabelsVi.entries) DropdownMenuItem(value: e.key, child: Text(e.value)),
+            ],
+            onChanged: (v) => setState(() => _leaveType = v ?? leaveTypeDefault),
           ),
           TextField(
             controller: _reasonController,
