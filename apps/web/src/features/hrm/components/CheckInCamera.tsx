@@ -237,12 +237,14 @@ export function CheckInCamera({
               <Button type="button" variant="secondary" onClick={handleRetake}>
                 <RefreshIcon className="h-4 w-4" /> {t('hrm:checkInCamera.retakeButton')}
               </Button>
-              <Button type="button" variant="primary" onClick={handleConfirm} isLoading={isSubmitting}>
+              {/* 29/10/2026: Gắn data-testid theo yêu cầu của Thành (Viec 2) */}
+              <Button type="button" variant="primary" data-testid="checkin-confirm-button" onClick={handleConfirm} isLoading={isSubmitting}>
                 {confirmLabel ?? t(confirmKey)}
               </Button>
             </>
           ) : (
-            <Button type="button" variant="primary" onClick={handleCapture} disabled={status !== 'ready'}>
+            /* 29/10/2026: Gắn data-testid theo yêu cầu của Thành (Viec 2) */
+            <Button type="button" variant="primary" data-testid="checkin-capture-button" onClick={handleCapture} disabled={status !== 'ready'}>
               <CameraIcon className="h-4 w-4" /> {t(captureKey)}
             </Button>
           )}
@@ -272,8 +274,10 @@ export function CheckInCamera({
           {previewUrl ? (
             <img src={previewUrl} alt={t(previewAltKey)} className="h-full w-full object-cover" />
           ) : (
+            /* 29/10/2026: Gắn data-testid theo yêu cầu của Thành (Viec 2) */
             <video
               ref={videoRef}
+              data-testid="checkin-camera-video"
               className={status === 'ready' ? 'h-full w-full object-cover' : 'hidden'}
               muted
               playsInline

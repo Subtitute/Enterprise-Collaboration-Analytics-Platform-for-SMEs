@@ -192,8 +192,10 @@ export function ChatbotThread({ conversationId, onConversationCreated, onBusyCha
 
       <div className="shrink-0 border-t border-border-subtle bg-white p-3">
         <div className="flex items-end gap-2">
+          {/* 29/10/2026: Gắn data-testid theo yêu cầu của Thành (Viec 2) */}
           <Textarea
             ref={inputRef}
+            data-testid="chatbot-input"
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
@@ -206,6 +208,7 @@ export function ChatbotThread({ conversationId, onConversationCreated, onBusyCha
           />
           <button
             type="button"
+            data-testid="chatbot-send-button"
             onClick={() => void submit(input)}
             disabled={!input.trim() || isBusy}
             aria-label={t('chatbot:thread.send')}
@@ -256,7 +259,8 @@ function AssistantBubble({
   const toolNames = [...new Set(message.toolCalls.map((call) => call.name))];
   return (
     <div className="flex justify-start">
-      <div className="max-w-[92%] space-y-1.5">
+      {/* 29/10/2026: Gắn data-testid theo yêu cầu của Thành (Viec 2) */}
+      <div data-testid="chatbot-message-assistant" className="max-w-[92%] space-y-1.5">
         <div className="rounded-[12px] rounded-bl-[4px] bg-bg-subtle px-3 py-2 text-[13px] leading-[20px] text-text-primary">
           <ChatbotAnswer content={message.content} />
         </div>

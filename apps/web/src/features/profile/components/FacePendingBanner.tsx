@@ -26,9 +26,11 @@ export function FacePendingBanner({ className }: { className?: string }) {
     document.getElementById(FACE_SECTION_ID)?.scrollIntoView({ behavior: 'smooth' });
   }
 
+  // 29/10/2026: Gắn data-testid theo yêu cầu của Thành (Viec 2)
   return (
     <div
       role="status"
+      data-testid="face-consent-banner"
       className={cn(
         'flex flex-col gap-2 rounded-radius-md border border-warning/30 bg-warning-soft px-4 py-3 text-[13px] text-text-primary sm:flex-row sm:items-center sm:justify-between',
         className,

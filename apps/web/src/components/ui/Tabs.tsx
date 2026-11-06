@@ -5,6 +5,7 @@ export interface TabItem {
   value: string;
   label: string;
   count?: number;
+  testId?: string;
 }
 
 interface TabsProps {
@@ -19,11 +20,13 @@ export const Tabs = memo(function Tabs({ tabs, value, onChange, className }: Tab
     <div className={cn('flex items-center gap-1 border-b border-slate-200', className)} role="tablist">
       {tabs.map((tab) => {
         const active = tab.value === value;
+        // 29/10/2026: Gắn data-testid theo yêu cầu của Thành (Viec 2)
         return (
           <button
             key={tab.value}
             role="tab"
             aria-selected={active}
+            data-testid={tab.testId}
             onClick={() => onChange(tab.value)}
             className={cn(
               '-mb-px flex items-center gap-1.5 border-b-2 px-3.5 py-2.5 text-sm transition-colors',

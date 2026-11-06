@@ -108,8 +108,10 @@ export function ProductsPage() {
               <SettingsIcon className="h-3.5 w-3.5" />
               <span>{t('inventory:productsPage.manageCategories')}</span>
             </button>
+            {/* 29/10/2026: Gắn data-testid theo yêu cầu của Thành (Viec 2) */}
             <button
               type="button"
+              data-testid="create-product-button"
               onClick={() => setIsNewOpen(true)}
               className="inline-flex items-center justify-center gap-1.5 h-9 px-3.5 rounded-radius-sm bg-[#1C1B1A] hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer"
             >
@@ -163,6 +165,7 @@ export function ProductsPage() {
               canManage && (
                 <button
                   type="button"
+                  data-testid="create-product-button"
                   onClick={() => setIsNewOpen(true)}
                   className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-radius-sm bg-text-primary hover:bg-black text-white text-[13px] font-medium transition-colors cursor-pointer"
                 >

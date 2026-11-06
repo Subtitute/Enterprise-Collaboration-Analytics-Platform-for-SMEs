@@ -150,10 +150,11 @@ export function WarehousePage() {
       </div>
 
       <div className="space-y-3">
+        {/* 29/10/2026: Gắn data-testid theo yêu cầu của Thành (Viec 2) */}
         <Tabs
           tabs={[
-            { value: 'stock', label: t('inventory:warehousePage.tabs.stock') },
-            { value: 'movements', label: t('inventory:warehousePage.tabs.movements') },
+            { value: 'stock', label: t('inventory:warehousePage.tabs.stock'), testId: 'inventory-warehouses-tab' },
+            { value: 'movements', label: t('inventory:warehousePage.tabs.movements'), testId: 'inventory-stock-movements-tab' },
           ]}
           value={tab}
           onChange={(v) => setTab(v as 'stock' | 'movements')}

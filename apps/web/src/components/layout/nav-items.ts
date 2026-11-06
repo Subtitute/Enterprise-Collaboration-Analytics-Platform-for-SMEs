@@ -22,6 +22,8 @@ export interface NavItem {
    *  xac dinh active (Sidebar.tsx) VA de AppShell.tsx quyet dinh khi nao hien SecondarySidebar.tsx.
    *  Khong co nghia la route moi, chi la cach gop ve mat dieu huong tren cac route DA CO SAN. */
   matchPrefixes?: string[];
+  /** 29/10/2026: Gắn data-testid theo yêu cầu của Thành (Viec 2) */
+  testId?: string;
 }
 
 /** 03/10/2026: 4 route duoc gop chung sau icon "Trang chủ" (xem NavItem.matchPrefixes o tren va
@@ -59,6 +61,7 @@ export const HOME_SUB_NAV_ITEMS: NavItem[] = [
   // 15/10/2026: Inventory Service (Technical_Spec.md muc 22) - danh muc san pham + kho hang.
   // Khong requiredPermission vi PRODUCT_VIEW/WAREHOUSE_VIEW duoc cap cho CA 3 vai tro (mirror
   // CUSTOMER_VIEW ngay tren) - thao tac quan ly (tao/sua/xoa) tu an/hien nut trong tung trang.
-  { to: '/products', labelKey: 'common:nav.homeNav.products', icon: PackageIcon },
-  { to: '/warehouse', labelKey: 'common:nav.homeNav.warehouse', icon: WarehouseIcon },
+  // 29/10/2026: Gắn data-testid theo yêu cầu của Thành (Viec 2)
+  { to: '/products', labelKey: 'common:nav.homeNav.products', icon: PackageIcon, testId: 'inventory-products-tab' },
+  { to: '/warehouse', labelKey: 'common:nav.homeNav.warehouse', icon: WarehouseIcon, testId: 'inventory-warehouses-tab' },
 ];

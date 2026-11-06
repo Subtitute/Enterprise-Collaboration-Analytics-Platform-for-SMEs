@@ -46,8 +46,10 @@ export function FaceMatchBadge({ matched, score }: { matched?: boolean | null; s
   const percent = score != null ? toFacePercent(score) : null;
   const threshold = toFacePercent(DEFAULT_FACE_MATCH_THRESHOLD);
   const titleKey = matched ? 'hrm:attendancePage.faceMatchBadge.matchedTitle' : 'hrm:attendancePage.faceMatchBadge.notMatchedTitle';
+  // 29/10/2026: Gắn data-testid theo yêu cầu của Thành (Viec 2)
   return (
     <span
+      data-testid="face-verify-badge"
       className={`inline-flex items-center gap-1 text-[11px] font-semibold whitespace-nowrap shrink-0 ${matched ? 'text-emerald-600' : 'text-amber-600'}`}
       title={t(titleKey, { percent: percent ?? '—', threshold })}
     >

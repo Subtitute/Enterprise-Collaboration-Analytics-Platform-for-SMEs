@@ -83,6 +83,8 @@ export function ChatbotWidget() {
           id={CHATBOT_PANEL_ID}
           role="dialog"
           aria-label={t('chatbot:panel.title')}
+          // 29/10/2026: Gắn data-testid theo yêu cầu của Thành (Viec 2)
+          data-testid="chatbot-drawer"
           // tabIndex -1: bam vao vung KHONG focus duoc trong panel (vd nen tin nhan) giu focus o panel thay
           // vi roi ve <body> - neu khong, Esc (handleKeyDown) se khong con nhan duoc su kien.
           tabIndex={-1}
@@ -101,9 +103,11 @@ export function ChatbotWidget() {
           </Suspense>
         </div>
       )}
+      {/* 29/10/2026: Gắn data-testid theo yêu cầu của Thành (Viec 2) */}
       <button
         ref={launcherRef}
         type="button"
+        data-testid="chatbot-toggle-button"
         onClick={() => {
           setHasOpened(true);
           setOpen((value) => !value);

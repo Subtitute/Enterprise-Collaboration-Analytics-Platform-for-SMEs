@@ -159,6 +159,7 @@ function SidebarLinks({ collapsed, onNavigate, isMobile = false }: SidebarConten
                     <NavLink
                       key={subItem.to}
                       to={subItem.to}
+                      data-testid={subItem.testId}
                       onClick={onNavigate}
                       aria-current={isSubActive ? 'page' : undefined}
                       className={() =>

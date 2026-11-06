@@ -87,8 +87,10 @@ export const ProfileInfoCard = memo(function ProfileInfoCard({ user, departmentN
 
             <FormField label={t('profile:page.fields.phone')} htmlFor="profile-phone" error={phoneError}>
               <div className="relative">
+                {/* 29/10/2026: Gắn data-testid theo yêu cầu của Thành (Viec 2) */}
                 <Input
                   id="profile-phone"
+                  data-testid="edit-phone-input"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   placeholder={t('profile:page.fields.phonePlaceholder')}

@@ -43,7 +43,8 @@ export function FaceConsentDialog({
           <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
             {t('hrm:face.consent.cancel')}
           </Button>
-          <Button type="button" onClick={onAgree} disabled={!checked} isLoading={isLoading}>
+          {/* 29/10/2026: Gắn data-testid theo yêu cầu của Thành (Viec 2) */}
+          <Button type="button" data-testid="face-consent-agree-button" onClick={onAgree} disabled={!checked} isLoading={isLoading}>
             {t('hrm:face.consent.agree')}
           </Button>
         </div>

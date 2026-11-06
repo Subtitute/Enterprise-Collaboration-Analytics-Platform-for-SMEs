@@ -37,6 +37,7 @@ export function SecondarySidebar() {
             <NavLink
               key={item.to}
               to={item.to}
+              data-testid={item.testId}
               aria-current={isActive ? 'page' : undefined}
               className={() =>
                 cn(

@@ -204,7 +204,8 @@ export function MembersPage() {
               </div>
 
               <div className="hidden md:block overflow-x-auto">
-                <Table className="border-0 min-w-[760px]">
+                {/* 29/10/2026: Gắn data-testid theo yêu cầu của Thành (Viec 2) */}
+                <Table data-testid="employee-directory-table" className="border-0 min-w-[760px]">
                   <TableHead className="bg-bg-subtle border-b border-border-subtle">
                     <tr className="h-10">
                       <TableHeadCell className={headCell}>{t('admin:membersPage.columns.member')}</TableHeadCell>

@@ -130,7 +130,8 @@ export function EmployeeProfileDrawer({
                 <Input id="emp-name" value={fullName} onChange={(e) => setFullName(e.target.value)} readOnly={!canManageUsers} />
               </FormField>
               <FormField label={t('admin:employeeDrawer.phone')} htmlFor="emp-phone" error={errors.phoneNumber}>
-                <Input id="emp-phone" value={phone} onChange={(e) => setPhone(e.target.value)} readOnly={!canManageUsers} inputMode="tel" className="font-mono" />
+                {/* 29/10/2026: Gắn data-testid theo yêu cầu của Thành (Viec 2) */}
+                <Input id="emp-phone" data-testid="edit-phone-input" value={phone} onChange={(e) => setPhone(e.target.value)} readOnly={!canManageUsers} inputMode="tel" className="font-mono" />
               </FormField>
               <div className="text-[13px] text-text-secondary sm:pt-6">
                 {t('admin:employeeDrawer.departmentRole', { department: departmentName, role: roleLabel })}
